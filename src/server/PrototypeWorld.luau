@@ -486,14 +486,14 @@ function PrototypeWorld.start()
 	local driftActive = false
 	local debugElapsed = 0
 
-	local function setDriftActive(active: boolean)
+	local function setDriftActive(active: boolean, reason: string)
 		if driftActive == active then
 			return
 		end
 		driftActive = active
 		kart:SetAttribute("KartDrifting", active)
 		if KartConfig.DEBUG_TELEMETRY then
-			print(if active then "[KartDrift] START" else "[KartDrift] END")
+			print(string.format("[KartDrift] %s reason=%s", if active then "START" else "END", reason))
 		end
 	end
 
@@ -538,7 +538,7 @@ function PrototypeWorld.start()
 			commandedSpeed = 0
 			smoothedSteering = 0
 			currentYawRate = 0
-			setDriftActive(false)
+			setDriftActive(false, "fall")
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			return
@@ -552,7 +552,8 @@ function PrototypeWorld.start()
 		local player = occupant and Players:GetPlayerFromCharacter(occupant.Parent)
 		local control = player and controls[player]
 		local inputAge = if control then now - control.lastUpdate else nil
-		if control and inputAge and inputAge <= KartConfig.INPUT_TIMEOUT then
+		local hasValidInput = control ~= nil and inputAge ~= nil and inputAge <= KartConfig.INPUT_TIMEOUT
+		if control and hasValidInput then
 			throttle = control.throttle
 			steering = control.steering
 			driftRequested = control.driftRequested
@@ -568,12 +569,47 @@ function PrototypeWorld.start()
 		local planarVelocity = Vector3.new(assemblyVelocity.X, 0, assemblyVelocity.Z)
 		local actualForwardSpeed = planarVelocity:Dot(forward)
 		local lateralSpeed = planarVelocity:Dot(right)
+		local driftForwardSpeed = math.max(actualForwardSpeed, 0)
+
+		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
+		local absoluteSteering = math.abs(smoothedSteering)
+		if driftActive then
+			if not occupant then
+				setDriftActive(false, "no_occupant")
+			elseif not hasValidInput then
+				setDriftActive(false, "input_timeout")
+			elseif not driftRequested then
+				setDriftActive(false, "shift_release")
+			elseif commandedSpeed <= 0 or actualForwardSpeed < 0 then
+				setDriftActive(false, "reverse")
+			elseif driftForwardSpeed < KartConfig.DRIFT_EXIT_SPEED then
+				setDriftActive(false, "speed_below_exit")
+			elseif absoluteSteering < KartConfig.DRIFT_EXIT_STEER then
+				setDriftActive(false, "steer_below_exit")
+			end
+		elseif occupant
+			and hasValidInput
+			and driftRequested
+			and commandedSpeed > 0
+			and driftForwardSpeed >= KartConfig.DRIFT_MIN_SPEED
+			and absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
+		then
+			setDriftActive(true, "entry")
+		end
+
+		local forwardTargetSpeed = if driftActive then KartConfig.DRIFT_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
 
 		if throttle > 0 then
 			if commandedSpeed < 0 then
 				commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.BRAKE_FORCE * throttle * deltaTime)
+			elseif driftActive and commandedSpeed > forwardTargetSpeed then
+				commandedSpeed = moveToward(
+					commandedSpeed,
+					forwardTargetSpeed,
+					KartConfig.DRIFT_SPEED_DECELERATION * deltaTime
+				)
 			else
-				commandedSpeed = moveToward(commandedSpeed, KartConfig.MAX_FORWARD_SPEED, KartConfig.ACCELERATION * throttle * deltaTime)
+				commandedSpeed = moveToward(commandedSpeed, forwardTargetSpeed, KartConfig.ACCELERATION * throttle * deltaTime)
 			end
 		elseif throttle < 0 then
 			if commandedSpeed > 0 then
@@ -586,24 +622,6 @@ function PrototypeWorld.start()
 		end
 
 		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, KartConfig.MAX_FORWARD_SPEED)
-		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
-
-		local absoluteSteering = math.abs(smoothedSteering)
-		local shouldDrift = false
-		if occupant and driftRequested and commandedSpeed > 0 then
-			if driftActive then
-				shouldDrift = commandedSpeed >= KartConfig.DRIFT_EXIT_SPEED
-					and absoluteSteering >= KartConfig.DRIFT_EXIT_STEER
-			else
-				shouldDrift = commandedSpeed >= KartConfig.DRIFT_MIN_SPEED
-					and absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
-			end
-		end
-		setDriftActive(shouldDrift)
-
-		if driftActive and commandedSpeed > 0 then
-			commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.DRIFT_SPEED_DRAG * deltaTime)
-		end
 
 		local effectiveGrip = if driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
 		lateralSpeed *= math.exp(-effectiveGrip * deltaTime)
@@ -637,7 +655,7 @@ function PrototypeWorld.start()
 				local ageText = if inputAge then string.format("%.2f", inputAge) else "none"
 				local rootPart = chassis.AssemblyRootPart
 				print(string.format(
-					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f driftReq=%s drift=%s cmdSpeed=%.1f actualSpeed=%.1f lateral=%.1f slip=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
+					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f driftReq=%s drift=%s cmdSpeed=%.1f actualSpeed=%.1f speedTarget=%.1f lateral=%.1f slip=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
 					throttle,
 					steering,
 					smoothedSteering,
@@ -645,6 +663,7 @@ function PrototypeWorld.start()
 					tostring(driftActive),
 					commandedSpeed,
 					actualForwardSpeed,
+					forwardTargetSpeed,
 					lateralSpeed,
 					slipAngleDegrees,
 					targetYawRate,
