@@ -14,7 +14,7 @@ type ControlState = {
 }
 
 local WORLD = {
-	GROUND_SIZE = Vector3.new(4096, 1, 4096),
+	GROUND_SIZE = Vector3.new(2048, 1, 2048),
 	CHASSIS_SIZE = Vector3.new(6, 1, 8),
 	CHASSIS_CLEARANCE = 1.75,
 	KART_START = Vector3.new(-350, 0, 410),
