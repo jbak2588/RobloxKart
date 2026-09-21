@@ -34,6 +34,18 @@ local TRACK = {
 	MEDIUM_CORNER_CENTER = Vector2.new(110, 200),
 	MEDIUM_CORNER_RADIUS = 100,
 	BRAKE_END = Vector2.new(210, -260),
+	START_FINISH = Vector2.new(-350, 440),
+	CLOSURE_SOUTH_END = Vector2.new(210, -560),
+	CLOSURE_CORNER_1_CENTER = Vector2.new(70, -560),
+	CLOSURE_BOTTOM_START = Vector2.new(70, -700),
+	CLOSURE_BOTTOM_END = Vector2.new(-550, -700),
+	CLOSURE_CORNER_2_CENTER = Vector2.new(-550, -560),
+	CLOSURE_WEST_START = Vector2.new(-690, -560),
+	CLOSURE_WEST_END = Vector2.new(-690, 450),
+	CLOSURE_CORNER_3_CENTER = Vector2.new(-550, 450),
+	CLOSURE_TOP_START = Vector2.new(-550, 590),
+	CLOSURE_TOP_END = Vector2.new(-490, 590),
+	CLOSURE_CORNER_4_CENTER = Vector2.new(-490, 450),
 }
 
 local function createPart(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3): Part
@@ -86,6 +98,10 @@ local function createHandlingTestCourse(prototype: Folder, groundTop: number): n
 	local markerFolder = Instance.new("Folder")
 	markerFolder.Name = "Markers"
 	markerFolder.Parent = testTrack
+
+	local raceTriggerFolder = Instance.new("Folder")
+	raceTriggerFolder.Name = "RaceTriggers"
+	raceTriggerFolder.Parent = testTrack
 
 	local roadY = groundTop + TRACK.SURFACE_OFFSET
 	local partCount = 0
@@ -210,17 +226,52 @@ local function createHandlingTestCourse(prototype: Folder, groundTop: number): n
 		label.Parent = billboard
 	end
 
+	local function createRaceGate(
+		name: string,
+		position: Vector2,
+		direction: Vector3,
+		gateType: string,
+		checkpointIndex: number?
+	)
+		local gatePosition = point2To3(position, groundTop + 8)
+		local gate = createPart(
+			raceTriggerFolder,
+			name,
+			Vector3.new(80, 20, 20),
+			CFrame.lookAt(gatePosition, gatePosition + direction),
+			Color3.new(1, 1, 1)
+		)
+		gate.Anchored = true
+		gate.CanCollide = false
+		gate.CanTouch = false
+		gate.CanQuery = false
+		gate.Transparency = 1
+		gate:SetAttribute("RaceGate", true)
+		gate:SetAttribute("GateType", gateType)
+		if checkpointIndex then
+			gate:SetAttribute("CheckpointIndex", checkpointIndex)
+		end
+	end
+
 	addStraight("Main", TRACK.MAIN_START, TRACK.MAIN_END)
 	addArc("LargeCorner", TRACK.LARGE_CORNER_CENTER, TRACK.LARGE_CORNER_RADIUS, math.pi, math.pi, 28)
 	addStraight("Return", Vector2.new(10, -300), TRACK.RETURN_END)
 	addArc("MediumCorner", TRACK.MEDIUM_CORNER_CENTER, TRACK.MEDIUM_CORNER_RADIUS, math.pi, -math.pi, 20)
 	addStraight("Brake", Vector2.new(210, 200), TRACK.BRAKE_END)
+	addStraight("ClosureSouth", TRACK.BRAKE_END, TRACK.CLOSURE_SOUTH_END)
+	addArc("ClosureCorner1", TRACK.CLOSURE_CORNER_1_CENTER, 140, 0, -math.pi / 2, 10)
+	addStraight("ClosureBottom", TRACK.CLOSURE_BOTTOM_START, TRACK.CLOSURE_BOTTOM_END)
+	addArc("ClosureCorner2", TRACK.CLOSURE_CORNER_2_CENTER, 140, -math.pi / 2, -math.pi / 2, 10)
+	addStraight("ClosureWest", TRACK.CLOSURE_WEST_START, TRACK.CLOSURE_WEST_END)
+	addArc("ClosureCorner3", TRACK.CLOSURE_CORNER_3_CENTER, 140, math.pi, -math.pi / 2, 10)
+	addStraight("ClosureTop", TRACK.CLOSURE_TOP_START, TRACK.CLOSURE_TOP_END)
+	addArc("ClosureCorner4", TRACK.CLOSURE_CORNER_4_CENTER, 140, math.pi / 2, -math.pi / 2, 10)
 
 	createVisualPart(
 		markingFolder,
 		"StartLine",
 		Vector3.new(TRACK.ROAD_WIDTH, 0.03, 3),
-		CFrame.new(point2To3(TRACK.MAIN_START, roadY + 0.025)),
+		CFrame.new(point2To3(TRACK.START_FINISH, roadY + 0.025)),
 		white,
 		nil
 	)
@@ -276,7 +327,16 @@ local function createHandlingTestCourse(prototype: Folder, groundTop: number): n
 		end
 	end
 
+	createRaceGate("StartFinish", TRACK.START_FINISH, Vector3.new(0, 0, -1), "StartFinish", nil)
+	createRaceGate("Checkpoint1", Vector2.new(-350, 100), Vector3.new(0, 0, -1), "Checkpoint", 1)
+	createRaceGate("Checkpoint2", Vector2.new(10, 0), Vector3.new(0, 0, 1), "Checkpoint", 2)
+	createRaceGate("Checkpoint3", Vector2.new(210, 0), Vector3.new(0, 0, -1), "Checkpoint", 3)
+	createRaceGate("Checkpoint4", Vector2.new(-250, -700), Vector3.new(-1, 0, 0), "Checkpoint", 4)
+	createRaceGate("Checkpoint5", Vector2.new(-690, 0), Vector3.new(0, 0, 1), "Checkpoint", 5)
+	createRaceGate("Checkpoint6", Vector2.new(-520, 590), Vector3.new(1, 0, 0), "Checkpoint", 6)
+
 	testTrack:SetAttribute("VisualPartCount", partCount)
+	testTrack:SetAttribute("CheckpointCount", 6)
 	return partCount
 end
 
@@ -296,6 +356,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	local kart = Instance.new("Model")
 	kart.Name = "Kart"
 	kart:SetAttribute("PrototypeKart", true)
+	kart:SetAttribute("RaceResetSerial", 0)
 
 	local chassis = createPart(kart, "Chassis", WORLD.CHASSIS_SIZE, spawnCFrame, Color3.fromRGB(220, 45, 45))
 	chassis.Anchored = false
@@ -439,6 +500,8 @@ function PrototypeWorld.start()
 				fallPosition.Y,
 				fallPosition.Z
 			))
+			local resetSerial = kart:GetAttribute("RaceResetSerial")
+			kart:SetAttribute("RaceResetSerial", if type(resetSerial) == "number" then resetSerial + 1 else 1)
 			kart:PivotTo(spawnCFrame)
 			commandedSpeed = 0
 			smoothedSteering = 0
