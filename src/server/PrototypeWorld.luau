@@ -360,13 +360,29 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 
 	local chassis = createPart(kart, "Chassis", WORLD.CHASSIS_SIZE, spawnCFrame, Color3.fromRGB(220, 45, 45))
 	chassis.Anchored = false
+	chassis.CanCollide = true
+	chassis.Massless = false
+	chassis.Transparency = 1
 	chassis.RootPriority = 127
 	chassis.CustomPhysicalProperties = PhysicalProperties.new(1, 0.05, 0, 1, 1)
+
+	local bodyShell = createPart(
+		kart,
+		"BodyShell",
+		Vector3.new(6.2, 1.2, 8.2),
+		spawnCFrame * CFrame.new(0, 0.7, 0),
+		Color3.fromRGB(220, 45, 45)
+	)
+	bodyShell.Anchored = false
+	bodyShell.CanCollide = false
+	bodyShell.CanTouch = false
+	bodyShell.Massless = true
+	weldToChassis(chassis, bodyShell)
 
 	local seat = Instance.new("Seat")
 	seat.Name = "Seat"
 	seat.Size = Vector3.new(2.5, 1, 2.5)
-	seat.CFrame = spawnCFrame * CFrame.new(0, 1, 0.5)
+	seat.CFrame = spawnCFrame * CFrame.new(0, 1.5, 0.5)
 	seat.Color = Color3.fromRGB(35, 35, 40)
 	seat.TopSurface = Enum.SurfaceType.Smooth
 	seat.BottomSurface = Enum.SurfaceType.Smooth
@@ -376,15 +392,16 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	weldToChassis(chassis, seat)
 
 	local wheelOffsets = {
-		Vector3.new(-3.1, -0.35, -2.5),
-		Vector3.new(3.1, -0.35, -2.5),
-		Vector3.new(-3.1, -0.35, 2.5),
-		Vector3.new(3.1, -0.35, 2.5),
+		Vector3.new(-3.35, 0.55, -2.7),
+		Vector3.new(3.35, 0.55, -2.7),
+		Vector3.new(-3.35, 0.55, 2.7),
+		Vector3.new(3.35, 0.55, 2.7),
 	}
 	for index, offset in wheelOffsets do
-		local wheel = createPart(kart, `Wheel{index}`, Vector3.new(0.8, 1.8, 1.8), spawnCFrame * CFrame.new(offset), Color3.fromRGB(25, 25, 25))
+		local wheel = createPart(kart, `Wheel{index}`, Vector3.new(0.9, 2, 2), spawnCFrame * CFrame.new(offset), Color3.fromRGB(25, 25, 25))
 		wheel.Shape = Enum.PartType.Cylinder
 		wheel.CanCollide = false
+		wheel.CanTouch = false
 		wheel.Massless = true
 		weldToChassis(chassis, wheel)
 	end
