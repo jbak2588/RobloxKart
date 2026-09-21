@@ -10,6 +10,7 @@ local PrototypeWorld = {}
 type ControlState = {
 	throttle: number,
 	steering: number,
+	driftRequested: boolean,
 	lastUpdate: number,
 }
 
@@ -356,6 +357,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	local kart = Instance.new("Model")
 	kart.Name = "Kart"
 	kart:SetAttribute("PrototypeKart", true)
+	kart:SetAttribute("KartDrifting", false)
 	kart:SetAttribute("RaceResetSerial", 0)
 
 	local chassis = createPart(kart, "Chassis", WORLD.CHASSIS_SIZE, spawnCFrame, Color3.fromRGB(220, 45, 45))
@@ -481,9 +483,21 @@ function PrototypeWorld.start()
 	local commandedSpeed = 0
 	local smoothedSteering = 0
 	local currentYawRate = 0
+	local driftActive = false
 	local debugElapsed = 0
 
-	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown)
+	local function setDriftActive(active: boolean)
+		if driftActive == active then
+			return
+		end
+		driftActive = active
+		kart:SetAttribute("KartDrifting", active)
+		if KartConfig.DEBUG_TELEMETRY then
+			print(if active then "[KartDrift] START" else "[KartDrift] END")
+		end
+	end
+
+	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
 		if type(throttle) ~= "number" or type(steering) ~= "number" then
 			return
 		end
@@ -500,6 +514,7 @@ function PrototypeWorld.start()
 		controls[player] = {
 			throttle = math.clamp(throttle, -1, 1),
 			steering = math.clamp(steering, -1, 1),
+			driftRequested = if type(driftRequested) == "boolean" then driftRequested else false,
 			lastUpdate = time(),
 		}
 	end)
@@ -523,6 +538,7 @@ function PrototypeWorld.start()
 			commandedSpeed = 0
 			smoothedSteering = 0
 			currentYawRate = 0
+			setDriftActive(false)
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			return
@@ -531,6 +547,7 @@ function PrototypeWorld.start()
 		local now = time()
 		local throttle = 0
 		local steering = 0
+		local driftRequested = false
 		local occupant = seat.Occupant
 		local player = occupant and Players:GetPlayerFromCharacter(occupant.Parent)
 		local control = player and controls[player]
@@ -538,6 +555,7 @@ function PrototypeWorld.start()
 		if control and inputAge and inputAge <= KartConfig.INPUT_TIMEOUT then
 			throttle = control.throttle
 			steering = control.steering
+			driftRequested = control.driftRequested
 		end
 
 		local lookVector = chassis.CFrame.LookVector
@@ -568,11 +586,30 @@ function PrototypeWorld.start()
 		end
 
 		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, KartConfig.MAX_FORWARD_SPEED)
-		lateralSpeed *= math.exp(-KartConfig.LATERAL_GRIP * deltaTime)
+		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
+
+		local absoluteSteering = math.abs(smoothedSteering)
+		local shouldDrift = false
+		if occupant and driftRequested and commandedSpeed > 0 then
+			if driftActive then
+				shouldDrift = commandedSpeed >= KartConfig.DRIFT_EXIT_SPEED
+					and absoluteSteering >= KartConfig.DRIFT_EXIT_STEER
+			else
+				shouldDrift = commandedSpeed >= KartConfig.DRIFT_MIN_SPEED
+					and absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
+			end
+		end
+		setDriftActive(shouldDrift)
+
+		if driftActive and commandedSpeed > 0 then
+			commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.DRIFT_SPEED_DRAG * deltaTime)
+		end
+
+		local effectiveGrip = if driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
+		lateralSpeed *= math.exp(-effectiveGrip * deltaTime)
 		local verticalSpeed = assemblyVelocity.Y
 		chassis.AssemblyLinearVelocity = forward * commandedSpeed + right * lateralSpeed + Vector3.new(0, verticalSpeed, 0)
 
-		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
 		local targetYawRate = 0
 		if math.abs(commandedSpeed) >= KartConfig.MIN_STEERING_SPEED then
 			local absoluteSpeed = math.abs(commandedSpeed)
@@ -581,9 +618,17 @@ function PrototypeWorld.start()
 				+ (KartConfig.TURN_RADIUS_HIGH_SPEED - KartConfig.TURN_RADIUS_LOW_SPEED) * speedRatio
 			local direction = if commandedSpeed >= 0 then 1 else -1
 			targetYawRate = -smoothedSteering * (absoluteSpeed / turnRadius) * direction
+			if driftActive then
+				targetYawRate *= KartConfig.DRIFT_YAW_MULTIPLIER
+			end
 		end
 		currentYawRate = moveToward(currentYawRate, targetYawRate, KartConfig.YAW_ACCELERATION * deltaTime)
 		chassis.AssemblyAngularVelocity = Vector3.new(0, currentYawRate, 0)
+
+		local slipAngleDegrees = 0
+		if math.abs(actualForwardSpeed) >= 1 then
+			slipAngleDegrees = math.deg(math.atan2(lateralSpeed, math.abs(actualForwardSpeed)))
+		end
 
 		if KartConfig.DEBUG_TELEMETRY and occupant then
 			debugElapsed += deltaTime
@@ -592,13 +637,16 @@ function PrototypeWorld.start()
 				local ageText = if inputAge then string.format("%.2f", inputAge) else "none"
 				local rootPart = chassis.AssemblyRootPart
 				print(string.format(
-					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f cmdSpeed=%.1f actualSpeed=%.1f lateral=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
+					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f driftReq=%s drift=%s cmdSpeed=%.1f actualSpeed=%.1f lateral=%.1f slip=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
 					throttle,
 					steering,
 					smoothedSteering,
+					tostring(driftRequested),
+					tostring(driftActive),
 					commandedSpeed,
 					actualForwardSpeed,
 					lateralSpeed,
+					slipAngleDegrees,
 					targetYawRate,
 					currentYawRate,
 					ageText,

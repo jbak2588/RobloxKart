@@ -14,6 +14,7 @@ local keyDown = {
 	[Enum.KeyCode.S] = false,
 	[Enum.KeyCode.A] = false,
 	[Enum.KeyCode.D] = false,
+	[Enum.KeyCode.LeftShift] = false,
 }
 
 local function isDrivingPrototypeKart(): boolean
@@ -35,23 +36,30 @@ function KartInputController.start()
 	local remoteEvent = ReplicatedStorage:WaitForChild(KartConfig.REMOTE_EVENT_NAME) :: RemoteEvent
 	local lastThrottle = 0
 	local lastSteering = 0
+	local lastDriftRequested = false
 	local timeSinceSend = KartConfig.INPUT_SEND_INTERVAL
 	local wasDriving = false
 
 	local function sendInput(force: boolean)
 		local driving = isDrivingPrototypeKart()
 		local throttle, steering = getInputAxes()
+		local driftRequested = keyDown[Enum.KeyCode.LeftShift] == true
 
 		if not driving then
 			throttle = 0
 			steering = 0
+			driftRequested = false
 		end
 
-		local changed = throttle ~= lastThrottle or steering ~= lastSteering or driving ~= wasDriving
+		local changed = throttle ~= lastThrottle
+			or steering ~= lastSteering
+			or driftRequested ~= lastDriftRequested
+			or driving ~= wasDriving
 		if changed or (force and driving) then
-			remoteEvent:FireServer(throttle, steering)
+			remoteEvent:FireServer(throttle, steering, driftRequested)
 			lastThrottle = throttle
 			lastSteering = steering
+			lastDriftRequested = driftRequested
 			wasDriving = driving
 			timeSinceSend = 0
 		end
