@@ -14,7 +14,7 @@ type ControlState = {
 }
 
 local WORLD = {
-	GROUND_SIZE = Vector3.new(512, 1, 512),
+	GROUND_SIZE = Vector3.new(4096, 1, 4096),
 	CHASSIS_SIZE = Vector3.new(6, 1, 8),
 	CHASSIS_CLEARANCE = 1.75,
 	PLAYER_SPAWN_OFFSET = Vector3.new(12, 0.5, 0),
@@ -150,6 +150,7 @@ function PrototypeWorld.start()
 	local controls: { [Player]: ControlState } = {}
 	local commandedSpeed = 0
 	local smoothedSteering = 0
+	local currentYawRate = 0
 	local debugElapsed = 0
 
 	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown)
@@ -179,9 +180,17 @@ function PrototypeWorld.start()
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		if chassis.Position.Y < KartConfig.FALL_RESET_Y then
+			local fallPosition = chassis.Position
+			print(string.format(
+				"[KartReset] reason=fall x=%.1f y=%.1f z=%.1f",
+				fallPosition.X,
+				fallPosition.Y,
+				fallPosition.Z
+			))
 			kart:PivotTo(spawnCFrame)
 			commandedSpeed = 0
 			smoothedSteering = 0
+			currentYawRate = 0
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			return
@@ -232,15 +241,17 @@ function PrototypeWorld.start()
 		chassis.AssemblyLinearVelocity = forward * commandedSpeed + right * lateralSpeed + Vector3.new(0, verticalSpeed, 0)
 
 		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
-		local turnRate = 0
+		local targetYawRate = 0
 		if math.abs(commandedSpeed) >= KartConfig.MIN_STEERING_SPEED then
-			local speedRatio = math.clamp(math.abs(commandedSpeed) / KartConfig.MAX_FORWARD_SPEED, 0, 1)
-			local steeringRate = KartConfig.STEERING_RATE_LOW
-				+ (KartConfig.STEERING_RATE_HIGH - KartConfig.STEERING_RATE_LOW) * speedRatio
+			local absoluteSpeed = math.abs(commandedSpeed)
+			local speedRatio = math.clamp(absoluteSpeed / KartConfig.MAX_FORWARD_SPEED, 0, 1)
+			local turnRadius = KartConfig.TURN_RADIUS_LOW_SPEED
+				+ (KartConfig.TURN_RADIUS_HIGH_SPEED - KartConfig.TURN_RADIUS_LOW_SPEED) * speedRatio
 			local direction = if commandedSpeed >= 0 then 1 else -1
-			turnRate = -smoothedSteering * steeringRate * direction
+			targetYawRate = -smoothedSteering * (absoluteSpeed / turnRadius) * direction
 		end
-		chassis.AssemblyAngularVelocity = Vector3.new(0, turnRate, 0)
+		currentYawRate = moveToward(currentYawRate, targetYawRate, KartConfig.YAW_ACCELERATION * deltaTime)
+		chassis.AssemblyAngularVelocity = Vector3.new(0, currentYawRate, 0)
 
 		if KartConfig.DEBUG_TELEMETRY and occupant then
 			debugElapsed += deltaTime
@@ -249,14 +260,15 @@ function PrototypeWorld.start()
 				local ageText = if inputAge then string.format("%.2f", inputAge) else "none"
 				local rootPart = chassis.AssemblyRootPart
 				print(string.format(
-					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f cmdSpeed=%.1f actualSpeed=%.1f lateral=%.1f yaw=%.2f inputAge=%s occupant=true root=%s",
+					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f cmdSpeed=%.1f actualSpeed=%.1f lateral=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
 					throttle,
 					steering,
 					smoothedSteering,
 					commandedSpeed,
 					actualForwardSpeed,
 					lateralSpeed,
-					turnRate,
+					targetYawRate,
+					currentYawRate,
 					ageText,
 					if rootPart then rootPart.Name else "none"
 				))
