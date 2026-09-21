@@ -1,0 +1,11 @@
+# Roblox Studio / Rojo generated files
+RobloxKart.rbxlx
+RobloxKart.rbxlx.lock
+*.test.rbxlx
+
+# Generated Rojo artifacts
+sourcemap.json
+
+# OS temporary files
+Thumbs.db
+.DS_Store
