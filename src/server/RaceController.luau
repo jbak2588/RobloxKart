@@ -1,6 +1,12 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local requireModule = require :: (ModuleScript) -> any
+local KartConfig = requireModule(Shared:WaitForChild("KartConfig") :: ModuleScript)
+local RaceConfig = requireModule(Shared:WaitForChild("RaceConfig") :: ModuleScript)
 
 local RaceController = {}
 
@@ -9,11 +15,15 @@ local MIN_GATE_SPEED = 1
 local started = false
 
 local function initializePlayerAttributes(player: Player, checkpointCount: number)
+	player:SetAttribute("RaceState", "IDLE")
+	player:SetAttribute("RaceCountdown", 0)
 	player:SetAttribute("RaceCurrentLap", 1)
 	player:SetAttribute("RaceCompletedLaps", 0)
+	player:SetAttribute("RaceTotalLaps", RaceConfig.TOTAL_LAPS)
 	player:SetAttribute("RaceNextCheckpoint", 1)
 	player:SetAttribute("RaceLastLapTime", 0)
 	player:SetAttribute("RaceBestLapTime", 0)
+	player:SetAttribute("RaceFinalTime", 0)
 	player:SetAttribute("RaceCheckpointCount", checkpointCount)
 end
 
@@ -23,6 +33,19 @@ local function isInsideGate(gate: BasePart, worldPosition: Vector3): boolean
 	return math.abs(localPosition.X) <= halfSize.X
 		and math.abs(localPosition.Y) <= halfSize.Y
 		and math.abs(localPosition.Z) <= halfSize.Z
+end
+
+local function isInsideRoadCorridor(roadParts: { BasePart }, worldPosition: Vector3): boolean
+	for _, roadPart in roadParts do
+		local localPosition = roadPart.CFrame:PointToObjectSpace(worldPosition)
+		local halfSize = roadPart.Size * 0.5
+		if math.abs(localPosition.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
+			and math.abs(localPosition.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
+		then
+			return true
+		end
+	end
+	return false
 end
 
 local function isMovingThroughGate(chassis: BasePart, gate: BasePart): boolean
@@ -41,6 +64,11 @@ local function isMovingThroughGate(chassis: BasePart, gate: BasePart): boolean
 	return planarVelocity.Unit:Dot(planarGateLook.Unit) > DIRECTION_THRESHOLD
 end
 
+local function planarDistance(first: Vector3, second: Vector3): number
+	local delta = second - first
+	return Vector2.new(delta.X, delta.Z).Magnitude
+end
+
 function RaceController.start()
 	if started then
 		return
@@ -57,13 +85,20 @@ function RaceController.start()
 		chassis = kart:WaitForChild("Chassis") :: BasePart
 	end
 	local testTrack = prototype:WaitForChild("TestTrack")
+	local roadFolder = testTrack:WaitForChild("Road")
 	local raceTriggers = testTrack:WaitForChild("RaceTriggers")
 	local checkpointCountAttribute = testTrack:GetAttribute("CheckpointCount")
 	local checkpointCount = if type(checkpointCountAttribute) == "number" then checkpointCountAttribute else 0
 
 	local gates: { BasePart } = {}
+	local roadParts: { BasePart } = {}
 	local startFinish: BasePart? = nil
 	local checkpoints: { [number]: BasePart } = {}
+	for _, child in roadFolder:GetChildren() do
+		if child:IsA("BasePart") then
+			table.insert(roadParts, child)
+		end
+	end
 	for _, child in raceTriggers:GetChildren() do
 		if child:IsA("BasePart") and child:GetAttribute("RaceGate") == true then
 			table.insert(gates, child)
@@ -78,8 +113,8 @@ function RaceController.start()
 		end
 	end
 
-	if not startFinish or checkpointCount < 1 then
-		warn("[Race] Race triggers are incomplete")
+	if not startFinish or checkpointCount < 1 or #roadParts < 1 then
+		warn("[Race] Track geometry or race triggers are incomplete")
 		return
 	end
 	for checkpointIndex = 1, checkpointCount do
@@ -89,6 +124,19 @@ function RaceController.start()
 		end
 	end
 
+	local startFinishGate = startFinish :: BasePart
+	local orderedGates: { BasePart } = { startFinishGate }
+	for checkpointIndex = 1, checkpointCount do
+		table.insert(orderedGates, checkpoints[checkpointIndex] :: BasePart)
+	end
+	table.insert(orderedGates, startFinishGate)
+	local minimumPathDistance = 0
+	for index = 1, #orderedGates - 1 do
+		minimumPathDistance += planarDistance(orderedGates[index].Position, orderedGates[index + 1].Position)
+	end
+	local theoreticalMinimum = minimumPathDistance / KartConfig.MINI_BOOST_MAX_SPEED
+	local minimumValidLapTime = theoreticalMinimum * RaceConfig.MIN_LAP_TIME_SAFETY_FACTOR
+
 	for _, player in Players:GetPlayers() do
 		initializePlayerAttributes(player, checkpointCount)
 	end
@@ -96,43 +144,141 @@ function RaceController.start()
 		initializePlayerAttributes(player, checkpointCount)
 	end)
 
+	local remoteEvent = ReplicatedStorage:FindFirstChild(RaceConfig.CONTROL_REMOTE_EVENT_NAME)
+	if not remoteEvent or not remoteEvent:IsA("RemoteEvent") then
+		if remoteEvent then
+			remoteEvent:Destroy()
+		end
+		remoteEvent = Instance.new("RemoteEvent")
+		remoteEvent.Name = RaceConfig.CONTROL_REMOTE_EVENT_NAME
+		remoteEvent.Parent = ReplicatedStorage
+	end
+	local raceRemote = remoteEvent :: RemoteEvent
+
 	local activePlayer: Player? = nil
+	local raceStartTime = 0
 	local lapStartTime = 0
+	local countdownEndTime = 0
+	local lastCountdownValue = 0
 	local lastResetSerial = kart:GetAttribute("RaceResetSerial")
 	local insideGate: { [BasePart]: boolean } = {}
+	local offTrackSampleElapsed = 0
+	local offTrackElapsed = 0
 
 	local function clearGateState()
 		table.clear(insideGate)
 	end
 
-	local function resetProgress(player: Player, now: number, resetLapTimes: boolean)
+	local function setRaceState(player: Player, state: string)
+		local previousState = player:GetAttribute("RaceState")
+		if previousState == state then
+			return
+		end
+		player:SetAttribute("RaceState", state)
+		print(string.format("[Race] state %s -> %s", tostring(previousState), state))
+	end
+
+	local function resetKartToStart()
+		local raceStartCFrame = kart:GetAttribute("RaceStartCFrame")
+		if typeof(raceStartCFrame) == "CFrame" then
+			kart:PivotTo(raceStartCFrame)
+		else
+			warn("[Race] RaceStartCFrame is missing")
+		end
+		chassis.AssemblyLinearVelocity = Vector3.zero
+		chassis.AssemblyAngularVelocity = Vector3.zero
+	end
+
+	local function resetRaceProgress(player: Player)
 		player:SetAttribute("RaceCurrentLap", 1)
 		player:SetAttribute("RaceCompletedLaps", 0)
+		player:SetAttribute("RaceTotalLaps", RaceConfig.TOTAL_LAPS)
 		player:SetAttribute("RaceNextCheckpoint", 1)
 		player:SetAttribute("RaceCheckpointCount", checkpointCount)
-		if resetLapTimes then
-			player:SetAttribute("RaceLastLapTime", 0)
-			player:SetAttribute("RaceBestLapTime", 0)
-		end
-		lapStartTime = now
+		player:SetAttribute("RaceLastLapTime", 0)
+		player:SetAttribute("RaceBestLapTime", 0)
+		player:SetAttribute("RaceFinalTime", 0)
+		raceStartTime = 0
+		lapStartTime = 0
+		offTrackSampleElapsed = 0
+		offTrackElapsed = 0
 		clearGateState()
 	end
 
+	local function beginCountdown(player: Player, now: number)
+		kart:SetAttribute("RaceControlsLocked", true)
+		resetKartToStart()
+		resetRaceProgress(player)
+		countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
+		lastCountdownValue = RaceConfig.COUNTDOWN_SECONDS
+		player:SetAttribute("RaceCountdown", lastCountdownValue)
+		setRaceState(player, "COUNTDOWN")
+		print(string.format("[Race] countdown=%d", lastCountdownValue))
+	end
+
+	local function endActiveRace(player: Player)
+		player:SetAttribute("RaceCountdown", 0)
+		setRaceState(player, "IDLE")
+		kart:SetAttribute("RaceControlsLocked", true)
+		countdownEndTime = 0
+		raceStartTime = 0
+		lapStartTime = 0
+		offTrackSampleElapsed = 0
+		offTrackElapsed = 0
+		clearGateState()
+	end
+
+	local function invalidateCurrentLap(player: Player, now: number, reason: string)
+		local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
+		player:SetAttribute("RaceCurrentLap", math.min(completedLaps + 1, RaceConfig.TOTAL_LAPS))
+		player:SetAttribute("RaceNextCheckpoint", 1)
+		lapStartTime = now
+		offTrackSampleElapsed = 0
+		offTrackElapsed = 0
+		clearGateState()
+		print(string.format("[Race] Lap invalidated reason=%s", reason))
+	end
+
+	local function finishRace(player: Player, now: number, completedLaps: number)
+		player:SetAttribute("RaceCompletedLaps", completedLaps)
+		player:SetAttribute("RaceCurrentLap", RaceConfig.TOTAL_LAPS)
+		player:SetAttribute("RaceNextCheckpoint", 1)
+		player:SetAttribute("RaceCountdown", 0)
+		local finalTime = now - raceStartTime
+		player:SetAttribute("RaceFinalTime", finalTime)
+		kart:SetAttribute("RaceControlsLocked", true)
+		setRaceState(player, "FINISHED")
+		clearGateState()
+		local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
+		print(string.format("[Race] FINISHED total=%.2f best=%.2f", finalTime, bestLap))
+	end
+
 	local function completeLap(player: Player, now: number)
+		local lapTime = now - lapStartTime
+		if lapTime < minimumValidLapTime then
+			invalidateCurrentLap(player, now, "lap_too_fast")
+			return
+		end
+
 		local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
 		completedLaps += 1
-		local lapTime = now - lapStartTime
 		local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
 
 		player:SetAttribute("RaceCompletedLaps", completedLaps)
-		player:SetAttribute("RaceCurrentLap", completedLaps + 1)
 		player:SetAttribute("RaceNextCheckpoint", 1)
 		player:SetAttribute("RaceLastLapTime", lapTime)
 		if bestLap == 0 or lapTime < bestLap then
 			player:SetAttribute("RaceBestLapTime", lapTime)
 		end
-		lapStartTime = now
 		print(string.format("[Race] Lap %d complete: %.2fs", completedLaps, lapTime))
+
+		if completedLaps >= RaceConfig.TOTAL_LAPS then
+			finishRace(player, now, RaceConfig.TOTAL_LAPS)
+		else
+			player:SetAttribute("RaceCurrentLap", completedLaps + 1)
+			lapStartTime = now
+			clearGateState()
+		end
 	end
 
 	local function processGate(player: Player, gate: BasePart, now: number)
@@ -147,12 +293,46 @@ function RaceController.start()
 			if checkpointIndex == nextCheckpoint and checkpoints[nextCheckpoint] == gate then
 				player:SetAttribute("RaceNextCheckpoint", nextCheckpoint + 1)
 			end
-		elseif gateType == "StartFinish" and gate == startFinish and nextCheckpoint == checkpointCount + 1 then
+		elseif gateType == "StartFinish" and gate == startFinishGate and nextCheckpoint == checkpointCount + 1 then
 			completeLap(player, now)
 		end
 	end
 
-	RunService.Heartbeat:Connect(function()
+	local function sampleRoadCorridor(player: Player, now: number, deltaTime: number): boolean
+		offTrackSampleElapsed += deltaTime
+		if offTrackSampleElapsed < RaceConfig.OFF_TRACK_SAMPLE_INTERVAL then
+			return false
+		end
+
+		local sampleElapsed = offTrackSampleElapsed
+		offTrackSampleElapsed = 0
+		if isInsideRoadCorridor(roadParts, chassis.Position) then
+			offTrackElapsed = 0
+			return false
+		end
+
+		offTrackElapsed += sampleElapsed
+		if offTrackElapsed >= RaceConfig.OFF_TRACK_GRACE_SECONDS then
+			invalidateCurrentLap(player, now, "off_track")
+			return true
+		end
+		return false
+	end
+
+	raceRemote.OnServerEvent:Connect(function(player: Player, action: unknown)
+		if action ~= "Rematch" or player ~= activePlayer then
+			return
+		end
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.SeatPart ~= seat or player:GetAttribute("RaceState") ~= "FINISHED" then
+			return
+		end
+
+		print("[Race] rematch accepted")
+		beginCountdown(player, time())
+	end)
+
+	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local now = time()
 		local occupant = seat.Occupant
 		local occupantCharacter = occupant and occupant.Parent
@@ -160,25 +340,57 @@ function RaceController.start()
 			then Players:GetPlayerFromCharacter(occupantCharacter)
 			else nil
 		if occupantPlayer ~= activePlayer then
-			activePlayer = occupantPlayer
-			clearGateState()
 			if activePlayer then
-				lastResetSerial = kart:GetAttribute("RaceResetSerial")
-				resetProgress(activePlayer, now, true)
+				endActiveRace(activePlayer)
 			end
-		end
-
-		local resetSerial = kart:GetAttribute("RaceResetSerial")
-		if resetSerial ~= lastResetSerial then
-			lastResetSerial = resetSerial
+			activePlayer = occupantPlayer
+			lastResetSerial = kart:GetAttribute("RaceResetSerial")
 			if activePlayer then
-				resetProgress(activePlayer, now, false)
-				print("[Race] Progress reset after kart recovery")
+				beginCountdown(activePlayer, now)
 			end
 		end
 
 		local player = activePlayer
 		if not player then
+			return
+		end
+
+		local raceState = player:GetAttribute("RaceState")
+		if raceState == "COUNTDOWN" then
+			lastResetSerial = kart:GetAttribute("RaceResetSerial")
+			local countdownValue = math.max(math.ceil(countdownEndTime - now), 0)
+			if countdownValue ~= lastCountdownValue then
+				lastCountdownValue = countdownValue
+				player:SetAttribute("RaceCountdown", countdownValue)
+				if countdownValue > 0 then
+					print(string.format("[Race] countdown=%d", countdownValue))
+				end
+			end
+			if countdownValue <= 0 then
+				raceStartTime = now
+				lapStartTime = now
+				offTrackSampleElapsed = 0
+				offTrackElapsed = 0
+				clearGateState()
+				setRaceState(player, "RACING")
+				kart:SetAttribute("RaceControlsLocked", false)
+			end
+			return
+		end
+
+		local resetSerial = kart:GetAttribute("RaceResetSerial")
+		if resetSerial ~= lastResetSerial then
+			lastResetSerial = resetSerial
+			if raceState == "RACING" then
+				invalidateCurrentLap(player, now, "fall")
+			end
+		end
+
+		if raceState ~= "RACING" then
+			return
+		end
+
+		if sampleRoadCorridor(player, now, deltaTime) then
 			return
 		end
 
@@ -191,6 +403,8 @@ function RaceController.start()
 		end
 	end)
 
+	kart:SetAttribute("RaceControlsLocked", true)
+	print(string.format("[Race] minimumValidLapTime=%.2f", minimumValidLapTime))
 	print("[RobloxKart] Race controller ready")
 end
 

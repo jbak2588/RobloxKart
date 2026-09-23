@@ -360,6 +360,8 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("KartDrifting", false)
 	kart:SetAttribute("KartBoosting", false)
 	kart:SetAttribute("RaceResetSerial", 0)
+	kart:SetAttribute("RaceStartCFrame", spawnCFrame)
+	kart:SetAttribute("RaceControlsLocked", true)
 
 	local chassis = createPart(kart, "Chassis", WORLD.CHASSIS_SIZE, spawnCFrame, Color3.fromRGB(220, 45, 45))
 	chassis.Anchored = false
@@ -491,6 +493,7 @@ function PrototypeWorld.start()
 	local boostActive = false
 	local boostEndTime = 0
 	local boostDriver: Player? = nil
+	local raceControlsWereLocked = kart:GetAttribute("RaceControlsLocked") == true
 	local debugElapsed = 0
 
 	local function setDriftActive(active: boolean, reason: string)
@@ -594,6 +597,23 @@ function PrototypeWorld.start()
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			return
 		end
+
+		local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
+		if raceControlsLocked then
+			if not raceControlsWereLocked then
+				commandedSpeed = 0
+				smoothedSteering = 0
+				currentYawRate = 0
+				setDriftActive(false, "race_controls_locked")
+				resetDriftCharge()
+				stopBoost("race_controls_locked")
+			end
+			raceControlsWereLocked = true
+			chassis.AssemblyLinearVelocity = Vector3.zero
+			chassis.AssemblyAngularVelocity = Vector3.zero
+			return
+		end
+		raceControlsWereLocked = false
 
 		local now = time()
 		local throttle = 0

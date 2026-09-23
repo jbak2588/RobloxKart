@@ -1,4 +1,9 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local requireModule = require :: (ModuleScript) -> any
+local raceConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig") :: ModuleScript
+local RaceConfig = requireModule(raceConfigModule)
 
 local RaceHudController = {}
 
@@ -24,6 +29,12 @@ local function createLabel(parent: Instance, name: string, order: number): TextL
 	return label
 end
 
+local function addCorner(parent: Instance, radius: number)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = parent
+end
+
 function RaceHudController.start()
 	if started then
 		return
@@ -31,6 +42,7 @@ function RaceHudController.start()
 	started = true
 
 	local player = Players.LocalPlayer
+	local remoteEvent = ReplicatedStorage:WaitForChild(RaceConfig.CONTROL_REMOTE_EVENT_NAME) :: RemoteEvent
 	local playerGui = player:WaitForChild("PlayerGui")
 	local previousHud = playerGui:FindFirstChild(HUD_NAME)
 	if previousHud then
@@ -51,10 +63,7 @@ function RaceHudController.start()
 	frame.BackgroundTransparency = 0.2
 	frame.BorderSizePixel = 0
 	frame.Parent = screenGui
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = frame
+	addCorner(frame, 6)
 
 	local padding = Instance.new("UIPadding")
 	padding.PaddingTop = UDim.new(0, 8)
@@ -73,14 +82,86 @@ function RaceHudController.start()
 	local lastLabel = createLabel(frame, "Last", 3)
 	local bestLabel = createLabel(frame, "Best", 4)
 
+	local countdownLabel = Instance.new("TextLabel")
+	countdownLabel.Name = "Countdown"
+	countdownLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	countdownLabel.Position = UDim2.fromScale(0.5, 0.35)
+	countdownLabel.Size = UDim2.fromOffset(260, 140)
+	countdownLabel.BackgroundTransparency = 1
+	countdownLabel.Font = Enum.Font.GothamBlack
+	countdownLabel.TextColor3 = Color3.fromRGB(255, 225, 70)
+	countdownLabel.TextStrokeTransparency = 0.25
+	countdownLabel.TextScaled = true
+	countdownLabel.Visible = false
+	countdownLabel.Parent = screenGui
+
+	local resultsPanel = Instance.new("Frame")
+	resultsPanel.Name = "Results"
+	resultsPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+	resultsPanel.Position = UDim2.fromScale(0.5, 0.5)
+	resultsPanel.Size = UDim2.fromOffset(320, 220)
+	resultsPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
+	resultsPanel.BackgroundTransparency = 0.08
+	resultsPanel.BorderSizePixel = 0
+	resultsPanel.Visible = false
+	resultsPanel.Parent = screenGui
+	addCorner(resultsPanel, 10)
+
+	local resultsLayout = Instance.new("UIListLayout")
+	resultsLayout.Padding = UDim.new(0, 8)
+	resultsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	resultsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	resultsLayout.Parent = resultsPanel
+
+	local resultsPadding = Instance.new("UIPadding")
+	resultsPadding.PaddingTop = UDim.new(0, 18)
+	resultsPadding.PaddingBottom = UDim.new(0, 18)
+	resultsPadding.PaddingLeft = UDim.new(0, 20)
+	resultsPadding.PaddingRight = UDim.new(0, 20)
+	resultsPadding.Parent = resultsPanel
+
+	local finishLabel = createLabel(resultsPanel, "Finish", 1)
+	finishLabel.Size = UDim2.new(1, 0, 0, 36)
+	finishLabel.Text = "FINISH"
+	finishLabel.TextSize = 30
+	finishLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+	local totalLabel = createLabel(resultsPanel, "Total", 2)
+	totalLabel.TextXAlignment = Enum.TextXAlignment.Center
+	local resultsBestLabel = createLabel(resultsPanel, "Best", 3)
+	resultsBestLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+	local rematchButton = Instance.new("TextButton")
+	rematchButton.Name = "Rematch"
+	rematchButton.LayoutOrder = 4
+	rematchButton.Size = UDim2.fromOffset(180, 44)
+	rematchButton.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
+	rematchButton.BorderSizePixel = 0
+	rematchButton.Font = Enum.Font.GothamBold
+	rematchButton.Text = "REMATCH"
+	rematchButton.TextColor3 = Color3.new(1, 1, 1)
+	rematchButton.TextSize = 20
+	rematchButton.Parent = resultsPanel
+	addCorner(rematchButton, 6)
+	rematchButton.Activated:Connect(function()
+		remoteEvent:FireServer("Rematch")
+	end)
+
+	local goDisplaySerial = 0
+	local displayedRaceState = player:GetAttribute("RaceState")
 	local function updateHud()
+		local raceState = player:GetAttribute("RaceState")
+		local previousRaceState = displayedRaceState
+		displayedRaceState = raceState
 		local currentLap = getNumberAttribute(player, "RaceCurrentLap", 1)
+		local totalLaps = getNumberAttribute(player, "RaceTotalLaps", RaceConfig.TOTAL_LAPS)
 		local nextCheckpoint = getNumberAttribute(player, "RaceNextCheckpoint", 1)
 		local checkpointCount = getNumberAttribute(player, "RaceCheckpointCount", 6)
 		local lastLap = getNumberAttribute(player, "RaceLastLapTime", 0)
 		local bestLap = getNumberAttribute(player, "RaceBestLapTime", 0)
+		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
 
-		lapLabel.Text = string.format("LAP %d", currentLap)
+		lapLabel.Text = string.format("LAP %d / %d", currentLap, totalLaps)
 		if nextCheckpoint > checkpointCount then
 			checkpointLabel.Text = "CHECKPOINT FINISH"
 		else
@@ -88,14 +169,42 @@ function RaceHudController.start()
 		end
 		lastLabel.Text = if lastLap > 0 then string.format("LAST %.2f", lastLap) else "LAST --"
 		bestLabel.Text = if bestLap > 0 then string.format("BEST %.2f", bestLap) else "BEST --"
+
+		resultsPanel.Visible = raceState == "FINISHED"
+		totalLabel.Text = if finalTime > 0 then string.format("TOTAL  %.2f", finalTime) else "TOTAL  --"
+		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST   %.2f", bestLap) else "BEST   --"
+
+		if raceState == "COUNTDOWN" then
+			goDisplaySerial += 1
+			local countdown = getNumberAttribute(player, "RaceCountdown", 0)
+			countdownLabel.Text = if countdown > 0 then tostring(countdown) else "GO"
+			countdownLabel.Visible = true
+		elseif raceState == "RACING" and previousRaceState == "COUNTDOWN" then
+			goDisplaySerial += 1
+			local currentSerial = goDisplaySerial
+			countdownLabel.Text = "GO"
+			countdownLabel.Visible = true
+			task.delay(0.75, function()
+				if currentSerial == goDisplaySerial and player:GetAttribute("RaceState") == "RACING" then
+					countdownLabel.Visible = false
+				end
+			end)
+		elseif raceState ~= "RACING" then
+			goDisplaySerial += 1
+			countdownLabel.Visible = false
+		end
 	end
 
 	for _, attributeName in {
+		"RaceState",
+		"RaceCountdown",
 		"RaceCurrentLap",
+		"RaceTotalLaps",
 		"RaceNextCheckpoint",
 		"RaceCheckpointCount",
 		"RaceLastLapTime",
 		"RaceBestLapTime",
+		"RaceFinalTime",
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end
