@@ -358,6 +358,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart.Name = "Kart"
 	kart:SetAttribute("PrototypeKart", true)
 	kart:SetAttribute("KartDrifting", false)
+	kart:SetAttribute("KartBoosting", false)
 	kart:SetAttribute("RaceResetSerial", 0)
 
 	local chassis = createPart(kart, "Chassis", WORLD.CHASSIS_SIZE, spawnCFrame, Color3.fromRGB(220, 45, 45))
@@ -484,6 +485,12 @@ function PrototypeWorld.start()
 	local smoothedSteering = 0
 	local currentYawRate = 0
 	local driftActive = false
+	local driftDuration = 0
+	local qualifiedDuration = 0
+	local driftDriver: Player? = nil
+	local boostActive = false
+	local boostEndTime = 0
+	local boostDriver: Player? = nil
 	local debugElapsed = 0
 
 	local function setDriftActive(active: boolean, reason: string)
@@ -493,7 +500,49 @@ function PrototypeWorld.start()
 		driftActive = active
 		kart:SetAttribute("KartDrifting", active)
 		if KartConfig.DEBUG_TELEMETRY then
-			print(string.format("[KartDrift] %s reason=%s", if active then "START" else "END", reason))
+			if active then
+				print(string.format("[KartDrift] START reason=%s", reason))
+			else
+				print(string.format(
+					"[KartDrift] END reason=%s chargeDuration=%.2f qualifiedDuration=%.2f",
+					reason,
+					driftDuration,
+					qualifiedDuration
+				))
+			end
+		end
+	end
+
+	local function resetDriftCharge()
+		driftDuration = 0
+		qualifiedDuration = 0
+		driftDriver = nil
+	end
+
+	local function startBoost(player: Player, now: number)
+		boostActive = true
+		boostDriver = player
+		boostEndTime = now + KartConfig.MINI_BOOST_DURATION
+		kart:SetAttribute("KartBoosting", true)
+		if KartConfig.DEBUG_TELEMETRY then
+			print(string.format(
+				"[KartBoost] START reason=qualified_shift_release chargeDuration=%.2f qualifiedDuration=%.2f",
+				driftDuration,
+				qualifiedDuration
+			))
+		end
+	end
+
+	local function stopBoost(reason: string)
+		if not boostActive then
+			return
+		end
+		boostActive = false
+		boostDriver = nil
+		boostEndTime = 0
+		kart:SetAttribute("KartBoosting", false)
+		if KartConfig.DEBUG_TELEMETRY then
+			print(string.format("[KartBoost] END reason=%s", reason))
 		end
 	end
 
@@ -539,6 +588,8 @@ function PrototypeWorld.start()
 			smoothedSteering = 0
 			currentYawRate = 0
 			setDriftActive(false, "fall")
+			resetDriftCharge()
+			stopBoost("fall")
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			return
@@ -570,34 +621,97 @@ function PrototypeWorld.start()
 		local actualForwardSpeed = planarVelocity:Dot(forward)
 		local lateralSpeed = planarVelocity:Dot(right)
 		local driftForwardSpeed = math.max(actualForwardSpeed, 0)
+		local chargeSlipAngleDegrees = 0
+		if math.abs(actualForwardSpeed) >= 1 then
+			chargeSlipAngleDegrees = math.deg(math.atan2(lateralSpeed, math.abs(actualForwardSpeed)))
+		end
 
 		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
 		local absoluteSteering = math.abs(smoothedSteering)
+		local endedDriftReason: string? = nil
 		if driftActive then
 			if not occupant then
-				setDriftActive(false, "no_occupant")
+				endedDriftReason = "no_occupant"
+			elseif player ~= driftDriver then
+				endedDriftReason = "driver_changed"
 			elseif not hasValidInput then
-				setDriftActive(false, "input_timeout")
+				endedDriftReason = "input_timeout"
 			elseif not driftRequested then
-				setDriftActive(false, "shift_release")
+				endedDriftReason = "shift_release"
 			elseif commandedSpeed <= 0 or actualForwardSpeed < 0 then
-				setDriftActive(false, "reverse")
+				endedDriftReason = "reverse"
 			elseif driftForwardSpeed < KartConfig.DRIFT_EXIT_SPEED then
-				setDriftActive(false, "speed_below_exit")
+				endedDriftReason = "speed_below_exit"
 			elseif absoluteSteering < KartConfig.DRIFT_EXIT_STEER then
-				setDriftActive(false, "steer_below_exit")
+				endedDriftReason = "steer_below_exit"
 			end
-		elseif occupant
+			if endedDriftReason then
+				setDriftActive(false, endedDriftReason)
+			end
+		elseif not boostActive
+			and occupant
 			and hasValidInput
 			and driftRequested
 			and commandedSpeed > 0
 			and driftForwardSpeed >= KartConfig.DRIFT_MIN_SPEED
 			and absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
 		then
+			resetDriftCharge()
+			driftDriver = player
 			setDriftActive(true, "entry")
 		end
 
-		local forwardTargetSpeed = if driftActive then KartConfig.DRIFT_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
+		if endedDriftReason then
+			local canStartBoost = endedDriftReason == "shift_release"
+				and player ~= nil
+				and player == driftDriver
+				and hasValidInput
+				and throttle > 0
+				and actualForwardSpeed >= KartConfig.DRIFT_MIN_SPEED
+				and absoluteSteering >= KartConfig.DRIFT_EXIT_STEER
+				and driftDuration >= KartConfig.DRIFT_CHARGE_MIN_DURATION
+				and qualifiedDuration >= KartConfig.DRIFT_CHARGE_REQUIRED_TIME
+			if canStartBoost and player then
+				startBoost(player, now)
+			end
+			resetDriftCharge()
+		elseif driftActive then
+			local chargeDeltaTime = math.min(deltaTime, 0.05)
+			driftDuration = math.min(
+				driftDuration + chargeDeltaTime,
+				KartConfig.DRIFT_CHARGE_MIN_DURATION
+			)
+			if actualForwardSpeed >= KartConfig.DRIFT_CHARGE_MIN_FORWARD_SPEED
+				and math.abs(chargeSlipAngleDegrees) >= KartConfig.DRIFT_CHARGE_MIN_SLIP_DEGREES
+			then
+				qualifiedDuration = math.min(
+					qualifiedDuration + chargeDeltaTime,
+					KartConfig.DRIFT_CHARGE_REQUIRED_TIME
+				)
+			end
+		end
+
+		if boostActive then
+			if not occupant then
+				stopBoost("no_occupant")
+			elseif player ~= boostDriver then
+				stopBoost("driver_changed")
+			elseif not hasValidInput then
+				stopBoost("input_timeout")
+			elseif throttle < 0 then
+				stopBoost("brake")
+			elseif throttle <= 0 then
+				stopBoost("throttle_release")
+			elseif now >= boostEndTime then
+				stopBoost("duration_complete")
+			end
+		end
+
+		local forwardTargetSpeed = if boostActive
+			then KartConfig.MINI_BOOST_MAX_SPEED
+			elseif driftActive then KartConfig.DRIFT_MAX_SPEED
+			else KartConfig.MAX_FORWARD_SPEED
+		local forwardAcceleration = if boostActive then KartConfig.MINI_BOOST_ACCELERATION else KartConfig.ACCELERATION
 
 		if throttle > 0 then
 			if commandedSpeed < 0 then
@@ -609,7 +723,7 @@ function PrototypeWorld.start()
 					KartConfig.DRIFT_SPEED_DECELERATION * deltaTime
 				)
 			else
-				commandedSpeed = moveToward(commandedSpeed, forwardTargetSpeed, KartConfig.ACCELERATION * throttle * deltaTime)
+				commandedSpeed = moveToward(commandedSpeed, forwardTargetSpeed, forwardAcceleration * throttle * deltaTime)
 			end
 		elseif throttle < 0 then
 			if commandedSpeed > 0 then
@@ -621,7 +735,8 @@ function PrototypeWorld.start()
 			commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.COAST_DECELERATION * deltaTime)
 		end
 
-		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, KartConfig.MAX_FORWARD_SPEED)
+		local forwardSpeedLimit = if boostActive then KartConfig.MINI_BOOST_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
+		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, forwardSpeedLimit)
 
 		local effectiveGrip = if driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
 		lateralSpeed *= math.exp(-effectiveGrip * deltaTime)
@@ -654,13 +769,19 @@ function PrototypeWorld.start()
 				debugElapsed = 0
 				local ageText = if inputAge then string.format("%.2f", inputAge) else "none"
 				local rootPart = chassis.AssemblyRootPart
+				local boostRemaining = if boostActive then math.max(boostEndTime - now, 0) else 0
 				print(string.format(
-					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f driftReq=%s drift=%s cmdSpeed=%.1f actualSpeed=%.1f speedTarget=%.1f lateral=%.1f slip=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
+					"[KartDebug] throttle=%.2f rawSteer=%.2f smoothSteer=%.2f driftReq=%s drift=%s chargeDuration=%.2f qualifiedDuration=%.2f chargeSlip=%.1f boost=%s boostRemaining=%.2f cmdSpeed=%.1f actualSpeed=%.1f speedTarget=%.1f lateral=%.1f slip=%.1f targetYaw=%.2f yaw=%.2f inputAge=%s occupant=true root=%s",
 					throttle,
 					steering,
 					smoothedSteering,
 					tostring(driftRequested),
 					tostring(driftActive),
+					driftDuration,
+					qualifiedDuration,
+					chargeSlipAngleDegrees,
+					tostring(boostActive),
+					boostRemaining,
 					commandedSpeed,
 					actualForwardSpeed,
 					forwardTargetSpeed,
