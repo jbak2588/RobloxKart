@@ -115,7 +115,7 @@ function KartVisualMotionController.start()
 			local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
 			local steering = kart:GetAttribute("KartVisualSteering")
 			local targetSteer = if kart:GetAttribute("RaceControlsLocked") == true then 0
-				elseif type(steering) == "number" then math.clamp(steering, -1, 1) * STEER_MAX
+				elseif type(steering) == "number" then -math.clamp(steering, -1, 1) * STEER_MAX
 				else 0
 			currentSteer += (targetSteer - currentSteer) * (1 - math.exp(-STEER_RESPONSE * deltaTime))
 			for _, wheel in wheels do

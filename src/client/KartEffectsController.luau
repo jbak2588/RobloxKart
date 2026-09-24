@@ -4,6 +4,8 @@ local RunService = game:GetService("RunService")
 local KartEffectsController = {}
 local started = false
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
+local CRUISE_FLAME_INTERVAL = 0.45
+local CRUISE_MIN_SPEED = 10
 
 local function getKart(seatPart: BasePart?): Model?
 	if not seatPart or seatPart:GetAttribute("PrototypeKartSeat") ~= true then
@@ -96,6 +98,30 @@ local function makeFlame(attachment: Attachment): ParticleEmitter
 	return flame
 end
 
+local function makeCruiseFlame(attachment: Attachment): ParticleEmitter
+	local flame = Instance.new("ParticleEmitter")
+	flame.Name = "CruiseFlame"
+	flame.Enabled = false
+	flame.Rate = 0
+	flame.Lifetime = NumberRange.new(0.1, 0.18)
+	flame.Speed = NumberRange.new(5, 8)
+	flame.EmissionDirection = Enum.NormalId.Back
+	flame.SpreadAngle = Vector2.new(8, 8)
+	flame.VelocityInheritance = 0.15
+	flame.LightEmission = 0.6
+	flame.Color = ColorSequence.new(Color3.fromRGB(255, 205, 80), Color3.fromRGB(255, 110, 35))
+	flame.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.32),
+		NumberSequenceKeypoint.new(1, 0.05),
+	})
+	flame.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.15),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	flame.Parent = attachment
+	return flame
+end
+
 function KartEffectsController.start()
 	if started then
 		return
@@ -113,6 +139,8 @@ function KartEffectsController.start()
 	local smokes: { ParticleEmitter } = {}
 	local trails: { Trail } = {}
 	local flames: { ParticleEmitter } = {}
+	local cruiseFlames: { ParticleEmitter } = {}
+	local cruiseElapsed = 0
 	local drifting = false
 	local boosting = false
 
@@ -135,6 +163,12 @@ function KartEffectsController.start()
 				flame:Clear()
 			end
 		end
+		for _, flame in cruiseFlames do
+			if flame.Parent then
+				flame:Clear()
+			end
+		end
+		cruiseElapsed = 0
 	end
 
 	local function detach()
@@ -154,6 +188,7 @@ function KartEffectsController.start()
 		table.clear(smokes)
 		table.clear(trails)
 		table.clear(flames)
+		table.clear(cruiseFlames)
 		activeKart = nil
 		activeSeat = nil
 		activeChassis = nil
@@ -215,9 +250,10 @@ function KartEffectsController.start()
 				local point = makeAttachment(exhaust, "BoostFlame" .. exhaustName, Vector3.new(0, 0, exhaust.Size.Z / 2))
 				table.insert(attachments, point)
 				table.insert(flames, makeFlame(point))
+				table.insert(cruiseFlames, makeCruiseFlame(point))
 			end
 		end
-		if #smokes ~= 2 or #trails ~= 2 or #flames ~= 2 then
+		if #smokes ~= 2 or #trails ~= 2 or #flames ~= 2 or #cruiseFlames ~= 2 then
 			detach()
 			retryWhenReplicated()
 			return
@@ -254,16 +290,32 @@ function KartEffectsController.start()
 		end
 		table.insert(kartConnections, kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(clearParticles))
 		table.insert(kartConnections, kart.Destroying:Connect(detach))
-		heartbeatConnection = RunService.Heartbeat:Connect(function()
+		heartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime: number)
 			if not activeChassis or not activeChassis.Parent then
 				detach()
 				return
 			end
+			local velocity = activeChassis.AssemblyLinearVelocity
+			local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
+			local cruising = kart:GetAttribute("RaceControlsLocked") ~= true
+				and kart:GetAttribute("KartOffTrack") ~= true
+				and not drifting
+				and not boosting
+				and forwardSpeed >= CRUISE_MIN_SPEED
+			if cruising then
+				cruiseElapsed += deltaTime
+				if cruiseElapsed >= CRUISE_FLAME_INTERVAL then
+					cruiseElapsed %= CRUISE_FLAME_INTERVAL
+					for _, flame in cruiseFlames do
+						flame:Emit(5)
+					end
+				end
+			else
+				cruiseElapsed = 0
+			end
 			if not drifting then
 				return
 			end
-			local velocity = activeChassis.AssemblyLinearVelocity
-			local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
 			local lateralSpeed = velocity:Dot(activeChassis.CFrame.RightVector)
 			local slip = if math.abs(forwardSpeed) < 5 then 0
 				else math.abs(math.deg(math.atan2(lateralSpeed, math.max(math.abs(forwardSpeed), 0.01))))
