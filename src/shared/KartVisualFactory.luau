@@ -22,6 +22,23 @@ local function addPart(model: Model, name: string, size: Vector3, offset: CFrame
 	return part
 end
 
+local function addWheel(visual: Model, name: string, size: Vector3, center: Vector3, front: boolean, side: string)
+	local wheel = addPart(visual, name, size, CFrame.new(center), "Tire", Enum.PartType.Cylinder)
+	wheel:SetAttribute("VisualMotionRole", if front then "FrontWheel" else "RearWheel")
+	wheel:SetAttribute("WheelSide", side)
+
+	-- A small accent marker makes rotation of the otherwise uniform tire readable.
+	local outer = if side == "Left" then -1 else 1
+	local mark = addPart(
+		visual,
+		name .. "Mark",
+		Vector3.new(0.08, 0.42, 0.18),
+		CFrame.new(center + Vector3.new(outer * (size.X / 2 + 0.05), size.Y * 0.28, 0)),
+		"Accent"
+	)
+	mark:SetAttribute("VisualParentWheel", name)
+end
+
 function KartVisualFactory.applyColors(visual: Model, definition: { [string]: any })
 	for _, child in visual:GetChildren() do
 		if child:IsA("BasePart") then
@@ -58,10 +75,10 @@ function KartVisualFactory.createVisual(definition: { [string]: any }): Model
 	addPart(visual, "RearBumper", Vector3.new(6.0, 0.35, 0.45), CFrame.new(0, -0.16, 3.78), "Trim")
 	addPart(visual, "SteeringColumn", Vector3.new(0.2, 1.25, 0.2), CFrame.new(0, 1.05, -1.05), "Metal")
 	addPart(visual, "SteeringWheel", Vector3.new(1.45, 0.2, 0.24), CFrame.new(0, 1.65, -1.05), "Trim")
-	addPart(visual, "WheelFL", Vector3.new(0.9, 1.85, 1.85), CFrame.new(-3.25, -0.52, -2.55), "Tire", Enum.PartType.Cylinder)
-	addPart(visual, "WheelFR", Vector3.new(0.9, 1.85, 1.85), CFrame.new(3.25, -0.52, -2.55), "Tire", Enum.PartType.Cylinder)
-	addPart(visual, "WheelRL", Vector3.new(1.05, 2.05, 2.05), CFrame.new(-3.3, -0.45, 2.65), "Tire", Enum.PartType.Cylinder)
-	addPart(visual, "WheelRR", Vector3.new(1.05, 2.05, 2.05), CFrame.new(3.3, -0.45, 2.65), "Tire", Enum.PartType.Cylinder)
+	addWheel(visual, "WheelFL", Vector3.new(0.9, 1.85, 1.85), Vector3.new(-3.25, -0.52, -2.55), true, "Left")
+	addWheel(visual, "WheelFR", Vector3.new(0.9, 1.85, 1.85), Vector3.new(3.25, -0.52, -2.55), true, "Right")
+	addWheel(visual, "WheelRL", Vector3.new(1.05, 2.05, 2.05), Vector3.new(-3.3, -0.45, 2.65), false, "Left")
+	addWheel(visual, "WheelRR", Vector3.new(1.05, 2.05, 2.05), Vector3.new(3.3, -0.45, 2.65), false, "Right")
 	addPart(visual, "ExhaustL", Vector3.new(0.35, 0.35, 0.8), CFrame.new(-1.45, 0.18, 3.75), "Metal", Enum.PartType.Cylinder)
 	addPart(visual, "ExhaustR", Vector3.new(0.35, 0.35, 0.8), CFrame.new(1.45, 0.18, 3.75), "Metal", Enum.PartType.Cylinder)
 

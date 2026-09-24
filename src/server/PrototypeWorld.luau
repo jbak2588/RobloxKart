@@ -350,6 +350,16 @@ local function weldToChassis(chassis: BasePart, part: BasePart)
 	weld.Parent = part
 end
 
+local function motorToChassis(chassis: BasePart, wheel: BasePart)
+	local motor = Instance.new("Motor6D")
+	motor.Name = "VisualMotor"
+	motor.Part0 = chassis
+	motor.Part1 = wheel
+	motor.C0 = chassis.CFrame:ToObjectSpace(wheel.CFrame)
+	motor.C1 = CFrame.identity
+	motor.Parent = wheel
+end
+
 local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part, Seat)
 	local previousKart = prototype:FindFirstChild("Kart")
 	if previousKart then
@@ -362,6 +372,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("KartDrifting", false)
 	kart:SetAttribute("KartBoosting", false)
 	kart:SetAttribute("KartOffTrack", false)
+	kart:SetAttribute("KartVisualSteering", 0)
 	kart:SetAttribute("RaceResetSerial", 0)
 	kart:SetAttribute("RaceStartCFrame", spawnCFrame)
 	kart:SetAttribute("RaceControlsLocked", true)
@@ -379,7 +390,21 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	for _, part in visual:GetChildren() do
 		if part:IsA("BasePart") then
 			part.CFrame = spawnCFrame * part.CFrame
-			weldToChassis(chassis, part)
+		end
+	end
+	for _, part in visual:GetChildren() do
+		if part:IsA("BasePart") then
+			local parentWheelName = part:GetAttribute("VisualParentWheel")
+			if type(parentWheelName) == "string" then
+				local wheel = visual:FindFirstChild(parentWheelName)
+				if wheel and wheel:IsA("BasePart") then
+					weldToChassis(wheel, part)
+				end
+			elseif part:GetAttribute("VisualMotionRole") then
+				motorToChassis(chassis, part)
+			else
+				weldToChassis(chassis, part)
+			end
 		end
 	end
 
@@ -547,10 +572,15 @@ function PrototypeWorld.start()
 			controls[player] = nil
 			return
 		end
+		local validatedSteering = math.clamp(steering, -1, 1)
+		local visualSteering = if kart:GetAttribute("RaceControlsLocked") == true then 0 else validatedSteering
+		if kart:GetAttribute("KartVisualSteering") ~= visualSteering then
+			kart:SetAttribute("KartVisualSteering", visualSteering)
+		end
 
 		controls[player] = {
 			throttle = math.clamp(throttle, -1, 1),
-			steering = math.clamp(steering, -1, 1),
+			steering = validatedSteering,
 			driftRequested = if type(driftRequested) == "boolean" then driftRequested else false,
 			lastUpdate = time(),
 		}
@@ -575,6 +605,7 @@ function PrototypeWorld.start()
 			commandedSpeed = 0
 			smoothedSteering = 0
 			currentYawRate = 0
+			kart:SetAttribute("KartVisualSteering", 0)
 			setDriftActive(false, "fall")
 			resetDriftCharge()
 			stopBoost("fall")
@@ -589,6 +620,7 @@ function PrototypeWorld.start()
 				commandedSpeed = 0
 				smoothedSteering = 0
 				currentYawRate = 0
+				kart:SetAttribute("KartVisualSteering", 0)
 				setDriftActive(false, "race_controls_locked")
 				resetDriftCharge()
 				stopBoost("race_controls_locked")
@@ -609,6 +641,9 @@ function PrototypeWorld.start()
 		local control = player and controls[player]
 		local inputAge = if control then now - control.lastUpdate else nil
 		local hasValidInput = control ~= nil and inputAge ~= nil and inputAge <= KartConfig.INPUT_TIMEOUT
+		if not hasValidInput and kart:GetAttribute("KartVisualSteering") ~= 0 then
+			kart:SetAttribute("KartVisualSteering", 0)
+		end
 		if control and hasValidInput then
 			throttle = control.throttle
 			steering = control.steering
