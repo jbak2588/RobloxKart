@@ -6,48 +6,12 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
+local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
+local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 
 local GarageController = {}
 local REMOTE_NAME = "GarageControl"
 local started = false
-
-local function applyDriverAppearance(character: Model, driver: { [string]: any })
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local head = character:FindFirstChild("Head")
-	if not humanoid or not head or not head:IsA("BasePart") then
-		return
-	end
-
-	local colors = character:FindFirstChildOfClass("BodyColors") :: BodyColors?
-	if not colors then
-		colors = Instance.new("BodyColors")
-		colors.Parent = character
-	end
-	colors.TorsoColor3 = driver.Theme
-	colors.LeftArmColor3 = driver.Theme
-	colors.RightArmColor3 = driver.Theme
-	colors.LeftLegColor3 = driver.Theme
-	colors.RightLegColor3 = driver.Theme
-
-	local helmet = character:FindFirstChild("KartDriverHelmet")
-	if not helmet or not helmet:IsA("BasePart") then
-		helmet = Instance.new("Part")
-		helmet.Name = "KartDriverHelmet"
-		helmet.Shape = Enum.PartType.Ball
-		helmet.Size = Vector3.new(2.1, 1.1, 2.1)
-		helmet.CanCollide = false
-		helmet.CanTouch = false
-		helmet.CanQuery = false
-		helmet.Massless = true
-		helmet.CFrame = head.CFrame * CFrame.new(0, 0.65, 0)
-		helmet.Parent = character
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = head
-		weld.Part1 = helmet
-		weld.Parent = helmet
-	end
-	helmet.Color = driver.Theme
-end
 
 local function stageCharacter(player: Player, spawnLocation: SpawnLocation)
 	local character = player.Character
@@ -197,10 +161,10 @@ function GarageController.start()
 		player:SetAttribute("ReadyOrder", readyOrder)
 		player:SetAttribute("GridSlot", slotIndex)
 		player:SetAttribute("RaceState", "PRE_RACE")
-		applyDriverAppearance(character, driver)
-		local bodyShell = kart:FindFirstChild("BodyShell")
-		if bodyShell and bodyShell:IsA("BasePart") then
-			bodyShell.Color = kartSelection.BodyColor
+		DriverAppearance.applyToCharacter(character, driver)
+		local visual = kart:FindFirstChild("Visual")
+		if visual and visual:IsA("Model") then
+			KartVisualFactory.applyColors(visual, kartSelection)
 		end
 		local gridCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[slotIndex]
 		kart:SetAttribute("RaceStartCFrame", gridCFrame)

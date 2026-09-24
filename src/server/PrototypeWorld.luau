@@ -4,6 +4,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local KartConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig"))
+local KartCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
+local KartVisualFactory = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartVisualFactory"))
 
 local PrototypeWorld = {}
 
@@ -372,18 +374,14 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	chassis.RootPriority = 127
 	chassis.CustomPhysicalProperties = PhysicalProperties.new(1, 0.05, 0, 1, 1)
 
-	local bodyShell = createPart(
-		kart,
-		"BodyShell",
-		Vector3.new(6.2, 1.2, 8.2),
-		spawnCFrame * CFrame.new(0, 0.7, 0),
-		Color3.fromRGB(220, 45, 45)
-	)
-	bodyShell.Anchored = false
-	bodyShell.CanCollide = false
-	bodyShell.CanTouch = false
-	bodyShell.Massless = true
-	weldToChassis(chassis, bodyShell)
+	local visual = KartVisualFactory.createVisual(KartCatalog.Entries[KartCatalog.DefaultId])
+	visual.Parent = kart
+	for _, part in visual:GetChildren() do
+		if part:IsA("BasePart") then
+			part.CFrame = spawnCFrame * part.CFrame
+			weldToChassis(chassis, part)
+		end
+	end
 
 	local seat = Instance.new("Seat")
 	seat.Name = "Seat"
@@ -396,21 +394,6 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	seat:SetAttribute("PrototypeKartSeat", true)
 	seat.Parent = kart
 	weldToChassis(chassis, seat)
-
-	local wheelOffsets = {
-		Vector3.new(-3.35, 0.55, -2.7),
-		Vector3.new(3.35, 0.55, -2.7),
-		Vector3.new(-3.35, 0.55, 2.7),
-		Vector3.new(3.35, 0.55, 2.7),
-	}
-	for index, offset in wheelOffsets do
-		local wheel = createPart(kart, `Wheel{index}`, Vector3.new(0.9, 2, 2), spawnCFrame * CFrame.new(offset), Color3.fromRGB(25, 25, 25))
-		wheel.Shape = Enum.PartType.Cylinder
-		wheel.CanCollide = false
-		wheel.CanTouch = false
-		wheel.Massless = true
-		weldToChassis(chassis, wheel)
-	end
 
 	kart.PrimaryPart = chassis
 	kart.Parent = prototype
