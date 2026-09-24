@@ -1,11 +1,11 @@
 local AudioConfig = {
 	-- Add only audio that this experience owns or is licensed to use.
 	ASSETS = {
-		ENGINE_LOOP = "",
-		DRIFT_LOOP = "",
-		BOOST_START = "",
+		ENGINE_LOOP = "rbxassetid://6667206432",
+		DRIFT_LOOP = "rbxassetid://9120397552",
+		BOOST_START = "rbxassetid://83211426606907",
 		BOOST_LOOP = "",
-		COUNTDOWN = "",
+		COUNTDOWN = "rbxassetid://9119144736",
 		GO = "",
 		LAP_COMPLETE = "",
 		FINAL_LAP = "",

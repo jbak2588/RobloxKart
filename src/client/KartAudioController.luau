@@ -103,6 +103,11 @@ function KartAudioController.start()
 			engine.PlaybackSpeed = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
 		end
 		drift = addSound("DriftLoop", AudioConfig.ASSETS.DRIFT_LOOP, sfxGroup, true, 0)
+		if drift then
+			drift.PlaybackRegionsEnabled = true
+			drift.PlaybackRegion = NumberRange.new(5.0, 8.0)
+			drift.LoopRegion = NumberRange.new(5.0, 8.0)
+		end
 		boostStart = addSound("BoostStart", AudioConfig.ASSETS.BOOST_START, sfxGroup, false, AudioConfig.BOOST.START_VOLUME)
 		boostLoop = addSound("BoostLoop", AudioConfig.ASSETS.BOOST_LOOP, sfxGroup, true, AudioConfig.BOOST.LOOP_VOLUME)
 		AudioRuntime.preload({ Engine = engine, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
