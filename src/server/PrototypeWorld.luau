@@ -359,6 +359,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("PrototypeKart", true)
 	kart:SetAttribute("KartDrifting", false)
 	kart:SetAttribute("KartBoosting", false)
+	kart:SetAttribute("KartOffTrack", false)
 	kart:SetAttribute("RaceResetSerial", 0)
 	kart:SetAttribute("RaceStartCFrame", spawnCFrame)
 	kart:SetAttribute("RaceControlsLocked", true)
@@ -731,11 +732,17 @@ function PrototypeWorld.start()
 			then KartConfig.MINI_BOOST_MAX_SPEED
 			elseif driftActive then KartConfig.DRIFT_MAX_SPEED
 			else KartConfig.MAX_FORWARD_SPEED
+		local offTrack = kart:GetAttribute("KartOffTrack") == true
+		if offTrack then
+			forwardTargetSpeed = math.min(forwardTargetSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
+		end
 		local forwardAcceleration = if boostActive then KartConfig.MINI_BOOST_ACCELERATION else KartConfig.ACCELERATION
 
 		if throttle > 0 then
 			if commandedSpeed < 0 then
 				commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.BRAKE_FORCE * throttle * deltaTime)
+			elseif offTrack and commandedSpeed > forwardTargetSpeed then
+				commandedSpeed = moveToward(commandedSpeed, forwardTargetSpeed, KartConfig.BRAKE_FORCE * deltaTime)
 			elseif driftActive and commandedSpeed > forwardTargetSpeed then
 				commandedSpeed = moveToward(
 					commandedSpeed,

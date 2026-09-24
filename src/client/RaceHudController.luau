@@ -58,7 +58,7 @@ function RaceHudController.start()
 	local frame = Instance.new("Frame")
 	frame.Name = "Panel"
 	frame.Position = UDim2.fromOffset(16, 16)
-	frame.Size = UDim2.fromOffset(250, 112)
+	frame.Size = UDim2.fromOffset(250, 135)
 	frame.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
 	frame.BackgroundTransparency = 0.2
 	frame.BorderSizePixel = 0
@@ -81,6 +81,8 @@ function RaceHudController.start()
 	local checkpointLabel = createLabel(frame, "Checkpoint", 2)
 	local lastLabel = createLabel(frame, "Last", 3)
 	local bestLabel = createLabel(frame, "Best", 4)
+	local offTrackLabel = createLabel(frame, "OffTrack", 5)
+	offTrackLabel.TextColor3 = Color3.fromRGB(255, 175, 80)
 
 	local countdownLabel = Instance.new("TextLabel")
 	countdownLabel.Name = "Countdown"
@@ -160,6 +162,7 @@ function RaceHudController.start()
 		local lastLap = getNumberAttribute(player, "RaceLastLapTime", 0)
 		local bestLap = getNumberAttribute(player, "RaceBestLapTime", 0)
 		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
+		local offTrackRemaining = getNumberAttribute(player, "RaceOffTrackRemaining", 0)
 
 		lapLabel.Text = string.format("LAP %d / %d", currentLap, totalLaps)
 		if nextCheckpoint > checkpointCount then
@@ -169,9 +172,11 @@ function RaceHudController.start()
 		end
 		lastLabel.Text = if lastLap > 0 then string.format("LAST %.2f", lastLap) else "LAST --"
 		bestLabel.Text = if bestLap > 0 then string.format("BEST %.2f", bestLap) else "BEST --"
+		offTrackLabel.Text = if raceState == "RACING" and offTrackRemaining > 0 then string.format("RETURN TO TRACK  %ds", offTrackRemaining) else ""
 
-		resultsPanel.Visible = raceState == "FINISHED"
-		totalLabel.Text = if finalTime > 0 then string.format("TOTAL  %.2f", finalTime) else "TOTAL  --"
+		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
+		finishLabel.Text = if raceState == "DNF" then "DNF" else "FINISH"
+		totalLabel.Text = if raceState == "DNF" then string.format("OFF TRACK %ds", RaceConfig.OFF_TRACK_TIMEOUT_SECONDS) elseif finalTime > 0 then string.format("TOTAL  %.2f", finalTime) else "TOTAL  --"
 		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST   %.2f", bestLap) else "BEST   --"
 
 		if raceState == "COUNTDOWN" then
@@ -205,6 +210,7 @@ function RaceHudController.start()
 		"RaceLastLapTime",
 		"RaceBestLapTime",
 		"RaceFinalTime",
+		"RaceOffTrackRemaining",
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end

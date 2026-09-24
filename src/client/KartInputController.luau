@@ -9,12 +9,12 @@ local KartConfig = requireModule(kartConfigModule)
 
 local KartInputController = {}
 
-local keyDown = {
-	[Enum.KeyCode.W] = false,
-	[Enum.KeyCode.S] = false,
-	[Enum.KeyCode.A] = false,
-	[Enum.KeyCode.D] = false,
-	[Enum.KeyCode.LeftShift] = false,
+local controlKeys = {
+	[Enum.KeyCode.W] = true,
+	[Enum.KeyCode.S] = true,
+	[Enum.KeyCode.A] = true,
+	[Enum.KeyCode.D] = true,
+	[Enum.KeyCode.LeftShift] = true,
 }
 
 local function isDrivingPrototypeKart(): boolean
@@ -25,11 +25,17 @@ local function isDrivingPrototypeKart(): boolean
 	return seatPart ~= nil and seatPart:GetAttribute("PrototypeKartSeat") == true
 end
 
-local function getInputAxes(): (number, number)
-	local throttle = (keyDown[Enum.KeyCode.W] and 1 or 0) - (keyDown[Enum.KeyCode.S] and 1 or 0)
-	local steering = (keyDown[Enum.KeyCode.D] and 1 or 0) - (keyDown[Enum.KeyCode.A] and 1 or 0)
+local function getInputAxes(): (number, number, boolean)
+	if UserInputService:GetFocusedTextBox() ~= nil then
+		return 0, 0, false
+	end
 
-	return throttle, steering
+	local throttle = (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
+		- (UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
+	local steering = (UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0)
+		- (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0)
+
+	return throttle, steering, UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
 end
 
 function KartInputController.start()
@@ -40,12 +46,11 @@ function KartInputController.start()
 	local timeSinceSend = KartConfig.INPUT_SEND_INTERVAL
 	local wasDriving = false
 
-	local function sendInput(force: boolean)
+	local function sendInput(force: boolean, neutral: boolean?)
 		local driving = isDrivingPrototypeKart()
-		local throttle, steering = getInputAxes()
-		local driftRequested = keyDown[Enum.KeyCode.LeftShift] == true
+		local throttle, steering, driftRequested = getInputAxes()
 
-		if not driving then
+		if not driving or neutral then
 			throttle = 0
 			steering = 0
 			driftRequested = false
@@ -66,27 +71,50 @@ function KartInputController.start()
 	end
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-		if keyDown[input.KeyCode] == nil then
-			return
-		end
-		if UserInputService:GetFocusedTextBox() ~= nil then
+		if not controlKeys[input.KeyCode] then
 			return
 		end
 		if gameProcessed and not isDrivingPrototypeKart() then
 			return
 		end
 
-		keyDown[input.KeyCode] = true
 		sendInput(true)
 	end)
 
 	UserInputService.InputEnded:Connect(function(input: InputObject)
-		if keyDown[input.KeyCode] == nil then
+		if not controlKeys[input.KeyCode] then
 			return
 		end
 
-		keyDown[input.KeyCode] = false
 		sendInput(true)
+	end)
+
+	UserInputService.WindowFocusReleased:Connect(function()
+		sendInput(true, true)
+		if KartConfig.DEBUG_TELEMETRY then
+			print("[KartInput] window focus released")
+		end
+	end)
+
+	UserInputService.WindowFocused:Connect(function()
+		sendInput(true)
+		if KartConfig.DEBUG_TELEMETRY then
+			print("[KartInput] window focused")
+		end
+	end)
+
+	UserInputService.TextBoxFocused:Connect(function()
+		sendInput(true)
+		if KartConfig.DEBUG_TELEMETRY then
+			print("[KartInput] text box focused")
+		end
+	end)
+
+	UserInputService.TextBoxFocusReleased:Connect(function()
+		sendInput(true)
+		if KartConfig.DEBUG_TELEMETRY then
+			print("[KartInput] text box focus released")
+		end
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
