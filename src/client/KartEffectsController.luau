@@ -231,8 +231,8 @@ function KartEffectsController.start()
 				if motor and motor:IsA("Motor6D") then
 					local side = part:GetAttribute("WheelSide")
 					local center = motor.C0.Position
-					local contact = center - Vector3.yAxis * (part.Size.Y / 2 - 0.08)
-					local smokePoint = makeAttachment(chassis, "DriftSmokePoint" .. tostring(side), contact)
+					local contact = center - Vector3.yAxis * (part.Size.Y / 2 - 0.01)
+					local smokePoint = makeAttachment(chassis, "DriftSmokePoint" .. tostring(side), contact + Vector3.yAxis * 0.12)
 					local edgeOffset = Vector3.xAxis * (part.Size.X * 0.45)
 					local edgeA = makeAttachment(chassis, "TireEdgeA" .. tostring(side), contact - edgeOffset)
 					local edgeB = makeAttachment(chassis, "TireEdgeB" .. tostring(side), contact + edgeOffset)

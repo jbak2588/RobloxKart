@@ -2,6 +2,15 @@ local KartVisualFactory = {}
 
 local TRIM = Color3.fromRGB(32, 37, 45)
 local METAL = Color3.fromRGB(145, 153, 160)
+-- The 1-stud Chassis rests on the collidable ground. The non-colliding road
+-- has its top 0.065 studs above that ground, so leave a small visual gap.
+local CHASSIS_REST_CENTER_HEIGHT = 0.5
+local ROAD_TOP_HEIGHT = 0.04 + 0.05 / 2
+local TIRE_GROUND_GAP = 0.025
+
+local function wheelCenterHeight(diameter: number): number
+	return diameter / 2 + ROAD_TOP_HEIGHT + TIRE_GROUND_GAP - CHASSIS_REST_CENTER_HEIGHT
+end
 
 local function addPart(model: Model, name: string, size: Vector3, offset: CFrame, role: string, shape: Enum.PartType?)
 	local part = Instance.new("Part")
@@ -75,10 +84,10 @@ function KartVisualFactory.createVisual(definition: { [string]: any }): Model
 	addPart(visual, "RearBumper", Vector3.new(6.0, 0.35, 0.45), CFrame.new(0, -0.16, 3.78), "Trim")
 	addPart(visual, "SteeringColumn", Vector3.new(0.2, 1.25, 0.2), CFrame.new(0, 1.05, -1.05), "Metal")
 	addPart(visual, "SteeringWheel", Vector3.new(1.45, 0.2, 0.24), CFrame.new(0, 1.65, -1.05), "Trim")
-	addWheel(visual, "WheelFL", Vector3.new(0.9, 1.85, 1.85), Vector3.new(-3.25, -0.52, -2.55), true, "Left")
-	addWheel(visual, "WheelFR", Vector3.new(0.9, 1.85, 1.85), Vector3.new(3.25, -0.52, -2.55), true, "Right")
-	addWheel(visual, "WheelRL", Vector3.new(1.05, 2.05, 2.05), Vector3.new(-3.3, -0.45, 2.65), false, "Left")
-	addWheel(visual, "WheelRR", Vector3.new(1.05, 2.05, 2.05), Vector3.new(3.3, -0.45, 2.65), false, "Right")
+	addWheel(visual, "WheelFL", Vector3.new(0.9, 1.85, 1.85), Vector3.new(-3.25, wheelCenterHeight(1.85), -2.55), true, "Left")
+	addWheel(visual, "WheelFR", Vector3.new(0.9, 1.85, 1.85), Vector3.new(3.25, wheelCenterHeight(1.85), -2.55), true, "Right")
+	addWheel(visual, "WheelRL", Vector3.new(1.05, 2.05, 2.05), Vector3.new(-3.3, wheelCenterHeight(2.05), 2.65), false, "Left")
+	addWheel(visual, "WheelRR", Vector3.new(1.05, 2.05, 2.05), Vector3.new(3.3, wheelCenterHeight(2.05), 2.65), false, "Right")
 	addPart(visual, "ExhaustL", Vector3.new(0.35, 0.35, 0.8), CFrame.new(-1.45, 0.18, 3.75), "Metal", Enum.PartType.Cylinder)
 	addPart(visual, "ExhaustR", Vector3.new(0.35, 0.35, 0.8), CFrame.new(1.45, 0.18, 3.75), "Metal", Enum.PartType.Cylinder)
 
