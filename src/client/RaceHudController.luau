@@ -4,6 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local requireModule = require :: (ModuleScript) -> any
 local raceConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig") :: ModuleScript
 local RaceConfig = requireModule(raceConfigModule)
+local DriverCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("DriverCatalog") :: ModuleScript)
+local KartCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog") :: ModuleScript)
+local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog") :: ModuleScript)
 
 local RaceHudController = {}
 
@@ -84,6 +87,23 @@ function RaceHudController.start()
 	local offTrackLabel = createLabel(frame, "OffTrack", 5)
 	offTrackLabel.TextColor3 = Color3.fromRGB(255, 175, 80)
 
+	local selectionPanel = Instance.new("Frame")
+	selectionPanel.Name = "RaceReady"
+	selectionPanel.AnchorPoint = Vector2.new(1, 0)
+	selectionPanel.Position = UDim2.new(1, -16, 0, 16)
+	selectionPanel.Size = UDim2.fromOffset(270, 100)
+	selectionPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
+	selectionPanel.BackgroundTransparency = 0.2
+	selectionPanel.BorderSizePixel = 0
+	selectionPanel.Parent = screenGui
+	addCorner(selectionPanel, 6)
+	local selectionLayout = Instance.new("UIListLayout")
+	selectionLayout.Padding = UDim.new(0, 4)
+	selectionLayout.Parent = selectionPanel
+	local driverLabel = createLabel(selectionPanel, "Driver", 1)
+	local kartLabel = createLabel(selectionPanel, "Kart", 2)
+	local trackLabel = createLabel(selectionPanel, "Track", 3)
+
 	local countdownLabel = Instance.new("TextLabel")
 	countdownLabel.Name = "Countdown"
 	countdownLabel.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -101,7 +121,7 @@ function RaceHudController.start()
 	resultsPanel.Name = "Results"
 	resultsPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 	resultsPanel.Position = UDim2.fromScale(0.5, 0.5)
-	resultsPanel.Size = UDim2.fromOffset(320, 220)
+	resultsPanel.Size = UDim2.fromOffset(320, 275)
 	resultsPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
 	resultsPanel.BackgroundTransparency = 0.08
 	resultsPanel.BorderSizePixel = 0
@@ -149,6 +169,22 @@ function RaceHudController.start()
 		remoteEvent:FireServer("Rematch")
 	end)
 
+	local garageButton = Instance.new("TextButton")
+	garageButton.Name = "ReturnGarage"
+	garageButton.LayoutOrder = 5
+	garageButton.Size = UDim2.fromOffset(180, 44)
+	garageButton.BackgroundColor3 = Color3.fromRGB(75, 80, 90)
+	garageButton.BorderSizePixel = 0
+	garageButton.Font = Enum.Font.GothamBold
+	garageButton.Text = "GARAGE"
+	garageButton.TextColor3 = Color3.new(1, 1, 1)
+	garageButton.TextSize = 20
+	garageButton.Parent = resultsPanel
+	addCorner(garageButton, 6)
+	garageButton.Activated:Connect(function()
+		remoteEvent:FireServer("ReturnGarage")
+	end)
+
 	local goDisplaySerial = 0
 	local displayedRaceState = player:GetAttribute("RaceState")
 	local function updateHud()
@@ -163,6 +199,14 @@ function RaceHudController.start()
 		local bestLap = getNumberAttribute(player, "RaceBestLapTime", 0)
 		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
 		local offTrackRemaining = getNumberAttribute(player, "RaceOffTrackRemaining", 0)
+		local driver = DriverCatalog.Entries[player:GetAttribute("SelectedDriverId")]
+		local kartSelection = KartCatalog.Entries[player:GetAttribute("SelectedKartId")]
+		local track = TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")]
+		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING" or raceState == "FINISHED" or raceState == "DNF"
+		selectionPanel.Visible = raceState == "PRE_RACE" or raceState == "COUNTDOWN"
+		driverLabel.Text = "DRIVER  " .. (if driver then driver.DisplayName else "--")
+		kartLabel.Text = "KART  " .. (if kartSelection then kartSelection.DisplayName else "--")
+		trackLabel.Text = "TRACK  " .. (if track then track.DisplayName else "--")
 
 		lapLabel.Text = string.format("LAP %d / %d", currentLap, totalLaps)
 		if nextCheckpoint > checkpointCount then
@@ -211,6 +255,9 @@ function RaceHudController.start()
 		"RaceBestLapTime",
 		"RaceFinalTime",
 		"RaceOffTrackRemaining",
+		"SelectedDriverId",
+		"SelectedKartId",
+		"SelectedTrackId",
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end

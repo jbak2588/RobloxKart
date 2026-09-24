@@ -1,8 +1,10 @@
 local KartInputController = require(script:WaitForChild("KartInputController"))
 local KartCameraController = require(script:WaitForChild("KartCameraController"))
 local RaceHudController = require(script:WaitForChild("RaceHudController"))
+local GarageUiController = require(script:WaitForChild("GarageUiController"))
 
 print("RobloxKart CLIENT sync OK")
 KartInputController.start()
 KartCameraController.start()
 RaceHudController.start()
+GarageUiController.start()

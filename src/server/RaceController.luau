@@ -15,7 +15,7 @@ local MIN_GATE_SPEED = 1
 local started = false
 
 local function initializePlayerAttributes(player: Player, checkpointCount: number)
-	player:SetAttribute("RaceState", "IDLE")
+	player:SetAttribute("RaceState", "GARAGE")
 	player:SetAttribute("RaceCountdown", 0)
 	player:SetAttribute("RaceCurrentLap", 1)
 	player:SetAttribute("RaceCompletedLaps", 0)
@@ -225,7 +225,7 @@ function RaceController.start()
 
 	local function endActiveRace(player: Player)
 		player:SetAttribute("RaceCountdown", 0)
-		setRaceState(player, "IDLE")
+		setRaceState(player, "GARAGE")
 		kart:SetAttribute("RaceControlsLocked", true)
 		countdownEndTime = 0
 		raceStartTime = 0
@@ -361,12 +361,20 @@ function RaceController.start()
 	end
 
 	raceRemote.OnServerEvent:Connect(function(player: Player, action: unknown)
-		if action ~= "Rematch" or player ~= activePlayer then
+		if player ~= activePlayer then
 			return
 		end
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		local state = player:GetAttribute("RaceState")
 		if not humanoid or humanoid.SeatPart ~= seat or (state ~= "FINISHED" and state ~= "DNF") then
+			return
+		end
+		if action == "ReturnGarage" then
+			activePlayer = nil
+			endActiveRace(player)
+			return
+		end
+		if action ~= "Rematch" then
 			return
 		end
 
@@ -387,8 +395,10 @@ function RaceController.start()
 			end
 			activePlayer = occupantPlayer
 			lastResetSerial = kart:GetAttribute("RaceResetSerial")
-			if activePlayer then
+			if activePlayer and activePlayer:GetAttribute("RaceState") == "PRE_RACE" then
 				beginCountdown(activePlayer, now)
+			elseif activePlayer then
+				activePlayer = nil
 			end
 		end
 

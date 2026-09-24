@@ -19,7 +19,7 @@ local WORLD = {
 	CHASSIS_SIZE = Vector3.new(6, 1, 8),
 	CHASSIS_CLEARANCE = 1.75,
 	KART_START = Vector3.new(-350, 0, 410),
-	PLAYER_START = Vector3.new(-310, 0.5, 430),
+	PLAYER_START = Vector3.new(0, 0.5, 900),
 }
 
 local TRACK = {
@@ -472,6 +472,7 @@ function PrototypeWorld.start()
 	playerSpawn.CFrame = CFrame.new(WORLD.PLAYER_START.X, groundTop + WORLD.PLAYER_START.Y, WORLD.PLAYER_START.Z)
 	playerSpawn.Anchored = true
 	playerSpawn.Neutral = true
+	playerSpawn.Transparency = 1
 
 	local remoteEvent = ReplicatedStorage:FindFirstChild(KartConfig.REMOTE_EVENT_NAME)
 	if not remoteEvent or not remoteEvent:IsA("RemoteEvent") then
