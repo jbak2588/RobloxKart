@@ -1,0 +1,215 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local AudioConfig = require(Shared:WaitForChild("AudioConfig"))
+local KartConfig = require(Shared:WaitForChild("KartConfig"))
+local AudioRuntime = require(script.Parent:WaitForChild("AudioRuntime"))
+
+local KartAudioController = {}
+local started = false
+
+local function getKart(seatPart: BasePart?): Model?
+	if not seatPart or seatPart:GetAttribute("PrototypeKartSeat") ~= true then
+		return nil
+	end
+	local kart = seatPart.Parent
+	if kart and kart:IsA("Model") and kart:GetAttribute("PrototypeKart") == true then
+		return kart
+	end
+	return nil
+end
+
+function KartAudioController.start()
+	if started then
+		return
+	end
+	started = true
+
+	local player = Players.LocalPlayer
+	local engineGroup = AudioRuntime.getGroup("RobloxKartEngine")
+	local sfxGroup = AudioRuntime.getGroup("RobloxKartSFX")
+	local activeKart: Model? = nil
+	local activeSeat: BasePart? = nil
+	local activeChassis: BasePart? = nil
+	local seatedConnection: RBXScriptConnection? = nil
+	local heartbeatConnection: RBXScriptConnection? = nil
+	local kartConnections: { RBXScriptConnection } = {}
+	local sounds: { Sound } = {}
+	local engine: Sound? = nil
+	local drift: Sound? = nil
+	local boostStart: Sound? = nil
+	local boostLoop: Sound? = nil
+
+	local function detach()
+		if heartbeatConnection then
+			heartbeatConnection:Disconnect()
+			heartbeatConnection = nil
+		end
+		for _, connection in kartConnections do
+			connection:Disconnect()
+		end
+		table.clear(kartConnections)
+		for _, sound in sounds do
+			sound:Stop()
+			sound:Destroy()
+		end
+		table.clear(sounds)
+		engine = nil
+		drift = nil
+		boostStart = nil
+		boostLoop = nil
+		activeKart = nil
+		activeSeat = nil
+		activeChassis = nil
+	end
+
+	local function attach(seatPart: BasePart?, attempt: number?)
+		local kart = getKart(seatPart)
+		if kart == activeKart and seatPart == activeSeat then
+			return
+		end
+		detach()
+		if not kart or player:GetAttribute("RaceState") == "GARAGE" then
+			return
+		end
+		local chassis = kart:FindFirstChild("Chassis")
+		if not chassis or not chassis:IsA("BasePart") then
+			if (attempt or 0) < 10 then
+				task.delay(0.2, function()
+					local character = player.Character
+					local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+					if humanoid and humanoid.SeatPart == seatPart then
+						attach(seatPart, (attempt or 0) + 1)
+					end
+				end)
+			end
+			return
+		end
+
+		activeKart = kart
+		activeSeat = seatPart
+		activeChassis = chassis
+		local function addSound(name: string, asset: string, group: SoundGroup, looped: boolean, volume: number): Sound?
+			local sound = AudioRuntime.createSound(name, asset, chassis, group, looped, volume, true)
+			if sound then
+				table.insert(sounds, sound)
+			end
+			return sound
+		end
+		engine = addSound("EngineLoop", AudioConfig.ASSETS.ENGINE_LOOP, engineGroup, true, AudioConfig.ENGINE.IDLE_VOLUME)
+		if engine then
+			engine.PlaybackSpeed = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
+		end
+		drift = addSound("DriftLoop", AudioConfig.ASSETS.DRIFT_LOOP, sfxGroup, true, 0)
+		boostStart = addSound("BoostStart", AudioConfig.ASSETS.BOOST_START, sfxGroup, false, AudioConfig.BOOST.START_VOLUME)
+		boostLoop = addSound("BoostLoop", AudioConfig.ASSETS.BOOST_LOOP, sfxGroup, true, AudioConfig.BOOST.LOOP_VOLUME)
+		AudioRuntime.preload({ Engine = engine, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
+		AudioRuntime.playLoop(engine)
+
+		local wasBoosting = kart:GetAttribute("KartBoosting") == true
+		if wasBoosting then
+			AudioRuntime.playLoop(boostLoop)
+		end
+		table.insert(kartConnections, kart:GetAttributeChangedSignal("KartBoosting"):Connect(function()
+			local boosting = kart:GetAttribute("KartBoosting") == true
+			if boosting and not wasBoosting then
+				AudioRuntime.playOnce(boostStart)
+				AudioRuntime.playLoop(boostLoop)
+			elseif not boosting and wasBoosting then
+				AudioRuntime.stop(boostLoop)
+			end
+			wasBoosting = boosting
+		end))
+		table.insert(kartConnections, kart.Destroying:Connect(detach))
+
+		if engine or drift then
+			heartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime: number)
+				if not activeChassis or not activeChassis.Parent then
+					detach()
+					return
+				end
+				local velocity = activeChassis.AssemblyLinearVelocity
+				local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
+				if engine then
+					local normalized = math.clamp(math.abs(forwardSpeed) / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1)
+					local targetPitch = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
+						+ (AudioConfig.ENGINE.MAX_PLAYBACK_SPEED - AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED) * normalized
+					if kart:GetAttribute("KartBoosting") == true then
+						targetPitch += AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS
+					end
+					targetPitch = math.clamp(targetPitch, 0.7, 1.55)
+					local targetVolume = AudioConfig.ENGINE.IDLE_VOLUME
+						+ (AudioConfig.ENGINE.MAX_VOLUME - AudioConfig.ENGINE.IDLE_VOLUME) * normalized
+					local alpha = 1 - math.exp(-AudioConfig.ENGINE.RESPONSE * deltaTime)
+					engine.PlaybackSpeed += (targetPitch - engine.PlaybackSpeed) * alpha
+					engine.Volume += (targetVolume - engine.Volume) * alpha
+				end
+				if drift then
+					local validDrift = kart:GetAttribute("KartDrifting") == true
+						and kart:GetAttribute("KartOffTrack") ~= true
+						and kart:GetAttribute("RaceControlsLocked") ~= true
+						and math.abs(forwardSpeed) >= AudioConfig.DRIFT.MIN_SPEED
+					local slipFactor = 0
+					if validDrift then
+						local lateralSpeed = velocity:Dot(activeChassis.CFrame.RightVector)
+						local slip = math.abs(math.deg(math.atan2(lateralSpeed, math.max(math.abs(forwardSpeed), 0.01))))
+						slipFactor = math.clamp(
+							(slip - AudioConfig.DRIFT.MIN_SLIP_DEGREES)
+								/ (AudioConfig.DRIFT.FULL_SLIP_DEGREES - AudioConfig.DRIFT.MIN_SLIP_DEGREES),
+							0,
+							1
+						)
+					end
+					local targetVolume = slipFactor * AudioConfig.DRIFT.MAX_VOLUME
+					local targetPitch = AudioConfig.DRIFT.MIN_PLAYBACK_SPEED
+						+ (AudioConfig.DRIFT.MAX_PLAYBACK_SPEED - AudioConfig.DRIFT.MIN_PLAYBACK_SPEED) * slipFactor
+					local alpha = 1 - math.exp(-AudioConfig.DRIFT.RESPONSE * deltaTime)
+					drift.Volume += (targetVolume - drift.Volume) * alpha
+					drift.PlaybackSpeed += (targetPitch - drift.PlaybackSpeed) * alpha
+					if targetVolume > 0.01 then
+						AudioRuntime.playLoop(drift)
+					elseif drift.Volume < 0.01 then
+						AudioRuntime.stop(drift)
+					end
+				end
+			end)
+		end
+	end
+
+	local function bindCharacter(character: Model)
+		detach()
+		if seatedConnection then
+			seatedConnection:Disconnect()
+			seatedConnection = nil
+		end
+		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+		if player.Character ~= character then
+			return
+		end
+		seatedConnection = humanoid.Seated:Connect(function(active: boolean, seatPart: BasePart?)
+			attach(if active then seatPart else nil)
+		end)
+		attach(humanoid.SeatPart)
+	end
+
+	player.CharacterAdded:Connect(bindCharacter)
+	player.CharacterRemoving:Connect(function()
+		detach()
+		if seatedConnection then
+			seatedConnection:Disconnect()
+			seatedConnection = nil
+		end
+	end)
+	player:GetAttributeChangedSignal("RaceState"):Connect(function()
+		if player:GetAttribute("RaceState") == "GARAGE" then
+			detach()
+		end
+	end)
+	if player.Character then
+		task.spawn(bindCharacter, player.Character)
+	end
+end
+
+return KartAudioController
