@@ -148,6 +148,14 @@ function GarageUiController.start()
 	local viewportCorner = Instance.new("UICorner")
 	viewportCorner.CornerRadius = UDim.new(0, 12)
 	viewportCorner.Parent = viewport
+	local previewLoading = makeText(backdrop, viewport.Size, viewport.Position, "Loading driver...", 20)
+	previewLoading.AnchorPoint = viewport.AnchorPoint
+	previewLoading.ZIndex = 2
+	previewLoading.Visible = false
+	local loadingSize = Instance.new("UISizeConstraint")
+	loadingSize.MinSize = viewportSize.MinSize
+	loadingSize.MaxSize = viewportSize.MaxSize
+	loadingSize.Parent = previewLoading
 
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
 	local cycleButton = makeButton(backdrop, "CHANGE", UDim2.new(0.5, -85, 0.84, 0))
@@ -218,11 +226,13 @@ function GarageUiController.start()
 		local raceState = player:GetAttribute("RaceState")
 		gui.Enabled = raceState == "GARAGE" or raceState == "PRE_RACE"
 		if not gui.Enabled then
+			previewLoading.Visible = false
 			clearPreview()
 			return
 		end
 		if raceState == "PRE_RACE" then
 			viewport.Visible = false
+			previewLoading.Visible = false
 			clearPreview()
 			choiceLabel.Position = UDim2.fromScale(0.1, 0.40)
 			detailLabel.Position = UDim2.fromScale(0.1, 0.54)
@@ -242,10 +252,19 @@ function GarageUiController.start()
 		choiceLabel.Position = UDim2.fromScale(0.1, if viewport.Visible then 0.61 else 0.40)
 		detailLabel.Position = UDim2.fromScale(0.1, if viewport.Visible then 0.70 else 0.54)
 		if step == 1 then
-			showPreview("Driver", driverId)
+			local character = player.Character
+			local appearanceReady = character ~= nil and character:FindFirstChild("Head") ~= nil and player:HasAppearanceLoaded()
+			previewLoading.Visible = not appearanceReady
+			if appearanceReady then
+				showPreview("Driver", driverId)
+			else
+				clearPreview()
+			end
 		elseif step == 2 then
+			previewLoading.Visible = false
 			showPreview("Kart", kartId)
 		else
+			previewLoading.Visible = false
 			clearPreview()
 		end
 		if step <= 3 then
@@ -295,12 +314,34 @@ function GarageUiController.start()
 		update()
 	end)
 	player:GetAttributeChangedSignal("RaceEntryError"):Connect(update)
-	player.CharacterAppearanceLoaded:Connect(function()
-		if player:GetAttribute("RaceState") == "GARAGE" and step == 1 then
-			clearPreview()
-			update()
+	local characterChildConnection: RBXScriptConnection? = nil
+	local function bindCharacter(character: Model)
+		if characterChildConnection then
+			characterChildConnection:Disconnect()
 		end
-	end)
+		-- Appearance parts can reach the client after HasAppearanceLoaded becomes true.
+		characterChildConnection = character.ChildAdded:Connect(function()
+			if player.Character == character and player:GetAttribute("RaceState") == "GARAGE" and step == 1 then
+				clearPreview()
+				update()
+			end
+		end)
+		clearPreview()
+		update()
+		task.spawn(function()
+			while player.Character == character and (not character:FindFirstChild("Head") or not player:HasAppearanceLoaded()) do
+				task.wait(0.1)
+			end
+			if player.Character == character then
+				clearPreview()
+				update()
+			end
+		end)
+	end
+	player.CharacterAdded:Connect(bindCharacter)
+	if player.Character then
+		bindCharacter(player.Character)
+	end
 	update()
 	print("[RobloxKart] Garage UI ready")
 end
