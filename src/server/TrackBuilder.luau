@@ -24,6 +24,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		and previousTrack:GetAttribute("TrackId") == track.Id
 		and previousTrack:FindFirstChild("Road")
 		and previousTrack:FindFirstChild("RaceTriggers")
+		and previousTrack:FindFirstChild("BarrierTriggers")
+		and previousTrack:GetAttribute("BarrierForwardTangentVersion") == 1
+		and not previousTrack:FindFirstChild("BarrierCollisions")
 	then
 		return previousTrack
 	end
@@ -38,9 +41,21 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local roadFolder = Instance.new("Folder")
 	roadFolder.Name = "Road"
 	roadFolder.Parent = testTrack
+	local environmentFolder = Instance.new("Folder")
+	environmentFolder.Name = "Environment"
+	environmentFolder.Parent = testTrack
 	local markingFolder = Instance.new("Folder")
 	markingFolder.Name = "Markings"
 	markingFolder.Parent = testTrack
+	local kerbFolder = Instance.new("Folder")
+	kerbFolder.Name = "Kerbs"
+	kerbFolder.Parent = testTrack
+	local barrierFolder = Instance.new("Folder")
+	barrierFolder.Name = "Barriers"
+	barrierFolder.Parent = testTrack
+	local barrierTriggerFolder = Instance.new("Folder")
+	barrierTriggerFolder.Name = "BarrierTriggers"
+	barrierTriggerFolder.Parent = testTrack
 	local markerFolder = Instance.new("Folder")
 	markerFolder.Name = "Markers"
 	markerFolder.Parent = testTrack
@@ -51,6 +66,15 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local partCount = 0
 	local roadColor = Color3.fromRGB(48, 51, 56)
 	local white = Color3.fromRGB(245, 245, 235)
+	local kerbRed = Color3.fromRGB(205, 48, 45)
+	local kerbWhite = Color3.fromRGB(238, 236, 229)
+	local isPractice = track.GeometryId == "PracticeCircuitV1"
+	local kerbThreshold = math.rad(if isPractice then 5 else 3.5)
+	local barrierThreshold = math.rad(if isPractice then 7 else 9)
+	local kerbCount = 0
+	local barrierCount = 0
+	local checkerCount = 0
+	local barrierStride = if isPractice then 3 else 2
 
 	local function roadPoint(point: Vector3, height: number): Vector3
 		return Vector3.new(point.X, roadY + point.Y + height, point.Z)
@@ -68,10 +92,10 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		return part
 	end
 
-	local function createSegment(parent: Instance, name: string, first: Vector3, second: Vector3, width: number, thickness: number, overhang: number, color: Color3, material: Enum.Material?)
+	local function createSegment(parent: Instance, name: string, first: Vector3, second: Vector3, width: number, thickness: number, overhang: number, color: Color3, material: Enum.Material?): Part
 		local delta = second - first
 		local midpoint = (first + second) * 0.5
-		createVisualPart(
+		return createVisualPart(
 			parent,
 			name,
 			Vector3.new(width, thickness, delta.Magnitude + overhang),
@@ -96,11 +120,32 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		return math.acos(math.clamp(arriving:Dot(leaving), -1, 1))
 	end
 
+	local function signedTurnAt(index: number): number
+		local previous = samples[(index - 2) % #samples + 1]
+		local current = samples[index]
+		local following = samples[index % #samples + 1]
+		local arriving = (current - previous).Unit
+		local leaving = (following - current).Unit
+		return arriving:Cross(leaving).Y
+	end
+
+	-- This plane only covers the gray physical ground; it cannot affect kart contact or road checks.
+	local bounds = course.Bounds
+	local grassMargin = 180
+	createVisualPart(
+		environmentFolder, "Infield",
+		Vector3.new(bounds.MaxX - bounds.MinX + grassMargin * 2, 0.02, bounds.MaxZ - bounds.MinZ + grassMargin * 2),
+		CFrame.new((bounds.MinX + bounds.MaxX) * 0.5, groundTop + 0.02, (bounds.MinZ + bounds.MaxZ) * 0.5),
+		Color3.fromRGB(84, 125, 79), Enum.Material.Grass
+	)
+
 	for index = 1, #samples do
 		local nextIndex = index % #samples + 1
 		local first = samples[index]
 		local second = samples[nextIndex]
-		local bend = math.max(turnAt(index), turnAt(nextIndex))
+		local startBend = turnAt(index)
+		local endBend = turnAt(nextIndex)
+		local bend = math.max(startBend, endBend)
 		local overhang = math.max(1.5, roadWidth * math.tan(bend * 0.5) + 1)
 		createSegment(
 			roadFolder, "Road" .. index, roadPoint(first, 0), roadPoint(second, 0),
@@ -111,6 +156,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		local secondDirection = directionAt(nextIndex)
 		local firstRight = Vector3.new(-firstDirection.Z, 0, firstDirection.X)
 		local secondRight = Vector3.new(-secondDirection.Z, 0, secondDirection.X)
+		local strongestTurn = if startBend >= endBend then index else nextIndex
+		local innerSide = if signedTurnAt(strongestTurn) > 0 then -1 else 1
 		for _, side in { -1, 1 } do
 			local firstEdge = first + firstRight * (roadWidth * 0.5 * side)
 			local secondEdge = second + secondRight * (roadWidth * 0.5 * side)
@@ -119,6 +166,55 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				roadPoint(firstEdge, 0.04), roadPoint(secondEdge, 0.04),
 				1, 0.035, 0.6, white, nil
 			)
+		end
+
+		-- Leave the grid and finish crossing visually open. Corner strips sit beyond the road edge.
+		local nearStart = index <= 3 or index >= #samples - 2
+		if not nearStart and bend >= kerbThreshold then
+			local offset = roadWidth * 0.5 + 1.9
+			local firstKerb = first + firstRight * (offset * innerSide)
+			local secondKerb = second + secondRight * (offset * innerSide)
+			createSegment(
+				kerbFolder, "Kerb" .. index,
+				roadPoint(firstKerb, 0.025), roadPoint(secondKerb, 0.025),
+				3.5, 0.07, 0.6,
+				if index % 2 == 0 then kerbRed else kerbWhite, nil
+			)
+			kerbCount += 1
+		end
+
+		if not nearStart and bend >= barrierThreshold and index % barrierStride == 0 then
+			local outerSide = -innerSide
+			local offset = roadWidth * 0.5 + 7
+			local firstBarrier = first + firstRight * (offset * outerSide)
+			local secondBarrier = second + secondRight * (offset * outerSide)
+			local barrierY = groundTop + 1.23
+			local barrier = createSegment(
+				barrierFolder, "Barrier" .. index,
+				Vector3.new(firstBarrier.X, barrierY, firstBarrier.Z),
+				Vector3.new(secondBarrier.X, barrierY, secondBarrier.Z),
+				1.6, 2.4, 0.2,
+				if index % (barrierStride * 2) == 0 then kerbRed else kerbWhite, nil
+			)
+			local roadMidpoint = (first + second) * 0.5
+			local toRoad = roadMidpoint - barrier.Position
+			local inwardNormal = Vector3.new(toRoad.X, 0, toRoad.Z).Unit
+			local trigger = createPart(
+				barrierTriggerFolder, "BarrierTrigger" .. index,
+				Vector3.new(5, barrier.Size.Y, barrier.Size.Z + 2),
+				barrier.CFrame + inwardNormal * 2, barrier.Color
+			)
+			trigger.Anchored = true
+			trigger.Transparency = 1
+			trigger.CanCollide = false
+			trigger.CanTouch = false
+			trigger.CanQuery = false
+			trigger.CastShadow = false
+			trigger:SetAttribute("BarrierInwardNormal", inwardNormal)
+			local segmentDelta = second - first
+			trigger:SetAttribute("BarrierForwardTangent", Vector3.new(segmentDelta.X, 0, segmentDelta.Z).Unit)
+			trigger:SetAttribute("BarrierIndex", index)
+			barrierCount += 1
 		end
 
 		if index % 3 == 1 then
@@ -152,11 +248,22 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	local startPoint = course.StartPosition
 	local startDirection = course.StartTangent
-	createVisualPart(
-		markingFolder, "StartLine", Vector3.new(roadWidth, 0.03, 3),
-		CFrame.lookAt(roadPoint(startPoint, 0.04), roadPoint(startPoint + startDirection, 0.04)),
-		white, nil
-	)
+	local startCFrame = CFrame.lookAt(roadPoint(startPoint, 0.058), roadPoint(startPoint + startDirection, 0.058))
+	local checkerColumns = 10
+	local checkerRows = 2
+	for row = 1, checkerRows do
+		for column = 1, checkerColumns do
+			local offsetX = (column - 0.5 - checkerColumns * 0.5) * roadWidth / checkerColumns
+			local offsetZ = (row - 0.5 - checkerRows * 0.5) * 3 / checkerRows
+			createVisualPart(
+				markingFolder, "StartLine" .. row .. "_" .. column,
+				Vector3.new(roadWidth / checkerColumns, 0.035, 3 / checkerRows),
+				startCFrame * CFrame.new(offsetX, 0, offsetZ),
+				if (row + column) % 2 == 0 then Color3.fromRGB(20, 22, 24) else white, nil
+			)
+			checkerCount += 1
+		end
+	end
 	createRaceGate("StartFinish", startPoint, startDirection, "StartFinish", nil)
 	for index, checkpoint in checkpointSamples do
 		createRaceGate(
@@ -170,6 +277,12 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	testTrack:SetAttribute("GeometryId", track.GeometryId)
 	testTrack:SetAttribute("TrackId", track.Id)
 	testTrack:SetAttribute("VisualPartCount", partCount)
+	testTrack:SetAttribute("EnvironmentPartCount", 1)
+	testTrack:SetAttribute("KerbPartCount", kerbCount)
+	testTrack:SetAttribute("BarrierPartCount", barrierCount)
+	testTrack:SetAttribute("BarrierTriggerPartCount", barrierCount)
+	testTrack:SetAttribute("BarrierForwardTangentVersion", 1)
+	testTrack:SetAttribute("CheckerPartCount", checkerCount)
 	testTrack:SetAttribute("CheckpointCount", #checkpointSamples)
 	testTrack:SetAttribute("CenterlineLength", course.CenterlineLength)
 	testTrack:SetAttribute("CenterlineSampleCount", #samples)

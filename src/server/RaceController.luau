@@ -359,10 +359,12 @@ function RaceController.start()
 		end
 	end
 
-	local function sampleRoadCorridor(player: Player, deltaTime: number): boolean
+	local function sampleRoadCorridor(player: Player, deltaTime: number)
 		offTrackSampleElapsed += deltaTime
-		if offTrackSampleElapsed < RaceConfig.OFF_TRACK_SAMPLE_INTERVAL then
-			return offTrackElapsed > 0
+		local timeoutReached = offTrackElapsed > 0
+			and offTrackElapsed + offTrackSampleElapsed >= RaceConfig.OFF_TRACK_TIMEOUT_SECONDS
+		if offTrackSampleElapsed < RaceConfig.OFF_TRACK_SAMPLE_INTERVAL and not timeoutReached then
+			return
 		end
 
 		local sampleElapsed = offTrackSampleElapsed
@@ -370,14 +372,11 @@ function RaceController.start()
 		if isInsideRoadCorridor(roadParts, chassis.Position) then
 			if offTrackElapsed > 0 then
 				print(string.format("[Race] back_on_track after=%.2fs lap=%d nextCheckpoint=%d", offTrackElapsed, (player:GetAttribute("RaceCurrentLap") :: number?) or 1, (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1))
-				for _, gate in gates do
-					insideGate[gate] = isInsideGate(gate, chassis.Position)
-				end
 			end
 			offTrackElapsed = 0
 			kart:SetAttribute("KartOffTrack", false)
 			player:SetAttribute("RaceOffTrackRemaining", 0)
-			return false
+			return
 		end
 
 		if offTrackElapsed == 0 then
@@ -391,7 +390,6 @@ function RaceController.start()
 		else
 			player:SetAttribute("RaceOffTrackRemaining", math.ceil(RaceConfig.OFF_TRACK_TIMEOUT_SECONDS - offTrackElapsed))
 		end
-		return true
 	end
 
 	raceRemote.OnServerEvent:Connect(function(player: Player, action: unknown)
@@ -477,14 +475,24 @@ function RaceController.start()
 			return
 		end
 
-		if sampleRoadCorridor(player, deltaTime) then
+		sampleRoadCorridor(player, deltaTime)
+		-- The off-track timeout can end the race; it must win before any finish crossing.
+		if player:GetAttribute("RaceState") ~= "RACING" then
 			return
 		end
 
+		local onRoadAtGate: boolean? = nil
 		for _, gate in gates do
 			local inside = isInsideGate(gate, chassis.Position)
 			if inside and not insideGate[gate] then
-				processGate(player, gate, now)
+				-- Check the actual corridor on entry, including between timed off-track samples.
+				if onRoadAtGate == nil then
+					onRoadAtGate = isInsideRoadCorridor(roadParts, chassis.Position)
+				end
+				if onRoadAtGate or (gate == startFinishGate
+					and player:GetAttribute("RaceNextCheckpoint") == checkpointCount + 1) then
+					processGate(player, gate, now)
+				end
 			end
 			insideGate[gate] = inside
 		end

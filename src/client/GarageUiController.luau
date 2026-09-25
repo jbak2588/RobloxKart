@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
@@ -235,6 +236,82 @@ function GarageUiController.start()
 	local previewCamera: Camera? = nil
 	local trackMap = nil
 	local trackMapGeometryId: string? = nil
+	local mobileCompact = false
+
+	local function applyResponsiveLayout()
+		local camera = Workspace.CurrentCamera
+		local viewportSizePixels = if camera then camera.ViewportSize else backdrop.AbsoluteSize
+		mobileCompact = viewportSizePixels.Y > 0 and viewportSizePixels.Y <= 650
+		gui.IgnoreGuiInset = not mobileCompact
+		controlsCard.Visible = not mobileCompact
+		if mobileCompact then
+			local safeSize = backdrop.AbsoluteSize
+			local layoutWidth = if safeSize.X > 0 then safeSize.X else viewportSizePixels.X - 32
+			local layoutHeight = if safeSize.Y > 0 then safeSize.Y else viewportSizePixels.Y - 40
+			local previewWidth = math.max(180, math.min(layoutWidth * 0.64, 520, layoutWidth - 112))
+			local previewHeight = math.min(layoutHeight * 0.30, 170)
+			local previewSize = UDim2.fromOffset(previewWidth, previewHeight)
+			viewportSize.MinSize = Vector2.zero
+			loadingSize.MinSize = Vector2.zero
+			mapSize.MinSize = Vector2.zero
+			viewport.Size = previewSize
+			viewport.Position = UDim2.fromScale(0.5, 0.26)
+			previewLoading.Size = previewSize
+			previewLoading.Position = viewport.Position
+			mapPanel.Size = previewSize
+			mapPanel.Position = viewport.Position
+			title.Position = UDim2.fromScale(0.1, 0.035)
+			title.Size = UDim2.fromScale(0.8, 0.10)
+			titleSize.MinTextSize = 20
+			stepLabel.Position = UDim2.fromScale(0.1, 0.16)
+			stepLabel.TextSize = 19
+			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
+			choiceLabel.TextSize = 25
+			detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.68 else 0.55)
+			detailLabel.TextSize = 15
+			errorLabel.Position = UDim2.fromScale(0.1, 0.76)
+			errorLabel.TextSize = 14
+			leftArrow.Size = UDim2.fromOffset(40, 50)
+			rightArrow.Size = leftArrow.Size
+			leftArrow.Position = UDim2.new(0.5, -previewWidth * 0.5 - 46, 0.38, 0)
+			rightArrow.Position = UDim2.new(0.5, previewWidth * 0.5 + 6, 0.38, 0)
+			local buttonWidth = math.min(150, (layoutWidth - 48) * 0.5)
+			for _, button in { previousButton, cycleButton, nextButton } do
+				button.Size = UDim2.fromOffset(buttonWidth, 40)
+				button.TextSize = 17
+			end
+			previousButton.Position = UDim2.new(0.5, -buttonWidth - 8, 0.85, 0)
+			cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 8 else -buttonWidth * 0.5, 0.85, 0)
+			nextButton.Position = UDim2.new(0.5, 8, 0.85, 0)
+		else
+			viewportSize.MinSize = Vector2.new(360, 200)
+			loadingSize.MinSize = viewportSize.MinSize
+			mapSize.MinSize = viewportSize.MinSize
+			viewport.Size = UDim2.fromScale(0.52, 0.32)
+			viewport.Position = UDim2.fromScale(0.5, 0.265)
+			previewLoading.Size = viewport.Size
+			previewLoading.Position = viewport.Position
+			mapPanel.Size = viewport.Size
+			mapPanel.Position = viewport.Position
+			title.Position = UDim2.fromScale(0.1, 0.055)
+			title.Size = UDim2.fromScale(0.8, 0.09)
+			titleSize.MinTextSize = 28
+			stepLabel.Position = UDim2.fromScale(0.1, 0.17)
+			stepLabel.TextSize = 24
+			choiceLabel.TextSize = 34
+			detailLabel.TextSize = 19
+			errorLabel.Position = UDim2.fromScale(0.1, 0.77)
+			errorLabel.TextSize = 18
+			leftArrow.Size = UDim2.fromOffset(52, 64)
+			rightArrow.Size = leftArrow.Size
+			leftArrow.Position = UDim2.new(0.5, -350, 0.43, 0)
+			rightArrow.Position = UDim2.new(0.5, 298, 0.43, 0)
+			for _, button in { previousButton, cycleButton, nextButton } do
+				button.Size = UDim2.fromOffset(170, 48)
+				button.TextSize = 19
+			end
+		end
+	end
 	local function showTrackPreview(trackId: string)
 		local geometryId = TrackCatalog.Entries[trackId].GeometryId
 		if geometryId == trackMapGeometryId then
@@ -310,7 +387,6 @@ function GarageUiController.start()
 			return
 		end
 		if raceState == "PRE_RACE" then
-			controlsCard.Visible = true
 			mapPanel.Visible = false
 			leftArrow.Visible = false
 			rightArrow.Visible = false
@@ -326,9 +402,9 @@ function GarageUiController.start()
 			previousButton.Visible = false
 			cycleButton.Visible = false
 			nextButton.Visible = false
+			applyResponsiveLayout()
 			return
 		end
-		controlsCard.Visible = true
 		local driverId, kartId, trackId = selectedIds()
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= 2
@@ -374,6 +450,7 @@ function GarageUiController.start()
 		cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 10 else -85, 0.84, 0)
 		nextButton.Position = UDim2.new(0.5, 10, 0.84, 0)
 		errorLabel.Text = tostring(player:GetAttribute("RaceEntryError") or "")
+		applyResponsiveLayout()
 	end
 
 	local function changeChoice(direction: number)
@@ -414,6 +491,20 @@ function GarageUiController.start()
 		update()
 	end)
 	player:GetAttributeChangedSignal("RaceEntryError"):Connect(update)
+	local viewportConnection: RBXScriptConnection? = nil
+	local function bindCamera()
+		if viewportConnection then
+			viewportConnection:Disconnect()
+		end
+		local camera = Workspace.CurrentCamera
+		if camera then
+			viewportConnection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
+		end
+		update()
+	end
+	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
+	backdrop:GetPropertyChangedSignal("AbsoluteSize"):Connect(update)
+	bindCamera()
 	local characterChildConnection: RBXScriptConnection? = nil
 	local function bindCharacter(character: Model)
 		if characterChildConnection then

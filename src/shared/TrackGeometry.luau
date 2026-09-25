@@ -58,7 +58,7 @@ TrackGeometry.Definitions = {
 		},
 		RoadWidth = 48,
 		SampleSpacing = 14,
-		CheckpointFractions = { 0.14, 0.29, 0.43, 0.58, 0.77, 0.87 },
+		CheckpointFractions = { 0.14, 0.38, 0.43, 0.58, 0.77, 0.87 },
 	},
 }
 

@@ -84,6 +84,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("KartBoosting", false)
 	kart:SetAttribute("KartOffTrack", false)
 	kart:SetAttribute("KartVisualSteering", 0)
+	kart:SetAttribute("KartCrashActive", false)
 	kart:SetAttribute("RaceResetSerial", 0)
 	kart:SetAttribute("RaceStartCFrame", spawnCFrame)
 	kart:SetAttribute("RaceControlsLocked", true)
@@ -143,6 +144,44 @@ local function moveToward(value: number, target: number, maximumDelta: number): 
 		return math.min(value + maximumDelta, target)
 	end
 	return math.max(value - maximumDelta, target)
+end
+
+local function isInsideBarrier(trigger: BasePart, position: Vector3): boolean
+	local localPosition = trigger.CFrame:PointToObjectSpace(position)
+	local halfSize = trigger.Size * 0.5
+	return math.abs(localPosition.X) <= halfSize.X
+		and math.abs(localPosition.Y) <= halfSize.Y
+		and math.abs(localPosition.Z) <= halfSize.Z
+end
+
+local function crossedBarrier(trigger: BasePart, fromPosition: Vector3, toPosition: Vector3): boolean
+	local start = trigger.CFrame:PointToObjectSpace(fromPosition)
+	local finish = trigger.CFrame:PointToObjectSpace(toPosition)
+	local half = trigger.Size * 0.5
+	local starts = { start.X, start.Y, start.Z }
+	local steps = { finish.X - start.X, finish.Y - start.Y, finish.Z - start.Z }
+	local limits = { half.X, half.Y, half.Z }
+	local entry = 0
+	local exit = 1
+	for axis = 1, 3 do
+		local origin = starts[axis]
+		local step = steps[axis]
+		local limit = limits[axis]
+		if math.abs(step) < 0.0001 then
+			if math.abs(origin) > limit then
+				return false
+			end
+		else
+			local first = (-limit - origin) / step
+			local second = (limit - origin) / step
+			entry = math.max(entry, math.min(first, second))
+			exit = math.min(exit, math.max(first, second))
+			if entry > exit then
+				return false
+			end
+		end
+	end
+	return true
 end
 
 function PrototypeWorld.start()
@@ -217,6 +256,19 @@ function PrototypeWorld.start()
 	local boostDriver: Player? = nil
 	local raceControlsWereLocked = kart:GetAttribute("RaceControlsLocked") == true
 	local debugElapsed = 0
+	local cachedTrack: Model? = nil
+	local barrierTriggers: { BasePart } = {}
+	local insideBarrier: { [BasePart]: boolean } = {}
+	local lastBarrierPosition = chassis.Position
+	local crashActive = false
+	local crashEndTime = 0
+	local crashAlignStartTime = 0
+	local crashAlignDeadline = 0
+	local crashCooldownEndTime = 0
+	local crashVelocity = Vector3.zero
+	local crashSpinRate = 0
+	local crashTrackForward = Vector3.new(0, 0, -1)
+	local lastPlanarForward = Vector3.new(0, 0, -1)
 
 	local function setDriftActive(active: boolean, reason: string)
 		if driftActive == active then
@@ -271,6 +323,127 @@ function PrototypeWorld.start()
 		end
 	end
 
+	local function refreshBarrierTriggers()
+		local currentTrack = prototype:FindFirstChild("TestTrack")
+		if currentTrack == cachedTrack then
+			return
+		end
+		cachedTrack = if currentTrack and currentTrack:IsA("Model") then currentTrack else nil
+		table.clear(barrierTriggers)
+		table.clear(insideBarrier)
+		lastBarrierPosition = chassis.Position
+		if cachedTrack then
+			local folder = cachedTrack:FindFirstChild("BarrierTriggers")
+			if folder then
+				for _, child in folder:GetChildren() do
+					if child:IsA("BasePart") then
+						table.insert(barrierTriggers, child)
+					end
+				end
+			end
+		end
+	end
+
+	local function stopCrash()
+		if not crashActive then
+			return
+		end
+		crashActive = false
+		crashSpinRate = 0
+		kart:SetAttribute("KartCrashActive", false)
+		chassis.AssemblyAngularVelocity = Vector3.zero
+	end
+
+	local function startBarrierResponse(inwardNormal: Vector3, trackForward: Vector3, approachSpeed: number, planarVelocity: Vector3, now: number)
+		local strongImpact = approachSpeed >= KartConfig.BARRIER_CRASH_MIN_SPEED
+		local severity = math.clamp(
+			(approachSpeed - KartConfig.BARRIER_CRASH_MIN_SPEED)
+				/ (KartConfig.MINI_BOOST_MAX_SPEED - KartConfig.BARRIER_CRASH_MIN_SPEED), 0, 1
+		)
+		local duration = if strongImpact
+			then KartConfig.BARRIER_CRASH_DURATION_MIN
+				+ (KartConfig.BARRIER_CRASH_DURATION_MAX - KartConfig.BARRIER_CRASH_DURATION_MIN) * severity
+			else 0.22
+		local reboundSpeed = if strongImpact
+			then math.clamp(
+				approachSpeed * KartConfig.BARRIER_CRASH_BOUNCE_FACTOR,
+				KartConfig.BARRIER_CRASH_MIN_REBOUND_SPEED,
+				KartConfig.BARRIER_CRASH_MAX_REBOUND_SPEED
+			)
+			else 5 + 3 * math.clamp(approachSpeed / KartConfig.BARRIER_CRASH_MIN_SPEED, 0, 1)
+		-- The forward component keeps the rebound on the legal side of the race direction.
+		local lateralInward = inwardNormal - trackForward * inwardNormal:Dot(trackForward)
+		if lateralInward.Magnitude < 0.001 then
+			local right = Vector3.new(-trackForward.Z, 0, trackForward.X)
+			lateralInward = right * (if right:Dot(inwardNormal) >= 0 then 1 else -1)
+		end
+		local reboundDirection = (lateralInward.Unit * 0.75 + trackForward * 0.4).Unit
+		crashVelocity = reboundDirection * reboundSpeed
+		crashTrackForward = trackForward
+		local spinTurns = KartConfig.BARRIER_CRASH_MIN_SPIN_TURNS
+			+ (KartConfig.BARRIER_CRASH_MAX_SPIN_TURNS - KartConfig.BARRIER_CRASH_MIN_SPIN_TURNS) * severity
+		local cross = planarVelocity:Cross(inwardNormal).Y
+		local spinDirection = if cross < 0 then -1 else 1
+		crashSpinRate = if strongImpact then spinDirection * spinTurns * 2 * math.pi / duration else 0
+		crashEndTime = now + duration
+		crashAlignStartTime = crashEndTime - math.min(0.35, duration * 0.54)
+		crashAlignDeadline = crashEndTime + 0.2
+		crashCooldownEndTime = crashEndTime + KartConfig.BARRIER_CRASH_COOLDOWN
+		crashActive = true
+		commandedSpeed = 0
+		smoothedSteering = 0
+		currentYawRate = 0
+		kart:SetAttribute("KartVisualSteering", 0)
+		setDriftActive(false, "barrier")
+		resetDriftCharge()
+		stopBoost("barrier")
+		kart:SetAttribute("KartCrashActive", true)
+		chassis.AssemblyLinearVelocity = crashVelocity
+		chassis.AssemblyAngularVelocity = Vector3.new(0, crashSpinRate, 0)
+		print(string.format("[KartBarrier] impact approach=%.1f rebound=%.1f spin=%.2f duration=%.2f", approachSpeed, reboundSpeed, if strongImpact then spinTurns else 0, duration))
+	end
+
+	local function checkBarrierEntries(now: number, fromPosition: Vector3, planarVelocity: Vector3): boolean
+		local bestNormal: Vector3? = nil
+		local bestForward: Vector3? = nil
+		local bestApproach = KartConfig.BARRIER_CONTACT_MIN_SPEED
+		local pushNormal: Vector3? = nil
+		local pushApproach = KartConfig.BARRIER_CONTACT_MIN_SPEED
+		for _, trigger in barrierTriggers do
+			local inside = isInsideBarrier(trigger, chassis.Position)
+			local entered = not insideBarrier[trigger]
+				and (inside or crossedBarrier(trigger, fromPosition, chassis.Position))
+			insideBarrier[trigger] = inside
+			if (entered or inside) and not crashActive then
+				local normal = trigger:GetAttribute("BarrierInwardNormal")
+				local trackForward = trigger:GetAttribute("BarrierForwardTangent")
+				if typeof(normal) == "Vector3" and typeof(trackForward) == "Vector3" then
+					local approach = -planarVelocity:Dot(normal)
+					if entered and now >= crashCooldownEndTime and approach >= bestApproach then
+						bestNormal = normal
+						bestForward = trackForward
+						bestApproach = approach
+					elseif approach >= pushApproach then
+						pushNormal = normal
+						pushApproach = approach
+					end
+				end
+			end
+		end
+		if bestNormal and bestForward then
+			startBarrierResponse(bestNormal, bestForward, bestApproach, planarVelocity, now)
+			return true
+		end
+		if pushNormal then
+			-- Keep the kart outside a trigger during cooldown without a second spin.
+			commandedSpeed = 0
+			chassis.AssemblyLinearVelocity = pushNormal * KartConfig.BARRIER_CONTACT_PUSH_SPEED
+			chassis.AssemblyAngularVelocity = Vector3.zero
+			return true
+		end
+		return false
+	end
+
 	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
 		if type(throttle) ~= "number" or type(steering) ~= "number" then
 			return
@@ -285,7 +458,7 @@ function PrototypeWorld.start()
 			return
 		end
 		local validatedSteering = math.clamp(steering, -1, 1)
-		local visualSteering = if kart:GetAttribute("RaceControlsLocked") == true then 0 else validatedSteering
+		local visualSteering = if kart:GetAttribute("RaceControlsLocked") == true or crashActive then 0 else validatedSteering
 		if kart:GetAttribute("KartVisualSteering") ~= visualSteering then
 			kart:SetAttribute("KartVisualSteering", visualSteering)
 		end
@@ -303,6 +476,9 @@ function PrototypeWorld.start()
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		refreshBarrierTriggers()
+		local previousBarrierPosition = lastBarrierPosition
+		lastBarrierPosition = chassis.Position
 		if chassis.Position.Y < KartConfig.FALL_RESET_Y then
 			local fallPosition = chassis.Position
 			print(string.format(
@@ -321,6 +497,7 @@ function PrototypeWorld.start()
 			setDriftActive(false, "fall")
 			resetDriftCharge()
 			stopBoost("fall")
+			stopCrash()
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			return
@@ -328,6 +505,7 @@ function PrototypeWorld.start()
 
 		local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
 		if raceControlsLocked then
+			stopCrash()
 			if not raceControlsWereLocked then
 				commandedSpeed = 0
 				smoothedSteering = 0
@@ -362,14 +540,48 @@ function PrototypeWorld.start()
 			driftRequested = control.driftRequested
 		end
 
+		local assemblyVelocity = chassis.AssemblyLinearVelocity
+		local planarVelocity = Vector3.new(assemblyVelocity.X, 0, assemblyVelocity.Z)
+		local barrierHandled = if occupant and player
+			then checkBarrierEntries(now, previousBarrierPosition, planarVelocity)
+			else false
+		if crashActive then
+			if chassis.CFrame.UpVector.Y < 0.55 then
+				local look = chassis.CFrame.LookVector
+				local flatLook = Vector3.new(look.X, 0, look.Z)
+				local heading = if flatLook.Magnitude > 0.001 then flatLook.Unit else lastPlanarForward
+				kart:PivotTo(CFrame.lookAt(chassis.Position, chassis.Position + heading))
+			end
+			local look = chassis.CFrame.LookVector
+			local flatLook = Vector3.new(look.X, 0, look.Z)
+			local forward = if flatLook.Magnitude > 0.001 then flatLook.Unit else lastPlanarForward
+			local headingError = math.atan2(forward:Cross(crashTrackForward).Y, forward:Dot(crashTrackForward))
+			if now >= crashEndTime and (math.abs(headingError) <= math.rad(20) or now >= crashAlignDeadline) then
+				chassis.AssemblyLinearVelocity = Vector3.zero
+				stopCrash()
+				return
+			end
+			crashVelocity *= math.exp(-KartConfig.BARRIER_CRASH_DAMPING * deltaTime)
+			chassis.AssemblyLinearVelocity = crashVelocity
+			local spinWeight = math.clamp((crashAlignStartTime + 0.08 - now) / 0.08, 0, 1)
+			local alignmentYawRate = math.clamp(headingError * 16, -12, 12)
+			local yawRate = crashSpinRate * spinWeight + alignmentYawRate * (1 - spinWeight)
+			chassis.AssemblyAngularVelocity = Vector3.new(0, yawRate, 0)
+			return
+		end
+		if barrierHandled then
+			return
+		end
+
 		local lookVector = chassis.CFrame.LookVector
 		local flatForward = Vector3.new(lookVector.X, 0, lookVector.Z)
 		local forward = if flatForward.Magnitude > 0.001 then flatForward.Unit else Vector3.new(0, 0, -1)
+		if chassis.CFrame.UpVector.Y >= 0.55 then
+			lastPlanarForward = forward
+		end
 		local rightVector = chassis.CFrame.RightVector
 		local flatRight = Vector3.new(rightVector.X, 0, rightVector.Z)
 		local right = if flatRight.Magnitude > 0.001 then flatRight.Unit else Vector3.new(1, 0, 0)
-		local assemblyVelocity = chassis.AssemblyLinearVelocity
-		local planarVelocity = Vector3.new(assemblyVelocity.X, 0, assemblyVelocity.Z)
 		local actualForwardSpeed = planarVelocity:Dot(forward)
 		local lateralSpeed = planarVelocity:Dot(right)
 		local driftForwardSpeed = math.max(actualForwardSpeed, 0)
@@ -480,6 +692,13 @@ function PrototypeWorld.start()
 					forwardTargetSpeed,
 					KartConfig.DRIFT_SPEED_DECELERATION * deltaTime
 				)
+			elseif not boostActive and not driftActive and not offTrack
+				and commandedSpeed > KartConfig.MAX_FORWARD_SPEED then
+				commandedSpeed = moveToward(
+					commandedSpeed,
+					KartConfig.MAX_FORWARD_SPEED,
+					KartConfig.BOOST_EXIT_DECELERATION * deltaTime
+				)
 			else
 				commandedSpeed = moveToward(commandedSpeed, forwardTargetSpeed, forwardAcceleration * throttle * deltaTime)
 			end
@@ -493,8 +712,7 @@ function PrototypeWorld.start()
 			commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.COAST_DECELERATION * deltaTime)
 		end
 
-		local forwardSpeedLimit = if boostActive then KartConfig.MINI_BOOST_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
-		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, forwardSpeedLimit)
+		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, KartConfig.MINI_BOOST_MAX_SPEED)
 
 		local effectiveGrip = if driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
 		lateralSpeed *= math.exp(-effectiveGrip * deltaTime)

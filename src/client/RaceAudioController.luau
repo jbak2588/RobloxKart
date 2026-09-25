@@ -20,18 +20,26 @@ function RaceAudioController.start()
 	local group = AudioRuntime.getGroup("RobloxKartSFX")
 	local sounds: { [string]: Sound? } = {
 		Countdown = AudioRuntime.createSound("CountdownBeep", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.COUNTDOWN_VOLUME, false),
-		Go = AudioRuntime.createSound("RaceGo", AudioConfig.ASSETS.GO, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
+		Go = AudioRuntime.createSound("RaceGoFirst", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
+		GoRepeat = AudioRuntime.createSound("RaceGoSecond", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		Lap = AudioRuntime.createSound("LapComplete", AudioConfig.ASSETS.LAP_COMPLETE, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		FinalLap = AudioRuntime.createSound("FinalLap", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		Finish = AudioRuntime.createSound("RaceFinish", AudioConfig.ASSETS.FINISH, SoundService, group, false, AudioConfig.RACE.FINISH_VOLUME, false),
 		Dnf = AudioRuntime.createSound("RaceDNF", AudioConfig.ASSETS.DNF, SoundService, group, false, AudioConfig.RACE.DNF_VOLUME, false),
 	}
+	if sounds.Go then
+		sounds.Go.PlaybackSpeed = 1.08
+	end
+	if sounds.GoRepeat then
+		sounds.GoRepeat.PlaybackSpeed = 1.08
+	end
 	AudioRuntime.preload(sounds)
 
 	local previousState = player:GetAttribute("RaceState")
 	local previousCountdown = player:GetAttribute("RaceCountdown")
 	local previousCompletedLaps = player:GetAttribute("RaceCompletedLaps")
 	local lastBeep: number? = nil
+	local goSerial = 0
 
 	local function stopAll()
 		for _, sound in sounds do
@@ -44,6 +52,24 @@ function RaceAudioController.start()
 			lastBeep = value
 			AudioRuntime.playOnce(sounds.Countdown)
 		end
+	end
+
+	local function playGo()
+		local first = sounds.Go
+		local second = sounds.GoRepeat
+		if not first or not second then
+			return
+		end
+		goSerial += 1
+		local thisGo = goSerial
+		AudioRuntime.playOnce(first)
+		local beepLength = if first.TimeLength > 0 then first.TimeLength / first.PlaybackSpeed else 0.32
+		-- A short gap makes the two higher beeps span about twice one countdown beep.
+		task.delay(beepLength * 1.16, function()
+			if goSerial == thisGo and player:GetAttribute("RaceState") == "RACING" then
+				AudioRuntime.playOnce(second)
+			end
+		end)
 	end
 
 	player:GetAttributeChangedSignal("RaceCountdown"):Connect(function()
@@ -81,6 +107,9 @@ function RaceAudioController.start()
 		local state = player:GetAttribute("RaceState")
 		local prior = previousState
 		previousState = state
+		if state ~= "RACING" then
+			goSerial += 1
+		end
 		if state == "GARAGE" then
 			stopAll()
 			lastBeep = nil
@@ -89,7 +118,7 @@ function RaceAudioController.start()
 			lastBeep = nil
 			playCountdown(player:GetAttribute("RaceCountdown"))
 		elseif state == "RACING" and prior == "COUNTDOWN" then
-			AudioRuntime.playOnce(sounds.Go)
+			playGo()
 		elseif state == "FINISHED" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Finish)
 		elseif state == "DNF" and prior == "RACING" then

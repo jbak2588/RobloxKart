@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local requireModule = require :: (ModuleScript) -> any
 local raceConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig") :: ModuleScript
@@ -152,6 +153,8 @@ function RaceHudController.start()
 	steeringRing.Size = UDim2.fromOffset(86, 86)
 	steeringRing.BackgroundTransparency = 1
 	steeringRing.Parent = steeringDisplay
+	local steeringRingScale = Instance.new("UIScale")
+	steeringRingScale.Parent = steeringRing
 	local ringCorner = Instance.new("UICorner")
 	ringCorner.CornerRadius = UDim.new(1, 0)
 	ringCorner.Parent = steeringRing
@@ -330,6 +333,93 @@ function RaceHudController.start()
 		remoteEvent:FireServer("ReturnGarage")
 	end)
 
+	local function applyResponsiveLayout()
+		local camera = Workspace.CurrentCamera
+		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
+		local compact = viewportSize.Y > 0 and viewportSize.Y <= 650
+		screenGui.IgnoreGuiInset = not compact
+		if compact then
+			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
+			frame.Position = UDim2.fromOffset(12, 8)
+			frame.Size = UDim2.fromOffset(lapWidth, if offTrackLabel.Visible then 116 else 96)
+			padding.PaddingTop = UDim.new(0, 6)
+			padding.PaddingBottom = UDim.new(0, 6)
+			padding.PaddingLeft = UDim.new(0, 8)
+			padding.PaddingRight = UDim.new(0, 8)
+			lapLabel.Size = UDim2.new(1, -16, 0, 25)
+			lapLabel.TextSize = 20
+			for _, label in { checkpointLabel, bestLabel, offTrackLabel } do
+				label.Size = UDim2.new(1, -16, 0, 20)
+				label.TextSize = 14
+			end
+			speedPanel.Position = UDim2.new(0.5, 0, 0, 8)
+			speedPanel.Size = UDim2.fromOffset(160, 64)
+			speedValue.Position = UDim2.fromOffset(10, 2)
+			speedValue.Size = UDim2.fromOffset(96, 36)
+			speedValue.TextSize = 31
+			speedUnit.Position = UDim2.fromOffset(101, 17)
+			speedUnit.Size = UDim2.fromOffset(53, 18)
+			speedUnit.TextSize = 11
+			speedTrack.Position = UDim2.fromOffset(10, 48)
+			speedTrack.Size = UDim2.fromOffset(140, 6)
+			miniMapPanel.Position = UDim2.new(1, -12, 0.5, 0)
+			miniMapSize.MinSize = Vector2.zero
+			miniMapPanel.Size = UDim2.fromOffset(140, 140)
+			steeringDisplay.Position = UDim2.new(0.5, 0, 1, -10)
+			steeringDisplay.Size = UDim2.fromOffset(84, 84)
+			steeringRingScale.Scale = 0.72
+			countdownLabel.Size = UDim2.fromOffset(math.min(220, viewportSize.X - 32), 100)
+			finalLapLabel.Size = UDim2.fromOffset(math.min(360, viewportSize.X - 32), 64)
+			resultsPanel.Size = UDim2.fromOffset(math.min(320, viewportSize.X - 32), math.min(255, viewportSize.Y - 32))
+			resultsLayout.Padding = UDim.new(0, 5)
+			resultsPadding.PaddingTop = UDim.new(0, 12)
+			resultsPadding.PaddingBottom = UDim.new(0, 12)
+			finishLabel.Size = UDim2.new(1, 0, 0, 32)
+			finishLabel.TextSize = 26
+			rematchButton.Size = UDim2.fromOffset(160, 38)
+			garageButton.Size = rematchButton.Size
+		else
+			frame.Position = UDim2.fromOffset(24, 118)
+			frame.Size = UDim2.fromOffset(260, if offTrackLabel.Visible then 139 else 112)
+			padding.PaddingTop = UDim.new(0, 8)
+			padding.PaddingBottom = UDim.new(0, 8)
+			padding.PaddingLeft = UDim.new(0, 10)
+			padding.PaddingRight = UDim.new(0, 10)
+			lapLabel.Size = UDim2.new(1, -20, 0, 30)
+			lapLabel.TextSize = 23
+			for _, label in { checkpointLabel, bestLabel, offTrackLabel } do
+				label.Size = UDim2.new(1, -20, 0, 23)
+				label.TextSize = 16
+			end
+			speedPanel.Position = UDim2.new(0.5, 0, 0, 18)
+			speedPanel.Size = UDim2.fromOffset(210, 86)
+			speedValue.Position = UDim2.fromOffset(12, 5)
+			speedValue.Size = UDim2.fromOffset(130, 46)
+			speedValue.TextSize = 40
+			speedUnit.Position = UDim2.fromOffset(130, 24)
+			speedUnit.Size = UDim2.fromOffset(72, 20)
+			speedUnit.TextSize = 14
+			speedTrack.Position = UDim2.fromOffset(12, 62)
+			speedTrack.Size = UDim2.fromOffset(186, 8)
+			miniMapPanel.Position = UDim2.new(1, -24, 0.5, 0)
+			miniMapSize.MinSize = Vector2.new(170, 170)
+			miniMapPanel.Size = UDim2.fromOffset(194, 194)
+			steeringDisplay.Position = UDim2.new(0.5, 0, 1, -18)
+			steeringDisplay.Size = UDim2.fromOffset(112, 112)
+			steeringRingScale.Scale = 1
+			countdownLabel.Size = UDim2.fromOffset(260, 140)
+			finalLapLabel.Size = UDim2.fromOffset(440, 80)
+			resultsPanel.Size = UDim2.fromOffset(340, 275)
+			resultsLayout.Padding = UDim.new(0, 8)
+			resultsPadding.PaddingTop = UDim.new(0, 18)
+			resultsPadding.PaddingBottom = UDim.new(0, 18)
+			finishLabel.Size = UDim2.new(1, 0, 0, 36)
+			finishLabel.TextSize = 30
+			rematchButton.Size = UDim2.fromOffset(180, 44)
+			garageButton.Size = rematchButton.Size
+		end
+	end
+
 	local goDisplaySerial = 0
 	local finalLapSerial = 0
 	local finalLapShown = false
@@ -447,6 +537,7 @@ function RaceHudController.start()
 			finalLapLabel.Visible = false
 		end
 		displayedLap = currentLap
+		applyResponsiveLayout()
 	end
 
 	for _, attributeName in {
@@ -468,6 +559,19 @@ function RaceHudController.start()
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end
 
+	local viewportConnection: RBXScriptConnection? = nil
+	local function bindCamera()
+		if viewportConnection then
+			viewportConnection:Disconnect()
+		end
+		local camera = Workspace.CurrentCamera
+		if camera then
+			viewportConnection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(applyResponsiveLayout)
+		end
+		applyResponsiveLayout()
+	end
+	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
+	bindCamera()
 	updateHud()
 	local displayedSpeed = 0
 	local displayedSteering = 0
