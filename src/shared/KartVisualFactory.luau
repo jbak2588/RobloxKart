@@ -83,7 +83,32 @@ function KartVisualFactory.createVisual(definition: { [string]: any }): Model
 	addPart(visual, "FrontBumper", Vector3.new(5.5, 0.33, 0.42), CFrame.new(0, -0.2, -3.9), "Trim")
 	addPart(visual, "RearBumper", Vector3.new(6.0, 0.35, 0.45), CFrame.new(0, -0.16, 3.78), "Trim")
 	addPart(visual, "SteeringColumn", Vector3.new(0.2, 1.25, 0.2), CFrame.new(0, 1.05, -1.05), "Metal")
-	addPart(visual, "SteeringWheel", Vector3.new(1.45, 0.2, 0.24), CFrame.new(0, 1.65, -1.05), "Trim")
+	local steeringCenter = Vector3.new(0, 1.65, -1.05)
+	local steeringHub = addPart(visual, "SteeringWheel", Vector3.new(0.3, 0.3, 0.18), CFrame.new(steeringCenter), "Metal")
+	steeringHub:SetAttribute("VisualMotionRole", "SteeringWheel")
+	for index = 1, 10 do
+		local angle = (index - 1) * 2 * math.pi / 10
+		local rim = addPart(
+			visual,
+			"SteeringRim" .. index,
+			Vector3.new(0.47, 0.13, 0.14),
+			CFrame.new(steeringCenter + Vector3.new(math.cos(angle) * 0.68, math.sin(angle) * 0.68, 0))
+				* CFrame.Angles(0, 0, angle + math.pi / 2),
+			"Trim"
+		)
+		rim:SetAttribute("VisualParentWheel", steeringHub.Name)
+	end
+	for index, angle in { 0, math.pi, -math.pi / 2 } do
+		local spoke = addPart(
+			visual,
+			"SteeringSpoke" .. index,
+			Vector3.new(0.58, 0.09, 0.1),
+			CFrame.new(steeringCenter + Vector3.new(math.cos(angle) * 0.33, math.sin(angle) * 0.33, 0))
+				* CFrame.Angles(0, 0, angle),
+			"Metal"
+		)
+		spoke:SetAttribute("VisualParentWheel", steeringHub.Name)
+	end
 	addWheel(visual, "WheelFL", Vector3.new(0.9, 1.85, 1.85), Vector3.new(-3.25, wheelCenterHeight(1.85), -2.55), true, "Left")
 	addWheel(visual, "WheelFR", Vector3.new(0.9, 1.85, 1.85), Vector3.new(3.25, wheelCenterHeight(1.85), -2.55), true, "Right")
 	addWheel(visual, "WheelRL", Vector3.new(1.05, 2.05, 2.05), Vector3.new(-3.3, wheelCenterHeight(2.05), 2.65), false, "Left")

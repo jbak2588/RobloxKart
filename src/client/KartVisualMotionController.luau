@@ -28,6 +28,7 @@ function KartVisualMotionController.start()
 	local activeSeat: BasePart? = nil
 	local activeChassis: BasePart? = nil
 	local wheels = {}
+	local steeringMotor: Motor6D? = nil
 	local currentSteer = 0
 	local seatedConnection: RBXScriptConnection? = nil
 	local simulationConnection: RBXScriptConnection? = nil
@@ -47,6 +48,10 @@ function KartVisualMotionController.start()
 				wheel.motor.Transform = CFrame.identity
 			end
 		end
+		if steeringMotor and steeringMotor.Parent then
+			steeringMotor.Transform = CFrame.identity
+		end
+		steeringMotor = nil
 		table.clear(wheels)
 		activeKart = nil
 		activeSeat = nil
@@ -93,6 +98,8 @@ function KartVisualMotionController.start()
 						radius = part.Size.Y / 2,
 						angle = 0,
 					})
+				elseif role == "SteeringWheel" and motor and motor:IsA("Motor6D") then
+					steeringMotor = motor
 				end
 			end
 		end
@@ -118,6 +125,9 @@ function KartVisualMotionController.start()
 				elseif type(steering) == "number" then -math.clamp(steering, -1, 1) * STEER_MAX
 				else 0
 			currentSteer += (targetSteer - currentSteer) * (1 - math.exp(-STEER_RESPONSE * deltaTime))
+			if steeringMotor then
+				steeringMotor.Transform = CFrame.Angles(0, 0, -currentSteer * 1.5)
+			end
 			for _, wheel in wheels do
 				if math.abs(forwardSpeed) > 0.05 then
 					wheel.angle = (wheel.angle + forwardSpeed / wheel.radius * deltaTime) % (2 * math.pi)

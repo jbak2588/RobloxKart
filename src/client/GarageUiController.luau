@@ -122,6 +122,11 @@ function GarageUiController.start()
 
 	local title = makeText(backdrop, UDim2.fromScale(0.8, 0.09), UDim2.fromScale(0.1, 0.055), "ROBLOX KART", 40)
 	title.TextColor3 = Color3.fromRGB(255, 215, 75)
+	title.TextScaled = true
+	local titleSize = Instance.new("UITextSizeConstraint")
+	titleSize.MaxTextSize = 40
+	titleSize.MinTextSize = 28
+	titleSize.Parent = title
 	local stepLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.07), UDim2.fromScale(0.1, 0.17), "", 24)
 	local choiceLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.08), UDim2.fromScale(0.1, 0.61), "", 34)
 	local detailLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.07), UDim2.fromScale(0.1, 0.70), "", 19)
@@ -156,10 +161,47 @@ function GarageUiController.start()
 	loadingSize.MinSize = viewportSize.MinSize
 	loadingSize.MaxSize = viewportSize.MaxSize
 	loadingSize.Parent = previewLoading
+	local function makeArrow(text: string, xOffset: number): TextButton
+		local arrow = makeButton(backdrop, text, UDim2.new(0.5, xOffset, 0.43, 0))
+		arrow.Name = if xOffset < 0 then "PreviousChoice" else "NextChoice"
+		arrow.Size = UDim2.fromOffset(52, 64)
+		arrow.BackgroundColor3 = Color3.fromRGB(36, 51, 73)
+		arrow.BackgroundTransparency = 0.12
+		arrow.TextSize = 29
+		arrow.ZIndex = 3
+		return arrow
+	end
+	local leftArrow = makeArrow(utf8.char(9664), -350)
+	local rightArrow = makeArrow(utf8.char(9654), 298)
+
+	local controlsCard = Instance.new("Frame")
+	controlsCard.Name = "ControlsHint"
+	controlsCard.AnchorPoint = Vector2.new(1, 0)
+	controlsCard.Position = UDim2.new(1, -16, 0.28, 0)
+	controlsCard.Size = UDim2.fromOffset(292, 124)
+	controlsCard.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
+	controlsCard.BackgroundTransparency = 0.08
+	controlsCard.BorderSizePixel = 0
+	controlsCard.Parent = backdrop
+	local controlsCorner = Instance.new("UICorner")
+	controlsCorner.CornerRadius = UDim.new(0, 10)
+	controlsCorner.Parent = controlsCard
+	local controlsTitle = makeText(controlsCard, UDim2.new(1, -24, 0, 26), UDim2.fromOffset(12, 8), "CONTROLS", 17)
+	controlsTitle.TextColor3 = Color3.fromRGB(255, 215, 75)
+	controlsTitle.TextXAlignment = Enum.TextXAlignment.Left
+	for index, hint in {
+		"W / S   Accelerate / Brake & Reverse",
+		"A / D   Steer",
+		"SHIFT   Drift",
+	} do
+		local line = makeText(controlsCard, UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 34 + (index - 1) * 26), hint, 14)
+		line.Font = Enum.Font.Gotham
+		line.TextXAlignment = Enum.TextXAlignment.Left
+	end
 
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
-	local cycleButton = makeButton(backdrop, "CHANGE", UDim2.new(0.5, -85, 0.84, 0))
-	local nextButton = makeButton(backdrop, "NEXT", UDim2.new(0.5, 100, 0.84, 0))
+	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
+	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
 
 	local step = 1
 	local driverIndex = 1
@@ -231,6 +273,9 @@ function GarageUiController.start()
 			return
 		end
 		if raceState == "PRE_RACE" then
+			controlsCard.Visible = true
+			leftArrow.Visible = false
+			rightArrow.Visible = false
 			viewport.Visible = false
 			previewLoading.Visible = false
 			clearPreview()
@@ -245,7 +290,7 @@ function GarageUiController.start()
 			nextButton.Visible = false
 			return
 		end
-		nextButton.Visible = true
+		controlsCard.Visible = true
 		local driverId, kartId, trackId = selectedIds()
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= 2
@@ -279,30 +324,43 @@ function GarageUiController.start()
 			detailLabel.Text = string.format("%s  /  %s  /  %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
 		end
 		previousButton.Visible = step > 1
-		cycleButton.Visible = step <= 3 and #catalogs[step].Order > 1
-		nextButton.Text = if step == 4 then "READY" else "NEXT"
+		cycleButton.Visible = step <= 3
+		nextButton.Visible = step == 4
+		leftArrow.Visible = step <= 3 and #catalogs[step].Order > 1
+		rightArrow.Visible = leftArrow.Visible
+		previousButton.Position = UDim2.new(0.5, -180, 0.84, 0)
+		cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 10 else -85, 0.84, 0)
+		nextButton.Position = UDim2.new(0.5, 10, 0.84, 0)
 		errorLabel.Text = tostring(player:GetAttribute("RaceEntryError") or "")
 	end
+
+	local function changeChoice(direction: number)
+		if step == 1 then
+			driverIndex = (driverIndex - 1 + direction + #DriverCatalog.Order) % #DriverCatalog.Order + 1
+		elseif step == 2 then
+			kartIndex = (kartIndex - 1 + direction + #KartCatalog.Order) % #KartCatalog.Order + 1
+		elseif step == 3 then
+			trackIndex = (trackIndex - 1 + direction + #TrackCatalog.Order) % #TrackCatalog.Order + 1
+		end
+		update()
+	end
+	leftArrow.Activated:Connect(function()
+		changeChoice(-1)
+	end)
+	rightArrow.Activated:Connect(function()
+		changeChoice(1)
+	end)
 
 	previousButton.Activated:Connect(function()
 		step = math.max(1, step - 1)
 		update()
 	end)
 	cycleButton.Activated:Connect(function()
-		if step == 1 then
-			driverIndex = driverIndex % #DriverCatalog.Order + 1
-		elseif step == 2 then
-			kartIndex = kartIndex % #KartCatalog.Order + 1
-		elseif step == 3 then
-			trackIndex = trackIndex % #TrackCatalog.Order + 1
-		end
+		step = math.min(4, step + 1)
 		update()
 	end)
 	nextButton.Activated:Connect(function()
-		if step < 4 then
-			step += 1
-			update()
-		else
+		if step == 4 then
 			local driverId, kartId, trackId = selectedIds()
 			remote:FireServer("Ready", driverId, kartId, trackId)
 		end

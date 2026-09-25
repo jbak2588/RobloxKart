@@ -1,9 +1,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local requireModule = require :: (ModuleScript) -> any
 local raceConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig") :: ModuleScript
 local RaceConfig = requireModule(raceConfigModule)
+local KartConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig") :: ModuleScript)
 local DriverCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("DriverCatalog") :: ModuleScript)
 local KartCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog") :: ModuleScript)
 local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog") :: ModuleScript)
@@ -11,6 +14,7 @@ local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):Wait
 local RaceHudController = {}
 
 local HUD_NAME = "RobloxKartRaceHud"
+local DEBUG_UI = false
 local started = false
 
 local function getNumberAttribute(player: Player, name: string, fallback: number): number
@@ -55,13 +59,14 @@ function RaceHudController.start()
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = HUD_NAME
 	screenGui.ResetOnSpawn = false
+	screenGui.IgnoreGuiInset = true
 	screenGui.DisplayOrder = 10
 	screenGui.Parent = playerGui
 
 	local frame = Instance.new("Frame")
 	frame.Name = "Panel"
-	frame.Position = UDim2.fromOffset(16, 16)
-	frame.Size = UDim2.fromOffset(250, 135)
+	frame.Position = UDim2.fromOffset(24, 118)
+	frame.Size = UDim2.fromOffset(260, 112)
 	frame.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
 	frame.BackgroundTransparency = 0.2
 	frame.BorderSizePixel = 0
@@ -81,11 +86,98 @@ function RaceHudController.start()
 	layout.Parent = frame
 
 	local lapLabel = createLabel(frame, "Lap", 1)
+	lapLabel.Size = UDim2.new(1, -20, 0, 30)
+	lapLabel.TextSize = 23
+	lapLabel.TextColor3 = Color3.fromRGB(255, 225, 70)
 	local checkpointLabel = createLabel(frame, "Checkpoint", 2)
-	local lastLabel = createLabel(frame, "Last", 3)
-	local bestLabel = createLabel(frame, "Best", 4)
-	local offTrackLabel = createLabel(frame, "OffTrack", 5)
+	checkpointLabel.TextSize = 16
+	local bestLabel = createLabel(frame, "Best", 3)
+	bestLabel.TextSize = 16
+	local offTrackLabel = createLabel(frame, "OffTrack", 4)
+	offTrackLabel.TextSize = 16
 	offTrackLabel.TextColor3 = Color3.fromRGB(255, 175, 80)
+
+	local speedPanel = Instance.new("Frame")
+	speedPanel.Name = "Speedometer"
+	speedPanel.AnchorPoint = Vector2.new(0.5, 0)
+	speedPanel.Position = UDim2.new(0.5, 0, 0, 18)
+	speedPanel.Size = UDim2.fromOffset(210, 86)
+	speedPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
+	speedPanel.BackgroundTransparency = 0.15
+	speedPanel.BorderSizePixel = 0
+	speedPanel.Visible = false
+	speedPanel.Parent = screenGui
+	addCorner(speedPanel, 10)
+	local speedValue = createLabel(speedPanel, "SpeedValue", 1)
+	speedValue.Position = UDim2.fromOffset(12, 5)
+	speedValue.Size = UDim2.fromOffset(130, 46)
+	speedValue.Font = Enum.Font.GothamBlack
+	speedValue.TextSize = 40
+	speedValue.Text = "0"
+	local speedUnit = createLabel(speedPanel, "SpeedUnit", 2)
+	speedUnit.Position = UDim2.fromOffset(130, 24)
+	speedUnit.Size = UDim2.fromOffset(72, 20)
+	speedUnit.Text = "stud/s"
+	speedUnit.TextSize = 14
+	speedUnit.TextColor3 = Color3.fromRGB(180, 194, 211)
+	local speedTrack = Instance.new("Frame")
+	speedTrack.Position = UDim2.fromOffset(12, 62)
+	speedTrack.Size = UDim2.fromOffset(186, 8)
+	speedTrack.BackgroundColor3 = Color3.fromRGB(59, 68, 81)
+	speedTrack.BorderSizePixel = 0
+	speedTrack.Parent = speedPanel
+	addCorner(speedTrack, 4)
+	local speedFill = Instance.new("Frame")
+	speedFill.Size = UDim2.fromScale(0, 1)
+	speedFill.BackgroundColor3 = Color3.fromRGB(255, 215, 75)
+	speedFill.BorderSizePixel = 0
+	speedFill.Parent = speedTrack
+	addCorner(speedFill, 4)
+
+	local steeringDisplay = Instance.new("Frame")
+	steeringDisplay.Name = "SteeringDisplay"
+	steeringDisplay.AnchorPoint = Vector2.new(0.5, 1)
+	steeringDisplay.Position = UDim2.new(0.5, 0, 1, -18)
+	steeringDisplay.Size = UDim2.fromOffset(112, 112)
+	steeringDisplay.BackgroundColor3 = Color3.fromRGB(13, 31, 43)
+	steeringDisplay.BackgroundTransparency = 0.12
+	steeringDisplay.Visible = false
+	steeringDisplay.Parent = screenGui
+	addCorner(steeringDisplay, 56)
+	local steeringRing = Instance.new("Frame")
+	steeringRing.AnchorPoint = Vector2.new(0.5, 0.5)
+	steeringRing.Position = UDim2.fromScale(0.5, 0.5)
+	steeringRing.Size = UDim2.fromOffset(86, 86)
+	steeringRing.BackgroundTransparency = 1
+	steeringRing.Parent = steeringDisplay
+	local ringCorner = Instance.new("UICorner")
+	ringCorner.CornerRadius = UDim.new(1, 0)
+	ringCorner.Parent = steeringRing
+	local ringStroke = Instance.new("UIStroke")
+	ringStroke.Color = Color3.fromRGB(65, 225, 245)
+	ringStroke.Thickness = 7
+	ringStroke.Parent = steeringRing
+	for _, position in { UDim2.fromOffset(1, 37), UDim2.fromOffset(43, 37) } do
+		local spoke = Instance.new("Frame")
+		spoke.Position = position
+		spoke.Size = UDim2.fromOffset(42, 8)
+		spoke.BackgroundColor3 = Color3.fromRGB(65, 225, 245)
+		spoke.BorderSizePixel = 0
+		spoke.Parent = steeringRing
+	end
+	local lowerSpoke = Instance.new("Frame")
+	lowerSpoke.Position = UDim2.fromOffset(39, 42)
+	lowerSpoke.Size = UDim2.fromOffset(8, 36)
+	lowerSpoke.BackgroundColor3 = Color3.fromRGB(65, 225, 245)
+	lowerSpoke.BorderSizePixel = 0
+	lowerSpoke.Parent = steeringRing
+	local steeringHub = Instance.new("Frame")
+	steeringHub.Position = UDim2.fromOffset(33, 33)
+	steeringHub.Size = UDim2.fromOffset(20, 20)
+	steeringHub.BackgroundColor3 = Color3.fromRGB(255, 215, 75)
+	steeringHub.BorderSizePixel = 0
+	steeringHub.Parent = steeringRing
+	addCorner(steeringHub, 10)
 
 	local selectionPanel = Instance.new("Frame")
 	selectionPanel.Name = "RaceReady"
@@ -107,7 +199,7 @@ function RaceHudController.start()
 	local countdownLabel = Instance.new("TextLabel")
 	countdownLabel.Name = "Countdown"
 	countdownLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-	countdownLabel.Position = UDim2.fromScale(0.5, 0.35)
+	countdownLabel.Position = UDim2.fromScale(0.5, 0.5)
 	countdownLabel.Size = UDim2.fromOffset(260, 140)
 	countdownLabel.BackgroundTransparency = 1
 	countdownLabel.Font = Enum.Font.GothamBlack
@@ -116,12 +208,32 @@ function RaceHudController.start()
 	countdownLabel.TextScaled = true
 	countdownLabel.Visible = false
 	countdownLabel.Parent = screenGui
+	local countdownScale = Instance.new("UIScale")
+	countdownScale.Scale = 1
+	countdownScale.Parent = countdownLabel
+
+	local finalLapLabel = Instance.new("TextLabel")
+	finalLapLabel.Name = "FinalLapNotice"
+	finalLapLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	finalLapLabel.Position = UDim2.fromScale(0.5, 0.42)
+	finalLapLabel.Size = UDim2.fromOffset(440, 80)
+	finalLapLabel.BackgroundTransparency = 1
+	finalLapLabel.Font = Enum.Font.GothamBlack
+	finalLapLabel.Text = "FINAL LAP"
+	finalLapLabel.TextColor3 = Color3.fromRGB(255, 225, 70)
+	finalLapLabel.TextStrokeTransparency = 0.3
+	finalLapLabel.TextScaled = true
+	finalLapLabel.Visible = false
+	finalLapLabel.Parent = screenGui
+	local finalLapScale = Instance.new("UIScale")
+	finalLapScale.Scale = 1
+	finalLapScale.Parent = finalLapLabel
 
 	local resultsPanel = Instance.new("Frame")
 	resultsPanel.Name = "Results"
 	resultsPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 	resultsPanel.Position = UDim2.fromScale(0.5, 0.5)
-	resultsPanel.Size = UDim2.fromOffset(320, 275)
+	resultsPanel.Size = UDim2.fromOffset(340, 275)
 	resultsPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
 	resultsPanel.BackgroundTransparency = 0.08
 	resultsPanel.BorderSizePixel = 0
@@ -144,7 +256,7 @@ function RaceHudController.start()
 
 	local finishLabel = createLabel(resultsPanel, "Finish", 1)
 	finishLabel.Size = UDim2.new(1, 0, 0, 36)
-	finishLabel.Text = "FINISH"
+	finishLabel.Text = "FINISHED"
 	finishLabel.TextSize = 30
 	finishLabel.TextXAlignment = Enum.TextXAlignment.Center
 
@@ -186,16 +298,26 @@ function RaceHudController.start()
 	end)
 
 	local goDisplaySerial = 0
+	local finalLapSerial = 0
+	local finalLapShown = false
 	local displayedRaceState = player:GetAttribute("RaceState")
+	local displayedCountdown = getNumberAttribute(player, "RaceCountdown", 0)
+	local displayedLap = getNumberAttribute(player, "RaceCurrentLap", 1)
+	local function pulse(label: TextLabel, scale: UIScale)
+		scale.Scale = 1.3
+		label.TextTransparency = 0
+		label.TextStrokeTransparency = 0.3
+		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	end
 	local function updateHud()
 		local raceState = player:GetAttribute("RaceState")
 		local previousRaceState = displayedRaceState
 		displayedRaceState = raceState
 		local currentLap = getNumberAttribute(player, "RaceCurrentLap", 1)
+		local completedLaps = getNumberAttribute(player, "RaceCompletedLaps", 0)
 		local totalLaps = getNumberAttribute(player, "RaceTotalLaps", RaceConfig.TOTAL_LAPS)
 		local nextCheckpoint = getNumberAttribute(player, "RaceNextCheckpoint", 1)
 		local checkpointCount = getNumberAttribute(player, "RaceCheckpointCount", 6)
-		local lastLap = getNumberAttribute(player, "RaceLastLapTime", 0)
 		local bestLap = getNumberAttribute(player, "RaceBestLapTime", 0)
 		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
 		local offTrackRemaining = getNumberAttribute(player, "RaceOffTrackRemaining", 0)
@@ -203,7 +325,9 @@ function RaceHudController.start()
 		local kartSelection = KartCatalog.Entries[player:GetAttribute("SelectedKartId")]
 		local track = TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")]
 		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING" or raceState == "FINISHED" or raceState == "DNF"
-		selectionPanel.Visible = raceState == "PRE_RACE" or raceState == "COUNTDOWN"
+		speedPanel.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
+		steeringDisplay.Visible = speedPanel.Visible
+		selectionPanel.Visible = DEBUG_UI and (raceState == "PRE_RACE" or raceState == "COUNTDOWN")
 		driverLabel.Text = "DRIVER  " .. (if driver then driver.DisplayName else "--")
 		kartLabel.Text = "KART  " .. (if kartSelection then kartSelection.DisplayName else "--")
 		trackLabel.Text = "TRACK  " .. (if track then track.DisplayName else "--")
@@ -214,40 +338,87 @@ function RaceHudController.start()
 		else
 			checkpointLabel.Text = string.format("CHECKPOINT %d / %d", nextCheckpoint, checkpointCount)
 		end
-		lastLabel.Text = if lastLap > 0 then string.format("LAST %.2f", lastLap) else "LAST --"
-		bestLabel.Text = if bestLap > 0 then string.format("BEST %.2f", bestLap) else "BEST --"
+		bestLabel.Text = if bestLap > 0 then string.format("BEST LAP  %.2fs", bestLap) else "BEST LAP  --"
 		offTrackLabel.Text = if raceState == "RACING" and offTrackRemaining > 0 then string.format("RETURN TO TRACK  %ds", offTrackRemaining) else ""
+		offTrackLabel.Visible = raceState == "RACING" and offTrackRemaining > 0
+		frame.Size = UDim2.fromOffset(260, if offTrackLabel.Visible then 139 else 112)
 
 		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
-		finishLabel.Text = if raceState == "DNF" then "DNF" else "FINISH"
-		totalLabel.Text = if raceState == "DNF" then string.format("OFF TRACK %ds", RaceConfig.OFF_TRACK_TIMEOUT_SECONDS) elseif finalTime > 0 then string.format("TOTAL  %.2f", finalTime) else "TOTAL  --"
-		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST   %.2f", bestLap) else "BEST   --"
+		finishLabel.Text = if raceState == "DNF" then "DNF" else "FINISHED"
+		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
+		totalLabel.Text = if raceState == "DNF" then "OFF TRACK" elseif finalTime > 0 then string.format("TOTAL TIME  %.2fs", finalTime) else "TOTAL TIME  --"
+		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP  %.2fs", bestLap) else "BEST LAP  --"
+		resultsBestLabel.Visible = raceState == "FINISHED"
 
 		if raceState == "COUNTDOWN" then
-			goDisplaySerial += 1
 			local countdown = getNumberAttribute(player, "RaceCountdown", 0)
-			countdownLabel.Text = if countdown > 0 then tostring(countdown) else "GO"
-			countdownLabel.Visible = true
+			if previousRaceState ~= "COUNTDOWN" then
+				goDisplaySerial += 1
+				finalLapSerial += 1
+				finalLapShown = false
+				finalLapLabel.Visible = false
+			end
+			if countdown > 0 then
+				if previousRaceState ~= "COUNTDOWN" or displayedCountdown ~= countdown then
+					countdownLabel.Text = tostring(countdown)
+					countdownLabel.Visible = true
+					pulse(countdownLabel, countdownScale)
+				end
+			else
+				countdownLabel.Visible = false
+			end
+			displayedCountdown = countdown
 		elseif raceState == "RACING" and previousRaceState == "COUNTDOWN" then
 			goDisplaySerial += 1
 			local currentSerial = goDisplaySerial
-			countdownLabel.Text = "GO"
+			countdownLabel.Text = "GO!"
 			countdownLabel.Visible = true
+			pulse(countdownLabel, countdownScale)
 			task.delay(0.75, function()
 				if currentSerial == goDisplaySerial and player:GetAttribute("RaceState") == "RACING" then
-					countdownLabel.Visible = false
+					TweenService:Create(countdownLabel, TweenInfo.new(0.18), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+					task.delay(0.18, function()
+						if currentSerial == goDisplaySerial then
+							countdownLabel.Visible = false
+						end
+					end)
 				end
 			end)
 		elseif raceState ~= "RACING" then
 			goDisplaySerial += 1
 			countdownLabel.Visible = false
 		end
+
+		if raceState == "RACING" and previousRaceState == "RACING"
+			and not finalLapShown and totalLaps > 1 and displayedLap < totalLaps
+			and currentLap == totalLaps and completedLaps == totalLaps - 1 then
+			finalLapShown = true
+			finalLapSerial += 1
+			local currentSerial = finalLapSerial
+			finalLapLabel.Visible = true
+			pulse(finalLapLabel, finalLapScale)
+			task.delay(1.45, function()
+				if currentSerial == finalLapSerial and player:GetAttribute("RaceState") == "RACING" then
+					TweenService:Create(finalLapLabel, TweenInfo.new(0.2), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+					task.delay(0.2, function()
+						if currentSerial == finalLapSerial then
+							finalLapLabel.Visible = false
+						end
+					end)
+				end
+			end)
+		elseif raceState ~= "RACING" then
+			finalLapSerial += 1
+			finalLapLabel.Visible = false
+		end
+		displayedLap = currentLap
 	end
 
 	for _, attributeName in {
 		"RaceState",
 		"RaceCountdown",
 		"RaceCurrentLap",
+		"RaceCompletedLaps",
 		"RaceTotalLaps",
 		"RaceNextCheckpoint",
 		"RaceCheckpointCount",
@@ -263,6 +434,40 @@ function RaceHudController.start()
 	end
 
 	updateHud()
+	local displayedSpeed = 0
+	local displayedSteering = 0
+	local speedUpdateElapsed = 0
+	RunService.RenderStepped:Connect(function(deltaTime: number)
+		if not speedPanel.Visible then
+			displayedSpeed = 0
+			displayedSteering = 0
+			steeringRing.Rotation = 0
+			return
+		end
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local seat = humanoid and humanoid.SeatPart
+		local kart = if seat and seat:GetAttribute("PrototypeKartSeat") == true then seat.Parent else nil
+		local chassis = kart and kart:FindFirstChild("Chassis")
+		local targetSpeed = 0
+		if chassis and chassis:IsA("BasePart") then
+			local velocity = chassis.AssemblyLinearVelocity
+			targetSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+		end
+		local steering = kart and kart:GetAttribute("KartVisualSteering")
+		local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"
+			then math.clamp(steering, -1, 1) else 0
+		local alpha = 1 - math.exp(-10 * deltaTime)
+		displayedSpeed += (targetSpeed - displayedSpeed) * alpha
+		displayedSteering += (targetSteering - displayedSteering) * alpha
+		steeringRing.Rotation = displayedSteering * 35
+		speedUpdateElapsed += deltaTime
+		if speedUpdateElapsed >= 0.08 then
+			speedUpdateElapsed = 0
+			speedValue.Text = tostring(math.floor(displayedSpeed + 0.5))
+			speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1), 1)
+		end
+	end)
 	print("[RobloxKart] Race HUD ready")
 end
 
