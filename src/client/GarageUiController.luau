@@ -5,8 +5,10 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
+local TrackGeometry = require(Shared:WaitForChild("TrackGeometry"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
+local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 
 local GarageUiController = {}
 local started = false
@@ -161,6 +163,25 @@ function GarageUiController.start()
 	loadingSize.MinSize = viewportSize.MinSize
 	loadingSize.MaxSize = viewportSize.MaxSize
 	loadingSize.Parent = previewLoading
+	local mapPanel = Instance.new("Frame")
+	mapPanel.Name = "TrackPreview"
+	mapPanel.AnchorPoint = viewport.AnchorPoint
+	mapPanel.Position = viewport.Position
+	mapPanel.Size = viewport.Size
+	mapPanel.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
+	mapPanel.BorderSizePixel = 0
+	mapPanel.Visible = false
+	mapPanel.Parent = backdrop
+	local mapSize = Instance.new("UISizeConstraint")
+	mapSize.MinSize = viewportSize.MinSize
+	mapSize.MaxSize = viewportSize.MaxSize
+	mapSize.Parent = mapPanel
+	local mapCorner = Instance.new("UICorner")
+	mapCorner.CornerRadius = UDim.new(0, 12)
+	mapCorner.Parent = mapPanel
+	local startLegend = makeText(mapPanel, UDim2.fromOffset(155, 22), UDim2.new(0, 14, 1, -32), "● START / FINISH", 13)
+	startLegend.TextColor3 = Color3.fromRGB(255, 205, 55)
+	startLegend.TextXAlignment = Enum.TextXAlignment.Left
 	local function makeArrow(text: string, xOffset: number): TextButton
 		local arrow = makeButton(backdrop, text, UDim2.new(0.5, xOffset, 0.43, 0))
 		arrow.Name = if xOffset < 0 then "PreviousChoice" else "NextChoice"
@@ -212,6 +233,21 @@ function GarageUiController.start()
 	local previewKey: string? = nil
 	local previewWorld: WorldModel? = nil
 	local previewCamera: Camera? = nil
+	local trackMap = nil
+	local trackMapGeometryId: string? = nil
+	local function showTrackPreview(trackId: string)
+		local geometryId = TrackCatalog.Entries[trackId].GeometryId
+		if geometryId == trackMapGeometryId then
+			return
+		end
+		if trackMap then
+			trackMap:destroy()
+		end
+		local definition = TrackGeometry.getDefinition(geometryId)
+		assert(definition, "Selected track geometry is missing")
+		trackMap = TrackMapRenderer.create(mapPanel, definition, false)
+		trackMapGeometryId = geometryId
+	end
 
 	local function clearPreview()
 		viewport.CurrentCamera = nil
@@ -268,12 +304,14 @@ function GarageUiController.start()
 		local raceState = player:GetAttribute("RaceState")
 		gui.Enabled = raceState == "GARAGE" or raceState == "PRE_RACE"
 		if not gui.Enabled then
+			mapPanel.Visible = false
 			previewLoading.Visible = false
 			clearPreview()
 			return
 		end
 		if raceState == "PRE_RACE" then
 			controlsCard.Visible = true
+			mapPanel.Visible = false
 			leftArrow.Visible = false
 			rightArrow.Visible = false
 			viewport.Visible = false
@@ -294,8 +332,9 @@ function GarageUiController.start()
 		local driverId, kartId, trackId = selectedIds()
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= 2
-		choiceLabel.Position = UDim2.fromScale(0.1, if viewport.Visible then 0.61 else 0.40)
-		detailLabel.Position = UDim2.fromScale(0.1, if viewport.Visible then 0.70 else 0.54)
+		mapPanel.Visible = step == 3
+		choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.61 else 0.40)
+		detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.70 else 0.54)
 		if step == 1 then
 			local character = player.Character
 			local appearanceReady = character ~= nil and character:FindFirstChild("Head") ~= nil and player:HasAppearanceLoaded()
@@ -311,6 +350,9 @@ function GarageUiController.start()
 		else
 			previewLoading.Visible = false
 			clearPreview()
+			if step == 3 then
+				showTrackPreview(trackId)
+			end
 		end
 		if step <= 3 then
 			local catalog = catalogs[step]

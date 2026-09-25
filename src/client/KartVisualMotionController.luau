@@ -30,9 +30,12 @@ function KartVisualMotionController.start()
 	local wheels = {}
 	local steeringMotor: Motor6D? = nil
 	local currentSteer = 0
+	local currentHumanoid: Humanoid? = nil
 	local seatedConnection: RBXScriptConnection? = nil
+	local seatPartConnection: RBXScriptConnection? = nil
 	local simulationConnection: RBXScriptConnection? = nil
 	local destroyingConnection: RBXScriptConnection? = nil
+	local seatCheckElapsed = 0
 
 	local function detach()
 		if simulationConnection then
@@ -144,15 +147,36 @@ function KartVisualMotionController.start()
 			seatedConnection:Disconnect()
 			seatedConnection = nil
 		end
+		if seatPartConnection then
+			seatPartConnection:Disconnect()
+			seatPartConnection = nil
+		end
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 		if player.Character ~= character then
 			return
 		end
-		seatedConnection = humanoid.Seated:Connect(function(active: boolean, seatPart: BasePart?)
-			attach(if active then seatPart else nil)
+		currentHumanoid = humanoid
+		seatedConnection = humanoid.Seated:Connect(function()
+			attach(humanoid.SeatPart)
+		end)
+		seatPartConnection = humanoid:GetPropertyChangedSignal("SeatPart"):Connect(function()
+			attach(humanoid.SeatPart)
 		end)
 		attach(humanoid.SeatPart)
 	end
+
+	RunService.Heartbeat:Connect(function(deltaTime: number)
+		seatCheckElapsed += deltaTime
+		if seatCheckElapsed < 0.25 then
+			return
+		end
+		seatCheckElapsed = 0
+		local humanoid = currentHumanoid
+		local seatPart = humanoid and humanoid.SeatPart
+		if seatPart ~= activeSeat then
+			attach(seatPart)
+		end
+	end)
 
 	player.CharacterAdded:Connect(bindCharacter)
 	player.CharacterRemoving:Connect(function()
@@ -161,6 +185,11 @@ function KartVisualMotionController.start()
 			seatedConnection:Disconnect()
 			seatedConnection = nil
 		end
+		if seatPartConnection then
+			seatPartConnection:Disconnect()
+			seatPartConnection = nil
+		end
+		currentHumanoid = nil
 	end)
 	if player.Character then
 		task.spawn(bindCharacter, player.Character)

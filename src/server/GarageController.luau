@@ -8,6 +8,7 @@ local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
+local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
 
 local GarageController = {}
 local REMOTE_NAME = "GarageControl"
@@ -52,7 +53,7 @@ function GarageController.start()
 	local kart = prototype:WaitForChild("Kart") :: Model
 	local seat = kart:WaitForChild("Seat") :: Seat
 	local spawnLocation = prototype:WaitForChild("PlayerSpawn") :: SpawnLocation
-	local testTrack = prototype:WaitForChild("TestTrack")
+	prototype:WaitForChild("TestTrack")
 	local ground = Workspace:FindFirstChild("Baseplate") or prototype:FindFirstChild("Ground")
 	local groundTop = if ground and ground:IsA("BasePart") then ground.Position.Y + ground.Size.Y * 0.5 else 0
 
@@ -130,7 +131,7 @@ function GarageController.start()
 		local driver = DriverCatalog.Entries[driverId]
 		local kartSelection = KartCatalog.Entries[kartId]
 		local track = TrackCatalog.Entries[trackId]
-		if not driver or not kartSelection or not track or track.ModelName ~= testTrack.Name then
+		if not driver or not kartSelection or not track or track.ModelName ~= "TestTrack" then
 			return
 		end
 		if seat.Occupant then
@@ -153,6 +154,13 @@ function GarageController.start()
 
 		readyPending[player] = true
 		player:SetAttribute("RaceEntryError", "")
+		local built, buildError = pcall(TrackBuilder.build, prototype, track, groundTop)
+		if not built then
+			readyPending[player] = nil
+			player:SetAttribute("RaceEntryError", "Track unavailable")
+			warn("[Garage] Track build failed: " .. tostring(buildError))
+			return
+		end
 		player:SetAttribute("SelectedDriverId", driverId)
 		player:SetAttribute("SelectedKartId", kartId)
 		player:SetAttribute("SelectedTrackId", trackId)

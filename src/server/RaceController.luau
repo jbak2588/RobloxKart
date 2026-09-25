@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local requireModule = require :: (ModuleScript) -> any
 local KartConfig = requireModule(Shared:WaitForChild("KartConfig") :: ModuleScript)
 local RaceConfig = requireModule(Shared:WaitForChild("RaceConfig") :: ModuleScript)
+local TrackCatalog = requireModule(Shared:WaitForChild("TrackCatalog") :: ModuleScript)
 
 local RaceController = {}
 
@@ -85,58 +86,84 @@ function RaceController.start()
 	else
 		chassis = kart:WaitForChild("Chassis") :: BasePart
 	end
-	local testTrack = prototype:WaitForChild("TestTrack")
-	local roadFolder = testTrack:WaitForChild("Road")
-	local raceTriggers = testTrack:WaitForChild("RaceTriggers")
-	local checkpointCountAttribute = testTrack:GetAttribute("CheckpointCount")
-	local checkpointCount = if type(checkpointCountAttribute) == "number" then checkpointCountAttribute else 0
-
+	local checkpointCount = 0
 	local gates: { BasePart } = {}
 	local roadParts: { BasePart } = {}
-	local startFinish: BasePart? = nil
+	local startFinishGate: BasePart? = nil
 	local checkpoints: { [number]: BasePart } = {}
-	for _, child in roadFolder:GetChildren() do
-		if child:IsA("BasePart") then
-			table.insert(roadParts, child)
+	local minimumValidLapTime = 0
+
+	local function bindTrackForRace(trackId: string): boolean
+		local track = TrackCatalog.Entries[trackId]
+		local testTrack = prototype:FindFirstChild("TestTrack")
+		if not track or not testTrack or not testTrack:IsA("Model")
+			or testTrack:GetAttribute("TrackId") ~= track.Id
+			or testTrack:GetAttribute("GeometryId") ~= track.GeometryId
+		then
+			warn("[Race] Selected track does not match the active world track")
+			return false
 		end
-	end
-	for _, child in raceTriggers:GetChildren() do
-		if child:IsA("BasePart") and child:GetAttribute("RaceGate") == true then
-			table.insert(gates, child)
-			if child:GetAttribute("GateType") == "StartFinish" then
-				startFinish = child
-			elseif child:GetAttribute("GateType") == "Checkpoint" then
-				local checkpointIndex = child:GetAttribute("CheckpointIndex")
-				if type(checkpointIndex) == "number" then
-					checkpoints[checkpointIndex] = child
+		local roadFolder = testTrack:FindFirstChild("Road")
+		local raceTriggers = testTrack:FindFirstChild("RaceTriggers")
+		local newCheckpointCount = testTrack:GetAttribute("CheckpointCount")
+		if not roadFolder or not raceTriggers or type(newCheckpointCount) ~= "number" or newCheckpointCount < 1 then
+			warn("[Race] Track geometry or race triggers are incomplete")
+			return false
+		end
+		local newRoadParts: { BasePart } = {}
+		local newGates: { BasePart } = {}
+		local newCheckpoints: { [number]: BasePart } = {}
+		local newStartFinish: BasePart? = nil
+		for _, child in roadFolder:GetChildren() do
+			if child:IsA("BasePart") then
+				table.insert(newRoadParts, child)
+			end
+		end
+		for _, child in raceTriggers:GetChildren() do
+			if child:IsA("BasePart") and child:GetAttribute("RaceGate") == true then
+				table.insert(newGates, child)
+				if child:GetAttribute("GateType") == "StartFinish" then
+					newStartFinish = child
+				elseif child:GetAttribute("GateType") == "Checkpoint" then
+					local checkpointIndex = child:GetAttribute("CheckpointIndex")
+					if type(checkpointIndex) == "number" then
+						newCheckpoints[checkpointIndex] = child
+					end
 				end
 			end
 		end
+		if not newStartFinish or #newRoadParts < 1 then
+			warn("[Race] StartFinish or road is missing")
+			return false
+		end
+		local orderedGates: { BasePart } = { newStartFinish :: BasePart }
+		for checkpointIndex = 1, newCheckpointCount do
+			local checkpoint = newCheckpoints[checkpointIndex]
+			if not checkpoint then
+				warn(string.format("[Race] Checkpoint %d is missing", checkpointIndex))
+				return false
+			end
+			table.insert(orderedGates, checkpoint)
+		end
+		table.insert(orderedGates, newStartFinish :: BasePart)
+		local minimumPathDistance = 0
+		for index = 1, #orderedGates - 1 do
+			minimumPathDistance += planarDistance(orderedGates[index].Position, orderedGates[index + 1].Position)
+		end
+		checkpointCount = newCheckpointCount
+		roadParts = newRoadParts
+		gates = newGates
+		checkpoints = newCheckpoints
+		startFinishGate = newStartFinish
+		minimumValidLapTime = minimumPathDistance / KartConfig.MINI_BOOST_MAX_SPEED
+			* RaceConfig.MIN_LAP_TIME_SAFETY_FACTOR
+		print(string.format("[Race] bound track=%s minimumValidLapTime=%.2f", trackId, minimumValidLapTime))
+		return true
 	end
 
-	if not startFinish or checkpointCount < 1 or #roadParts < 1 then
-		warn("[Race] Track geometry or race triggers are incomplete")
+	if not bindTrackForRace(TrackCatalog.DefaultId) then
 		return
 	end
-	for checkpointIndex = 1, checkpointCount do
-		if not checkpoints[checkpointIndex] then
-			warn(string.format("[Race] Checkpoint %d is missing", checkpointIndex))
-			return
-		end
-	end
-
-	local startFinishGate = startFinish :: BasePart
-	local orderedGates: { BasePart } = { startFinishGate }
-	for checkpointIndex = 1, checkpointCount do
-		table.insert(orderedGates, checkpoints[checkpointIndex] :: BasePart)
-	end
-	table.insert(orderedGates, startFinishGate)
-	local minimumPathDistance = 0
-	for index = 1, #orderedGates - 1 do
-		minimumPathDistance += planarDistance(orderedGates[index].Position, orderedGates[index + 1].Position)
-	end
-	local theoreticalMinimum = minimumPathDistance / KartConfig.MINI_BOOST_MAX_SPEED
-	local minimumValidLapTime = theoreticalMinimum * RaceConfig.MIN_LAP_TIME_SAFETY_FACTOR
 
 	for _, player in Players:GetPlayers() do
 		initializePlayerAttributes(player, checkpointCount)
@@ -213,6 +240,13 @@ function RaceController.start()
 	end
 
 	local function beginCountdown(player: Player, now: number)
+		local trackId = player:GetAttribute("SelectedTrackId")
+		if type(trackId) ~= "string" or not bindTrackForRace(trackId) then
+			kart:SetAttribute("RaceControlsLocked", true)
+			player:SetAttribute("RaceEntryError", "Track unavailable")
+			setRaceState(player, "GARAGE")
+			return
+		end
 		kart:SetAttribute("RaceControlsLocked", true)
 		resetKartToStart()
 		resetRaceProgress(player)

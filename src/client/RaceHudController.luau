@@ -10,6 +10,8 @@ local KartConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitFo
 local DriverCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("DriverCatalog") :: ModuleScript)
 local KartCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog") :: ModuleScript)
 local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog") :: ModuleScript)
+local TrackGeometry = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry") :: ModuleScript)
+local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 
 local RaceHudController = {}
 
@@ -179,6 +181,37 @@ function RaceHudController.start()
 	steeringHub.Parent = steeringRing
 	addCorner(steeringHub, 10)
 
+	local miniMapPanel = Instance.new("Frame")
+	miniMapPanel.Name = "RaceMiniMap"
+	miniMapPanel.AnchorPoint = Vector2.new(1, 0.5)
+	miniMapPanel.Position = UDim2.new(1, -24, 0.5, 0)
+	miniMapPanel.Size = UDim2.fromOffset(194, 194)
+	miniMapPanel.BackgroundColor3 = Color3.fromRGB(16, 25, 37)
+	miniMapPanel.BackgroundTransparency = 0.1
+	miniMapPanel.BorderSizePixel = 0
+	miniMapPanel.Visible = false
+	miniMapPanel.Parent = screenGui
+	addCorner(miniMapPanel, 10)
+	local miniMapSize = Instance.new("UISizeConstraint")
+	miniMapSize.MinSize = Vector2.new(170, 170)
+	miniMapSize.MaxSize = Vector2.new(200, 200)
+	miniMapSize.Parent = miniMapPanel
+	local mapRenderer = nil
+	local mapGeometryId: string? = nil
+	local function showMapForTrack(trackEntry)
+		local geometryId = trackEntry.GeometryId
+		if mapGeometryId == geometryId then
+			return
+		end
+		if mapRenderer then
+			mapRenderer:destroy()
+		end
+		local definition = TrackGeometry.getDefinition(geometryId)
+		assert(definition, "Selected race track geometry is missing")
+		mapRenderer = TrackMapRenderer.create(miniMapPanel, definition, true)
+		mapGeometryId = geometryId
+	end
+
 	local selectionPanel = Instance.new("Frame")
 	selectionPanel.Name = "RaceReady"
 	selectionPanel.AnchorPoint = Vector2.new(1, 0)
@@ -324,9 +357,11 @@ function RaceHudController.start()
 		local driver = DriverCatalog.Entries[player:GetAttribute("SelectedDriverId")]
 		local kartSelection = KartCatalog.Entries[player:GetAttribute("SelectedKartId")]
 		local track = TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")]
+		showMapForTrack(track or TrackCatalog.Entries[TrackCatalog.DefaultId])
 		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING" or raceState == "FINISHED" or raceState == "DNF"
 		speedPanel.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
 		steeringDisplay.Visible = speedPanel.Visible
+		miniMapPanel.Visible = speedPanel.Visible
 		selectionPanel.Visible = DEBUG_UI and (raceState == "PRE_RACE" or raceState == "COUNTDOWN")
 		driverLabel.Text = "DRIVER  " .. (if driver then driver.DisplayName else "--")
 		kartLabel.Text = "KART  " .. (if kartSelection then kartSelection.DisplayName else "--")
@@ -453,6 +488,9 @@ function RaceHudController.start()
 		if chassis and chassis:IsA("BasePart") then
 			local velocity = chassis.AssemblyLinearVelocity
 			targetSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+			mapRenderer:setMarkerWorldPosition(chassis.Position)
+		else
+			mapRenderer:setMarkerWorldPosition(nil)
 		end
 		local steering = kart and kart:GetAttribute("KartVisualSteering")
 		local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"

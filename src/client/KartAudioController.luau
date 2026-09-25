@@ -33,8 +33,11 @@ function KartAudioController.start()
 	local activeKart: Model? = nil
 	local activeSeat: BasePart? = nil
 	local activeChassis: BasePart? = nil
+	local currentHumanoid: Humanoid? = nil
 	local seatedConnection: RBXScriptConnection? = nil
+	local seatPartConnection: RBXScriptConnection? = nil
 	local heartbeatConnection: RBXScriptConnection? = nil
+	local seatCheckElapsed = 0
 	local kartConnections: { RBXScriptConnection } = {}
 	local sounds: { Sound } = {}
 	local engine: Sound? = nil
@@ -189,15 +192,36 @@ function KartAudioController.start()
 			seatedConnection:Disconnect()
 			seatedConnection = nil
 		end
+		if seatPartConnection then
+			seatPartConnection:Disconnect()
+			seatPartConnection = nil
+		end
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 		if player.Character ~= character then
 			return
 		end
-		seatedConnection = humanoid.Seated:Connect(function(active: boolean, seatPart: BasePart?)
-			attach(if active then seatPart else nil)
+		currentHumanoid = humanoid
+		seatedConnection = humanoid.Seated:Connect(function()
+			attach(humanoid.SeatPart)
+		end)
+		seatPartConnection = humanoid:GetPropertyChangedSignal("SeatPart"):Connect(function()
+			attach(humanoid.SeatPart)
 		end)
 		attach(humanoid.SeatPart)
 	end
+
+	RunService.Heartbeat:Connect(function(deltaTime: number)
+		seatCheckElapsed += deltaTime
+		if seatCheckElapsed < 0.25 then
+			return
+		end
+		seatCheckElapsed = 0
+		local humanoid = currentHumanoid
+		local seatPart = humanoid and humanoid.SeatPart
+		if player:GetAttribute("RaceState") ~= "GARAGE" and seatPart ~= activeSeat then
+			attach(seatPart)
+		end
+	end)
 
 	player.CharacterAdded:Connect(bindCharacter)
 	player.CharacterRemoving:Connect(function()
@@ -206,10 +230,17 @@ function KartAudioController.start()
 			seatedConnection:Disconnect()
 			seatedConnection = nil
 		end
+		if seatPartConnection then
+			seatPartConnection:Disconnect()
+			seatPartConnection = nil
+		end
+		currentHumanoid = nil
 	end)
 	player:GetAttributeChangedSignal("RaceState"):Connect(function()
 		if player:GetAttribute("RaceState") == "GARAGE" then
 			detach()
+		elseif currentHumanoid then
+			attach(currentHumanoid.SeatPart)
 		end
 	end)
 	if player.Character then

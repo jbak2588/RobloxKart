@@ -56,9 +56,11 @@ function KartCameraController.start()
 	local activeSeat: BasePart? = nil
 	local currentHumanoid: Humanoid? = nil
 	local seatedConnection: RBXScriptConnection? = nil
+	local seatPartConnection: RBXScriptConnection? = nil
 	local savedFieldOfView: number? = nil
 	local lastPlanarForward = DEFAULT_FORWARD
 	local chaseEnabled = false
+	local seatCheckElapsed = 0
 
 	local disableChase: () -> ()
 
@@ -67,7 +69,12 @@ function KartCameraController.start()
 		local humanoid = currentHumanoid
 		local camera = Workspace.CurrentCamera
 		if not chaseEnabled or not chassis or not chassis.Parent or not humanoid or humanoid.SeatPart ~= activeSeat then
-			task.defer(disableChase)
+			task.defer(function()
+				if not activeChassis or not activeChassis.Parent
+					or currentHumanoid ~= humanoid or not humanoid or humanoid.SeatPart ~= activeSeat then
+					disableChase()
+				end
+			end)
 			return
 		end
 		if not camera then
@@ -159,17 +166,37 @@ function KartCameraController.start()
 			seatedConnection:Disconnect()
 			seatedConnection = nil
 		end
+		if seatPartConnection then
+			seatPartConnection:Disconnect()
+			seatPartConnection = nil
+		end
 
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 		if player.Character ~= character then
 			return
 		end
 		currentHumanoid = humanoid
-		seatedConnection = humanoid.Seated:Connect(function(active: boolean, seatPart: BasePart?)
-			updateSeat(if active then seatPart else nil)
+		seatedConnection = humanoid.Seated:Connect(function()
+			updateSeat(humanoid.SeatPart)
+		end)
+		seatPartConnection = humanoid:GetPropertyChangedSignal("SeatPart"):Connect(function()
+			updateSeat(humanoid.SeatPart)
 		end)
 		updateSeat(humanoid.SeatPart)
 	end
+
+	RunService.Heartbeat:Connect(function(deltaTime: number)
+		seatCheckElapsed += deltaTime
+		if seatCheckElapsed < 0.25 then
+			return
+		end
+		seatCheckElapsed = 0
+		local humanoid = currentHumanoid
+		local seatPart = humanoid and humanoid.SeatPart
+		if seatPart ~= activeSeat or (seatPart ~= nil and not chaseEnabled) then
+			updateSeat(seatPart)
+		end
+	end)
 
 	player.CharacterAdded:Connect(bindCharacter)
 	player.CharacterRemoving:Connect(function()
@@ -177,6 +204,10 @@ function KartCameraController.start()
 		if seatedConnection then
 			seatedConnection:Disconnect()
 			seatedConnection = nil
+		end
+		if seatPartConnection then
+			seatPartConnection:Disconnect()
+			seatPartConnection = nil
 		end
 		currentHumanoid = nil
 	end)
