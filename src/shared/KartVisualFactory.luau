@@ -2,6 +2,17 @@ local KartVisualFactory = {}
 
 local TRIM = Color3.fromRGB(32, 37, 45)
 local METAL = Color3.fromRGB(145, 153, 160)
+-- Color identity and surface finish are independent; geometry only tags roles.
+local SPRINT_MATERIALS = {
+	BodyPrimary = Enum.Material.SmoothPlastic,
+	BodySecondary = Enum.Material.SmoothPlastic,
+	Accent = Enum.Material.SmoothPlastic,
+	Trim = Enum.Material.SmoothPlastic,
+	Tire = Enum.Material.Rubber,
+	Rim = Enum.Material.Metal,
+	Metal = Enum.Material.Metal,
+	Seat = Enum.Material.SmoothPlastic,
+}
 -- The 1-stud Chassis rests on the collidable ground. The non-colliding road
 -- has its top 0.065 studs above that ground, so leave a small visual gap.
 local CHASSIS_REST_CENTER_HEIGHT = 0.5
@@ -125,7 +136,6 @@ local function addPart(parent: Instance, name: string, size: Vector3, offset: CF
 	if part:IsA("Part") then
 		part.Shape = shape or Enum.PartType.Block
 	end
-	part.Material = Enum.Material.SmoothPlastic
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part.Anchored = false
@@ -134,6 +144,7 @@ local function addPart(parent: Instance, name: string, size: Vector3, offset: CF
 	part.CanQuery = false
 	part.Massless = true
 	part:SetAttribute("ColorRole", role)
+	part:SetAttribute("MaterialRole", role)
 	part.Parent = parent
 	if parent:IsA("BasePart") then
 		local weld = Instance.new("WeldConstraint")
@@ -149,6 +160,7 @@ local function addPivot(visual: Model, name: string, offset: CFrame): Part
 	local pivot = addPart(visual, name, Vector3.new(0.2, 0.2, 0.2), offset, "Trim")
 	pivot.Transparency = 1
 	pivot:SetAttribute("ColorRole", nil)
+	pivot:SetAttribute("MaterialRole", nil)
 	return pivot :: Part
 end
 
@@ -199,7 +211,21 @@ function KartVisualFactory.applyColors(visual: Model, definition: { [string]: an
 			else
 				child.Color = TRIM
 			end
-			child.Material = if role == "Metal" or role == "Rim" then Enum.Material.Metal else Enum.Material.SmoothPlastic
+		end
+	end
+end
+
+function KartVisualFactory.applyMaterials(visual: Model)
+	visual:SetAttribute("MaterialProfile", "SprintV1")
+	for _, part in visual:GetDescendants() do
+		if part:IsA("BasePart") then
+			local role = part:GetAttribute("MaterialRole")
+			if role then
+				local material = SPRINT_MATERIALS[role]
+				assert(material, "Unknown MaterialRole on " .. part:GetFullName() .. ": " .. tostring(role))
+				part.Material = material
+				part.Reflectance = 0
+			end
 		end
 	end
 end
@@ -237,7 +263,7 @@ function KartVisualFactory.createVisual(definition: { [string]: any }): Model
 		addPart(staticRoot, "SeatBolster" .. side, Vector3.new(0.2, 0.9, 2.35),
 			CFrame.new(side * 1.37, 1.45, 0.5), "Seat", nil, true)
 	end
-	addPart(staticRoot, "EngineBlock", Vector3.new(1.65, 0.8, 1.1), CFrame.new(0, 0.72, 2.88), "Trim")
+	addPart(staticRoot, "EngineBlock", Vector3.new(1.65, 0.8, 1.1), CFrame.new(0, 0.72, 2.88), "Trim"):SetAttribute("MaterialRole", "Metal")
 	addPart(staticRoot, "CoolingHead", Vector3.new(1.8, 0.24, 1.18), CFrame.new(0, 1.24, 2.88), "Metal")
 	addPart(staticRoot, "IntakeFilter", Vector3.new(0.85, 0.63, 0.63), CFrame.new(0.38, 1.67, 2.88), "Trim", Enum.PartType.Cylinder)
 	for _, side in { -1, 1 } do
@@ -269,6 +295,7 @@ function KartVisualFactory.createVisual(definition: { [string]: any }): Model
 	addExhaustAnchor(staticRoot, "ExhaustRight", Vector3.new(1.45, 0.18, 4.15))
 
 	KartVisualFactory.applyColors(visual, definition)
+	KartVisualFactory.applyMaterials(visual)
 	local valid, diagnostics = KartVisualFactory.validateVisual(visual)
 	if not valid then
 		visual:Destroy()

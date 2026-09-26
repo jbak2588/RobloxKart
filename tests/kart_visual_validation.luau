@@ -100,6 +100,55 @@ print("PASS: two exhaust tips/anchors and unchanged chassis-local/steering origi
 local root=sprint.StaticRoot
 assert(root.FrontBumper.Color==definition.BodyColor and root.Nose.Color==definition.AccentColor)
 print("PASS: catalog red/white palette compatibility")
+local materials = { BodyPrimary=roblox.Enum.Material.SmoothPlastic, BodySecondary=roblox.Enum.Material.SmoothPlastic,
+    Accent=roblox.Enum.Material.SmoothPlastic, Trim=roblox.Enum.Material.SmoothPlastic, Tire=roblox.Enum.Material.Rubber,
+    Rim=roblox.Enum.Material.Metal, Metal=roblox.Enum.Material.Metal, Seat=roblox.Enum.Material.SmoothPlastic }
+local materialCount=0
+for _, part in sprint:GetDescendants() do
+    if part:IsA("BasePart") and part.Transparency<1 then
+        assert(part.Material==materials[part:GetAttribute("MaterialRole")] and part.Reflectance==0)
+        materialCount+=1
+    end
+end
+assert(materialCount==40 and root.EngineBlock.Material==roblox.Enum.Material.Metal)
+local beforeMaterial=root.EngineBlock.Material
+factory.applyColors(sprint, definition)
+assert(root.EngineBlock.Material==beforeMaterial, "Colors must not overwrite material")
+print("PASS: 40 material assignments; color/material separation and dark metal engine")
+local framing=loadModule("src/shared/KartPreviewFraming.luau")
+local frameCases=0
+for _, scale in { 0.4, 1, 3 } do
+    local model=sprint:Clone()
+    for _, part in model:GetDescendants() do
+        if part:IsA("BasePart") then
+            part.Size*=scale
+            part.CFrame=CFrame.new(part.CFrame.Position*scale)*part.CFrame.Rotation
+        end
+    end
+    -- Deliberately distant invisible helpers must not affect the fit.
+    local base=framing.fit(model, 4, 40)
+    model.StaticRoot.CFrame=CFrame.new(10000,10000,10000)
+    assert(framing.fit(model,4,40)==base)
+    for _, aspect in { 0.75, 2, 4, 5 } do
+        local camera=framing.fit(model,aspect,40)
+        for _, part in model:GetDescendants() do
+            if part:IsA("BasePart") and part.Transparency<1 then
+                for _, x in {-1,1} do for _, y in {-1,1} do for _, z in {-1,1} do
+                    local world=part.CFrame:PointToWorldSpace(part.Size*Vector3.new(x,y,z)*0.5)
+                    local point=camera:PointToObjectSpace(world)
+                    assert(point.Z<0)
+                    local projectedX=math.abs(point.X)/(-point.Z*math.tan(math.rad(20))*aspect)
+                    local projectedY=math.abs(point.Y)/(-point.Z*math.tan(math.rad(20)))
+                    assert(projectedX<=0.6501 and projectedY<=0.8801,string.format("Preview clips safety bounds scale=%s aspect=%s part=%s x=%s y=%s",scale,aspect,part.Name,projectedX,projectedY))
+                end end end
+            end
+        end
+        frameCases+=1
+    end
+    model:Destroy()
+end
+assert(framing.fit(sprint,0,40)==nil)
+print("PASS: "..frameCases.." framing cases across sizes/aspects; invisible helpers ignored")
 -- Compile all current scripts: rojo packages source but does not parse Luau.
 local compiled=0
 local function compileTree(dir)

@@ -8,6 +8,7 @@ local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local TrackGeometry = require(Shared:WaitForChild("TrackGeometry"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
+local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 
@@ -145,9 +146,9 @@ function GarageUiController.start()
 	viewport.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
 	viewport.BackgroundTransparency = 0.1
 	viewport.BorderSizePixel = 0
-	viewport.Ambient = Color3.fromRGB(190, 195, 205)
-	viewport.LightColor = Color3.fromRGB(255, 247, 227)
-	viewport.LightDirection = Vector3.new(-1, -1, -1)
+	viewport.Ambient = Color3.fromRGB(145, 152, 165)
+	viewport.LightColor = Color3.fromRGB(235, 230, 220)
+	viewport.LightDirection = Vector3.new(-1, -1, -0.6)
 	viewport.Parent = backdrop
 	local viewportSize = Instance.new("UISizeConstraint")
 	viewportSize.MinSize = Vector2.new(360, 200)
@@ -237,6 +238,14 @@ function GarageUiController.start()
 	local trackMap = nil
 	local trackMapGeometryId: string? = nil
 	local mobileCompact = false
+	local previewKart: Model? = nil
+	local function fitKartPreview()
+		if previewKart and previewCamera and viewport.AbsoluteSize.Y > 0 then
+			local fitted = KartPreviewFraming.fit(previewKart, viewport.AbsoluteSize.X / viewport.AbsoluteSize.Y, previewCamera.FieldOfView)
+			if fitted then previewCamera.CFrame = fitted end
+		end
+	end
+	viewport:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitKartPreview)
 
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
@@ -332,6 +341,7 @@ function GarageUiController.start()
 	end
 
 	local function clearPreview()
+		previewKart = nil
 		viewport.CurrentCamera = nil
 		if previewWorld then
 			previewWorld:Destroy()
@@ -366,7 +376,7 @@ function GarageUiController.start()
 				end
 			end
 			visual.Parent = world
-			camera.CFrame = CFrame.new(Vector3.new(-10, 7, -10), Vector3.new(0, 0.3, 0))
+			previewKart = visual
 		else
 			local driver = cloneDriver(player.Character, DriverCatalog.Entries[selectedId])
 			driver.Parent = world
@@ -376,6 +386,7 @@ function GarageUiController.start()
 		previewWorld = world
 		previewCamera = camera
 		previewKey = key
+		fitKartPreview()
 	end
 
 	local function selectedIds(): (string, string, string)
