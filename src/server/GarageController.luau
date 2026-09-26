@@ -9,6 +9,8 @@ local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
+local requireModule = require :: (ModuleScript) -> any
+local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
 local GarageController = {}
 local REMOTE_NAME = "GarageControl"
@@ -90,6 +92,7 @@ function GarageController.start()
 	end
 
 	local function bindPlayer(player: Player)
+		player:SetAttribute("RaceMode", RaceMode.RACE)
 		player:SetAttribute("SelectedDriverId", DriverCatalog.DefaultId)
 		player:SetAttribute("SelectedKartId", KartCatalog.DefaultId)
 		player:SetAttribute("SelectedTrackId", TrackCatalog.DefaultId)
@@ -128,6 +131,7 @@ function GarageController.start()
 		if type(driverId) ~= "string" or type(kartId) ~= "string" or type(trackId) ~= "string" then
 			return
 		end
+		local mode = RaceMode.resolve(trackId)
 		local driver = DriverCatalog.Entries[driverId]
 		local kartSelection = KartCatalog.Entries[kartId]
 		local track = TrackCatalog.Entries[trackId]
@@ -164,6 +168,7 @@ function GarageController.start()
 		player:SetAttribute("SelectedDriverId", driverId)
 		player:SetAttribute("SelectedKartId", kartId)
 		player:SetAttribute("SelectedTrackId", trackId)
+		player:SetAttribute("RaceMode", mode)
 		readyOrder += 1
 		reservedSlots[player] = slotIndex
 		player:SetAttribute("ReadyOrder", readyOrder)

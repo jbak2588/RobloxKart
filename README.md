@@ -65,9 +65,9 @@ Future reward gate/token: fixed location, equal opportunity, player-specific, on
 
 Core MVP: equal starting loadout + optional one-time Nitro reward. Random Item Boxes are REMOVED from core MVP; they may be revisited for special modes/events. The old Studio sequential grants and follow-up Shield grant are removed.
 
-License remains planned, not implemented. It starts with the same 1/1/1 resources; tutorial boxes are unnecessary. Teach W, A/D, S, Drift, then 1/2/3 selection and Q use. Suggested zones: Nitro straight, safe Slick deployment, Shield training attack. Passing requires one valid Practice Circuit lap; item use is not mandatory.
+License was deferred at the C1-B baseline; the C1-C implementation is described below.
 
-Smoke gameplay, Inventory, DataStore, multiplayer and full License are not implemented. Physics Seat, driver seating, track, camera, kart colors/materials and physics tuning remain unchanged.
+At the C1-B baseline, Smoke gameplay, Inventory, DataStore, multiplayer and full License were not implemented. Physics Seat, driver seating, track, camera, kart colors/materials and physics tuning remained unchanged.
 
 ### Validation / Studio smoke
 
@@ -76,3 +76,33 @@ Run `lune run tests/race_item_validation.luau`, `lune run tests/kart_visual_vali
 Current automated results: 157 RaceItem/Nitro checks; 8 rear preview lifecycle checks; 93 visual contract cases; 12 preview/framing cases; 38 Luau scripts compile. Movement tests use deterministic signal/time/physics-transport mocks and do not replace Studio physics.
 
 Studio 896 x 414 basic smoke passed: 1/1/1 during countdown/start, 2/Q Slick world deployment and temporary matching-kart preview, HUD restoration with Slick=0, 3/Q Shield globe and Shield=0, Nitro activation/exhaust and Nitro=0, then fresh 1/1/1 on the actual Rematch button. A server command set DNF in the test session to reach Rematch without a full race. No full held-key speed run was performed by automation; 70/82/100 speed, Nitro duration/exit and cancellation regression are covered by the deterministic controller tests. Preview duration/cleanup is checked with a controlled clock at 0.89 and 0.91 seconds.
+
+## C1-C - Permanent Practice and race selections
+
+Latest user decision replaces Driving License with always-available Practice. Garage remains Driver -> Kart -> Track -> Ready. No License tutorial, session completion flag, unlock gate, dedicated button or special completion result remains.
+
+| Order | Selection | Catalog ID | Geometry | Laps |
+| --- | --- | --- | --- | --- |
+| 1 (default) | Practice Circuit - PRACTICE | Track01 | PracticeCircuitV1 | 1 |
+| 2 | Practice Circuit - RACE | Track01Race | PracticeCircuitV1 | 3 |
+| 3 | Prototype Circuit V2 - RACE | Track02 | PrototypeCircuitV2 | 3 |
+
+The first two selections share exactly the same geometry and grid positions. Track Select and Ready show PRACTICE / 1 LAP or RACE / 3 LAPS. No existing track geometry is modified. Server derives mode and target laps from the validated catalog selection, never client-provided mode or laps. One RaceController handles all modes; RaceConfig.TOTAL_LAPS remains 3. Checkpoint order/direction checks remain.
+
+All modes retain Nitro/Slick/Shield 1/1/1, normal FINISHED/DNF results and Rematch. Repeated Practice always stays one lap. No persistent progression, tutorial requirements or touch driving is added.
+
+### Deferred polish gates
+
+Previous apparent backward snap: user confirmed resolved. No automatic reverse command was found. Earlier camera correction is preserved, with no further camera/physics change for the separate hitch. Static require diagnostic removal is not established as a runtime hitch cause.
+
+**PERFORMANCE POLISH GATE - BEFORE PRODUCTION RELEASE:** occasional ~0.1 second whole-screen visual/frame hitch during driving, possibly around Drift/Mini Boost transition. Root cause unknown; profiling required before release. No speculative workaround. Existing KartMotion diagnostics are event-triggered and limited to at most once per second.
+
+**DRIVER SEATING - DEFERRED:** height/posture/hands/seat-shell fit.
+
+### Validation
+
+`tests/race_mode_validation.luau`: 59 integration checks covering catalog order, shared geometry/grid, all three lap targets, invalid gates, no License state, repeated Practice, actual controller results, loadout and Rematch.
+
+Camera: 6 cases / 3,000 variable-frame samples. RaceItem: 157 checks (including 89 Slick/Shield/loadout), rear preview: 8, visual contract: 93, Garage framing: 12, Luau compile: 40 scripts.
+
+Rojo output: `%TEMP%\RobloxKart-c1c-final.rbxlx`. User confirmed the revised three selections in Studio and explicitly approved commit/push.

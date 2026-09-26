@@ -6,6 +6,7 @@ local Workspace = game:GetService("Workspace")
 local requireModule = require :: (ModuleScript) -> any
 local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig") :: ModuleScript
 local KartConfig = requireModule(kartConfigModule)
+local ChaseMotion = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ChaseCameraMotion"))
 
 local KartCameraController = {}
 
@@ -61,6 +62,8 @@ function KartCameraController.start()
 	local lastPlanarForward = DEFAULT_FORWARD
 	local chaseEnabled = false
 	local seatCheckElapsed = 0
+	local previousTarget: Vector3? = nil
+	local lastCorrectionLog = 0
 
 	local disableChase: () -> ()
 
@@ -89,11 +92,19 @@ function KartCameraController.start()
 			+ lastPlanarForward * KartConfig.CAMERA_LOOK_AHEAD
 			+ WORLD_UP * 2
 		local desiredCFrame = CFrame.lookAt(desiredPosition, lookTarget, WORLD_UP)
-		local alpha = 1 - math.exp(-KartConfig.CAMERA_RESPONSE * deltaTime)
+		if KartConfig.DEBUG_TELEMETRY and previousTarget and deltaTime > 0 then
+			local displacement = (chassis.Position - previousTarget):Dot(lastPlanarForward)
+			local speed = chassis.AssemblyLinearVelocity:Dot(lastPlanarForward)
+			if displacement < -0.25 and speed > 10 and time() - lastCorrectionLog > 1 then
+				lastCorrectionLog = time()
+				warn(string.format("[KartMotion] client backward correction=%.3f velocity=%.1f dt=%.4f", displacement, speed, deltaTime))
+			end
+		end
 
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = KartConfig.CAMERA_FOV
-		camera.CFrame = camera.CFrame:Lerp(desiredCFrame, alpha)
+		camera.CFrame = ChaseMotion.step(camera.CFrame, previousTarget, chassis.Position, desiredCFrame, KartConfig.CAMERA_RESPONSE, deltaTime)
+		previousTarget = chassis.Position
 		camera.Focus = CFrame.new(lookTarget)
 	end
 
@@ -117,6 +128,7 @@ function KartCameraController.start()
 		end
 
 		activeChassis = nil
+		previousTarget = nil
 		activeSeat = nil
 		savedFieldOfView = nil
 		print("[RobloxKart] Chase camera disabled")
@@ -137,6 +149,7 @@ function KartCameraController.start()
 
 		activeSeat = seatPart
 		activeChassis = chassis
+		previousTarget = nil
 		lastPlanarForward = getPlanarForward(chassis, DEFAULT_FORWARD)
 		savedFieldOfView = camera.FieldOfView
 		camera.CameraType = Enum.CameraType.Scriptable

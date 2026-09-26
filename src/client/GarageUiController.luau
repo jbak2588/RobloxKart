@@ -12,6 +12,9 @@ local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 
+local requireModule = require :: (ModuleScript) -> any
+local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
+
 local GarageUiController = {}
 local started = false
 
@@ -133,7 +136,7 @@ function GarageUiController.start()
 	titleSize.Parent = title
 	local stepLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.07), UDim2.fromScale(0.1, 0.17), "", 24)
 	local choiceLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.08), UDim2.fromScale(0.1, 0.61), "", 34)
-	local detailLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.07), UDim2.fromScale(0.1, 0.70), "", 19)
+	local detailLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.12), UDim2.fromScale(0.1, 0.70), "", 19)
 	detailLabel.TextWrapped = true
 	local errorLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.05), UDim2.fromScale(0.1, 0.77), "", 18)
 	errorLabel.TextColor3 = Color3.fromRGB(255, 110, 110)
@@ -422,6 +425,7 @@ function GarageUiController.start()
 			return
 		end
 		local driverId, kartId, trackId = selectedIds()
+		local mode = RaceMode.resolve(trackId)
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= 2
 		mapPanel.Visible = step == 3
@@ -452,9 +456,9 @@ function GarageUiController.start()
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
 			detailLabel.Text = if step == 1 then (DriverCatalog.Entries[driverId].Description or "Choose your racing driver")
 				elseif step == 2 then "All MVP karts use the same physics"
-				else "Choose the circuit for this race"
+				else RaceMode.label(mode) .. "\n" .. (if mode == RaceMode.PRACTICE then "Practice driving and item timing" else "Complete three laps")
 		else
-			choiceLabel.Text = "START RACE"
+			choiceLabel.Text = RaceMode.label(mode)
 			detailLabel.Text = string.format("%s  /  %s  /  %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
 		end
 		previousButton.Visible = step > 1

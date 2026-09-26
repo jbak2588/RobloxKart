@@ -8,6 +8,7 @@ local requireModule = require :: (ModuleScript) -> any
 local KartConfig = requireModule(Shared:WaitForChild("KartConfig") :: ModuleScript)
 local RaceConfig = requireModule(Shared:WaitForChild("RaceConfig") :: ModuleScript)
 local TrackCatalog = requireModule(Shared:WaitForChild("TrackCatalog") :: ModuleScript)
+local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
 local RaceController = {}
 
@@ -92,6 +93,7 @@ function RaceController.start()
 	local startFinishGate: BasePart? = nil
 	local checkpoints: { [number]: BasePart } = {}
 	local minimumValidLapTime = 0
+	local targetLaps = RaceConfig.TOTAL_LAPS
 
 	local function bindTrackForRace(trackId: string): boolean
 		local track = TrackCatalog.Entries[trackId]
@@ -227,7 +229,7 @@ function RaceController.start()
 	local function resetRaceProgress(player: Player)
 		player:SetAttribute("RaceCurrentLap", 1)
 		player:SetAttribute("RaceCompletedLaps", 0)
-		player:SetAttribute("RaceTotalLaps", RaceConfig.TOTAL_LAPS)
+		player:SetAttribute("RaceTotalLaps", targetLaps)
 		player:SetAttribute("RaceNextCheckpoint", 1)
 		player:SetAttribute("RaceCheckpointCount", checkpointCount)
 		player:SetAttribute("RaceLastLapTime", 0)
@@ -241,6 +243,9 @@ function RaceController.start()
 
 	local function beginCountdown(player: Player, now: number)
 		local trackId = player:GetAttribute("SelectedTrackId")
+		local mode = RaceMode.resolve(trackId)
+		player:SetAttribute("RaceMode", mode)
+		targetLaps = RaceMode.targetLaps(mode)
 		if type(trackId) ~= "string" or not bindTrackForRace(trackId) then
 			kart:SetAttribute("RaceControlsLocked", true)
 			player:SetAttribute("RaceEntryError", "Track unavailable")
@@ -274,13 +279,13 @@ function RaceController.start()
 		print(string.format(
 			"[Race] lap invalidated reason=%s lap=%d completed=%d previousNext=%d x=%.1f z=%.1f",
 			reason,
-			math.min(completedLaps + 1, RaceConfig.TOTAL_LAPS),
+			math.min(completedLaps + 1, targetLaps),
 			completedLaps,
 			previousNext,
 			chassis.Position.X,
 			chassis.Position.Z
 		))
-		player:SetAttribute("RaceCurrentLap", math.min(completedLaps + 1, RaceConfig.TOTAL_LAPS))
+		player:SetAttribute("RaceCurrentLap", math.min(completedLaps + 1, targetLaps))
 		player:SetAttribute("RaceNextCheckpoint", 1)
 		lapStartTime = now
 		resetOffTrackState(player)
@@ -297,7 +302,7 @@ function RaceController.start()
 
 	local function finishRace(player: Player, now: number, completedLaps: number)
 		player:SetAttribute("RaceCompletedLaps", completedLaps)
-		player:SetAttribute("RaceCurrentLap", RaceConfig.TOTAL_LAPS)
+		player:SetAttribute("RaceCurrentLap", targetLaps)
 		player:SetAttribute("RaceNextCheckpoint", 1)
 		player:SetAttribute("RaceCountdown", 0)
 		local finalTime = now - raceStartTime
@@ -329,8 +334,8 @@ function RaceController.start()
 		end
 		print(string.format("[Race] Lap %d complete: %.2fs", completedLaps, lapTime))
 
-		if completedLaps >= RaceConfig.TOTAL_LAPS then
-			finishRace(player, now, RaceConfig.TOTAL_LAPS)
+		if completedLaps >= targetLaps then
+			finishRace(player, now, targetLaps)
 		else
 			player:SetAttribute("RaceCurrentLap", completedLaps + 1)
 			lapStartTime = now
