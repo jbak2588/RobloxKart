@@ -9,9 +9,23 @@ local TrackCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChi
 local KartVisualFactory = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
 local NitroState = require(script.Parent:WaitForChild("NitroState"))
+local SlickMotion = require(script.Parent:WaitForChild("SlickMotion"))
+local RaceItemGeometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
+local RaceItemConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 
 local PrototypeWorld = {}
 local nitroActivation = nil
+local raceKartProvider = nil
+local slickHit = nil
+
+function PrototypeWorld.getRaceKart(player: Player)
+	if raceKartProvider then return raceKartProvider(player) end
+	return nil
+end
+
+function PrototypeWorld.applySlickHit(player: Player): boolean
+	return slickHit ~= nil and slickHit(player)
+end
 
 function PrototypeWorld.activateNitro(player: Player): (boolean, string?)
 	if not nitroActivation then return false, "world_not_started" end
@@ -90,6 +104,9 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("KartDrifting", false)
 	kart:SetAttribute("KartBoosting", false)
 	kart:SetAttribute("KartNitroActive", false)
+	kart:SetAttribute("KartSlickActive", false)
+	kart:SetAttribute("KartShieldActive", false)
+	kart:SetAttribute("RaceItemHitImmunity", false)
 	kart:SetAttribute("KartOffTrack", false)
 	kart:SetAttribute("KartVisualSteering", 0)
 	kart:SetAttribute("KartCrashActive", false)
@@ -255,6 +272,7 @@ function PrototypeWorld.start()
 	local boostEndTime = 0
 	local boostDriver: Player? = nil
 	local nitro = NitroState.new(KartConfig)
+	local slick = SlickMotion.new(RaceItemConfig)
 	local raceControlsWereLocked = kart:GetAttribute("RaceControlsLocked") == true
 	local debugElapsed = 0
 	local cachedTrack: Model? = nil
@@ -271,6 +289,18 @@ function PrototypeWorld.start()
 	local crashTrackForward = Vector3.new(0, 0, -1)
 	local lastPlanarForward = Vector3.new(0, 0, -1)
 
+	local function stopSlick()
+		slick:stop()
+		kart:SetAttribute("KartSlickActive", false)
+	end
+	raceKartProvider = function(player: Player)
+		if not kart.Parent or not chassis.Parent or not seat.Parent or crashActive then return nil end
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 or humanoid.SeatPart ~= seat or seat.Occupant ~= humanoid then return nil end
+		if player:GetAttribute("RaceState") ~= "RACING" or kart:GetAttribute("RaceControlsLocked") ~= false then return nil end
+		return kart, chassis
+	end
+
 	local function stopNitro(reason: string)
 		nitro:stop(reason)
 		kart:SetAttribute("KartNitroActive", false)
@@ -284,7 +314,7 @@ function PrototypeWorld.start()
 		if kart:GetAttribute("RaceControlsLocked") ~= false or player:GetAttribute("RaceState") ~= "RACING" then
 			return false, "race_locked"
 		end
-		if crashActive or kart:GetAttribute("KartOffTrack") == true then return false, "unsafe_state" end
+		if crashActive or slick.active or kart:GetAttribute("KartOffTrack") == true then return false, "unsafe_state" end
 		local control = controls[player]
 		if not control or time() - control.lastUpdate > KartConfig.INPUT_TIMEOUT then return false, "input_timeout" end
 		local accepted, reason = nitro:activate(player, time())
@@ -292,7 +322,7 @@ function PrototypeWorld.start()
 		return accepted, reason
 	end
 	kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
-		if kart:GetAttribute("RaceControlsLocked") then stopNitro("locked") end
+		if kart:GetAttribute("RaceControlsLocked") then stopNitro("locked"); stopSlick() end
 	end)
 	kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
 		if kart:GetAttribute("KartOffTrack") then
@@ -300,20 +330,25 @@ function PrototypeWorld.start()
 				commandedSpeed = math.min(commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
 			end
 			stopNitro("off_track")
+			stopSlick()
 		end
 	end)
-	kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() stopNitro("reset") end)
-	seat:GetPropertyChangedSignal("Occupant"):Connect(function() stopNitro("occupant_changed") end)
+	kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() stopNitro("reset"); stopSlick() end)
+	seat:GetPropertyChangedSignal("Occupant"):Connect(function() stopNitro("occupant_changed"); stopSlick() end)
 	kart.Destroying:Connect(function()
 		stopNitro("destroyed")
+		stopSlick()
 		nitroActivation = nil
+		raceKartProvider, slickHit = nil, nil
 	end)
 	local function bindNitroLifecycle(player)
 		player.CharacterRemoving:Connect(function()
 			if nitro.driver == player then stopNitro("character_removed") end
+			if slick.driver == player then stopSlick() end
 		end)
 		player:GetAttributeChangedSignal("RaceState"):Connect(function()
 			if player:GetAttribute("RaceState") ~= "RACING" and nitro.driver == player then stopNitro("race_state") end
+			if player:GetAttribute("RaceState") ~= "RACING" and slick.driver == player then stopSlick() end
 		end)
 	end
 	Players.PlayerAdded:Connect(bindNitroLifecycle)
@@ -393,6 +428,28 @@ function PrototypeWorld.start()
 		end
 	end
 
+	slickHit = function(player: Player): boolean
+		if not raceKartProvider(player) or slick.active or kart:GetAttribute("KartOffTrack") == true then return false end
+		local road = RaceItemGeometry.roadAt(prototype, chassis.Position)
+		if not road then return false end
+		local look = chassis.CFrame.LookVector
+		local forward = Vector3.new(look.X, 0, look.Z)
+		local legal = road.CFrame.LookVector
+		legal = Vector3.new(legal.X, 0, legal.Z)
+		if forward.Magnitude < 0.001 or legal.Magnitude < 0.001 then return false end
+		local velocity = chassis.AssemblyLinearVelocity
+		local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+		stopNitro("slick")
+		stopBoost("slick")
+		setDriftActive(false, "slick")
+		resetDriftCharge()
+		commandedSpeed, smoothedSteering, currentYawRate = 0, 0, 0
+		kart:SetAttribute("KartVisualSteering", 0)
+		slick:start(player, time(), forward.Unit, legal.Unit, speed)
+		kart:SetAttribute("KartSlickActive", true)
+		return true
+	end
+
 	local function stopCrash()
 		if not crashActive then
 			return
@@ -447,6 +504,7 @@ function PrototypeWorld.start()
 		resetDriftCharge()
 		stopBoost("barrier")
 		stopNitro("barrier")
+		stopSlick()
 		kart:SetAttribute("KartCrashActive", true)
 		chassis.AssemblyLinearVelocity = crashVelocity
 		chassis.AssemblyAngularVelocity = Vector3.new(0, crashSpinRate, 0)
@@ -508,7 +566,7 @@ function PrototypeWorld.start()
 			return
 		end
 		local validatedSteering = math.clamp(steering, -1, 1)
-		local visualSteering = if kart:GetAttribute("RaceControlsLocked") == true or crashActive then 0 else validatedSteering
+		local visualSteering = if kart:GetAttribute("RaceControlsLocked") == true or crashActive or slick.active then 0 else validatedSteering
 		if kart:GetAttribute("KartVisualSteering") ~= visualSteering then
 			kart:SetAttribute("KartVisualSteering", visualSteering)
 		end
@@ -524,6 +582,7 @@ function PrototypeWorld.start()
 	Players.PlayerRemoving:Connect(function(player: Player)
 		controls[player] = nil
 		if nitro.driver == player then stopNitro("player_removed") end
+		if slick.driver == player then stopSlick() end
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
@@ -549,6 +608,7 @@ function PrototypeWorld.start()
 			resetDriftCharge()
 			stopBoost("fall")
 			stopNitro("fall")
+			stopSlick()
 			stopCrash()
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
@@ -558,6 +618,7 @@ function PrototypeWorld.start()
 		local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
 		if raceControlsLocked then
 			stopNitro("locked")
+			stopSlick()
 			stopCrash()
 			if not raceControlsWereLocked then
 				commandedSpeed = 0
@@ -627,6 +688,27 @@ function PrototypeWorld.start()
 		end
 		if barrierHandled then
 			return
+		end
+		if slick.active then
+			if slick.driver ~= player or not player or player:GetAttribute("RaceState") ~= "RACING"
+				or kart:GetAttribute("KartOffTrack") == true then
+				stopSlick()
+			else
+				local look = chassis.CFrame.LookVector
+				local flat = Vector3.new(look.X, 0, look.Z)
+				local heading = if flat.Magnitude > 0.001 then flat.Unit else lastPlanarForward
+				local velocity, yaw, complete = slick:sample(now, heading)
+				-- No teleport, roll or pitch impulse; preserve existing vertical motion.
+				chassis.AssemblyLinearVelocity = velocity + Vector3.new(0, assemblyVelocity.Y, 0)
+				chassis.AssemblyAngularVelocity = Vector3.new(0, yaw, 0)
+				if complete then
+					commandedSpeed = math.max(0, velocity:Dot(heading))
+					currentYawRate = 0
+					chassis.AssemblyAngularVelocity = Vector3.zero
+					stopSlick()
+				end
+				return
+			end
 		end
 
 		local lookVector = chassis.CFrame.LookVector

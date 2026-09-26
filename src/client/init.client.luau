@@ -7,6 +7,7 @@ local KartEffectsController = require(script:WaitForChild("KartEffectsController
 local KartAudioController = require(script:WaitForChild("KartAudioController"))
 local RaceAudioController = require(script:WaitForChild("RaceAudioController"))
 local RaceItemUiController = require(script:WaitForChild("RaceItemUiController"))
+local ShieldEffectsController = require(script:WaitForChild("ShieldEffectsController"))
 
 print("RobloxKart CLIENT sync OK")
 KartInputController.start()
@@ -18,3 +19,4 @@ KartEffectsController.start()
 KartAudioController.start()
 RaceAudioController.start()
 RaceItemUiController.start()
+ShieldEffectsController.start()

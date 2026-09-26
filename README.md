@@ -27,22 +27,52 @@ For more help, check out [the Rojo documentation](https://rojo.space/docs).
 - DEFERRED: Driver seating height / posture / hands / seat-shell fit.
 - PV1-B designs around the existing Physics Seat; do not change Seat CFrame, humanoid seating, rig proportions, or hip height.
 
-## C1-A RaceItem / Nitro (Studio approved)
+## Strategic RaceLoadout (C1-B)
 
-- Baseline: `e8f7d69d7daf78cbd8867844e4f8d5c5713b71a6` (PV1-C and four Sprint colors).
-- `RaceItemSlot` is temporary server state, one item maximum. No persistent inventory or DataStore.
-- Catalog IDs: Nitro, Slick, Shield, Smoke; only Nitro is implemented.
-- During Studio Play, `KartConfig.DEBUG_RACE_ITEMS = true` grants one fresh Nitro on each entry into RACING. Published servers never auto-grant. Set this flag false to disable the hook before item boxes replace it.
-- While seated and racing, press **Q** once to use. Chat/TextBox input is ignored. No mobile touch action yet.
-- Server-only `RaceItemController.grantRaceItem(player, "Nitro")` can grant a new test item during RACING when the slot is empty. Clients can request only `RaceItemControl:FireServer("Use")`; extra arguments are rejected.
-- Nitro reaches a target of 100 at 75 stud/s² for 3 seconds including acceleration. Mini Boost retains its own timer; targets never add. On expiry, speed decays at 15 stud/s² toward 82 if Mini Boost still lives, otherwise 70. After reaching 70, normal drift speed rules resume.
-- Releasing W coasts; S uses normal brakes. The Nitro timer continues during coasting/braking, so W can resume Nitro acceleration within the original 3 seconds.
-- Off-track cancels Nitro and caps its remaining commanded speed at 50. Barrier, lock, reset, driver/character removal and non-racing states clear Nitro. Race transitions/reset clear the slot; rematch COUNTDOWN is empty, then Studio grants a new item at RACING.
-- Nitro uses existing exhaust emitters with stronger rate/size/light. HUD is lower-left: desktop 24 px left / 30 px bottom, 128×48; compact height <=500 uses 16 px left / 100 px bottom, 110×40 inside the safe GUI area. Empty slot is hidden.
+C1-A baseline: `be66348e599631775ce8293ca2c3a893a91df7a1`.
 
-### C1-A validation
+### Equal starting resources
 
-Run `lune run tests/race_item_validation.luau` and `lune run tests/kart_visual_validation.luau`, then `rojo build -o <temporary-output>.rbxlx` and `git diff --check`.
-The server tests execute the production movement and item controllers with mocked signals, time and physics transport. They do not substitute for Studio physics/rendering.
+Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Smoke 0 during COUNTDOWN, in Studio and production. Selection is permitted during COUNTDOWN; use is blocked until RACING. Garage, Finish, DNF, reset and occupant loss clear temporary resources/effects. Grid seating during COUNTDOWN preserves prepared counts. Rematch refills all three and clears old hazards, Shield, Nitro, immunity and preview.
 
-User Studio validation PASS: grant, Q use, W+Q acceleration, visible speed increase, progressive expiry/recovery, Nitro exhaust VFX, lower-left HUD, S braking during Nitro, off-track cancellation/~50 policy, and barrier cancellation/normal recovery. Exact maximum observed speed was not supplied. C1-A approved for commit/push.
+RaceLoadout is server-authoritative temporary state, replacing RaceItemSlot. Inventory means future persistent Shop/ownership only. No persistent Inventory or DataStore is implemented.
+
+- Maximum charges: Nitro 2, Slick 1, Shield 1; Smoke deferred.
+- PC 1/2/3 selects Nitro/Slick/Shield; Q uses the server-selected item. HUD buttons call the same selection function; future mobile ITEM can call useRaceItem(). No touch driving added.
+- Accepted use consumes only that item; rejected use retains charges. Once empty, selection advances deterministically Nitro -> Slick -> Shield -> Nitro. Keys override the selection at any time if charges remain.
+- RaceItemControl accepts Select with one validated item ID, or Use with no arguments. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.
+- Left-lower HUD: three cells, desktop 272 x 48 (24 left/30 bottom), compact 218 x 40 (16 left/100 bottom, safe GUI area). Available selected cell highlighted; empty cells dimmed. Visible in COUNTDOWN and RACING.
+
+### Slick / Shield
+
+Slick drops 10 studs behind chassis, 7 x 5 pad, 4-stud detection height, 10-second lifetime, 0.75-second owner grace. Server swept detection uses one controller loop, bounded to 16 hazards. Successful hit or block consumes the pad. Slick owns movement for 0.7 seconds, retains 55% speed and recovers toward legal road direction without vertical impulse. Barrier/off-track safety wins. It cancels Nitro, Mini Boost and Drift.
+
+Attack resolution: valid target -> 1-second item hit immunity -> Shield -> offensive effect. Shield lasts 5 seconds or one block. It adds no speed and may coexist with Nitro. Cyan pulsing shell/orbit animation and BLOCKED feedback are preserved. Lifecycle boundaries clear effects.
+
+World deploy: rear ejection -> 0.20-second travel -> splash -> 0.16-second pad reveal. Temporary splash parts clean at 0.42 seconds; trigger timing remains unchanged.
+
+Rear Deploy Preview: accepted Slick use replaces loadout display for 0.9 seconds. Lightweight WorldModel contains at most 64 current kart visual parts, a simplified road, drop, splash and pad. It is a rear-facing deployment replay, not live Workspace rendering. No track/world clone or main camera change. It cleans its scene/render connection on timeout, race exit, replacement or GUI destruction. BLOCKED interrupts it. Item input remains active throughout. Desktop 248 x 152; compact 176 x 112 at the existing lower-left anchor.
+
+### Nitro / extra reward policy
+
+Preserved speeds: normal 70, Mini Boost 82, Nitro 100; Nitro duration 3 seconds, acceleration 75, smooth exit 15 stud/s per second. Brake priority, off-track cancellation and barrier cancellation remain.
+
+Server-only RaceItemController.grantBonusNitro(player) permits one extra Nitro per player per race while RACING, maximum two. Before use: 1 -> 2; after use: 0 -> 1. Repeated reward calls reject. A new race resets reward eligibility. No client grant action exists.
+
+Future reward gate/token: fixed location, equal opportunity, player-specific, once per race; one player never removes it for others. Prefer a small racing-line/risk tradeoff. Track gate placement is deferred.
+
+### Product policy
+
+Core MVP: equal starting loadout + optional one-time Nitro reward. Random Item Boxes are REMOVED from core MVP; they may be revisited for special modes/events. The old Studio sequential grants and follow-up Shield grant are removed.
+
+License remains planned, not implemented. It starts with the same 1/1/1 resources; tutorial boxes are unnecessary. Teach W, A/D, S, Drift, then 1/2/3 selection and Q use. Suggested zones: Nitro straight, safe Slick deployment, Shield training attack. Passing requires one valid Practice Circuit lap; item use is not mandatory.
+
+Smoke gameplay, Inventory, DataStore, multiplayer and full License are not implemented. Physics Seat, driver seating, track, camera, kart colors/materials and physics tuning remain unchanged.
+
+### Validation / Studio smoke
+
+Run `lune run tests/race_item_validation.luau`, `lune run tests/kart_visual_validation.luau`, `rojo build -o <temporary-output>.rbxlx`, and `git diff --check`.
+
+Current automated results: 157 RaceItem/Nitro checks; 8 rear preview lifecycle checks; 93 visual contract cases; 12 preview/framing cases; 38 Luau scripts compile. Movement tests use deterministic signal/time/physics-transport mocks and do not replace Studio physics.
+
+Studio 896 x 414 basic smoke passed: 1/1/1 during countdown/start, 2/Q Slick world deployment and temporary matching-kart preview, HUD restoration with Slick=0, 3/Q Shield globe and Shield=0, Nitro activation/exhaust and Nitro=0, then fresh 1/1/1 on the actual Rematch button. A server command set DNF in the test session to reach Rematch without a full race. No full held-key speed run was performed by automation; 70/82/100 speed, Nitro duration/exit and cancellation regression are covered by the deterministic controller tests. Preview duration/cleanup is checked with a controlled clock at 0.89 and 0.91 seconds.

@@ -106,14 +106,29 @@ local catalog=load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 for _, id in {"Nitro","Slick","Shield","Smoke"} do check(catalog[id].Id==id,"stable ID "..id) end
 check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.NITRO_ACCELERATION==75 and config.NITRO_EXIT_DECELERATION==15,"Nitro configuration")
 check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==82 and config.MINI_BOOST_DURATION==1,"baseline speeds unchanged")
-local slotType=load("src/server/RaceItemSlot.luau",server,"RaceItemSlot")
-local slot=slotType.new()
-check(slot:grant("Nitro"),"grant")
-check(not slot:grant("Nitro") and not slot:grant("Slick"),"single slot and unimplemented items")
-check(not slot:use("Use",1,function() error("must not activate") end) and slot.id=="Nitro","payload injection rejected")
-check(not slot:use("Use",0,function() return false,"locked" end) and slot.id=="Nitro","rejected retains slot")
-check(slot:use("Use",0,function() return true end) and slot.id=="","accepted consumes")
+local loadoutType=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
+local loadout=loadoutType.new()
+loadout:prepare()
+check(loadout.counts.Nitro==1 and loadout.counts.Slick==1 and loadout.counts.Shield==1 and loadout.counts.Smoke==0,"equal base resources")
+check(not loadout:select("Smoke") and not loadout:select({}) and not loadout:select(2),"selection rejects unsupported IDs/types")
+check(not loadout:use("Use",1,function() error("must not activate") end) and loadout.counts.Nitro==1,"payload injection rejected")
+check(not loadout:use("Use",0,function() return false,"locked" end) and loadout.counts.Nitro==1,"rejected retains charge")
+check(loadout:use("Use",0,function() return true end) and loadout.counts.Nitro==0 and loadout.counts.Slick==1 and loadout.selected=="Slick","accepted consumes only selected and auto-selects")
+check(not loadout:select("Nitro"),"empty selection cannot grant")
+check(loadout:grantBonusNitro() and loadout.counts.Nitro==1 and not loadout:grantBonusNitro(),"bonus after use once per race")
+loadout:prepare()
+check(loadout:grantBonusNitro() and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"Nitro maximum two")
+loadout:clear()
+check(loadout.selected=="" and loadout.counts.Nitro==0 and loadout.counts.Slick==0 and loadout.counts.Shield==0,"clear temporary resources")
+-- Capture server state for legacy scenario fixture setup only; no production grant API.
+local instances={}
+local originalNew=loadoutType.new
+loadoutType.new=function() local result=originalNew(); table.insert(instances,result); return result end
 local Nitro=load("src/server/NitroState.luau",server,"NitroState")
+local itemConfig=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
+local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
+local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
+load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 local overlap=Nitro.new(config)
 overlap:activate("driver",0)
 check(overlap:forwardSpeed(82,true,1,1/60)>82 and overlap:forwardSpeed(82,true,1,1/60)<100,"Mini Boost to Nitro ramp")
@@ -132,6 +147,9 @@ child(server,"ModuleScript","TrackBuilder")
 modules.TrackBuilder={build=function(prototype)
 	local track=child(prototype,"Model","TestTrack")
 	child(track,"Folder","BarrierTriggers")
+	local roads=child(track,"Folder","Road")
+	local road=child(roads,"Part","Road1")
+	road.Size=V.new(60,0.05,2000)
 end}
 local player=child(services.Players,"Player","TestDriver")
 player.Character=object("Model","Character")
@@ -141,6 +159,14 @@ check(not world.activateNitro(player),"pre-start rejection")
 world.start()
 local items=load("src/server/RaceItemController.luau",server,"RaceItemController")
 items.start()
+local state=instances[1]
+local function fixtureItem(_,id)
+	state.counts[id]=1
+	state.selected=id
+	player:SetAttribute("SelectedRaceItemId",id)
+	player:SetAttribute("RaceCharge"..id,1)
+	return true
+end
 local kart=services.Workspace.Prototype.Kart
 local seat=kart.Seat
 local chassis=kart.Chassis
@@ -164,17 +190,17 @@ local function startRace()
 	step(1)
 end
 startRace()
-check(player:GetAttribute("RaceItemId")=="Nitro","Studio RACING grants Nitro")
+check(player:GetAttribute("SelectedRaceItemId")=="Nitro","Studio RACING grants Nitro")
 remote.OnServerEvent:Fire(player,"Use","Nitro")
-check(not kart:GetAttribute("KartNitroActive") and player:GetAttribute("RaceItemReady"),"remote rejects extra payload")
+check(not kart:GetAttribute("KartNitroActive") and (player:GetAttribute("SelectedRaceItemId")~=""),"remote rejects extra payload")
 kart:SetAttribute("RaceControlsLocked",true)
 remote.OnServerEvent:Fire(player,"Use")
-check(player:GetAttribute("RaceItemReady"),"locked remote keeps item")
+check((player:GetAttribute("SelectedRaceItemId")~=""),"locked remote keeps item")
 kart:SetAttribute("RaceControlsLocked",false)
 for _=1,150 do step(1) end
 check(math.abs(-chassis.AssemblyLinearVelocity.Z-70)<0.001,"normal speed 70")
 remote.OnServerEvent:Fire(player,"Use")
-check(kart:GetAttribute("KartNitroActive") and not player:GetAttribute("RaceItemReady"),"authoritative activation and consumption")
+check(kart:GetAttribute("KartNitroActive") and player:GetAttribute("RaceChargeNitro")==0,"authoritative activation and consumption")
 local speed=step(1)
 check(speed>70 and speed<72,"real movement branch ramps first frame")
 for _=1,30 do speed=step(1) end
@@ -203,31 +229,31 @@ for _, state in {"FINISHED","DNF","GARAGE","COUNTDOWN"} do
 	startRace(); remote.OnServerEvent:Fire(player,"Use")
 	check(kart:GetAttribute("KartNitroActive"),"activate before "..state)
 	player:SetAttribute("RaceState",state)
-	check(not kart:GetAttribute("KartNitroActive") and player:GetAttribute("RaceItemId")=="","clear "..state)
+	check(not kart:GetAttribute("KartNitroActive") and (player:GetAttribute("SelectedRaceItemId")=="" or state=="COUNTDOWN"),"clear effects "..state)
 end
 startRace()
-check(player:GetAttribute("RaceItemReady"),"rematch receives fresh debug grant")
+check((player:GetAttribute("SelectedRaceItemId")~=""),"rematch receives fresh base loadout")
 player:SetAttribute("RaceState","COUNTDOWN")
-check(not player:GetAttribute("RaceItemReady"),"rematch countdown empty")
+check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeSlick")==1 and player:GetAttribute("RaceChargeShield")==1,"rematch countdown refills")
 services.RunService.studio=false
 player:SetAttribute("RaceState","RACING")
-check(not player:GetAttribute("RaceItemReady"),"published server never auto-grants")
+check(player:GetAttribute("RaceChargeNitro")==1,"published server equal loadout")
 services.RunService.studio=true
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 kart:SetAttribute("RaceResetSerial",1)
-check(not kart:GetAttribute("KartNitroActive") and not player:GetAttribute("RaceItemReady"),"reset clears both")
+check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"reset clears both")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 seat.Occupant=nil
 check(not kart:GetAttribute("KartNitroActive"),"unseat cancels")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 player.CharacterRemoving:Fire()
-check(not kart:GetAttribute("KartNitroActive") and not player:GetAttribute("RaceItemReady"),"character removal cleanup")
+check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"character removal cleanup")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 now+=config.INPUT_TIMEOUT+0.1; services.RunService.Heartbeat:Fire(1/60)
 check(not kart:GetAttribute("KartNitroActive"),"input timeout cancels")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 chassis.CFrame=CF.new(0,-50,0); step(1)
-check(not kart:GetAttribute("KartNitroActive") and not player:GetAttribute("RaceItemReady"),"fall reset cleanup")
+check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"fall reset cleanup")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 for _=1,90 do step(1) end
 local trigger=child(services.Workspace.Prototype.TestTrack.BarrierTriggers,"Part","TestBarrier")
@@ -278,12 +304,224 @@ check(requests==1,"Garage client ignores use")
 player:SetAttribute("RaceState","RACING")
 inputController.useRaceItem()
 check(requests==2,"shared future touch action sends same request")
-config.DEBUG_RACE_ITEMS=false
 player:SetAttribute("RaceState","COUNTDOWN"); player:SetAttribute("RaceState","RACING")
-check(not player:GetAttribute("RaceItemReady"),"debug flag disables automatic grant")
-check(items.grantRaceItem(player,"Nitro"),"server-only grant remains available")
+check(player:GetAttribute("RaceChargeNitro")==1,"base loadout available outside Studio")
+check(fixtureItem(player,"Nitro"),"test fixture selects Nitro")
+local nitroChecks=count
+local function fresh(itemId)
+	player:SetAttribute("RaceState","GARAGE")
+	trigger.CFrame=CF.new(10000,0,10000)
+	player:SetAttribute("RaceState","COUNTDOWN")
+	kart:SetAttribute("RaceControlsLocked",true)
+	step(0)
+	chassis.CFrame=CF.new(0,1.75,0)
+	seat.Occupant=human; human.SeatPart=seat
+	kart:SetAttribute("KartOffTrack",false)
+	player:SetAttribute("RaceState","RACING")
+	kart:SetAttribute("RaceControlsLocked",false)
+	step(0)
+	if itemId then assert(fixtureItem(player,itemId)) end
+end
+local function use()
+	step(0,0.2)
+	remote.OnServerEvent:Fire(player,"Use")
+end
+local function hazardCount() return #services.Workspace.Prototype.RaceItemHazards:GetChildren() end
+check(catalog.Slick.TargetMode=="DropBehind" and catalog.Shield.TargetMode=="Self","C1-B catalog metadata")
+check(itemConfig.SLICK_LIFETIME==10 and itemConfig.SLICK_OWNER_GRACE==0.75 and itemConfig.SLICK_EFFECT_DURATION==0.7,"Slick config")
+check(itemConfig.SHIELD_DURATION==5 and itemConfig.RACE_ITEM_HIT_IMMUNITY==1,"defense config")
+fresh("Slick")
+remote.OnServerEvent:Fire(player,"Use",V.new(99,99,99))
+check(hazardCount()==0 and player:GetAttribute("SelectedRaceItemId")=="Slick","client cannot provide drop coordinates")
+kart:SetAttribute("KartOffTrack",true); use()
+check(hazardCount()==0 and player:GetAttribute("SelectedRaceItemId")=="Slick","rejected Slick retains loadout")
+check(player:GetAttribute("SlickDeployedSerial")==nil,"rejected Slick publishes no deployment feedback")
+kart:SetAttribute("KartOffTrack",false); use()
+check(hazardCount()==1 and player:GetAttribute("RaceChargeSlick")==0,"accepted Slick consumes charge")
+local hazard=services.Workspace.Prototype.RaceItemHazards:GetChildren()[1]
+check(math.abs(hazard.SlickSurface.Position.Z-10)<0.0001,"server drops 10 studs behind chassis")
+check(hazard.SlickTrigger.Size==V.new(7,4,5),"authoritative Slick dimensions unchanged during reveal")
+check(hazard:FindFirstChild("OilDrop") ~= nil and hazard.SlickSurface.Transparency==1,"accepted deployment starts with projectile and hidden pad")
+check(hazard.OilDrop.Position==V.new(0,6.75,3),"ejection starts above rear center for chase visibility")
+check(player:GetAttribute("SlickDeployedSerial")==1,"accepted Slick publishes deployment feedback")
+check(player:GetAttribute("SlickDeployFrame")==hazard.SlickSurface.CFrame,"rear preview uses authoritative landing frame")
+check(player:GetAttribute("SlickEjectPosition")==hazard.OilDrop.Position,"rear preview uses authoritative ejection position")
+check(hazard.SlickSurface.Shape==rb.Enum.PartType.Ball,"oil surface is rounded rather than rectangular")
+step(0,0.1)
+check(hazard.OilDrop.Position.Z>4 and hazard.OilDrop.Position.Z<10,"projectile travels toward server drop position")
+step(0,0.11)
+check(not hazard:FindFirstChild("OilDrop") and hazard.OilSplash1.Transparency<1,"impact removes projectile and reveals splash")
+step(0,0.16)
+check(hazard.SlickSurface.Size==V.new(7,0.1,5) and hazard.SlickSurface.Transparency==0,"pad reaches full dimensions after reveal")
+step(0,0.06)
+check(not hazard:FindFirstChild("OilSplash1") and #hazard:GetChildren()==4,"temporary deployment geometry cleaned")
+for _, p in hazard:GetChildren() do
+	check(p.Anchored and not p.CanCollide and not p.CanTouch and not p.CanQuery,"safe hazard visual "..p.Name)
+end
+chassis.CFrame=CF.new(0,1.75,10); step(0,0.1)
+check(not kart:GetAttribute("KartSlickActive") and hazardCount()==1,"owner grace prevents immediate hit")
+step(0,0.7)
+check(kart:GetAttribute("KartSlickActive") and hazardCount()==0,"owner hits after grace; single-use hazard removed")
+check(kart:GetAttribute("RaceItemHitImmunity"),"offensive hit starts immunity")
+local accepted, reason=items.tryApplyOffensiveItem(player,player,"Slick")
+check(not accepted and reason=="immune","repeated offensive hit ignored")
+check(not world.activateNitro(player),"Nitro rejected during Slick effect")
+for _=1,50 do
+	step(0)
+	chassis.CFrame=chassis.CFrame*CF.Angles(0,chassis.AssemblyAngularVelocity.Y/60,0)
+end
+check(not kart:GetAttribute("KartSlickActive"),"Slick effect expires")
+check(chassis.CFrame.LookVector:Dot(V.new(0,0,-1))>0.94,"Slick recovery usable forward direction")
+check(chassis.AssemblyLinearVelocity.Y==0,"Slick no vertical impulse")
+step(0,0.3)
+check(not kart:GetAttribute("RaceItemHitImmunity"),"immunity expires")
+
+fresh("Slick"); use()
+check(fixtureItem(player,"Shield"),"one-loadout accepts Shield after Slick consumed")
+use()
+check(kart:GetAttribute("KartShieldActive") and player:GetAttribute("RaceChargeShield")==0,"Shield use consumes and activates")
+local shell=kart:FindFirstChild("RaceItemShield")
+check(shell and shell.Parent==kart and not shell.CanCollide and shell.Massless and not shell.Anchored,"shield outside Visual, welded noncolliding")
+check(shell:FindFirstChildOfClass("WeldConstraint").Part0==chassis,"shield attached to chassis")
+check(fixtureItem(player,"Shield"),"test fixture supplies Shield for active-rejection scenario")
+use()
+check(player:GetAttribute("SelectedRaceItemId")=="Shield","duplicate active Shield use rejected without consumption")
+step(0,0.4)
+chassis.CFrame=CF.new(0,1.75,10); step(0)
+check(not kart:GetAttribute("KartShieldActive") and not kart:FindFirstChild("RaceItemShield"),"first contact consumes shield and visual")
+check(not kart:GetAttribute("KartSlickActive") and hazardCount()==0,"blocked Slick has no physics and is removed")
+check(player:GetAttribute("RaceItemBlockedSerial")==1,"BLOCKED feedback event")
+check(not kart:GetAttribute("RaceItemHitImmunity"),"blocking does not grant extra hit immunity")
+accepted,reason=items.tryApplyOffensiveItem(player,player,"Slick")
+check(accepted and reason=="hit" and kart:GetAttribute("KartSlickActive"),"next attack hits after shield consumed")
+
+fresh("Shield"); use(); step(0,4.9)
+check(kart:GetAttribute("KartShieldActive"),"Shield lives before 5 seconds")
+step(0,0.11)
+check(not kart:GetAttribute("KartShieldActive") and not kart:FindFirstChild("RaceItemShield"),"Shield timeout removes visual")
+fresh("Slick"); use(); step(0,9.9)
+check(hazardCount()==1,"hazard before lifetime")
+step(0,0.11)
+check(hazardCount()==0,"hazard expires at 10 seconds")
+fresh()
+for _=1,itemConfig.SLICK_MAX_HAZARDS do assert(fixtureItem(player,"Slick")); use() end
+check(hazardCount()==itemConfig.SLICK_MAX_HAZARDS,"bounded hazard capacity")
+assert(fixtureItem(player,"Slick")); use()
+check(hazardCount()==itemConfig.SLICK_MAX_HAZARDS and player:GetAttribute("SelectedRaceItemId")=="Slick","hazard cap rejects without consuming")
+fresh("Slick"); use(); step(0,0.8)
+chassis.CFrame=CF.new(0,1.75,30); step(0)
+chassis.CFrame=CF.new(0,1.75,-30); step(0)
+check(kart:GetAttribute("KartSlickActive"),"swept contact catches high-speed crossing")
+
+for _, boundary in {"FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant"} do
+	fresh("Slick"); use()
+	assert(fixtureItem(player,"Shield")); use()
+	-- First hit blocks; second starts immunity and Slick. Then clear lifecycle.
+	items.tryApplyOffensiveItem(player,player,"Slick")
+	items.tryApplyOffensiveItem(player,player,"Slick")
+	if boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+	elseif boundary=="occupant" then seat.Occupant=nil
+	else player:SetAttribute("RaceState",boundary) end
+	check(not kart:GetAttribute("KartSlickActive") and not kart:GetAttribute("RaceItemHitImmunity") and hazardCount()==0
+		and (player:GetAttribute("SelectedRaceItemId")=="" or boundary=="COUNTDOWN"),"full offensive lifecycle cleanup "..boundary)
+	fresh("Shield"); use()
+	if boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+	elseif boundary=="occupant" then seat.Occupant=nil
+	else player:SetAttribute("RaceState",boundary) end
+	check(not kart:GetAttribute("KartShieldActive") and not kart:FindFirstChild("RaceItemShield"),"Shield lifecycle cleanup "..boundary)
+end
+
+-- Test continuous recovery over different approach angles and frame rates.
+for _, fps in {30,60,120} do
+	for _, angle in {0,math.pi/2,math.pi,-math.pi/2} do
+		local effect=slickMotion.new(itemConfig)
+		local frame=CF.Angles(0,angle,0)
+		effect:start(player,0,frame.LookVector,V.new(0,0,-1),70)
+		for i=1,math.ceil(0.7*fps) do
+			local velocity,yaw=effect:sample(i/fps,frame.LookVector)
+			assert(velocity.Y==0 and velocity.Magnitude<=70)
+			frame=frame*CF.Angles(0,yaw/fps,0)
+		end
+		check(frame.LookVector:Dot(V.new(0,0,-1))>0.94,"continuous heading recovery "..fps.."/"..angle)
+	end
+end
+
+-- Production selection/actions and base refill, independent of Studio flags.
+fresh()
+for index,id in {"Nitro","Slick","Shield"} do
+	local key=({rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three})[index]
+	uis.InputBegan:Fire({KeyCode=key},false)
+	check(player:GetAttribute("SelectedRaceItemId")==id,"keyboard selection "..index)
+end
+local selected=state.selected
+remote.OnServerEvent:Fire(player,"Select","Smoke")
+remote.OnServerEvent:Fire(player,"Select","Nitro","extra")
+remote.OnServerEvent:Fire(player,"Grant","Nitro")
+check(state.selected==selected and state.counts.Nitro==1,"invalid selection/grant rejected")
+remote.OnServerEvent:Fire(player,"Select","Slick")
+use()
+check(state.counts.Slick==0 and state.counts.Nitro==1 and state.counts.Shield==1,"only Slick depleted")
+remote.OnServerEvent:Fire(player,"Select","Slick")
+check(state.selected=="Shield","empty selected item rejected")
+remote.OnServerEvent:Fire(player,"Select","Nitro")
+use()
+check(kart:GetAttribute("KartNitroActive"),"chosen Nitro active")
+remote.OnServerEvent:Fire(player,"Select","Shield")
+use()
+check(kart:GetAttribute("KartShieldActive") and kart:GetAttribute("KartNitroActive"),"Shield and Nitro coexist")
+check(items.grantBonusNitro(player) and not items.grantBonusNitro(player),"server reward once per race")
+player:SetAttribute("RaceState","COUNTDOWN")
+check(state.counts.Nitro==1 and state.counts.Slick==1 and state.counts.Shield==1,"new countdown resets all counts")
+remote.OnServerEvent:Fire(player,"Use")
+check(state.counts.Nitro==1 and not kart:GetAttribute("KartNitroActive"),"countdown use blocked")
+seat.Occupant=nil; seat.Occupant=human
+check(state.counts.Nitro==1,"grid seating preserves prepared loadout")
+check(not items.grantBonusNitro(player),"reward forbidden outside race")
+player:SetAttribute("RaceState","RACING")
+check(items.grantBonusNitro(player) and state.counts.Nitro==2,"new race renews bonus eligibility")
+player:SetAttribute("RaceState","GARAGE")
+check(state.counts.Nitro==0 and state.counts.Slick==0 and state.counts.Shield==0,"Garage clears all")
+print("PASS: "..(count-nitroChecks).." Slick/Shield/loadout integration checks")
 services.Players.PlayerRemoving:Fire(player)
-check(not items.grantRaceItem(player,"Nitro"),"removed player has no slot")
+check(not items.grantBonusNitro(player),"removed player has no loadout")
 kart:Destroy()
 check(not world.activateNitro(player),"destroyed kart disables activation bridge")
 print("PASS: "..count.." RaceItem/Nitro checks (production controllers under deterministic mocks)")
+
+-- Real preview lifecycle with deterministic rendering clock, without a live world.
+local previewChecks = 0
+local function previewCheck(value, label)
+	assert(value, label); previewChecks += 1
+end
+services.RunService.RenderStepped = signal()
+local previewEnv = table.clone(environment)
+previewEnv.Vector2, previewEnv.UDim2 = rb.Vector2, rb.UDim2
+previewEnv.workspace = object("Workspace")
+local previewType = luau.load(fs.readFile("src/client/SlickRearPreview.luau"), {
+	debugName="SlickRearPreview", environment=previewEnv,
+})()
+local gui = object("ScreenGui")
+local completed = 0
+local preview = previewType.new(gui, function() completed += 1 end)
+local panel = gui:FindFirstChild("SlickRearPreview")
+local viewport = panel:FindFirstChildOfClass("ViewportFrame")
+preview:layout(true, rb.UDim2.fromOffset(16, 100))
+preview:show(nil, nil)
+previewCheck(not preview:isVisible() and #viewport:GetChildren()==1, "invalid deploy creates no scene")
+preview:show(CF.identity, V.new(0, 5, -7))
+previewCheck(preview:isVisible() and #viewport:GetChildren()==2, "accepted deployment creates one temporary scene")
+now += 0.89; services.RunService.RenderStepped:Fire()
+previewCheck(preview:isVisible() and completed==0, "preview remains before 0.9 seconds")
+now += 0.02; services.RunService.RenderStepped:Fire()
+previewCheck(not preview:isVisible() and #viewport:GetChildren()==1 and completed==1, "timeout destroys scene and restores HUD")
+services.RunService.RenderStepped:Fire()
+previewCheck(completed==1, "timeout disconnects render callback")
+preview:show(CF.identity, V.new(0, 5, -7))
+preview:show(CF.identity, V.new(0, 5, -7))
+previewCheck(#viewport:GetChildren()==2, "repeat preview replaces rather than duplicates scene")
+preview:stop()
+previewCheck(not preview:isVisible() and #viewport:GetChildren()==1, "race exit stop removes scene")
+preview:show(CF.identity, V.new(0, 5, -7))
+gui:Destroy()
+previewCheck(not preview:isVisible() and #viewport:GetChildren()==1, "GUI destruction removes scene")
+print("PASS: "..previewChecks.." rear preview lifecycle checks")
