@@ -4,8 +4,8 @@ local KartCatalog = {
 	Entries = {
 		Kart01 = {
 			Id = "Kart01",
-			DisplayName = "Prototype Sprint",
-			VisualModelName = "PrototypeKart",
+			DisplayName = "Sprint V1",
+			VisualModelName = "SprintV1",
 			BodyColor = Color3.fromRGB(220, 45, 45),
 			AccentColor = Color3.fromRGB(245, 245, 235),
 		},

@@ -117,12 +117,14 @@ local function wheelCenterHeight(diameter: number): number
 end
 
 -- Factory CFrames are all in chassis-local space, including nested children.
-local function addPart(parent: Instance, name: string, size: Vector3, offset: CFrame, role: string, shape: Enum.PartType?)
-	local part = Instance.new("Part")
+local function addPart(parent: Instance, name: string, size: Vector3, offset: CFrame, role: string, shape: Enum.PartType?, wedge: boolean?)
+	local part = if wedge then Instance.new("WedgePart") else Instance.new("Part")
 	part.Name = name
 	part.Size = size
 	part.CFrame = offset
-	part.Shape = shape or Enum.PartType.Block
+	if part:IsA("Part") then
+		part.Shape = shape or Enum.PartType.Block
+	end
 	part.Material = Enum.Material.SmoothPlastic
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
@@ -147,7 +149,7 @@ local function addPivot(visual: Model, name: string, offset: CFrame): Part
 	local pivot = addPart(visual, name, Vector3.new(0.2, 0.2, 0.2), offset, "Trim")
 	pivot.Transparency = 1
 	pivot:SetAttribute("ColorRole", nil)
-	return pivot
+	return pivot :: Part
 end
 
 local function addWheel(visual: Model, name: string, radius: number, width: number, center: Vector3, front: boolean, side: string)
@@ -159,15 +161,13 @@ local function addWheel(visual: Model, name: string, radius: number, width: numb
 	local size = Vector3.new(width, radius * 2, radius * 2)
 	addPart(pivot, name, size, CFrame.new(center), "Tire", Enum.PartType.Cylinder)
 
-	-- A small accent marker makes rotation of the otherwise uniform tire readable.
+	-- A recessed disc and contrasting elongated hub make spin readable without
+	-- adding individual bolts or a separate marker mesh.
 	local outer = if side == "Left" then -1 else 1
-	addPart(
-		pivot,
-		name .. "Mark",
-		Vector3.new(0.08, 0.42, 0.18),
-		CFrame.new(center + Vector3.new(outer * (size.X / 2 + 0.05), size.Y * 0.28, 0)),
-		"Accent"
-	)
+	addPart(pivot, name .. "Rim", Vector3.new(0.12, radius * 1.22, radius * 1.22),
+		CFrame.new(center + Vector3.new(outer * (width / 2 + 0.015), 0, 0)), "Rim", Enum.PartType.Cylinder)
+	addPart(pivot, name .. "Hub", Vector3.new(0.14, radius * 0.76, 0.19),
+		CFrame.new(center + Vector3.new(outer * (width / 2 + 0.075), 0, 0)), "Metal")
 end
 
 local function addExhaustAnchor(root: BasePart, role: string, position: Vector3)
@@ -182,17 +182,24 @@ function KartVisualFactory.applyColors(visual: Model, definition: { [string]: an
 	for _, child in visual:GetDescendants() do
 		if child:IsA("BasePart") then
 			local role = child:GetAttribute("ColorRole")
-			if role == "Body" then
-				child.Color = definition.BodyColor
+			if role == "Body" or role == "BodyPrimary" then
+				child.Color = definition.BodyPrimaryColor or definition.BodyColor
+			elseif role == "BodySecondary" then
+				child.Color = definition.BodySecondaryColor or definition.BodyColor:Lerp(TRIM, 0.5)
 			elseif role == "Accent" then
 				child.Color = definition.AccentColor
 			elseif role == "Tire" then
 				child.Color = definition.WheelColor or Color3.fromRGB(23, 24, 27)
+			elseif role == "Rim" then
+				child.Color = definition.RimColor or Color3.fromRGB(80, 91, 105)
 			elseif role == "Metal" then
 				child.Color = METAL
+			elseif role == "Seat" then
+				child.Color = Color3.fromRGB(26, 29, 35)
 			else
 				child.Color = TRIM
 			end
+			child.Material = if role == "Metal" or role == "Rim" then Enum.Material.Metal else Enum.Material.SmoothPlastic
 		end
 	end
 end
@@ -205,48 +212,57 @@ function KartVisualFactory.createVisual(definition: { [string]: any }): Model
 	local staticRoot = addPivot(visual, "StaticRoot", CFrame.identity)
 	visual.PrimaryPart = staticRoot
 
-	-- The origin is the invisible physics Chassis center; the kart faces local -Z.
-	addPart(staticRoot, "BodyMain", Vector3.new(4.25, 0.55, 4.6), CFrame.new(0, 0.05, 0.15), "Body")
-	addPart(staticRoot, "Nose", Vector3.new(2.05, 0.46, 2.55), CFrame.new(0, -0.05, -2.5), "Body")
-	addPart(staticRoot, "NoseStripe", Vector3.new(0.5, 0.06, 2.2), CFrame.new(0, 0.21, -2.55), "Accent")
-	addPart(staticRoot, "SidePodL", Vector3.new(1.1, 0.73, 2.9), CFrame.new(-2.35, -0.08, -0.35), "Body")
-	addPart(staticRoot, "SidePodR", Vector3.new(1.1, 0.73, 2.9), CFrame.new(2.35, -0.08, -0.35), "Body")
-	addPart(staticRoot, "RearBody", Vector3.new(4.5, 1.05, 1.6), CFrame.new(0, 0.45, 2.65), "Body")
-	addPart(staticRoot, "RearStripe", Vector3.new(4.1, 0.07, 0.42), CFrame.new(0, 1.01, 2.65), "Accent")
-	addPart(staticRoot, "FrontBumper", Vector3.new(5.5, 0.33, 0.42), CFrame.new(0, -0.2, -3.9), "Trim")
-	addPart(staticRoot, "RearBumper", Vector3.new(6.0, 0.35, 0.45), CFrame.new(0, -0.16, 3.78), "Trim")
+	-- Sprint V1: 19 static + 12 wheel + 9 steering visible parts = 40.
+	-- Origin/forward (-Z), wheel anchors and the Physics Seat are PV1-A locked.
+	addPart(staticRoot, "FloorPan", Vector3.new(3.9, 0.22, 5.35), CFrame.new(0, -0.18, 0), "BodySecondary")
+	for _, side in { -1, 1 } do
+		addPart(staticRoot, "FrameRail" .. side, Vector3.new(5.75, 0.18, 0.18),
+			CFrame.new(side * 1.87, -0.02, 0.12) * CFrame.Angles(0, math.pi / 2, 0), "Trim", Enum.PartType.Cylinder)
+	end
+	addPart(staticRoot, "FrontBumper", Vector3.new(3.65, 0.4, 0.52), CFrame.new(0, -0.11, -3.84), "BodyPrimary")
+	for _, side in { -1, 1 } do
+		addPart(staticRoot, "BumperWing" .. side, Vector3.new(1.12, 0.4, 0.52),
+			CFrame.new(side * 2.26, -0.11, -3.65) * CFrame.Angles(0, -side * math.rad(22), 0), "Trim")
+	end
+	-- Wedge rises from the front tip toward the column; white nose is the accent.
+	addPart(staticRoot, "Nose", Vector3.new(1.65, 0.68, 2.18), CFrame.new(0, 0.21, -2.55), "Accent", nil, true)
+	for _, side in { -1, 1 } do
+		addPart(staticRoot, "SidePod" .. side, Vector3.new(0.95, 0.82, 2.7),
+			CFrame.new(side * 2.17, 0.08, 0.05), "BodyPrimary", nil, true)
+	end
+	-- Visual shell surrounds Seat center (0, 1.5, 0.5), without changing it.
+	addPart(staticRoot, "SeatBack", Vector3.new(2.55, 1.45, 0.22),
+		CFrame.new(0, 1.75, 1.91) * CFrame.Angles(math.rad(8), 0, 0), "Seat")
+	for _, side in { -1, 1 } do
+		addPart(staticRoot, "SeatBolster" .. side, Vector3.new(0.2, 0.9, 2.35),
+			CFrame.new(side * 1.37, 1.45, 0.5), "Seat", nil, true)
+	end
+	addPart(staticRoot, "EngineBlock", Vector3.new(1.65, 0.8, 1.1), CFrame.new(0, 0.72, 2.88), "Trim")
+	addPart(staticRoot, "CoolingHead", Vector3.new(1.8, 0.24, 1.18), CFrame.new(0, 1.24, 2.88), "Metal")
+	addPart(staticRoot, "IntakeFilter", Vector3.new(0.85, 0.63, 0.63), CFrame.new(0.38, 1.67, 2.88), "Trim", Enum.PartType.Cylinder)
+	for _, side in { -1, 1 } do
+		-- Cylinder axis is local X; rotate it to Z, with its rear tip at Z=4.15.
+		addPart(staticRoot, "Exhaust" .. side, Vector3.new(1.15, 0.46, 0.46),
+			CFrame.new(side * 1.45, 0.18, 3.575) * CFrame.Angles(0, math.pi / 2, 0), "Metal", Enum.PartType.Cylinder)
+	end
+	addPart(staticRoot, "RearBumper", Vector3.new(5.85, 0.3, 0.3), CFrame.new(0, -0.16, 3.92), "Trim", Enum.PartType.Cylinder)
 	addPart(staticRoot, "SteeringColumn", Vector3.new(0.2, 1.25, 0.2), CFrame.new(0, 1.05, -1.05), "Metal")
 	local steeringCenter = Vector3.new(0, 1.65, -1.05)
 	local steeringPivot = addPivot(visual, "SteeringPivot", CFrame.new(steeringCenter))
 	steeringPivot:SetAttribute("VisualMotionRole", "SteeringWheel")
-	addPart(steeringPivot, "SteeringWheel", Vector3.new(0.3, 0.3, 0.18), CFrame.new(steeringCenter), "Metal")
-	for index = 1, 10 do
-		local angle = (index - 1) * 2 * math.pi / 10
-		addPart(
-			steeringPivot,
-			"SteeringRim" .. index,
-			Vector3.new(0.47, 0.13, 0.14),
-			CFrame.new(steeringCenter + Vector3.new(math.cos(angle) * 0.68, math.sin(angle) * 0.68, 0))
-				* CFrame.Angles(0, 0, angle + math.pi / 2),
-			"Trim"
-		)
+	addPart(steeringPivot, "SteeringWheel", Vector3.new(0.27, 0.27, 0.16), CFrame.new(steeringCenter), "BodyPrimary")
+	for index = 1, 6 do
+		local angle = (index - 1) * 2 * math.pi / 6
+		addPart(steeringPivot, "SteeringRim" .. index, Vector3.new(0.62, 0.15, 0.16),
+			CFrame.new(steeringCenter + Vector3.new(math.cos(angle) * 0.54, math.sin(angle) * 0.54, 0))
+				* CFrame.Angles(0, 0, angle + math.pi / 2), "Trim")
 	end
-	for index, angle in { 0, math.pi, -math.pi / 2 } do
-		addPart(
-			steeringPivot,
-			"SteeringSpoke" .. index,
-			Vector3.new(0.58, 0.09, 0.1),
-			CFrame.new(steeringCenter + Vector3.new(math.cos(angle) * 0.33, math.sin(angle) * 0.33, 0))
-				* CFrame.Angles(0, 0, angle),
-			"Metal"
-		)
-	end
+	addPart(steeringPivot, "SteeringCrossSpoke", Vector3.new(1.0, 0.1, 0.1), CFrame.new(steeringCenter), "Metal")
+	addPart(steeringPivot, "SteeringLowerSpoke", Vector3.new(0.1, 0.47, 0.1), CFrame.new(steeringCenter + Vector3.new(0, -0.25, 0)), "Metal")
 	addWheel(visual, "WheelFL", 0.925, 0.9, Vector3.new(-3.25, wheelCenterHeight(1.85), -2.55), true, "Left")
 	addWheel(visual, "WheelFR", 0.925, 0.9, Vector3.new(3.25, wheelCenterHeight(1.85), -2.55), true, "Right")
 	addWheel(visual, "WheelRL", 1.025, 1.05, Vector3.new(-3.3, wheelCenterHeight(2.05), 2.65), false, "Left")
 	addWheel(visual, "WheelRR", 1.025, 1.05, Vector3.new(3.3, wheelCenterHeight(2.05), 2.65), false, "Right")
-	addPart(staticRoot, "ExhaustL", Vector3.new(0.35, 0.35, 0.8), CFrame.new(-1.45, 0.18, 3.75), "Metal", Enum.PartType.Cylinder)
-	addPart(staticRoot, "ExhaustR", Vector3.new(0.35, 0.35, 0.8), CFrame.new(1.45, 0.18, 3.75), "Metal", Enum.PartType.Cylinder)
 
 	-- Preserve the old exhaust tips (+0.4 local Z) independently of mesh bounds.
 	addExhaustAnchor(staticRoot, "ExhaustLeft", Vector3.new(-1.45, 0.18, 4.15))
