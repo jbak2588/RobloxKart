@@ -64,11 +64,11 @@ local function makeFallbackDriver(driver: { [string]: any }): Model
 	local dark = Color3.fromRGB(38, 43, 51)
 	piece("Torso", Vector3.new(2, 2, 1), Vector3.new(0, 0.25, 0), driver.Theme)
 	piece("Head", Vector3.new(1.1, 1.1, 1.1), Vector3.new(0, 1.8, 0), Color3.fromRGB(225, 185, 145), Enum.PartType.Ball)
-	piece("Helmet", Vector3.new(1.35, 0.7, 1.35), Vector3.new(0, 2.25, 0), driver.Theme, Enum.PartType.Ball)
 	piece("LeftArm", Vector3.new(0.65, 1.8, 0.8), Vector3.new(-1.4, 0.3, 0), driver.Theme)
 	piece("RightArm", Vector3.new(0.65, 1.8, 0.8), Vector3.new(1.4, 0.3, 0), driver.Theme)
 	piece("LeftLeg", Vector3.new(0.8, 2, 0.85), Vector3.new(-0.55, -1.75, 0), dark)
 	piece("RightLeg", Vector3.new(0.8, 2, 0.85), Vector3.new(0.55, -1.75, 0), dark)
+	DriverAppearance.applyHairStyle(model)
 	return model
 end
 
@@ -248,14 +248,19 @@ function GarageUiController.start()
 			local safeSize = backdrop.AbsoluteSize
 			local layoutWidth = if safeSize.X > 0 then safeSize.X else viewportSizePixels.X - 32
 			local layoutHeight = if safeSize.Y > 0 then safeSize.Y else viewportSizePixels.Y - 40
-			local previewWidth = math.max(180, math.min(layoutWidth * 0.64, 520, layoutWidth - 112))
+			-- Reserve the same right-side capture rail as the race HUD. Move the
+			-- entire preview and its arrows together, keeping arrows beside models.
+			local captureReserve = if viewportSizePixels.X > viewportSizePixels.Y and viewportSizePixels.Y <= 500 then 128 else 0
+			local selectionWidth = layoutWidth - captureReserve
+			local previewCenter = selectionWidth * 0.5
+			local previewWidth = math.max(180, math.min(selectionWidth * 0.64, 520, selectionWidth - 112))
 			local previewHeight = math.min(layoutHeight * 0.30, 170)
 			local previewSize = UDim2.fromOffset(previewWidth, previewHeight)
 			viewportSize.MinSize = Vector2.zero
 			loadingSize.MinSize = Vector2.zero
 			mapSize.MinSize = Vector2.zero
 			viewport.Size = previewSize
-			viewport.Position = UDim2.fromScale(0.5, 0.26)
+			viewport.Position = UDim2.new(0, previewCenter, 0.26, 0)
 			previewLoading.Size = previewSize
 			previewLoading.Position = viewport.Position
 			mapPanel.Size = previewSize
@@ -273,8 +278,8 @@ function GarageUiController.start()
 			errorLabel.TextSize = 14
 			leftArrow.Size = UDim2.fromOffset(40, 50)
 			rightArrow.Size = leftArrow.Size
-			leftArrow.Position = UDim2.new(0.5, -previewWidth * 0.5 - 46, 0.38, 0)
-			rightArrow.Position = UDim2.new(0.5, previewWidth * 0.5 + 6, 0.38, 0)
+			leftArrow.Position = UDim2.new(0, previewCenter - previewWidth * 0.5 - 46, 0.38, 0)
+			rightArrow.Position = UDim2.new(0, previewCenter + previewWidth * 0.5 + 6, 0.38, 0)
 			local buttonWidth = math.min(150, (layoutWidth - 48) * 0.5)
 			for _, button in { previousButton, cycleButton, nextButton } do
 				button.Size = UDim2.fromOffset(buttonWidth, 40)
@@ -355,7 +360,7 @@ function GarageUiController.start()
 		if kind == "Kart" then
 			local visual = KartVisualFactory.createVisual(KartCatalog.Entries[selectedId])
 			visual.Name = "PreviewKart"
-			for _, part in visual:GetChildren() do
+			for _, part in visual:GetDescendants() do
 				if part:IsA("BasePart") then
 					part.Anchored = true
 				end
@@ -434,7 +439,7 @@ function GarageUiController.start()
 			local catalog = catalogs[step]
 			local selectedId = if step == 1 then driverId elseif step == 2 then kartId else trackId
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
-			detailLabel.Text = if step == 1 then "Choose your racing driver"
+			detailLabel.Text = if step == 1 then (DriverCatalog.Entries[driverId].Description or "Choose your racing driver")
 				elseif step == 2 then "All MVP karts use the same physics"
 				else "Choose the circuit for this race"
 		else

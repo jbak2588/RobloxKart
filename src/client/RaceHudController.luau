@@ -365,6 +365,14 @@ function RaceHudController.start()
 			miniMapPanel.Position = UDim2.new(1, -12, 0.5, 0)
 			miniMapSize.MinSize = Vector2.zero
 			miniMapPanel.Size = UDim2.fromOffset(140, 140)
+			miniMapPanel.AnchorPoint = Vector2.new(1, 0.5)
+			if viewportSize.X > viewportSize.Y and viewportSize.Y <= 500 then
+				-- Phone landscape: leave the right capture rail and both bottom
+				-- corners free. The ScreenGui already respects the top safe inset.
+				miniMapPanel.AnchorPoint = Vector2.new(1, 0)
+				miniMapPanel.Position = UDim2.new(1, -128, 0, 8)
+				miniMapPanel.Size = UDim2.fromOffset(112, 112)
+			end
 			steeringDisplay.Position = UDim2.new(0.5, 0, 1, -10)
 			steeringDisplay.Size = UDim2.fromOffset(84, 84)
 			steeringRingScale.Scale = 0.72
@@ -402,6 +410,7 @@ function RaceHudController.start()
 			speedTrack.Position = UDim2.fromOffset(12, 62)
 			speedTrack.Size = UDim2.fromOffset(186, 8)
 			miniMapPanel.Position = UDim2.new(1, -24, 0.5, 0)
+			miniMapPanel.AnchorPoint = Vector2.new(1, 0.5)
 			miniMapSize.MinSize = Vector2.new(170, 170)
 			miniMapPanel.Size = UDim2.fromOffset(194, 194)
 			steeringDisplay.Position = UDim2.new(0.5, 0, 1, -18)

@@ -98,24 +98,16 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	chassis.CustomPhysicalProperties = PhysicalProperties.new(1, 0.05, 0, 1, 1)
 
 	local visual = KartVisualFactory.createVisual(KartCatalog.Entries[KartCatalog.DefaultId])
+	-- PrimaryPart is StaticRoot at the factory's chassis-local origin. Move the
+	-- complete welded hierarchy together before binding its six assembly roots.
+	visual:PivotTo(spawnCFrame)
 	visual.Parent = kart
 	for _, part in visual:GetChildren() do
 		if part:IsA("BasePart") then
-			part.CFrame = spawnCFrame * part.CFrame
-		end
-	end
-	for _, part in visual:GetChildren() do
-		if part:IsA("BasePart") then
-			local parentWheelName = part:GetAttribute("VisualParentWheel")
-			if type(parentWheelName) == "string" then
-				local wheel = visual:FindFirstChild(parentWheelName)
-				if wheel and wheel:IsA("BasePart") then
-					weldToChassis(wheel, part)
-				end
+			if part.Name == "StaticRoot" then
+				weldToChassis(chassis, part)
 			elseif part:GetAttribute("VisualMotionRole") then
 				motorToChassis(chassis, part)
-			else
-				weldToChassis(chassis, part)
 			end
 		end
 	end

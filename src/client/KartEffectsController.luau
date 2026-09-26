@@ -184,6 +184,17 @@ function KartEffectsController.start()
 		end
 		table.clear(kartConnections)
 		clearParticles()
+		-- Exhaust anchors belong to the shared visual. Destroy only our effects;
+		-- keep those anchors available for rematch/rebind. Trails live on Chassis.
+		for _, trail in trails do
+			trail:Destroy()
+		end
+		for _, flame in flames do
+			flame:Destroy()
+		end
+		for _, flame in cruiseFlames do
+			flame:Destroy()
+		end
 		for _, attachment in attachments do
 			attachment:Destroy()
 		end
@@ -210,7 +221,7 @@ function KartEffectsController.start()
 		end
 		local function retryWhenReplicated()
 			if (attempt or 0) >= 10 then
-				warn("[KartVFX] Wheel or exhaust parts did not replicate")
+				warn("[KartVFX] Wheel metadata or exhaust anchors did not replicate")
 				return
 			end
 			task.delay(0.2, function()
@@ -228,15 +239,19 @@ function KartEffectsController.start()
 			return
 		end
 
-		for _, part in visual:GetChildren() do
+		for _, part in visual:GetDescendants() do
 			if part:IsA("BasePart") and part:GetAttribute("VisualMotionRole") == "RearWheel" then
 				local motor = part:FindFirstChild("VisualMotor")
-				if motor and motor:IsA("Motor6D") then
+				local radius = part:GetAttribute("WheelRadius")
+				local width = part:GetAttribute("WheelWidth")
+				if motor and motor:IsA("Motor6D")
+					and type(radius) == "number" and radius > 0
+					and type(width) == "number" and width > 0 then
 					local side = part:GetAttribute("WheelSide")
 					local center = motor.C0.Position
-					local contact = center - Vector3.yAxis * (part.Size.Y / 2 - 0.01)
+					local contact = center - Vector3.yAxis * (radius - 0.01)
 					local smokePoint = makeAttachment(chassis, "DriftSmokePoint" .. tostring(side), contact + Vector3.yAxis * 0.12)
-					local edgeOffset = Vector3.xAxis * (part.Size.X * 0.45)
+					local edgeOffset = Vector3.xAxis * (width * 0.45)
 					local edgeA = makeAttachment(chassis, "TireEdgeA" .. tostring(side), contact - edgeOffset)
 					local edgeB = makeAttachment(chassis, "TireEdgeB" .. tostring(side), contact + edgeOffset)
 					table.insert(attachments, smokePoint)
@@ -247,11 +262,9 @@ function KartEffectsController.start()
 				end
 			end
 		end
-		for _, exhaustName in { "ExhaustL", "ExhaustR" } do
-			local exhaust = visual:FindFirstChild(exhaustName)
-			if exhaust and exhaust:IsA("BasePart") then
-				local point = makeAttachment(exhaust, "BoostFlame" .. exhaustName, Vector3.new(0, 0, exhaust.Size.Z / 2))
-				table.insert(attachments, point)
+		for _, point in visual:GetDescendants() do
+			local role = point:GetAttribute("EffectRole")
+			if point:IsA("Attachment") and (role == "ExhaustLeft" or role == "ExhaustRight") then
 				table.insert(flames, makeFlame(point))
 				table.insert(cruiseFlames, makeCruiseFlame(point))
 			end

@@ -90,15 +90,17 @@ function KartVisualMotionController.start()
 			retryWhenReplicated()
 			return
 		end
-		for _, part in visual:GetChildren() do
+		for _, part in visual:GetDescendants() do
 			if part:IsA("BasePart") then
 				local role = part:GetAttribute("VisualMotionRole")
 				local motor = part:FindFirstChild("VisualMotor")
-				if (role == "FrontWheel" or role == "RearWheel") and motor and motor:IsA("Motor6D") then
+				local radius = part:GetAttribute("WheelRadius")
+				if (role == "FrontWheel" or role == "RearWheel") and motor and motor:IsA("Motor6D")
+					and type(radius) == "number" and radius > 0 then
 					table.insert(wheels, {
 						motor = motor,
 						front = role == "FrontWheel",
-						radius = part.Size.Y / 2,
+						radius = radius,
 						angle = 0,
 					})
 				elseif role == "SteeringWheel" and motor and motor:IsA("Motor6D") then
@@ -106,7 +108,8 @@ function KartVisualMotionController.start()
 				end
 			end
 		end
-		if #wheels ~= 4 then
+		if #wheels ~= 4 or not steeringMotor then
+			steeringMotor = nil
 			table.clear(wheels)
 			retryWhenReplicated()
 			return

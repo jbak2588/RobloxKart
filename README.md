@@ -15,3 +15,14 @@ rojo serve
 ```
 
 For more help, check out [the Rojo documentation](https://rojo.space/docs).
+
+## Driver appearance decision (2026-09-26)
+
+- All drivers are shown without hats or helmets in Garage and races for now, so their faces and hairstyles remain visible.
+- Current roster: Crimson, Azure, Sunburst. Nova and its procedural hairstyle were removed at the user's request.
+- Revisit optional hats/helmets when character customization is expanded; do not restore mandatory headgear during visual refactors.
+
+## Production release polish gate
+
+- DEFERRED: Driver seating height / posture / hands / seat-shell fit.
+- PV1-B designs around the existing Physics Seat; do not change Seat CFrame, humanoid seating, rig proportions, or hip height.
