@@ -8,6 +8,7 @@ local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("
 local KartConfig = requireModule(kartConfigModule)
 
 local KartInputController = {}
+local raceItemRemote: RemoteEvent? = nil
 
 local controlKeys = {
 	[Enum.KeyCode.W] = true,
@@ -38,8 +39,17 @@ local function getInputAxes(): (number, number, boolean)
 	return throttle, steering, UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
 end
 
+-- Future touch ITEM input can invoke this same action.
+function KartInputController.useRaceItem()
+	if not raceItemRemote or UserInputService:GetFocusedTextBox() or not isDrivingPrototypeKart() then return end
+	if Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING" then return end
+	raceItemRemote:FireServer("Use")
+end
+
 function KartInputController.start()
 	local remoteEvent = ReplicatedStorage:WaitForChild(KartConfig.REMOTE_EVENT_NAME) :: RemoteEvent
+	raceItemRemote = ReplicatedStorage:WaitForChild("RaceItemControl") :: RemoteEvent
+	local itemKeyDown = false
 	local lastThrottle = 0
 	local lastSteering = 0
 	local lastDriftRequested = false
@@ -71,6 +81,11 @@ function KartInputController.start()
 	end
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
+		if input.KeyCode == Enum.KeyCode.Q then
+			if not itemKeyDown and not gameProcessed then KartInputController.useRaceItem() end
+			itemKeyDown = true
+			return
+		end
 		if not controlKeys[input.KeyCode] then
 			return
 		end
@@ -82,6 +97,7 @@ function KartInputController.start()
 	end)
 
 	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if input.KeyCode == Enum.KeyCode.Q then itemKeyDown = false; return end
 		if not controlKeys[input.KeyCode] then
 			return
 		end
@@ -90,6 +106,7 @@ function KartInputController.start()
 	end)
 
 	UserInputService.WindowFocusReleased:Connect(function()
+		itemKeyDown = false
 		sendInput(true, true)
 		if KartConfig.DEBUG_TELEMETRY then
 			print("[KartInput] window focus released")

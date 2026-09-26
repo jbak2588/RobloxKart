@@ -1,8 +1,10 @@
 local PrototypeWorld = require(script:WaitForChild("PrototypeWorld"))
+local RaceItemController = require(script:WaitForChild("RaceItemController"))
 local RaceController = require(script:WaitForChild("RaceController"))
 local GarageController = require(script:WaitForChild("GarageController"))
 
 print("RobloxKart SERVER sync OK")
 PrototypeWorld.start()
+RaceItemController.start()
 RaceController.start()
 GarageController.start()

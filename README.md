@@ -26,3 +26,23 @@ For more help, check out [the Rojo documentation](https://rojo.space/docs).
 
 - DEFERRED: Driver seating height / posture / hands / seat-shell fit.
 - PV1-B designs around the existing Physics Seat; do not change Seat CFrame, humanoid seating, rig proportions, or hip height.
+
+## C1-A RaceItem / Nitro (Studio approved)
+
+- Baseline: `e8f7d69d7daf78cbd8867844e4f8d5c5713b71a6` (PV1-C and four Sprint colors).
+- `RaceItemSlot` is temporary server state, one item maximum. No persistent inventory or DataStore.
+- Catalog IDs: Nitro, Slick, Shield, Smoke; only Nitro is implemented.
+- During Studio Play, `KartConfig.DEBUG_RACE_ITEMS = true` grants one fresh Nitro on each entry into RACING. Published servers never auto-grant. Set this flag false to disable the hook before item boxes replace it.
+- While seated and racing, press **Q** once to use. Chat/TextBox input is ignored. No mobile touch action yet.
+- Server-only `RaceItemController.grantRaceItem(player, "Nitro")` can grant a new test item during RACING when the slot is empty. Clients can request only `RaceItemControl:FireServer("Use")`; extra arguments are rejected.
+- Nitro reaches a target of 100 at 75 stud/s² for 3 seconds including acceleration. Mini Boost retains its own timer; targets never add. On expiry, speed decays at 15 stud/s² toward 82 if Mini Boost still lives, otherwise 70. After reaching 70, normal drift speed rules resume.
+- Releasing W coasts; S uses normal brakes. The Nitro timer continues during coasting/braking, so W can resume Nitro acceleration within the original 3 seconds.
+- Off-track cancels Nitro and caps its remaining commanded speed at 50. Barrier, lock, reset, driver/character removal and non-racing states clear Nitro. Race transitions/reset clear the slot; rematch COUNTDOWN is empty, then Studio grants a new item at RACING.
+- Nitro uses existing exhaust emitters with stronger rate/size/light. HUD is lower-left: desktop 24 px left / 30 px bottom, 128×48; compact height <=500 uses 16 px left / 100 px bottom, 110×40 inside the safe GUI area. Empty slot is hidden.
+
+### C1-A validation
+
+Run `lune run tests/race_item_validation.luau` and `lune run tests/kart_visual_validation.luau`, then `rojo build -o <temporary-output>.rbxlx` and `git diff --check`.
+The server tests execute the production movement and item controllers with mocked signals, time and physics transport. They do not substitute for Studio physics/rendering.
+
+User Studio validation PASS: grant, Q use, W+Q acceleration, visible speed increase, progressive expiry/recovery, Nitro exhaust VFX, lower-left HUD, S braking during Nitro, off-track cancellation/~50 policy, and barrier cancellation/normal recovery. Exact maximum observed speed was not supplied. C1-A approved for commit/push.

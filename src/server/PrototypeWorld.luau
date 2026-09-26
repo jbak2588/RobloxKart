@@ -8,8 +8,15 @@ local KartCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChil
 local TrackCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog"))
 local KartVisualFactory = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
+local NitroState = require(script.Parent:WaitForChild("NitroState"))
 
 local PrototypeWorld = {}
+local nitroActivation = nil
+
+function PrototypeWorld.activateNitro(player: Player): (boolean, string?)
+	if not nitroActivation then return false, "world_not_started" end
+	return nitroActivation(player)
+end
 
 type ControlState = {
 	throttle: number,
@@ -82,6 +89,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("PrototypeKart", true)
 	kart:SetAttribute("KartDrifting", false)
 	kart:SetAttribute("KartBoosting", false)
+	kart:SetAttribute("KartNitroActive", false)
 	kart:SetAttribute("KartOffTrack", false)
 	kart:SetAttribute("KartVisualSteering", 0)
 	kart:SetAttribute("KartCrashActive", false)
@@ -246,6 +254,7 @@ function PrototypeWorld.start()
 	local boostActive = false
 	local boostEndTime = 0
 	local boostDriver: Player? = nil
+	local nitro = NitroState.new(KartConfig)
 	local raceControlsWereLocked = kart:GetAttribute("RaceControlsLocked") == true
 	local debugElapsed = 0
 	local cachedTrack: Model? = nil
@@ -261,6 +270,54 @@ function PrototypeWorld.start()
 	local crashSpinRate = 0
 	local crashTrackForward = Vector3.new(0, 0, -1)
 	local lastPlanarForward = Vector3.new(0, 0, -1)
+
+	local function stopNitro(reason: string)
+		nitro:stop(reason)
+		kart:SetAttribute("KartNitroActive", false)
+	end
+	nitroActivation = function(player: Player)
+		if not kart.Parent or not chassis.Parent or not seat.Parent then return false, "kart_missing" end
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 or seat.Occupant ~= humanoid or humanoid.SeatPart ~= seat then
+			return false, "not_driver"
+		end
+		if kart:GetAttribute("RaceControlsLocked") ~= false or player:GetAttribute("RaceState") ~= "RACING" then
+			return false, "race_locked"
+		end
+		if crashActive or kart:GetAttribute("KartOffTrack") == true then return false, "unsafe_state" end
+		local control = controls[player]
+		if not control or time() - control.lastUpdate > KartConfig.INPUT_TIMEOUT then return false, "input_timeout" end
+		local accepted, reason = nitro:activate(player, time())
+		if accepted then kart:SetAttribute("KartNitroActive", true) end
+		return accepted, reason
+	end
+	kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
+		if kart:GetAttribute("RaceControlsLocked") then stopNitro("locked") end
+	end)
+	kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
+		if kart:GetAttribute("KartOffTrack") then
+			if nitro.active or nitro.exiting then
+				commandedSpeed = math.min(commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
+			end
+			stopNitro("off_track")
+		end
+	end)
+	kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() stopNitro("reset") end)
+	seat:GetPropertyChangedSignal("Occupant"):Connect(function() stopNitro("occupant_changed") end)
+	kart.Destroying:Connect(function()
+		stopNitro("destroyed")
+		nitroActivation = nil
+	end)
+	local function bindNitroLifecycle(player)
+		player.CharacterRemoving:Connect(function()
+			if nitro.driver == player then stopNitro("character_removed") end
+		end)
+		player:GetAttributeChangedSignal("RaceState"):Connect(function()
+			if player:GetAttribute("RaceState") ~= "RACING" and nitro.driver == player then stopNitro("race_state") end
+		end)
+	end
+	Players.PlayerAdded:Connect(bindNitroLifecycle)
+	for _, player in Players:GetPlayers() do bindNitroLifecycle(player) end
 
 	local function setDriftActive(active: boolean, reason: string)
 		if driftActive == active then
@@ -389,6 +446,7 @@ function PrototypeWorld.start()
 		setDriftActive(false, "barrier")
 		resetDriftCharge()
 		stopBoost("barrier")
+		stopNitro("barrier")
 		kart:SetAttribute("KartCrashActive", true)
 		chassis.AssemblyLinearVelocity = crashVelocity
 		chassis.AssemblyAngularVelocity = Vector3.new(0, crashSpinRate, 0)
@@ -465,6 +523,7 @@ function PrototypeWorld.start()
 
 	Players.PlayerRemoving:Connect(function(player: Player)
 		controls[player] = nil
+		if nitro.driver == player then stopNitro("player_removed") end
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
@@ -489,6 +548,7 @@ function PrototypeWorld.start()
 			setDriftActive(false, "fall")
 			resetDriftCharge()
 			stopBoost("fall")
+			stopNitro("fall")
 			stopCrash()
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
@@ -497,6 +557,7 @@ function PrototypeWorld.start()
 
 		local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
 		if raceControlsLocked then
+			stopNitro("locked")
 			stopCrash()
 			if not raceControlsWereLocked then
 				commandedSpeed = 0
@@ -531,6 +592,9 @@ function PrototypeWorld.start()
 			steering = control.steering
 			driftRequested = control.driftRequested
 		end
+		nitro:update(now, player, player ~= nil and player:GetAttribute("RaceState") == "RACING",
+			kart:GetAttribute("KartOffTrack") == true, crashActive, hasValidInput)
+		kart:SetAttribute("KartNitroActive", nitro.active)
 
 		local assemblyVelocity = chassis.AssemblyLinearVelocity
 		local planarVelocity = Vector3.new(assemblyVelocity.X, 0, assemblyVelocity.Z)
@@ -663,7 +727,7 @@ function PrototypeWorld.start()
 			end
 		end
 
-		local forwardTargetSpeed = if boostActive
+		local forwardTargetSpeed = if nitro.active then KartConfig.NITRO_MAX_SPEED elseif boostActive
 			then KartConfig.MINI_BOOST_MAX_SPEED
 			elseif driftActive then KartConfig.DRIFT_MAX_SPEED
 			else KartConfig.MAX_FORWARD_SPEED
@@ -676,6 +740,8 @@ function PrototypeWorld.start()
 		if throttle > 0 then
 			if commandedSpeed < 0 then
 				commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.BRAKE_FORCE * throttle * deltaTime)
+			elseif (nitro.active or nitro.exiting) and not offTrack then
+				commandedSpeed = nitro:forwardSpeed(commandedSpeed, boostActive, throttle, deltaTime)
 			elseif offTrack and commandedSpeed > forwardTargetSpeed then
 				commandedSpeed = moveToward(commandedSpeed, forwardTargetSpeed, KartConfig.BRAKE_FORCE * deltaTime)
 			elseif driftActive and commandedSpeed > forwardTargetSpeed then
@@ -704,10 +770,18 @@ function PrototypeWorld.start()
 			commandedSpeed = moveToward(commandedSpeed, 0, KartConfig.COAST_DECELERATION * deltaTime)
 		end
 
-		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED, KartConfig.MINI_BOOST_MAX_SPEED)
+		local nitroSpeed = nitro.active or nitro.exiting
+		commandedSpeed = math.clamp(commandedSpeed, -KartConfig.MAX_REVERSE_SPEED,
+			if nitroSpeed then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED)
+		nitro:finishStep(commandedSpeed)
 
 		local effectiveGrip = if driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
 		lateralSpeed *= math.exp(-effectiveGrip * deltaTime)
+		-- Preserve lateral handling, but Nitro must never create planar speed >100.
+		if nitroSpeed then
+			local maxLateral = math.sqrt(math.max(0, KartConfig.NITRO_MAX_SPEED ^ 2 - commandedSpeed ^ 2))
+			lateralSpeed = math.clamp(lateralSpeed, -maxLateral, maxLateral)
+		end
 		local verticalSpeed = assemblyVelocity.Y
 		chassis.AssemblyLinearVelocity = forward * commandedSpeed + right * lateralSpeed + Vector3.new(0, verticalSpeed, 0)
 

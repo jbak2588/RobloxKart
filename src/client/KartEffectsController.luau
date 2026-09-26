@@ -146,6 +146,7 @@ function KartEffectsController.start()
 	local cruiseElapsed = 0
 	local drifting = false
 	local boosting = false
+	local nitroActive = false
 
 	local function clearParticles()
 		for _, smoke in smokes do
@@ -208,6 +209,7 @@ function KartEffectsController.start()
 		activeChassis = nil
 		drifting = false
 		boosting = false
+		nitroActive = false
 	end
 
 	local function attach(seatPart: BasePart?, attempt: number?)
@@ -283,6 +285,7 @@ function KartEffectsController.start()
 			local offTrack = kart:GetAttribute("KartOffTrack") == true
 			drifting = not locked and not offTrack and kart:GetAttribute("KartDrifting") == true
 			local shouldBoost = not locked and kart:GetAttribute("KartBoosting") == true
+			nitroActive = not locked and not offTrack and kart:GetAttribute("KartNitroActive") == true
 			if shouldBoost and not boosting then
 				for _, flame in flames do
 					flame:Emit(12)
@@ -290,7 +293,13 @@ function KartEffectsController.start()
 			end
 			boosting = shouldBoost
 			for _, flame in flames do
-				flame.Enabled = boosting
+				flame.Rate = if nitroActive then 65 else 30
+				flame.LightEmission = if nitroActive then 1 else 0.85
+				flame.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, if nitroActive then 0.7 else 0.45),
+					NumberSequenceKeypoint.new(1, 0.06),
+				})
+				flame.Enabled = nitroActive or boosting
 			end
 			if not drifting then
 				for _, smoke in smokes do
@@ -301,7 +310,7 @@ function KartEffectsController.start()
 				end
 			end
 		end
-		for _, attribute in { "KartDrifting", "KartBoosting", "KartOffTrack", "RaceControlsLocked" } do
+		for _, attribute in { "KartDrifting", "KartBoosting", "KartNitroActive", "KartOffTrack", "RaceControlsLocked" } do
 			table.insert(kartConnections, kart:GetAttributeChangedSignal(attribute):Connect(refreshStates))
 		end
 		table.insert(kartConnections, kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(clearParticles))
@@ -317,6 +326,7 @@ function KartEffectsController.start()
 				and kart:GetAttribute("KartOffTrack") ~= true
 				and not drifting
 				and not boosting
+				and not nitroActive
 				and forwardSpeed >= CRUISE_MIN_SPEED
 			if cruising then
 				cruiseElapsed += deltaTime
