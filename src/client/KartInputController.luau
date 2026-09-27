@@ -9,6 +9,32 @@ local KartConfig = requireModule(kartConfigModule)
 
 local KartInputController = {}
 local raceItemRemote: RemoteEvent? = nil
+local touchActions = { throttle = 0, steering = 0, drift = false }
+local touchEnabled = false
+local touchUpdate: ((number) -> ())? = nil
+
+function KartInputController.isTouchPreferred(): boolean
+	return UserInputService.TouchEnabled and UserInputService.PreferredInput == Enum.PreferredInput.Touch
+end
+
+function KartInputController.resetTouchActions()
+	touchActions.throttle, touchActions.steering, touchActions.drift = 0, 0, false
+end
+
+-- Adapters supply gameplay actions; only this controller sends KartControl.
+-- Steering is independent of the vertical axis so a future adapter can replace it.
+function KartInputController.setTouchActions(throttle: number, steering: number, drift: boolean)
+	touchActions.throttle = if throttle == throttle then math.clamp(throttle, -1, 1) else 0
+	touchActions.steering = if steering == steering then math.clamp(steering, -1, 1) else 0
+	touchActions.drift = drift == true
+end
+
+function KartInputController.setTouchEnabled(enabled: boolean)
+	touchEnabled = enabled
+	if not enabled then KartInputController.resetTouchActions() end
+end
+
+function KartInputController.setTouchUpdater(update: ((number) -> ())?) touchUpdate = update end
 
 local controlKeys = {
 	[Enum.KeyCode.W] = true,
@@ -30,6 +56,10 @@ local function getInputAxes(): (number, number, boolean)
 	if UserInputService:GetFocusedTextBox() ~= nil then
 		return 0, 0, false
 	end
+	if KartInputController.isTouchPreferred() then
+		if not touchEnabled then return 0, 0, false end
+		return touchActions.throttle, touchActions.steering, touchActions.drift
+	end
 
 	local throttle = (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
 		- (UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
@@ -39,7 +69,12 @@ local function getInputAxes(): (number, number, boolean)
 	return throttle, steering, UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
 end
 
--- Future touch ITEM input can invoke this same action.
+function KartInputController.getEffectiveSteering(): number
+	local _, steering = getInputAxes()
+	return if isDrivingPrototypeKart() then steering else 0
+end
+
+-- Keyboard and touch use the same server-authoritative item actions.
 function KartInputController.useRaceItem()
 	if not raceItemRemote or UserInputService:GetFocusedTextBox() or not isDrivingPrototypeKart() then return end
 	if Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING" then return end
@@ -122,6 +157,7 @@ function KartInputController.start()
 
 	UserInputService.WindowFocusReleased:Connect(function()
 		itemKeyDown = false
+		KartInputController.resetTouchActions()
 		sendInput(true, true)
 		if KartConfig.DEBUG_TELEMETRY then
 			print("[KartInput] window focus released")
@@ -150,6 +186,7 @@ function KartInputController.start()
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		if touchUpdate then touchUpdate(deltaTime) end
 		timeSinceSend += deltaTime
 		if timeSinceSend >= KartConfig.INPUT_SEND_INTERVAL then
 			sendInput(true)

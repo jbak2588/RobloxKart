@@ -59,20 +59,50 @@ Colors: Red, White, Blue, Yellow.
 
 ## Current Priority
 
-### Mobile Touch Driving + Tilt Steering Option
+### M1-A Digital Driving Pad v1
 
-Touch is the default; Tilt is optional. Tilt supports neutral-relative calibration and Recenter.
+Touch defaults to a fixed, icon-only driving pad at bottom right. Hold the large
+up arrow for forward, left/right for stable -1/+1 steering, and down for the
+existing brake-to-reverse action. Each touch owns its button until release or
+cancellation, even when the finger moves outside it. Forward and steering can
+use separate fingers. If both directions are held, the last pressed wins;
+releasing it returns to the still-held direction. Releasing both centers steering.
+Existing server steering smoothing is reused without adding an input ramp.
 
-All mobile inputs must use the same existing kart physics.
+The arrow/lock option beside the pad toggles forward hold (default OFF).
+An open lock with an outline means OFF; a closed lock with a filled button means ON.
+ON maintains forward throttle without holding forward; down still brakes
+or reverses, and releasing resumes forward. Race transitions, seat loss, focus
+loss, driving-touch cancellation and hidden/destroyed controls switch the hold OFF.
 
-Expected mobile controls:
+The left side has icon buttons for hold-to-drift, Nitro/Slick/Shield selection,
+and using the selected item. Counts and a selection checkmark show loadout state.
+The cropped bottom-center steering wheel only displays steering; it accepts no input.
 
-- Steering
-- GAS
-- BRAKE / REVERSE
-- DRIFT
-- ITEM
-- tappable Nitro / Slick / Shield selection
+Mobile HUD icons are built from native UI shapes: a lightning bolt for Nitro,
+a small car with winding skid marks for Slick, a shield for Shield, and a finger
+pressing a circular trigger for item activation. No external icon assets or packages
+are required. The mobile speed panel is 160 x 56 with 0.30 background transparency;
+its top margin stays 2–4 pixels inside the safe area. Driving input is unchanged
+by this visual polish.
+
+Keyboard and touch share `KartInputController` and the existing `KartControl` /
+`RaceItemControl` remotes. Server physics and item rules are unchanged.
+`TouchDrivingModel.MobileDriveControlMode = "Buttons"` is the single developer
+mode switch. Set it to `"Joystick"` before startup for rollback; the legacy
+implementation and its tests remain available, with no player settings menu.
+The legacy joystick dead zone defaults to 0.10 and can be tuned through the client
+`RobloxKartTouchDriving.JoystickDeadZone` attribute (0–0.30).
+
+Tilt, neutral calibration and Recenter are deferred to M1-B. Android/iPhone
+usability and safe-area tuning still require real-device validation in M1-C.
+
+Run `lune run tests/mobile_touch_validation.luau` for deterministic input,
+touch ownership, lifecycle reset and layout checks. These mocks do not replace
+Studio or real-device multi-touch testing. Add `Joystick` to that command to
+run the retained legacy controller checks. Real-device approval requires repeated
+intentional left/right Drift-to-Mini-Boost success; this has not yet been verified
+for the digital pad. Drift charge thresholds and all kart physics are unchanged.
 
 ## Deferred
 

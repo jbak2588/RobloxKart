@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
 local SlickRearPreview = require(script.Parent:WaitForChild("SlickRearPreview"))
+local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
 local RaceItemUiController = {}
 local started = false
 
@@ -34,6 +35,7 @@ function RaceItemUiController.start()
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = label
 	local buttons = {}
+	local mobileIcons = {}
 	for index, id in { "Nitro", "Slick", "Shield" } do
 		local button = Instance.new("TextButton")
 		button.Name = id
@@ -44,6 +46,34 @@ function RaceItemUiController.start()
 		button.Parent = gui
 		button.Activated:Connect(function() Input.selectRaceItem(id) end)
 		buttons[index] = button
+		local icon = MobileView.icon(button, id)
+		local scale = Instance.new("UIScale")
+		scale.Scale = 0.8
+		scale.Parent = icon.root
+		icon.root.Position = UDim2.fromScale(0.45, 0.43)
+		local border = MobileView.stroke(button, 1)
+		local count = Instance.new("TextLabel")
+		count.Name = "Charges"
+		count.AnchorPoint = Vector2.new(1, 1)
+		count.Position = UDim2.new(1, -2, 1, -2)
+		count.Size = UDim2.fromOffset(18, 18)
+		count.BackgroundColor3 = Color3.fromRGB(9, 20, 30)
+		count.TextColor3 = Color3.new(1, 1, 1)
+		count.Font = Enum.Font.GothamBold
+		count.TextSize = 14
+		count.BorderSizePixel = 0
+		count.Parent = button
+		MobileView.round(count)
+		local chosenMark = Instance.new("TextLabel")
+		chosenMark.Name = "SelectedMark"
+		chosenMark.Size = UDim2.fromOffset(14, 14)
+		chosenMark.Position = UDim2.new(1, -15, 0, 1)
+		chosenMark.BackgroundTransparency = 1
+		chosenMark.Text = "✓"
+		chosenMark.TextColor3 = Color3.new(1, 1, 1)
+		chosenMark.TextSize = 14
+		chosenMark.Parent = button
+		mobileIcons[index] = {icon=icon, border=border, count=count, mark=chosenMark}
 	end
 	local blockedUntil = 0
 	local deployedUntil = 0
@@ -57,6 +87,7 @@ function RaceItemUiController.start()
 		local showLoadout = (racing or player:GetAttribute("RaceState") == "COUNTDOWN")
 			and not (preview and preview:isVisible())
 		local selected = player:GetAttribute("SelectedRaceItemId")
+		local mobile = Input.isTouchPreferred()
 		for index, button in buttons do
 			local id = button.Name
 			local charges = player:GetAttribute("RaceCharge" .. id) or 0
@@ -64,8 +95,17 @@ function RaceItemUiController.start()
 			button.Visible = showLoadout and not blocked and not deployed
 			button.BackgroundColor3 = if chosen then Color3.fromRGB(32, 102, 145) else Color3.fromRGB(16, 25, 35)
 			button.TextColor3 = if charges == 0 then Color3.fromRGB(110, 118, 128) else Color3.fromRGB(220, 240, 250)
-			button.Text = string.upper(id) .. " " .. charges .. (if UserInputService.KeyboardEnabled then
+			button.Text = if mobile then "" else string.upper(id) .. " " .. charges .. (if UserInputService.KeyboardEnabled then
 				"\n" .. (if chosen then "Q USE" else tostring(index)) else "")
+			local symbols = mobileIcons[index]
+			symbols.icon.root.Visible = mobile
+			symbols.icon:setEnabled(charges > 0)
+			symbols.count.Visible = mobile
+			symbols.count.Text = tostring(charges)
+			symbols.mark.Visible = mobile and chosen
+			symbols.border.Enabled = mobile
+			symbols.border.Thickness = if chosen then 3 else 1
+			symbols.border.Transparency = if charges == 0 then 0.7 elseif chosen then 0 else 0.5
 		end
 		label.Visible = racing and (blocked or deployed) and not (preview and preview:isVisible())
 		label.Text = if blocked then "BLOCKED!" else "SLICK DEPLOYED"
@@ -75,7 +115,9 @@ function RaceItemUiController.start()
 		local camera = Workspace.CurrentCamera
 		local size = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local compact = size.Y > 0 and size.Y <= 500
-		gui.IgnoreGuiInset = not (size.Y > 0 and size.Y <= 650)
+		local mobile = Input.isTouchPreferred()
+		if mobile then gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+		else gui.IgnoreGuiInset = not (size.Y > 0 and size.Y <= 650) end
 		-- Lower left keeps the road center clear. Compact layout reserves the
 		-- bottom 100 px for future steering controls, within the safe GUI area.
 		label.Position = UDim2.new(0, if compact then 16 else 24, 1, if compact then -100 else -30)
@@ -87,6 +129,18 @@ function RaceItemUiController.start()
 		end
 		label.TextSize = if compact then 14 else 18
 		preview:layout(compact, label.Position)
+		if mobile then
+			local l = MobileView.layout(gui.AbsoluteSize)
+			for index, button in buttons do
+				button.Position = UDim2.new(0, l.margin+(index-1)*(l.slot+l.gap), 1, -l.loadoutBottom)
+				button.Size = UDim2.fromOffset(l.slot, l.slot)
+			end
+			label.Position = UDim2.new(0, l.margin, 1, -l.loadoutBottom)
+			label.Size = UDim2.fromOffset(l.slot*3+l.gap*2, l.slot)
+			preview:layout(true, label.Position)
+			local panel = gui:FindFirstChild("SlickRearPreview")
+			if panel then panel.Size = UDim2.fromOffset(l.slot*3+l.gap*2, math.clamp(gui.AbsoluteSize.Y-l.loadoutBottom-116,44,112)) end
+		end
 		refresh()
 	end
 	local viewportConnection = nil
@@ -99,6 +153,8 @@ function RaceItemUiController.start()
 	end
 	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
 	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(layout)
+	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(layout)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	for _, attribute in { "RaceState", "SelectedRaceItemId", "RaceChargeNitro", "RaceChargeSlick", "RaceChargeShield" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end

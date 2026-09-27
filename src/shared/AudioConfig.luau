@@ -8,7 +8,7 @@ local AudioConfig = {
 		COUNTDOWN = "rbxassetid://9119144736",
 		GO = "",
 		LAP_COMPLETE = "",
-		FINAL_LAP = "",
+		FINAL_LAP = "rbxassetid://9119144736",
 		FINISH = "",
 		DNF = "",
 	},
@@ -36,6 +36,7 @@ local AudioConfig = {
 	RACE = {
 		COUNTDOWN_VOLUME = 0.6,
 		GO_VOLUME = 0.85,
+		FINAL_LAP_PLAYBACK_SPEED = 1.18,
 		LAP_VOLUME = 0.7,
 		FINISH_VOLUME = 0.85,
 		DNF_VOLUME = 0.7,

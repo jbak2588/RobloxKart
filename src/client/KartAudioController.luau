@@ -117,18 +117,36 @@ function KartAudioController.start()
 		AudioRuntime.playLoop(engine)
 
 		local wasBoosting = kart:GetAttribute("KartBoosting") == true
+		local wasNitroActive = kart:GetAttribute("KartNitroActive") == true
+		local lastBoostStartAt = -math.huge
+		local function playBoostStart()
+			local now = time()
+			-- Shared onset sound: near-simultaneous Mini Boost/Nitro must not
+			-- restart the same launch sound twice as attributes replicate.
+			if now - lastBoostStartAt >= 0.12 then
+				lastBoostStartAt = now
+				AudioRuntime.playOnce(boostStart)
+			end
+		end
 		if wasBoosting then
 			AudioRuntime.playLoop(boostLoop)
 		end
 		table.insert(kartConnections, kart:GetAttributeChangedSignal("KartBoosting"):Connect(function()
 			local boosting = kart:GetAttribute("KartBoosting") == true
 			if boosting and not wasBoosting then
-				AudioRuntime.playOnce(boostStart)
+				playBoostStart()
 				AudioRuntime.playLoop(boostLoop)
 			elseif not boosting and wasBoosting then
 				AudioRuntime.stop(boostLoop)
 			end
 			wasBoosting = boosting
+		end))
+		table.insert(kartConnections, kart:GetAttributeChangedSignal("KartNitroActive"):Connect(function()
+			local active = kart:GetAttribute("KartNitroActive") == true
+			if active and not wasNitroActive and player:GetAttribute("RaceState") == "RACING" then
+				playBoostStart()
+			end
+			wasNitroActive = active
 		end))
 		table.insert(kartConnections, kart.Destroying:Connect(detach))
 

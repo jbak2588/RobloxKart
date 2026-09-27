@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
@@ -120,10 +121,26 @@ function GarageUiController.start()
 	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 20
 	gui.Parent = player:WaitForChild("PlayerGui")
+	-- Paint edge-to-edge independently of the safe-area content layout.
+	local backgroundGui = Instance.new("ScreenGui")
+	backgroundGui.Name = "RobloxKartGarageBackground"
+	backgroundGui.ResetOnSpawn = false
+	backgroundGui.ScreenInsets = Enum.ScreenInsets.None
+	backgroundGui.DisplayOrder = 19
+	backgroundGui.Parent = player.PlayerGui
+	local background = Instance.new("Frame")
+	background.Name = "FullScreenBackground"
+	background.Size = UDim2.fromScale(1, 1)
+	background.BackgroundColor3 = Color3.fromRGB(12, 19, 31)
+	background.BorderSizePixel = 0
+	background.Parent = backgroundGui
+	gui:GetPropertyChangedSignal("Enabled"):Connect(function() backgroundGui.Enabled = gui.Enabled end)
+	gui.Destroying:Connect(function() backgroundGui:Destroy() end)
 
 	local backdrop = Instance.new("Frame")
 	backdrop.Size = UDim2.fromScale(1, 1)
 	backdrop.BackgroundColor3 = Color3.fromRGB(12, 19, 31)
+	backdrop.BackgroundTransparency = 1
 	backdrop.BorderSizePixel = 0
 	backdrop.Parent = gui
 
@@ -253,17 +270,15 @@ function GarageUiController.start()
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
 		local viewportSizePixels = if camera then camera.ViewportSize else backdrop.AbsoluteSize
-		mobileCompact = viewportSizePixels.Y > 0 and viewportSizePixels.Y <= 650
-		gui.IgnoreGuiInset = not mobileCompact
+		mobileCompact = UserInputService.TouchEnabled or (viewportSizePixels.Y > 0 and viewportSizePixels.Y <= 650)
+		if mobileCompact then gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+		else gui.IgnoreGuiInset = true end
 		controlsCard.Visible = not mobileCompact
 		if mobileCompact then
 			local safeSize = backdrop.AbsoluteSize
 			local layoutWidth = if safeSize.X > 0 then safeSize.X else viewportSizePixels.X - 32
 			local layoutHeight = if safeSize.Y > 0 then safeSize.Y else viewportSizePixels.Y - 40
-			-- Reserve the same right-side capture rail as the race HUD. Move the
-			-- entire preview and its arrows together, keeping arrows beside models.
-			local captureReserve = if viewportSizePixels.X > viewportSizePixels.Y and viewportSizePixels.Y <= 500 then 128 else 0
-			local selectionWidth = layoutWidth - captureReserve
+			local selectionWidth = layoutWidth
 			local previewCenter = selectionWidth * 0.5
 			local previewWidth = math.max(180, math.min(selectionWidth * 0.64, 520, selectionWidth - 112))
 			local previewHeight = math.min(layoutHeight * 0.30, 170)
@@ -297,9 +312,9 @@ function GarageUiController.start()
 				button.Size = UDim2.fromOffset(buttonWidth, 40)
 				button.TextSize = 17
 			end
-			previousButton.Position = UDim2.new(0.5, -buttonWidth - 8, 0.85, 0)
-			cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 8 else -buttonWidth * 0.5, 0.85, 0)
-			nextButton.Position = UDim2.new(0.5, 8, 0.85, 0)
+			previousButton.Position = UDim2.new(0.5, -buttonWidth - 8, 1, -48)
+			cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 8 else -buttonWidth * 0.5, 1, -48)
+			nextButton.Position = UDim2.new(0.5, 8, 1, -48)
 		else
 			viewportSize.MinSize = Vector2.new(360, 200)
 			loadingSize.MinSize = viewportSize.MinSize

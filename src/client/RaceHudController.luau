@@ -3,6 +3,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local Input = require(script.Parent:WaitForChild("KartInputController"))
+local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
 
 local requireModule = require :: (ModuleScript) -> any
 local raceConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig") :: ModuleScript
@@ -111,6 +114,12 @@ function RaceHudController.start()
 	speedPanel.Visible = false
 	speedPanel.Parent = screenGui
 	addCorner(speedPanel, 10)
+	local speedOutline = Instance.new("UIStroke")
+	speedOutline.Thickness = 1
+	speedOutline.Color = Color3.fromRGB(170, 195, 210)
+	speedOutline.Transparency = 0.85
+	speedOutline.Enabled = false
+	speedOutline.Parent = speedPanel
 	local speedValue = createLabel(speedPanel, "SpeedValue", 1)
 	speedValue.Position = UDim2.fromOffset(12, 5)
 	speedValue.Size = UDim2.fromOffset(130, 46)
@@ -147,6 +156,7 @@ function RaceHudController.start()
 	steeringDisplay.Visible = false
 	steeringDisplay.Parent = screenGui
 	addCorner(steeringDisplay, 56)
+	steeringDisplay:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 	local steeringRing = Instance.new("Frame")
 	steeringRing.AnchorPoint = Vector2.new(0.5, 0.5)
 	steeringRing.Position = UDim2.fromScale(0.5, 0.5)
@@ -183,6 +193,16 @@ function RaceHudController.start()
 	steeringHub.BorderSizePixel = 0
 	steeringHub.Parent = steeringRing
 	addCorner(steeringHub, 10)
+	-- Indicator only: no button, Active flag or touch/input connections here.
+	local wheelClip = Instance.new("Frame")
+	wheelClip.Name = "MobileWheelIndicator"
+	wheelClip.AnchorPoint = Vector2.new(0.5, 1)
+	wheelClip.Position = UDim2.fromScale(0.5, 1)
+	wheelClip.BackgroundTransparency = 1
+	wheelClip.ClipsDescendants = true
+	wheelClip.Active = false
+	wheelClip.Visible = false
+	wheelClip.Parent = screenGui
 
 	local miniMapPanel = Instance.new("Frame")
 	miniMapPanel.Name = "RaceMiniMap"
@@ -336,8 +356,17 @@ function RaceHudController.start()
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
-		local compact = viewportSize.Y > 0 and viewportSize.Y <= 650
-		screenGui.IgnoreGuiInset = not compact
+		local mobile = Input.isTouchPreferred()
+		speedPanel.BackgroundTransparency = if mobile then 0.30 else 0.15
+		speedTrack.BackgroundColor3 = if mobile then Color3.fromRGB(92, 106, 124) else Color3.fromRGB(59, 68, 81)
+		speedOutline.Enabled = mobile
+		local compact = mobile or (viewportSize.Y > 0 and viewportSize.Y <= 650)
+		if mobile then screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+		else screenGui.IgnoreGuiInset = not compact end
+		steeringDisplay.Parent = if mobile then wheelClip else screenGui
+		steeringDisplay.AnchorPoint = if mobile then Vector2.new(0.5, 0) else Vector2.new(0.5, 1)
+		wheelClip.Visible = mobile and steeringDisplay.Visible
+		miniMapPanel.Visible = speedPanel.Visible
 		if compact then
 			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
 			frame.Position = UDim2.fromOffset(12, 8)
@@ -426,6 +455,34 @@ function RaceHudController.start()
 			finishLabel.TextSize = 30
 			rematchButton.Size = UDim2.fromOffset(180, 44)
 			garageButton.Size = rematchButton.Size
+		end
+		if mobile then
+			local safeSize = screenGui.AbsoluteSize
+			local l = MobileView.layout(safeSize)
+			-- The old safe-area offset was only 8px. Clamp upward movement to
+			-- the available inset instead of moving into Roblox's system controls.
+			speedPanel.Position = UDim2.new(0.5, 0, 0, l.speedTop)
+			speedPanel.Size = UDim2.fromOffset(160, l.speedHeight)
+			speedTrack.Position = UDim2.fromOffset(10, 44)
+			wheelClip.Size = UDim2.fromOffset(l.wheel, l.wheel*2/3)
+			steeringDisplay.Position = UDim2.fromScale(0.5, 0)
+			steeringDisplay.Size = UDim2.fromOffset(l.wheel, l.wheel)
+			steeringRingScale.Scale = l.wheel/112
+			-- Top HUD stays clear of both thumb zones; desktop geometry is unchanged.
+			local lapWidth = math.min(170, safeSize.X*0.28)
+			frame.Size = UDim2.fromOffset(lapWidth, if offTrackLabel.Visible then 116 else 96)
+			lapLabel.TextSize = 18
+			checkpointLabel.TextSize = 12
+			bestLabel.TextSize = 12
+			offTrackLabel.TextSize = 11
+			miniMapPanel.AnchorPoint = Vector2.new(1, 0)
+			miniMapPanel.Position = UDim2.new(1, -12, 0, 8)
+			miniMapSize.MinSize = Vector2.zero
+			miniMapPanel.Size = UDim2.fromOffset(100, 100)
+			if safeSize.X < 450 then
+				miniMapPanel.Visible = false
+				speedPanel.Position = UDim2.new(1, -92, 0, l.speedTop)
+			end
 		end
 	end
 
@@ -580,6 +637,8 @@ function RaceHudController.start()
 		applyResponsiveLayout()
 	end
 	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
+	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(applyResponsiveLayout)
+	screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyResponsiveLayout)
 	bindCamera()
 	updateHud()
 	local displayedSpeed = 0
@@ -608,9 +667,15 @@ function RaceHudController.start()
 		local steering = kart and kart:GetAttribute("KartVisualSteering")
 		local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"
 			then math.clamp(steering, -1, 1) else 0
+		if Input.isTouchPreferred() then
+			targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true
+				and kart:GetAttribute("KartCrashActive") ~= true and kart:GetAttribute("KartSlickActive") ~= true
+				then Input.getEffectiveSteering() else 0
+		end
 		local alpha = 1 - math.exp(-10 * deltaTime)
 		displayedSpeed += (targetSpeed - displayedSpeed) * alpha
 		displayedSteering += (targetSteering - displayedSteering) * alpha
+		if Input.isTouchPreferred() then displayedSteering = targetSteering end
 		steeringRing.Rotation = displayedSteering * 35
 		speedUpdateElapsed += deltaTime
 		if speedUpdateElapsed >= 0.08 then

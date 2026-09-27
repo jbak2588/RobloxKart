@@ -24,7 +24,9 @@ function RaceAudioController.start()
 		GoRepeat = AudioRuntime.createSound("RaceGoSecond", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		GoThird = AudioRuntime.createSound("RaceGoThird", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		Lap = AudioRuntime.createSound("LapComplete", AudioConfig.ASSETS.LAP_COMPLETE, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
-		FinalLap = AudioRuntime.createSound("FinalLap", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
+		FinalLap = AudioRuntime.createSound("FinalLapFirst", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
+		FinalLapRepeat = AudioRuntime.createSound("FinalLapSecond", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
+		FinalLapThird = AudioRuntime.createSound("FinalLapThird", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		Finish = AudioRuntime.createSound("RaceFinish", AudioConfig.ASSETS.FINISH, SoundService, group, false, AudioConfig.RACE.FINISH_VOLUME, false),
 		Dnf = AudioRuntime.createSound("RaceDNF", AudioConfig.ASSETS.DNF, SoundService, group, false, AudioConfig.RACE.DNF_VOLUME, false),
 	}
@@ -38,12 +40,16 @@ function RaceAudioController.start()
 		sounds.GoThird.PlaybackSpeed = 1.08
 	end
 	AudioRuntime.preload(sounds)
+	for _, sound in { sounds.FinalLap, sounds.FinalLapRepeat, sounds.FinalLapThird } do
+		if sound then sound.PlaybackSpeed = AudioConfig.RACE.FINAL_LAP_PLAYBACK_SPEED end
+	end
 
 	local previousState = player:GetAttribute("RaceState")
 	local previousCountdown = player:GetAttribute("RaceCountdown")
 	local previousCompletedLaps = player:GetAttribute("RaceCompletedLaps")
 	local lastBeep: number? = nil
 	local goSerial = 0
+	local finalLapPlayed = false
 
 	local function stopAll()
 		for _, sound in sounds do
@@ -58,10 +64,10 @@ function RaceAudioController.start()
 		end
 	end
 
-	local function playGo()
-		local first = sounds.Go
-		local second = sounds.GoRepeat
-		local third = sounds.GoThird
+	local function playBeepPattern(finalLap: boolean)
+		local first = if finalLap then sounds.FinalLap else sounds.Go
+		local second = if finalLap then sounds.FinalLapRepeat else sounds.GoRepeat
+		local third = if finalLap then sounds.FinalLapThird else sounds.GoThird
 		if not first or not second or not third then
 			return
 		end
@@ -78,6 +84,19 @@ function RaceAudioController.start()
 			end)
 		end
 	end
+
+	local function checkFinalLap()
+		local total = player:GetAttribute("RaceTotalLaps")
+		if type(total) ~= "number" then total = RaceConfig.TOTAL_LAPS end
+		-- Match the notice's lap conditions, regardless of attribute arrival order.
+		if not finalLapPlayed and player:GetAttribute("RaceState") == "RACING" and total > 1
+			and player:GetAttribute("RaceCompletedLaps") == total - 1
+			and player:GetAttribute("RaceCurrentLap") == total then
+			finalLapPlayed = true
+			playBeepPattern(true)
+		end
+	end
+	player:GetAttributeChangedSignal("RaceCurrentLap"):Connect(checkFinalLap)
 
 	player:GetAttributeChangedSignal("RaceCountdown"):Connect(function()
 		local current = player:GetAttribute("RaceCountdown")
@@ -104,7 +123,7 @@ function RaceAudioController.start()
 		if completed >= total then
 			return
 		elseif completed == total - 1 then
-			AudioRuntime.playOnce(sounds.FinalLap)
+			checkFinalLap()
 		else
 			AudioRuntime.playOnce(sounds.Lap)
 		end
@@ -116,16 +135,21 @@ function RaceAudioController.start()
 		previousState = state
 		if state ~= "RACING" then
 			goSerial += 1
+			AudioRuntime.stop(sounds.FinalLap)
+			AudioRuntime.stop(sounds.FinalLapRepeat)
+			AudioRuntime.stop(sounds.FinalLapThird)
 		end
 		if state == "GARAGE" then
+			finalLapPlayed = false
 			stopAll()
 			lastBeep = nil
 		elseif state == "COUNTDOWN" and prior ~= "COUNTDOWN" then
+			finalLapPlayed = false
 			stopAll()
 			lastBeep = nil
 			playCountdown(player:GetAttribute("RaceCountdown"))
 		elseif state == "RACING" and prior == "COUNTDOWN" then
-			playGo()
+			playBeepPattern(false)
 		elseif state == "FINISHED" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Finish)
 		elseif state == "DNF" and prior == "RACING" then
