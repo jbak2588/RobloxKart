@@ -21,6 +21,10 @@ function KartInputController.resetTouchActions()
 	touchActions.throttle, touchActions.steering, touchActions.drift = 0, 0, false
 end
 
+function KartInputController.isTouchDriftHeld(): boolean
+	return touchEnabled and touchActions.drift
+end
+
 -- Adapters supply gameplay actions; only this controller sends KartControl.
 -- Steering is independent of the vertical axis so a future adapter can replace it.
 function KartInputController.setTouchActions(throttle: number, steering: number, drift: boolean)

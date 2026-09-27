@@ -363,9 +363,6 @@ function RaceHudController.start()
 		local compact = mobile or (viewportSize.Y > 0 and viewportSize.Y <= 650)
 		if mobile then screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 		else screenGui.IgnoreGuiInset = not compact end
-		steeringDisplay.Parent = if mobile then wheelClip else screenGui
-		steeringDisplay.AnchorPoint = if mobile then Vector2.new(0.5, 0) else Vector2.new(0.5, 1)
-		wheelClip.Visible = mobile and steeringDisplay.Visible
 		miniMapPanel.Visible = speedPanel.Visible
 		if compact then
 			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
@@ -402,9 +399,6 @@ function RaceHudController.start()
 				miniMapPanel.Position = UDim2.new(1, -128, 0, 8)
 				miniMapPanel.Size = UDim2.fromOffset(112, 112)
 			end
-			steeringDisplay.Position = UDim2.new(0.5, 0, 1, -10)
-			steeringDisplay.Size = UDim2.fromOffset(84, 84)
-			steeringRingScale.Scale = 0.72
 			countdownLabel.Size = UDim2.fromOffset(math.min(220, viewportSize.X - 32), 100)
 			finalLapLabel.Size = UDim2.fromOffset(math.min(360, viewportSize.X - 32), 64)
 			resultsPanel.Size = UDim2.fromOffset(math.min(320, viewportSize.X - 32), math.min(255, viewportSize.Y - 32))
@@ -442,9 +436,6 @@ function RaceHudController.start()
 			miniMapPanel.AnchorPoint = Vector2.new(1, 0.5)
 			miniMapSize.MinSize = Vector2.new(170, 170)
 			miniMapPanel.Size = UDim2.fromOffset(194, 194)
-			steeringDisplay.Position = UDim2.new(0.5, 0, 1, -18)
-			steeringDisplay.Size = UDim2.fromOffset(112, 112)
-			steeringRingScale.Scale = 1
 			countdownLabel.Size = UDim2.fromOffset(260, 140)
 			finalLapLabel.Size = UDim2.fromOffset(440, 80)
 			resultsPanel.Size = UDim2.fromOffset(340, 275)
@@ -464,10 +455,6 @@ function RaceHudController.start()
 			speedPanel.Position = UDim2.new(0.5, 0, 0, l.speedTop)
 			speedPanel.Size = UDim2.fromOffset(160, l.speedHeight)
 			speedTrack.Position = UDim2.fromOffset(10, 44)
-			wheelClip.Size = UDim2.fromOffset(l.wheel, l.wheel*2/3)
-			steeringDisplay.Position = UDim2.fromScale(0.5, 0)
-			steeringDisplay.Size = UDim2.fromOffset(l.wheel, l.wheel)
-			steeringRingScale.Scale = l.wheel/112
 			-- Top HUD stays clear of both thumb zones; desktop geometry is unchanged.
 			local lapWidth = math.min(170, safeSize.X*0.28)
 			frame.Size = UDim2.fromOffset(lapWidth, if offTrackLabel.Visible then 116 else 96)
@@ -484,6 +471,8 @@ function RaceHudController.start()
 				speedPanel.Position = UDim2.new(1, -92, 0, l.speedTop)
 			end
 		end
+		MobileView.layoutSteeringWheel(wheelClip, steeringDisplay, steeringRingScale,
+			if mobile then screenGui.AbsoluteSize else viewportSize, mobile)
 	end
 
 	local goDisplaySerial = 0

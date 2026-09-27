@@ -125,6 +125,7 @@ local instances={}
 local originalNew=loadoutType.new
 loadoutType.new=function() local result=originalNew(); table.insert(instances,result); return result end
 local Nitro=load("src/server/NitroState.luau",server,"NitroState")
+load("src/server/DriftTelemetry.luau",server,"DriftTelemetry")
 local itemConfig=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
 local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
@@ -482,6 +483,41 @@ check(items.grantBonusNitro(player) and state.counts.Nitro==2,"new race renews b
 player:SetAttribute("RaceState","GARAGE")
 check(state.counts.Nitro==0 and state.counts.Slick==0 and state.counts.Shield==0,"Garage clears all")
 print("PASS: "..(count-nitroChecks).." Slick/Shield/loadout integration checks")
+-- Existing production Drift/Mini Boost decisions, with controlled velocity
+-- samples (not a physics simulation), must agree with replicated diagnostics.
+config.DEBUG_TELEMETRY=true
+local function driftFrame(requested,slip,dt,send,throttle)
+	dt=dt or 1/60; now+=dt
+	chassis.AssemblyLinearVelocity=V.new(math.tan(math.rad(slip))*60,0,-60)
+	if send~=false then control.OnServerEvent:Fire(player,throttle or 1,.6,requested) end
+	services.RunService.Heartbeat:Fire(dt)
+end
+local function charge(slip)
+	startRace()
+	for _=1,100 do driftFrame(true,slip) end
+end
+charge(15)
+check(kart:GetAttribute("KartDriftChargeReady")==true,"production drift publishes READY")
+driftFrame(false,15)
+check(kart:GetAttribute("KartBoosting")==true and kart:GetAttribute("KartDriftDiagBoostEligible")==true,"actual boost agrees with diagnostic")
+check(kart:GetAttribute("KartDriftChargeProgress")==0 and kart:GetAttribute("KartDriftChargeReady")==false,"boost clears gauge")
+charge(8)
+check(kart:GetAttribute("KartDriftDiagDuration")==1 and kart:GetAttribute("KartDriftDiagQualified")==0,"insufficient slip distinguishes two charge axes")
+driftFrame(false,8)
+check(kart:GetAttribute("KartDriftDiagEndReason")=="shift_release" and not kart:GetAttribute("KartDriftDiagBoostEligible"),"unqualified release result")
+charge(15)
+driftFrame(false,15,1/60,true,0)
+check(kart:GetAttribute("KartDriftDiagEndReason")=="shift_release" and not kart:GetAttribute("KartDriftDiagBoostEligible") and kart:GetAttribute("KartDriftDiagThrottle")==0,"READY can fail release throttle check")
+charge(15)
+driftFrame(true,15,.63,false)
+check(kart:GetAttribute("KartDriftDiagEndReason")=="input_timeout" and kart:GetAttribute("KartDriftDiagMaxInputAge")>=.63-1e-8,"timeout captures final input gap")
+check(kart:GetAttribute("KartDriftDiagMaxServerDelta")==.63,"hitch captured without changing cap")
+charge(15)
+check(world.applySlickHit(player),"slick diagnostic fixture accepted")
+check(kart:GetAttribute("KartDriftDiagEndReason")=="slick" and not kart:GetAttribute("KartDriftChargeReady"),"slick cancels gauge")
+player:SetAttribute("RaceState","GARAGE");kart:SetAttribute("RaceControlsLocked",true);step(0)
+check(not kart:GetAttribute("KartDriftChargeReady"),"race lock clears gauge")
+config.DEBUG_TELEMETRY=false
 services.Players.PlayerRemoving:Fire(player)
 check(not items.grantBonusNitro(player),"removed player has no loadout")
 kart:Destroy()

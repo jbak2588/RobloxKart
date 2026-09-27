@@ -10,6 +10,7 @@ local KartVisualFactory = require(ReplicatedStorage:WaitForChild("Shared"):WaitF
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
 local NitroState = require(script.Parent:WaitForChild("NitroState"))
 local SlickMotion = require(script.Parent:WaitForChild("SlickMotion"))
+local DriftTelemetry = require(script.Parent:WaitForChild("DriftTelemetry"))
 local RaceItemGeometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local RaceItemConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 
@@ -268,6 +269,9 @@ function PrototypeWorld.start()
 	local driftDuration = 0
 	local qualifiedDuration = 0
 	local driftDriver: Player? = nil
+	local driftTelemetry = DriftTelemetry.new(kart, KartConfig)
+	local pendingDriftEnd: string? = nil
+	local pendingBoostEligible = false
 	local boostActive = false
 	local boostEndTime = 0
 	local boostDriver: Player? = nil
@@ -359,6 +363,8 @@ function PrototypeWorld.start()
 			return
 		end
 		driftActive = active
+		if active then driftTelemetry:begin()
+		else pendingDriftEnd = reason end
 		kart:SetAttribute("KartDrifting", active)
 		if KartConfig.DEBUG_TELEMETRY then
 			if active then
@@ -375,6 +381,11 @@ function PrototypeWorld.start()
 	end
 
 	local function resetDriftCharge()
+		if pendingDriftEnd then
+			driftTelemetry:finish(pendingDriftEnd, driftDuration, qualifiedDuration, pendingBoostEligible)
+		end
+		pendingDriftEnd, pendingBoostEligible = nil, false
+		driftTelemetry:clearCharge()
 		driftDuration = 0
 		qualifiedDuration = 0
 		driftDriver = nil
@@ -393,6 +404,14 @@ function PrototypeWorld.start()
 			))
 		end
 	end
+
+	-- Reset display state immediately at lifecycle boundaries; simulation reset
+	-- remains in its existing paths below.
+	kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() driftTelemetry:clear() end)
+	kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
+		if kart:GetAttribute("RaceControlsLocked") then driftTelemetry:clear() end
+	end)
+	seat:GetPropertyChangedSignal("Occupant"):Connect(function() driftTelemetry:clear() end)
 
 	local function stopBoost(reason: string)
 		if not boostActive then
@@ -586,6 +605,24 @@ function PrototypeWorld.start()
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		-- Snapshot before early exits or collision responses alter motion. This is
+		-- diagnostic-only; input validation and simulation below are unchanged.
+		do
+			local occupant = seat.Occupant
+			local driver = occupant and Players:GetPlayerFromCharacter(occupant.Parent)
+			local control = driver and controls[driver]
+			local age = control and time()-control.lastUpdate
+			local valid = age ~= nil and age <= KartConfig.INPUT_TIMEOUT
+			local look, right = chassis.CFrame.LookVector, chassis.CFrame.RightVector
+			local flatLook, flatRight = Vector3.new(look.X,0,look.Z), Vector3.new(right.X,0,right.Z)
+			local forward = if flatLook.Magnitude>0.001 then flatLook.Unit else Vector3.new(0,0,-1)
+			local sideways = if flatRight.Magnitude>0.001 then flatRight.Unit else Vector3.new(1,0,0)
+			local velocity = chassis.AssemblyLinearVelocity
+			local speed = velocity:Dot(forward)
+			local slip = if math.abs(speed)>=1 then math.deg(math.atan2(velocity:Dot(sideways),math.abs(speed))) else 0
+			driftTelemetry:observe(age,deltaTime,speed,slip,if control then control.steering else 0,
+				smoothedSteering,if control and valid then control.throttle else 0,valid)
+		end
 		refreshBarrierTriggers()
 		local previousBarrierPosition = lastBarrierPosition
 		lastBarrierPosition = chassis.Position
@@ -729,6 +766,7 @@ function PrototypeWorld.start()
 		end
 
 		smoothedSteering = moveToward(smoothedSteering, steering, KartConfig.STEERING_RESPONSE * deltaTime)
+		driftTelemetry.frame.steer = smoothedSteering
 		local absoluteSteering = math.abs(smoothedSteering)
 		local endedDriftReason: string? = nil
 		if driftActive then
@@ -773,6 +811,7 @@ function PrototypeWorld.start()
 				and absoluteSteering >= KartConfig.DRIFT_EXIT_STEER
 				and driftDuration >= KartConfig.DRIFT_CHARGE_MIN_DURATION
 				and qualifiedDuration >= KartConfig.DRIFT_CHARGE_REQUIRED_TIME
+			pendingBoostEligible = canStartBoost
 			if canStartBoost and player then
 				startBoost(player, now)
 			end
@@ -793,6 +832,7 @@ function PrototypeWorld.start()
 			end
 		end
 
+		driftTelemetry:update(driftDuration, qualifiedDuration)
 		if boostActive then
 			if not occupant then
 				stopBoost("no_occupant")

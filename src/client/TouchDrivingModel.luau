@@ -2,6 +2,7 @@
 local Model = {}
 Model.__index = Model
 Model.DEAD_ZONE = 0.10
+Model.DIGITAL_DRIFT_STEERING = 0.60
 -- Development-only rollback switch; no player-facing settings menu.
 Model.MobileDriveControlMode = "Buttons"
 
@@ -87,9 +88,11 @@ function Model:actions(): (number, number, boolean)
 			end
 		end
 		-- Negative throttle is the existing shared brake/reverse action.
+		local drifting = next(self.driftOwners) ~= nil
+		if drifting then steering *= Model.DIGITAL_DRIFT_STEERING end
 		local throttle = if self:isPressed("Brake") then -1
 			elseif self:isPressed("Forward") or self.autoForward then 1 else 0
-		return throttle, steering, next(self.driftOwners) ~= nil
+		return throttle, steering, drifting
 	end
 	local throttle = if self.owner then self.throttle elseif self.autoForward then 1 else 0
 	return throttle, self.steering, next(self.driftOwners) ~= nil

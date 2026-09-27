@@ -68,6 +68,9 @@ cancellation, even when the finger moves outside it. Forward and steering can
 use separate fingers. If both directions are held, the last pressed wins;
 releasing it returns to the still-held direction. Releasing both centers steering.
 Existing server steering smoothing is reused without adding an input ramp.
+While DRIFT is held, digital left/right targets are limited to -0.60/+0.60.
+Releasing DRIFT immediately restores -1/+1 for the held direction. This applies
+with either forward hold or Auto Accelerate; legacy joystick input is unchanged.
 
 The arrow/lock option beside the pad toggles forward hold (default OFF).
 An open lock with an outline means OFF; a closed lock with a filled button means ON.
@@ -103,6 +106,79 @@ Studio or real-device multi-touch testing. Add `Joystick` to that command to
 run the retained legacy controller checks. Real-device approval requires repeated
 intentional left/right Drift-to-Mini-Boost success; this has not yet been verified
 for the digital pad. Drift charge thresholds and all kart physics are unchanged.
+
+### TrackV2 Revision Required
+
+User device testing reports insufficient sustained drift arcs and arc length
+for the current charge requirements, plus abrupt S-turns approaching Finish
+and sections where a normal racing line effectively forces fence contact.
+A separate geometry revision is required; this steering patch changes no track.
+Future work should evaluate 2–3 continuous drift arcs (initial radius candidates
+R100–R140) against actual physics and 0.60 steering, with 0.85–1.0 seconds of
+on-road drift and a stable corner-exit approach to Finish. Revalidate centerline,
+road width, checkpoints, barriers, grid, finish tangent, route progress, minimap,
+lap counting, off-track/DNF behavior and Track01 when revising the geometry.
+
+### Drift charge gauge and device diagnostics
+
+One shared five-cell battery displays server charge for touch and keyboard:
+`min(driftDuration / 1.00, qualifiedDuration / 0.75)`, clamped to 0–1.
+Cells fill partially between the 20/40/60/80/100% boundaries; 0% is empty.
+READY fills all five in gold and pulses the border once for 0.20 seconds.
+The gauge appears in 0.12 seconds and fades for 0.30 seconds on drift termination;
+a server-confirmed Mini Boost gives a brief full-gauge gold pulse before fading.
+Failed attempts fade in cyan without a failure warning. No numbers or text appear
+inside the player gauge.
+Release still uses the original server boost rules, including throttle, speed,
+steering and valid input. READY reports charge completion, not a boost guarantee.
+Gauge attributes update at approximately 10 Hz, with immediate lifecycle clears.
+The loadout row moves upward 20 pixels to leave room; the gauge has no touch input.
+On mobile, its center aligns with the DRIFT button, with a 2px gap (4px lower
+than before; moving 8–12px would cross the existing touch target).
+On PC it sits 10px above the clipped steering display, 140–160px wide and
+18px high in compact viewports or 20px otherwise. The previous size was
+110–150 by 16px; the lower cluster position creates clearance behind the kart.
+Both platforms clip the bottom third of the same display-only wheel at the
+screen bottom. PC keeps its full 84px compact / 112px normal wheel diameter;
+mobile keeps its existing size, position, clip ratio and steering synchronization.
+Changing PreferredInput only relocates the single display; both layouts interpret
+the same server progress. Keyboard Shift does not create local charge.
+
+With `KartConfig.DEBUG_TELEMETRY`, the non-interactive development panel shows:
+
+- `D` / `Q`: server drift / qualified-slip duration.
+- `S`: slip angle; `IA`: current / maximum input age in this drift (not network RTT).
+- `DT` (ASCII): current / maximum server Heartbeat duration.
+- `V`, `T`, `St`, `Raw`, `IV`: forward speed, throttle, smoothed/raw steering, input validity.
+- `END` / `BOOST`: last termination reason / actual boost eligibility, retained for two seconds.
+
+The numeric panel is separate from the player battery: bottom-right on PC,
+in the upper HUD area beside the minimap on wide mobile screens, or in the gap
+below the speed panel on small landscape screens. It no longer sits beside the
+kart. DEBUG=false creates no numeric overlay and keeps the player gauge functional.
+
+Each ended drift also emits one `[KartDriftDiag]` server summary. A new drift resets
+the maxima; the final timeout frame is included. Diagnostic attributes and text
+are DEBUG-only, while the battery is available independently. No charge constants,
+input timeouts, server delta cap or track geometry were changed.
+
+On a newly published version and a fresh device session, test Practice Circuit:
+Auto ON + sustained LEFT/RIGHT + DRIFT for 2+ seconds, then release DRIFT. Compare
+with holding DRIFT while pulsing the direction button for approximately 0.5 seconds.
+Capture the panel during charging and immediately after release.
+
+| Observation | Follow-up diagnosis |
+| --- | --- |
+| Repeated `input_timeout`, max IA above 0.50 | Investigate client send gaps / transport; this is not a direct ping measurement. |
+| D=1.00, Q below 0.75, slip mostly below 12°, normal IA/DT | Insufficient qualified slip; compare steering and threshold separately later. |
+| Repeated max DT above 0.05 with slow D/Q | Investigate server hitches and discarded charge time; cap remains unchanged. |
+| READY then `shift_release`, BOOST NO | Inspect release throttle, speed, steering and input validity. |
+| Pulses raise slip above 12° and Q increases, sustained steering does not | Evidence for slip dynamics rather than assuming network latency. |
+
+Run `lune run tests/drift_telemetry_validation.luau` for publication/diagnostic
+contracts. The mobile and race-item suites also exercise gauge and production
+drift/boost integration. Real-device cause identification still requires captures;
+automated tests do not establish the cause on a phone.
 
 ## Deferred
 

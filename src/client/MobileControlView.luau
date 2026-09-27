@@ -25,8 +25,26 @@ function View.layout(size: Vector2)
 		padCompact = compactPad,
 		driftX = margin, driftBottom = margin + (if portrait then action+8 else 0),
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
-		loadoutBottom = margin + (if portrait then action*2+16 else action+8),
+		loadoutBottom = margin + (if portrait then action*2+36 else action+28),
+		gaugeHeight = 12,
 	}
+end
+
+-- The full wheel remains unchanged; only its upper two-thirds are visible.
+-- Shared by desktop and touch, and intentionally accepts no input.
+function View.layoutSteeringWheel(clip, wheel, ringScale, size: Vector2, mobile: boolean)
+	local diameter = if mobile then View.layout(size).wheel else (if size.Y <= 650 then 84 else 112)
+	clip.AnchorPoint = Vector2.new(0.5, 1)
+	clip.Position = UDim2.fromScale(0.5, 1)
+	clip.Size = UDim2.fromOffset(diameter, diameter*2/3)
+	clip.ClipsDescendants = true
+	clip.Active = false
+	clip.Visible = wheel.Visible
+	wheel.Parent = clip
+	wheel.AnchorPoint = Vector2.new(0.5, 0)
+	wheel.Position = UDim2.fromScale(0.5, 0)
+	wheel.Size = UDim2.fromOffset(diameter, diameter)
+	ringScale.Scale = if mobile then diameter/112 else (if size.Y <= 650 then 0.72 else 1)
 end
 
 function View.round(parent, radius: UDim?)

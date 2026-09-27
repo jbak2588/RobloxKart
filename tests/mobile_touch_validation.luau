@@ -50,7 +50,10 @@ local function object(class, name)
 		end,
 	})
 end
-function methods:FindFirstChild(name) for _, c in self._children do if c.Name==name then return c end end end
+function methods:FindFirstChild(name,recursive)
+	for _, c in self._children do if c.Name==name then return c end end
+	if recursive then for _,c in self._children do local found=c:FindFirstChild(name,true);if found then return found end end end
+end
 function methods:WaitForChild(name) return assert(self:FindFirstChild(name),name) end
 function methods:FindFirstChildOfClass(class) for _, c in self._children do if c.ClassName==class then return c end end end
 function methods:GetAttribute(k) return self._attrs[k] end
@@ -72,8 +75,8 @@ local shared=child(services.ReplicatedStorage,"Folder","Shared"); child(shared,"
 local control=child(services.ReplicatedStorage,"RemoteEvent","KartControl"); control._p.calls={}
 local item=child(services.ReplicatedStorage,"RemoteEvent","RaceItemControl"); item._p.calls={}
 local modulesFolder=object("Folder")
-local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05}}
-for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
+local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true}}
+for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","DriftChargeView","DriftChargeController","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
 local ui=services.UserInputService
 ui.TouchEnabled=true; ui.PreferredInput=rb.Enum.PreferredInput.Touch
 local keys, focused = {}, nil
@@ -83,7 +86,7 @@ services.GuiService.MenuIsOpen=false
 local env={game={GetService=function(_,name) return assert(services[name],name) end},
 	script={Parent=modulesFolder},require=function(m) return assert(modules[m.Name],m.Name) end,
 	Instance={new=object},Vector2=V2,Vector3=V3,UDim2=rb.UDim2,UDim=rb.UDim,Color3=rb.Color3,Enum=rb.Enum}
-for _, name in {"TouchDrivingModel","MobileControlView","KartInputController","TouchDrivingController"} do
+for _, name in {"TouchDrivingModel","MobileControlView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
 end
 local model=modules.TouchDrivingModel
@@ -101,6 +104,7 @@ check(model.sample(math.huge,0,100)==0,"non-finite input")
 local input=modules.KartInputController; input.start()
 player:SetAttribute("RaceState","RACING"); player:SetAttribute("SelectedRaceItemId","Nitro"); player:SetAttribute("RaceChargeNitro",1)
 modules.TouchDrivingController.start()
+modules.DriftChargeController.start()
 local gui=pg.RobloxKartTouchDriving; local root=gui.Controls
 local joy,drift,use=root.RightJoystick,root.Drift,root.UseItem
 local function tick() services.RunService.Heartbeat:Fire(0.05) end
@@ -112,6 +116,55 @@ local function touch(target,dx,dy)
 	f.Position=V3.new(c.X+(dx or 0),c.Y+(dy or 0),0); target.InputBegan:Fire(f); tick(); return f
 end
 tick(); check(root.Visible and not defaultGui.Enabled,"race controls own mobile area")
+local sharedGui=pg.RobloxKartDriftCharge
+local gauge=sharedGui.SharedDriftDisplay.DriftChargeGauge
+local diagnostic=sharedGui.SharedDriftDisplay.DriftDiagnostic
+check(gauge.Active==false and gauge.Selectable==false and diagnostic.Active==false and diagnostic.Selectable==false,"gauge/diagnostics never intercept input")
+for _,case in {{0,0},{.19,0},{.20,1},{.40,2},{.60,3},{.80,4},{1,5}} do
+	kart:SetAttribute("KartDrifting",true)
+	kart:SetAttribute("KartDriftChargeProgress",case[1]);kart:SetAttribute("KartDriftChargeReady",case[1]==1);tick()
+	check(gauge.Visible and gauge:GetAttribute("LitSegments")==case[2],"server progress battery threshold")
+	if case[1]==.19 then check(math.abs(gauge.Segment1.Fill.Size.X.Scale-.95)<1e-6,"partial first cell reacts below 20 percent") end
+end
+check(gauge:FindFirstChildOfClass("UIStroke").Thickness==3,"ready pulses once")
+check(string.find(diagnostic.Text,"DT ",1,true)~=nil and string.find(diagnostic.Text,"Δ",1,true)==nil,"server delta uses ASCII DT")
+for _=1,8 do tick() end
+check(gauge:FindFirstChildOfClass("UIStroke").Thickness==1,"ready pulse expires without repeating")
+kart:SetAttribute("KartDriftDiagEndSerial",0);tick()
+kart:SetAttribute("KartDriftChargeProgress",0);kart:SetAttribute("KartDriftChargeReady",false);kart:SetAttribute("KartDrifting",false)
+kart:SetAttribute("KartDriftDiagEndReason","input_timeout");kart:SetAttribute("KartDriftDiagBoostEligible",false)
+kart:SetAttribute("KartDriftDiagEndSerial",1);tick()
+check(diagnostic.Visible and string.find(diagnostic.Text,"input_timeout",1,true)~=nil,"end result shows timeout")
+for _=1,8 do tick() end
+check(not gauge.Visible and diagnostic.Visible,"short gauge feedback, longer diagnostic retention")
+for _=1,40 do tick() end
+check(not diagnostic.Visible,"diagnostic hides after two seconds")
+local heldProbe=touch(drift);for _=1,40 do tick() end
+check(gauge.Visible and gauge:GetAttribute("LitSegments")==0,"held button never invents charge")
+heldProbe.UserInputState=rb.Enum.UserInputState.End;tick()
+local productionGauge=modules.DriftChargeView.create(object("Frame"),false)
+check(productionGauge.diagnostic==nil,"debug-off creates no diagnostic text")
+kart:SetAttribute("KartDriftChargeProgress",.6)
+productionGauge:update(true,kart,false,.12)
+check(productionGauge.frame.Visible and productionGauge.frame:GetAttribute("LitSegments")==3,"debug-off player gauge remains functional")
+tick();check(gauge:GetAttribute("LitSegments")==3,"mobile server progress .60")
+ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;tick()
+check(gauge.Visible and gauge:GetAttribute("LitSegments")==3,"PC uses same server progress without duplicate gauge")
+check(gauge.Position.X.Scale==.5,"PC gauge bottom center")
+ui.PreferredInput=rb.Enum.PreferredInput.Touch;tick()
+check(sharedGui.SharedDriftDisplay.DriftChargeGauge==gauge and gauge:GetAttribute("LitSegments")==3,"input mode switch reuses same gauge")
+kart:SetAttribute("KartDriftChargeProgress",0);kart:SetAttribute("KartBoosting",true);tick()
+check(gauge:GetAttribute("LitSegments")==5 and gauge:FindFirstChildOfClass("UIStroke").Thickness==3,"boost success fills and flashes even without diagnostic result")
+local startTransparency=gauge.BackgroundTransparency
+tick();check(gauge.BackgroundTransparency>startTransparency,"success fades smoothly")
+for _=1,8 do tick() end
+check(not gauge.Visible and gauge:GetAttribute("LitSegments")==0,"success resets after fade")
+kart:SetAttribute("KartBoosting",false)
+ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+keys[tostring(rb.Enum.KeyCode.W)]=true;keys[tostring(rb.Enum.KeyCode.A)]=true;keys[tostring(rb.Enum.KeyCode.LeftShift)]=true
+for _=1,12 do tick() end
+check(not gauge.Visible and gauge:GetAttribute("LitSegments")==0,"PC Shift without server charge does not invent progress")
+keys={};ui.PreferredInput=rb.Enum.PreferredInput.Touch;tick()
 local auto=root.AutoForward
 if legacy then
 local finger=touch(joy,15,-30); local a=latest()
@@ -170,28 +223,34 @@ else
 	for _, direction in {-1,1} do
 		local button=if direction==-1 then root.Left else root.Right
 		local other=if direction==-1 then root.Right else root.Left
-		f=touch(root.Forward); local steer=touch(button); local d=touch(drift)
+		f=touch(root.Forward); local steer=touch(button)
+		check(latest()[2]==direction and not latest()[3],"normal digital steering remains full")
+		local d=touch(drift)
+		check(latest()[2]==direction*0.60 and latest()[3],"drift press immediately reduces digital steering")
+		check(input.getEffectiveSteering()==direction*0.60,"drift steering HUD action sync")
 		-- Moving far outside the button must not change a held digital target.
 		for i=1,90 do
 			steer.Position=V3.new(i*100,-i*70,0); ui.InputChanged:Fire(steer); tick()
-			check(latest()[1]==1 and latest()[2]==direction and latest()[3],"stable forward/steering/drift across pointer movement")
+			check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"stable forward/steering/drift across pointer movement")
 		end
-		other.InputBegan:Fire(steer); tick(); check(latest()[2]==direction,"one finger cannot own two buttons")
-		local opposite=touch(other); check(latest()[2]==-direction,"last pressed wins")
-		opposite.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==direction,"release falls back to held direction")
+		other.InputBegan:Fire(steer); tick(); check(latest()[2]==direction*0.60,"one finger cannot own two buttons")
+		local opposite=touch(other); check(latest()[2]==-direction*0.60,"last pressed wins")
+		opposite.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==direction*0.60,"release falls back to held direction")
 		for _, id in {"Nitro","Slick","Shield"} do
 			input.selectRaceItem(id); use.Activated:Fire(); tick()
-			check(latest()[1]==1 and latest()[2]==direction and latest()[3],"digital drift and item actions coexist")
+			check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"digital drift and item actions coexist")
 		end
 		d.UserInputState=rb.Enum.UserInputState.End; tick()
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"drift release preserves throttle/steer for existing boost condition")
 		check(input.getEffectiveSteering()==direction,"steering HUD action sync")
 		steer.UserInputState=rb.Enum.UserInputState.End; f.UserInputState=rb.Enum.UserInputState.End; neutral("all buttons released")
 		auto.Activated:Fire(); steer=touch(button); d=touch(drift)
-		for _=1,30 do tick(); check(latest()[1]==1 and latest()[2]==direction and latest()[3],"auto stable drift") end
-		b=touch(root.Brake); check(latest()[1]==-1 and latest()[2]==direction,"auto brake and reverse steer use shared actions")
+		for _=1,30 do tick(); check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"auto stable drift") end
+		b=touch(root.Brake); check(latest()[1]==-1 and latest()[2]==direction*0.60,"auto brake and reverse steer use shared actions")
 		b.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1,"auto resumes after brake")
-		steer.UserInputState=rb.Enum.UserInputState.Cancel; d.UserInputState=rb.Enum.UserInputState.End; neutral("cancel disables auto")
+		d.UserInputState=rb.Enum.UserInputState.End; tick()
+		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"auto drift release restores full steering")
+		steer.UserInputState=rb.Enum.UserInputState.Cancel; neutral("cancel disables auto")
 	end
 	check(#item._p.calls==12,"all digital item select/use calls delivered")
 end
@@ -201,9 +260,12 @@ local function hold()
 	touch(drift)
 	if not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
 	check(latest()[1]==(if legacy then 1 else -1) and latest()[3],"hold established")
+	kart:SetAttribute("KartDriftChargeProgress",1);kart:SetAttribute("KartDriftChargeReady",true);tick()
+	check(gauge.Visible and gauge:GetAttribute("LitSegments")==5,"lifecycle fixture starts READY")
 end
-for _, race in {"FINISHED","DNF","GARAGE","COUNTDOWN"} do
+for _, race in {"FINISHED","FINISHING","DNF","GARAGE","COUNTDOWN"} do
 	player:SetAttribute("RaceState","RACING"); hold(); player:SetAttribute("RaceState",race); neutral("race transition "..race)
+	check(not gauge.Visible and not diagnostic.Visible,"race transition hides READY and diagnostic")
 end
 player:SetAttribute("RaceState","RACING")
 hold(); gui.Enabled=false; neutral("disabled GUI"); gui.Enabled=true
@@ -233,13 +295,22 @@ check(item._p.calls[#item._p.calls][1]=="Use","PC Q item trigger")
 ui.PreferredInput=rb.Enum.PreferredInput.Touch
 -- Verify reserved thumb/display rectangles remain separate at representative safe sizes.
 local function overlaps(a,b) return a[1]<b[3] and b[1]<a[3] and a[2]<b[4] and b[2]<a[4] end
-for _, size in {V2.new(801,334),V2.new(473,240),V2.new(389,703),V2.new(320,568),V2.new(929,688)} do
+for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),V2.new(320,568),V2.new(929,688)} do
 	safeSize=size; root:GetPropertyChangedSignal("AbsoluteSize"):Fire(); tick()
 	local l=modules.MobileControlView.layout(size)
 	check(l.speedTop>=2 and l.speedTop<8 and l.speedTop+l.speedHeight<size.Y,"speed HUD rises without leaving safe region")
 	check(l.speedHeight==56,"speed HUD keeps compact box height")
+	check(math.abs(gauge.AbsolutePosition.X+gauge.AbsoluteSize.X/2-drift.AbsolutePosition.X-drift.AbsoluteSize.X/2)<=.5,"gauge centered on DRIFT")
+	check(math.abs(drift.AbsolutePosition.Y-gauge.AbsolutePosition.Y-gauge.AbsoluteSize.Y-2)<=.5,"mobile gauge sits 2px above touch target")
+	local mobileClip=child(root,"Frame","ClipPreview")
+	local mobileWheel=child(root,"Frame","WheelPreview")
+	modules.MobileControlView.layoutSteeringWheel(mobileClip,mobileWheel,{},size,true)
+	check(mobileWheel.Parent==mobileClip and mobileClip.ClipsDescendants and not mobileClip.Active,"mobile wheel uses display-only clip")
+	check(math.abs(mobileClip.AbsoluteSize.Y-l.wheel*2/3)<1 and math.abs(mobileWheel.AbsoluteSize.X-l.wheel)<1,"mobile wheel geometry preserved within pixel rounding")
+	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y,"mobile clip touches bottom")
+	mobileWheel:Destroy();mobileClip:Destroy()
 	local rects={}
-	local buttons=if legacy then {joy,drift,use,auto} else {root.Forward,root.Left,root.Right,root.Brake,drift,use,auto}
+	local buttons=if legacy then {joy,drift,use,auto,gauge,diagnostic} else {root.Forward,root.Left,root.Right,root.Brake,drift,use,auto,gauge,diagnostic}
 	for _, button in buttons do
 		local p,z=button.AbsolutePosition,button.AbsoluteSize
 		table.insert(rects,{p.X,p.Y,p.X+z.X,p.Y+z.Y})
@@ -248,6 +319,8 @@ for _, size in {V2.new(801,334),V2.new(473,240),V2.new(389,703),V2.new(320,568),
 		local minimap={size.X-112,8,size.X-12,108}
 		for _, r in rects do check(not overlaps(r,minimap),"driving buttons avoid minimap") end
 	end
+	local speedX=if size.X<450 then size.X-172 else size.X/2-80
+	check(not overlaps(rects[#rects],{speedX,l.speedTop,speedX+160,l.speedTop+l.speedHeight}),"debug avoids speed HUD including inset phone width")
 	table.insert(rects,{l.margin,size.Y-l.loadoutBottom-l.slot,l.margin+l.slot*3+l.gap*2,size.Y-l.loadoutBottom})
 	table.insert(rects,{size.X/2-l.wheel/2,size.Y-l.wheel*2/3,size.X/2+l.wheel/2,size.Y})
 	for i,r in rects do
@@ -255,5 +328,27 @@ for _, size in {V2.new(801,334),V2.new(473,240),V2.new(389,703),V2.new(320,568),
 		for j=i+1,#rects do check(not overlaps(r,rects[j]),"thumb zones / display never overlap "..tostring(size).." rects "..i.."/"..j) end
 	end
 end
-hold(); gui:Destroy(); neutral("destroyed GUI"); check(defaultGui.Enabled,"destroy restores stock controls")
+-- Desktop and compact PC placement uses the actual steering display geometry.
+for _,size in {V2.new(1920,1080),V2.new(1280,720),V2.new(801,334)} do
+	safeSize=size
+	local previewRoot=object("Frame")
+	local clip=child(previewRoot,"Frame","Clip")
+	local wheel=child(previewRoot,"Frame","SteeringDisplay")
+	local diameter=if size.Y<=650 then 84 else 112
+	modules.MobileControlView.layoutSteeringWheel(clip,wheel,{},size,false)
+	check(wheel.Parent==clip and clip.ClipsDescendants and not clip.Active,"desktop wheel uses display-only clip")
+	check(math.abs(clip.AbsoluteSize.Y/diameter-2/3)<.01 and wheel.AbsoluteSize.Y==diameter,"desktop upper two-thirds visible")
+	check(clip.AbsolutePosition.Y+clip.AbsoluteSize.Y==size.Y,"desktop clip touches bottom edge")
+	check(previewRoot:FindFirstChild("SteeringDisplay",true)==wheel,"nested wheel can be found by gauge controller")
+	local preview=modules.DriftChargeView.create(previewRoot,true)
+	preview:layout(size,false,wheel,V2.zero)
+	local g=preview.frame
+	check(math.abs(g.AbsolutePosition.X+g.AbsoluteSize.X/2-size.X/2)<=.5,"desktop gauge centered "..tostring(size).." p="..tostring(g.AbsolutePosition).." sz="..tostring(g.AbsoluteSize).." wheel="..tostring(wheel.AbsolutePosition))
+	check(math.abs(g.AbsolutePosition.Y+g.AbsoluteSize.Y-wheel.AbsolutePosition.Y+10)<=.5,"desktop gauge has ten-pixel wheel gap")
+	check(g.AbsoluteSize.X>=140 and g.AbsoluteSize.X<=160 and g.AbsoluteSize.Y==(if size.Y<=650 then 18 else 20),"desktop compact gauge dimensions")
+	local d=preview.diagnostic
+	check(d.AbsolutePosition.X>size.X/2 and d.AbsolutePosition.Y>size.Y/2,"desktop debug uses bottom-right corner")
+end
+hold(); gui:Destroy(); sharedGui:Destroy(); neutral("destroyed GUI"); check(defaultGui.Enabled,"destroy restores stock controls")
+check(not gauge.Visible and not diagnostic.Visible,"GUI destruction clears charge display")
 print("PASS: "..count.." mobile input, lifecycle, transport and layout checks (mocked; no hardware multi-touch)")
