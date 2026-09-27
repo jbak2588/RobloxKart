@@ -8,6 +8,8 @@ local requireModule = require :: (ModuleScript) -> any
 local KartConfig = requireModule(Shared:WaitForChild("KartConfig") :: ModuleScript)
 local RaceConfig = requireModule(Shared:WaitForChild("RaceConfig") :: ModuleScript)
 local TrackCatalog = requireModule(Shared:WaitForChild("TrackCatalog") :: ModuleScript)
+local TrackGeometry = requireModule(Shared:WaitForChild("TrackGeometry") :: ModuleScript)
+local RaceRouteProgress = requireModule(Shared:WaitForChild("RaceRouteProgress") :: ModuleScript)
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
 local RaceController = {}
@@ -94,6 +96,7 @@ function RaceController.start()
 	local checkpoints: { [number]: BasePart } = {}
 	local minimumValidLapTime = 0
 	local targetLaps = RaceConfig.TOTAL_LAPS
+	local routeProgress = nil
 
 	local function bindTrackForRace(trackId: string): boolean
 		local track = TrackCatalog.Entries[trackId]
@@ -152,6 +155,8 @@ function RaceController.start()
 		for index = 1, #orderedGates - 1 do
 			minimumPathDistance += planarDistance(orderedGates[index].Position, orderedGates[index + 1].Position)
 		end
+		local definition = TrackGeometry.getDefinition(track.GeometryId)
+		routeProgress = RaceRouteProgress.new(TrackGeometry.getCourse(definition), definition.RoadWidth)
 		checkpointCount = newCheckpointCount
 		roadParts = newRoadParts
 		gates = newGates
@@ -197,6 +202,9 @@ function RaceController.start()
 
 	local function clearGateState()
 		table.clear(insideGate)
+		if routeProgress then
+			routeProgress = RaceRouteProgress.new(routeProgress.course, routeProgress.roadWidth)
+		end
 	end
 
 	local function resetOffTrackState(player: Player)
@@ -360,6 +368,8 @@ function RaceController.start()
 			print(string.format("[Race] finish crossed lap=%d nextCheckpoint=%d", (player:GetAttribute("RaceCurrentLap") :: number?) or 1, nextCheckpoint))
 			if nextCheckpoint == checkpointCount + 1 then
 				completeLap(player, now)
+			else
+				print(string.format("[Race] finish rejected reason=missing_checkpoint expected=%d total=%d", nextCheckpoint, checkpointCount))
 			end
 		end
 	end
@@ -486,14 +496,18 @@ function RaceController.start()
 			return
 		end
 
-		local onRoadAtGate: boolean? = nil
+		local onRoadAtGate = isInsideRoadCorridor(roadParts, chassis.Position)
+		if routeProgress then
+			local nextCheckpoint = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
+			local recoveredNext = RaceRouteProgress.step(routeProgress, chassis.Position, nextCheckpoint, onRoadAtGate)
+			if recoveredNext > nextCheckpoint then
+				player:SetAttribute("RaceNextCheckpoint", recoveredNext)
+				print(string.format("[Race] checkpoint route accepted from=%d next=%d lap=%d", nextCheckpoint, recoveredNext, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
+			end
+		end
 		for _, gate in gates do
 			local inside = isInsideGate(gate, chassis.Position)
 			if inside and not insideGate[gate] then
-				-- Check the actual corridor on entry, including between timed off-track samples.
-				if onRoadAtGate == nil then
-					onRoadAtGate = isInsideRoadCorridor(roadParts, chassis.Position)
-				end
 				if onRoadAtGate or (gate == startFinishGate
 					and player:GetAttribute("RaceNextCheckpoint") == checkpointCount + 1) then
 					processGate(player, gate, now)

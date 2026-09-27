@@ -22,6 +22,7 @@ function RaceAudioController.start()
 		Countdown = AudioRuntime.createSound("CountdownBeep", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.COUNTDOWN_VOLUME, false),
 		Go = AudioRuntime.createSound("RaceGoFirst", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		GoRepeat = AudioRuntime.createSound("RaceGoSecond", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
+		GoThird = AudioRuntime.createSound("RaceGoThird", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		Lap = AudioRuntime.createSound("LapComplete", AudioConfig.ASSETS.LAP_COMPLETE, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		FinalLap = AudioRuntime.createSound("FinalLap", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		Finish = AudioRuntime.createSound("RaceFinish", AudioConfig.ASSETS.FINISH, SoundService, group, false, AudioConfig.RACE.FINISH_VOLUME, false),
@@ -32,6 +33,9 @@ function RaceAudioController.start()
 	end
 	if sounds.GoRepeat then
 		sounds.GoRepeat.PlaybackSpeed = 1.08
+	end
+	if sounds.GoThird then
+		sounds.GoThird.PlaybackSpeed = 1.08
 	end
 	AudioRuntime.preload(sounds)
 
@@ -57,19 +61,22 @@ function RaceAudioController.start()
 	local function playGo()
 		local first = sounds.Go
 		local second = sounds.GoRepeat
-		if not first or not second then
+		local third = sounds.GoThird
+		if not first or not second or not third then
 			return
 		end
 		goSerial += 1
 		local thisGo = goSerial
 		AudioRuntime.playOnce(first)
 		local beepLength = if first.TimeLength > 0 then first.TimeLength / first.PlaybackSpeed else 0.32
-		-- A short gap makes the two higher beeps span about twice one countdown beep.
-		task.delay(beepLength * 1.16, function()
-			if goSerial == thisGo and player:GetAttribute("RaceState") == "RACING" then
-				AudioRuntime.playOnce(second)
-			end
-		end)
+		-- Three higher beeps, with the same short gap between each.
+		for index, sound in { second, third } do
+			task.delay(beepLength * 1.16 * index, function()
+				if goSerial == thisGo and player:GetAttribute("RaceState") == "RACING" then
+					AudioRuntime.playOnce(sound)
+				end
+			end)
+		end
 	end
 
 	player:GetAttributeChangedSignal("RaceCountdown"):Connect(function()

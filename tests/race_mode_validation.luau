@@ -102,6 +102,8 @@ local function load(path, parent, name)
 end
 
 local config=load("src/shared/KartConfig.luau",shared,"KartConfig")
+load("src/shared/TrackGeometry.luau",shared,"TrackGeometry")
+load("src/shared/RaceRouteProgress.luau",shared,"RaceRouteProgress")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
@@ -199,3 +201,55 @@ for _, id in {"Track01","Track01Race","Track02"} do
  check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeShield")==1,"rematch replenishes "..id)
 end
 print("PASS: "..count.." Practice/race mode/checkpoint/loadout integration checks")
+
+-- Drive the real V2 geometry through the production controller, including
+-- excursions around CP4/CP5 (the two checkpoints left pending in the report).
+-- Explicit basis avoids this Lune version's lookAt Z-axis reflection.
+local function lookAt(position, target)
+ local forward=(target-position).Unit
+ return CF.fromMatrix(position,forward:Cross(V.yAxis),V.yAxis,-forward)
+end
+local geometry=modules.TrackGeometry
+local definition=geometry.getDefinition("PrototypeCircuitV2")
+local course=geometry.getCourse(definition)
+modules.TrackCatalog.Entries.Track02.GeometryId="PrototypeCircuitV2"
+track:SetAttribute("GeometryId","PrototypeCircuitV2")
+track:SetAttribute("CheckpointCount",#course.CheckpointSamples)
+road:Destroy()
+for i,point in course.Samples do
+ local following=course.Samples[i % #course.Samples+1]
+ local strip=child(roads,"Part","Road"..i)
+ strip.Size=V.new(definition.RoadWidth,1,(following-point).Magnitude+2)
+ strip.CFrame=lookAt((point+following)/2,following)
+end
+finish.CFrame=lookAt(course.StartPosition,course.StartPosition+course.StartTangent)
+finish.Size=V.new(definition.RoadWidth+16,16,12)
+for i,cp in course.CheckpointSamples do
+ local gate=checkpoints[i] or child(gates,"Part","CP"..i)
+ gate.Size=V.new(definition.RoadWidth+16,16,12)
+ gate.CFrame=lookAt(cp.Position,cp.Position+cp.Tangent)
+ gate:SetAttribute("RaceGate",true); gate:SetAttribute("GateType","Checkpoint"); gate:SetAttribute("CheckpointIndex",i)
+ checkpoints[i]=gate
+end
+kart:SetAttribute("RaceStartCFrame",lookAt(course.StartPosition-course.StartTangent*25,course.StartPosition))
+start("Track02")
+for lap=1,2 do
+ for step=0,2000 do
+  local fraction=step/2000
+  local tangent=geometry.getTangentAtFraction(course.Samples,fraction)
+  local offset=0
+  for _,i in {4,5,6} do
+   local gap=math.abs(fraction-course.CheckpointSamples[i].Fraction)
+   offset=math.max(offset,54*math.clamp((0.018-gap)/0.008,0,1))
+  end
+  local position=geometry.getSampleAtFraction(course.Samples,fraction)+V.new(-tangent.Z,0,tangent.X)*offset
+  chassis.CFrame=lookAt(position,position+tangent)
+  chassis.AssemblyLinearVelocity=tangent*70
+  tick(0.05)
+ end
+ check(player:GetAttribute("RaceCompletedLaps")==lap,"V2 excursion/return finish counts lap "..lap)
+end
+-- Provisional recovery must not bypass the existing off-road timeout.
+chassis.CFrame=CF.new(1500,0,1500); tick(10.1)
+check(player:GetAttribute("RaceState")=="DNF","offroad timeout still wins")
+print("PASS: "..count.." total race integration checks including real V2 recovery")
