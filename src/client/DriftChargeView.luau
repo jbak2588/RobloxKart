@@ -103,10 +103,20 @@ function Gauge.create(root, debugEnabled, player)
 				frame.Position=UDim2.new(.5,0,1,-diameter*2/3-10)
 			end
 		end
-		chargeLabel.Position=UDim2.new(frame.Position.X.Scale,frame.Position.X.Offset,
-			frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-5)
-		bonusLabel.Position=UDim2.new(chargeLabel.Position.X.Scale,chargeLabel.Position.X.Offset,
-			chargeLabel.Position.Y.Scale,chargeLabel.Position.Y.Offset-chargeLabel.Size.Y.Offset-5)
+		if mobile and size.Y >= 360 and size.X >= size.Y then
+			local loadoutCenter=l.margin+(l.slot*3+l.gap*2)/2
+			chargeLabel.Size=UDim2.fromOffset(190,34)
+			chargeLabel.Position=UDim2.new(0,loadoutCenter,
+				frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-8)
+			bonusLabel.Position=UDim2.new(0,loadoutCenter,
+				chargeLabel.Position.Y.Scale,chargeLabel.Position.Y.Offset-chargeLabel.Size.Y.Offset)
+		else
+			chargeLabel.Size=UDim2.fromOffset(165,34)
+			chargeLabel.Position=UDim2.new(frame.Position.X.Scale,frame.Position.X.Offset,
+				frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-5)
+			bonusLabel.Position=UDim2.new(chargeLabel.Position.X.Scale,chargeLabel.Position.X.Offset,
+				chargeLabel.Position.Y.Scale,chargeLabel.Position.Y.Offset-chargeLabel.Size.Y.Offset-5)
+		end
 		if diagnostic then
 			local width=math.min(184,size.X/2-60)
 			local x,y=size.X-width-12,size.Y-116

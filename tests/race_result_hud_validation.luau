@@ -202,6 +202,30 @@ for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
 check(speedFill.Size.X.Scale>0.99 and speedFill.Size.X.Scale<=1,
  "100 Nitro fills the speed bar")
 check(hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit Race appears only while racing")
+input.PreferredInput=rb.Enum.PreferredInput.Touch
+safeSize=rb.Vector2.new(844,390)
+camera.ViewportSize=rb.Vector2.new(844,390)
+input:GetPropertyChangedSignal("PreferredInput"):Fire()
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+local quitPanel=hud.Panel
+local quitButton=quitPanel.QuitRow.QuitRace
+local panelPadding=quitPanel:FindFirstChildOfClass("UIPadding")
+local function quitBottomSpace()
+	return quitPanel.Size.Y.Offset-panelPadding.PaddingTop.Offset-quitPanel.Lap.Size.Y.Offset
+		-quitPanel.Checkpoint.Size.Y.Offset-quitPanel.Best.Size.Y.Offset
+		-(if quitPanel.OffTrack.Visible then quitPanel.OffTrack.Size.Y.Offset else 0)
+		-quitButton.Size.Y.Offset
+end
+check(quitButton.Size.Y.Offset>=23 and quitBottomSpace()>=4 and quitBottomSpace()<=8,
+	"mobile Quit button retains touch height and 4-8px bottom space")
+set("RaceOffTrackRemaining",10)
+check(quitPanel.OffTrack.Visible and quitBottomSpace()>=4 and quitBottomSpace()<=8,
+	"off-track warning and Quit button fit in panel")
+set("RaceOffTrackRemaining",0)
+input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+camera.ViewportSize=rb.Vector2.new(1280,720)
+input:GetPropertyChangedSignal("PreferredInput"):Fire()
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 hud.Panel.QuitRow.QuitRace.Activated:Fire()
 check(hud.QuitConfirmation.Visible and remote.lastFire==nil,"first Quit click opens confirmation without server action")
 hud.QuitConfirmation.Frame.Cancel.Activated:Fire()

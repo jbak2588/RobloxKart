@@ -25,7 +25,9 @@ function View.layout(size: Vector2)
 		padCompact = compactPad,
 		driftX = margin, driftBottom = margin + (if portrait then action+8 else 0),
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
-		loadoutBottom = margin + (if portrait then action*2+36 else action+28),
+		-- Reserve a separate band for race-long Nitro progress and its award flash.
+		loadoutBottom = margin + (if portrait then action*2+36 else action+28)
+			+ (if not portrait and size.Y >= 360 then 62 else 0),
 		gaugeHeight = 12,
 		driftGaugeGap = 8,
 	}

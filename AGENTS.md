@@ -457,9 +457,11 @@ changing Drift charge difficulty, Nitro 100/3.0/75, or the 15-second off-track
 DNF threshold. The cumulative five-Boost bonus rule supersedes the earlier
 four-Boost requirement. The initial WAITING screen was covered
 by Garage PREPARING GRID; Garage now hides during PRE_RACE so the host sees the
-track lobby. This fix and R4 tuning await real-device confirmation. Also verify
-the fifth boost awards Nitro once, DON'T SHOW AGAIN survives a new app session
-while CONTROLS still opens manually, and off-track DNF occurs at 15 seconds.
+track lobby. The user confirmed on a real mobile device that cumulative progress
+reaches 5/5 without consecutive successes, the fifth Mini Boost awards one Nitro,
+the awarded Nitro is usable, and Mini Boost reaches 100 stud/s. The R4.3 mobile
+Nitro HUD spacing, lobby overlay, DON'T SHOW AGAIN across a new app session with
+manual CONTROLS access, and the 15-second off-track DNF still need device checks.
 
 M2-A1 temporary policy: RacerKart parts do not physically collide with other
 RacerKart parts; track/barrier contact remains unchanged. Revisit after final
@@ -553,5 +555,6 @@ Finish screen-space drift is camera-only. Never add lateral server kart physics
 for this cinematic.
 
 Automated tests do not replace device checks. R3 shared-race runtime was
-confirmed by the user on two real devices; the R4 balance and initial lobby
-overlay fix still need device validation before expanding the racer count.
+confirmed by the user on two real devices. The cumulative Bonus Nitro and 100
+stud/s Mini Boost checks above passed on mobile; the remaining R4 device checks
+and initial lobby overlay still need validation before expanding the racer count.

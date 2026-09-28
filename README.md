@@ -228,7 +228,12 @@ Finish Roll remains straight and unchanged. The narrower left results panel and
 camera composition still need final real-device validation for visual separation.
 M2-A0 prepared the server for multiple kart contexts. M2-A1 implements a
 two-player beta on Practice Circuit Race. The user has since validated the R3
-shared race on two real devices.
+shared race on two real devices. The user also confirmed on a real mobile device
+that cumulative progress reaches 5/5 without consecutive successes, the fifth
+Mini Boost awards one Bonus Nitro, the awarded Nitro can be used, and Mini Boost
+reaches 100 stud/s. R4.3 HUD spacing still needs device validation. Tutorial
+preference across a new app session, the 15-second off-track DNF, and the
+initial lobby overlay remain separate device checks.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ### Engine loop asset decision
@@ -300,8 +305,10 @@ as a small build label. Each actual Mini Boost start adds one cumulative point
 toward a five-Boost reward during that race. At 5/5, the racer earns one Bonus
 Nitro, at most once per race. Failed Drifts, off-track events, barriers, Slick,
 and other driving incidents do not remove earned progress. The drift HUD shows
-NITRO CHARGE progress and the award. On mobile, the
-last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
+NITRO CHARGE progress and the award. On mobile, the race-long counter sits
+below the three loadout cells, separate from the Drift gauge over DRIFT.
+The compact LAP panel ends 4 px below QUIT RACE while that action is visible.
+The last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
 stored separately from race data; CONTROLS still opens the tutorial manually.
 
 `Track01Race` (Practice Circuit Race, **2 laps**) accepts one or two racers.

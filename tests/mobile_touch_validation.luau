@@ -5,6 +5,14 @@ local fs, luau, rb = require("@lune/fs"), require("@lune/luau"), require("@lune/
 local V2, V3 = rb.Vector2, rb.Vector3
 local count = 0
 local function check(value, label) assert(value, label); count += 1 end
+local chargeSource=fs.readFile("src/client/DriftChargeView.luau")
+local rewardSource=fs.readFile("src/shared/RaceItemConfig.luau")
+check(string.find(chargeSource,"NITRO CHARGE",1,true)~=nil
+	and string.find(chargeSource,"DRIFT STREAK",1,true)==nil
+	and string.find(chargeSource,"/4",1,true)==nil,
+	"player-facing charge terminology has no legacy streak or four-count")
+check(string.find(rewardSource,"DRIFT_BONUS_REQUIRED_BOOSTS = 5",1,true)~=nil,
+	"production Bonus Nitro threshold remains five")
 local function signal()
 	local listeners = {}
 	return {
@@ -396,6 +404,32 @@ check(item._p.calls[#item._p.calls][1]=="Use","PC Q item trigger")
 ui.PreferredInput=rb.Enum.PreferredInput.Touch
 -- Verify reserved thumb/display rectangles remain separate at representative safe sizes.
 local function overlaps(a,b) return a[1]<b[3] and b[1]<a[3] and a[2]<b[4] and b[2]<a[4] end
+local function rect(element)
+	local p,s=element.AbsolutePosition,element.AbsoluteSize
+	return {p.X,p.Y,p.X+s.X,p.Y+s.Y}
+end
+for _, size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390)} do
+	safeSize=size
+	productionGauge:layout(size,true)
+	local l=modules.MobileControlView.layout(size)
+	local row={l.margin,size.Y-l.loadoutBottom-l.slot,
+		l.margin+l.slot*3+l.gap*2,size.Y-l.loadoutBottom}
+	local progress=rect(productionRoot.NitroCharge)
+	local flash=rect(productionRoot.DriftBonusNitro)
+	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
+	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
+	local gaugeRect=rect(productionGauge.frame)
+	check(math.abs((progress[1]+progress[3])/2-(row[1]+row[3])/2)<.5,
+		"Nitro progress centers on all three item slots")
+	for _, display in {progress,flash} do
+		check(display[1]>=0 and display[3]<=size.X and display[2]>=0 and display[4]<=size.Y,
+			"Nitro display remains inside safe area")
+		for _, other in {row,driftRect,useRect,gaugeRect} do
+			check(not overlaps(display,other),"Nitro display avoids item cells, controls and gauge")
+		end
+	end
+	check(not overlaps(progress,flash),"earned progress and temporary award have separate space")
+end
 for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),V2.new(320,568),V2.new(929,688)} do
 	safeSize=size; root:GetPropertyChangedSignal("AbsoluteSize"):Fire(); tick()
 	local l=modules.MobileControlView.layout(size)

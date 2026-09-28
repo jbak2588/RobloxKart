@@ -686,6 +686,11 @@ function RaceHudController.start()
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
 			local l = MobileView.layout(safeSize)
+			padding.PaddingBottom = UDim.new(0, if quitRow.Visible then 4 else 6)
+			local lapWidth = math.min(170, safeSize.X*0.28)
+			frame.Size = UDim2.fromOffset(lapWidth,
+				6 + 25 + 20 + 20 + (if offTrackLabel.Visible then 20 else 0)
+				+ (if quitRow.Visible then 24 else 0) + (if quitRow.Visible then 4 else 6))
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
 			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,
@@ -694,8 +699,6 @@ function RaceHudController.start()
 			speedPanel.Size = UDim2.fromOffset(160, l.speedHeight)
 			speedTrack.Position = UDim2.fromOffset(10, 44)
 			-- Top HUD stays clear of both thumb zones; desktop geometry is unchanged.
-			local lapWidth = math.min(170, safeSize.X*0.28)
-			frame.Size = UDim2.fromOffset(lapWidth, (if offTrackLabel.Visible then 116 else 96) + (if quitRow.Visible then 24 else 0))
 			lapLabel.TextSize = 18
 			checkpointLabel.TextSize = 12
 			bestLabel.TextSize = 12
