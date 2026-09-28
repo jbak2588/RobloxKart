@@ -473,7 +473,10 @@ function RaceHudController.start()
 			local targetHeight = if resultState == "DNF" then 185 elseif resultLaps == 1 then 240 else 270
 			local resultHeight = math.min(targetHeight, resultArea.Y - 16)
 			local tight = resultArea.Y < 280
-			resultsPanel.Size = UDim2.fromOffset(math.min(330, resultArea.X - 24), resultHeight)
+			local splitResult = mobile and resultState == "FINISHED" and resultArea.X >= 720
+			local resultWidth = if splitResult then math.min(if resultLaps == 1 then 270 else 300, resultArea.X * 0.42)
+				else math.min(330, resultArea.X - 24)
+			resultsPanel.Size = UDim2.fromOffset(resultWidth, resultHeight)
 			resultsLayout.Padding = UDim.new(0, if tight then 2 else 4)
 			resultsPadding.PaddingTop = UDim.new(0, if tight then 7 else 10)
 			resultsPadding.PaddingBottom = resultsPadding.PaddingTop
@@ -547,8 +550,11 @@ function RaceHudController.start()
 			garageButton.TextSize = 20
 		end
 		local compositionWidth = if mobile and screenGui.AbsoluteSize.X > 0 then screenGui.AbsoluteSize.X else viewportSize.X
-		resultsPanel.Position = if player:GetAttribute("RaceState") == "FINISHED" and compositionWidth >= 720
-			then UDim2.fromScale(if mobile then 0.25 else 0.26, 0.52)
+		local finished = player:GetAttribute("RaceState") == "FINISHED"
+		local mobileSplit = mobile and finished and compositionWidth >= 720
+		resultsPanel.AnchorPoint = if mobileSplit then Vector2.new(0, 0.5) else Vector2.new(0.5, 0.5)
+		resultsPanel.Position = if mobileSplit then UDim2.new(0, 14, 0.52, 0)
+			elseif finished and not mobile and compositionWidth >= 720 then UDim2.fromScale(0.26, 0.52)
 			else UDim2.fromScale(0.5, 0.5)
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize

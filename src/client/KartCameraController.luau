@@ -8,6 +8,7 @@ local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("
 local KartConfig = requireModule(kartConfigModule)
 local RaceConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
 local ChaseMotion = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ChaseCameraMotion"))
+local Input = require(script.Parent:WaitForChild("KartInputController"))
 
 local KartCameraController = {}
 
@@ -99,7 +100,9 @@ function KartCameraController.start()
 				finishTransitionStartCFrame = camera.CFrame
 			end
 			local right = lastPlanarForward:Cross(WORLD_UP).Unit
+			local mobileFinish = Input.isTouchPreferred() and camera.ViewportSize.X >= 720
 			local lookTarget = chassis.Position + WORLD_UP * 2.25
+				- right * (if mobileFinish then 2.5 else 0)
 			local frontPosition = chassis.Position + lastPlanarForward * 11 + right * 2.5 + WORLD_UP * 4.5
 			local frontCFrame = CFrame.lookAt(frontPosition, lookTarget, WORLD_UP)
 			camera.CameraType = Enum.CameraType.Scriptable

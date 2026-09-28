@@ -19,7 +19,7 @@ Initial commercial target: **USD 500/month**.
 
 - Repository: `jbak2588/RobloxKart`
 - Branch: `prototype/kart-physics`
-- Approved HEAD: `83c24303ccf5485d51dff6c99e1554ce3f3a4a8f`
+- Review baseline: current `origin/prototype/kart-physics` HEAD
 
 ## Game Flow
 
@@ -271,14 +271,13 @@ Do not:
 
 ## Next Development Order
 
-1. Mobile Touch Driving
-2. Tilt Steering + Recenter
-3. Android/iPhone tuning
-4. 2-player Multiplayer
-5. 4–6 player Multiplayer
-6. Persistence / Racer XP
-7. Shop / Inventory / monetization
-8. Reward/Collectible systems later
+1. M1-B.1 real-device final validation
+2. 2-player Multiplayer
+3. 4-player Multiplayer, then 6-player tuning
+4. TrackV2 geometry revision / beta iteration as scheduled
+5. Persistence / Racer XP
+6. Shop / Inventory / cosmetics
+7. Optional Tilt if player feedback requires it
 
 ## Driver appearance decision (2026-09-26)
 

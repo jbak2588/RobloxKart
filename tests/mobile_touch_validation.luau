@@ -127,7 +127,16 @@ check(examples.ReadyGauge.Segment5.BackgroundColor3==rb.Color3.fromRGB(255,218,7
 check(not string.find(tutorialCard.Diagram.Text,"▰",1,true) and not string.find(tutorialCard.Diagram.Text,"▱",1,true),"tutorial gauge uses no Unicode blocks")
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="RACE ITEMS","tutorial advances to items")
-check(tutorialCard.Diagram.Visible,"item diagram remains visible")
+check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","item page has no spacing-based text row")
+local captions=tutorialCard.ItemCaptions
+check(captions.Visible and #captions:GetChildren()==4,"item page has four independent captions")
+for index,name in {"NITRO","SLICK","SHIELD","USE"} do
+ local caption=captions:FindFirstChild("Caption"..index)
+ local slot=iconSlots:FindFirstChild("IconSlot"..index)
+ check(caption.Text==name and caption.TextXAlignment==rb.Enum.TextXAlignment.Center
+  and caption.Position.X.Offset+caption.Size.X.Offset/2==slot.Position.X.Offset+slot.Size.X.Offset/2,
+  "item caption centers on its icon column: "..name)
+end
 assertTutorialIcons({"Nitro","Slick","Shield","Use"})
 check(not string.find(fs.readFile("src/client/GarageUiController.luau"),"CONTROLS ?",1,true),"Garage control replay label has no question mark")
 tutorialCard.Back.Activated:Fire()

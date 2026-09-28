@@ -62,6 +62,28 @@ function Tutorial.create(parent: Instance)
 		MobileView.round(holder, UDim.new(0, 7))
 		icons[index] = holder
 	end
+	local itemCaptions = Instance.new("Frame")
+	itemCaptions.Name = "ItemCaptions"
+	itemCaptions.AnchorPoint = Vector2.new(0.5, 0)
+	itemCaptions.Size = UDim2.fromOffset(220, 18)
+	itemCaptions.BackgroundTransparency = 1
+	itemCaptions.ZIndex = 32
+	itemCaptions.Visible = false
+	itemCaptions.Parent = card
+	for index, text in { "NITRO", "SLICK", "SHIELD", "USE" } do
+		local caption = Instance.new("TextLabel")
+		caption.Name = "Caption" .. index
+		caption.Position = UDim2.fromOffset((index - 1) * 56, 0)
+		caption.Size = UDim2.fromOffset(44, 18)
+		caption.BackgroundTransparency = 1
+		caption.Font = Enum.Font.GothamBold
+		caption.Text = text
+		caption.TextColor3 = Color3.fromRGB(225, 246, 255)
+		caption.TextSize = 11
+		caption.TextXAlignment = Enum.TextXAlignment.Center
+		caption.ZIndex = 32
+		caption.Parent = itemCaptions
+	end
 	local gaugeExamples = Instance.new("Frame")
 	gaugeExamples.Name = "GaugeExamples"
 	gaugeExamples.Size = UDim2.fromOffset(230, 42)
@@ -128,7 +150,7 @@ function Tutorial.create(parent: Instance)
 	local pages = {
 		{ "DRIVE", "↑       ←   →       ↓", "↑ Accelerate    ← → Steer    ↓ Brake / Reverse\nTap Auto Drive to keep accelerating. Brake overrides it.", { "Forward", "Left", "Right", "Brake" } },
 		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Hold DRIFT while steering. Fill the gauge.\nRelease when it turns gold for MINI BOOST.", { "Drift", "Left", "Right" } },
-		{ "RACE ITEMS", "NITRO       SLICK       SHIELD       USE", "Tap an item to select it.\nTap the Trigger button to use the selected item.", { "Nitro", "Slick", "Shield", "Use" } },
+		{ "RACE ITEMS", "", "Tap an item to select it.\nTap the Trigger button to use the selected item.", { "Nitro", "Slick", "Shield", "Use" } },
 	}
 	local function layoutContent()
 		local compact = card.Size.Y.Offset < 280
@@ -137,6 +159,7 @@ function Tutorial.create(parent: Instance)
 		diagram.TextSize = if compact then 17 else 21
 		iconRow.Position = UDim2.new(0.5, 0, 0, if page == 1 then (if compact then 55 else 66)
 			else (if compact then (if page == 2 then 76 else 87) else (if page == 2 then 83 else 91)))
+		itemCaptions.Position = UDim2.new(0.5, 0, 0, if compact then 65 else 69)
 		gaugeExamples.Position = UDim2.new(0.5, -115, 0, if compact then 122 else 140)
 		description.Position = UDim2.new(0, 18, 0, if page == 1 then (if compact then 110 else 119)
 			else (if page == 2 then (if compact then 167 else 187) else (if compact then 132 else 140)))
@@ -149,8 +172,9 @@ function Tutorial.create(parent: Instance)
 		local data = pages[page]
 		title.Text = data[1]
 		diagram.Text = if page == 1 then "" else data[2]
-		diagram.Visible = page ~= 1
+		diagram.Visible = page == 2
 		description.Text = data[3]
+		itemCaptions.Visible = page == 3
 		gaugeExamples.Visible = page == 2
 		for index, holder in icons do
 			holder.Visible = data[4][index] ~= nil

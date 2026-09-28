@@ -487,5 +487,9 @@ Chase camera; Garage clears finish presentation state. DNF remains separate.
 Results show Total Time, Lap 1/2/3, best lap number, displayed-centisecond
 deltas, Rematch and Garage. Practice shows Lap 1 only.
 
+On mobile FINISHED screens, keep the left result panel visually separate from
+the Driver/Kart. Touch finish camera composition may shift the Driver/Kart right;
+preserve the desktop finish view.
+
 Do not start Multiplayer until the M1-B presentation receives real-device
 validation and the user authorizes that work.
