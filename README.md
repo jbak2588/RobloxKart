@@ -224,7 +224,8 @@ mobile Finish view now uses camera-only screen composition during the late
 ROLL to move the Kart image toward the right before the front view. The server
 Finish Roll remains straight and unchanged. The narrower left results panel and
 camera composition still need final real-device validation for visual separation.
-2-player Multiplayer is next after M1-B real-device validation and user approval.
+M2-A0 prepares the server for multiple kart contexts. Playable 2-player racing is
+the next phase after M1-B real-device validation.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ### Engine loop asset decision
@@ -270,6 +271,27 @@ steady-RPM texture over a startup, throttle-blip or rev-up/release clip.
 - DataStore
 - Shop
 
+## M2-A0 Multiplayer Foundation
+
+The server maps each Player to a `KartContext` holding that kart's chassis,
+seat, controls, speed, Drift, Mini Boost, Nitro, Slick victim motion, barrier
+response and Finish Roll state. `PrototypeWorld` runs one Heartbeat over the
+registered contexts. `KartControl` still sends throttle, steering and Drift only;
+the server resolves the caller's context and verifies its seat. Server physics
+authority and tuning are unchanged.
+
+One `RaceSession` owns the shared active track, match mode, participant map and
+future finish-order hook. Each `RacerState` owns checkpoint/route progress,
+lap timing, off-track timing, reset tracking and finish timing. Player Attributes
+remain the replicated UI contract. RaceItem cleanup is player-specific;
+Slick hazards carry a server-assigned owner and session, while Shield and hit
+immunity remain separate for each player.
+
+The current user-facing flow remains single-player. M2-A0 does not enable a
+two-player synchronized start, matchmaking, ranking, or kart interaction.
+Kart-to-kart collision policy remains undecided. All racers will share one
+active track rather than duplicating courses.
+
 ## Known Polish Gates
 
 - occasional ~0.1 sec driving/frame hitch
@@ -309,9 +331,9 @@ Do not:
 
 ## Next Development Order
 
-1. M1-B.1 real-device final validation
-2. 2-player Multiplayer
-3. 4-player Multiplayer, then 6-player tuning
+1. M2-A1 2-player synchronized race after M1-B real-device validation
+2. 4-player expansion
+3. 6-player tuning only after 4-player validation
 4. TrackV2 geometry revision / beta iteration as scheduled
 5. Persistence / Racer XP
 6. Shop / Inventory / cosmetics

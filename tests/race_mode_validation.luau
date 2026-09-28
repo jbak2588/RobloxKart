@@ -147,12 +147,17 @@ player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100; human.SeatPart=seat
 player:SetAttribute("SelectedTrackId","Track01")
 kart:SetAttribute("RaceStartCFrame",CF.new(0,0,20))
-local race=load("src/server/RaceController.luau",server,"RaceController")
-race.start()
 child(server,"ModuleScript","PrototypeWorld")
-modules.PrototypeWorld={getRaceKart=function(p)
+local kartContext={owner=player,kart=kart,chassis=chassis,seat=seat}
+modules.PrototypeWorld={getKartContext=function(p)
+ if p==player then return kartContext end
+end, getRaceKart=function(p)
  if p==player and p:GetAttribute("RaceState")=="RACING" and not kart:GetAttribute("RaceControlsLocked") then return kart,chassis end
 end, activateNitro=function() return true end, applySlickHit=function() return true end}
+load("src/server/RaceSession.luau",server,"RaceSession")
+load("src/server/RacerState.luau",server,"RacerState")
+local race=load("src/server/RaceController.luau",server,"RaceController")
+race.start()
 load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")

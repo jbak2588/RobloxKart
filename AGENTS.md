@@ -227,7 +227,7 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-2-player Multiplayer after M1-B real-device finish presentation validation.
+M2-A1 2-player synchronized race after M1-B real-device finish presentation validation.
 Use Practice Circuit Race first; TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
@@ -411,14 +411,23 @@ Avoid strong paid race-performance advantages.
 
 ## Multiplayer
 
-After M1-B real-device validation, start with 2 players on Practice Circuit
-Race, then expand:
+M2-A0 foundation maps Player -> KartContext. Racer-specific simulation state
+must never be a global singleton. One RaceSession owns shared match/track
+lifecycle; RacerState owns each participant's lap, off-track and finish progress.
+Player Attributes remain the replicated UI contract. One player lifecycle event
+must not clear other racers' resources. Slick hazards keep their server-assigned
+owner and session. KartControl never trusts a client-selected Kart identity.
+Use one shared track with multiple kart contexts. M2-A0 makes no kart collision,
+ranking or matchmaking decision and does not enable public multiplayer.
+
+After M1-B real-device validation, M2-A1 starts with 2 synchronized players on
+Practice Circuit Race, then expands:
 
 2 players
 → 4
 → 6
 
-Before Multiplayer audit:
+Before enabling 2-player racing, verify:
 
 RaceItemController cleanup
 hazard ownership
@@ -496,5 +505,5 @@ preserve the desktop finish view.
 Finish screen-space drift is camera-only. Never add lateral server kart physics
 for this cinematic.
 
-Do not start Multiplayer until the M1-B presentation receives real-device
-validation and the user authorizes that work.
+Do not enable playable multiplayer until the M1-B presentation receives
+real-device validation and the user authorizes that phase.

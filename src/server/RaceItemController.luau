@@ -5,6 +5,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
+local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local RaceLoadout = require(script.Parent:WaitForChild("RaceLoadout"))
 local Geometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
@@ -12,6 +13,7 @@ local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
 local RaceItemController = {}
 local started = false
 local loadouts, connections, lastUse = {}, {}, {}
+local kartConnections = {}
 local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
 local prototype, hazardFolder
@@ -41,11 +43,20 @@ local function clearPlayer(player)
 	local state = immunity[player]
 	if state then state.kart:SetAttribute("RaceItemHitImmunity", false) end
 	immunity[player], previousPositions[player], lastUse[player] = nil, nil, nil
+	for index = #hazards, 1, -1 do
+		if hazards[index].owner == player then removeHazard(index) end
+	end
 	publish(player)
 end
-local function clearSession()
-	for player in loadouts do clearPlayer(player) end
-	for index = #hazards, 1, -1 do removeHazard(index) end
+local function clearHazardsForSession(session)
+	for index = #hazards, 1, -1 do
+		if hazards[index].session == session then removeHazard(index) end
+	end
+end
+-- Reserved for an explicit shared-session reset; individual lifecycle events use clearPlayer.
+local function clearSession(session)
+	for player in session.participants do clearPlayer(player) end
+	clearHazardsForSession(session)
 end
 
 -- Future player-specific reward gate calls this once; no client grant action.
@@ -60,6 +71,9 @@ end
 -- One offensive-item resolution path; source identity comes only from server hazards.
 function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePlayer: Player, itemId: string): (boolean, string)
 	if itemId ~= "Slick" then return false, "unsupported_item" end
+	local sourceSession = RaceSession.forPlayer(sourcePlayer)
+	local targetSession = RaceSession.forPlayer(targetPlayer)
+	if not sourceSession or sourceSession ~= targetSession then return false, "cross_session" end
 	local kart = PrototypeWorld.getRaceKart(targetPlayer)
 	if not kart or kart:GetAttribute("KartOffTrack") == true then return false, "invalid_target" end
 	local now = time()
@@ -96,7 +110,8 @@ local function activate(player, id)
 		if not frame then return false, "no_road_behind" end
 		if #hazards >= Config.SLICK_MAX_HAZARDS then return false, "hazard_limit" end
 		local model, trigger, deploy = Visuals.slick(hazardFolder, frame, Config, chassis.CFrame)
-		table.insert(hazards, { model=model, trigger=trigger, deploy=deploy, owner=player, born=time() })
+		table.insert(hazards, { model=model, trigger=trigger, deploy=deploy, owner=player,
+			session=RaceSession.forPlayer(player), born=time() })
 		player:SetAttribute("SlickDeployFrame", frame)
 		player:SetAttribute("SlickEjectPosition", (chassis.CFrame * CFrame.new(0, 5, 3)).Position)
 		player:SetAttribute("SlickDeployedSerial", (player:GetAttribute("SlickDeployedSerial") or 0) + 1)
@@ -117,10 +132,30 @@ function RaceItemController.start()
 		remote.Parent = ReplicatedStorage
 	end
 	prototype = Workspace:WaitForChild("Prototype")
-	local kart = prototype:WaitForChild("Kart")
 	hazardFolder = Instance.new("Folder")
 	hazardFolder.Name = "RaceItemHazards"
 	hazardFolder.Parent = prototype
+	local function unbindKart(player)
+		for _, connection in kartConnections[player] or {} do connection:Disconnect() end
+		kartConnections[player] = nil
+	end
+	local function bindKart(player)
+		unbindKart(player)
+		local context = PrototypeWorld.getKartContext(player)
+		if not context then return end
+		local kart, seat = context.kart, context.seat
+		kartConnections[player] = {
+			kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() clearPlayer(player) end),
+			seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+				-- Grid seating during COUNTDOWN keeps the prepared loadout.
+				if player:GetAttribute("RaceState") ~= "COUNTDOWN" then
+					local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					if not humanoid or seat.Occupant ~= humanoid then clearPlayer(player) end
+				end
+			end),
+			kart.Destroying:Connect(function() clearPlayer(player); unbindKart(player) end),
+		}
+	end
 	local function bind(player)
 		if loadouts[player] then return end
 		loadouts[player] = RaceLoadout.new()
@@ -134,31 +169,25 @@ function RaceItemController.start()
 				local oldState = previousState
 				previousState = state
 				if state == "COUNTDOWN" then
-					clearSession()
+					clearPlayer(player)
+					bindKart(player)
 					loadouts[player]:prepare()
 					publish(player)
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
-					clearSession()
+					clearPlayer(player)
 				end
 			end),
-			player.CharacterRemoving:Connect(clearSession),
+			player.CharacterRemoving:Connect(function() clearPlayer(player) end),
 		}
 	end
 	Players.PlayerAdded:Connect(bind)
 	Players.PlayerRemoving:Connect(function(player)
-		clearSession()
+		clearPlayer(player)
+		unbindKart(player)
 		for _, connection in connections[player] or {} do connection:Disconnect() end
 		connections[player], loadouts[player] = nil, nil
 	end)
 	for _, player in Players:GetPlayers() do bind(player) end
-	kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(clearSession)
-	kart:WaitForChild("Seat"):GetPropertyChangedSignal("Occupant"):Connect(function()
-		-- Grid seating happens during COUNTDOWN; it must not erase prepared charges.
-		for player in loadouts do
-			if player:GetAttribute("RaceState") ~= "COUNTDOWN" then clearSession(); break end
-		end
-	end)
-	kart.Destroying:Connect(clearSession)
 	remote.OnServerEvent:Connect(function(player, action, ...)
 		local loadout = loadouts[player]
 		if not loadout then return end
@@ -198,7 +227,8 @@ function RaceItemController.start()
 			if not remove then
 				if hazard.deploy and Visuals.updateSlick(hazard.deploy, now-hazard.born) then hazard.deploy = nil end
 				for _, target in targets do
-					if (target.player ~= hazard.owner or now-hazard.born >= Config.SLICK_OWNER_GRACE)
+					if hazard.session ~= nil and hazard.session == RaceSession.forPlayer(target.player)
+						and (target.player ~= hazard.owner or now-hazard.born >= Config.SLICK_OWNER_GRACE)
 						and Geometry.crosses(hazard.trigger.CFrame, hazard.trigger.Size, target.previous, target.chassis) then
 						local accepted = RaceItemController.tryApplyOffensiveItem(target.player, hazard.owner, "Slick")
 						if accepted then remove = true; break end

@@ -9,6 +9,7 @@ local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
+local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 local requireModule = require :: (ModuleScript) -> any
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
@@ -52,8 +53,6 @@ function GarageController.start()
 	started = true
 
 	local prototype = Workspace:WaitForChild("Prototype")
-	local kart = prototype:WaitForChild("Kart") :: Model
-	local seat = kart:WaitForChild("Seat") :: Seat
 	local spawnLocation = prototype:WaitForChild("PlayerSpawn") :: SpawnLocation
 	prototype:WaitForChild("TestTrack")
 	local ground = Workspace:FindFirstChild("Baseplate") or prototype:FindFirstChild("Ground")
@@ -138,10 +137,6 @@ function GarageController.start()
 		if not driver or not kartSelection or not track or track.ModelName ~= "TestTrack" then
 			return
 		end
-		if seat.Occupant then
-			player:SetAttribute("RaceEntryError", "Kart in use")
-			return
-		end
 		local slotIndex = nextGridSlot(track.GridSlots)
 		if not slotIndex then
 			player:SetAttribute("RaceEntryError", "Grid full")
@@ -153,6 +148,16 @@ function GarageController.start()
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if not character or not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then
 			player:SetAttribute("RaceEntryError", "Driver not ready")
+			return
+		end
+		local context = PrototypeWorld.assignDefaultKart(player)
+		if not context then
+			player:SetAttribute("RaceEntryError", "Kart in use")
+			return
+		end
+		local kart, seat = context.kart, context.seat
+		if seat.Occupant then
+			player:SetAttribute("RaceEntryError", "Kart in use")
 			return
 		end
 

@@ -126,6 +126,8 @@ local originalNew=loadoutType.new
 loadoutType.new=function() local result=originalNew(); table.insert(instances,result); return result end
 local Nitro=load("src/server/NitroState.luau",server,"NitroState")
 load("src/server/DriftTelemetry.luau",server,"DriftTelemetry")
+load("src/server/KartContext.luau",server,"KartContext")
+local sessionType=load("src/server/RaceSession.luau",server,"RaceSession")
 local itemConfig=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
@@ -159,8 +161,11 @@ local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100
 local world=load("src/server/PrototypeWorld.luau",server,"PrototypeWorld")
 check(not world.activateNitro(player),"pre-start rejection")
 world.start()
+check(world.assignDefaultKart(player) ~= nil,"default kart assigned to driver")
 local items=load("src/server/RaceItemController.luau",server,"RaceItemController")
 items.start()
+local initialSession=sessionType.new("Track01","PRACTICE",1)
+initialSession:add(player,{})
 local state=instances[1]
 local function fixtureItem(_,id)
 	state.counts[id]=1
@@ -533,7 +538,63 @@ check(step(1,raceConfig.FINISH_ROLL_SECONDS-1.2)==0,"finish roll reaches zero at
 kart:SetAttribute("KartFinishRollActive",false)
 check(step(1,0)==0,"locked kart remains stopped after finish roll")
 config.DEBUG_TELEMETRY=false
+
+-- Two real production contexts and item controllers must keep ownership isolated.
+local second=child(services.Players,"Player","SecondDriver"); second.UserId=2
+second.Character=object("Model","SecondCharacter")
+local secondHuman=child(second.Character,"Humanoid","Humanoid"); secondHuman.Health=100
+local secondContext=world.createKartContext(second,CF.new(20,1.75,0))
+local firstContext=world.getKartContext(player)
+check(firstContext~=secondContext and world.getKartContext(second)==secondContext,"distinct registered kart contexts")
+services.Players.PlayerAdded:Fire(second)
+local session=sessionType.new("Track01","RACE",3)
+session:add(player,{})
+session:add(second,{})
+startRace()
+second:SetAttribute("RaceState","COUNTDOWN")
+secondContext.seat.Occupant=secondHuman; secondHuman.SeatPart=secondContext.seat
+second:SetAttribute("RaceState","RACING")
+secondContext.kart:SetAttribute("RaceControlsLocked",false)
+control.OnServerEvent:Fire(second,1,0.7,true)
+check(secondContext.control and secondContext.control.steering==0.7 and firstContext.control.steering==0,
+	"throttle and steering stay on their owner context")
+secondContext:receiveControl(player,-1,-1,false)
+check(secondContext.control.steering==0.7,"foreign caller cannot control another kart")
+check(world.getRaceKart(player)==kart and world.getRaceKart(second)==secondContext.kart,
+	"player resolves to own seated race kart")
+remote.OnServerEvent:Fire(second,"Select","Shield")
+remote.OnServerEvent:Fire(second,"Use")
+check(secondContext.kart:GetAttribute("KartShieldActive"),"second player shield active")
+check(not kart:GetAttribute("KartShieldActive"),"second player Shield does not set first kart Shield")
+remote.OnServerEvent:Fire(second,"Select","Slick")
+now+=0.2; remote.OnServerEvent:Fire(second,"Use")
+local secondHazardCount=hazardCount()
+check(secondHazardCount>0,"second player owns Slick hazard")
+player:SetAttribute("RaceState","COUNTDOWN")
+check(second:GetAttribute("RaceChargeNitro")==1 and secondContext.kart:GetAttribute("KartShieldActive")
+	and hazardCount()==secondHazardCount,"first COUNTDOWN preserves second resources")
+player:SetAttribute("RaceState","RACING")
+player:SetAttribute("RaceState","FINISHED")
+check(second:GetAttribute("RaceChargeNitro")==1 and secondContext.kart:GetAttribute("KartShieldActive")
+	and hazardCount()==secondHazardCount,"first FINISH preserves second resources")
+player.CharacterRemoving:Fire()
+check(secondContext.kart:GetAttribute("KartShieldActive") and hazardCount()==secondHazardCount,
+	"first CharacterRemoving preserves second resources")
+local otherSession=sessionType.new("Other","RACE",3)
+otherSession:add(second,{})
+local accepted,reason=items.tryApplyOffensiveItem(second,player,"Slick")
+check(not accepted and reason=="cross_session","cross-session offensive target rejected")
+otherSession:remove(second); session:add(second,{})
+check(sessionType.forPlayer(second)==session,"session membership restored")
+local blocked,blockReason=items.tryApplyOffensiveItem(second,second,"Slick")
+check(blocked and blockReason=="blocked" and not secondContext.kart:GetAttribute("KartShieldActive"),
+	"second player Shield absorbs only its own attack")
+local hit,hitReason=items.tryApplyOffensiveItem(second,second,"Slick")
+check(hit and hitReason=="hit" and secondContext.kart:GetAttribute("RaceItemHitImmunity"),
+	"second player receives independent hit immunity")
 services.Players.PlayerRemoving:Fire(player)
+check(second:GetAttribute("RaceChargeNitro")==1 and secondContext.kart:GetAttribute("RaceItemHitImmunity")
+	and hazardCount()==secondHazardCount,"first PlayerRemoving preserves second resources")
 check(not items.grantBonusNitro(player),"removed player has no loadout")
 kart:Destroy()
 check(not world.activateNitro(player),"destroyed kart disables activation bridge")
