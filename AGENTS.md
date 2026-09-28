@@ -331,6 +331,8 @@ Half-oval design is future polish.
 
 TrackV2 geometry revision remains pending. M1-B finish presentation needs
 real-device validation. Set `DEBUG_TELEMETRY = false` before public production.
+The periodic EngineLoop thump is under developer A/B listening diagnosis;
+the trim candidates are not approved production audio settings.
 
 ### Frame hitch
 

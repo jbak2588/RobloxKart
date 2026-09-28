@@ -223,6 +223,31 @@ composition and lifecycle still require Studio and real Android/iPhone checks.
 2-player Multiplayer is next after M1-B real-device validation and user approval.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
+### Engine loop seam diagnostic
+
+The current `ENGINE_LOOP` asset is `rbxassetid://6667206432` (catalog length
+about 1.927 seconds). At 70 studs/s the existing dynamic pitch is about 1.29x,
+so an asset-boundary sound would recur about every 1.49 seconds. The reported
+periodic thump has not yet been identified by listening comparison.
+
+In Studio Play, use the Server Command Bar to select a mode for the first player:
+
+```lua
+game.Players:GetPlayers()[1]:SetAttribute("KartEngineLoopTestMode", "FIXED_FULL")
+```
+
+Listen in order: `NORMAL`, `FIXED_FULL`, `FIXED_A`, `FIXED_B`, then
+`DYNAMIC_A` or `DYNAMIC_B` if one trimmed candidate sounds better. Repeat
+`SetAttribute` with each mode name. `FIXED_FULL` plays the full asset at 1x;
+`FIXED_A/B` trim 0.05/0.10 seconds at each end at 1x; `DYNAMIC_A/B` use those
+regions with the existing pitch response. Compare idle, 70 studs/s and Mini
+Boost, prioritizing 70. `[KartEngineDiag]` prints the loaded runtime length and
+effective loop period once per mode. If the asset does not load within five
+seconds, the mode uses the full asset and prints a warning. A missing or invalid
+attribute means `NORMAL`; diagnostic modes work only in Studio or when
+`DEBUG_TELEMETRY` is enabled. No player-facing setting or new audio asset is
+included.
+
 ## Deferred
 
 - Nitro Reward Challenge

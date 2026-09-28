@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AudioConfig = require(Shared:WaitForChild("AudioConfig"))
 local KartConfig = require(Shared:WaitForChild("KartConfig"))
 local AudioRuntime = require(script.Parent:WaitForChild("AudioRuntime"))
+local EngineLoopDiagnostic = require(script.Parent:WaitForChild("EngineLoopDiagnostic"))
 
 local KartAudioController = {}
 local started = false
@@ -41,11 +42,13 @@ function KartAudioController.start()
 	local kartConnections: { RBXScriptConnection } = {}
 	local sounds: { Sound } = {}
 	local engine: Sound? = nil
+	local engineDiagnostic = nil
 	local drift: Sound? = nil
 	local boostStart: Sound? = nil
 	local boostLoop: Sound? = nil
 
 	local function detach()
+		if engineDiagnostic then engineDiagnostic:destroy(); engineDiagnostic = nil end
 		if heartbeatConnection then
 			heartbeatConnection:Disconnect()
 			heartbeatConnection = nil
@@ -114,7 +117,14 @@ function KartAudioController.start()
 		boostStart = addSound("BoostStart", AudioConfig.ASSETS.BOOST_START, sfxGroup, false, AudioConfig.BOOST.START_VOLUME)
 		boostLoop = addSound("BoostLoop", AudioConfig.ASSETS.BOOST_LOOP, sfxGroup, true, AudioConfig.BOOST.LOOP_VOLUME)
 		AudioRuntime.preload({ Engine = engine, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
-		AudioRuntime.playLoop(engine)
+		if engine then
+			engineDiagnostic = EngineLoopDiagnostic.new(engine,
+				RunService:IsStudio() or KartConfig.DEBUG_TELEMETRY == true)
+			engineDiagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"))
+			table.insert(kartConnections, player:GetAttributeChangedSignal("KartEngineLoopTestMode"):Connect(function()
+				if engineDiagnostic then engineDiagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode")) end
+			end))
+		end
 
 		local wasBoosting = kart:GetAttribute("KartBoosting") == true
 		local wasNitroActive = kart:GetAttribute("KartNitroActive") == true
@@ -169,7 +179,9 @@ function KartAudioController.start()
 					local targetVolume = AudioConfig.ENGINE.IDLE_VOLUME
 						+ (AudioConfig.ENGINE.MAX_VOLUME - AudioConfig.ENGINE.IDLE_VOLUME) * normalized
 					local alpha = 1 - math.exp(-AudioConfig.ENGINE.RESPONSE * deltaTime)
-					engine.PlaybackSpeed += (targetPitch - engine.PlaybackSpeed) * alpha
+					if not engineDiagnostic or not engineDiagnostic:isFixed() then
+						engine.PlaybackSpeed += (targetPitch - engine.PlaybackSpeed) * alpha
+					end
 					engine.Volume += (targetVolume - engine.Volume) * alpha
 				end
 				if drift then
