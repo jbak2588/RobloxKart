@@ -171,9 +171,9 @@ local function start(trackId)
  tick(3.1)
  check(player:GetAttribute("RaceState")=="RACING","GO "..kind)
 end
-local function cross(gate, reverse)
+local function cross(gate, reverse, duration)
  chassis.CFrame=CF.new(100,0,100); tick(0.1)
- chassis.CFrame=gate.CFrame; chassis.AssemblyLinearVelocity=V.new(0,0,if reverse then 70 else -70); tick(3)
+ chassis.CFrame=gate.CFrame; chassis.AssemblyLinearVelocity=V.new(0,0,if reverse then 70 else -70); tick(duration or 3)
 end
 local function crossFinishPlaneOutside(x, reverse)
  local before=if reverse then -6 else 6
@@ -198,8 +198,16 @@ check(player:GetAttribute("RaceFinishMissedSerial")==0,"reverse finish plane is 
 crossFinishPlaneOutside(7,false)
 check(player:GetAttribute("RaceFinishMissedSerial")==1 and player:GetAttribute("RaceCompletedLaps")==0,"outside forward crossing warns without lap")
 cross(finish)
-check(player:GetAttribute("RaceState")=="FINISHED","practice normal finish without tutorial/items")
+check(player:GetAttribute("RaceState")=="FINISHING" and kart:GetAttribute("KartFinishRollActive")==true
+ and kart:GetAttribute("RaceControlsLocked")==true,"practice enters locked moving finish sequence")
 check(player:GetAttribute("RaceCompletedLaps")==1,"one lap only")
+check(player:GetAttribute("RaceLap1Time")>0 and player:GetAttribute("RaceBestLapNumber")==1,"practice lap history includes standing start")
+local officialTime=player:GetAttribute("RaceFinalTime")
+tick(raceConfig.FINISH_SEQUENCE_SECONDS-0.1)
+check(player:GetAttribute("RaceState")=="FINISHING" and player:GetAttribute("RaceFinalTime")==officialTime,"result waits while official time stays fixed")
+tick(0.11)
+check(player:GetAttribute("RaceState")=="FINISHED" and kart:GetAttribute("KartFinishRollActive")==false
+ and player:GetAttribute("RaceFinalTime")==officialTime,"practice result follows finish roll without added time")
 check(player:GetAttribute("RaceFinishMissedSerial")==1,"valid finish gives no additional miss warning")
 check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no license state created")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
@@ -209,13 +217,21 @@ for _, id in {"Track01","Track01Race","Track02"} do
  local laps=if id=="Track01" then 1 else 3
  check(player:GetAttribute("RaceTotalLaps")==laps,"published target "..id)
  for lap=1,laps do
-  cross(checkpoints[1]); cross(checkpoints[2]); cross(finish)
-  check(player:GetAttribute("RaceState")== (if lap==laps then "FINISHED" else "RACING"),id.." lap "..lap)
+  local duration=if lap==2 then 2 else (if lap==3 then 2.5 else 3)
+  cross(checkpoints[1],nil,duration); cross(checkpoints[2],nil,duration); cross(finish,nil,duration)
+  check(player:GetAttribute("RaceState")== (if lap==laps then "FINISHING" else "RACING"),id.." lap "..lap)
+  check(player:GetAttribute("RaceLap"..lap.."Time")>0,id.." lap history "..lap)
  end
+ if laps==3 then check(player:GetAttribute("RaceBestLapNumber")==2,"middle lap is fastest") end
+ local recorded=player:GetAttribute("RaceFinalTime")
+ tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.01)
+ check(player:GetAttribute("RaceState")=="FINISHED" and player:GetAttribute("RaceFinalTime")==recorded,id.." delayed result preserves official time")
  check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no completion gate "..id)
  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
  check(player:GetAttribute("RaceState")=="COUNTDOWN" and player:GetAttribute("RaceTotalLaps")==laps,"rematch target "..id)
  check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeShield")==1,"rematch replenishes "..id)
+ check(player:GetAttribute("RaceLap1Time")==0 and player:GetAttribute("RaceLap2Time")==0 and player:GetAttribute("RaceLap3Time")==0
+  and player:GetAttribute("RaceBestLapNumber")==0 and not kart:GetAttribute("KartFinishRollActive"),"rematch clears lap and finish state "..id)
 end
 print("PASS: "..count.." Practice/race mode/checkpoint/loadout integration checks")
 

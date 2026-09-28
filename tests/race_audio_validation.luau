@@ -57,4 +57,8 @@ for _,state in {"GARAGE","DNF","FINISHED","COUNTDOWN"} do
 end
 startRace(1);set("RaceCompletedLaps",1);flush()
 assert(#played==0,"one-lap Practice has no final-lap notice/beeps")
+set("RaceState","FINISHING")
+assert(#played==1 and played[1]=="RaceFinish","finish sound plays at crossing into FINISHING")
+set("RaceState","FINISHED")
+assert(#played==1,"result reveal does not replay finish sound")
 print("PASS: countdown/GO regression; higher three-beep Final Lap, spacing, ordering, deduplication, rematch and cancellation")

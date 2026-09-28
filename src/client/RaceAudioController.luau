@@ -150,7 +150,7 @@ function RaceAudioController.start()
 			playCountdown(player:GetAttribute("RaceCountdown"))
 		elseif state == "RACING" and prior == "COUNTDOWN" then
 			playBeepPattern(false)
-		elseif state == "FINISHED" and prior == "RACING" then
+		elseif state == "FINISHING" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Finish)
 		elseif state == "DNF" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Dnf)

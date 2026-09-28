@@ -16,6 +16,7 @@ local DriverCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):Wai
 local KartCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog") :: ModuleScript)
 local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog") :: ModuleScript)
 local TrackGeometry = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry") :: ModuleScript)
+local RaceResultFormat = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceResultFormat") :: ModuleScript)
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 
 local RaceHudController = {}
@@ -293,6 +294,21 @@ function RaceHudController.start()
 	local finalLapScale = Instance.new("UIScale")
 	finalLapScale.Scale = 1
 	finalLapScale.Parent = finalLapLabel
+	local finishBanner = Instance.new("TextLabel")
+	finishBanner.Name = "FinishBanner"
+	finishBanner.AnchorPoint = Vector2.new(0.5, 0.5)
+	finishBanner.Position = UDim2.fromScale(0.5, 0.42)
+	finishBanner.Size = UDim2.fromOffset(400, 82)
+	finishBanner.BackgroundTransparency = 1
+	finishBanner.Font = Enum.Font.GothamBlack
+	finishBanner.Text = "FINISH!"
+	finishBanner.TextColor3 = Color3.fromRGB(255, 225, 70)
+	finishBanner.TextStrokeTransparency = 0.3
+	finishBanner.TextScaled = true
+	finishBanner.Visible = false
+	finishBanner.Parent = screenGui
+	local finishBannerScale = Instance.new("UIScale")
+	finishBannerScale.Parent = finishBanner
 	local finishMissLabel = Instance.new("TextLabel")
 	finishMissLabel.Name = "FinishMissWarning"
 	finishMissLabel.AnchorPoint = Vector2.new(0.5, 0)
@@ -313,7 +329,7 @@ function RaceHudController.start()
 	resultsPanel.Name = "Results"
 	resultsPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 	resultsPanel.Position = UDim2.fromScale(0.5, 0.5)
-	resultsPanel.Size = UDim2.fromOffset(340, 275)
+	resultsPanel.Size = UDim2.fromOffset(370, 340)
 	resultsPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
 	resultsPanel.BackgroundTransparency = 0.08
 	resultsPanel.BorderSizePixel = 0
@@ -342,12 +358,35 @@ function RaceHudController.start()
 
 	local totalLabel = createLabel(resultsPanel, "Total", 2)
 	totalLabel.TextXAlignment = Enum.TextXAlignment.Center
-	local resultsBestLabel = createLabel(resultsPanel, "Best", 3)
+	local lapRows = {}
+	for lap = 1, 3 do
+		local row = Instance.new("Frame")
+		row.Name = "Lap" .. lap .. "Row"
+		row.LayoutOrder = lap + 2
+		row.Size = UDim2.new(1, -20, 0, 27)
+		row.BackgroundTransparency = 1
+		row.Parent = resultsPanel
+		local function cell(name, x, width, alignment)
+			local label = createLabel(row, name, 0)
+			label.Position = UDim2.new(x, 0, 0, 0)
+			label.Size = UDim2.new(width, 0, 1, 0)
+			label.TextSize = 17
+			label.TextXAlignment = alignment
+			return label
+		end
+		lapRows[lap] = {
+			frame = row,
+			name = cell("LapName", 0, 0.22, Enum.TextXAlignment.Left),
+			time = cell("LapTime", 0.22, 0.40, Enum.TextXAlignment.Center),
+			delta = cell("LapDelta", 0.62, 0.38, Enum.TextXAlignment.Right),
+		}
+	end
+	local resultsBestLabel = createLabel(resultsPanel, "Best", 6)
 	resultsBestLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 	local rematchButton = Instance.new("TextButton")
 	rematchButton.Name = "Rematch"
-	rematchButton.LayoutOrder = 4
+	rematchButton.LayoutOrder = 7
 	rematchButton.Size = UDim2.fromOffset(180, 44)
 	rematchButton.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
 	rematchButton.BorderSizePixel = 0
@@ -363,7 +402,7 @@ function RaceHudController.start()
 
 	local garageButton = Instance.new("TextButton")
 	garageButton.Name = "ReturnGarage"
-	garageButton.LayoutOrder = 5
+	garageButton.LayoutOrder = 8
 	garageButton.Size = UDim2.fromOffset(180, 44)
 	garageButton.BackgroundColor3 = Color3.fromRGB(75, 80, 90)
 	garageButton.BorderSizePixel = 0
@@ -427,14 +466,33 @@ function RaceHudController.start()
 			end
 			countdownLabel.Size = UDim2.fromOffset(math.min(220, viewportSize.X - 32), 100)
 			finalLapLabel.Size = UDim2.fromOffset(math.min(360, viewportSize.X - 32), 64)
-			resultsPanel.Size = UDim2.fromOffset(math.min(320, viewportSize.X - 32), math.min(255, viewportSize.Y - 32))
-			resultsLayout.Padding = UDim.new(0, 5)
-			resultsPadding.PaddingTop = UDim.new(0, 12)
-			resultsPadding.PaddingBottom = UDim.new(0, 12)
-			finishLabel.Size = UDim2.new(1, 0, 0, 32)
-			finishLabel.TextSize = 26
-			rematchButton.Size = UDim2.fromOffset(160, 38)
+			finishBanner.Size = UDim2.fromOffset(math.min(320, viewportSize.X - 32), 60)
+			local resultArea = if mobile and screenGui.AbsoluteSize.Y > 0 then screenGui.AbsoluteSize else viewportSize
+			local resultState = player:GetAttribute("RaceState")
+			local resultLaps = getNumberAttribute(player, "RaceTotalLaps", RaceConfig.TOTAL_LAPS)
+			local targetHeight = if resultState == "DNF" then 185 elseif resultLaps == 1 then 240 else 270
+			local resultHeight = math.min(targetHeight, resultArea.Y - 16)
+			local tight = resultArea.Y < 280
+			resultsPanel.Size = UDim2.fromOffset(math.min(330, resultArea.X - 24), resultHeight)
+			resultsLayout.Padding = UDim.new(0, if tight then 2 else 4)
+			resultsPadding.PaddingTop = UDim.new(0, if tight then 7 else 10)
+			resultsPadding.PaddingBottom = resultsPadding.PaddingTop
+			resultsPadding.PaddingLeft = UDim.new(0, 12)
+			resultsPadding.PaddingRight = resultsPadding.PaddingLeft
+			finishLabel.Size = UDim2.new(1, 0, 0, if tight then 23 else 27)
+			finishLabel.TextSize = if tight then 22 else 25
+			totalLabel.Size = UDim2.new(1, -20, 0, if tight then 20 else 22)
+			totalLabel.TextSize = if tight then 15 else 17
+			resultsBestLabel.Size = UDim2.new(1, -20, 0, if tight then 20 else 24)
+			resultsBestLabel.TextSize = if tight then 14 else 16
+			for _, row in lapRows do
+				row.frame.Size = UDim2.new(1, -20, 0, if tight then 18 else 22)
+				for _, label in { row.name, row.time, row.delta } do label.TextSize = if tight then 13 else 15 end
+			end
+			rematchButton.Size = UDim2.fromOffset(160, if tight then 31 else 34)
+			rematchButton.TextSize = if tight then 17 else 18
 			garageButton.Size = rematchButton.Size
+			garageButton.TextSize = rematchButton.TextSize
 		else
 			frame.Position = UDim2.fromOffset(24, 118)
 			frame.Size = UDim2.fromOffset(260, if offTrackLabel.Visible then 139 else 112)
@@ -464,14 +522,29 @@ function RaceHudController.start()
 			miniMapPanel.Size = UDim2.fromOffset(194, 194)
 			countdownLabel.Size = UDim2.fromOffset(260, 140)
 			finalLapLabel.Size = UDim2.fromOffset(440, 80)
-			resultsPanel.Size = UDim2.fromOffset(340, 275)
-			resultsLayout.Padding = UDim.new(0, 8)
-			resultsPadding.PaddingTop = UDim.new(0, 18)
-			resultsPadding.PaddingBottom = UDim.new(0, 18)
+			finishBanner.Size = UDim2.fromOffset(400, 82)
+			local resultState = player:GetAttribute("RaceState")
+			local resultLaps = getNumberAttribute(player, "RaceTotalLaps", RaceConfig.TOTAL_LAPS)
+			resultsPanel.Size = UDim2.fromOffset(370, if resultState == "DNF" then 220 elseif resultLaps == 1 then 280 else 340)
+			resultsLayout.Padding = UDim.new(0, 6)
+			resultsPadding.PaddingTop = UDim.new(0, 14)
+			resultsPadding.PaddingBottom = UDim.new(0, 14)
+			resultsPadding.PaddingLeft = UDim.new(0, 20)
+			resultsPadding.PaddingRight = UDim.new(0, 20)
 			finishLabel.Size = UDim2.new(1, 0, 0, 36)
 			finishLabel.TextSize = 30
-			rematchButton.Size = UDim2.fromOffset(180, 44)
+			totalLabel.Size = UDim2.new(1, -20, 0, 26)
+			totalLabel.TextSize = 18
+			resultsBestLabel.Size = UDim2.new(1, -20, 0, 26)
+			resultsBestLabel.TextSize = 18
+			for _, row in lapRows do
+				row.frame.Size = UDim2.new(1, -20, 0, 27)
+				for _, label in { row.name, row.time, row.delta } do label.TextSize = 17 end
+			end
+			rematchButton.Size = UDim2.fromOffset(180, 40)
+			rematchButton.TextSize = 20
 			garageButton.Size = rematchButton.Size
+			garageButton.TextSize = 20
 		end
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
@@ -504,6 +577,7 @@ function RaceHudController.start()
 
 	local goDisplaySerial = 0
 	local finalLapSerial = 0
+	local finishBannerSerial = 0
 	local finalLapShown = false
 	local displayedRaceState = player:GetAttribute("RaceState")
 	local displayedCountdown = getNumberAttribute(player, "RaceCountdown", 0)
@@ -539,6 +613,7 @@ function RaceHudController.start()
 		local nextCheckpoint = getNumberAttribute(player, "RaceNextCheckpoint", 1)
 		local checkpointCount = getNumberAttribute(player, "RaceCheckpointCount", 6)
 		local bestLap = getNumberAttribute(player, "RaceBestLapTime", 0)
+		local bestLapNumber = getNumberAttribute(player, "RaceBestLapNumber", 0)
 		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
 		local offTrackRemaining = getNumberAttribute(player, "RaceOffTrackRemaining", 0)
 		local driver = DriverCatalog.Entries[player:GetAttribute("SelectedDriverId")]
@@ -568,9 +643,31 @@ function RaceHudController.start()
 		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
 		finishLabel.Text = if raceState == "DNF" then "DNF" else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
-		totalLabel.Text = if raceState == "DNF" then "OFF TRACK" elseif finalTime > 0 then string.format("TOTAL TIME  %.2fs", finalTime) else "TOTAL TIME  --"
-		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP  %.2fs", bestLap) else "BEST LAP  --"
+		totalLabel.Text = if raceState == "DNF" then "OFF TRACK" elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
+		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP %d  -  %s", bestLapNumber, RaceResultFormat.time(bestLap)) else "BEST LAP  --"
 		resultsBestLabel.Visible = raceState == "FINISHED"
+		for lap, row in lapRows do
+			local lapTime = getNumberAttribute(player, "RaceLap" .. lap .. "Time", 0)
+			row.frame.Visible = raceState == "FINISHED" and lap <= totalLaps and lapTime > 0
+			row.name.Text = "LAP " .. lap
+			row.time.Text = if lapTime > 0 then RaceResultFormat.time(lapTime) else "--"
+			row.delta.Text = if lapTime > 0 and bestLap > 0
+				then RaceResultFormat.delta(lapTime, bestLap, lap == bestLapNumber) else ""
+			row.delta.TextColor3 = if lap == bestLapNumber then Color3.fromRGB(255, 218, 75) else Color3.fromRGB(225, 238, 245)
+		end
+
+		if raceState == "FINISHING" and previousRaceState ~= "FINISHING" then
+			finishBannerSerial += 1
+			local serial = finishBannerSerial
+			finishBanner.Visible = true
+			pulse(finishBanner, finishBannerScale)
+			task.delay(1, function()
+				if serial == finishBannerSerial then finishBanner.Visible = false end
+			end)
+		elseif raceState ~= "FINISHING" then
+			finishBannerSerial += 1
+			finishBanner.Visible = false
+		end
 
 		if raceState == "COUNTDOWN" then
 			local countdown = getNumberAttribute(player, "RaceCountdown", 0)
@@ -647,6 +744,10 @@ function RaceHudController.start()
 		"RaceCheckpointCount",
 		"RaceLastLapTime",
 		"RaceBestLapTime",
+		"RaceBestLapNumber",
+		"RaceLap1Time",
+		"RaceLap2Time",
+		"RaceLap3Time",
 		"RaceFinalTime",
 		"RaceOffTrackRemaining",
 		"RaceFinishMissedSerial",

@@ -13,6 +13,7 @@ local SlickMotion = require(script.Parent:WaitForChild("SlickMotion"))
 local DriftTelemetry = require(script.Parent:WaitForChild("DriftTelemetry"))
 local RaceItemGeometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local RaceItemConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
+local RaceConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
 
 local PrototypeWorld = {}
 local nitroActivation = nil
@@ -114,6 +115,8 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame): (Model, Part,
 	kart:SetAttribute("RaceResetSerial", 0)
 	kart:SetAttribute("RaceStartCFrame", spawnCFrame)
 	kart:SetAttribute("RaceControlsLocked", true)
+	kart:SetAttribute("KartFinishRollActive", false)
+	kart:SetAttribute("KartFinishRollDirection", Vector3.new(0, 0, -1))
 
 	local chassis = createPart(kart, "Chassis", WORLD.CHASSIS_SIZE, spawnCFrame, Color3.fromRGB(220, 45, 45))
 	chassis.Anchored = false
@@ -292,6 +295,9 @@ function PrototypeWorld.start()
 	local crashSpinRate = 0
 	local crashTrackForward = Vector3.new(0, 0, -1)
 	local lastPlanarForward = Vector3.new(0, 0, -1)
+	local finishRollElapsed = 0
+	local finishRollInitialSpeed = 0
+	local finishRollDirection = Vector3.new(0, 0, -1)
 
 	local function stopSlick()
 		slick:stop()
@@ -479,6 +485,29 @@ function PrototypeWorld.start()
 		chassis.AssemblyAngularVelocity = Vector3.zero
 	end
 
+	kart:GetAttributeChangedSignal("KartFinishRollActive"):Connect(function()
+		if kart:GetAttribute("KartFinishRollActive") ~= true then
+			finishRollElapsed, finishRollInitialSpeed = 0, 0
+			return
+		end
+		local direction = kart:GetAttribute("KartFinishRollDirection")
+		if typeof(direction) == "Vector3" then
+			local flat = Vector3.new(direction.X, 0, direction.Z)
+			if flat.Magnitude > 0.001 then finishRollDirection = flat.Unit end
+		end
+		local velocity = chassis.AssemblyLinearVelocity
+		finishRollInitialSpeed = math.max(0, Vector3.new(velocity.X, 0, velocity.Z):Dot(finishRollDirection))
+		finishRollElapsed = 0
+		stopNitro("finish")
+		stopBoost("finish")
+		stopSlick()
+		stopCrash()
+		setDriftActive(false, "finish")
+		resetDriftCharge()
+		commandedSpeed, smoothedSteering, currentYawRate = 0, 0, 0
+		kart:SetAttribute("KartVisualSteering", 0)
+	end)
+
 	local function startBarrierResponse(inwardNormal: Vector3, trackForward: Vector3, approachSpeed: number, planarVelocity: Vector3, now: number)
 		local strongImpact = approachSpeed >= KartConfig.BARRIER_CRASH_MIN_SPEED
 		local severity = math.clamp(
@@ -653,6 +682,16 @@ function PrototypeWorld.start()
 		end
 
 		local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
+		if kart:GetAttribute("KartFinishRollActive") == true then
+			finishRollElapsed += deltaTime
+			local alpha = math.clamp(finishRollElapsed / RaceConfig.FINISH_SEQUENCE_SECONDS, 0, 1)
+			local verticalSpeed = chassis.AssemblyLinearVelocity.Y
+			chassis.AssemblyLinearVelocity = finishRollDirection * (finishRollInitialSpeed * (1 - alpha))
+				+ Vector3.new(0, verticalSpeed, 0)
+			chassis.AssemblyAngularVelocity = Vector3.zero
+			raceControlsWereLocked = true
+			return
+		end
 		if raceControlsLocked then
 			stopNitro("locked")
 			stopSlick()

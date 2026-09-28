@@ -206,10 +206,16 @@ The cache version and object/part count attributes identify the generated world.
 Track centerline, width, checkpoints and finish geometry are unchanged.
 
 The user previously confirmed digital-pad Drift READY -> release -> Mini Boost
-on a real device and an acceptable boost frequency. Final beta visual alignment,
-tutorial, finish warning, props and frame pacing still require Studio emulator
-and real Android/iPhone checks. TrackV2 geometry revision, race finish sequence,
-lap breakdown, Multiplayer and production-off debug telemetry remain pending.
+on a real device and an acceptable boost frequency. The READY controls tutorial
+now shows its gameplay icons above the card and uses native five-segment Drift
+gauge examples; the replay button reads CONTROLS. A valid final finish fixes the
+official time and lap history at the gate, then enters FINISHING for a 2.4-second
+straight deceleration with locked input, FINISH banner and sound, and a seated
+right-arm celebration when the driver rig has a shoulder Motor6D. FINISHED then
+shows the total, individual lap times, deltas, and best lap number. Rematch resets
+these records. Studio emulator and real Android/iPhone finish visuals, timing,
+and result layout still need runtime checks. TrackV2 geometry revision,
+Multiplayer and production-off debug telemetry remain pending.
 
 ## Deferred
 

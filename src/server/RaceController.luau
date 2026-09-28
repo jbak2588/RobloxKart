@@ -27,6 +27,8 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceNextCheckpoint", 1)
 	player:SetAttribute("RaceLastLapTime", 0)
 	player:SetAttribute("RaceBestLapTime", 0)
+	player:SetAttribute("RaceBestLapNumber", 0)
+	for lap = 1, 3 do player:SetAttribute("RaceLap" .. lap .. "Time", 0) end
 	player:SetAttribute("RaceFinalTime", 0)
 	player:SetAttribute("RaceCheckpointCount", checkpointCount)
 	player:SetAttribute("RaceOffTrackRemaining", 0)
@@ -211,6 +213,7 @@ function RaceController.start()
 	local raceStartTime = 0
 	local lapStartTime = 0
 	local countdownEndTime = 0
+	local finishEndTime = 0
 	local lastCountdownValue = 0
 	local lastResetSerial = kart:GetAttribute("RaceResetSerial")
 	local insideGate: { [BasePart]: boolean } = {}
@@ -261,10 +264,14 @@ function RaceController.start()
 		player:SetAttribute("RaceCheckpointCount", checkpointCount)
 		player:SetAttribute("RaceLastLapTime", 0)
 		player:SetAttribute("RaceBestLapTime", 0)
+		player:SetAttribute("RaceBestLapNumber", 0)
+		for lap = 1, 3 do player:SetAttribute("RaceLap" .. lap .. "Time", 0) end
 		player:SetAttribute("RaceFinalTime", 0)
 		player:SetAttribute("RaceFinishMissedSerial", 0)
 		raceStartTime = 0
 		lapStartTime = 0
+		finishEndTime = 0
+		kart:SetAttribute("KartFinishRollActive", false)
 		resetOffTrackState(player)
 		clearGateState()
 	end
@@ -281,6 +288,7 @@ function RaceController.start()
 			return
 		end
 		kart:SetAttribute("RaceControlsLocked", true)
+		kart:SetAttribute("KartFinishRollActive", false)
 		resetKartToStart()
 		resetRaceProgress(player)
 		countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
@@ -294,7 +302,9 @@ function RaceController.start()
 		player:SetAttribute("RaceCountdown", 0)
 		setRaceState(player, "GARAGE")
 		kart:SetAttribute("RaceControlsLocked", true)
+		kart:SetAttribute("KartFinishRollActive", false)
 		countdownEndTime = 0
+		finishEndTime = 0
 		raceStartTime = 0
 		lapStartTime = 0
 		resetOffTrackState(player)
@@ -328,19 +338,32 @@ function RaceController.start()
 		setRaceState(player, "DNF")
 	end
 
-	local function finishRace(player: Player, now: number, completedLaps: number)
-		player:SetAttribute("RaceCompletedLaps", completedLaps)
+	local function beginFinishSequence(player: Player, now: number)
 		player:SetAttribute("RaceCurrentLap", targetLaps)
 		player:SetAttribute("RaceNextCheckpoint", 1)
 		player:SetAttribute("RaceCountdown", 0)
 		local finalTime = now - raceStartTime
 		player:SetAttribute("RaceFinalTime", finalTime)
+		local gate = startFinishGate :: BasePart
+		local look = gate.CFrame.LookVector
+		local flat = Vector3.new(look.X, 0, look.Z)
+		kart:SetAttribute("KartFinishRollDirection", flat.Unit)
+		kart:SetAttribute("KartFinishRollActive", true)
 		kart:SetAttribute("RaceControlsLocked", true)
-		setRaceState(player, "FINISHED")
+		finishEndTime = now + RaceConfig.FINISH_SEQUENCE_SECONDS
+		setRaceState(player, "FINISHING")
 		resetOffTrackState(player)
 		clearGateState()
 		local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
-		print(string.format("[Race] FINISHED total=%.2f best=%.2f", finalTime, bestLap))
+		print(string.format("[Race] FINISHING total=%.2f best=%.2f", finalTime, bestLap))
+	end
+
+	local function endFinishSequence(player: Player)
+		kart:SetAttribute("KartFinishRollActive", false)
+		chassis.AssemblyLinearVelocity = Vector3.zero
+		chassis.AssemblyAngularVelocity = Vector3.zero
+		finishEndTime = 0
+		setRaceState(player, "FINISHED")
 	end
 
 	local function completeLap(player: Player, now: number)
@@ -354,16 +377,18 @@ function RaceController.start()
 		completedLaps += 1
 		local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
 
-		player:SetAttribute("RaceCompletedLaps", completedLaps)
-		player:SetAttribute("RaceNextCheckpoint", 1)
 		player:SetAttribute("RaceLastLapTime", lapTime)
+		player:SetAttribute("RaceLap" .. completedLaps .. "Time", lapTime)
 		if bestLap == 0 or lapTime < bestLap then
 			player:SetAttribute("RaceBestLapTime", lapTime)
+			player:SetAttribute("RaceBestLapNumber", completedLaps)
 		end
+		player:SetAttribute("RaceCompletedLaps", completedLaps)
+		player:SetAttribute("RaceNextCheckpoint", 1)
 		print(string.format("[Race] Lap %d complete: %.2fs", completedLaps, lapTime))
 
 		if completedLaps >= targetLaps then
-			finishRace(player, now, targetLaps)
+			beginFinishSequence(player, now)
 		else
 			player:SetAttribute("RaceCurrentLap", completedLaps + 1)
 			lapStartTime = now
@@ -475,6 +500,10 @@ function RaceController.start()
 		end
 
 		local raceState = player:GetAttribute("RaceState")
+		if raceState == "FINISHING" then
+			if now >= finishEndTime then endFinishSequence(player) end
+			return
+		end
 		if raceState == "COUNTDOWN" then
 			lastResetSerial = kart:GetAttribute("RaceResetSerial")
 			local countdownValue = math.max(math.ceil(countdownEndTime - now), 0)
