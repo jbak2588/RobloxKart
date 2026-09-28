@@ -14,6 +14,7 @@ local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local RacerState = require(script.Parent:WaitForChild("RacerState"))
+local RaceRanking = require(script.Parent:WaitForChild("RaceRanking"))
 
 local RaceController = {}
 
@@ -27,6 +28,16 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceCurrentLap", 1)
 	player:SetAttribute("RaceCompletedLaps", 0)
 	player:SetAttribute("RaceTotalLaps", RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
+	player:SetAttribute("RaceSessionId", 0)
+	player:SetAttribute("RaceParticipantCount", 1)
+	player:SetAttribute("RacePosition", 1)
+	player:SetAttribute("RaceFinishPosition", 0)
+	player:SetAttribute("RaceMatchStatus", "")
+	player:SetAttribute("RaceMatchWaitRemaining", 0)
+	player:SetAttribute("RaceSessionComplete", false)
+	player:SetAttribute("RaceRematchReady", false)
+	player:SetAttribute("RaceRematchReadyCount", 0)
+	player:SetAttribute("RaceRematchRequiredCount", 1)
 	player:SetAttribute("RaceNextCheckpoint", 1)
 	player:SetAttribute("RaceLastLapTime", 0)
 	player:SetAttribute("RaceBestLapTime", 0)
@@ -278,35 +289,15 @@ function RaceController.start()
 			clearGateState()
 		end
 
-		local function beginCountdown(player: Player, now: number)
-			local trackId = player:GetAttribute("SelectedTrackId")
-			local mode = RaceMode.resolve(trackId)
-			player:SetAttribute("RaceMode", mode)
-			racer.targetLaps = RaceMode.targetLaps(mode, trackId)
-			if type(trackId) ~= "string" or (session:hasOtherParticipants(player) and session.trackId ~= trackId)
-				or not bindTrackForRace(trackId) then
-				kart:SetAttribute("RaceControlsLocked", true)
-				kart:SetAttribute("KartFinishRollActive", false)
-				player:SetAttribute("RaceFinishPhase", "NONE")
-				player:SetAttribute("RaceEntryError", "Track unavailable")
-				setRaceState(player, "GARAGE")
-				return
-			end
-			if not session:hasOtherParticipants(player) then
-				table.clear(session.finishOrder)
-				session.startTime = 0
-			end
-			session.trackId, session.mode, session.targetLaps = trackId, mode, racer.targetLaps
+		local function prepareCountdown()
 			kart:SetAttribute("RaceControlsLocked", true)
 			kart:SetAttribute("KartFinishRollActive", false)
 			resetKartToStart()
 			resetRaceProgress(player)
-			racer.countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
-			session.countdownEndTime = racer.countdownEndTime
+			racer.countdownEndTime = session.countdownEndTime
 			racer.lastCountdownValue = RaceConfig.COUNTDOWN_SECONDS
 			player:SetAttribute("RaceCountdown", racer.lastCountdownValue)
 			setRaceState(player, "COUNTDOWN")
-			print(string.format("[Race] countdown=%d", racer.lastCountdownValue))
 		end
 
 		local function endActiveRace(player: Player)
@@ -322,6 +313,8 @@ function RaceController.start()
 			racer.lapStartTime = 0
 			resetOffTrackState(player)
 			clearGateState()
+			player:SetAttribute("RaceMatchStatus", "")
+			player:SetAttribute("RaceSessionComplete", false)
 		end
 
 		local function invalidateCurrentLap(player: Player, now: number, reason: string)
@@ -349,6 +342,7 @@ function RaceController.start()
 			resetOffTrackState(player)
 			clearGateState()
 			setRaceState(player, "DNF")
+			session.terminal[player] = "DNF"
 		end
 
 		local function beginFinishSequence(player: Player, now: number)
@@ -357,6 +351,7 @@ function RaceController.start()
 			player:SetAttribute("RaceCountdown", 0)
 			local finalTime = now - racer.raceStartTime
 			player:SetAttribute("RaceFinalTime", finalTime)
+			session:recordFinish(player, finalTime)
 			local gate = startFinishGate :: BasePart
 			local look = gate.CFrame.LookVector
 			local flat = Vector3.new(look.X, 0, look.Z)
@@ -385,7 +380,7 @@ function RaceController.start()
 			racer.finishRollEndTime = 0
 			racer.finishEndTime = 0
 			setRaceState(player, "FINISHED")
-			table.insert(session.finishOrder, player)
+			session.terminal[player] = "FINISHED"
 		end
 
 		local function completeLap(player: Player, now: number)
@@ -474,8 +469,19 @@ function RaceController.start()
 			end
 		end
 
-		function racer:begin(now: number)
-			beginCountdown(player, now)
+		function racer:begin()
+			prepareCountdown()
+		end
+
+		function racer:startRace(startTime: number)
+			racer.raceStartTime = startTime
+			racer.lapStartTime = startTime
+			racer.lastResetSerial = kart:GetAttribute("RaceResetSerial")
+			resetOffTrackState(player)
+			clearGateState()
+			player:SetAttribute("RaceCountdown", 0)
+			setRaceState(player, "RACING")
+			kart:SetAttribute("RaceControlsLocked", false)
 		end
 
 		function racer:finish()
@@ -491,10 +497,6 @@ function RaceController.start()
 				endActiveRace(player)
 				return true
 			end
-			if action == "Rematch" then
-				print("[Race] rematch accepted")
-				beginCountdown(player, now)
-			end
 			return false
 		end
 
@@ -509,24 +511,6 @@ function RaceController.start()
 				return
 			end
 			if raceState == "COUNTDOWN" then
-				racer.lastResetSerial = kart:GetAttribute("RaceResetSerial")
-				local countdownValue = math.max(math.ceil(racer.countdownEndTime - now), 0)
-				if countdownValue ~= racer.lastCountdownValue then
-					racer.lastCountdownValue = countdownValue
-					player:SetAttribute("RaceCountdown", countdownValue)
-					if countdownValue > 0 then
-						print(string.format("[Race] countdown=%d", countdownValue))
-					end
-				end
-				if countdownValue <= 0 then
-					racer.raceStartTime = now
-					if session.startTime == 0 then session.startTime = now end
-					racer.lapStartTime = now
-					resetOffTrackState(player)
-					clearGateState()
-					setRaceState(player, "RACING")
-					kart:SetAttribute("RaceControlsLocked", false)
-				end
 				return
 			end
 
@@ -582,23 +566,172 @@ function RaceController.start()
 		return racer
 	end
 
+	local function setChanged(player: Player, name: string, value)
+		if player:GetAttribute(name) ~= value then player:SetAttribute(name, value) end
+	end
+
+	local function publishSession(now: number)
+		local count = session:count()
+		local required = math.max(count, 1)
+		local ready = 0
+		for player in session.rematchVotes do
+			if session:contains(player) then ready += 1 end
+		end
+		for player in session.participants do
+			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
+			setChanged(player, "RaceMatchStatus", session.phase)
+			setChanged(player, "RaceMatchWaitRemaining", if session.phase == "WAITING" then math.max(math.ceil(session.waitDeadline - now), 0) else 0)
+			setChanged(player, "RaceSessionComplete", session.phase == "COMPLETE")
+			setChanged(player, "RaceRematchReady", session.rematchVotes[player] == true)
+			setChanged(player, "RaceRematchReadyCount", ready)
+			setChanged(player, "RaceRematchRequiredCount", required)
+		end
+	end
+
+	local function startSharedCountdown(now: number)
+		session.roundId += 1
+		session.phase = "COUNTDOWN"
+		session.waitDeadline = 0
+		session.countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
+		session.startTime = 0
+		session.startingParticipantCount = session:count()
+		table.clear(session.finishOrder)
+		table.clear(session.rematchVotes)
+		table.clear(session.terminal)
+		for _, player in session:orderedParticipants() do
+			local racer = racers[player]
+			racer.targetLaps = session.targetLaps
+			setChanged(player, "RaceSessionId", session.roundId)
+			setChanged(player, "RaceFinishPosition", 0)
+			setChanged(player, "RacePosition", player:GetAttribute("GridSlot") or 1)
+			racer:begin()
+		end
+		publishSession(now)
+	end
+
+	local function startSharedRace()
+		session.phase = "RACING"
+		session.startTime = session.countdownEndTime
+		for _, player in session:orderedParticipants() do
+			racers[player]:startRace(session.startTime)
+		end
+	end
+
+	local function updateComplete()
+		if session.phase ~= "RACING" then return end
+		local count = session:count()
+		if count == 0 then session.phase = "EMPTY"; return end
+		for player in session.participants do
+			local state = player:GetAttribute("RaceState")
+			if state ~= "FINISHED" and state ~= "DNF" then return end
+		end
+		session.phase = "COMPLETE"
+	end
+
+	local function updateRanking()
+		if session.phase ~= "RACING" and session.phase ~= "COMPLETE" then return end
+		local entries = {}
+		for player, racer in session.participants do
+			table.insert(entries, {
+				player = player, userId = player.UserId or 0,
+				state = player:GetAttribute("RaceState"),
+				finishPosition = player:GetAttribute("RaceFinishPosition") or 0,
+				completedLaps = player:GetAttribute("RaceCompletedLaps") or 0,
+				nextCheckpoint = player:GetAttribute("RaceNextCheckpoint") or 1,
+				routeFraction = (racer.routeProgress and racer.routeProgress.previous) or 0,
+				readyOrder = player:GetAttribute("ReadyOrder") or 0,
+			})
+		end
+		RaceRanking.sort(entries)
+		for place, entry in entries do setChanged(entry.player, "RacePosition", place) end
+	end
+
+	local function removeRacer(player: Player)
+		local racer = racers[player]
+		if not racer then return end
+		if session.phase == "RACING" and player:GetAttribute("RaceState") ~= "FINISHED"
+			and player:GetAttribute("RaceState") ~= "DNF" then
+			session.terminal[player] = "LEFT"
+		end
+		if racer.context.kart.Parent then racer:finish() end
+		session:remove(player)
+		racers[player] = nil
+		if PrototypeWorld.releaseKartContext then PrototypeWorld.releaseKartContext(player) end
+		if session:count() == 0 then
+			session.phase = "EMPTY"
+			session.startingParticipantCount = 0
+			return
+		end
+		if session.phase == "COMPLETE" and session:count() == 1 then
+			for remaining in session.participants do
+				if session.rematchVotes[remaining] then
+					startSharedCountdown(time())
+					return
+				end
+			end
+		end
+		updateComplete()
+		publishSession(time())
+		updateRanking()
+	end
+
+	local function admitRacer(player: Player, context, now: number)
+		local trackId = player:GetAttribute("SelectedTrackId")
+		local track = if type(trackId) == "string" then TrackCatalog.Entries[trackId] else nil
+		if not track then player:SetAttribute("RaceEntryError", "Track unavailable"); player:SetAttribute("RaceState", "GARAGE"); return end
+		if session:count() == 0 then
+			if not bindTrackForRace(trackId) then
+				player:SetAttribute("RaceEntryError", "Track unavailable")
+				player:SetAttribute("RaceState", "GARAGE")
+				return
+			end
+			session.trackId = trackId
+			session.mode = RaceMode.resolve(trackId)
+			session.targetLaps = RaceMode.targetLaps(session.mode, trackId)
+			session.startingParticipantCount = 0
+		elseif session.phase ~= "WAITING" or trackId ~= "Track01Race" or session.trackId ~= trackId or session:count() >= session.maxPlayers then
+			player:SetAttribute("RaceEntryError", "Race in progress")
+			player:SetAttribute("RaceState", "GARAGE")
+			return
+		end
+		local racer = createRacer(player, context)
+		racer.targetLaps = session.targetLaps
+		racers[player] = racer
+		session:add(player, racer)
+		player:SetAttribute("RaceMode", session.mode)
+		setChanged(player, "RaceSessionId", session.roundId + 1)
+		context.kart:SetAttribute("RaceControlsLocked", true)
+		if session:count() == 2 then
+			startSharedCountdown(now)
+		elseif trackId == "Track01Race" and #Players:GetPlayers() >= 2 then
+			session.phase = "WAITING"
+			session.waitDeadline = now + RaceConfig.MULTIPLAYER_WAIT_SECONDS
+			publishSession(now)
+		else
+			startSharedCountdown(now)
+		end
+	end
+
 	raceRemote.OnServerEvent:Connect(function(player: Player, action: unknown)
 		local racer = racers[player]
-		if racer and racer:handleRemote(action, time()) then
-			session:remove(player)
-			racers[player] = nil
+		if not racer then return end
+		if action == "ReturnGarage" then
+			if racer:handleRemote(action, time()) then removeRacer(player) end
+		elseif action == "Rematch" and session.phase == "COMPLETE"
+			and (player:GetAttribute("RaceState") == "FINISHED" or player:GetAttribute("RaceState") == "DNF") then
+			session.rematchVotes[player] = true
+			publishSession(time())
+			local allReady = true
+			for participant in session.participants do
+				if not session.rematchVotes[participant] then allReady = false; break end
+			end
+			if allReady then startSharedCountdown(time()) end
 		end
 	end)
 
-	Players.PlayerRemoving:Connect(function(player)
-		local racer = racers[player]
-		if racer then
-			racer:finish()
-			session:remove(player)
-			racers[player] = nil
-		end
-	end)
+	Players.PlayerRemoving:Connect(removeRacer)
 
+	local rankElapsed = 0
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local now = time()
 		for _, player in Players:GetPlayers() do
@@ -608,18 +741,28 @@ function RaceController.start()
 				and context.seat.Occupant == humanoid
 			local racer = racers[player]
 			if racer and (not seated or racer.context ~= context or player:GetAttribute("RaceState") == "GARAGE") then
-				racer:finish()
-				session:remove(player)
-				racers[player] = nil
+				removeRacer(player)
 			elseif not racer and seated and player:GetAttribute("RaceState") == "PRE_RACE" then
-				racer = createRacer(player, context)
-				racers[player] = racer
-				session:add(player, racer)
-				racer:begin(now)
-			elseif racer then
-				racer:step(deltaTime, now)
+				admitRacer(player, context, now)
 			end
 		end
+		if session.phase == "WAITING" and now >= session.waitDeadline then startSharedCountdown(now) end
+		if session.phase == "COUNTDOWN" then
+			local remaining = math.max(math.ceil(session.countdownEndTime - now), 0)
+			for player, racer in session.participants do
+				setChanged(player, "RaceCountdown", remaining)
+				racer.lastCountdownValue = remaining
+			end
+			if remaining == 0 then startSharedRace() end
+		end
+		for player, racer in session.participants do racer:step(deltaTime, now) end
+		updateComplete()
+		rankElapsed += deltaTime
+		if rankElapsed >= RaceConfig.RANK_UPDATE_INTERVAL then
+			rankElapsed = 0
+			updateRanking()
+		end
+		publishSession(now)
 	end)
 
 	print(string.format("[Race] minimumValidLapTime=%.2f", minimumValidLapTime))

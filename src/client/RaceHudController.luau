@@ -142,6 +142,13 @@ function RaceHudController.start()
 	speedUnit.Text = "stud/s"
 	speedUnit.TextSize = 14
 	speedUnit.TextColor3 = Color3.fromRGB(180, 194, 211)
+	local positionLabel = createLabel(speedPanel, "Position", 0)
+	positionLabel.Position = UDim2.new(1, -76, 0, 1)
+	positionLabel.Size = UDim2.fromOffset(72, 17)
+	positionLabel.TextXAlignment = Enum.TextXAlignment.Right
+	positionLabel.TextSize = 12
+	positionLabel.TextColor3 = Color3.fromRGB(255, 225, 70)
+	positionLabel.Visible = false
 	local speedTrack = Instance.new("Frame")
 	speedTrack.Position = UDim2.fromOffset(12, 62)
 	speedTrack.Size = UDim2.fromOffset(186, 8)
@@ -397,7 +404,7 @@ function RaceHudController.start()
 	rematchButton.Parent = resultsPanel
 	addCorner(rematchButton, 6)
 	rematchButton.Activated:Connect(function()
-		remoteEvent:FireServer("Rematch")
+		if rematchButton.Active then remoteEvent:FireServer("Rematch") end
 	end)
 
 	local garageButton = Instance.new("TextButton")
@@ -628,6 +635,11 @@ function RaceHudController.start()
 		local bestLapNumber = getNumberAttribute(player, "RaceBestLapNumber", 0)
 		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
 		local offTrackRemaining = getNumberAttribute(player, "RaceOffTrackRemaining", 0)
+		local participantCount = getNumberAttribute(player, "RaceParticipantCount", 1)
+		local position = getNumberAttribute(player, "RacePosition", 1)
+		local matchStatus = player:GetAttribute("RaceMatchStatus")
+		local sessionComplete = player:GetAttribute("RaceSessionComplete") == true
+		local rematchReady = player:GetAttribute("RaceRematchReady") == true
 		local driver = DriverCatalog.Entries[player:GetAttribute("SelectedDriverId")]
 		local kartSelection = KartCatalog.Entries[player:GetAttribute("SelectedKartId")]
 		local track = TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")]
@@ -635,6 +647,8 @@ function RaceHudController.start()
 		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
 		speedPanel.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
 		steeringDisplay.Visible = speedPanel.Visible
+		positionLabel.Visible = speedPanel.Visible and participantCount >= 2
+		positionLabel.Text = string.format("POS %d/%d", position, participantCount)
 		miniMapPanel.Visible = speedPanel.Visible
 		selectionPanel.Visible = DEBUG_UI and (raceState == "PRE_RACE" or raceState == "COUNTDOWN")
 		driverLabel.Text = "DRIVER  " .. (if driver then driver.DisplayName else "--")
@@ -653,11 +667,18 @@ function RaceHudController.start()
 		frame.Size = UDim2.fromOffset(260, if offTrackLabel.Visible then 139 else 112)
 
 		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
-		finishLabel.Text = if raceState == "DNF" then "DNF" else "FINISHED"
+		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
 		totalLabel.Text = if raceState == "DNF" then "OFF TRACK" elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
 		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP %d  -  %s", bestLapNumber, RaceResultFormat.time(bestLap)) else "BEST LAP  --"
 		resultsBestLabel.Visible = raceState == "FINISHED"
+		local canRematch = (raceState == "FINISHED" or raceState == "DNF")
+			and (participantCount < 2 or sessionComplete) and not rematchReady
+		rematchButton.Active = canRematch
+		rematchButton.BackgroundColor3 = if canRematch then Color3.fromRGB(45, 130, 235) else Color3.fromRGB(65, 75, 87)
+		rematchButton.Text = if rematchReady then string.format("READY %d/%d",
+			getNumberAttribute(player, "RaceRematchReadyCount", 0), getNumberAttribute(player, "RaceRematchRequiredCount", participantCount))
+			elseif participantCount >= 2 and not sessionComplete then "WAITING FOR RACER" else "REMATCH"
 		for lap, row in lapRows do
 			local lapTime = getNumberAttribute(player, "RaceLap" .. lap .. "Time", 0)
 			row.frame.Visible = raceState == "FINISHED" and lap <= totalLaps and lapTime > 0
@@ -681,7 +702,12 @@ function RaceHudController.start()
 			finishBanner.Visible = false
 		end
 
-		if raceState == "COUNTDOWN" then
+		if raceState == "PRE_RACE" and matchStatus == "WAITING" then
+			countdownLabel.Text = string.format("WAITING FOR RACER\n%d", getNumberAttribute(player, "RaceMatchWaitRemaining", 0))
+			countdownLabel.TextTransparency = 0
+			countdownLabel.TextStrokeTransparency = 0.3
+			countdownLabel.Visible = true
+		elseif raceState == "COUNTDOWN" then
 			local countdown = getNumberAttribute(player, "RaceCountdown", 0)
 			if previousRaceState ~= "COUNTDOWN" then
 				goDisplaySerial += 1
@@ -763,6 +789,15 @@ function RaceHudController.start()
 		"RaceFinalTime",
 		"RaceOffTrackRemaining",
 		"RaceFinishMissedSerial",
+		"RaceParticipantCount",
+		"RacePosition",
+		"RaceFinishPosition",
+		"RaceMatchStatus",
+		"RaceMatchWaitRemaining",
+		"RaceSessionComplete",
+		"RaceRematchReady",
+		"RaceRematchReadyCount",
+		"RaceRematchRequiredCount",
 		"SelectedDriverId",
 		"SelectedKartId",
 		"SelectedTrackId",

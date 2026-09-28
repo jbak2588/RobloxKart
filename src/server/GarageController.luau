@@ -10,6 +10,7 @@ local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
+local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local requireModule = require :: (ModuleScript) -> any
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
@@ -74,8 +75,8 @@ function GarageController.start()
 		end
 	end
 
-	local function nextGridSlot(gridSlots: { CFrame }): number?
-		for slotIndex = 1, #gridSlots do
+	local function nextGridSlot(gridSlots: { CFrame }, maxSlots: number): number?
+		for slotIndex = 1, math.min(#gridSlots, maxSlots) do
 			local occupied = false
 			for _, reservedIndex in reservedSlots do
 				if reservedIndex == slotIndex then
@@ -137,7 +138,18 @@ function GarageController.start()
 		if not driver or not kartSelection or not track or track.ModelName ~= "TestTrack" then
 			return
 		end
-		local slotIndex = nextGridSlot(track.GridSlots)
+		local session = RaceSession.active()
+		if session and session:count() > 0 then
+			if session:count() >= session.maxPlayers then
+				player:SetAttribute("RaceEntryError", "Race full")
+				return
+			end
+			if session.phase ~= "WAITING" or trackId ~= "Track01Race" or session.trackId ~= trackId then
+				player:SetAttribute("RaceEntryError", "Race in progress")
+				return
+			end
+		end
+		local slotIndex = nextGridSlot(track.GridSlots, if trackId == "Track01Race" then 2 else 1)
 		if not slotIndex then
 			player:SetAttribute("RaceEntryError", "Grid full")
 			return
@@ -150,32 +162,38 @@ function GarageController.start()
 			player:SetAttribute("RaceEntryError", "Driver not ready")
 			return
 		end
-		local context = PrototypeWorld.assignDefaultKart(player)
-		if not context then
-			player:SetAttribute("RaceEntryError", "Kart in use")
-			return
-		end
-		local kart, seat = context.kart, context.seat
-		if seat.Occupant then
-			player:SetAttribute("RaceEntryError", "Kart in use")
-			return
-		end
-
+		local gridCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[slotIndex]
 		readyPending[player] = true
-		player:SetAttribute("RaceEntryError", "")
+		reservedSlots[player] = slotIndex
 		local built, buildError = pcall(TrackBuilder.build, prototype, track, groundTop)
 		if not built then
 			readyPending[player] = nil
+			releaseSlot(player)
 			player:SetAttribute("RaceEntryError", "Track unavailable")
 			warn("[Garage] Track build failed: " .. tostring(buildError))
 			return
 		end
+		local context = PrototypeWorld.acquireKartContext(player, gridCFrame)
+		if not context then
+			readyPending[player] = nil
+			releaseSlot(player)
+			player:SetAttribute("RaceEntryError", "Kart unavailable")
+			return
+		end
+		local kart, seat = context.kart, context.seat
+		if seat.Occupant then
+			readyPending[player] = nil
+			releaseSlot(player)
+			player:SetAttribute("RaceEntryError", "Kart in use")
+			return
+		end
+
+		player:SetAttribute("RaceEntryError", "")
 		player:SetAttribute("SelectedDriverId", driverId)
 		player:SetAttribute("SelectedKartId", kartId)
 		player:SetAttribute("SelectedTrackId", trackId)
 		player:SetAttribute("RaceMode", mode)
 		readyOrder += 1
-		reservedSlots[player] = slotIndex
 		player:SetAttribute("ReadyOrder", readyOrder)
 		player:SetAttribute("GridSlot", slotIndex)
 		player:SetAttribute("RaceState", "PRE_RACE")
@@ -184,8 +202,7 @@ function GarageController.start()
 		if visual and visual:IsA("Model") then
 			KartVisualFactory.applyColors(visual, kartSelection)
 		end
-		local gridCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[slotIndex]
-		kart:SetAttribute("RaceStartCFrame", gridCFrame)
+		context:setSpawnCFrame(gridCFrame)
 		kart:PivotTo(gridCFrame)
 		root.Anchored = false
 		character:PivotTo(seat.CFrame * CFrame.new(0, 2.5, 0))
@@ -201,6 +218,7 @@ function GarageController.start()
 			elseif player:GetAttribute("RaceState") == "PRE_RACE" then
 				player:SetAttribute("RaceEntryError", "Seat failed; try Ready again")
 				player:SetAttribute("RaceState", "GARAGE")
+				PrototypeWorld.releaseKartContext(player)
 			end
 		end)
 	end)

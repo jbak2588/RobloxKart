@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local physicsAvailable, PhysicsService = pcall(function() return game:GetService("PhysicsService") end)
 
 local KartConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig"))
 local KartCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
@@ -20,6 +21,22 @@ local PrototypeWorld = {}
 local contexts = {}
 local ownerContexts = {}
 local defaultContext = nil
+local KART_COLLISION_GROUP = "RacerKart"
+
+local function configureKartCollisions()
+	if not physicsAvailable then return end
+	if not PhysicsService:IsCollisionGroupRegistered(KART_COLLISION_GROUP) then
+		PhysicsService:RegisterCollisionGroup(KART_COLLISION_GROUP)
+	end
+	PhysicsService:CollisionGroupSetCollidable(KART_COLLISION_GROUP, KART_COLLISION_GROUP, false)
+end
+
+local function assignKartCollisionGroup(kart: Model)
+	if not physicsAvailable then return end
+	for _, descendant in kart:GetDescendants() do
+		if descendant:IsA("BasePart") then descendant.CollisionGroup = KART_COLLISION_GROUP end
+	end
+end
 
 function PrototypeWorld.getKartContext(player: Player)
 	return ownerContexts[player]
@@ -156,6 +173,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame, kartName: stri
 
 	kart.PrimaryPart = chassis
 	kart.Parent = prototype
+	assignKartCollisionGroup(kart)
 	chassis:SetNetworkOwner(nil)
 
 	return kart, chassis, seat
@@ -207,6 +225,7 @@ local function crossedBarrier(trigger: BasePart, fromPosition: Vector3, toPositi
 end
 
 function PrototypeWorld.start()
+	configureKartCollisions()
 	local prototype = Workspace:FindFirstChild("Prototype")
 	if not prototype or not prototype:IsA("Folder") then
 		if prototype then
@@ -993,6 +1012,19 @@ function PrototypeWorld.start()
 	end
 
 	defaultContext = createContext(nil, kart, chassis, seat, spawnCFrame)
+	function PrototypeWorld.acquireKartContext(player: Player, startCFrame: CFrame)
+		local existing = ownerContexts[player]
+		if existing then
+			existing:setSpawnCFrame(startCFrame)
+			return existing
+		end
+		if defaultContext and defaultContext.kart.Parent and not defaultContext.seat.Occupant
+			and defaultContext:assignOwner(player) then
+			defaultContext:setSpawnCFrame(startCFrame)
+			return defaultContext
+		end
+		return PrototypeWorld.createKartContext(player, startCFrame)
+	end
 	function PrototypeWorld.assignDefaultKart(player: Player)
 		if defaultContext and defaultContext.kart.Parent and defaultContext:assignOwner(player) then
 			return defaultContext
@@ -1005,10 +1037,23 @@ function PrototypeWorld.start()
 		return createContext(player, newKart, newChassis, newSeat, startCFrame)
 	end
 	function PrototypeWorld.destroyKartContext(player: Player)
+		PrototypeWorld.releaseKartContext(player)
+	end
+	function PrototypeWorld.releaseKartContext(player: Player)
 		local context = ownerContexts[player]
 		if not context then return end
+		context.kart:SetAttribute("RaceControlsLocked", true)
+		context.kart:SetAttribute("KartFinishRollActive", false)
+		context.kart:SetAttribute("RaceResetSerial", (context.kart:GetAttribute("RaceResetSerial") or 0) + 1)
+		context.chassis.AssemblyLinearVelocity = Vector3.zero
+		context.chassis.AssemblyAngularVelocity = Vector3.zero
 		context:clearOwner()
-		if context ~= defaultContext then context.kart:Destroy() end
+		if context == defaultContext then
+			context:setSpawnCFrame(context.homeCFrame)
+			context.kart:PivotTo(context.homeCFrame)
+		else
+			context.kart:Destroy()
+		end
 	end
 	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
 		local context = ownerContexts[player]

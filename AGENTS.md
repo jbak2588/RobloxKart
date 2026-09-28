@@ -227,7 +227,7 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-M2-A1 2-player synchronized race after M1-B real-device finish presentation validation.
+M2-A1 2-player synchronized race implementation and Studio 2-client validation.
 Use Practice Circuit Race first; TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
@@ -420,14 +420,26 @@ owner and session. KartControl never trusts a client-selected Kart identity.
 Use one shared track with multiple kart contexts. M2-A0 makes no kart collision,
 ranking or matchmaking decision and does not enable public multiplayer.
 
-After M1-B real-device validation, M2-A1 starts with 2 synchronized players on
-Practice Circuit Race, then expands:
+M2-A1 limits synchronized racing to 2 players on Practice Circuit Race (2 laps).
+Track01 Practice (1 lap) and Track02 V2 (3 laps) remain solo. A connected solo
+player counts down immediately. With 2 connected players, the first ready racer
+waits up to 8 seconds, then starts solo if nobody joins. The shared session
+owns countdown and start time; each player owns KartContext and RacerState.
+Finish place is fixed at the official final gate, before presentation. One
+finisher must not stop the other. Multiplayer Rematch waits for all remaining
+participants to vote. KartControl never accepts a client kart or target identity.
+
+M2-A1 temporary policy: RacerKart parts do not physically collide with other
+RacerKart parts; track/barrier contact remains unchanged. Revisit after the
+synchronized race is validated in a Studio 1-server, 2-client drive.
+
+After that validation, expand:
 
 2 players
 → 4
 → 6
 
-Before enabling 2-player racing, verify:
+Before declaring 2-player runtime validation, verify:
 
 RaceItemController cleanup
 hazard ownership
@@ -452,6 +464,8 @@ tests/track_environment_validation.luau
 tests/finish_sequence_validation.luau
 tests/finish_presentation_validation.luau
 tests/race_result_hud_validation.luau
+tests/garage_two_player_validation.luau
+tests/two_player_race_validation.luau
 
 Always run:
 
@@ -505,5 +519,6 @@ preserve the desktop finish view.
 Finish screen-space drift is camera-only. Never add lateral server kart physics
 for this cinematic.
 
-Do not enable playable multiplayer until the M1-B presentation receives
-real-device validation and the user authorizes that phase.
+Do not claim M2-A1 runtime validation from automated tests alone. A Studio
+1-server, 2-client drive must confirm both players' start, progress, items,
+results and synchronized Rematch before expanding the racer count.

@@ -224,8 +224,9 @@ mobile Finish view now uses camera-only screen composition during the late
 ROLL to move the Kart image toward the right before the front view. The server
 Finish Roll remains straight and unchanged. The narrower left results panel and
 camera composition still need final real-device validation for visual separation.
-M2-A0 prepares the server for multiple kart contexts. Playable 2-player racing is
-the next phase after M1-B real-device validation.
+M2-A0 prepared the server for multiple kart contexts. M2-A1 implements a
+two-player beta on Practice Circuit Race; Studio 2-client runtime validation
+is still required.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ### Engine loop asset decision
@@ -287,10 +288,33 @@ remain the replicated UI contract. RaceItem cleanup is player-specific;
 Slick hazards carry a server-assigned owner and session, while Shield and hit
 immunity remain separate for each player.
 
-The current user-facing flow remains single-player. M2-A0 does not enable a
-two-player synchronized start, matchmaking, ranking, or kart interaction.
-Kart-to-kart collision policy remains undecided. All racers will share one
-active track rather than duplicating courses.
+M2-A0 preserved the solo flow. The user validated Drift/Mini Boost, Nitro,
+Slick, Shield, barrier recovery and Finish/Result/Rematch by driving in Studio.
+
+## M2-A1 Two-Player Synchronized Race
+
+`Track01Race` (Practice Circuit Race, **2 laps**) accepts one or two racers.
+`Track01` remains solo with 1 lap; `Track02` remains solo with 3 laps. A lone
+connected player starts the normal countdown immediately. With another player
+connected, the first ready racer waits up to 8 seconds; the second ready racer
+starts the shared 3-second countdown immediately. A single `RaceSession` owns
+the countdown deadline and official start timestamp. The roster locks when
+countdown begins. Each racer has a separate KartContext, grid slot and progress.
+
+Live position is server-ranked by finish place, completed laps, checkpoints,
+route fraction and ready order. Official finish place is assigned at the final
+gate crossing, before the finish camera sequence. A finished racer leaves the
+other racer driving. The session completes when all remaining racers finish or
+DNF; a disconnect removes that racer without ending another racer's drive.
+Multiplayer Rematch requires a vote from every remaining participant. If a
+voter's opponent returns to Garage, the voter's solo rematch starts.
+
+M2-A1 temporarily disables physical kart-to-kart collision through the
+`RacerKart` collision group. Track and barrier collisions remain enabled.
+Revisit this after synchronized-race validation. Same-Heartbeat finish ties use
+official final time and then ready order; subframe photo-finish interpolation is
+deferred. Automated tests exercise the server contract; a Studio 1-server,
+2-client drive is required before calling the multiplayer beta runtime verified.
 
 ## Known Polish Gates
 
@@ -331,8 +355,8 @@ Do not:
 
 ## Next Development Order
 
-1. M2-A1 2-player synchronized race after M1-B real-device validation
-2. 4-player expansion
+1. M2-A1 Studio 2-client runtime validation and fixes
+2. 4-player expansion after the 2-player runtime passes
 3. 6-player tuning only after 4-player validation
 4. TrackV2 geometry revision / beta iteration as scheduled
 5. Persistence / Racer XP

@@ -10,6 +10,7 @@ function KartContext.new(owner, kart, chassis, seat, spawnCFrame, config, itemCo
 		chassis = chassis,
 		seat = seat,
 		spawnCFrame = spawnCFrame,
+		homeCFrame = spawnCFrame,
 		control = nil,
 		commandedSpeed = 0,
 		smoothedSteering = 0,
@@ -46,6 +47,11 @@ function KartContext.new(owner, kart, chassis, seat, spawnCFrame, config, itemCo
 		finishRollDirection = Vector3.new(0, 0, -1),
 	}, KartContext)
 	return self
+end
+
+function KartContext:setSpawnCFrame(frame)
+	self.spawnCFrame = frame
+	self.kart:SetAttribute("RaceStartCFrame", frame)
 end
 
 return KartContext

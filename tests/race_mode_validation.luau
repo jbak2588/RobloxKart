@@ -157,6 +157,7 @@ end, getRaceKart=function(p)
  if p==player and p:GetAttribute("RaceState")=="RACING" and not kart:GetAttribute("RaceControlsLocked") then return kart,chassis end
 end, activateNitro=function() return true end, applySlickHit=function() return true end}
 load("src/server/RaceSession.luau",server,"RaceSession")
+load("src/server/RaceRanking.luau",server,"RaceRanking")
 load("src/server/RacerState.luau",server,"RacerState")
 local race=load("src/server/RaceController.luau",server,"RaceController")
 race.start()
