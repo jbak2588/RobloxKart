@@ -75,7 +75,7 @@ function View.stroke(parent, thickness: number)
 	return stroke
 end
 
-function View.icon(parent: Instance, kind: string)
+function View.icon(parent: Instance, kind: string, zIndex: number?)
 	local root = Instance.new("Frame")
 	root.Name = kind .. "Icon"
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -83,6 +83,7 @@ function View.icon(parent: Instance, kind: string)
 	root.Size = UDim2.fromOffset(40, 40)
 	root.BackgroundTransparency = 1
 	root.Active = false
+	if zIndex then root.ZIndex = zIndex end
 	root.Parent = parent
 	local shapes, outlines = {}, {}
 	local lockShackle
@@ -95,6 +96,7 @@ function View.icon(parent: Instance, kind: string)
 		part.BackgroundColor3 = ink
 		part.BorderSizePixel = 0
 		part.Active = false
+		if zIndex then part.ZIndex = zIndex + 1 end
 		part.Parent = root
 		if round then View.round(part) end
 		table.insert(shapes, part)

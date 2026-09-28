@@ -94,13 +94,39 @@ local tutorialRoot=object("Frame")
 local tutorial=modules.MobileTutorialView.create(tutorialRoot)
 local tutorialOverlay=tutorialRoot.MobileControlsTutorial
 local tutorialCard=tutorialOverlay.TutorialCard
+local iconSlots=tutorialCard.ActualControlIcons
+local function assertTutorialIcons(kinds)
+	for index,kind in kinds do
+		local holder=iconSlots["IconSlot"..index]
+		local icon=holder[kind.."Icon"]
+		check(holder.Visible and icon~=nil and icon.ZIndex>holder.ZIndex and icon.ZIndex>tutorialCard.ZIndex,"tutorial actual icon above card: "..kind)
+		local shapes=0
+		for _, child in icon:GetChildren() do
+			if child.ClassName=="Frame" then
+				shapes+=1
+				check(child.ZIndex>icon.ZIndex,"tutorial icon shape is visible above root: "..kind)
+			end
+		end
+		check(shapes>0,"tutorial icon has visible shapes: "..kind)
+	end
+end
 check(not tutorial.isOpen(),"tutorial starts closed")
 tutorial.open()
 check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","tutorial opens on DRIVE")
+assertTutorialIcons({"Forward","Left","Right","Brake"})
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
+assertTutorialIcons({"Drift","Left","Right"})
+local examples=tutorialCard.GaugeExamples
+check(examples.Visible and #examples.ChargingGauge:GetChildren()==6 and #examples.ReadyGauge:GetChildren()==6,"tutorial has two native five-segment gauges")
+check(examples.ChargingGauge.Segment3.BackgroundColor3==rb.Color3.fromRGB(65,225,245)
+	and examples.ChargingGauge.Segment4.BackgroundColor3==rb.Color3.fromRGB(45,60,70),"charging example has three cyan segments")
+check(examples.ReadyGauge.Segment5.BackgroundColor3==rb.Color3.fromRGB(255,218,75),"ready example has five gold segments")
+check(not string.find(tutorialCard.Diagram.Text,"▰",1,true) and not string.find(tutorialCard.Diagram.Text,"▱",1,true),"tutorial gauge uses no Unicode blocks")
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="RACE ITEMS","tutorial advances to items")
+assertTutorialIcons({"Nitro","Slick","Shield","Use"})
+check(not string.find(fs.readFile("src/client/GarageUiController.luau"),"CONTROLS ?",1,true),"Garage control replay label has no question mark")
 tutorialCard.Back.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial back works")
 tutorialCard.Next.Activated:Fire(); tutorialCard.Next.Activated:Fire()

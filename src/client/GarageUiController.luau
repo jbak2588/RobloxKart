@@ -251,7 +251,7 @@ function GarageUiController.start()
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
 	local tutorial = MobileTutorialView.create(backdrop)
-	local controlsButton = makeButton(backdrop, "CONTROLS ?", UDim2.new(1, -136, 0, 14))
+	local controlsButton = makeButton(backdrop, "CONTROLS", UDim2.new(1, -136, 0, 14))
 	controlsButton.AnchorPoint = Vector2.new(0, 0)
 	controlsButton.Size = UDim2.fromOffset(120, 36)
 	controlsButton.TextSize = 15
