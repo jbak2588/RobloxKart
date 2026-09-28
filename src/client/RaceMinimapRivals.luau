@@ -10,6 +10,7 @@ function RaceMinimapRivals.collect(localPlayer, players, participantCount)
 	for _, other in players do
 		if other ~= localPlayer and other:GetAttribute("RaceSessionId") == sessionId
 			and other:GetAttribute("RaceState") ~= "GARAGE"
+			and other:GetAttribute("RaceState") ~= "DNF"
 			and other:GetAttribute("RaceMapActive") == true then
 			local position = other:GetAttribute("RaceMapPosition")
 			if typeof(position) == "Vector3" then rivals[other.UserId] = position end

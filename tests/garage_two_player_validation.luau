@@ -158,7 +158,7 @@ local function makePlayer(name,id)
  player:SetAttribute("RaceState","GARAGE")
  return player
 end
-local a,b,c=makePlayer("A",1),makePlayer("B",2),makePlayer("C",3)
+local a,b,c,d,e=makePlayer("A",1),makePlayer("B",2),makePlayer("C",3),makePlayer("D",4),makePlayer("E",5)
 local garage=load("src/server/GarageController.luau",server,"GarageController")
 garage.start()
 local remote=services.ReplicatedStorage.GarageControl
@@ -186,7 +186,7 @@ check(builds==1 and track:GetAttribute("TrackId")=="Track01Race","joining racer 
 session:add(b,{})
 session.phase="COUNTDOWN"
 ready(c,"Kart01","Track01Race")
-check(c:GetAttribute("RaceEntryError")=="Race full" and contexts[c]==nil,"third racer refused")
+check(c:GetAttribute("RaceEntryError")=="Race in progress" and contexts[c]==nil,"countdown rejects third racer")
 session:remove(b);modules.PrototypeWorld.releaseKartContext(b)
 b:SetAttribute("RaceState","GARAGE")
 ready(c,"Kart01","Track01Race")
@@ -201,4 +201,13 @@ ready(b,"Kart02","Track01Race")
 check(b:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceEntryError")==""
  and contexts[b] and contexts[b].kart.Parent,"Garage accepts same-track rematch rejoin")
 check(b:GetAttribute("GridSlot")==2 and session:count()==1,"returning racer takes free second grid slot")
+session:add(b,{})
+ready(c,"Kart01","Track01Race");session:add(c,{})
+ready(d,"Kart01","Track01Race");session:add(d,{})
+check(c:GetAttribute("GridSlot")==3 and d:GetAttribute("GridSlot")==4
+ and contexts[a]~=contexts[b] and contexts[b]~=contexts[c] and contexts[c]~=contexts[d],
+ "four ready racers reserve distinct kart contexts and grid slots")
+ready(e,"Kart01","Track01Race")
+check(e:GetAttribute("RaceEntryError")=="Race full" and contexts[e]==nil,
+ "fifth ready racer cannot enter full four-slot lobby")
 print("PASS: "..count.." Garage two-player allocation checks")

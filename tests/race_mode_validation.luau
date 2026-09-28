@@ -245,7 +245,7 @@ for _, id in {"Track01","Track01Race","Track02"} do
  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
  if id=="Track01Race" then
   check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING"
-   and player:GetAttribute("RaceMatchWaitReason")=="SOLO_REMATCH", "solo circuit rematch returns to lobby")
+   and player:GetAttribute("RaceMatchWaitReason")=="REMATCH", "solo circuit rematch returns to lobby")
   services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"StartSolo")
  end
  check(player:GetAttribute("RaceState")=="COUNTDOWN" and player:GetAttribute("RaceTotalLaps")==laps,"rematch target "..id)

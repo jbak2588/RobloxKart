@@ -1,5 +1,6 @@
 -- One shared course and match lifecycle per server. Individual progress lives in RacerState.
 local RaceSession = {}
+local RaceConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("RaceConfig"))
 RaceSession.__index = RaceSession
 local activeSession = nil
 local nextId = 0
@@ -16,7 +17,7 @@ function RaceSession.new(trackId, mode, targetLaps)
 		mode = mode,
 		targetLaps = targetLaps,
 		participants = {},
-		maxPlayers = 2,
+		maxPlayers = RaceConfig.PUBLIC_RACE_MAX_PLAYERS,
 		hostUserId = 0,
 		waitingReason = "NONE",
 		countdownEndTime = 0,

@@ -33,6 +33,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceMapPosition", Vector3.zero)
 	player:SetAttribute("RaceMapActive", false)
 	player:SetAttribute("RaceParticipantCount", 1)
+	player:SetAttribute("RaceMaxPlayers", RaceConfig.PUBLIC_RACE_MAX_PLAYERS)
 	player:SetAttribute("RacePosition", 1)
 	player:SetAttribute("RaceFinishPosition", 0)
 	player:SetAttribute("RaceMatchStatus", "")
@@ -592,13 +593,14 @@ function RaceController.start()
 
 	local function publishSession(now: number)
 		local count = session:count()
-		local required = if session.phase == "WAITING" and session.waitingReason == "REMATCH_REJOIN" then 2 else math.max(count, 1)
+		local required = math.max(count, 1)
 		local ready = 0
 		for player in session.rematchVotes do
 			if session:contains(player) then ready += 1 end
 		end
 		for player in session.participants do
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
+			setChanged(player, "RaceMaxPlayers", session.maxPlayers)
 			setChanged(player, "RaceMatchStatus", session.phase)
 			setChanged(player, "RaceMatchWaitReason", session.waitingReason)
 			setChanged(player, "RaceMatchWaitRemaining", 0)
@@ -620,12 +622,12 @@ function RaceController.start()
 		table.clear(session.finishOrder)
 		table.clear(session.rematchVotes)
 		table.clear(session.terminal)
-		for _, player in session:orderedParticipants() do
+		for place, player in session:orderedParticipants() do
 			local racer = racers[player]
 			racer.targetLaps = session.targetLaps
 			setChanged(player, "RaceSessionId", session.roundId)
 			setChanged(player, "RaceFinishPosition", 0)
-			setChanged(player, "RacePosition", player:GetAttribute("GridSlot") or 1)
+			setChanged(player, "RacePosition", place)
 			racer:begin()
 			setChanged(player, "RaceMapPosition", racer.context.chassis.Position)
 			setChanged(player, "RaceMapActive", true)
@@ -673,7 +675,9 @@ function RaceController.start()
 	local function publishMapPositions()
 		for player, racer in session.participants do
 			local context = racer.context
-			if context and context.kart.Parent and context.chassis.Parent
+			if (session.phase == "COUNTDOWN" or session.phase == "RACING")
+				and player:GetAttribute("RaceState") ~= "DNF"
+				and context and context.kart.Parent and context.chassis.Parent
 				and PrototypeWorld.getKartContext(player) == context then
 				setChanged(player, "RaceMapPosition", context.chassis.Position)
 				setChanged(player, "RaceMapActive", true)
@@ -686,19 +690,38 @@ function RaceController.start()
 	local function enterWaitingLobby(now: number, reason: string)
 		session.phase = "WAITING"
 		session.waitingReason = reason
-		if reason == "SOLO_REMATCH" then
+		if reason ~= "INITIAL" then
 			session.startingParticipantCount = 0
 			session.countdownEndTime = 0
 			session.startTime = 0
 			table.clear(session.rematchVotes)
 			table.clear(session.terminal)
 			table.clear(session.finishOrder)
-			for player, racer in session.participants do
-				session.hostUserId = player.UserId
+			local ordered = session:orderedParticipants()
+			session.hostUserId = ordered[1].UserId
+			for _, player in ordered do
+				local racer = racers[player]
 				racer:enterWaitingLobby()
+				setChanged(player, "RaceMapActive", false)
 			end
 		end
 		publishSession(now)
+	end
+
+	local function allRematchVotes(): boolean
+		if session:count() == 0 then return false end
+		for player in session.participants do
+			if not session.rematchVotes[player] then return false end
+		end
+		return true
+	end
+
+	local function beginVotedRound(now: number)
+		if session:count() == session.maxPlayers then
+			startSharedCountdown(now)
+		else
+			enterWaitingLobby(now, "REMATCH")
+		end
 	end
 
 	local function removeRacer(player: Player)
@@ -725,13 +748,9 @@ function RaceController.start()
 			session.hostUserId = 0
 			return
 		end
-		if session.phase == "COMPLETE" and session:count() == 1 then
-			for remaining in session.participants do
-				if session.rematchVotes[remaining] then
-					enterWaitingLobby(time(), "REMATCH_REJOIN")
-					return
-				end
-			end
+		if session.phase == "COMPLETE" and allRematchVotes() then
+			beginVotedRound(time())
+			return
 		end
 		updateComplete()
 		publishSession(time())
@@ -765,7 +784,7 @@ function RaceController.start()
 		player:SetAttribute("RaceMode", session.mode)
 		setChanged(player, "RaceSessionId", session.roundId + 1)
 		context.kart:SetAttribute("RaceControlsLocked", true)
-		if session:count() == 2 then
+		if trackId == "Track01Race" and session:count() == session.maxPlayers then
 			startSharedCountdown(now)
 		elseif trackId == "Track01Race" then
 			enterWaitingLobby(now, "INITIAL")
@@ -779,10 +798,11 @@ function RaceController.start()
 		if not racer then return end
 		if action == "ReturnGarage" then
 			if racer:handleRemote(action, time()) then removeRacer(player) end
-		elseif action == "CancelWait" and session.phase == "WAITING" and session:count() == 1
-			and session.hostUserId == player.UserId then
+		elseif action == "CancelWait" and session.phase == "WAITING" and session:contains(player) then
 			removeRacer(player)
-		elseif action == "StartSolo" and session.phase == "WAITING" and session:count() == 1
+		elseif (action == "StartRace" or (action == "StartSolo" and session:count() == 1))
+			and session.phase == "WAITING" and session:count() >= 1
+			and session:count() < session.maxPlayers
 			and session.trackId == "Track01Race" and session.hostUserId == player.UserId then
 			startSharedCountdown(time())
 		elseif action == "QuitRace" and session:contains(player) and session.phase == "RACING"
@@ -794,20 +814,10 @@ function RaceController.start()
 			and (player:GetAttribute("RaceState") == "FINISHED" or player:GetAttribute("RaceState") == "DNF") then
 			session.rematchVotes[player] = true
 			publishSession(time())
-			if session.startingParticipantCount >= 2 and session:count() == 1 then
-				enterWaitingLobby(time(), "REMATCH_REJOIN")
-				return
+			if allRematchVotes() then
+				if session.trackId == "Track01Race" then beginVotedRound(time())
+				else startSharedCountdown(time()) end
 			end
-			if session.trackId == "Track01Race" and session.startingParticipantCount == 1
-				and session:count() == 1 then
-				enterWaitingLobby(time(), "SOLO_REMATCH")
-				return
-			end
-			local allReady = true
-			for participant in session.participants do
-				if not session.rematchVotes[participant] then allReady = false; break end
-			end
-			if allReady then startSharedCountdown(time()) end
 		end
 	end)
 

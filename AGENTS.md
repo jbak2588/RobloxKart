@@ -232,8 +232,8 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-Validate the R4.5 NITRO CHARGE placement on a real mobile device. The
-two-player Practice Circuit Race has already passed the user's device checks;
+M2-A1 two-player Practice Circuit Race and R4.5 NITRO CHARGE placement passed
+the user's real-device checks. M2-B0 expands the public race to four players;
 TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
@@ -429,31 +429,34 @@ owner and session. KartControl never trusts a client-selected Kart identity.
 Use one shared track with multiple kart contexts. M2-A0 makes no kart collision,
 ranking or matchmaking decision and does not enable public multiplayer.
 
-M2-A1 limits synchronized racing to 2 players on Practice Circuit Race (2 laps).
+M2-A1 validated synchronized 2-player Practice Circuit Race (2 laps) on real devices.
 The Garage title is KART DRIFT MASTERS and shows a small PlaceVersion build
 label. Five actual Mini Boost starts during one race award one Nitro per racer
 per race. Successes need not be consecutive; failed Drifts and driving incidents
 never subtract progress. A new Countdown or leaving for Garage resets it.
 Mobile tutorial dismissal persists in a dedicated preference DataStore;
 CONTROLS still reopens it manually.
-Track01 Practice (1 lap) and Track02 V2 (3 laps) remain solo. The first ready
-racer waits without a timer and becomes host. The host can START SOLO or CANCEL
-to Garage; a second ready racer starts the shared countdown. The shared session
+Track01 Practice (1 lap) and Track02 V2 (3 laps) remain solo. M2-B0 sets
+`PUBLIC_RACE_MAX_PLAYERS = 4` for the public Track01Race lobby. The first READY
+racer becomes host. One to three racers wait without a timer until the host
+starts; the fourth READY racer starts the shared countdown automatically. The
+host may START SOLO at 1/4 or START RACE at 2/4 and 3/4. Other racers may LEAVE.
+Host departure transfers authority to the earliest remaining ReadyOrder.
+The shared session
 owns countdown and start time; each player owns KartContext and RacerState.
 Finish place is fixed at the official final gate, before presentation. One
 finisher must not stop the other. Multiplayer Rematch waits for all remaining
 participants to vote. KartControl never accepts a client kart or target identity.
-If either completed racer returns to Garage while the other votes Rematch,
-keep the voter waiting without a timer for a same-track rejoin, regardless of
-click order. The host can START SOLO or CANCEL. Do not leave an unowned race kart visible on
+After every remaining racer votes or leaves, a sub-full Rematch returns 1–3
+voters to the flexible WAITING lobby. A full 4/4 Rematch automatically starts
+the shared countdown. The host may start a sub-full lobby or wait for another
+READY racer. Do not leave an unowned race kart visible on
 the active grid. Minimap positions come from server-published `RaceMapPosition`
 and `RaceMapActive` attributes, never client Workspace Kart discovery. Garage
 shows same-server player presence. `QuitRace` is a server-authoritative RACING
 forfeit and must leave the opponent driving.
 For Track01Race, a completed solo REMATCH returns the same host and kart to the
-start-grid PRE_RACE / WAITING FOR RACER lobby without a countdown. The host can
-START SOLO, wait for a second racer READY, or CANCEL to Garage. A completed
-two-player race still begins its shared countdown when both racers vote REMATCH.
+start-grid PRE_RACE / WAITING FOR RACERS lobby without a countdown.
 The user confirmed the initial WAITING screen, START SOLO, solo two-lap Finish,
 and solo REMATCH lobby return on a real mobile device.
 The user's R3 two-device test
@@ -472,20 +475,21 @@ confirmed DON'T SHOW AGAIN across a full app rejoin with manual CONTROLS access,
 the 15-second off-track DNF, and acceptable Quit Race panel spacing. The old
 mobile Nitro Charge label overlaps the item cells. R4.5 moves cumulative Nitro
 progress into RaceItemUiController's ScreenGui; the current Drift gauge remains
-in DriftChargeView. The only remaining M2-A1 mobile polish gate is real-device
-validation of the new NITRO CHARGE placement.
+in DriftChargeView. The user confirmed 3/5 and 5/5 with BONUS EARNED below the
+item cells on a real device without overlap. M2-A1 is closed.
 
-M2-A1 temporary policy: RacerKart parts do not physically collide with other
-RacerKart parts; track/barrier contact remains unchanged. Revisit after R4.5
-mobile HUD placement validation.
+M2-B0 temporary policy: RacerKart parts do not physically collide with other
+RacerKart parts; track/barrier contact remains unchanged. Revisit after four-racer
+runtime validation.
 
-After that validation, expand:
+Public standard is four racers. Architecture may expand to six later; six-player
+implementation and GridSlots 5/6 are deferred. A future friend/private room may
+choose 2, 3, 4 or 6 racers with invites and a reserved server; M2-B0 does not
+implement private rooms, reserved servers or cross-server matchmaking.
+Four-player runtime needs a 1 Server / 4 Clients Studio or device check before
+claiming 4-player validation.
 
-2 players
-→ 4
-→ 6
-
-Before declaring 2-player runtime validation, verify:
+Before declaring four-player runtime validation, verify:
 
 RaceItemController cleanup
 hazard ownership
@@ -512,6 +516,7 @@ tests/finish_presentation_validation.luau
 tests/race_result_hud_validation.luau
 tests/garage_two_player_validation.luau
 tests/two_player_race_validation.luau
+tests/four_player_race_validation.luau
 tests/player_preferences_validation.luau
 
 Always run:
@@ -569,5 +574,4 @@ for this cinematic.
 Automated tests do not replace device checks. R3 shared-race runtime was
 confirmed by the user on two real devices. The cumulative Bonus Nitro, 100
 stud/s Mini Boost, initial and solo Rematch lobbies, tutorial persistence,
-15-second DNF, and Quit Race spacing passed on mobile. The R4.5 NITRO CHARGE
-placement still needs a real-device visual check before expanding the racer count.
+15-second DNF, Quit Race spacing, and R4.5 NITRO CHARGE placement passed on mobile.

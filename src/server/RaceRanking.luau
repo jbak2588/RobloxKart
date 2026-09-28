@@ -1,4 +1,4 @@
--- Pure ordering of a two-racer snapshot. Finish places are fixed at the final gate.
+-- Pure ordering of a racer snapshot. Finish places are fixed at the final gate.
 local RaceRanking = {}
 
 function RaceRanking.sort(entries)

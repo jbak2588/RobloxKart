@@ -60,13 +60,25 @@ renderer:setRacerMarker("rival:2",rb.Vector3.new(10,0,10),"RIVAL")
 check(rivalDot.Position==localDot.Position and rivalDot.Size.X.Offset>localDot.Size.X.Offset,
 	"overlapped racers retain visible rival ring")
 renderer:setRacerMarker("rival:2",rb.Vector3.new(90,0,90),"RIVAL")
+renderer:setRacerMarker("rival:3",rb.Vector3.new(80,0,20),"RIVAL")
+renderer:setRacerMarker("rival:4",rb.Vector3.new(20,0,80),"RIVAL")
+local rivalMarkers=0
+for _, marker in canvas:GetChildren() do
+	if marker.Name=="RivalPosition" then rivalMarkers+=1 end
+end
+check(rivalMarkers==3,"map renders three independent rival rings")
 local oldRivalPosition=rivalDot.Position
 renderer:setRacerMarker("local:1",rb.Vector3.new(40,0,40),"LOCAL")
 check(localDot.Position~=rivalDot.Position and rivalDot.Position==oldRivalPosition,"moving self leaves rival in place")
 renderer:setRacerMarker("rival:2",rb.Vector3.new(70,0,70),"RIVAL")
 check(rivalDot.Position~=oldRivalPosition,"rival moves independently")
 renderer:removeRacerMarker("rival:2")
-check(not canvas:FindFirstChild("RivalPosition") and canvas:FindFirstChild("KartPosition"),"rival removal retains self")
+local remainingRivals=0
+for _, marker in canvas:GetChildren() do
+	if marker.Name=="RivalPosition" then remainingRivals+=1 end
+end
+check(remainingRivals==2 and canvas:FindFirstChild("KartPosition"),
+	"one rival removal preserves local and two other rival markers")
 renderer:clearRacerMarkers()
 check(not canvas:FindFirstChild("KartPosition"),"clear removes all racer markers")
 local preview=rendererType.create(parent,{},false)
@@ -95,6 +107,25 @@ other:SetAttribute("RaceState","RACING");other:SetAttribute("RaceMapActive",fals
 check(next(rivals.collect(localPlayer,{localPlayer,other},2))==nil,"inactive rival filtered")
 other:SetAttribute("RaceMapActive",true);other:SetAttribute("RaceMapPosition","invalid")
 check(next(rivals.collect(localPlayer,{localPlayer,other},2))==nil,"invalid position filtered")
+other:SetAttribute("RaceMapPosition",otherPosition)
+other:SetAttribute("RaceState","RACING")
+local third=object("Player","C");third.UserId=3
+local fourth=object("Player","D");fourth.UserId=4
+for _, racer in {third,fourth} do
+	racer:SetAttribute("RaceSessionId",5)
+	racer:SetAttribute("RaceState","RACING")
+	racer:SetAttribute("RaceMapActive",true)
+	racer:SetAttribute("RaceMapPosition",rb.Vector3.new(racer.UserId*10,0,30))
+end
+local fourRivals=rivals.collect(localPlayer,{localPlayer,other,third,fourth},4)
+check(fourRivals[2]==otherPosition and fourRivals[3] and fourRivals[4],
+	"four-player session exposes all three server-published rival positions")
+third:SetAttribute("RaceState","DNF")
+check(rivals.collect(localPlayer,{localPlayer,other,third,fourth},4)[3]==nil,
+	"DNF rival marker is filtered")
+fourth:SetAttribute("RaceMapActive",false)
+check(rivals.collect(localPlayer,{localPlayer,other,third,fourth},4)[4]==nil,
+	"leaving rival marker is removed without clearing active opponent")
 
 local presence=luau.load(fs.readFile("src/client/GaragePresence.luau"))()
 localPlayer.DisplayName="";localPlayer.Name="A"

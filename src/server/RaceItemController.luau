@@ -117,6 +117,8 @@ local function activate(player, id)
 		if not frame then return false, "no_road_behind" end
 		if #hazards >= Config.SLICK_MAX_HAZARDS then return false, "hazard_limit" end
 		local model, trigger, deploy = Visuals.slick(hazardFolder, frame, Config, chassis.CFrame)
+		model:SetAttribute("SlickOwnerUserId", player.UserId)
+		model:SetAttribute("RaceSessionId", player:GetAttribute("RaceSessionId"))
 		table.insert(hazards, { model=model, trigger=trigger, deploy=deploy, owner=player,
 			session=RaceSession.forPlayer(player), born=time() })
 		player:SetAttribute("SlickDeployFrame", frame)

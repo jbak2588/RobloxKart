@@ -174,13 +174,26 @@ set("RaceParticipantCount",2);set("RacePosition",2)
 set("RaceHostUserId",player.UserId)
 set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
 local lobby=hud:FindFirstChild("RaceLobbyHost")
-check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACER"
- and hud.Countdown.TextTransparency==0 and lobby.Visible and not results.Visible,
+check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACERS"
+ and hud.Countdown.TextTransparency==0 and lobby.Visible and not results.Visible
+ and lobby.Status.Text=="SERVER  2 / 4" and lobby.StartRace.Text=="START RACE"
+ and lobby.Cancel.Text=="LEAVE",
  "host lobby waits without timer or result overlay")
-lobby.StartSolo.Activated:Fire()
-check(remote.lastFire[1]=="StartSolo","host START SOLO sends server action")
+set("RaceParticipantCount",1)
+check(lobby.Status.Text=="SERVER  1 / 4" and lobby.StartRace.Text=="START SOLO"
+ and lobby.Cancel.Text=="CANCEL","solo host sees one-of-four choice")
+set("RaceParticipantCount",3)
+check(lobby.Status.Text=="SERVER  3 / 4" and lobby.StartRace.Text=="START RACE"
+ and lobby.Cancel.Text=="LEAVE","three-racer host may start or leave")
+set("RaceParticipantCount",2)
+lobby.StartRace.Activated:Fire()
+check(remote.lastFire[1]=="StartRace","host START RACE sends server action")
 lobby.Cancel.Activated:Fire()
-check(remote.lastFire[1]=="CancelWait","host CANCEL sends server action")
+check(remote.lastFire[1]=="CancelWait","host LEAVE sends server action")
+set("RaceHostUserId",999)
+check(lobby.Visible and not lobby.StartRace.Visible and lobby.Cancel.Visible
+ and hud.Countdown.Text=="WAITING FOR HOST","non-host sees waiting and LEAVE only")
+set("RaceHostUserId",player.UserId)
 remote.lastFire=nil
 set("RaceState","COUNTDOWN");set("RaceState","RACING")
 check(not lobby.Visible,"host lobby hides at countdown")
@@ -239,15 +252,15 @@ check(positionLabel.Visible and positionLabel.Text=="POS 2/2","race position dis
 set("RaceFinishPosition",1);set("RaceState","FINISHED")
 check(not hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit action hides after racing")
 check(results.Finish.Text=="PLACE 1/2" and not results.Rematch.Active
- and results.Rematch.Text=="WAITING FOR RACER","first finisher sees fixed place and waits")
+ and results.Rematch.Text=="WAITING FOR RACERS","first finisher sees fixed place and waits")
 check(hud.RaceMiniMap.Visible,"first finisher keeps multiplayer minimap while rival races")
 set("RaceSessionComplete",true)
 check(results.Rematch.Active and results.Rematch.Text=="REMATCH","all terminal unlocks rematch")
 check(not hud.RaceMiniMap.Visible,"completed result hides spectator minimap")
 set("RaceRematchReadyCount",1);set("RaceRematchRequiredCount",2);set("RaceRematchReady",true)
 check(not results.Rematch.Active and results.Rematch.Text=="READY 1/2","voter waits for opponent")
-set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH_REJOIN");set("RaceMatchWaitRemaining",0)
-set("RaceMatchStatus","WAITING")
-check(results.Rematch.Text=="WAITING FOR RACER" and not results.Rematch.Active and lobby.Visible,
- "rematch rejoin host waits without timer")
+set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH");set("RaceMatchWaitRemaining",0)
+set("RaceMatchStatus","WAITING");set("RaceState","PRE_RACE")
+check(lobby.Visible and not results.Visible and hud.Countdown.Text=="WAITING FOR RACERS",
+ "rematch voters return to flexible lobby without result overlap")
 print("PASS: "..count.." production race result HUD checks")

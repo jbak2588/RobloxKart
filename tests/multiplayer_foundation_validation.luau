@@ -13,7 +13,13 @@ local function load(path, environment)
 end
 local contextType = load("src/server/KartContext.luau", { Vector3 = rb.Vector3 })
 local racerType = load("src/server/RacerState.luau", {})
-local sessionType = load("src/server/RaceSession.luau", {})
+local raceConfig = load("src/shared/RaceConfig.luau", { table = table })
+local sessionType = load("src/server/RaceSession.luau", {
+	game = { GetService = function() return {
+		WaitForChild = function() return { WaitForChild = function() return {} end } end,
+	} end },
+	require = function() return raceConfig end,
+})
 local config = load("src/shared/RaceItemConfig.luau", {})
 local function kart()
 	return { GetAttribute = function(_, name) return name == "RaceControlsLocked" end }

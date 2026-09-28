@@ -131,10 +131,10 @@ loadoutType.new=function() local result=originalNew(); table.insert(instances,re
 local Nitro=load("src/server/NitroState.luau",server,"NitroState")
 load("src/server/DriftTelemetry.luau",server,"DriftTelemetry")
 load("src/server/KartContext.luau",server,"KartContext")
+local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local sessionType=load("src/server/RaceSession.luau",server,"RaceSession")
 local itemConfig=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 check(itemConfig.DRIFT_BONUS_REQUIRED_BOOSTS==5,"cumulative reward requires five actual Boosts")
-local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
 local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
@@ -729,10 +729,63 @@ remote.OnServerEvent:Fire(second,"Select","Shield")
 remote.OnServerEvent:Fire(second,"Use")
 check(secondContext.kart:GetAttribute("KartShieldActive"),"second player shield active")
 check(not kart:GetAttribute("KartShieldActive"),"second player Shield does not set first kart Shield")
+second:SetAttribute("RaceSessionId",7)
 remote.OnServerEvent:Fire(second,"Select","Slick")
 now+=0.2; remote.OnServerEvent:Fire(second,"Use")
 local secondHazardCount=hazardCount()
 check(secondHazardCount>0,"second player owns Slick hazard")
+local secondHazard=services.Workspace.Prototype.RaceItemHazards:GetChildren()[1]
+check(secondHazard:GetAttribute("SlickOwnerUserId")==second.UserId
+	and secondHazard:GetAttribute("RaceSessionId")==second:GetAttribute("RaceSessionId"),
+	"Slick hazard keeps server-assigned owner and race-session identity")
+local extraRacers={}
+for id=3,4 do
+	local racer=child(services.Players,"Player","Racer"..id);racer.UserId=id
+	racer.Character=object("Model","RacerCharacter"..id)
+	local humanoid=child(racer.Character,"Humanoid","Humanoid");humanoid.Health=100
+	local context=world.acquireKartContext(racer,CF.new(id*10,1.75,0))
+	services.Players.PlayerAdded:Fire(racer)
+	session:add(racer,{})
+	racer:SetAttribute("RaceState","COUNTDOWN")
+	context.seat.Occupant=humanoid;humanoid.SeatPart=context.seat
+	racer:SetAttribute("RaceState","RACING")
+	context.kart:SetAttribute("RaceControlsLocked",false)
+	extraRacers[id]={player=racer,context=context}
+end
+local thirdRacer=extraRacers[3].player
+local fourthRacer=extraRacers[4].player
+remote.OnServerEvent:Fire(fourthRacer,"Select","Shield")
+remote.OnServerEvent:Fire(fourthRacer,"Use")
+check(extraRacers[4].context.kart:GetAttribute("KartShieldActive")
+	and not extraRacers[3].context.kart:GetAttribute("KartShieldActive")
+	and secondContext.kart:GetAttribute("KartShieldActive"),
+	"fourth racer Shield does not alter other racers' Shield")
+local firstNitro=player:GetAttribute("RaceChargeNitro")
+local secondNitro=second:GetAttribute("RaceChargeNitro")
+local fourthNitro=fourthRacer:GetAttribute("RaceChargeNitro")
+remote.OnServerEvent:Fire(thirdRacer,"Select","Nitro")
+control.OnServerEvent:Fire(thirdRacer,1,0,false)
+remote.OnServerEvent:Fire(thirdRacer,"Use")
+check(thirdRacer:GetAttribute("RaceChargeNitro")==0
+	and player:GetAttribute("RaceChargeNitro")==firstNitro
+	and second:GetAttribute("RaceChargeNitro")==secondNitro
+	and fourthRacer:GetAttribute("RaceChargeNitro")==fourthNitro,
+	"third racer Nitro use changes only its own charge")
+check(items.grantBonusNitro(fourthRacer)
+	and fourthRacer:GetAttribute("RaceChargeNitro")==fourthNitro+1
+	and thirdRacer:GetAttribute("RaceChargeNitro")==0
+	and player:GetAttribute("RaceChargeNitro")==firstNitro
+	and second:GetAttribute("RaceChargeNitro")==secondNitro,
+	"fourth racer Bonus Nitro remains independent and once per round")
+check(not items.grantBonusNitro(fourthRacer),"fourth racer cannot claim Bonus Nitro twice")
+for id=3,4 do
+	local racer=extraRacers[id].player
+	session:remove(racer)
+	services.Players.PlayerRemoving:Fire(racer)
+	world.releaseKartContext(racer)
+end
+check(hazardCount()==secondHazardCount and secondContext.kart:GetAttribute("KartShieldActive"),
+	"extra racer cleanup preserves second racer's Slick and Shield")
 player:SetAttribute("RaceState","COUNTDOWN")
 check(second:GetAttribute("RaceChargeNitro")==1 and secondContext.kart:GetAttribute("KartShieldActive")
 	and hazardCount()==secondHazardCount,"first COUNTDOWN preserves second resources")

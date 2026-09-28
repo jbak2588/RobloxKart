@@ -233,8 +233,8 @@ that cumulative progress reaches 5/5 without consecutive successes, the fifth
 Mini Boost awards one Bonus Nitro, the awarded Nitro can be used, and Mini Boost
 reaches 100 stud/s. The user also confirmed initial WAITING, START SOLO, Solo
 Finish to REMATCH to WAITING, tutorial dismissal across a full rejoin, Quit Race
-spacing, and the 15-second off-track DNF. The old mobile Nitro Charge label
-overlaps the item cells; the R4.5 item HUD placement needs real-device validation.
+spacing, and the 15-second off-track DNF. The R4.5 item HUD placement also
+passed on a real device at 3/5 and 5/5 with BONUS EARNED below the item cells.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ### Engine loop asset decision
@@ -299,7 +299,7 @@ immunity remain separate for each player.
 M2-A0 preserved the solo flow. The user validated Drift/Mini Boost, Nitro,
 Slick, Shield, barrier recovery and Finish/Result/Rematch by driving in Studio.
 
-## M2-A1 Two-Player Synchronized Race
+## M2-A1 Validation and M2-B0 Public Race
 
 The Garage displays **KART DRIFT MASTERS** and the current Roblox PlaceVersion
 as a small build label. Each actual Mini Boost start adds one cumulative point
@@ -313,32 +313,38 @@ The compact LAP panel ends 4 px below QUIT RACE while that action is visible.
 The last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
 stored separately from race data; CONTROLS still opens the tutorial manually.
 
-`Track01Race` (Practice Circuit Race, **2 laps**) accepts one or two racers.
-`Track01` remains solo with 1 lap; `Track02` remains solo with 3 laps. The first
-ready racer waits without a timer and becomes the lobby host. The host can
-START SOLO or CANCEL back to Garage. A second ready racer starts the shared
-3-second countdown immediately. A single `RaceSession` owns
+`Track01Race` (Practice Circuit Race, **2 laps**) has one public lobby with a
+capacity of four racers (`RaceConfig.PUBLIC_RACE_MAX_PLAYERS`). `Track01` remains
+solo with 1 lap; `Track02` remains solo with 3 laps. The first READY racer becomes
+the lobby host. At 1/4 the host
+may START SOLO; at 2/4 or 3/4 the host may START RACE or keep waiting. The fourth
+READY racer starts the shared three-second countdown automatically. Other
+racers see WAITING FOR HOST and may LEAVE without closing the lobby. Host LEAVE
+transfers authority to the earliest remaining ReadyOrder. A single `RaceSession` owns
 the countdown deadline and official start timestamp. The roster locks when
 countdown begins. Each racer has a separate KartContext, grid slot and progress.
 
 Live position is server-ranked by finish place, completed laps, checkpoints,
 route fraction and ready order. Official finish place is assigned at the final
 gate crossing, before the finish camera sequence. A finished racer leaves the
-other racer driving. The session completes when all remaining racers finish or
+other racers driving. The session completes when all remaining racers finish or
 DNF; a disconnect removes that racer without ending another racer's drive.
-Multiplayer Rematch requires a vote from every remaining participant. If one
-racer returns to Garage and the remaining racer votes Rematch, either click
-order keeps the voter waiting without a timer for a same-track rejoin. The
-returning racer starts a shared countdown; the host can START SOLO or CANCEL.
-After a completed solo Track01Race round, REMATCH returns the same host and kart
-to the start-grid WAITING FOR RACER lobby. The result closes and controls remain
-locked. START SOLO begins a fresh solo countdown, a second READY begins a shared
-countdown, and CANCEL returns to Garage. A completed two-player round still
-begins its shared countdown as soon as both racers vote REMATCH.
+Multiplayer Rematch waits for every remaining participant to vote or leave.
+One to three voters return to the start-grid WAITING FOR RACERS lobby; the host
+may start at the current size or wait for more racers. Four votes from a full
+four-racer round start a shared countdown automatically. Result UI closes when
+voters enter the lobby. The original round size remains the position denominator
+if someone quits, disconnects or DNF.
 Released karts leave the race grid, and `KartOwnerUserId` identifies active
 server-owned karts. The race minimap uses server-published `RaceMapPosition`
 attributes at the 0.10-second ranking interval and shows rivals as orange
 hollow rings around cyan local dots. The Garage shows players in the same server.
+
+M2-B0 enables only four public racers. The architecture may expand to six later.
+A future friend/private room could offer a chosen capacity of 2, 3, 4 or 6 with
+invites and possibly a reserved server; it is not implemented in M2-B0.
+The four-client Studio/runtime check remains required before claiming 4-player
+runtime validation; automated session tests cover the new lobby and race rules.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
@@ -372,8 +378,10 @@ The user's real-device check confirmed cumulative five-Boost progress, Bonus
 Nitro +1 and its use, 100 stud/s Mini Boost, DON'T SHOW AGAIN across a full
 close and rejoin with manual CONTROLS access, and the 15-second off-track DNF.
 The Quit Race panel spacing is accepted. The previous mobile NITRO CHARGE
-placement overlapped the loadout cells and clipped the label; only the R4.5
-placement needs a new mobile visual check within M2-A1 polish.
+placement overlapped the loadout cells and clipped the label. The user has now
+confirmed the R4.5 placement on a real mobile device: 3/5 and 5/5 with BONUS
+EARNED remain below the item cells without overlap. M2-A1 is closed and
+real-device validated.
 
 ## Known Polish Gates
 
@@ -414,8 +422,8 @@ Do not:
 
 ## Next Development Order
 
-1. R4.5 mobile NITRO CHARGE placement validation
-2. 4-player expansion after the 2-player runtime passes
+1. M2-B0 flexible public lobby and 4-player runtime validation
+2. 4-player race balance after runtime validation
 3. 6-player tuning only after 4-player validation
 4. TrackV2 geometry revision / beta iteration as scheduled
 5. Persistence / Racer XP

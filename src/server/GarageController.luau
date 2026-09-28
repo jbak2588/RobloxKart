@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
+local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
@@ -149,7 +150,8 @@ function GarageController.start()
 				return
 			end
 		end
-		local slotIndex = nextGridSlot(track.GridSlots, if trackId == "Track01Race" then 2 else 1)
+		local slotIndex = nextGridSlot(track.GridSlots,
+			if trackId == "Track01Race" then RaceConfig.PUBLIC_RACE_MAX_PLAYERS else 1)
 		if not slotIndex then
 			player:SetAttribute("RaceEntryError", "Grid full")
 			return

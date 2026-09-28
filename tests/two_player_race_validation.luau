@@ -210,7 +210,13 @@ check(session.phase=="EMPTY" and session:count()==0,"solo withdrawal clears sess
 a:SetAttribute("RaceState","PRE_RACE");tick(0.1)
 check(session.phase=="WAITING","new two-player wait")
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
-check(session.phase=="COUNTDOWN" and session:count()==2,"second ready starts shared countdown")
+check(session.phase=="WAITING" and session:count()==2
+ and a:GetAttribute("RaceParticipantCount")==2 and a:GetAttribute("RaceMaxPlayers")==4,
+ "second ready remains in flexible two-of-four lobby")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartRace")
+check(session.phase=="WAITING","non-host cannot start two-racer lobby")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
+check(session.phase=="COUNTDOWN" and session:count()==2,"host starts two-racer shared countdown")
 check(a:GetAttribute("RaceState")=="COUNTDOWN" and b:GetAttribute("RaceState")=="COUNTDOWN","both enter countdown")
 check(a:GetAttribute("RaceTotalLaps")==2 and b:GetAttribute("RaceTotalLaps")==2,"Practice Circuit Race is two laps")
 check(a:GetAttribute("RaceSessionId")==b:GetAttribute("RaceSessionId"),"shared round id")
@@ -267,7 +273,10 @@ check(b:GetAttribute("RacePosition")==1 and a:GetAttribute("RacePosition")==2,"f
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(b:GetAttribute("RaceRematchReady") and b:GetAttribute("RaceRematchReadyCount")==1 and session.phase=="COMPLETE","first vote waits")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
-check(session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN" and b:GetAttribute("RaceState")=="COUNTDOWN","all votes start shared rematch")
+check(session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
+ and b:GetAttribute("RaceState")=="PRE_RACE","two votes return to flexible lobby")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
+check(session.phase=="COUNTDOWN","host starts two-racer rematch")
 check(a:GetAttribute("RaceFinishPosition")==0 and b:GetAttribute("RaceFinishPosition")==0 and #session.finishOrder==0,"finish order reset")
 check(a:GetAttribute("RaceCompletedLaps")==0 and b:GetAttribute("RaceCompletedLaps")==0,"both lap histories reset")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
@@ -281,18 +290,20 @@ check(session.phase=="COMPLETE" and a:GetAttribute("RaceState")=="FINISHED" and 
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
 local finishedTime=a:GetAttribute("RaceFinalTime")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"ReturnGarage")
-check(session:count()==1 and session.phase=="WAITING" and session.waitingReason=="REMATCH_REJOIN",
+check(session:count()==1 and session.phase=="WAITING" and session.waitingReason=="REMATCH",
  "rematch voter waits after opponent returns to Garage")
-check(a:GetAttribute("RaceState")=="FINISHED" and a:GetAttribute("RaceFinalTime")==finishedTime
- and a:GetAttribute("RaceRematchReadyCount")==1 and a:GetAttribute("RaceRematchRequiredCount")==2,
- "voter result and two-racer vote requirement remain during rejoin wait")
+check(a:GetAttribute("RaceState")=="PRE_RACE" and a:GetAttribute("RaceFinalTime")==finishedTime
+ and a:GetAttribute("RaceRematchReadyCount")==0 and a:GetAttribute("RaceRematchRequiredCount")==1,
+ "voter returns to start-grid lobby after opponent leaves")
 check(a:GetAttribute("RaceMatchWaitRemaining")==0 and a:GetAttribute("RaceHostUserId")==a.UserId,
  "rematch rejoin has no timer and waiting racer is host")
 tick(60)
 check(session.phase=="WAITING","rematch rejoin remains waiting")
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
-check(session:count()==2 and session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN"
- and b:GetAttribute("RaceState")=="COUNTDOWN", "Garage racer rejoins same shared countdown")
+check(session:count()==2 and session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
+ and b:GetAttribute("RaceState")=="PRE_RACE", "Garage racer rejoins flexible lobby")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
+check(session.phase=="COUNTDOWN", "host starts after Garage rejoin")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 ca.chassis.CFrame=CF.new(1500,0,1500);cb.chassis.CFrame=CF.new(1600,0,1600)
 tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
@@ -301,11 +312,13 @@ services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"ReturnGarage")
 check(session.phase=="COMPLETE" and session:count()==1 and a:GetAttribute("RaceState")=="DNF",
  "opponent Garage first leaves remaining result complete")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
-check(session.phase=="WAITING" and session.waitingReason=="REMATCH_REJOIN"
- and a:GetAttribute("RaceRematchRequiredCount")==2,"Garage then Rematch also waits for rejoin")
+check(session.phase=="WAITING" and session.waitingReason=="REMATCH"
+ and a:GetAttribute("RaceRematchRequiredCount")==1,"Garage then Rematch also waits for rejoin")
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
-check(session:count()==2 and session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN"
- and b:GetAttribute("RaceState")=="COUNTDOWN","Garage-first order also rejoins shared countdown")
+check(session:count()==2 and session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
+ and b:GetAttribute("RaceState")=="PRE_RACE","Garage-first order rejoins flexible lobby")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
+check(session.phase=="COUNTDOWN","host starts after Garage-first rejoin")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 check(session.phase=="RACING" and not ca.kart:GetAttribute("RaceControlsLocked")
  and not cb.kart:GetAttribute("RaceControlsLocked"),"both racers drive after Garage-first rejoin")
@@ -325,7 +338,7 @@ check(session:count()==1 and session.terminal[a]=="FORFEIT","non-participant Qui
 cb.chassis.CFrame=CF.new(1600,0,1600);tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
 check(session.phase=="COMPLETE" and b:GetAttribute("RaceState")=="DNF","remaining racer can finish round after forfeit")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
-check(session.phase=="WAITING" and session.waitingReason=="REMATCH_REJOIN", "forfeit round rematch waits")
+check(session.phase=="WAITING" and session.waitingReason=="REMATCH", "forfeit round rematch waits")
 tick(60)
 check(session.phase=="WAITING", "solo rematch does not start automatically")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
@@ -344,7 +357,7 @@ local soloRound=session.roundId
 local soloTime=b:GetAttribute("RaceFinalTime")
 cb.chassis.AssemblyLinearVelocity=V.new(0,0,-70)
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
-check(session.phase=="WAITING" and session.waitingReason=="SOLO_REMATCH" and session:count()==1
+check(session.phase=="WAITING" and session.waitingReason=="REMATCH" and session:count()==1
  and session.hostUserId==b.UserId and b:GetAttribute("RaceMatchStatus")=="WAITING"
  and b:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceHostUserId")==b.UserId,
  "solo finish rematch returns same host to waiting lobby")
@@ -354,7 +367,7 @@ check(session.roundId==soloRound and session.startTime==0 and session.countdownE
 check(cb.kart==soloKart and cb.chassis.CFrame==cb.kart:GetAttribute("RaceStartCFrame")
  and cb.chassis.AssemblyLinearVelocity==V.zero and cb.chassis.AssemblyAngularVelocity==V.zero
  and cb.kart:GetAttribute("RaceControlsLocked") and not cb.kart:GetAttribute("KartFinishRollActive")
- and b:GetAttribute("RaceFinishPhase")=="NONE" and b:GetAttribute("RaceMapActive"),
+ and b:GetAttribute("RaceFinishPhase")=="NONE" and not b:GetAttribute("RaceMapActive"),
  "solo rematch reuses stationary locked grid kart and exits finish presentation")
 tick(60)
 check(session.phase=="WAITING" and b:GetAttribute("RaceState")=="PRE_RACE",
@@ -378,14 +391,17 @@ services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 cb.chassis.CFrame=CF.new(1600,0,1600);tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
-check(session.phase=="WAITING" and session.waitingReason=="SOLO_REMATCH", "solo host ready for second racer")
+check(session.phase=="WAITING" and session.waitingReason=="REMATCH", "solo host ready for second racer")
 a.Parent=services.Players
 a:SetAttribute("RaceState","PRE_RACE");tick(0.1)
-check(session.phase=="COUNTDOWN" and session:count()==2 and session.startingParticipantCount==2
- and a:GetAttribute("RaceState")=="COUNTDOWN" and b:GetAttribute("RaceState")=="COUNTDOWN"
- and a:GetAttribute("RaceSessionId")==b:GetAttribute("RaceSessionId")
+check(session.phase=="WAITING" and session:count()==2
+ and a:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceState")=="PRE_RACE"
  and ca.kart:GetAttribute("RaceStartCFrame")~=cb.kart:GetAttribute("RaceStartCFrame"),
- "second READY joins solo rematch host in shared countdown on separate grid slots")
+ "second READY joins solo rematch host in flexible lobby on separate grid slots")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartRace")
+check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2
+ and a:GetAttribute("RaceSessionId")==b:GetAttribute("RaceSessionId"),
+ "host starts joined rematch on shared countdown")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 ca.chassis.CFrame=CF.new(1500,0,1500);cb.chassis.CFrame=CF.new(1600,0,1600)
 tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
@@ -393,6 +409,6 @@ check(session.phase=="COMPLETE", "joined race completes")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
 check(session.phase=="COMPLETE" and a:GetAttribute("RaceRematchReady"), "first two-racer rematch vote waits")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
-check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2,
- "both two-racer rematch votes start immediately")
+check(session.phase=="WAITING" and session:count()==2,
+ "both two-racer rematch votes return to flexible lobby")
 print("PASS: "..count.." synchronized two-player race checks")
