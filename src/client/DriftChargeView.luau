@@ -1,5 +1,6 @@
 -- Server attributes are the only source of charge. Local timers animate feedback only.
 local View = require(script.Parent:WaitForChild("MobileControlView"))
+local RewardConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 local Gauge = {}
 
 function Gauge.segmentCount(progress: number): number
@@ -19,16 +20,16 @@ function Gauge.create(root, debugEnabled, player)
 	frame.Visible=false
 	frame.Parent=root
 	View.round(frame,UDim.new(0,3))
-	local streakLabel=Instance.new("TextLabel")
-	streakLabel.Name="DriftStreak"
-	streakLabel.AnchorPoint=Vector2.new(0.5,1)
-	streakLabel.Size=UDim2.fromOffset(165,20)
-	streakLabel.BackgroundTransparency=1
-	streakLabel.Font=Enum.Font.GothamBold
-	streakLabel.TextColor3=Color3.fromRGB(65,225,245)
-	streakLabel.TextSize=13
-	streakLabel.Visible=false
-	streakLabel.Parent=root
+	local chargeLabel=Instance.new("TextLabel")
+	chargeLabel.Name="NitroCharge"
+	chargeLabel.AnchorPoint=Vector2.new(0.5,1)
+	chargeLabel.Size=UDim2.fromOffset(165,34)
+	chargeLabel.BackgroundTransparency=1
+	chargeLabel.Font=Enum.Font.GothamBold
+	chargeLabel.TextColor3=Color3.fromRGB(65,225,245)
+	chargeLabel.TextSize=13
+	chargeLabel.Visible=false
+	chargeLabel.Parent=root
 	local bonusLabel=Instance.new("TextLabel")
 	bonusLabel.Name="DriftBonusNitro"
 	bonusLabel.AnchorPoint=Vector2.new(0.5,1)
@@ -102,10 +103,10 @@ function Gauge.create(root, debugEnabled, player)
 				frame.Position=UDim2.new(.5,0,1,-diameter*2/3-10)
 			end
 		end
-		streakLabel.Position=UDim2.new(frame.Position.X.Scale,frame.Position.X.Offset,
+		chargeLabel.Position=UDim2.new(frame.Position.X.Scale,frame.Position.X.Offset,
 			frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-5)
-		bonusLabel.Position=UDim2.new(streakLabel.Position.X.Scale,streakLabel.Position.X.Offset,
-			streakLabel.Position.Y.Scale,streakLabel.Position.Y.Offset-20)
+		bonusLabel.Position=UDim2.new(chargeLabel.Position.X.Scale,chargeLabel.Position.X.Offset,
+			chargeLabel.Position.Y.Scale,chargeLabel.Position.Y.Offset-chargeLabel.Size.Y.Offset-5)
 		if diagnostic then
 			local width=math.min(184,size.X/2-60)
 			local x,y=size.X-width-12,size.Y-116
@@ -134,7 +135,7 @@ function Gauge.create(root, debugEnabled, player)
 		self.bonusTime=0
 		self.lastAwarded=player and player:GetAttribute("DriftBonusNitroAwarded")==true or false
 		frame.Visible=false
-		streakLabel.Visible=false
+		chargeLabel.Visible=false
 		bonusLabel.Visible=false
 		frame:SetAttribute("LitSegments",0)
 		border.Thickness=1
@@ -201,14 +202,16 @@ function Gauge.create(root, debugEnabled, player)
 	end
 	function self:update(enabled,kart,held,delta)
 		if not enabled or not kart then self:reset(kart); return end
-		local count=if player then player:GetAttribute("DriftStreakCount") else 0
+		local count=if player then player:GetAttribute("DriftBonusProgress") else 0
 		local awarded=player and player:GetAttribute("DriftBonusNitroAwarded")==true or false
 		if awarded and not self.lastAwarded then self.bonusTime=1 end
 		self.lastAwarded=awarded
 		self.bonusTime=math.max(0,self.bonusTime-delta)
-		streakLabel.Visible=true
-		streakLabel.Text=if awarded then "DRIFT STREAK  BONUS EARNED"
-			else string.format("DRIFT STREAK  %d / 4",if type(count)=="number" then count else 0)
+		chargeLabel.Visible=true
+		chargeLabel.Text=if awarded then string.format("NITRO CHARGE  %d/%d\nBONUS EARNED",
+			RewardConfig.DRIFT_BONUS_REQUIRED_BOOSTS,RewardConfig.DRIFT_BONUS_REQUIRED_BOOSTS)
+			else string.format("NITRO CHARGE  %d/%d",
+				if type(count)=="number" then count else 0,RewardConfig.DRIFT_BONUS_REQUIRED_BOOSTS)
 		bonusLabel.Visible=self.bonusTime>0
 		local progress=math.clamp(kart:GetAttribute("KartDriftChargeProgress") or 0,0,1)
 		local ready=kart:GetAttribute("KartDriftChargeReady")==true

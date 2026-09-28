@@ -318,7 +318,8 @@ RaceLoadout cells should be tappable.
 PC and Mobile share the server-authoritative five-segment Drift gauge. Gold READY
 latches for that Drift. Releasing DRIFT or centering steering triggers Mini Boost
 when the same racer has valid forward input, enough speed and a safe unlocked
-race state. Unsafe termination still fails and resets the streak.
+race state. Unsafe termination still fails the Drift, but earned Nitro Charge
+progress remains unchanged during that race.
 
 ## Mobile Steering HUD
 
@@ -429,9 +430,10 @@ ranking or matchmaking decision and does not enable public multiplayer.
 
 M2-A1 limits synchronized racing to 2 players on Practice Circuit Race (2 laps).
 The Garage title is KART DRIFT MASTERS and shows a small PlaceVersion build
-label. Four actual consecutive Mini Boost starts award one Nitro per racer per
-race; failed drift, off-track, barrier, Slick, fall and race reset clear the
-streak. Mobile tutorial dismissal persists in a dedicated preference DataStore;
+label. Five actual Mini Boost starts during one race award one Nitro per racer
+per race. Successes need not be consecutive; failed Drifts and driving incidents
+never subtract progress. A new Countdown or leaving for Garage resets it.
+Mobile tutorial dismissal persists in a dedicated preference DataStore;
 CONTROLS still reopens it manually.
 Track01 Practice (1 lap) and Track02 V2 (3 laps) remain solo. The first ready
 racer waits without a timer and becomes host. The host can START SOLO or CANCEL
@@ -449,13 +451,14 @@ shows same-server player presence. `QuitRace` is a server-authoritative RACING
 forfeit and must leave the opponent driving. The user's R3 two-device test
 confirmed shared racing, two-lap Finish/PLACE, WAITING lobby, host START SOLO
 and CANCEL, same-track join, Rematch re-entry, rival minimap, Garage presence,
-Quit Race, 95 stud/s Mini Boost, and the visible Drift Streak indicator. R4
+Quit Race, 95 stud/s Mini Boost, and the visible progress indicator. R4
 raises Mini Boost to 100 stud/s for 2.0 seconds with acceleration 65, without
-changing Drift charge difficulty, Nitro 100/3.0/75, the four-boost bonus rule,
-or the 15-second off-track DNF threshold. The initial WAITING screen was covered
+changing Drift charge difficulty, Nitro 100/3.0/75, or the 15-second off-track
+DNF threshold. The cumulative five-Boost bonus rule supersedes the earlier
+four-Boost requirement. The initial WAITING screen was covered
 by Garage PREPARING GRID; Garage now hides during PRE_RACE so the host sees the
 track lobby. This fix and R4 tuning await real-device confirmation. Also verify
-the fourth boost awards Nitro once, DON'T SHOW AGAIN survives a new app session
+the fifth boost awards Nitro once, DON'T SHOW AGAIN survives a new app session
 while CONTROLS still opens manually, and off-track DNF occurs at 15 seconds.
 
 M2-A1 temporary policy: RacerKart parts do not physically collide with other

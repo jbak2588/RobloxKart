@@ -296,9 +296,11 @@ Slick, Shield, barrier recovery and Finish/Result/Rematch by driving in Studio.
 ## M2-A1 Two-Player Synchronized Race
 
 The Garage displays **KART DRIFT MASTERS** and the current Roblox PlaceVersion
-as a small build label. Four consecutive successful Mini Boost starts earn one
-bonus Nitro per race; a failed drift, off-track event, barrier, Slick, or reset
-breaks the streak. The drift HUD shows progress and the award. On mobile, the
+as a small build label. Each actual Mini Boost start adds one cumulative point
+toward a five-Boost reward during that race. At 5/5, the racer earns one Bonus
+Nitro, at most once per race. Failed Drifts, off-track events, barriers, Slick,
+and other driving incidents do not remove earned progress. The drift HUD shows
+NITRO CHARGE progress and the award. On mobile, the
 last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
 stored separately from race data; CONTROLS still opens the tutorial manually.
 
@@ -332,8 +334,8 @@ driving. The continuous off-track DNF timeout is 15 seconds. Mini Boost Beta is
 
 R4 Mini Boost Beta 2 raises only the Mini Boost maximum speed and duration to
 100 stud/s for 2.0 seconds. Acceleration remains 65; Nitro remains 100 stud/s
-for 3 seconds with acceleration 75. Drift charge requirements, the four-boost
-streak, one bonus Nitro per race, and the 50 stud/s off-track cap stay intact.
+for 3 seconds with acceleration 75. Drift charge requirements, one bonus Nitro
+per race, and the 50 stud/s off-track cap stay intact.
 After READY, the Garage overlay now hides in `PRE_RACE` so the host sees the
 waiting controls over the track while seated at the grid.
 
@@ -346,22 +348,23 @@ karts, 2-lap Finish/PLACE, Mini Boost, Nitro, Slick, Shield and multiplayer
 item interactions passed. The subsequent R3 two-device test confirmed the
 WAITING lobby, host START SOLO/CANCEL, same-track join, Rematch re-entry,
 rival minimap, Garage presence, Quit Race, 95 stud/s Mini Boost, visible
-Drift Streak indicator, and two-lap Finish/PLACE. That test also found that
+progress indicator, and two-lap Finish/PLACE. That test also found that
 the initial WAITING controls were covered by the Garage PREPARING GRID overlay;
 the R4 UI fix awaits device confirmation.
 
-R4 device checks remain: confirm a fourth consecutive boost adds one Nitro and
+R4.2 device checks remain: confirm five total Boosts add one Nitro and
 later boosts add none; confirm DON'T SHOW AGAIN survives leaving and rejoining
 the experience while CONTROLS still opens manually; confirm continuous
 off-track driving reaches DNF at 15 seconds; compare 100 stud/s for 2.0 seconds
 against the earlier 95/1.5 build. The earlier 10-second off-track observation
 came from an older published build. R4 has not been published by Codex.
 
-R4.1 device check after publication: confirm the latest BUILD PV, reach a
-3/4 streak, then charge a fourth Drift to Gold. Try releasing DRIFT first and
-centering steering first in separate runs. Both clean exits should start Mini
-Boost; the fourth should show NITRO +1 and increase the Nitro count. Four more
-successes in the same race must not award a second Nitro. Also confirm the
+R4.2 device check after publication: confirm the latest BUILD PV, reach
+4/5 Nitro Charge, then charge a fifth Drift to Gold. Try releasing DRIFT first
+and centering steering first in separate runs. Both clean exits should start
+Mini Boost; the fifth should show NITRO +1 and increase the Nitro count. Five
+more successes in the same race must not award a second Nitro. Failed Drifts
+and driving incidents must leave earned progress unchanged. Also confirm the
 15-second off-track DNF and Controls dismissal after a full leave and rejoin.
 
 For the Controls persistence check: open the tutorial automatically, tap

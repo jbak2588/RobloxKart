@@ -73,10 +73,12 @@ local character=object("Model","Character"); player.Character=character
 local humanoid=child(character,"Humanoid")
 local kart=object("Model","Kart"); local seat=child(kart,"Seat"); seat:SetAttribute("PrototypeKartSeat",true); humanoid.SeatPart=seat
 local shared=child(services.ReplicatedStorage,"Folder","Shared"); child(shared,"ModuleScript","KartConfig")
+child(shared,"ModuleScript","RaceItemConfig")
 local control=child(services.ReplicatedStorage,"RemoteEvent","KartControl"); control._p.calls={}
 local item=child(services.ReplicatedStorage,"RemoteEvent","RaceItemControl"); item._p.calls={}
 local modulesFolder=object("Folder")
-local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true}}
+local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true},
+	RaceItemConfig={DRIFT_BONUS_REQUIRED_BOOSTS=5}}
 for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","DriftChargeController","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
 local ui=services.UserInputService
 ui.TouchEnabled=true; ui.PreferredInput=rb.Enum.PreferredInput.Touch
@@ -118,6 +120,9 @@ check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","DRIVE 
 assertTutorialIcons({"Forward","Left","Right","Brake"})
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
+check(string.find(tutorialCard.Description.Text,"5 boosts in one race",1,true)~=nil
+	and not string.find(tutorialCard.Description.Text,"in a row",1,true),
+	"tutorial explains cumulative five-Boost reward")
 check(tutorialCard.Diagram.Visible,"DRIFT diagram remains visible")
 assertTutorialIcons({"Drift","Left","Right"})
 local examples=tutorialCard.GaugeExamples
@@ -223,17 +228,25 @@ check(productionGauge.diagnostic==nil,"debug-off creates no diagnostic text")
 kart:SetAttribute("KartDriftChargeProgress",.6)
 productionGauge:update(true,kart,false,.12)
 check(productionGauge.frame.Visible and productionGauge.frame:GetAttribute("LitSegments")==3,"debug-off player gauge remains functional")
-player:SetAttribute("DriftStreakCount",3)
+for progress=0,4 do
+	player:SetAttribute("DriftBonusProgress",progress)
+	productionGauge:update(true,kart,false,.12)
+	check(productionRoot.NitroCharge.Visible
+		and productionRoot.NitroCharge.Text==string.format("NITRO CHARGE  %d/5",progress),
+		"drift HUD shows cumulative Nitro progress "..progress)
+end
 productionGauge:update(true,kart,false,.12)
-check(productionRoot.DriftStreak.Visible and string.find(productionRoot.DriftStreak.Text,"3 / 4",1,true),
- "drift HUD shows server streak")
+check(productionRoot.NitroCharge.Text=="NITRO CHARGE  4/5",
+	"failed attempt cannot visually erase server-earned progress")
+player:SetAttribute("DriftBonusProgress",5)
 player:SetAttribute("DriftBonusNitroAwarded",true)
 productionGauge:update(true,kart,false,.1)
-check(productionRoot.DriftBonusNitro.Visible and productionRoot.DriftBonusNitro.Text=="NITRO +1",
+check(productionRoot.DriftBonusNitro.Visible and productionRoot.DriftBonusNitro.Text=="NITRO +1"
+	and string.find(productionRoot.NitroCharge.Text,"5/5",1,true),
  "drift HUD flashes bonus Nitro")
 productionGauge:update(true,kart,false,1)
 check(not productionRoot.DriftBonusNitro.Visible
-	and productionRoot.DriftStreak.Text=="DRIFT STREAK  BONUS EARNED",
+	and productionRoot.NitroCharge.Text=="NITRO CHARGE  5/5\nBONUS EARNED",
 	"bonus flash ends after one second while earned state remains")
 tick();check(gauge:GetAttribute("LitSegments")==3,"mobile server progress .60")
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;tick()

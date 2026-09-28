@@ -152,7 +152,7 @@ function Tutorial.create(parent: Instance, onDismiss)
 	local page = 1
 	local pages = {
 		{ "DRIVE", "↑       ←   →       ↓", "↑ Accelerate    ← → Steer    ↓ Brake / Reverse\nTap Auto Drive to keep accelerating. Brake overrides it.", { "Forward", "Left", "Right", "Brake" } },
-		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Release a gold gauge for MINI BOOST.\n4 successful boosts in a row = BONUS NITRO.", { "Drift", "Left", "Right" } },
+		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Exit a READY Drift for MINI BOOST.\nLand 5 boosts in one race for +1 NITRO.", { "Drift", "Left", "Right" } },
 		{ "RACE ITEMS", "", "Tap an item to select it.\nTap the Trigger button to use the selected item.", { "Nitro", "Slick", "Shield", "Use" } },
 	}
 	local function layoutContent()

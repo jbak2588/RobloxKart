@@ -13,7 +13,7 @@ local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
 local RaceItemController = {}
 local started = false
 local loadouts, connections, lastUse = {}, {}, {}
-local driftStreaks, driftBonusAwarded = {}, {}
+local boostSuccessCounts, driftBonusAwarded = {}, {}
 local kartConnections = {}
 local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
@@ -40,8 +40,6 @@ local function removeHazard(index)
 end
 local function clearPlayer(player)
 	if loadouts[player] then loadouts[player]:clear() end
-	driftStreaks[player] = 0
-	player:SetAttribute("DriftStreakCount", 0)
 	removeShield(player)
 	local state = immunity[player]
 	if state then state.kart:SetAttribute("RaceItemHitImmunity", false) end
@@ -50,6 +48,12 @@ local function clearPlayer(player)
 		if hazards[index].owner == player then removeHazard(index) end
 	end
 	publish(player)
+end
+local function resetBonusProgress(player)
+	boostSuccessCounts[player] = 0
+	driftBonusAwarded[player] = false
+	player:SetAttribute("DriftBonusProgress", 0)
+	player:SetAttribute("DriftBonusNitroAwarded", false)
 end
 local function clearHazardsForSession(session)
 	for index = #hazards, 1, -1 do
@@ -162,9 +166,7 @@ function RaceItemController.start()
 	local function bind(player)
 		if loadouts[player] then return end
 		loadouts[player] = RaceLoadout.new()
-		driftStreaks[player], driftBonusAwarded[player] = 0, false
-		player:SetAttribute("DriftStreakCount", 0)
-		player:SetAttribute("DriftBonusNitroAwarded", false)
+		resetBonusProgress(player)
 		publish(player)
 		player:SetAttribute("RaceItemBlockedSerial", 0)
 		local previousState = player:GetAttribute("RaceState")
@@ -175,8 +177,7 @@ function RaceItemController.start()
 				local oldState = previousState
 				previousState = state
 				if state == "COUNTDOWN" then
-					driftBonusAwarded[player] = false
-					player:SetAttribute("DriftBonusNitroAwarded", false)
+					resetBonusProgress(player)
 					clearPlayer(player)
 					bindKart(player)
 					loadouts[player]:prepare()
@@ -184,8 +185,7 @@ function RaceItemController.start()
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
 					clearPlayer(player)
 					if state == "GARAGE" then
-						driftBonusAwarded[player] = false
-						player:SetAttribute("DriftBonusNitroAwarded", false)
+						resetBonusProgress(player)
 					end
 				end
 			end),
@@ -198,26 +198,20 @@ function RaceItemController.start()
 		unbindKart(player)
 		for _, connection in connections[player] or {} do connection:Disconnect() end
 		connections[player], loadouts[player] = nil, nil
-		driftStreaks[player], driftBonusAwarded[player] = nil, nil
+		boostSuccessCounts[player], driftBonusAwarded[player] = nil, nil
 	end)
 	for _, player in Players:GetPlayers() do bind(player) end
 	PrototypeWorld.onDriftOutcome(function(player, outcome)
-		if not loadouts[player] then return end
-		if outcome == "RESET" then
-			driftStreaks[player] = 0
-			player:SetAttribute("DriftStreakCount", 0)
-			return
-		end
-		if outcome ~= "BOOST" or player:GetAttribute("RaceState") ~= "RACING" or driftBonusAwarded[player] then return end
-		local streak = (driftStreaks[player] or 0) + 1
-		if streak >= 4 then
+		if not loadouts[player] or outcome ~= "BOOST" or player:GetAttribute("RaceState") ~= "RACING"
+			or driftBonusAwarded[player] then return end
+		local progress = math.min((boostSuccessCounts[player] or 0) + 1, Config.DRIFT_BONUS_REQUIRED_BOOSTS)
+		if progress >= Config.DRIFT_BONUS_REQUIRED_BOOSTS then
 			local accepted = RaceItemController.grantBonusNitro(player)
 			driftBonusAwarded[player] = accepted or loadouts[player].bonusClaimed == true
 			player:SetAttribute("DriftBonusNitroAwarded", driftBonusAwarded[player])
-			streak = 0
 		end
-		driftStreaks[player] = streak
-		player:SetAttribute("DriftStreakCount", streak)
+		boostSuccessCounts[player] = progress
+		player:SetAttribute("DriftBonusProgress", progress)
 	end)
 	remote.OnServerEvent:Connect(function(player, action, ...)
 		local loadout = loadouts[player]
