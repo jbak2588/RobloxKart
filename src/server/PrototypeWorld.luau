@@ -337,16 +337,6 @@ function PrototypeWorld.start()
 		kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
 			if kart:GetAttribute("RaceControlsLocked") then stopNitro("locked"); stopSlick() end
 		end)
-		kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
-			if kart:GetAttribute("KartOffTrack") then
-				emitDriftOutcome(context.owner, "RESET")
-				if context.nitro.active or context.nitro.exiting then
-					context.commandedSpeed = math.min(context.commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
-				end
-				stopNitro("off_track")
-				stopSlick()
-			end
-		end)
 		kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function()
 			stopNitro("reset"); stopSlick()
 			emitDriftOutcome(context.owner, "RESET")
@@ -423,6 +413,15 @@ function PrototypeWorld.start()
 				print(string.format("[KartBoost] END reason=%s", reason))
 			end
 		end
+		kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
+			if kart:GetAttribute("KartOffTrack") then
+				emitDriftOutcome(context.owner, "RESET")
+				context.commandedSpeed = math.min(context.commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
+				stopBoost("off_track")
+				stopNitro("off_track")
+				stopSlick()
+			end
+		end)
 
 		local function refreshBarrierTriggers()
 			local currentTrack = prototype:FindFirstChild("TestTrack")

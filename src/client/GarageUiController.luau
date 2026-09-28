@@ -498,34 +498,13 @@ function GarageUiController.start()
 
 	local function update()
 		local raceState = player:GetAttribute("RaceState")
-		gui.Enabled = raceState == "GARAGE" or raceState == "PRE_RACE"
+		gui.Enabled = raceState == "GARAGE"
 		if not gui.Enabled then
 			tutorial.close()
 			controlsButton.Visible = false
 			mapPanel.Visible = false
 			previewLoading.Visible = false
 			clearPreview()
-			return
-		end
-		if raceState == "PRE_RACE" then
-			tutorial.close()
-			controlsButton.Visible = false
-			mapPanel.Visible = false
-			leftArrow.Visible = false
-			rightArrow.Visible = false
-			viewport.Visible = false
-			previewLoading.Visible = false
-			clearPreview()
-			choiceLabel.Position = UDim2.fromScale(0.1, 0.40)
-			detailLabel.Position = UDim2.fromScale(0.1, 0.54)
-			stepLabel.Text = "PREPARING GRID"
-			choiceLabel.Text = "GET READY"
-			detailLabel.Text = "Placing your driver in the kart"
-			errorLabel.Text = ""
-			previousButton.Visible = false
-			cycleButton.Visible = false
-			nextButton.Visible = false
-			applyResponsiveLayout()
 			return
 		end
 		local driverId, kartId, trackId = selectedIds()

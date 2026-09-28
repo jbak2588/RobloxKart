@@ -85,7 +85,7 @@ local modules={
  TrackMapRenderer={create=function() return {destroy=function() end,setRacerMarker=function() end,
   removeRacerMarker=function() end,clearRacerMarkers=function() end} end},
  RaceMinimapRivals={collect=function() return {} end},
- RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=95,NITRO_MAX_SPEED=100},
+ RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=100,NITRO_MAX_SPEED=100},
  DriverCatalog={Entries={}},KartCatalog={Entries={}},
  TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice"}}},
  TrackGeometry={getDefinition=function() return {} end},RaceResultFormat=format,
@@ -193,10 +193,10 @@ local humanoid=child(character,"Humanoid","Humanoid");humanoid.SeatPart=raceSeat
 player.Character=character
 local speedTrack=hud.Speedometer:FindFirstChildOfClass("Frame")
 local speedFill=speedTrack:FindFirstChildOfClass("Frame")
-raceChassis.AssemblyLinearVelocity=rb.Vector3.new(95,0,0)
+raceChassis.AssemblyLinearVelocity=rb.Vector3.new(100,0,0)
 for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
-check(speedFill.Size.X.Scale>0.94 and speedFill.Size.X.Scale<0.96,
- "95 Mini Boost fills about 95 percent of Nitro-scaled speed bar")
+check(speedFill.Size.X.Scale>0.99 and speedFill.Size.X.Scale<=1,
+ "100 Mini Boost fills Nitro-scaled speed bar")
 raceChassis.AssemblyLinearVelocity=rb.Vector3.new(100,0,0)
 for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
 check(speedFill.Size.X.Scale>0.99 and speedFill.Size.X.Scale<=1,

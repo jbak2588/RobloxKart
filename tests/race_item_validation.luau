@@ -105,9 +105,9 @@ config=table.clone(config); config.DEBUG_TELEMETRY=false; modules.KartConfig=con
 local catalog=load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 for _, id in {"Nitro","Slick","Shield","Smoke"} do check(catalog[id].Id==id,"stable ID "..id) end
 check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.NITRO_ACCELERATION==75 and config.NITRO_EXIT_DECELERATION==15,"Nitro configuration")
-check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==95
-	and config.MINI_BOOST_DURATION==1.5 and config.MINI_BOOST_ACCELERATION==65,
-	"approved Mini Boost beta tuning preserves normal speed and acceleration")
+check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==100
+	and config.MINI_BOOST_DURATION==2.0 and config.MINI_BOOST_ACCELERATION==65,
+	"approved Mini Boost Beta 2 tuning preserves normal speed and acceleration")
 check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.OFF_TRACK_MAX_SPEED==50,
 	"Nitro identity and off-track safety remain unchanged")
 local loadoutType=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
@@ -142,8 +142,8 @@ overlap:activate("driver",0)
 check(overlap:forwardSpeed(95,true,1,1/60)>95 and overlap:forwardSpeed(95,true,1,1/60)<100,"Mini Boost to Nitro ramp")
 check(overlap:forwardSpeed(100,true,1,1/60)==100,"no additive stacking")
 overlap:update(3,"driver",true,false,false,true)
-check(overlap:forwardSpeed(100,true,1,1/60)==99.75,"expired Nitro decays toward active Mini Boost")
-check(overlap:forwardSpeed(95,true,1,1/60)==95,"live Mini Boost floor")
+check(overlap:forwardSpeed(100,true,1,1/60)==100,"expired Nitro keeps equal-speed active Mini Boost")
+check(overlap:forwardSpeed(95,true,1,1/60)>95,"active Mini Boost accelerates toward 100")
 
 -- Minimal world dependencies; actual movement/controller modules run below.
 for name, result in {
@@ -524,6 +524,18 @@ check(kart:GetAttribute("KartDriftChargeReady")==true,"production drift publishe
 driftFrame(false,15)
 check(kart:GetAttribute("KartBoosting")==true and kart:GetAttribute("KartDriftDiagBoostEligible")==true,"actual boost agrees with diagnostic")
 check(kart:GetAttribute("KartDriftChargeProgress")==0 and kart:GetAttribute("KartDriftChargeReady")==false,"boost clears gauge")
+for _=1,110 do step(1) end
+check(kart:GetAttribute("KartBoosting") and -chassis.AssemblyLinearVelocity.Z>99,
+	"Beta 2 Mini Boost reaches 100 and lasts beyond 1.5 seconds")
+for _=1,15 do step(1) end
+check(not kart:GetAttribute("KartBoosting"),"Beta 2 Mini Boost expires after 2 seconds")
+startRace()
+for _=1,100 do driftFrame(true,15) end
+driftFrame(false,15)
+kart:SetAttribute("KartOffTrack",true)
+local offTrackBoostSpeed=step(1)
+check(not kart:GetAttribute("KartBoosting") and offTrackBoostSpeed<=50,
+	"Beta 2 Mini Boost cancels and caps at 50 off-track")
 charge(8)
 check(kart:GetAttribute("KartDriftDiagDuration")==1 and kart:GetAttribute("KartDriftDiagQualified")==0,"insufficient slip distinguishes two charge axes")
 driftFrame(false,8)

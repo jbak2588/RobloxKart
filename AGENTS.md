@@ -122,8 +122,8 @@ Reverse:
 24
 
 Mini Boost:
-95
-1.5 sec
+100
+2.0 sec
 
 Mini Boost acceleration:
 65
@@ -444,13 +444,21 @@ click order. The host can START SOLO or CANCEL. Do not leave an unowned race kar
 the active grid. Minimap positions come from server-published `RaceMapPosition`
 and `RaceMapActive` attributes, never client Workspace Kart discovery. Garage
 shows same-server player presence. `QuitRace` is a server-authoritative RACING
-forfeit and must leave the opponent driving. The user's real 2-client race
-passed driving, items and 2-lap Finish/PLACE; the rival minimap and opposite
-Rematch order failed and M2-A1-R2 runtime changes need a fresh 2-client test.
+forfeit and must leave the opponent driving. The user's R3 two-device test
+confirmed shared racing, two-lap Finish/PLACE, WAITING lobby, host START SOLO
+and CANCEL, same-track join, Rematch re-entry, rival minimap, Garage presence,
+Quit Race, 95 stud/s Mini Boost, and the visible Drift Streak indicator. R4
+raises Mini Boost to 100 stud/s for 2.0 seconds with acceleration 65, without
+changing Drift charge difficulty, Nitro 100/3.0/75, the four-boost bonus rule,
+or the 15-second off-track DNF threshold. The initial WAITING screen was covered
+by Garage PREPARING GRID; Garage now hides during PRE_RACE so the host sees the
+track lobby. This fix and R4 tuning await real-device confirmation. Also verify
+the fourth boost awards Nitro once, DON'T SHOW AGAIN survives a new app session
+while CONTROLS still opens manually, and off-track DNF occurs at 15 seconds.
 
 M2-A1 temporary policy: RacerKart parts do not physically collide with other
-RacerKart parts; track/barrier contact remains unchanged. Revisit after the
-synchronized race is validated in a Studio 1-server, 2-client drive.
+RacerKart parts; track/barrier contact remains unchanged. Revisit after final
+two-device validation of R4.
 
 After that validation, expand:
 
@@ -485,6 +493,7 @@ tests/finish_presentation_validation.luau
 tests/race_result_hud_validation.luau
 tests/garage_two_player_validation.luau
 tests/two_player_race_validation.luau
+tests/player_preferences_validation.luau
 
 Always run:
 
@@ -538,6 +547,6 @@ preserve the desktop finish view.
 Finish screen-space drift is camera-only. Never add lateral server kart physics
 for this cinematic.
 
-Do not claim M2-A1 runtime validation from automated tests alone. A Studio
-1-server, 2-client drive must confirm both players' start, progress, items,
-results and synchronized Rematch before expanding the racer count.
+Automated tests do not replace device checks. R3 shared-race runtime was
+confirmed by the user on two real devices; the R4 balance and initial lobby
+overlay fix still need device validation before expanding the racer count.

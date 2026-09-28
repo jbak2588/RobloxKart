@@ -36,7 +36,7 @@ Current track selections:
 | Mode | Speed | Duration |
 | --- | --- | --- |
 | Normal | 70 stud/s | — |
-| Mini Boost | 95 stud/s | 1.5 sec |
+| Mini Boost | 100 stud/s | 2.0 sec |
 | Nitro | 100 stud/s | 3 sec |
 
 ## RaceLoadout
@@ -225,8 +225,8 @@ ROLL to move the Kart image toward the right before the front view. The server
 Finish Roll remains straight and unchanged. The narrower left results panel and
 camera composition still need final real-device validation for visual separation.
 M2-A0 prepared the server for multiple kart contexts. M2-A1 implements a
-two-player beta on Practice Circuit Race; Studio 2-client runtime validation
-is still required.
+two-player beta on Practice Circuit Race. The user has since validated the R3
+shared race on two real devices.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ### Engine loop asset decision
@@ -269,7 +269,7 @@ steady-RPM texture over a startup, throttle-blip or rev-up/release clip.
 - Obby
 - Smoke gameplay
 - Racer XP / Mastery
-- DataStore
+- gameplay progression DataStore
 - Shop
 
 ## M2-A0 Multiplayer Foundation
@@ -328,15 +328,37 @@ driving. The continuous off-track DNF timeout is 15 seconds. Mini Boost Beta is
 95 stud/s for 1.5 seconds with unchanged 65 acceleration; Nitro remains
 100 stud/s for 3 seconds. A homing missile remains deferred.
 
+R4 Mini Boost Beta 2 raises only the Mini Boost maximum speed and duration to
+100 stud/s for 2.0 seconds. Acceleration remains 65; Nitro remains 100 stud/s
+for 3 seconds with acceleration 75. Drift charge requirements, the four-boost
+streak, one bonus Nitro per race, and the 50 stud/s off-track cap stay intact.
+After READY, the Garage overlay now hides in `PRE_RACE` so the host sees the
+waiting controls over the track while seated at the grid.
+
 M2-A1 temporarily disables physical kart-to-kart collision through the
 `RacerKart` collision group. Track and barrier collisions remain enabled.
 Revisit this after synchronized-race validation. Same-Heartbeat finish ties use
 official final time and then ready order; subframe photo-finish interpolation is
 deferred. The user confirmed a real 2-player server/client race: separate
 karts, 2-lap Finish/PLACE, Mini Boost, Nitro, Slick, Shield and multiplayer
-item interactions passed. The subsequent real-device test still found the rival
-minimap invisible and the Garage-before-Rematch order broken. M2-A1-R2 code
-addresses those findings; a fresh 2-client runtime validation remains required.
+item interactions passed. The subsequent R3 two-device test confirmed the
+WAITING lobby, host START SOLO/CANCEL, same-track join, Rematch re-entry,
+rival minimap, Garage presence, Quit Race, 95 stud/s Mini Boost, visible
+Drift Streak indicator, and two-lap Finish/PLACE. That test also found that
+the initial WAITING controls were covered by the Garage PREPARING GRID overlay;
+the R4 UI fix awaits device confirmation.
+
+R4 device checks remain: confirm a fourth consecutive boost adds one Nitro and
+later boosts add none; confirm DON'T SHOW AGAIN survives leaving and rejoining
+the experience while CONTROLS still opens manually; confirm continuous
+off-track driving reaches DNF at 15 seconds; compare 100 stud/s for 2.0 seconds
+against the earlier 95/1.5 build. The earlier 10-second off-track observation
+came from an older published build. R4 has not been published by Codex.
+
+For the Controls persistence check: open the tutorial automatically, tap
+DON'T SHOW AGAIN, leave the experience fully, rejoin, confirm it stays closed,
+then tap CONTROLS to confirm manual reopening. Gameplay must continue if
+DataStore loading or saving fails.
 
 ## Known Polish Gates
 
@@ -377,7 +399,7 @@ Do not:
 
 ## Next Development Order
 
-1. M2-A1 Studio 2-client runtime validation and fixes
+1. R4 two-device Mini Boost balance and WAITING overlay validation
 2. 4-player expansion after the 2-player runtime passes
 3. 6-player tuning only after 4-player validation
 4. TrackV2 geometry revision / beta iteration as scheduled
@@ -424,7 +446,7 @@ Rear Deploy Preview: accepted Slick use replaces loadout display for 0.9 seconds
 
 ### Nitro / extra reward policy
 
-Current speeds: normal 70, Mini Boost 95 for 1.5 seconds, Nitro 100 for 3 seconds. Nitro acceleration 75 and smooth exit 15 stud/s per second remain. Brake priority, off-track cancellation and barrier cancellation remain.
+Current speeds: normal 70, Mini Boost 100 for 2.0 seconds, Nitro 100 for 3 seconds. Mini Boost acceleration is 65; Nitro acceleration 75 and smooth exit 15 stud/s per second remain. Brake priority, off-track cancellation and barrier cancellation remain.
 
 Server-only RaceItemController.grantBonusNitro(player) permits one extra Nitro per player per race while RACING, maximum two. Before use: 1 -> 2; after use: 0 -> 1. Repeated reward calls reject. A new race resets reward eligibility. No client grant action exists.
 
