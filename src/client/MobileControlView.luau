@@ -27,7 +27,20 @@ function View.layout(size: Vector2)
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
 		loadoutBottom = margin + (if portrait then action*2+36 else action+28),
 		gaugeHeight = 12,
+		driftGaugeGap = 8,
 	}
+end
+
+function View.speedTopbarPosition(fullSize: Vector2, topbar: Rect, panelWidth: number, panelHeight: number): Vector2
+	local halfWidth = panelWidth * 0.5
+	local centerX = fullSize.X * 0.5
+	if topbar.Width >= panelWidth + 16 then
+		centerX = math.clamp(centerX, topbar.Min.X + halfWidth + 8, topbar.Max.X - halfWidth - 8)
+	elseif topbar.Width > 0 then
+		centerX = (topbar.Min.X + topbar.Max.X) * 0.5
+	end
+	local topY = math.max(topbar.Min.Y, (topbar.Min.Y + topbar.Max.Y - panelHeight) * 0.5)
+	return Vector2.new(centerX, topY)
 end
 
 -- The full wheel remains unchanged; only its upper two-thirds are visible.
@@ -35,7 +48,7 @@ end
 function View.layoutSteeringWheel(clip, wheel, ringScale, size: Vector2, mobile: boolean)
 	local diameter = if mobile then View.layout(size).wheel else (if size.Y <= 650 then 84 else 112)
 	clip.AnchorPoint = Vector2.new(0.5, 1)
-	clip.Position = UDim2.fromScale(0.5, 1)
+	clip.Position = UDim2.new(0.5, 0, 1, -3)
 	clip.Size = UDim2.fromOffset(diameter, diameter*2/3)
 	clip.ClipsDescendants = true
 	clip.Active = false

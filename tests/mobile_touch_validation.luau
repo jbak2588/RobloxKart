@@ -54,6 +54,7 @@ function methods:FindFirstChild(name,recursive)
 	for _, c in self._children do if c.Name==name then return c end end
 	if recursive then for _,c in self._children do local found=c:FindFirstChild(name,true);if found then return found end end end
 end
+function methods:GetChildren() return table.clone(self._children) end
 function methods:WaitForChild(name) return assert(self:FindFirstChild(name),name) end
 function methods:FindFirstChildOfClass(class) for _, c in self._children do if c.ClassName==class then return c end end end
 function methods:GetAttribute(k) return self._attrs[k] end
@@ -76,7 +77,7 @@ local control=child(services.ReplicatedStorage,"RemoteEvent","KartControl"); con
 local item=child(services.ReplicatedStorage,"RemoteEvent","RaceItemControl"); item._p.calls={}
 local modulesFolder=object("Folder")
 local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true}}
-for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","DriftChargeView","DriftChargeController","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
+for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","DriftChargeController","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
 local ui=services.UserInputService
 ui.TouchEnabled=true; ui.PreferredInput=rb.Enum.PreferredInput.Touch
 local keys, focused = {}, nil
@@ -86,8 +87,36 @@ services.GuiService.MenuIsOpen=false
 local env={game={GetService=function(_,name) return assert(services[name],name) end},
 	script={Parent=modulesFolder},require=function(m) return assert(modules[m.Name],m.Name) end,
 	Instance={new=object},Vector2=V2,Vector3=V3,UDim2=rb.UDim2,UDim=rb.UDim,Color3=rb.Color3,Enum=rb.Enum}
-for _, name in {"TouchDrivingModel","MobileControlView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
+for _, name in {"TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
+end
+local tutorialRoot=object("Frame")
+local tutorial=modules.MobileTutorialView.create(tutorialRoot)
+local tutorialOverlay=tutorialRoot.MobileControlsTutorial
+local tutorialCard=tutorialOverlay.TutorialCard
+check(not tutorial.isOpen(),"tutorial starts closed")
+tutorial.open()
+check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","tutorial opens on DRIVE")
+tutorialCard.Next.Activated:Fire()
+check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
+tutorialCard.Next.Activated:Fire()
+check(tutorialCard.Title.Text=="RACE ITEMS","tutorial advances to items")
+tutorialCard.Back.Activated:Fire()
+check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial back works")
+tutorialCard.Next.Activated:Fire(); tutorialCard.Next.Activated:Fire()
+check(not tutorial.isOpen(),"GOT IT closes tutorial")
+tutorial.open()
+check(tutorialCard.Title.Text=="DRIVE","tutorial replay restarts at DRIVE")
+tutorial.close()
+for _, case in {
+	{V2.new(852,393),V2.new(176,0),V2.new(830,58)},
+	{V2.new(640,320),V2.new(146,0),V2.new(622,48)},
+	{V2.new(1024,768),V2.new(190,0),V2.new(1000,64)},
+} do
+	local area={Min=case[2],Max=case[3],Width=case[3].X-case[2].X}
+	local position=modules.MobileControlView.speedTopbarPosition(case[1],area,160,56)
+	check(position.X-80>=area.Min.X+8 and position.X+80<=area.Max.X-8,"speed panel avoids topbar controls and cutout")
+	check(position.Y>=area.Min.Y and position.Y<=area.Max.Y,"speed panel aligns to top control band")
 end
 local model=modules.TouchDrivingModel
 local legacy = require("@lune/process").args[1] == "Joystick"
@@ -301,13 +330,13 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	check(l.speedTop>=2 and l.speedTop<8 and l.speedTop+l.speedHeight<size.Y,"speed HUD rises without leaving safe region")
 	check(l.speedHeight==56,"speed HUD keeps compact box height")
 	check(math.abs(gauge.AbsolutePosition.X+gauge.AbsoluteSize.X/2-drift.AbsolutePosition.X-drift.AbsoluteSize.X/2)<=.5,"gauge centered on DRIFT")
-	check(math.abs(drift.AbsolutePosition.Y-gauge.AbsolutePosition.Y-gauge.AbsoluteSize.Y-2)<=.5,"mobile gauge sits 2px above touch target")
+	check(math.abs(drift.AbsolutePosition.Y-gauge.AbsolutePosition.Y-gauge.AbsoluteSize.Y-l.driftGaugeGap)<=.5,"mobile gauge keeps an eight-pixel pulse-safe gap")
 	local mobileClip=child(root,"Frame","ClipPreview")
 	local mobileWheel=child(root,"Frame","WheelPreview")
 	modules.MobileControlView.layoutSteeringWheel(mobileClip,mobileWheel,{},size,true)
 	check(mobileWheel.Parent==mobileClip and mobileClip.ClipsDescendants and not mobileClip.Active,"mobile wheel uses display-only clip")
 	check(math.abs(mobileClip.AbsoluteSize.Y-l.wheel*2/3)<1 and math.abs(mobileWheel.AbsoluteSize.X-l.wheel)<1,"mobile wheel geometry preserved within pixel rounding")
-	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y,"mobile clip touches bottom")
+	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y-3,"mobile clip leaves a three-pixel bottom margin")
 	mobileWheel:Destroy();mobileClip:Destroy()
 	local rects={}
 	local buttons=if legacy then {joy,drift,use,auto,gauge,diagnostic} else {root.Forward,root.Left,root.Right,root.Brake,drift,use,auto,gauge,diagnostic}
@@ -322,7 +351,7 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	local speedX=if size.X<450 then size.X-172 else size.X/2-80
 	check(not overlaps(rects[#rects],{speedX,l.speedTop,speedX+160,l.speedTop+l.speedHeight}),"debug avoids speed HUD including inset phone width")
 	table.insert(rects,{l.margin,size.Y-l.loadoutBottom-l.slot,l.margin+l.slot*3+l.gap*2,size.Y-l.loadoutBottom})
-	table.insert(rects,{size.X/2-l.wheel/2,size.Y-l.wheel*2/3,size.X/2+l.wheel/2,size.Y})
+	table.insert(rects,{size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3})
 	for i,r in rects do
 		check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"inside safe area")
 		for j=i+1,#rects do check(not overlaps(r,rects[j]),"thumb zones / display never overlap "..tostring(size).." rects "..i.."/"..j) end
@@ -338,7 +367,7 @@ for _,size in {V2.new(1920,1080),V2.new(1280,720),V2.new(801,334)} do
 	modules.MobileControlView.layoutSteeringWheel(clip,wheel,{},size,false)
 	check(wheel.Parent==clip and clip.ClipsDescendants and not clip.Active,"desktop wheel uses display-only clip")
 	check(math.abs(clip.AbsoluteSize.Y/diameter-2/3)<.01 and wheel.AbsoluteSize.Y==diameter,"desktop upper two-thirds visible")
-	check(clip.AbsolutePosition.Y+clip.AbsoluteSize.Y==size.Y,"desktop clip touches bottom edge")
+	check(clip.AbsolutePosition.Y+clip.AbsoluteSize.Y==size.Y-3,"desktop clip leaves a three-pixel bottom margin")
 	check(previewRoot:FindFirstChild("SteeringDisplay",true)==wheel,"nested wheel can be found by gauge controller")
 	local preview=modules.DriftChargeView.create(previewRoot,true)
 	preview:layout(size,false,wheel,V2.zero)

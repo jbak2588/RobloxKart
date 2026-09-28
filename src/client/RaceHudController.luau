@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
 
@@ -61,6 +62,8 @@ function RaceHudController.start()
 	if previousHud then
 		previousHud:Destroy()
 	end
+	local previousTopHud = playerGui:FindFirstChild("RobloxKartMobileTopHud")
+	if previousTopHud then previousTopHud:Destroy() end
 
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = HUD_NAME
@@ -68,6 +71,12 @@ function RaceHudController.start()
 	screenGui.IgnoreGuiInset = true
 	screenGui.DisplayOrder = 10
 	screenGui.Parent = playerGui
+	local mobileTopGui = Instance.new("ScreenGui")
+	mobileTopGui.Name = "RobloxKartMobileTopHud"
+	mobileTopGui.ResetOnSpawn = false
+	mobileTopGui.ScreenInsets = Enum.ScreenInsets.None
+	mobileTopGui.DisplayOrder = 11
+	mobileTopGui.Parent = playerGui
 
 	local frame = Instance.new("Frame")
 	frame.Name = "Panel"
@@ -284,6 +293,21 @@ function RaceHudController.start()
 	local finalLapScale = Instance.new("UIScale")
 	finalLapScale.Scale = 1
 	finalLapScale.Parent = finalLapLabel
+	local finishMissLabel = Instance.new("TextLabel")
+	finishMissLabel.Name = "FinishMissWarning"
+	finishMissLabel.AnchorPoint = Vector2.new(0.5, 0)
+	finishMissLabel.Position = UDim2.new(0.5, 0, 0.18, 0)
+	finishMissLabel.Size = UDim2.fromOffset(300, 58)
+	finishMissLabel.BackgroundColor3 = Color3.fromRGB(34, 28, 17)
+	finishMissLabel.BackgroundTransparency = 0.18
+	finishMissLabel.BorderSizePixel = 0
+	finishMissLabel.Font = Enum.Font.GothamBold
+	finishMissLabel.Text = "FINISH MISSED\nRETURN TO FINISH LINE"
+	finishMissLabel.TextColor3 = Color3.fromRGB(255, 205, 73)
+	finishMissLabel.TextSize = 18
+	finishMissLabel.Visible = false
+	finishMissLabel.Parent = screenGui
+	addCorner(finishMissLabel, 8)
 
 	local resultsPanel = Instance.new("Frame")
 	resultsPanel.Name = "Results"
@@ -357,6 +381,8 @@ function RaceHudController.start()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local mobile = Input.isTouchPreferred()
+		local speedParent = if mobile then mobileTopGui else screenGui
+		if speedPanel.Parent ~= speedParent then speedPanel.Parent = speedParent end
 		speedPanel.BackgroundTransparency = if mobile then 0.30 else 0.15
 		speedTrack.BackgroundColor3 = if mobile then Color3.fromRGB(92, 106, 124) else Color3.fromRGB(59, 68, 81)
 		speedOutline.Enabled = mobile
@@ -450,9 +476,11 @@ function RaceHudController.start()
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
 			local l = MobileView.layout(safeSize)
-			-- The old safe-area offset was only 8px. Clamp upward movement to
-			-- the available inset instead of moving into Roblox's system controls.
-			speedPanel.Position = UDim2.new(0.5, 0, 0, l.speedTop)
+			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
+			-- Keep the speed readout centered when it fits, or shift it into that space.
+			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,
+				GuiService.TopbarInset, 160, l.speedHeight)
+			speedPanel.Position = UDim2.fromOffset(speedPosition.X, speedPosition.Y)
 			speedPanel.Size = UDim2.fromOffset(160, l.speedHeight)
 			speedTrack.Position = UDim2.fromOffset(10, 44)
 			-- Top HUD stays clear of both thumb zones; desktop geometry is unchanged.
@@ -468,7 +496,6 @@ function RaceHudController.start()
 			miniMapPanel.Size = UDim2.fromOffset(100, 100)
 			if safeSize.X < 450 then
 				miniMapPanel.Visible = false
-				speedPanel.Position = UDim2.new(1, -92, 0, l.speedTop)
 			end
 		end
 		MobileView.layoutSteeringWheel(wheelClip, steeringDisplay, steeringRingScale,
@@ -481,6 +508,8 @@ function RaceHudController.start()
 	local displayedRaceState = player:GetAttribute("RaceState")
 	local displayedCountdown = getNumberAttribute(player, "RaceCountdown", 0)
 	local displayedLap = getNumberAttribute(player, "RaceCurrentLap", 1)
+	local displayedFinishMissSerial = getNumberAttribute(player, "RaceFinishMissedSerial", 0)
+	local finishMissDisplayToken = 0
 	local function pulse(label: TextLabel, scale: UIScale)
 		scale.Scale = 1.3
 		label.TextTransparency = 0
@@ -489,6 +518,19 @@ function RaceHudController.start()
 	end
 	local function updateHud()
 		local raceState = player:GetAttribute("RaceState")
+		local finishMissSerial = getNumberAttribute(player, "RaceFinishMissedSerial", 0)
+		if raceState == "RACING" and finishMissSerial > displayedFinishMissSerial then
+			finishMissDisplayToken += 1
+			local token = finishMissDisplayToken
+			finishMissLabel.Visible = true
+			task.delay(1.8, function()
+				if token == finishMissDisplayToken then finishMissLabel.Visible = false end
+			end)
+		elseif raceState ~= "RACING" then
+			finishMissDisplayToken += 1
+			finishMissLabel.Visible = false
+		end
+		displayedFinishMissSerial = finishMissSerial
 		local previousRaceState = displayedRaceState
 		displayedRaceState = raceState
 		local currentLap = getNumberAttribute(player, "RaceCurrentLap", 1)
@@ -607,6 +649,7 @@ function RaceHudController.start()
 		"RaceBestLapTime",
 		"RaceFinalTime",
 		"RaceOffTrackRemaining",
+		"RaceFinishMissedSerial",
 		"SelectedDriverId",
 		"SelectedKartId",
 		"SelectedTrackId",
@@ -627,6 +670,7 @@ function RaceHudController.start()
 	end
 	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
 	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(applyResponsiveLayout)
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(applyResponsiveLayout)
 	screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyResponsiveLayout)
 	bindCamera()
 	updateHud()

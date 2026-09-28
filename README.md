@@ -86,7 +86,8 @@ Mobile HUD icons are built from native UI shapes: a lightning bolt for Nitro,
 a small car with winding skid marks for Slick, a shield for Shield, and a finger
 pressing a circular trigger for item activation. No external icon assets or packages
 are required. The mobile speed panel is 160 x 56 with 0.30 background transparency;
-its top margin stays 2–4 pixels inside the safe area. Driving input is unchanged
+it uses a separate full-screen overlay and `GuiService.TopbarInset` to align
+with the Roblox top control band. Driving input is unchanged
 by this visual polish.
 
 Keyboard and touch share `KartInputController` and the existing `KartControl` /
@@ -104,8 +105,9 @@ Run `lune run tests/mobile_touch_validation.luau` for deterministic input,
 touch ownership, lifecycle reset and layout checks. These mocks do not replace
 Studio or real-device multi-touch testing. Add `Joystick` to that command to
 run the retained legacy controller checks. Real-device approval requires repeated
-intentional left/right Drift-to-Mini-Boost success; this has not yet been verified
-for the digital pad. Drift charge thresholds and all kart physics are unchanged.
+intentional left/right Drift-to-Mini-Boost success. The user has confirmed
+READY, release and Mini Boost on a real device, with acceptable boost frequency.
+Drift charge thresholds and all kart physics are unchanged.
 
 ### TrackV2 Revision Required
 
@@ -133,14 +135,14 @@ Release still uses the original server boost rules, including throttle, speed,
 steering and valid input. READY reports charge completion, not a boost guarantee.
 Gauge attributes update at approximately 10 Hz, with immediate lifecycle clears.
 The loadout row moves upward 20 pixels to leave room; the gauge has no touch input.
-On mobile, its center aligns with the DRIFT button, with a 2px gap (4px lower
-than before; moving 8–12px would cross the existing touch target).
+On mobile, its center aligns with the DRIFT button, with an 8px geometric gap
+that leaves clearance for the 3px READY border pulse.
 On PC it sits 10px above the clipped steering display, 140–160px wide and
 18px high in compact viewports or 20px otherwise. The previous size was
 110–150 by 16px; the lower cluster position creates clearance behind the kart.
 Both platforms clip the bottom third of the same display-only wheel at the
-screen bottom. PC keeps its full 84px compact / 112px normal wheel diameter;
-mobile keeps its existing size, position, clip ratio and steering synchronization.
+screen with a 3px bottom margin. PC keeps its full 84px compact / 112px normal wheel diameter;
+mobile keeps its existing size, clip ratio and steering synchronization.
 Changing PreferredInput only relocates the single display; both layouts interpret
 the same server progress. Keyboard Shift does not create local charge.
 
@@ -179,6 +181,35 @@ Run `lune run tests/drift_telemetry_validation.luau` for publication/diagnostic
 contracts. The mobile and race-item suites also exercise gauge and production
 drift/boost integration. Real-device cause identification still requires captures;
 automated tests do not establish the cause on a phone.
+
+## M1-A final beta polish
+
+The mobile Drift gauge now has an 8px geometric gap above DRIFT. The shared
+steering wheel clip sits 3px above the bottom edge; diameter, visible two-thirds
+and steering behavior are unchanged. Mobile speed uses its own full-screen GUI
+and the runtime GUI top inset to align with Roblox's top controls. PC speed
+layout and the main race HUD's safe-area policy are unchanged.
+
+A touch-preferred client sees a three-page DRIVE / DRIFT & BOOST / RACE ITEMS
+guide on its first READY step of the session. A CONTROLS button on READY opens
+it again. Closing it returns to READY and never sends the server Ready action.
+The PC Garage card includes full-gauge release and item key hints.
+
+After all checkpoints, a forward crossing just outside the StartFinish gate
+increments `RaceFinishMissedSerial` and shows FINISH MISSED / RETURN TO FINISH
+LINE for 1.8 seconds. The existing gate remains authoritative for lap completion;
+wrong-direction and distant plane crossings do not trigger this guidance.
+
+Practice and V2 receive sparse deterministic tree, lamp and rock speed cues
+under `Environment/SpeedCues`. They have no collision, touch, query or shadow.
+The cache version and object/part count attributes identify the generated world.
+Track centerline, width, checkpoints and finish geometry are unchanged.
+
+The user previously confirmed digital-pad Drift READY -> release -> Mini Boost
+on a real device and an acceptable boost frequency. Final beta visual alignment,
+tutorial, finish warning, props and frame pacing still require Studio emulator
+and real Android/iPhone checks. TrackV2 geometry revision, race finish sequence,
+lap breakdown, Multiplayer and production-off debug telemetry remain pending.
 
 ## Deferred
 

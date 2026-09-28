@@ -30,6 +30,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceFinalTime", 0)
 	player:SetAttribute("RaceCheckpointCount", checkpointCount)
 	player:SetAttribute("RaceOffTrackRemaining", 0)
+	player:SetAttribute("RaceFinishMissedSerial", 0)
 end
 
 local function isInsideGate(gate: BasePart, worldPosition: Vector3): boolean
@@ -69,6 +70,20 @@ local function isMovingThroughGate(chassis: BasePart, gate: BasePart): boolean
 	return planarVelocity.Unit:Dot(planarGateLook.Unit) > DIRECTION_THRESHOLD
 end
 
+-- Warn only for a forward plane crossing close to the physical finish gate.
+-- The gate itself remains the sole authority for lap completion.
+local function missedFinishPlane(previousPosition: Vector3, currentPosition: Vector3, gate: BasePart, roadWidth: number): boolean
+	local look = gate.CFrame.LookVector
+	local before = (previousPosition - gate.Position):Dot(look)
+	local after = (currentPosition - gate.Position):Dot(look)
+	if before > 0 or after <= 0 or after == before then return false end
+	local crossing = previousPosition:Lerp(currentPosition, -before / (after - before))
+	local localCrossing = gate.CFrame:PointToObjectSpace(crossing)
+	return math.abs(localCrossing.X) > gate.Size.X * 0.5
+		and math.abs(localCrossing.X) <= gate.Size.X * 0.5 + roadWidth * 0.5
+		and math.abs(localCrossing.Y) <= gate.Size.Y * 0.5 + 8
+end
+
 local function planarDistance(first: Vector3, second: Vector3): number
 	local delta = second - first
 	return Vector2.new(delta.X, delta.Z).Magnitude
@@ -92,6 +107,7 @@ function RaceController.start()
 	local checkpointCount = 0
 	local gates: { BasePart } = {}
 	local roadParts: { BasePart } = {}
+	local finishRoadWidth = 0
 	local startFinishGate: BasePart? = nil
 	local checkpoints: { [number]: BasePart } = {}
 	local minimumValidLapTime = 0
@@ -159,6 +175,7 @@ function RaceController.start()
 		routeProgress = RaceRouteProgress.new(TrackGeometry.getCourse(definition), definition.RoadWidth)
 		checkpointCount = newCheckpointCount
 		roadParts = newRoadParts
+		finishRoadWidth = definition.RoadWidth
 		gates = newGates
 		checkpoints = newCheckpoints
 		startFinishGate = newStartFinish
@@ -199,9 +216,11 @@ function RaceController.start()
 	local insideGate: { [BasePart]: boolean } = {}
 	local offTrackSampleElapsed = 0
 	local offTrackElapsed = 0
+	local previousChassisPosition: Vector3? = nil
 
 	local function clearGateState()
 		table.clear(insideGate)
+		previousChassisPosition = nil
 		if routeProgress then
 			routeProgress = RaceRouteProgress.new(routeProgress.course, routeProgress.roadWidth)
 		end
@@ -243,6 +262,7 @@ function RaceController.start()
 		player:SetAttribute("RaceLastLapTime", 0)
 		player:SetAttribute("RaceBestLapTime", 0)
 		player:SetAttribute("RaceFinalTime", 0)
+		player:SetAttribute("RaceFinishMissedSerial", 0)
 		raceStartTime = 0
 		lapStartTime = 0
 		resetOffTrackState(player)
@@ -515,6 +535,15 @@ function RaceController.start()
 			end
 			insideGate[gate] = inside
 		end
+		local currentPosition = chassis.Position
+		local finishGate = startFinishGate
+		if previousChassisPosition and finishGate
+			and player:GetAttribute("RaceNextCheckpoint") == checkpointCount + 1
+			and isMovingThroughGate(chassis, finishGate)
+			and missedFinishPlane(previousChassisPosition, currentPosition, finishGate, finishRoadWidth) then
+			player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+		end
+		previousChassisPosition = currentPosition
 	end)
 
 	kart:SetAttribute("RaceControlsLocked", true)

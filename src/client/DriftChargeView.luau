@@ -68,8 +68,8 @@ function Gauge.create(root, debugEnabled)
 		local l=View.layout(size)
 		if mobile then
 			frame.Size=UDim2.fromOffset(l.action,l.gaugeHeight)
-			-- The previous gap was only 6px; keep 2px rather than crossing the touch target.
-			frame.Position=UDim2.new(0,l.driftX+l.action/2,1,-l.driftBottom-l.action-2)
+			-- Leave room for the three-pixel READY border pulse on real displays.
+			frame.Position=UDim2.new(0,l.driftX+l.action/2,1,-l.driftBottom-l.action-l.driftGaugeGap)
 		else
 			frame.Size=UDim2.fromOffset(math.clamp(size.X*0.12,140,160),if size.Y<=650 then 18 else 20)
 			if wheel then

@@ -17,6 +17,8 @@ local requireModule = require :: (ModuleScript) -> any
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
 local GarageUiController = {}
+local Input = require(script.Parent:WaitForChild("KartInputController"))
+local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialView"))
 local started = false
 
 local function makeText(parent: Instance, size: UDim2, position: UDim2, text: string, fontSize: number): TextLabel
@@ -221,7 +223,7 @@ function GarageUiController.start()
 	controlsCard.Name = "ControlsHint"
 	controlsCard.AnchorPoint = Vector2.new(1, 0)
 	controlsCard.Position = UDim2.new(1, -16, 0.28, 0)
-	controlsCard.Size = UDim2.fromOffset(292, 124)
+	controlsCard.Size = UDim2.fromOffset(292, 184)
 	controlsCard.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
 	controlsCard.BackgroundTransparency = 0.08
 	controlsCard.BorderSizePixel = 0
@@ -236,8 +238,11 @@ function GarageUiController.start()
 		"W / S   Accelerate / Brake & Reverse",
 		"A / D   Steer",
 		"SHIFT   Drift",
+		"GOLD GAUGE + SHIFT RELEASE = BOOST",
+		"1 / 2 / 3   Select item",
+		"Q   Use item",
 	} do
-		local line = makeText(controlsCard, UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 34 + (index - 1) * 26), hint, 14)
+		local line = makeText(controlsCard, UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 34 + (index - 1) * 23), hint, if index == 4 then 12 else 14)
 		line.Font = Enum.Font.Gotham
 		line.TextXAlignment = Enum.TextXAlignment.Left
 	end
@@ -245,6 +250,14 @@ function GarageUiController.start()
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
+	local tutorial = MobileTutorialView.create(backdrop)
+	local controlsButton = makeButton(backdrop, "CONTROLS ?", UDim2.new(1, -136, 0, 14))
+	controlsButton.AnchorPoint = Vector2.new(0, 0)
+	controlsButton.Size = UDim2.fromOffset(120, 36)
+	controlsButton.TextSize = 15
+	controlsButton.Visible = false
+	controlsButton.Activated:Connect(function() tutorial.open() end)
+	local tutorialSeenThisSession = false
 
 	local step = 1
 	local driverIndex = 1
@@ -415,12 +428,16 @@ function GarageUiController.start()
 		local raceState = player:GetAttribute("RaceState")
 		gui.Enabled = raceState == "GARAGE" or raceState == "PRE_RACE"
 		if not gui.Enabled then
+			tutorial.close()
+			controlsButton.Visible = false
 			mapPanel.Visible = false
 			previewLoading.Visible = false
 			clearPreview()
 			return
 		end
 		if raceState == "PRE_RACE" then
+			tutorial.close()
+			controlsButton.Visible = false
 			mapPanel.Visible = false
 			leftArrow.Visible = false
 			rightArrow.Visible = false
@@ -440,6 +457,11 @@ function GarageUiController.start()
 			return
 		end
 		local driverId, kartId, trackId = selectedIds()
+		controlsButton.Visible = Input.isTouchPreferred() and step == 4
+		if controlsButton.Visible and not tutorialSeenThisSession then
+			tutorialSeenThisSession = true
+			tutorial.open()
+		end
 		local mode = RaceMode.resolve(trackId)
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= 2

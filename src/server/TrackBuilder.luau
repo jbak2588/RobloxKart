@@ -26,6 +26,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		and previousTrack:FindFirstChild("RaceTriggers")
 		and previousTrack:FindFirstChild("BarrierTriggers")
 		and previousTrack:GetAttribute("BarrierForwardTangentVersion") == 1
+		and previousTrack:GetAttribute("EnvironmentCueVersion") == 1
 		and not previousTrack:FindFirstChild("BarrierCollisions")
 	then
 		return previousTrack
@@ -44,6 +45,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local environmentFolder = Instance.new("Folder")
 	environmentFolder.Name = "Environment"
 	environmentFolder.Parent = testTrack
+	local speedCues = Instance.new("Folder")
+	speedCues.Name = "SpeedCues"
+	speedCues.Parent = environmentFolder
 	local markingFolder = Instance.new("Folder")
 	markingFolder.Name = "Markings"
 	markingFolder.Parent = testTrack
@@ -127,6 +131,47 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		local arriving = (current - previous).Unit
 		local leaving = (following - current).Unit
 		return arriving:Cross(leaving).Y
+	end
+
+	-- Sparse, deterministic scenery gives nearby motion cues without touching
+	-- the road, race triggers, barriers or kart physics.
+	local speedCueObjects = 0
+	local speedCueParts = 0
+	local maxSpeedCueObjects = 32
+	for index = 8, #samples - 8, 7 do
+		if speedCueObjects >= maxSpeedCueObjects then break end
+		local tangent = directionAt(index)
+		local side = if index % 2 == 0 then 1 else -1
+		local normal = Vector3.new(-tangent.Z, 0, tangent.X) * side
+		local offset = roadWidth * 0.5 + 24 + (index % 3) * 5
+		local center = samples[index] + normal * offset
+		local clearOfRoad = true
+		for _, roadSample in samples do
+			local delta = center - roadSample
+			if Vector2.new(delta.X, delta.Z).Magnitude < roadWidth * 0.5 + 12 then
+				clearOfRoad = false
+				break
+			end
+		end
+		if clearOfRoad then
+			speedCueObjects += 1
+			local base = roadPoint(center, 0)
+			local kind = speedCueObjects % 3
+			local function cuePart(name: string, size: Vector3, height: number, color: Color3, material: Enum.Material?)
+				createVisualPart(speedCues, string.format("Cue%02d%s", speedCueObjects, name), size,
+					CFrame.new(base + Vector3.new(0, height, 0)), color, material)
+				speedCueParts += 1
+			end
+			if kind == 1 then
+				cuePart("Trunk", Vector3.new(2, 12, 2), 6, Color3.fromRGB(91, 68, 49), Enum.Material.SmoothPlastic)
+				cuePart("Canopy", Vector3.new(11, 12, 11), 16, Color3.fromRGB(46, 113, 65), Enum.Material.SmoothPlastic)
+			elseif kind == 2 then
+				cuePart("Pole", Vector3.new(1, 18, 1), 9, Color3.fromRGB(70, 78, 83), Enum.Material.SmoothPlastic)
+				cuePart("Head", Vector3.new(5, 2, 3), 18, Color3.fromRGB(255, 224, 139), Enum.Material.Neon)
+			else
+				cuePart("Rock", Vector3.new(7, 5, 6), 2.5, Color3.fromRGB(105, 111, 110), Enum.Material.Slate)
+			end
+		end
 	end
 
 	-- This plane only covers the gray physical ground; it cannot affect kart contact or road checks.
@@ -277,7 +322,10 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	testTrack:SetAttribute("GeometryId", track.GeometryId)
 	testTrack:SetAttribute("TrackId", track.Id)
 	testTrack:SetAttribute("VisualPartCount", partCount)
-	testTrack:SetAttribute("EnvironmentPartCount", 1)
+	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts)
+	testTrack:SetAttribute("EnvironmentCueVersion", 1)
+	testTrack:SetAttribute("SpeedCueObjectCount", speedCueObjects)
+	testTrack:SetAttribute("SpeedCuePartCount", speedCueParts)
 	testTrack:SetAttribute("KerbPartCount", kerbCount)
 	testTrack:SetAttribute("BarrierPartCount", barrierCount)
 	testTrack:SetAttribute("BarrierTriggerPartCount", barrierCount)
