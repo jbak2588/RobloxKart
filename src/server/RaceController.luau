@@ -304,6 +304,20 @@ function RaceController.start()
 			setRaceState(player, "COUNTDOWN")
 		end
 
+		function racer:enterWaitingLobby()
+			kart:SetAttribute("RaceControlsLocked", true)
+			kart:SetAttribute("KartFinishRollActive", false)
+			racer.countdownEndTime = 0
+			racer.finishRollEndTime = 0
+			racer.finishEndTime = 0
+			player:SetAttribute("RaceFinishPhase", "NONE")
+			player:SetAttribute("RaceCountdown", 0)
+			resetKartToStart()
+			resetOffTrackState(player)
+			clearGateState()
+			setRaceState(player, "PRE_RACE")
+		end
+
 		local function endActiveRace(player: Player)
 			player:SetAttribute("RaceCountdown", 0)
 			setRaceState(player, "GARAGE")
@@ -669,9 +683,21 @@ function RaceController.start()
 		end
 	end
 
-	local function beginRematchRejoinWait(now: number)
+	local function enterWaitingLobby(now: number, reason: string)
 		session.phase = "WAITING"
-		session.waitingReason = "REMATCH_REJOIN"
+		session.waitingReason = reason
+		if reason == "SOLO_REMATCH" then
+			session.startingParticipantCount = 0
+			session.countdownEndTime = 0
+			session.startTime = 0
+			table.clear(session.rematchVotes)
+			table.clear(session.terminal)
+			table.clear(session.finishOrder)
+			for player, racer in session.participants do
+				session.hostUserId = player.UserId
+				racer:enterWaitingLobby()
+			end
+		end
 		publishSession(now)
 	end
 
@@ -702,7 +728,7 @@ function RaceController.start()
 		if session.phase == "COMPLETE" and session:count() == 1 then
 			for remaining in session.participants do
 				if session.rematchVotes[remaining] then
-					beginRematchRejoinWait(time())
+					enterWaitingLobby(time(), "REMATCH_REJOIN")
 					return
 				end
 			end
@@ -742,9 +768,7 @@ function RaceController.start()
 		if session:count() == 2 then
 			startSharedCountdown(now)
 		elseif trackId == "Track01Race" then
-			session.phase = "WAITING"
-			session.waitingReason = "INITIAL"
-			publishSession(now)
+			enterWaitingLobby(now, "INITIAL")
 		else
 			startSharedCountdown(now)
 		end
@@ -771,7 +795,12 @@ function RaceController.start()
 			session.rematchVotes[player] = true
 			publishSession(time())
 			if session.startingParticipantCount >= 2 and session:count() == 1 then
-				beginRematchRejoinWait(time())
+				enterWaitingLobby(time(), "REMATCH_REJOIN")
+				return
+			end
+			if session.trackId == "Track01Race" and session.startingParticipantCount == 1
+				and session:count() == 1 then
+				enterWaitingLobby(time(), "SOLO_REMATCH")
 				return
 			end
 			local allReady = true

@@ -328,6 +328,11 @@ Multiplayer Rematch requires a vote from every remaining participant. If one
 racer returns to Garage and the remaining racer votes Rematch, either click
 order keeps the voter waiting without a timer for a same-track rejoin. The
 returning racer starts a shared countdown; the host can START SOLO or CANCEL.
+After a completed solo Track01Race round, REMATCH returns the same host and kart
+to the start-grid WAITING FOR RACER lobby. The result closes and controls remain
+locked. START SOLO begins a fresh solo countdown, a second READY begins a shared
+countdown, and CANCEL returns to Garage. A completed two-player round still
+begins its shared countdown as soon as both racers vote REMATCH.
 Released karts leave the race grid, and `KartOwnerUserId` identifies active
 server-owned karts. The race minimap uses server-published `RaceMapPosition`
 attributes at the 0.10-second ranking interval and shows rivals as orange
@@ -345,6 +350,9 @@ for 3 seconds with acceleration 75. Drift charge requirements, one bonus Nitro
 per race, and the 50 stud/s off-track cap stay intact.
 After READY, the Garage overlay now hides in `PRE_RACE` so the host sees the
 waiting controls over the track while seated at the grid.
+The user confirmed on a real mobile device that the initial WAITING FOR RACER
+screen, START SOLO, and the solo two-lap Finish work. The solo REMATCH return
+to this lobby still needs a published real-device check.
 
 M2-A1 temporarily disables physical kart-to-kart collision through the
 `RacerKart` collision group. Track and barrier collisions remain enabled.
@@ -357,7 +365,7 @@ WAITING lobby, host START SOLO/CANCEL, same-track join, Rematch re-entry,
 rival minimap, Garage presence, Quit Race, 95 stud/s Mini Boost, visible
 progress indicator, and two-lap Finish/PLACE. That test also found that
 the initial WAITING controls were covered by the Garage PREPARING GRID overlay;
-the R4 UI fix awaits device confirmation.
+the later Garage visibility fix was confirmed on a real mobile device.
 
 R4.2 device checks remain: confirm five total Boosts add one Nitro and
 later boosts add none; confirm DON'T SHOW AGAIN survives leaving and rejoining

@@ -132,10 +132,13 @@ safeWidth = 1280
 render(0.1)
 check((camera.CFrame.Position-desktopFront.Position).Magnitude<0.001,
 	"switching to desktop restores approved front position")
-player.attrs.RaceState = "COUNTDOWN"
+player.attrs.RaceState = "PRE_RACE"
 player.attrs.RaceFinishPhase = "NONE"
 render(0.1)
-check(camera.CFrame.Position.Z > 10, "Rematch restores chase")
+check(camera.CFrame.Position.Z > 10, "Solo Rematch waiting restores chase")
+player.attrs.RaceState = "COUNTDOWN"
+render(0.1)
+check(camera.CFrame.Position.Z > 10, "waiting to countdown retains chase")
 player.attrs.RaceState = "FINISHED"
 player.attrs.RaceFinishPhase = "PRESENT"
 render(1)

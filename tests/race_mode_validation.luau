@@ -243,6 +243,11 @@ for _, id in {"Track01","Track01Race","Track02"} do
   and player:GetAttribute("RaceFinalTime")==recorded,id.." delayed result preserves official time")
  check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no completion gate "..id)
  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
+ if id=="Track01Race" then
+  check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING"
+   and player:GetAttribute("RaceMatchWaitReason")=="SOLO_REMATCH", "solo circuit rematch returns to lobby")
+  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"StartSolo")
+ end
  check(player:GetAttribute("RaceState")=="COUNTDOWN" and player:GetAttribute("RaceTotalLaps")==laps,"rematch target "..id)
  check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeShield")==1,"rematch replenishes "..id)
  check(player:GetAttribute("RaceLap1Time")==0 and player:GetAttribute("RaceLap2Time")==0 and player:GetAttribute("RaceLap3Time")==0

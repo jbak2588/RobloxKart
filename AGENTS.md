@@ -448,7 +448,15 @@ click order. The host can START SOLO or CANCEL. Do not leave an unowned race kar
 the active grid. Minimap positions come from server-published `RaceMapPosition`
 and `RaceMapActive` attributes, never client Workspace Kart discovery. Garage
 shows same-server player presence. `QuitRace` is a server-authoritative RACING
-forfeit and must leave the opponent driving. The user's R3 two-device test
+forfeit and must leave the opponent driving.
+For Track01Race, a completed solo REMATCH returns the same host and kart to the
+start-grid PRE_RACE / WAITING FOR RACER lobby without a countdown. The host can
+START SOLO, wait for a second racer READY, or CANCEL to Garage. A completed
+two-player race still begins its shared countdown when both racers vote REMATCH.
+The user confirmed the initial WAITING screen, START SOLO and solo two-lap
+Finish on a real mobile device. The solo REMATCH lobby return needs device
+validation after publication.
+The user's R3 two-device test
 confirmed shared racing, two-lap Finish/PLACE, WAITING lobby, host START SOLO
 and CANCEL, same-track join, Rematch re-entry, rival minimap, Garage presence,
 Quit Race, 95 stud/s Mini Boost, and the visible progress indicator. R4
@@ -556,5 +564,6 @@ for this cinematic.
 
 Automated tests do not replace device checks. R3 shared-race runtime was
 confirmed by the user on two real devices. The cumulative Bonus Nitro and 100
-stud/s Mini Boost checks above passed on mobile; the remaining R4 device checks
-and initial lobby overlay still need validation before expanding the racer count.
+stud/s Mini Boost and initial lobby checks above passed on mobile; the remaining
+R4.3 device checks and solo Rematch lobby still need validation before expanding
+the racer count.

@@ -175,7 +175,8 @@ set("RaceHostUserId",player.UserId)
 set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
 local lobby=hud:FindFirstChild("RaceLobbyHost")
 check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACER"
- and hud.Countdown.TextTransparency==0 and lobby.Visible,"host lobby waits without timer")
+ and hud.Countdown.TextTransparency==0 and lobby.Visible and not results.Visible,
+ "host lobby waits without timer or result overlay")
 lobby.StartSolo.Activated:Fire()
 check(remote.lastFire[1]=="StartSolo","host START SOLO sends server action")
 lobby.Cancel.Activated:Fire()
