@@ -138,10 +138,11 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local speedCueObjects = 0
 	local speedCueParts = 0
 	local maxSpeedCueObjects = 32
-	for index = 8, #samples - 8, 7 do
+	local cueStride = math.max(7, math.ceil((#samples - 16) / maxSpeedCueObjects))
+	for index = 8, #samples - 8, cueStride do
 		if speedCueObjects >= maxSpeedCueObjects then break end
 		local tangent = directionAt(index)
-		local side = if index % 2 == 0 then 1 else -1
+		local side = if math.floor((index - 8) / cueStride) % 2 == 0 then 1 else -1
 		local normal = Vector3.new(-tangent.Z, 0, tangent.X) * side
 		local offset = roadWidth * 0.5 + 24 + (index % 3) * 5
 		local center = samples[index] + normal * offset

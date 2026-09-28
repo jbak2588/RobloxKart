@@ -51,6 +51,18 @@ for _, id in {"PracticeCircuitV1","PrototypeCircuitV2"} do
  local parts=world:GetAttribute("SpeedCuePartCount")
  check(cues~=nil and objects>0 and objects<=32,id.." cue object cap")
  check(parts==#cues:GetChildren() and parts<=64,id.." cue part cap")
+ local function nearestSampleIndex(part)
+  local nearest, distance=1,math.huge
+  for index, sample in course.Samples do
+   local delta=part.Position-sample
+   local planar=rb.Vector2.new(delta.X,delta.Z).Magnitude
+   if planar<distance then nearest,distance=index,planar end
+  end
+  return nearest
+ end
+ local cueParts=cues:GetChildren()
+ check(nearestSampleIndex(cueParts[1])<#course.Samples*0.2,id.." cues begin near track start")
+ check(nearestSampleIndex(cueParts[#cueParts])>#course.Samples*0.7,id.." cues reach late track sections")
  check(world:GetAttribute("EnvironmentCueVersion")==1,id.." cache version")
  check(#world:FindFirstChild("Road"):GetChildren()==#course.Samples,id.." road count unchanged")
  check(world:GetAttribute("CenterlineLength")==course.CenterlineLength,id.." centerline unchanged")
