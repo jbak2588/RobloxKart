@@ -10,6 +10,8 @@ check(format.time(78.9)=="1:18.90","lap time pads seconds")
 check(format.time(58.42)=="58.42","short lap has no minute prefix")
 check(format.time(59.999)=="1:00.00","centisecond rollover is correct")
 check(format.delta(78.9,78.9,true)=="BEST" and format.delta(83.2,78.9,false)=="+4.30","best and lap deltas")
+check(format.delta(80.504,80.205,false)=="+0.29","delta uses displayed centiseconds near rounding boundary")
+check(format.delta(83.304,80.205,false)=="+3.09","multi-second delta uses displayed centiseconds")
 
 local function signal()
  local listeners={}
@@ -19,9 +21,10 @@ local function signal()
  }
 end
 local stateChanged=signal()
-local player={attrs={RaceState="GARAGE"},Character=nil,CharacterAdded=signal(),CharacterRemoving=signal()}
+local phaseChanged=signal()
+local player={attrs={RaceState="GARAGE",RaceFinishPhase="NONE"},Character=nil,CharacterAdded=signal(),CharacterRemoving=signal()}
 function player:GetAttribute(name) return self.attrs[name] end
-function player:GetAttributeChangedSignal(name) assert(name=="RaceState"); return stateChanged end
+function player:GetAttributeChangedSignal(name) return if name=="RaceState" then stateChanged else phaseChanged end
 local preSimulation=signal()
 local services={Players={LocalPlayer=player},RunService={PreSimulation=preSimulation}}
 local controller=luau.load(fs.readFile("src/client/DriverCelebrationController.luau"),{environment={
@@ -46,15 +49,33 @@ local function setState(state)
  player.attrs.RaceState=state
  stateChanged:Fire()
 end
+local function setPhase(phase)
+ player.attrs.RaceFinishPhase=phase
+ phaseChanged:Fire()
+end
 for _, entry in {{"UpperTorso","RightShoulder"},{"Torso","Right Shoulder"}} do
  local model,joint,humanoid=character(entry[1],entry[2])
  player.Character=model
  setState("FINISHING")
+ setPhase("ROLL")
+ preSimulation:Fire(0.25)
+ check(joint.Transform==rb.CFrame.identity,entry[1].." stays still during roll")
+ setPhase("PRESENT")
  preSimulation:Fire(0.25)
  check(joint.Transform~=rb.CFrame.identity,entry[1].." shoulder raises")
+ local raised=joint.Transform
+ preSimulation:Fire(0.125)
+ check(joint.Transform~=raised,entry[1].." shoulder waves after raise")
  check(humanoid.SeatPart~=nil,entry[1].." driver remains seated")
  setState("FINISHED")
- check(joint.Transform==rb.CFrame.identity,entry[1].." shoulder restores at result")
+ check(joint.Transform~=rb.CFrame.identity,entry[1].." shoulder stays raised at result")
+ preSimulation:Fire(0.25)
+ check(joint.Transform~=raised,entry[1].." result-screen wave persists")
+ humanoid.SeatPart=nil
+ preSimulation:Fire(0.1)
+ check(joint.Transform==rb.CFrame.identity,entry[1].." seat loss restores shoulder")
+ setState("COUNTDOWN")
+ check(joint.Transform==rb.CFrame.identity,entry[1].." shoulder restores on rematch")
 end
 local model,joint=character("UpperTorso","Absent")
 model.FindFirstChild=function(_,name)
@@ -62,6 +83,7 @@ model.FindFirstChild=function(_,name)
 end
 player.Character=model
 setState("FINISHING")
+setPhase("PRESENT")
 preSimulation:Fire(0.25)
 check(joint.Transform==rb.CFrame.identity,"missing shoulder safely falls back")
 setState("GARAGE")

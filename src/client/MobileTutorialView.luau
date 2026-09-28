@@ -135,9 +135,11 @@ function Tutorial.create(parent: Instance)
 		diagram.Position = UDim2.new(0, 18, 0, if compact then 43 else 54)
 		diagram.Size = UDim2.new(1, -36, 0, if compact then 30 else 35)
 		diagram.TextSize = if compact then 17 else 21
-		iconRow.Position = UDim2.new(0.5, 0, 0, if compact then (if page == 2 then 76 else 87) else (if page == 2 then 83 else 91))
+		iconRow.Position = UDim2.new(0.5, 0, 0, if page == 1 then (if compact then 55 else 66)
+			else (if compact then (if page == 2 then 76 else 87) else (if page == 2 then 83 else 91)))
 		gaugeExamples.Position = UDim2.new(0.5, -115, 0, if compact then 122 else 140)
-		description.Position = UDim2.new(0, 18, 0, if page == 2 then (if compact then 167 else 187) else (if compact then 132 else 140))
+		description.Position = UDim2.new(0, 18, 0, if page == 1 then (if compact then 110 else 119)
+			else (if page == 2 then (if compact then 167 else 187) else (if compact then 132 else 140)))
 		description.Size = UDim2.new(1, -36, 0, if compact then (if page == 2 then 35 else 56) else (if page == 2 then 60 else 84))
 		description.TextSize = if compact then 14 else 17
 		back.Size = UDim2.fromOffset(118, if compact then 35 else 40)
@@ -146,7 +148,8 @@ function Tutorial.create(parent: Instance)
 	local function render()
 		local data = pages[page]
 		title.Text = data[1]
-		diagram.Text = data[2]
+		diagram.Text = if page == 1 then "" else data[2]
+		diagram.Visible = page ~= 1
 		description.Text = data[3]
 		gaugeExamples.Visible = page == 2
 		for index, holder in icons do

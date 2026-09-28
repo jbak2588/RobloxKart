@@ -6,6 +6,7 @@ local Workspace = game:GetService("Workspace")
 local requireModule = require :: (ModuleScript) -> any
 local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig") :: ModuleScript
 local KartConfig = requireModule(kartConfigModule)
+local RaceConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
 local ChaseMotion = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ChaseCameraMotion"))
 
 local KartCameraController = {}
@@ -64,6 +65,9 @@ function KartCameraController.start()
 	local seatCheckElapsed = 0
 	local previousTarget: Vector3? = nil
 	local lastCorrectionLog = 0
+	local finishMode = "CHASE"
+	local finishTransitionElapsed = 0
+	local finishTransitionStartCFrame: CFrame? = nil
 
 	local disableChase: () -> ()
 
@@ -85,6 +89,38 @@ function KartCameraController.start()
 		end
 
 		lastPlanarForward = getPlanarForward(chassis, lastPlanarForward)
+		local raceState = player:GetAttribute("RaceState")
+		local present = player:GetAttribute("RaceFinishPhase") == "PRESENT"
+			and (raceState == "FINISHING" or raceState == "FINISHED")
+		if present then
+			if finishMode == "CHASE" then
+				finishMode = "FINISH_FRONT_TRANSITION"
+				finishTransitionElapsed = 0
+				finishTransitionStartCFrame = camera.CFrame
+			end
+			local right = lastPlanarForward:Cross(WORLD_UP).Unit
+			local lookTarget = chassis.Position + WORLD_UP * 2.25
+			local frontPosition = chassis.Position + lastPlanarForward * 11 + right * 2.5 + WORLD_UP * 4.5
+			local frontCFrame = CFrame.lookAt(frontPosition, lookTarget, WORLD_UP)
+			camera.CameraType = Enum.CameraType.Scriptable
+			camera.FieldOfView = KartConfig.CAMERA_FOV
+			if finishMode == "FINISH_FRONT_TRANSITION" then
+				finishTransitionElapsed += deltaTime
+				local alpha = math.clamp(finishTransitionElapsed / RaceConfig.FINISH_CAMERA_TRANSITION_SECONDS, 0, 1)
+				local smooth = alpha * alpha * (3 - 2 * alpha)
+				camera.CFrame = (finishTransitionStartCFrame or camera.CFrame):Lerp(frontCFrame, smooth)
+				if alpha >= 1 then finishMode = "FINISH_FRONT" end
+			else
+				camera.CFrame = frontCFrame
+			end
+			camera.Focus = CFrame.new(lookTarget)
+			return
+		elseif finishMode ~= "CHASE" then
+			finishMode = "CHASE"
+			finishTransitionElapsed = 0
+			finishTransitionStartCFrame = nil
+			previousTarget = nil
+		end
 		local desiredPosition = chassis.Position
 			- lastPlanarForward * KartConfig.CAMERA_DISTANCE
 			+ WORLD_UP * KartConfig.CAMERA_HEIGHT
@@ -128,6 +164,9 @@ function KartCameraController.start()
 		end
 
 		activeChassis = nil
+		finishMode = "CHASE"
+		finishTransitionElapsed = 0
+		finishTransitionStartCFrame = nil
 		previousTarget = nil
 		activeSeat = nil
 		savedFieldOfView = nil
@@ -151,6 +190,9 @@ function KartCameraController.start()
 		activeChassis = chassis
 		previousTarget = nil
 		lastPlanarForward = getPlanarForward(chassis, DEFAULT_FORWARD)
+		finishMode = "CHASE"
+		finishTransitionElapsed = 0
+		finishTransitionStartCFrame = nil
 		savedFieldOfView = camera.FieldOfView
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = KartConfig.CAMERA_FOV

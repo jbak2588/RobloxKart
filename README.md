@@ -208,14 +208,20 @@ Track centerline, width, checkpoints and finish geometry are unchanged.
 The user previously confirmed digital-pad Drift READY -> release -> Mini Boost
 on a real device and an acceptable boost frequency. The READY controls tutorial
 now shows its gameplay icons above the card and uses native five-segment Drift
-gauge examples; the replay button reads CONTROLS. A valid final finish fixes the
-official time and lap history at the gate, then enters FINISHING for a 2.4-second
-straight deceleration with locked input, FINISH banner and sound, and a seated
-right-arm celebration when the driver rig has a shoulder Motor6D. FINISHED then
-shows the total, individual lap times, deltas, and best lap number. Rematch resets
-these records. Studio emulator and real Android/iPhone finish visuals, timing,
-and result layout still need runtime checks. TrackV2 geometry revision,
-Multiplayer and production-off debug telemetry remain pending.
+gauge examples; the replay button reads CONTROLS. DRIVE shows the actual arrows
+without a duplicate text row. A valid final finish fixes the official time and
+lap history at the gate, then enters FINISHING / ROLL for a 2.4-second straight
+deceleration with locked input, FINISH banner and sound. Once stopped, the
+FINISHING / PRESENT phase moves the chase camera to a front view over 0.9 seconds
+while the seated driver raises and waves the right arm when the rig has a shoulder Motor6D.
+FINISHED holds that camera and wave and shows the result panel at the left of
+the driver/kart scene. The panel shows total time, individual laps, displayed
+centisecond-consistent deltas and best lap number. Rematch resets records and
+restores the chase camera. The earlier finish roll, lap breakdown and tutorial
+icons were confirmed on a real device; the new front view, wave, left result
+composition and lifecycle still require Studio and real Android/iPhone checks.
+2-player Multiplayer is next after M1-B real-device validation and user approval.
+TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ## Deferred
 

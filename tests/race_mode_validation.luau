@@ -199,15 +199,16 @@ crossFinishPlaneOutside(7,false)
 check(player:GetAttribute("RaceFinishMissedSerial")==1 and player:GetAttribute("RaceCompletedLaps")==0,"outside forward crossing warns without lap")
 cross(finish)
 check(player:GetAttribute("RaceState")=="FINISHING" and kart:GetAttribute("KartFinishRollActive")==true
- and kart:GetAttribute("RaceControlsLocked")==true,"practice enters locked moving finish sequence")
+ and kart:GetAttribute("RaceControlsLocked")==true and player:GetAttribute("RaceFinishPhase")=="ROLL","practice enters locked moving finish sequence")
 check(player:GetAttribute("RaceCompletedLaps")==1,"one lap only")
 check(player:GetAttribute("RaceLap1Time")>0 and player:GetAttribute("RaceBestLapNumber")==1,"practice lap history includes standing start")
 local officialTime=player:GetAttribute("RaceFinalTime")
-tick(raceConfig.FINISH_SEQUENCE_SECONDS-0.1)
-check(player:GetAttribute("RaceState")=="FINISHING" and player:GetAttribute("RaceFinalTime")==officialTime,"result waits while official time stays fixed")
-tick(0.11)
+tick(raceConfig.FINISH_ROLL_SECONDS+0.01)
+check(player:GetAttribute("RaceState")=="FINISHING" and player:GetAttribute("RaceFinishPhase")=="PRESENT"
+ and not kart:GetAttribute("KartFinishRollActive") and player:GetAttribute("RaceFinalTime")==officialTime,"presentation follows roll without changing official time")
+tick(raceConfig.FINISH_CAMERA_TRANSITION_SECONDS)
 check(player:GetAttribute("RaceState")=="FINISHED" and kart:GetAttribute("KartFinishRollActive")==false
- and player:GetAttribute("RaceFinalTime")==officialTime,"practice result follows finish roll without added time")
+ and player:GetAttribute("RaceFinishPhase")=="PRESENT" and player:GetAttribute("RaceFinalTime")==officialTime,"practice result follows presentation without added time")
 check(player:GetAttribute("RaceFinishMissedSerial")==1,"valid finish gives no additional miss warning")
 check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no license state created")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
@@ -225,14 +226,22 @@ for _, id in {"Track01","Track01Race","Track02"} do
  if laps==3 then check(player:GetAttribute("RaceBestLapNumber")==2,"middle lap is fastest") end
  local recorded=player:GetAttribute("RaceFinalTime")
  tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.01)
- check(player:GetAttribute("RaceState")=="FINISHED" and player:GetAttribute("RaceFinalTime")==recorded,id.." delayed result preserves official time")
+ check(player:GetAttribute("RaceState")=="FINISHED" and player:GetAttribute("RaceFinishPhase")=="PRESENT"
+  and player:GetAttribute("RaceFinalTime")==recorded,id.." delayed result preserves official time")
  check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no completion gate "..id)
  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
  check(player:GetAttribute("RaceState")=="COUNTDOWN" and player:GetAttribute("RaceTotalLaps")==laps,"rematch target "..id)
  check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeShield")==1,"rematch replenishes "..id)
  check(player:GetAttribute("RaceLap1Time")==0 and player:GetAttribute("RaceLap2Time")==0 and player:GetAttribute("RaceLap3Time")==0
-  and player:GetAttribute("RaceBestLapNumber")==0 and not kart:GetAttribute("KartFinishRollActive"),"rematch clears lap and finish state "..id)
+  and player:GetAttribute("RaceBestLapNumber")==0 and player:GetAttribute("RaceFinishPhase")=="NONE"
+  and not kart:GetAttribute("KartFinishRollActive"),"rematch clears lap and finish state "..id)
 end
+start("Track01")
+cross(checkpoints[1]); cross(checkpoints[2]); cross(finish)
+tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.01)
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"ReturnGarage")
+check(player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("RaceFinishPhase")=="NONE"
+ and not kart:GetAttribute("KartFinishRollActive"),"Garage clears finish presentation")
 print("PASS: "..count.." Practice/race mode/checkpoint/loadout integration checks")
 
 -- Drive the real V2 geometry through the production controller, including

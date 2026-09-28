@@ -529,7 +529,7 @@ local rollSpeed=step(1,0.2)
 check(rollSpeed>0 and rollSpeed<70 and chassis.AssemblyAngularVelocity==V.zero,"locked finish roll moves forward without yaw")
 local slowerSpeed=step(1,1)
 check(slowerSpeed>0 and slowerSpeed<rollSpeed,"finish roll decelerates despite throttle input")
-check(step(1,raceConfig.FINISH_SEQUENCE_SECONDS-1.2)==0,"finish roll reaches zero at configured duration")
+check(step(1,raceConfig.FINISH_ROLL_SECONDS-1.2)==0,"finish roll reaches zero at configured duration")
 kart:SetAttribute("KartFinishRollActive",false)
 check(step(1,0)==0,"locked kart remains stopped after finish roll")
 config.DEBUG_TELEMETRY=false

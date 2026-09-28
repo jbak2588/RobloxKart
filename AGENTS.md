@@ -37,9 +37,8 @@ Development branch:
 
 prototype/kart-physics
 
-Approved remote baseline:
-
-83c24303ccf5485d51dff6c99e1554ce3f3a4a8f
+Before every task, fetch origin and verify local HEAD equals
+`origin/prototype/kart-physics`. The remote branch HEAD is the review baseline.
 
 ## Git Hard Rules
 
@@ -57,6 +56,11 @@ Do NOT:
 - publish/deploy Roblox without explicit user approval
 
 Always inspect exact changes and selectively stage files.
+
+After a scoped task passes validation, commit and push to
+`origin/prototype/kart-physics` by default, then verify matching local and remote
+HEADs. Main merge/push and Roblox Publish require explicit user approval.
+Keep unrelated `.vscode/settings.json` out of commits.
 
 ## Current C2-A Warning
 
@@ -85,8 +89,11 @@ Driver
 → Track
 → Ready
 → Countdown
-→ Race
-→ Result
+→ RACING
+→ FINISHING (ROLL → PRESENT)
+→ FINISHED / Result
+
+Off-track DNF remains a separate result path.
 
 Tracks:
 
@@ -220,7 +227,8 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-Mobile Touch Driving + Tilt Steering Option v1.
+2-player Multiplayer after M1-B real-device finish presentation validation.
+Use Practice Circuit Race first; TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
 
@@ -243,12 +251,12 @@ Touch:
 default
 
 Tilt:
-optional
+deferred optional input, not a first Multiplayer beta blocker
 
 Gyroscope unavailable:
 Touch fallback
 
-## Tilt Steering
+## Future Optional Tilt Steering
 
 Neutral is relative to CURRENT DEVICE POSE.
 
@@ -289,33 +297,40 @@ steering -1 ... +1
 
 ## Mobile Controls
 
-Expected:
+Default Digital Driving Pad:
 
-Touch/Tilt steering
-GAS
-BRAKE / REVERSE
-DRIFT
-ITEM
+↑ Forward
+← Left
+→ Right
+↓ Brake / Reverse
+
+Auto Accelerate toggle, DRIFT, tappable RaceLoadout selection and Item Use.
+Normal digital steering is ±1.00; steering while Drifting is ±0.60.
+Legacy Joystick is a developer rollback mode.
 
 RaceLoadout cells should be tappable.
 
-Do not recreate every keyboard key as a separate mobile button.
+PC and Mobile share the server-authoritative five-segment Drift gauge. READY is
+Gold; releasing Drift triggers an eligible Mini Boost.
 
 ## Mobile Steering HUD
 
-Reuse current circular steering indicator first.
+The PC/Mobile circular steering indicator is display-only.
 
 Target:
 
 bottom-center
-bottom ~1/3 cropped below screen
+bottom ~1/3 cropped below screen, with a 3px bottom margin
 upper ~2/3 visible
 
-Wheel should show actual steering input.
+Wheel shows actual steering input.
 
 Half-oval design is future polish.
 
 ## Known Issues
+
+TrackV2 geometry revision remains pending. M1-B finish presentation needs
+real-device validation. Set `DEBUG_TELEMETRY = false` before public production.
 
 ### Frame hitch
 
@@ -393,7 +408,8 @@ Avoid strong paid race-performance advantages.
 
 ## Multiplayer
 
-After Mobile controls:
+After M1-B real-device validation, start with 2 players on Practice Circuit
+Race, then expand:
 
 2 players
 → 4
@@ -412,9 +428,18 @@ player/session isolation
 Current:
 
 tests/camera_motion_validation.luau
+tests/mobile_touch_validation.luau
+tests/drift_telemetry_validation.luau
 tests/kart_visual_validation.luau
 tests/race_item_validation.luau
 tests/race_mode_validation.luau
+tests/race_route_validation.luau
+tests/race_audio_validation.luau
+tests/kart_audio_validation.luau
+tests/track_environment_validation.luau
+tests/finish_sequence_validation.luau
+tests/finish_presentation_validation.luau
+tests/race_result_hud_validation.luau
 
 Always run:
 
@@ -447,28 +472,20 @@ Studio runtime NOT VERIFIED.
 
 Keep tasks narrowly scoped.
 
-## Recommended Next Split
+## Finish Presentation and Results
 
-M1-A:
-- common input abstraction
-- Touch steering
-- GAS
-- BRAKE/REVERSE
-- DRIFT
-- ITEM
-- tappable RaceLoadout
-- steering HUD mobile placement
+The final gate crossing fixes the official race and lap times. Presentation
+time never changes those records:
 
-M1-B:
-- Tilt Steering
-- Neutral capture
-- Recenter
-- gyro fallback
-- dead-zone/sensitivity/smoothing
+RACING → FINISHING / ROLL → FINISHING / PRESENT → FINISHED.
 
-M1-C:
-- Android/iPhone tuning
-- safe areas
-- Practice/Race regression
+ROLL decelerates the kart for 2.4 seconds under locked controls. The kart stops
+before the front camera transition and seated driver wave. Results appear only
+after the transition and sit left of the driver/kart scene. Rematch restores the
+Chase camera; Garage clears finish presentation state. DNF remains separate.
 
-Do not start Multiplayer until mobile driving is actually usable.
+Results show Total Time, Lap 1/2/3, best lap number, displayed-centisecond
+deltas, Rematch and Garage. Practice shows Lap 1 only.
+
+Do not start Multiplayer until the M1-B presentation receives real-device
+validation and the user authorizes that work.

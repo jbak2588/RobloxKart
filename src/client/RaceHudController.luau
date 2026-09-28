@@ -546,6 +546,10 @@ function RaceHudController.start()
 			garageButton.Size = rematchButton.Size
 			garageButton.TextSize = 20
 		end
+		local compositionWidth = if mobile and screenGui.AbsoluteSize.X > 0 then screenGui.AbsoluteSize.X else viewportSize.X
+		resultsPanel.Position = if player:GetAttribute("RaceState") == "FINISHED" and compositionWidth >= 720
+			then UDim2.fromScale(if mobile then 0.25 else 0.26, 0.52)
+			else UDim2.fromScale(0.5, 0.5)
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
 			local l = MobileView.layout(safeSize)
@@ -620,7 +624,7 @@ function RaceHudController.start()
 		local kartSelection = KartCatalog.Entries[player:GetAttribute("SelectedKartId")]
 		local track = TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")]
 		showMapForTrack(track or TrackCatalog.Entries[TrackCatalog.DefaultId])
-		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING" or raceState == "FINISHED" or raceState == "DNF"
+		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
 		speedPanel.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
 		steeringDisplay.Visible = speedPanel.Visible
 		miniMapPanel.Visible = speedPanel.Visible

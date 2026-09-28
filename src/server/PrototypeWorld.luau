@@ -684,7 +684,7 @@ function PrototypeWorld.start()
 		local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
 		if kart:GetAttribute("KartFinishRollActive") == true then
 			finishRollElapsed += deltaTime
-			local alpha = math.clamp(finishRollElapsed / RaceConfig.FINISH_SEQUENCE_SECONDS, 0, 1)
+			local alpha = math.clamp(finishRollElapsed / RaceConfig.FINISH_ROLL_SECONDS, 0, 1)
 			local verticalSpeed = chassis.AssemblyLinearVelocity.Y
 			chassis.AssemblyLinearVelocity = finishRollDirection * (finishRollInitialSpeed * (1 - alpha))
 				+ Vector3.new(0, verticalSpeed, 0)
