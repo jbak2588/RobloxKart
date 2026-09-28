@@ -121,8 +121,11 @@ check(hud.FinishBanner.Visible and not results.Visible and not playerGui.RobloxK
 set("RaceState","FINISHED")
 check(results.Visible and not hud.FinishBanner.Visible,"result waits for FINISHED")
 check(not hud.Panel.Visible and results.AnchorPoint.X==0 and results.Position.X.Offset==14
- and results.Size.X.Offset<=300 and results.Size.X.Offset<=safeSize.X*0.42,
+ and results.Size.X.Offset<=285 and results.Size.X.Offset<=safeSize.X*0.39,
  "mobile result anchors to safe left edge with capped width")
+check(results.Position.X.Offset+results.Size.X.Offset<=safeSize.X*0.44
+ and results.Rematch.Size.X.Offset>=150 and results.ReturnGarage.Size.X.Offset>=150,
+ "mobile result leaves scene clearance with tappable buttons")
 check(results.Total.Text=="TOTAL TIME  4:01.13","result shows official total time")
 check(results.Lap1Row.LapTime.Text=="1:23.20" and results.Lap1Row.LapDelta.Text=="+4.30","lap one and delta")
 check(results.Lap2Row.LapDelta.Text=="BEST" and results.Lap3Row.LapDelta.Text=="+0.13","best and lap three delta")
@@ -133,7 +136,7 @@ safeSize=rb.Vector2.new(932,370)
 camera.ViewportSize=rb.Vector2.new(932,430)
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 check(results.Size.Y.Offset<=safeSize.Y-16 and contentFits(),"430px phone result fits safe area")
-check(results.AnchorPoint.X==0 and results.Position.X.Offset+results.Size.X.Offset<safeSize.X*0.42,
+check(results.AnchorPoint.X==0 and results.Position.X.Offset+results.Size.X.Offset<=safeSize.X*0.44,
  "phone panel reserves the right side for kart")
 safeSize=rb.Vector2.new(640,300)
 camera.ViewportSize=rb.Vector2.new(640,360)
@@ -147,7 +150,8 @@ set("RaceTotalLaps",1);set("RaceLap1Time",58.42);set("RaceLap2Time",0);set("Race
 set("RaceBestLapTime",58.42);set("RaceBestLapNumber",1)
 set("RaceState","FINISHED")
 check(results.Lap1Row.Visible and not results.Lap2Row.Visible and not results.Lap3Row.Visible,"Practice shows one lap")
-check(results.Size.X.Offset<=270 and results.AnchorPoint.X==0,"one-lap phone result uses smaller left panel")
+check(results.Size.X.Offset<=250 and results.Size.X.Offset<=safeSize.X*0.36
+ and results.AnchorPoint.X==0,"one-lap phone result uses smaller left panel")
 set("RaceState","DNF")
 check(results.Visible and results.Total.Text=="OFF TRACK" and not results.Lap1Row.Visible and not results.Best.Visible,"DNF keeps simple result")
 check(results.Position.X.Scale==0.5 and results.AnchorPoint.X==0.5,"DNF remains centered")

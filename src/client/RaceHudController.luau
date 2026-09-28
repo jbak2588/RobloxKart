@@ -474,7 +474,9 @@ function RaceHudController.start()
 			local resultHeight = math.min(targetHeight, resultArea.Y - 16)
 			local tight = resultArea.Y < 280
 			local splitResult = mobile and resultState == "FINISHED" and resultArea.X >= 720
-			local resultWidth = if splitResult then math.min(if resultLaps == 1 then 270 else 300, resultArea.X * 0.42)
+			local resultWidth = if splitResult then math.min(
+				if resultLaps == 1 then 250 else 285,
+				resultArea.X * (if resultLaps == 1 then 0.36 else 0.39))
 				else math.min(330, resultArea.X - 24)
 			resultsPanel.Size = UDim2.fromOffset(resultWidth, resultHeight)
 			resultsLayout.Padding = UDim.new(0, if tight then 2 else 4)

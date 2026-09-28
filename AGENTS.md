@@ -331,8 +331,9 @@ Half-oval design is future polish.
 
 TrackV2 geometry revision remains pending. M1-B finish presentation needs
 real-device validation. Set `DEBUG_TELEMETRY = false` before public production.
-The periodic EngineLoop thump is under developer A/B listening diagnosis;
-the trim candidates are not approved production audio settings.
+The current EngineLoop asset `6667206432` is rejected for production: real-device
+listening found a periodic thump and deceleration-like tail. Do not continue
+trim tuning unless requested; select a new steady-state loop asset with approval.
 
 ### Frame hitch
 
@@ -492,6 +493,8 @@ deltas, Rematch and Garage. Practice shows Lap 1 only.
 On mobile FINISHED screens, keep the left result panel visually separate from
 the Driver/Kart. Touch finish camera composition may shift the Driver/Kart right;
 preserve the desktop finish view.
+Finish screen-space drift is camera-only. Never add lateral server kart physics
+for this cinematic.
 
 Do not start Multiplayer until the M1-B presentation receives real-device
 validation and the user authorizes that work.

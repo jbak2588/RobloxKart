@@ -217,18 +217,28 @@ while the seated driver raises and waves the right arm when the rig has a should
 FINISHED holds that camera and wave and shows the result panel at the left of
 the driver/kart scene. The panel shows total time, individual laps, displayed
 centisecond-consistent deltas and best lap number. Rematch resets records and
-restores the chase camera. The earlier finish roll, lap breakdown and tutorial
-icons were confirmed on a real device; the new front view, wave, left result
-composition and lifecycle still require Studio and real Android/iPhone checks.
+restores the chase camera. Finish roll, lap breakdown, tutorial icons, front
+view and driver wave were confirmed on a real device. Mobile separation between
+the left result panel and Driver/Kart remains under final device tuning. The
+mobile Finish view now uses camera-only screen composition during the late
+ROLL to move the Kart image toward the right before the front view. The server
+Finish Roll remains straight and unchanged. The narrower left results panel and
+camera composition still need final real-device validation for visual separation.
 2-player Multiplayer is next after M1-B real-device validation and user approval.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
-### Engine loop seam diagnostic
+### Engine loop asset decision
 
 The current `ENGINE_LOOP` asset is `rbxassetid://6667206432` (catalog length
 about 1.927 seconds). At 70 studs/s the existing dynamic pitch is about 1.29x,
-so an asset-boundary sound would recur about every 1.49 seconds. The reported
-periodic thump has not yet been identified by listening comparison.
+so one source cycle is about 1.49 seconds. Real-device listening found a
+periodic thump and roughly one-second brake-like tail, including at idle.
+`Engine Sound Loop 7` (`6667206432`) is **rejected as the final continuous
+engine-loop candidate**. Full-length and 0.05/0.10-second trim experiments did
+not remove the sound. The source clip's changing tone/RPM may contribute;
+the waveform was not independently analyzed. Repository audio controllers have
+no separate normal Brake Sound. The current asset ID remains in place until a
+new steady-state loop is selected and approved.
 
 In Studio Play, use the Server Command Bar to select a mode for the first player:
 
@@ -236,17 +246,20 @@ In Studio Play, use the Server Command Bar to select a mode for the first player
 game.Players:GetPlayers()[1]:SetAttribute("KartEngineLoopTestMode", "FIXED_FULL")
 ```
 
-Listen in order: `NORMAL`, `FIXED_FULL`, `FIXED_A`, `FIXED_B`, then
-`DYNAMIC_A` or `DYNAMIC_B` if one trimmed candidate sounds better. Repeat
-`SetAttribute` with each mode name. `FIXED_FULL` plays the full asset at 1x;
-`FIXED_A/B` trim 0.05/0.10 seconds at each end at 1x; `DYNAMIC_A/B` use those
-regions with the existing pitch response. Compare idle, 70 studs/s and Mini
+The developer diagnostic modes remain for reference; further trim tuning is
+paused. `FIXED_FULL` plays the full asset at 1x; `FIXED_A/B` trim 0.05/0.10
+seconds at each end at 1x; `DYNAMIC_A/B` use those regions with the existing
+pitch response. For a future approved asset, compare idle, 70 studs/s and Mini
 Boost, prioritizing 70. `[KartEngineDiag]` prints the loaded runtime length and
 effective loop period once per mode. If the asset does not load within five
 seconds, the mode uses the full asset and prints a warning. A missing or invalid
 attribute means `NORMAL`; diagnostic modes work only in Studio or when
 `DEBUG_TELEMETRY` is enabled. No player-facing setting or new audio asset is
 included.
+Approve a replacement only after 20–30 seconds of clean looping at idle and
+70 studs/s, a natural 0 → 70 → 0 pitch change without a prerecorded braking
+tail, and no click through Mini Boost/Nitro pitch changes. Prefer a constant
+steady-RPM texture over a startup, throttle-blip or rev-up/release clip.
 
 ## Deferred
 

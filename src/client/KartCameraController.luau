@@ -9,6 +9,7 @@ local KartConfig = requireModule(kartConfigModule)
 local RaceConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
 local ChaseMotion = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ChaseCameraMotion"))
 local Input = require(script.Parent:WaitForChild("KartInputController"))
+local FinishComposition = require(script.Parent:WaitForChild("FinishCameraComposition"))
 
 local KartCameraController = {}
 
@@ -69,6 +70,8 @@ function KartCameraController.start()
 	local finishMode = "CHASE"
 	local finishTransitionElapsed = 0
 	local finishTransitionStartCFrame: CFrame? = nil
+	local finishRollCameraElapsed = 0
+	local wasFinishRoll = false
 
 	local disableChase: () -> ()
 
@@ -91,8 +94,26 @@ function KartCameraController.start()
 
 		lastPlanarForward = getPlanarForward(chassis, lastPlanarForward)
 		local raceState = player:GetAttribute("RaceState")
-		local present = player:GetAttribute("RaceFinishPhase") == "PRESENT"
+		local finishPhase = player:GetAttribute("RaceFinishPhase")
+		local roll = raceState == "FINISHING" and finishPhase == "ROLL"
+		if roll then
+			if not wasFinishRoll then finishRollCameraElapsed = 0 end
+			finishRollCameraElapsed += deltaTime
+		else
+			finishRollCameraElapsed = 0
+		end
+		wasFinishRoll = roll
+		local present = finishPhase == "PRESENT"
 			and (raceState == "FINISHING" or raceState == "FINISHED")
+		local mobileFinish = false
+		if (roll or present) and Input.isTouchPreferred()
+			and camera.ViewportSize.X > camera.ViewportSize.Y then
+			local playerGui = player:FindFirstChildOfClass("PlayerGui")
+			local raceHud = playerGui and playerGui:FindFirstChild("RobloxKartRaceHud")
+			local safeWidth = if raceHud and raceHud.AbsoluteSize.X > 0 then raceHud.AbsoluteSize.X
+				else camera.ViewportSize.X
+			mobileFinish = safeWidth >= 720
+		end
 		if present then
 			if finishMode == "CHASE" then
 				finishMode = "FINISH_FRONT_TRANSITION"
@@ -100,10 +121,12 @@ function KartCameraController.start()
 				finishTransitionStartCFrame = camera.CFrame
 			end
 			local right = lastPlanarForward:Cross(WORLD_UP).Unit
-			local mobileFinish = Input.isTouchPreferred() and camera.ViewportSize.X >= 720
 			local lookTarget = chassis.Position + WORLD_UP * 2.25
-				- right * (if mobileFinish then 2.5 else 0)
 			local frontPosition = chassis.Position + lastPlanarForward * 11 + right * 2.5 + WORLD_UP * 4.5
+			if mobileFinish then
+				frontPosition, lookTarget = FinishComposition.offset(frontPosition, lookTarget, lookTarget,
+					camera.ViewportSize, KartConfig.CAMERA_FOV, RaceConfig.TARGET_FINISH_SCREEN_X)
+			end
 			local frontCFrame = CFrame.lookAt(frontPosition, lookTarget, WORLD_UP)
 			camera.CameraType = Enum.CameraType.Scriptable
 			camera.FieldOfView = KartConfig.CAMERA_FOV
@@ -130,6 +153,15 @@ function KartCameraController.start()
 		local lookTarget = chassis.Position
 			+ lastPlanarForward * KartConfig.CAMERA_LOOK_AHEAD
 			+ WORLD_UP * 2
+		if roll and mobileFinish then
+			local progress = math.clamp(finishRollCameraElapsed / RaceConfig.FINISH_ROLL_SECONDS, 0, 1)
+			local drift = math.clamp((progress - RaceConfig.FINISH_DRIFT_START_RATIO)
+				/ (1 - RaceConfig.FINISH_DRIFT_START_RATIO), 0, 1)
+			drift = drift * drift * (3 - 2 * drift)
+			local screenX = 0.5 + (RaceConfig.TARGET_FINISH_SCREEN_X - 0.5) * drift
+			desiredPosition, lookTarget = FinishComposition.offset(desiredPosition, lookTarget,
+				chassis.Position + WORLD_UP * 2.25, camera.ViewportSize, KartConfig.CAMERA_FOV, screenX)
+		end
 		local desiredCFrame = CFrame.lookAt(desiredPosition, lookTarget, WORLD_UP)
 		if KartConfig.DEBUG_TELEMETRY and previousTarget and deltaTime > 0 then
 			local displacement = (chassis.Position - previousTarget):Dot(lastPlanarForward)
@@ -170,6 +202,8 @@ function KartCameraController.start()
 		finishMode = "CHASE"
 		finishTransitionElapsed = 0
 		finishTransitionStartCFrame = nil
+		finishRollCameraElapsed = 0
+		wasFinishRoll = false
 		previousTarget = nil
 		activeSeat = nil
 		savedFieldOfView = nil
@@ -196,6 +230,8 @@ function KartCameraController.start()
 		finishMode = "CHASE"
 		finishTransitionElapsed = 0
 		finishTransitionStartCFrame = nil
+		finishRollCameraElapsed = 0
+		wasFinishRoll = false
 		savedFieldOfView = camera.FieldOfView
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = KartConfig.CAMERA_FOV

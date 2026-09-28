@@ -14,8 +14,11 @@ local function signal()
 end
 local modules = {KartConfig = {CAMERA_DISTANCE = 18, CAMERA_HEIGHT = 8,
 	CAMERA_LOOK_AHEAD = 12, CAMERA_RESPONSE = 6, CAMERA_FOV = 75},
-	RaceConfig = {FINISH_CAMERA_TRANSITION_SECONDS = 0.9},
+	RaceConfig = {FINISH_CAMERA_TRANSITION_SECONDS = 0.9, FINISH_ROLL_SECONDS = 2.4,
+		FINISH_DRIFT_START_RATIO = 0.55, TARGET_FINISH_SCREEN_X = 0.70},
 	ChaseCameraMotion = luau.load(fs.readFile("src/shared/ChaseCameraMotion.luau"))()}
+modules.FinishCameraComposition = luau.load(fs.readFile("src/client/FinishCameraComposition.luau"),
+	{environment = {Vector3 = rb.Vector3}})()
 local touchPreferred = false
 modules.KartInputController = {isTouchPreferred = function() return touchPreferred end}
 local client = {WaitForChild = function(_, name) return {Name = name} end}
@@ -35,6 +38,12 @@ function character:WaitForChild(name) assert(name == "Humanoid"); return humanoi
 local player = {Character = character, CharacterAdded = signal(), CharacterRemoving = signal(),
 	attrs = {RaceState = "RACING", RaceFinishPhase = "NONE"}}
 function player:GetAttribute(name) return self.attrs[name] end
+local safeWidth = 1280
+function player:FindFirstChildOfClass(name)
+	if name == "PlayerGui" then return {FindFirstChild = function(_, childName)
+		if childName == "RobloxKartRaceHud" then return {AbsoluteSize = rb.Vector2.new(safeWidth,320)} end
+	end} end
+end
 local camera = {CameraType = rb.Enum.CameraType.Custom, FieldOfView = 70,
 	CFrame = rb.CFrame.identity, Focus = rb.CFrame.identity, ViewportSize = rb.Vector2.new(1280, 720)}
 local workspace = {CurrentCamera = camera}
@@ -71,17 +80,58 @@ render(0.2)
 check(camera.CFrame.Position.Z < -10 and camera.CameraType == rb.Enum.CameraType.Scriptable,
 	"FINISHED holds front camera")
 local desktopFront = camera.CFrame
+local expectedDesktop = rb.CFrame.lookAt(rb.Vector3.new(2.5,4.5,-11),rb.Vector3.new(0,2.25,0))
+check((desktopFront.Position-expectedDesktop.Position).Magnitude<0.001
+	and (desktopFront.LookVector-expectedDesktop.LookVector).Magnitude<0.001,
+	"desktop front composition remains unchanged")
+player.attrs.RaceState = "COUNTDOWN"
+player.attrs.RaceFinishPhase = "NONE"
+render(0.1)
 touchPreferred = true
 camera.ViewportSize = rb.Vector2.new(800, 320)
+safeWidth = 800
+player.attrs.RaceState = "RACING"
 render(0.1)
-check(camera.CFrame.Position == desktopFront.Position and camera.CFrame.LookVector ~= desktopFront.LookVector,
-	"touch finish offsets composition without moving desktop camera position")
+player.attrs.RaceState = "FINISHING"
+player.attrs.RaceFinishPhase = "ROLL"
+local function screenX()
+	-- Lune's CFrame.lookAt basis differs from Studio; project using the same
+	-- position/focus vectors passed to the production camera instead.
+	local position = camera.CFrame.Position
+	local forward = (camera.Focus.Position-position).Unit
+	local right = forward:Cross(rb.Vector3.yAxis).Unit
+	local subject = rb.Vector3.new(0,2.25,0)-position
+	local tangent = math.tan(math.rad(camera.FieldOfView)*0.5)*camera.ViewportSize.X/camera.ViewportSize.Y
+	return 0.5 + subject:Dot(right)/(subject:Dot(forward)*tangent*2)
+end
+for _ = 1, 48 do render(1/60) end
+check(math.abs(screenX()-0.5)<0.03,"early mobile ROLL keeps kart near center")
+for _ = 1, 96 do render(1/60) end
+check(screenX()>0.66 and screenX()<0.74,"late ROLL settles kart near right target")
+player.attrs.RaceFinishPhase = "PRESENT"
+render(0.45)
+check(camera.CFrame.Position.Z> -11,"PRESENT transitions from shifted chase to front")
+render(0.45)
+player.attrs.RaceState = "FINISHED"
+render(0.1)
+check(screenX()>0.67 and screenX()<0.73,"FINISHED holds mobile 70 percent composition")
+camera.ViewportSize = rb.Vector2.new(932, 430)
+safeWidth = 932
+render(0.1)
+check(screenX()>0.67 and screenX()<0.73,"wide phone aspect keeps right composition")
 camera.ViewportSize = rb.Vector2.new(640, 360)
+safeWidth = 640
 render(0.1)
-check((camera.CFrame.LookVector-desktopFront.LookVector).Magnitude<0.001,
-	"narrow touch view keeps centered fallback")
+check(math.abs(screenX()-0.5)<0.03,"narrow touch view keeps centered fallback")
+camera.ViewportSize = rb.Vector2.new(800, 320)
+render(0.1)
+check(math.abs(screenX()-0.5)<0.03,"safe-width fallback matches centered mobile HUD")
 touchPreferred = false
 camera.ViewportSize = rb.Vector2.new(1280, 720)
+safeWidth = 1280
+render(0.1)
+check((camera.CFrame.Position-desktopFront.Position).Magnitude<0.001,
+	"switching to desktop restores approved front position")
 player.attrs.RaceState = "COUNTDOWN"
 player.attrs.RaceFinishPhase = "NONE"
 render(0.1)

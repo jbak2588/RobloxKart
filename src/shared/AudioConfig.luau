@@ -1,6 +1,8 @@
 local AudioConfig = {
 	-- Add only audio that this experience owns or is licensed to use.
 	ASSETS = {
+		-- Rejected by real-device listening as a final continuous engine loop.
+		-- Replace only after approval of a new steady-state loop asset.
 		ENGINE_LOOP = "rbxassetid://6667206432",
 		DRIFT_LOOP = "rbxassetid://9120397552",
 		BOOST_START = "rbxassetid://83211426606907",
