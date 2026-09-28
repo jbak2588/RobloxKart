@@ -131,8 +131,10 @@ The gauge appears in 0.12 seconds and fades for 0.30 seconds on drift terminatio
 a server-confirmed Mini Boost gives a brief full-gauge gold pulse before fading.
 Failed attempts fade in cyan without a failure warning. No numbers or text appear
 inside the player gauge.
-Release still uses the original server boost rules, including throttle, speed,
-steering and valid input. READY reports charge completion, not a boost guarantee.
+READY latches once both charge requirements are met. Releasing DRIFT or centering
+steering then starts Mini Boost if the same racer still has valid forward input,
+enough speed, unlocked controls, and no off-track, barrier or Slick condition.
+Unsafe termination, lost input, reverse, or leaving the race still cancels it.
 Gauge attributes update at approximately 10 Hz, with immediate lifecycle clears.
 The loadout row moves upward 20 pixels to leave room; the gauge has no touch input.
 On mobile, its center aligns with the DRIFT button, with an 8px geometric gap
@@ -174,7 +176,7 @@ Capture the panel during charging and immediately after release.
 | Repeated `input_timeout`, max IA above 0.50 | Investigate client send gaps / transport; this is not a direct ping measurement. |
 | D=1.00, Q below 0.75, slip mostly below 12°, normal IA/DT | Insufficient qualified slip; compare steering and threshold separately later. |
 | Repeated max DT above 0.05 with slow D/Q | Investigate server hitches and discarded charge time; cap remains unchanged. |
-| READY then `shift_release`, BOOST NO | Inspect release throttle, speed, steering and input validity. |
+| READY then `shift_release` or `steer_below_exit`, BOOST NO | Inspect throttle, speed, input validity and safety state. |
 | Pulses raise slip above 12° and Q increases, sustained steering does not | Evidence for slip dynamics rather than assuming network latency. |
 
 Run `lune run tests/drift_telemetry_validation.luau` for publication/diagnostic
@@ -354,6 +356,13 @@ the experience while CONTROLS still opens manually; confirm continuous
 off-track driving reaches DNF at 15 seconds; compare 100 stud/s for 2.0 seconds
 against the earlier 95/1.5 build. The earlier 10-second off-track observation
 came from an older published build. R4 has not been published by Codex.
+
+R4.1 device check after publication: confirm the latest BUILD PV, reach a
+3/4 streak, then charge a fourth Drift to Gold. Try releasing DRIFT first and
+centering steering first in separate runs. Both clean exits should start Mini
+Boost; the fourth should show NITRO +1 and increase the Nitro count. Four more
+successes in the same race must not award a second Nitro. Also confirm the
+15-second off-track DNF and Controls dismissal after a full leave and rejoin.
 
 For the Controls persistence check: open the tutorial automatically, tap
 DON'T SHOW AGAIN, leave the experience fully, rejoin, confirm it stays closed,

@@ -232,7 +232,9 @@ productionGauge:update(true,kart,false,.1)
 check(productionRoot.DriftBonusNitro.Visible and productionRoot.DriftBonusNitro.Text=="NITRO +1",
  "drift HUD flashes bonus Nitro")
 productionGauge:update(true,kart,false,1)
-check(not productionRoot.DriftBonusNitro.Visible,"bonus flash ends after one second")
+check(not productionRoot.DriftBonusNitro.Visible
+	and productionRoot.DriftStreak.Text=="DRIFT STREAK  BONUS EARNED",
+	"bonus flash ends after one second while earned state remains")
 tick();check(gauge:GetAttribute("LitSegments")==3,"mobile server progress .60")
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;tick()
 check(gauge.Visible and gauge:GetAttribute("LitSegments")==3,"PC uses same server progress without duplicate gauge")

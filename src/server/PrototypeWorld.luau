@@ -375,6 +375,7 @@ function PrototypeWorld.start()
 			context.driftTelemetry:clearCharge()
 			context.driftDuration = 0
 			context.qualifiedDuration = 0
+			context.driftReadyLatched = false
 			context.driftDriver = nil
 		end
 
@@ -386,7 +387,7 @@ function PrototypeWorld.start()
 			emitDriftOutcome(player, "BOOST")
 			if KartConfig.DEBUG_TELEMETRY then
 				print(string.format(
-					"[KartBoost] START reason=qualified_shift_release chargeDuration=%.2f qualifiedDuration=%.2f",
+					"[KartBoost] START reason=qualified_clean_exit chargeDuration=%.2f qualifiedDuration=%.2f",
 					context.driftDuration,
 					context.qualifiedDuration
 				))
@@ -416,6 +417,8 @@ function PrototypeWorld.start()
 		kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
 			if kart:GetAttribute("KartOffTrack") then
 				emitDriftOutcome(context.owner, "RESET")
+				setDriftActive(false, "off_track")
+				resetDriftCharge()
 				context.commandedSpeed = math.min(context.commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
 				stopBoost("off_track")
 				stopNitro("off_track")
@@ -821,6 +824,7 @@ function PrototypeWorld.start()
 				and occupant
 				and hasValidInput
 				and driftRequested
+				and kart:GetAttribute("KartOffTrack") ~= true
 				and context.commandedSpeed > 0
 				and driftForwardSpeed >= KartConfig.DRIFT_MIN_SPEED
 				and absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
@@ -831,15 +835,20 @@ function PrototypeWorld.start()
 			end
 
 			if endedDriftReason then
-				local canStartBoost = endedDriftReason == "shift_release"
+				local cleanExit = endedDriftReason == "shift_release" or endedDriftReason == "steer_below_exit"
+				local canStartBoost = cleanExit and context.driftReadyLatched
 					and player ~= nil
 					and player == context.driftDriver
+					and occupant ~= nil
 					and hasValidInput
 					and throttle > 0
+					and context.commandedSpeed > 0
 					and actualForwardSpeed >= KartConfig.DRIFT_MIN_SPEED
-					and absoluteSteering >= KartConfig.DRIFT_EXIT_STEER
-					and context.driftDuration >= KartConfig.DRIFT_CHARGE_MIN_DURATION
-					and context.qualifiedDuration >= KartConfig.DRIFT_CHARGE_REQUIRED_TIME
+					and kart:GetAttribute("KartOffTrack") ~= true
+					and not context.crashActive
+					and not context.slick.active
+					and player:GetAttribute("RaceState") == "RACING"
+					and kart:GetAttribute("RaceControlsLocked") == false
 				context.pendingBoostEligible = canStartBoost
 				if canStartBoost and player then
 					startBoost(player, now)
@@ -858,6 +867,10 @@ function PrototypeWorld.start()
 						context.qualifiedDuration + chargeDeltaTime,
 						KartConfig.DRIFT_CHARGE_REQUIRED_TIME
 					)
+				end
+				if context.driftDuration >= KartConfig.DRIFT_CHARGE_MIN_DURATION
+					and context.qualifiedDuration >= KartConfig.DRIFT_CHARGE_REQUIRED_TIME then
+					context.driftReadyLatched = true
 				end
 			end
 

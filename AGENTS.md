@@ -315,8 +315,10 @@ Legacy Joystick is a developer rollback mode.
 
 RaceLoadout cells should be tappable.
 
-PC and Mobile share the server-authoritative five-segment Drift gauge. READY is
-Gold; releasing Drift triggers an eligible Mini Boost.
+PC and Mobile share the server-authoritative five-segment Drift gauge. Gold READY
+latches for that Drift. Releasing DRIFT or centering steering triggers Mini Boost
+when the same racer has valid forward input, enough speed and a safe unlocked
+race state. Unsafe termination still fails and resets the streak.
 
 ## Mobile Steering HUD
 

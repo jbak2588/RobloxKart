@@ -509,10 +509,10 @@ print("PASS: "..(count-nitroChecks).." Slick/Shield/loadout integration checks")
 -- Existing production Drift/Mini Boost decisions, with controlled velocity
 -- samples (not a physics simulation), must agree with replicated diagnostics.
 config.DEBUG_TELEMETRY=true
-local function driftFrame(requested,slip,dt,send,throttle)
+local function driftFrame(requested,slip,dt,send,throttle,steering)
 	dt=dt or 1/60; now+=dt
 	chassis.AssemblyLinearVelocity=V.new(math.tan(math.rad(slip))*60,0,-60)
-	if send~=false then control.OnServerEvent:Fire(player,throttle or 1,.6,requested) end
+	if send~=false then control.OnServerEvent:Fire(player,throttle or 1,steering or .6,requested) end
 	services.RunService.Heartbeat:Fire(dt)
 end
 local function charge(slip)
@@ -522,7 +522,9 @@ end
 charge(15)
 check(kart:GetAttribute("KartDriftChargeReady")==true,"production drift publishes READY")
 driftFrame(false,15)
-check(kart:GetAttribute("KartBoosting")==true and kart:GetAttribute("KartDriftDiagBoostEligible")==true,"actual boost agrees with diagnostic")
+check(kart:GetAttribute("KartBoosting")==true and kart:GetAttribute("KartDriftDiagBoostEligible")==true
+	and kart:GetAttribute("KartDriftDiagEndReason")=="shift_release"
+	and player:GetAttribute("DriftStreakCount")==1,"READY Drift-button-first release starts one Boost and increments streak")
 check(kart:GetAttribute("KartDriftChargeProgress")==0 and kart:GetAttribute("KartDriftChargeReady")==false,"boost clears gauge")
 for _=1,110 do step(1) end
 check(kart:GetAttribute("KartBoosting") and -chassis.AssemblyLinearVelocity.Z>99,
@@ -544,6 +546,34 @@ charge(15)
 driftFrame(false,15,1/60,true,0)
 check(kart:GetAttribute("KartDriftDiagEndReason")=="shift_release" and not kart:GetAttribute("KartDriftDiagBoostEligible") and kart:GetAttribute("KartDriftDiagThrottle")==0,"READY can fail release throttle check")
 charge(15)
+check(kart:GetAttribute("KartDriftChargeReady"),"steering-first fixture reaches READY")
+local steeringBoosts=0
+local steeringObserver=world.onDriftOutcome(function(who,outcome)
+	if who==player and outcome=="BOOST" then steeringBoosts+=1 end
+end)
+for _=1,9 do driftFrame(true,15,1/60,true,1,0) end
+check(kart:GetAttribute("KartDriftDiagEndReason")=="steer_below_exit"
+	and kart:GetAttribute("KartDriftDiagBoostEligible") and kart:GetAttribute("KartBoosting")
+	and player:GetAttribute("DriftStreakCount")==1,"READY steering-first exit starts Mini Boost and increments streak")
+driftFrame(false,15,1/60,true,1,0)
+check(steeringBoosts==1 and player:GetAttribute("DriftStreakCount")==1,
+	"later Drift-button release cannot duplicate steering-first Boost")
+steeringObserver:Disconnect()
+for _=1,130 do driftFrame(false,15) end
+for _=1,10 do driftFrame(true,15) end
+for _=1,9 do driftFrame(true,15,1/60,true,1,0) end
+check(kart:GetAttribute("KartDriftDiagEndReason")=="steer_below_exit"
+	and not kart:GetAttribute("KartDriftDiagBoostEligible") and not kart:GetAttribute("KartBoosting")
+	and player:GetAttribute("DriftStreakCount")==0,"non-READY steering release fails and clears streak")
+charge(15)
+kart:SetAttribute("KartOffTrack",true)
+driftFrame(false,15)
+check(not kart:GetAttribute("KartBoosting") and player:GetAttribute("DriftStreakCount")==0,
+	"READY off-track termination cannot start Boost")
+driftFrame(true,15)
+check(not kart:GetAttribute("KartDrifting") and not kart:GetAttribute("KartDriftChargeReady"),
+	"off-track state cannot start another Drift charge")
+charge(15)
 driftFrame(true,15,.63,false)
 check(kart:GetAttribute("KartDriftDiagEndReason")=="input_timeout" and kart:GetAttribute("KartDriftDiagMaxInputAge")>=.63-1e-8,"timeout captures final input gap")
 check(kart:GetAttribute("KartDriftDiagMaxServerDelta")==.63,"hitch captured without changing cap")
@@ -555,6 +585,12 @@ local function successfulDrift()
 	for _=1,100 do driftFrame(false,15) end
 	for _=1,100 do driftFrame(true,15) end
 	driftFrame(false,15)
+end
+local function successfulSteerFirstDrift()
+	for _=1,100 do driftFrame(false,15) end
+	for _=1,100 do driftFrame(true,15) end
+	for _=1,9 do driftFrame(true,15,1/60,true,1,0) end
+	driftFrame(false,15,1/60,true,1,0)
 end
 successfulDrift()
 check(player:GetAttribute("DriftStreakCount")==1 and not player:GetAttribute("DriftBonusNitroAwarded"),
@@ -575,9 +611,15 @@ for expected=1,3 do
 	successfulDrift()
 	check(player:GetAttribute("DriftStreakCount")==expected,"successful drift streak "..expected.." actual "..tostring(player:GetAttribute("DriftStreakCount")).." reason "..tostring(kart:GetAttribute("KartDriftDiagEndReason")).." eligible "..tostring(kart:GetAttribute("KartDriftDiagBoostEligible")).." duration "..tostring(kart:GetAttribute("KartDriftDiagDuration")).." qualified "..tostring(kart:GetAttribute("KartDriftDiagQualified")))
 end
-successfulDrift()
+local finalBoosts=0
+local finalObserver=world.onDriftOutcome(function(who,outcome)
+	if who==player and outcome=="BOOST" then finalBoosts+=1 end
+end)
+successfulSteerFirstDrift()
+finalObserver:Disconnect()
 check(player:GetAttribute("DriftStreakCount")==0 and player:GetAttribute("DriftBonusNitroAwarded")
-	and player:GetAttribute("RaceChargeNitro")==2,"four actual Mini Boosts grant one Nitro")
+	and player:GetAttribute("RaceChargeNitro")==2 and finalBoosts==1,
+	"3/4 steering-first exit grants one Boost and one Nitro")
 successfulDrift()
 check(player:GetAttribute("RaceChargeNitro")==2,"further boosts do not grant a second Nitro")
 startRace()

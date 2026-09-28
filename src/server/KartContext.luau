@@ -18,6 +18,7 @@ function KartContext.new(owner, kart, chassis, seat, spawnCFrame, config, itemCo
 		driftActive = false,
 		driftDuration = 0,
 		qualifiedDuration = 0,
+		driftReadyLatched = false,
 		driftDriver = nil,
 		driftTelemetry = DriftTelemetry.new(kart, config),
 		pendingDriftEnd = nil,
