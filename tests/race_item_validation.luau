@@ -105,7 +105,11 @@ config=table.clone(config); config.DEBUG_TELEMETRY=false; modules.KartConfig=con
 local catalog=load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 for _, id in {"Nitro","Slick","Shield","Smoke"} do check(catalog[id].Id==id,"stable ID "..id) end
 check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.NITRO_ACCELERATION==75 and config.NITRO_EXIT_DECELERATION==15,"Nitro configuration")
-check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==82 and config.MINI_BOOST_DURATION==1,"baseline speeds unchanged")
+check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==95
+	and config.MINI_BOOST_DURATION==1.5 and config.MINI_BOOST_ACCELERATION==65,
+	"approved Mini Boost beta tuning preserves normal speed and acceleration")
+check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.OFF_TRACK_MAX_SPEED==50,
+	"Nitro identity and off-track safety remain unchanged")
 local loadoutType=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 local loadout=loadoutType.new()
 loadout:prepare()
@@ -135,11 +139,11 @@ local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 local overlap=Nitro.new(config)
 overlap:activate("driver",0)
-check(overlap:forwardSpeed(82,true,1,1/60)>82 and overlap:forwardSpeed(82,true,1,1/60)<100,"Mini Boost to Nitro ramp")
+check(overlap:forwardSpeed(95,true,1,1/60)>95 and overlap:forwardSpeed(95,true,1,1/60)<100,"Mini Boost to Nitro ramp")
 check(overlap:forwardSpeed(100,true,1,1/60)==100,"no additive stacking")
 overlap:update(3,"driver",true,false,false,true)
 check(overlap:forwardSpeed(100,true,1,1/60)==99.75,"expired Nitro decays toward active Mini Boost")
-check(overlap:forwardSpeed(82,true,1,1/60)==82,"live Mini Boost floor")
+check(overlap:forwardSpeed(95,true,1,1/60)==95,"live Mini Boost floor")
 
 -- Minimal world dependencies; actual movement/controller modules run below.
 for name, result in {

@@ -36,7 +36,7 @@ Current track selections:
 | Mode | Speed | Duration |
 | --- | --- | --- |
 | Normal | 70 stud/s | — |
-| Mini Boost | 82 stud/s | 1 sec |
+| Mini Boost | 95 stud/s | 1.5 sec |
 | Nitro | 100 stud/s | 3 sec |
 
 ## RaceLoadout
@@ -306,13 +306,20 @@ route fraction and ready order. Official finish place is assigned at the final
 gate crossing, before the finish camera sequence. A finished racer leaves the
 other racer driving. The session completes when all remaining racers finish or
 DNF; a disconnect removes that racer without ending another racer's drive.
-Multiplayer Rematch requires a vote from every remaining participant. If a
-voter's opponent returns to Garage, the voter keeps the Result and waits up to
-20 seconds for a same-track rejoin. The returning racer starts a shared
+Multiplayer Rematch requires a vote from every remaining participant. If one
+racer returns to Garage and the remaining racer votes Rematch, either click
+order starts a 20-second same-track rejoin wait. The returning racer starts a shared
 countdown; otherwise the voter starts a solo Rematch after the deadline.
 Released karts leave the race grid, and `KartOwnerUserId` identifies active
-server-owned karts. The race minimap shows same-round rivals with a separate
-orange square marker; the Garage shows players in the same server.
+server-owned karts. The race minimap uses server-published `RaceMapPosition`
+attributes at the 0.10-second ranking interval and shows rivals as orange
+hollow rings around cyan local dots. The Garage shows players in the same server.
+
+M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
+accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
+driving. The continuous off-track DNF timeout is 15 seconds. Mini Boost Beta is
+95 stud/s for 1.5 seconds with unchanged 65 acceleration; Nitro remains
+100 stud/s for 3 seconds. A homing missile remains deferred.
 
 M2-A1 temporarily disables physical kart-to-kart collision through the
 `RacerKart` collision group. Track and barrier collisions remain enabled.
@@ -320,9 +327,9 @@ Revisit this after synchronized-race validation. Same-Heartbeat finish ties use
 official final time and then ready order; subframe photo-finish interpolation is
 deferred. The user confirmed a real 2-player server/client race: separate
 karts, 2-lap Finish/PLACE, Mini Boost, Nitro, Slick, Shield and multiplayer
-item interactions passed. The rematch rejoin, rival minimap, kart cleanup and
-Garage presence fixes still require a fresh 2-client runtime validation before
-M2-A1 is closed.
+item interactions passed. The subsequent real-device test still found the rival
+minimap invisible and the Garage-before-Rematch order broken. M2-A1-R2 code
+addresses those findings; a fresh 2-client runtime validation remains required.
 
 ## Known Polish Gates
 
@@ -410,7 +417,7 @@ Rear Deploy Preview: accepted Slick use replaces loadout display for 0.9 seconds
 
 ### Nitro / extra reward policy
 
-Preserved speeds: normal 70, Mini Boost 82, Nitro 100; Nitro duration 3 seconds, acceleration 75, smooth exit 15 stud/s per second. Brake priority, off-track cancellation and barrier cancellation remain.
+Current speeds: normal 70, Mini Boost 95 for 1.5 seconds, Nitro 100 for 3 seconds. Nitro acceleration 75 and smooth exit 15 stud/s per second remain. Brake priority, off-track cancellation and barrier cancellation remain.
 
 Server-only RaceItemController.grantBonusNitro(player) permits one extra Nitro per player per race while RACING, maximum two. Before use: 1 -> 2; after use: 0 -> 1. Repeated reward calls reject. A new race resets reward eligibility. No client grant action exists.
 
@@ -428,9 +435,9 @@ At the C1-B baseline, Smoke gameplay, Inventory, DataStore, multiplayer and full
 
 Run `lune run tests/race_item_validation.luau`, `lune run tests/kart_visual_validation.luau`, `rojo build -o <temporary-output>.rbxlx`, and `git diff --check`.
 
-Current automated results: 157 RaceItem/Nitro checks; 8 rear preview lifecycle checks; 93 visual contract cases; 12 preview/framing cases; 38 Luau scripts compile. Movement tests use deterministic signal/time/physics-transport mocks and do not replace Studio physics.
+Results at that baseline: 157 RaceItem/Nitro checks; 8 rear preview lifecycle checks; 93 visual contract cases; 12 preview/framing cases; 38 Luau scripts compile. Movement tests use deterministic signal/time/physics-transport mocks and do not replace Studio physics.
 
-Studio 896 x 414 basic smoke passed: 1/1/1 during countdown/start, 2/Q Slick world deployment and temporary matching-kart preview, HUD restoration with Slick=0, 3/Q Shield globe and Shield=0, Nitro activation/exhaust and Nitro=0, then fresh 1/1/1 on the actual Rematch button. A server command set DNF in the test session to reach Rematch without a full race. No full held-key speed run was performed by automation; 70/82/100 speed, Nitro duration/exit and cancellation regression are covered by the deterministic controller tests. Preview duration/cleanup is checked with a controlled clock at 0.89 and 0.91 seconds.
+Studio 896 x 414 basic smoke passed: 1/1/1 during countdown/start, 2/Q Slick world deployment and temporary matching-kart preview, HUD restoration with Slick=0, 3/Q Shield globe and Shield=0, Nitro activation/exhaust and Nitro=0, then fresh 1/1/1 on the actual Rematch button. A server command set DNF in the test session to reach Rematch without a full race. No full held-key speed run was performed by automation; the then-current 70/82/100 speeds, Nitro duration/exit and cancellation were covered by deterministic controller tests. Preview duration/cleanup is checked with a controlled clock at 0.89 and 0.91 seconds.
 
 ## C1-C - Permanent Practice and race selections
 
@@ -466,6 +473,6 @@ Rojo output: `%TEMP%\RobloxKart-c1c-final.rbxlx`. User confirmed the revised thr
 
 The reported V2 session detected Finish at 13:45:55.279 and 13:46:55.159, but was still waiting for CP4 and CP5 respectively. No lap invalidation occurred. Both tracks use the same ordered-checkpoint rules; entering a checkpoint off-road or missing its narrow volume could leave progress stuck for subsequent laps.
 
-RaceRouteProgress now supplements gate detection using the same sampled centerline as TrackBuilder. Forward checkpoint crossings near the course (within twice its road width of the centerline) are provisional off-road and committed on returning to the road. Checkpoint order, finish direction, minimum lap time, fall resets and the 10-second continuous off-road DNF remain. Large position/projection jumps do not recover checkpoints. Finish rejection now logs the missing checkpoint explicitly. GO plays three higher beeps with cancellation on race exit.
+RaceRouteProgress now supplements gate detection using the same sampled centerline as TrackBuilder. Forward checkpoint crossings near the course (within twice its road width of the centerline) are provisional off-road and committed on returning to the road. Checkpoint order, finish direction, minimum lap time, fall resets and the 15-second continuous off-road DNF remain. Large position/projection jumps do not recover checkpoints. Finish rejection now logs the missing checkpoint explicitly. GO plays three higher beeps with cancellation on race exit.
 
 Validation: `lune run tests/race_route_validation.luau` (both actual geometries, repeated laps, excursions, reverse and teleport/reset cases), `lune run tests/race_mode_validation.luau` (66 checks, including two V2 laps with excursions around CP4/5/6 and off-road DNF), and `lune run tests/race_audio_validation.luau` (3-2-1, three GO beeps, spacing/cancellation). These are deterministic tests, not Studio physics or audio playback verification.

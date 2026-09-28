@@ -29,6 +29,8 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceCompletedLaps", 0)
 	player:SetAttribute("RaceTotalLaps", RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
 	player:SetAttribute("RaceSessionId", 0)
+	player:SetAttribute("RaceMapPosition", Vector3.zero)
+	player:SetAttribute("RaceMapActive", false)
 	player:SetAttribute("RaceParticipantCount", 1)
 	player:SetAttribute("RacePosition", 1)
 	player:SetAttribute("RaceFinishPosition", 0)
@@ -317,6 +319,7 @@ function RaceController.start()
 			player:SetAttribute("RaceMatchStatus", "")
 			player:SetAttribute("RaceMatchWaitReason", "NONE")
 			player:SetAttribute("RaceSessionComplete", false)
+			player:SetAttribute("RaceMapActive", false)
 		end
 
 		local function invalidateCurrentLap(player: Player, now: number, reason: string)
@@ -583,7 +586,7 @@ function RaceController.start()
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
 			setChanged(player, "RaceMatchStatus", session.phase)
 			setChanged(player, "RaceMatchWaitReason", session.waitingReason)
-			setChanged(player, "RaceMatchWaitRemaining", if session.phase == "WAITING" then math.max(math.ceil(session.waitDeadline - now), 0) else 0)
+			setChanged(player, "RaceMatchWaitRemaining", if session.phase == "WAITING" then math.max(math.ceil(session.waitDeadline - now - 1e-6), 0) else 0)
 			setChanged(player, "RaceSessionComplete", session.phase == "COMPLETE")
 			setChanged(player, "RaceRematchReady", session.rematchVotes[player] == true)
 			setChanged(player, "RaceRematchReadyCount", ready)
@@ -609,6 +612,8 @@ function RaceController.start()
 			setChanged(player, "RaceFinishPosition", 0)
 			setChanged(player, "RacePosition", player:GetAttribute("GridSlot") or 1)
 			racer:begin()
+			setChanged(player, "RaceMapPosition", racer.context.chassis.Position)
+			setChanged(player, "RaceMapActive", true)
 		end
 		publishSession(now)
 	end
@@ -650,13 +655,34 @@ function RaceController.start()
 		for place, entry in entries do setChanged(entry.player, "RacePosition", place) end
 	end
 
+	local function publishMapPositions()
+		for player, racer in session.participants do
+			local context = racer.context
+			if context and context.kart.Parent and context.chassis.Parent
+				and PrototypeWorld.getKartContext(player) == context then
+				setChanged(player, "RaceMapPosition", context.chassis.Position)
+				setChanged(player, "RaceMapActive", true)
+			else
+				setChanged(player, "RaceMapActive", false)
+			end
+		end
+	end
+
+	local function beginRematchRejoinWait(now: number)
+		session.phase = "WAITING"
+		session.waitingReason = "REMATCH_REJOIN"
+		session.waitDeadline = now + RaceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS
+		publishSession(now)
+	end
+
 	local function removeRacer(player: Player)
 		local racer = racers[player]
 		if not racer then return end
 		if session.phase == "RACING" and player:GetAttribute("RaceState") ~= "FINISHED"
 			and player:GetAttribute("RaceState") ~= "DNF" then
-			session.terminal[player] = "LEFT"
+			if not session.terminal[player] then session.terminal[player] = "LEFT" end
 		end
+		setChanged(player, "RaceMapActive", false)
 		if racer.context.kart.Parent then racer:finish() end
 		session:remove(player)
 		racers[player] = nil
@@ -670,10 +696,7 @@ function RaceController.start()
 		if session.phase == "COMPLETE" and session:count() == 1 then
 			for remaining in session.participants do
 				if session.rematchVotes[remaining] then
-					session.phase = "WAITING"
-					session.waitingReason = "REMATCH_REJOIN"
-					session.waitDeadline = time() + RaceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS
-					publishSession(time())
+					beginRematchRejoinWait(time())
 					return
 				end
 			end
@@ -726,10 +749,19 @@ function RaceController.start()
 		if not racer then return end
 		if action == "ReturnGarage" then
 			if racer:handleRemote(action, time()) then removeRacer(player) end
+		elseif action == "QuitRace" and session:contains(player) and session.phase == "RACING"
+			and player:GetAttribute("RaceState") == "RACING"
+			and PrototypeWorld.getKartContext(player) == racer.context and racer.context.owner == player then
+			session.terminal[player] = "FORFEIT"
+			removeRacer(player)
 		elseif action == "Rematch" and session.phase == "COMPLETE"
 			and (player:GetAttribute("RaceState") == "FINISHED" or player:GetAttribute("RaceState") == "DNF") then
 			session.rematchVotes[player] = true
 			publishSession(time())
+			if session.startingParticipantCount >= 2 and session:count() == 1 then
+				beginRematchRejoinWait(time())
+				return
+			end
 			local allReady = true
 			for participant in session.participants do
 				if not session.rematchVotes[participant] then allReady = false; break end
@@ -770,6 +802,7 @@ function RaceController.start()
 		if rankElapsed >= RaceConfig.RANK_UPDATE_INTERVAL then
 			rankElapsed = 0
 			updateRanking()
+			publishMapPositions()
 		end
 		publishSession(now)
 	end)

@@ -300,6 +300,6 @@ for lap=1,2 do
  check(player:GetAttribute("RaceCompletedLaps")==lap,"V2 excursion/return finish counts lap "..lap)
 end
 -- Provisional recovery must not bypass the existing off-road timeout.
-chassis.CFrame=CF.new(1500,0,1500); tick(10.1)
+chassis.CFrame=CF.new(1500,0,1500); tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
 check(player:GetAttribute("RaceState")=="DNF","offroad timeout still wins")
 print("PASS: "..count.." total race integration checks including real V2 recovery")

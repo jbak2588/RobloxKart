@@ -51,6 +51,7 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 	startMark.Size = UDim2.fromOffset(10, 10)
 	startMark.BackgroundColor3 = Color3.fromRGB(255, 205, 55)
 	startMark.BorderSizePixel = 0
+	startMark.ZIndex = 1
 	startMark.Parent = canvas
 	local startCorner = Instance.new("UICorner")
 	startCorner.CornerRadius = UDim.new(1, 0)
@@ -69,19 +70,18 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 			marker = Instance.new("Frame")
 			marker.Name = if style == "RIVAL" then "RivalPosition" else "KartPosition"
 			marker.AnchorPoint = Vector2.new(0.5, 0.5)
-			marker.Size = UDim2.fromOffset(if style == "RIVAL" then 10 else 11, if style == "RIVAL" then 10 else 11)
+			marker.Size = UDim2.fromOffset(if style == "RIVAL" then 16 else 11, if style == "RIVAL" then 16 else 11)
 			marker.BackgroundColor3 = if style == "RIVAL" then Color3.fromRGB(255, 165, 45) else Color3.fromRGB(65, 225, 245)
+			marker.BackgroundTransparency = if style == "RIVAL" then 1 else 0
 			marker.BorderSizePixel = 0
-			marker.ZIndex = 3
+			marker.ZIndex = if style == "RIVAL" then 3 else 4
 			marker.Parent = canvas
-			if style ~= "RIVAL" then
-				local corner = Instance.new("UICorner")
-				corner.CornerRadius = UDim.new(1, 0)
-				corner.Parent = marker
-			end
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(1, 0)
+			corner.Parent = marker
 			local stroke = Instance.new("UIStroke")
-			stroke.Color = if style == "RIVAL" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(12, 25, 35)
-			stroke.Thickness = 2
+			stroke.Color = if style == "RIVAL" then Color3.fromRGB(255, 165, 45) else Color3.fromRGB(12, 25, 35)
+			stroke.Thickness = if style == "RIVAL" then 3 else 2
 			stroke.Parent = marker
 			markers[key] = marker
 		end

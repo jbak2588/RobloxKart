@@ -113,6 +113,80 @@ function RaceHudController.start()
 	local offTrackLabel = createLabel(frame, "OffTrack", 4)
 	offTrackLabel.TextSize = 16
 	offTrackLabel.TextColor3 = Color3.fromRGB(255, 175, 80)
+	local quitRow = Instance.new("Frame")
+	quitRow.Name = "QuitRow"
+	quitRow.LayoutOrder = 5
+	quitRow.Size = UDim2.new(1, -20, 0, 24)
+	quitRow.BackgroundTransparency = 1
+	quitRow.Visible = false
+	quitRow.Parent = frame
+	local quitButton = Instance.new("TextButton")
+	quitButton.Name = "QuitRace"
+	quitButton.AnchorPoint = Vector2.new(1, 0)
+	quitButton.Position = UDim2.new(1, 0, 0, 0)
+	quitButton.Size = UDim2.fromOffset(72, 23)
+	quitButton.BackgroundColor3 = Color3.fromRGB(80, 51, 54)
+	quitButton.TextColor3 = Color3.fromRGB(255, 230, 230)
+	quitButton.Text = "QUIT RACE"
+	quitButton.TextSize = 11
+	quitButton.Font = Enum.Font.GothamBold
+	quitButton.Parent = quitRow
+	addCorner(quitButton, 5)
+	local quitOverlay = Instance.new("Frame")
+	quitOverlay.Name = "QuitConfirmation"
+	quitOverlay.Size = UDim2.fromScale(1, 1)
+	quitOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	quitOverlay.BackgroundTransparency = 0.35
+	quitOverlay.ZIndex = 20
+	quitOverlay.Visible = false
+	quitOverlay.Parent = screenGui
+	local quitDialog = Instance.new("Frame")
+	quitDialog.AnchorPoint = Vector2.new(0.5, 0.5)
+	quitDialog.Position = UDim2.fromScale(0.5, 0.5)
+	quitDialog.Size = UDim2.fromOffset(268, 132)
+	quitDialog.BackgroundColor3 = Color3.fromRGB(22, 29, 40)
+	quitDialog.ZIndex = 21
+	quitDialog.Parent = quitOverlay
+	addCorner(quitDialog, 9)
+	local quitTitle = createLabel(quitDialog, "QuitTitle", 1)
+	quitTitle.Position = UDim2.fromOffset(12, 11)
+	quitTitle.Size = UDim2.new(1, -24, 0, 28)
+	quitTitle.Text = "QUIT RACE?"
+	quitTitle.TextSize = 21
+	quitTitle.ZIndex = 22
+	local quitDescription = createLabel(quitDialog, "QuitDescription", 2)
+	quitDescription.Position = UDim2.fromOffset(12, 42)
+	quitDescription.Size = UDim2.new(1, -24, 0, 22)
+	quitDescription.Text = "Your current race will end."
+	quitDescription.TextSize = 13
+	quitDescription.ZIndex = 22
+	local function dialogButton(name, label, x, color)
+		local button = Instance.new("TextButton")
+		button.Name = name
+		button.Position = UDim2.fromOffset(x, 83)
+		button.Size = UDim2.fromOffset(112, 36)
+		button.BackgroundColor3 = color
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Text = label
+		button.TextSize = 15
+		button.Font = Enum.Font.GothamBold
+		button.ZIndex = 22
+		button.Parent = quitDialog
+		addCorner(button, 5)
+		return button
+	end
+	local cancelQuitButton = dialogButton("Cancel", "CANCEL", 14, Color3.fromRGB(60, 83, 105))
+	local confirmQuitButton = dialogButton("ConfirmQuit", "QUIT", 142, Color3.fromRGB(155, 61, 64))
+	quitButton.Activated:Connect(function()
+		if player:GetAttribute("RaceState") == "RACING" then quitOverlay.Visible = true end
+	end)
+	cancelQuitButton.Activated:Connect(function() quitOverlay.Visible = false end)
+	confirmQuitButton.Activated:Connect(function()
+		if quitOverlay.Visible and player:GetAttribute("RaceState") == "RACING" then
+			quitOverlay.Visible = false
+			remoteEvent:FireServer("QuitRace")
+		end
+	end)
 
 	local speedPanel = Instance.new("Frame")
 	speedPanel.Name = "Speedometer"
@@ -240,6 +314,7 @@ function RaceHudController.start()
 	local mapRenderer = nil
 	local mapGeometryId: string? = nil
 	local displayedRivalKeys = {}
+	local displayedRivalPositions = {}
 	local function showMapForTrack(trackEntry)
 		local geometryId = trackEntry.GeometryId
 		if mapGeometryId == geometryId then
@@ -249,6 +324,7 @@ function RaceHudController.start()
 			mapRenderer:destroy()
 		end
 		displayedRivalKeys = {}
+		displayedRivalPositions = {}
 		local definition = TrackGeometry.getDefinition(geometryId)
 		assert(definition, "Selected race track geometry is missing")
 		mapRenderer = TrackMapRenderer.create(miniMapPanel, definition, true)
@@ -445,7 +521,7 @@ function RaceHudController.start()
 		if compact then
 			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
 			frame.Position = UDim2.fromOffset(12, 8)
-			frame.Size = UDim2.fromOffset(lapWidth, if offTrackLabel.Visible then 116 else 96)
+			frame.Size = UDim2.fromOffset(lapWidth, (if offTrackLabel.Visible then 116 else 96) + (if quitRow.Visible then 24 else 0))
 			padding.PaddingTop = UDim.new(0, 6)
 			padding.PaddingBottom = UDim.new(0, 6)
 			padding.PaddingLeft = UDim.new(0, 8)
@@ -513,7 +589,7 @@ function RaceHudController.start()
 			garageButton.TextSize = rematchButton.TextSize
 		else
 			frame.Position = UDim2.fromOffset(24, 118)
-			frame.Size = UDim2.fromOffset(260, if offTrackLabel.Visible then 139 else 112)
+			frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112) + (if quitRow.Visible then 24 else 0))
 			padding.PaddingTop = UDim.new(0, 8)
 			padding.PaddingBottom = UDim.new(0, 8)
 			padding.PaddingLeft = UDim.new(0, 10)
@@ -583,7 +659,7 @@ function RaceHudController.start()
 			speedTrack.Position = UDim2.fromOffset(10, 44)
 			-- Top HUD stays clear of both thumb zones; desktop geometry is unchanged.
 			local lapWidth = math.min(170, safeSize.X*0.28)
-			frame.Size = UDim2.fromOffset(lapWidth, if offTrackLabel.Visible then 116 else 96)
+			frame.Size = UDim2.fromOffset(lapWidth, (if offTrackLabel.Visible then 116 else 96) + (if quitRow.Visible then 24 else 0))
 			lapLabel.TextSize = 18
 			checkpointLabel.TextSize = 12
 			bestLabel.TextSize = 12
@@ -617,6 +693,8 @@ function RaceHudController.start()
 	end
 	local function updateHud()
 		local raceState = player:GetAttribute("RaceState")
+		quitRow.Visible = raceState == "RACING"
+		if raceState ~= "RACING" then quitOverlay.Visible = false end
 		local finishMissSerial = getNumberAttribute(player, "RaceFinishMissedSerial", 0)
 		if raceState == "RACING" and finishMissSerial > displayedFinishMissSerial then
 			finishMissDisplayToken += 1
@@ -671,7 +749,7 @@ function RaceHudController.start()
 		bestLabel.Text = if bestLap > 0 then string.format("BEST LAP  %.2fs", bestLap) else "BEST LAP  --"
 		offTrackLabel.Text = if raceState == "RACING" and offTrackRemaining > 0 then string.format("RETURN TO TRACK  %ds", offTrackRemaining) else ""
 		offTrackLabel.Visible = raceState == "RACING" and offTrackRemaining > 0
-		frame.Size = UDim2.fromOffset(260, if offTrackLabel.Visible then 139 else 112)
+		frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112) + (if quitRow.Visible then 24 else 0))
 
 		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
@@ -844,21 +922,28 @@ function RaceHudController.start()
 			local chassis = kart and kart:FindFirstChild("Chassis")
 			mapRenderer:setRacerMarker("local:" .. tostring(player.UserId),
 				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL")
-			local rivals = RaceMinimapRivals.collect(player, Players:GetPlayers(), Workspace:FindFirstChild("Prototype"),
+			local rivals = RaceMinimapRivals.collect(player, Players:GetPlayers(),
 				getNumberAttribute(player, "RaceParticipantCount", 1))
 			local activeKeys = {}
 			for userId, position in rivals do
 				local key = "rival:" .. tostring(userId)
 				activeKeys[key] = true
-				mapRenderer:setRacerMarker(key, position, "RIVAL")
+				local previous = displayedRivalPositions[key]
+				local smoothed = if previous then previous:Lerp(position, 1 - math.exp(-12 * deltaTime)) else position
+				displayedRivalPositions[key] = smoothed
+				mapRenderer:setRacerMarker(key, smoothed, "RIVAL")
 			end
 			for key in displayedRivalKeys do
-				if not activeKeys[key] then mapRenderer:removeRacerMarker(key) end
+				if not activeKeys[key] then
+					mapRenderer:removeRacerMarker(key)
+					displayedRivalPositions[key] = nil
+				end
 			end
 			displayedRivalKeys = activeKeys
 		elseif mapRenderer then
 			mapRenderer:clearRacerMarkers()
 			displayedRivalKeys = {}
+			displayedRivalPositions = {}
 		end
 		if not speedPanel.Visible then
 			displayedSpeed = 0
@@ -893,7 +978,7 @@ function RaceHudController.start()
 		if speedUpdateElapsed >= 0.08 then
 			speedUpdateElapsed = 0
 			speedValue.Text = tostring(math.floor(displayedSpeed + 0.5))
-			speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1), 1)
+			speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.NITRO_MAX_SPEED, 0, 1), 1)
 		end
 	end)
 	print("[RobloxKart] Race HUD ready")

@@ -50,7 +50,16 @@ renderer:setRacerMarker("rival:2",rb.Vector3.new(90,0,90),"RIVAL")
 local localDot=canvas:FindFirstChild("KartPosition")
 local rivalDot=canvas:FindFirstChild("RivalPosition")
 check(localDot and rivalDot and localDot.Position~=rivalDot.Position,"two distinct independent markers")
-check(localDot:FindFirstChild("UICorner") and not rivalDot:FindFirstChild("UICorner"),"local circle and rival square differ by shape")
+check(localDot:FindFirstChild("UICorner") and rivalDot:FindFirstChild("UICorner")
+	and rivalDot.BackgroundTransparency==1 and rivalDot:FindFirstChild("UIStroke").Thickness==3
+	and rivalDot.Size.X.Offset==16 and localDot.Size.X.Offset==11,
+	"cyan dot and larger orange hollow ring differ by fill and size")
+check(canvas:FindFirstChild("StartFinishMarker").ZIndex==1 and rivalDot.ZIndex==3 and localDot.ZIndex==4,
+	"marker layering keeps local dot inside rival ring above start marker")
+renderer:setRacerMarker("rival:2",rb.Vector3.new(10,0,10),"RIVAL")
+check(rivalDot.Position==localDot.Position and rivalDot.Size.X.Offset>localDot.Size.X.Offset,
+	"overlapped racers retain visible rival ring")
+renderer:setRacerMarker("rival:2",rb.Vector3.new(90,0,90),"RIVAL")
 local oldRivalPosition=rivalDot.Position
 renderer:setRacerMarker("local:1",rb.Vector3.new(40,0,40),"LOCAL")
 check(localDot.Position~=rivalDot.Position and rivalDot.Position==oldRivalPosition,"moving self leaves rival in place")
@@ -66,25 +75,26 @@ check(not parent._children[2]:FindFirstChild("KartPosition"),"Garage preview has
 preview:destroy();renderer:destroy()
 
 local rivals=luau.load(fs.readFile("src/client/RaceMinimapRivals.luau"))()
-local prototype=object("Folder","Prototype")
-local kart=child(prototype,"Model","Kart")
-kart:SetAttribute("KartOwnerUserId",2)
-local chassis=child(kart,"Part","Chassis")
-chassis.WorldPosition=rb.Vector3.new(25,0,50)
 local localPlayer=object("Player","A");localPlayer.UserId=1
 local other=object("Player","B");other.UserId=2
 localPlayer:SetAttribute("RaceSessionId",5)
 other:SetAttribute("RaceSessionId",5);other:SetAttribute("RaceState","RACING")
-check(rivals.collect(localPlayer,{localPlayer,other},prototype,2)[2]==chassis.Position,"same-round owned rival appears")
-check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,1))==nil,"solo race has no rival")
+local localPosition=rb.Vector3.new(10,0,15)
+local otherPosition=rb.Vector3.new(25,0,50)
+localPlayer:SetAttribute("RaceMapPosition",localPosition);localPlayer:SetAttribute("RaceMapActive",true)
+other:SetAttribute("RaceMapPosition",otherPosition);other:SetAttribute("RaceMapActive",true)
+check(rivals.collect(localPlayer,{localPlayer,other},2)[2]==otherPosition
+	and rivals.collect(other,{localPlayer,other},2)[1]==localPosition,
+	"each client resolves the other racer from server attributes")
+check(next(rivals.collect(localPlayer,{localPlayer,other},1))==nil,"solo race has no rival")
 other:SetAttribute("RaceSessionId",6)
-check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"different round filtered")
+check(next(rivals.collect(localPlayer,{localPlayer,other},2))==nil,"different round filtered")
 other:SetAttribute("RaceSessionId",5);other:SetAttribute("RaceState","GARAGE")
-check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"Garage rival filtered")
-other:SetAttribute("RaceState","RACING");kart:SetAttribute("KartOwnerUserId",0)
-check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"unowned kart filtered")
-kart:SetAttribute("KartOwnerUserId",2);kart:Destroy()
-check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"destroyed kart filtered")
+check(next(rivals.collect(localPlayer,{localPlayer,other},2))==nil,"Garage rival filtered")
+other:SetAttribute("RaceState","RACING");other:SetAttribute("RaceMapActive",false)
+check(next(rivals.collect(localPlayer,{localPlayer,other},2))==nil,"inactive rival filtered")
+other:SetAttribute("RaceMapActive",true);other:SetAttribute("RaceMapPosition","invalid")
+check(next(rivals.collect(localPlayer,{localPlayer,other},2))==nil,"invalid position filtered")
 
 local presence=luau.load(fs.readFile("src/client/GaragePresence.luau"))()
 localPlayer.DisplayName="";localPlayer.Name="A"

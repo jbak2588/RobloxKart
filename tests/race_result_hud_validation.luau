@@ -42,6 +42,7 @@ end
 function methods:FindFirstChildOfClass(class)
  for _,child in self._children do if child.ClassName==class then return child end end
 end
+function methods:IsA(class) return self.ClassName==class or (class=="BasePart" and self.ClassName=="Part") end
 function methods:WaitForChild(name) return assert(self:FindFirstChild(name),name) end
 function methods:GetAttribute(name) return self._attrs[name] end
 function methods:SetAttribute(name,value)
@@ -57,7 +58,7 @@ function methods:GetPropertyChangedSignal(name)
  return self._properties[name]
 end
 function methods:Destroy() self.Destroying:Fire(); self.Parent=nil end
-function methods:FireServer() end
+function methods:FireServer(...) self.lastFire={...} end
 local function child(parent,class,name) local result=object(class,name); result.Parent=parent; return result end
 local player=object("Player","LocalPlayer")
 local playerGui=child(player,"PlayerGui","PlayerGui")
@@ -83,7 +84,7 @@ local modules={
  TrackMapRenderer={create=function() return {destroy=function() end,setRacerMarker=function() end,
   removeRacerMarker=function() end,clearRacerMarkers=function() end} end},
  RaceMinimapRivals={collect=function() return {} end},
- RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=82},
+ RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=95,NITRO_MAX_SPEED=100},
  DriverCatalog={Entries={}},KartCatalog={Entries={}},
  TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice"}}},
  TrackGeometry={getDefinition=function() return {} end},RaceResultFormat=format,
@@ -174,9 +175,35 @@ check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACER\n8"
  and hud.Countdown.TextTransparency==0,"two-player waiting display")
 set("RaceState","COUNTDOWN");set("RaceState","RACING")
 set("RaceMatchStatus","RACING")
+local raceKart=object("Model","Kart")
+local raceSeat=child(raceKart,"Seat","Seat")
+raceSeat:SetAttribute("PrototypeKartSeat",true)
+local raceChassis=child(raceKart,"Part","Chassis")
+local character=object("Model","Character")
+local humanoid=child(character,"Humanoid","Humanoid");humanoid.SeatPart=raceSeat
+player.Character=character
+local speedTrack=hud.Speedometer:FindFirstChildOfClass("Frame")
+local speedFill=speedTrack:FindFirstChildOfClass("Frame")
+raceChassis.AssemblyLinearVelocity=rb.Vector3.new(95,0,0)
+for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
+check(speedFill.Size.X.Scale>0.94 and speedFill.Size.X.Scale<0.96,
+ "95 Mini Boost fills about 95 percent of Nitro-scaled speed bar")
+raceChassis.AssemblyLinearVelocity=rb.Vector3.new(100,0,0)
+for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
+check(speedFill.Size.X.Scale>0.99 and speedFill.Size.X.Scale<=1,
+ "100 Nitro fills the speed bar")
+check(hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit Race appears only while racing")
+hud.Panel.QuitRow.QuitRace.Activated:Fire()
+check(hud.QuitConfirmation.Visible and remote.lastFire==nil,"first Quit click opens confirmation without server action")
+hud.QuitConfirmation.Frame.Cancel.Activated:Fire()
+check(not hud.QuitConfirmation.Visible and remote.lastFire==nil,"Cancel closes Quit confirmation")
+hud.Panel.QuitRow.QuitRace.Activated:Fire()
+hud.QuitConfirmation.Frame.ConfirmQuit.Activated:Fire()
+check(not hud.QuitConfirmation.Visible and remote.lastFire[1]=="QuitRace","confirmed Quit sends server action")
 local positionLabel=hud.Speedometer:FindFirstChild("Position")
 check(positionLabel.Visible and positionLabel.Text=="POS 2/2","race position display")
 set("RaceFinishPosition",1);set("RaceState","FINISHED")
+check(not hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit action hides after racing")
 check(results.Finish.Text=="PLACE 1/2" and not results.Rematch.Active
  and results.Rematch.Text=="WAITING FOR RACER","first finisher sees fixed place and waits")
 check(hud.RaceMiniMap.Visible,"first finisher keeps multiplayer minimap while rival races")

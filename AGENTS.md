@@ -123,8 +123,14 @@ Reverse:
 24
 
 Mini Boost:
-82
-1 sec
+95
+1.5 sec
+
+Mini Boost acceleration:
+65
+
+Continuous off-track DNF timeout:
+15 sec
 
 Nitro:
 100
@@ -428,12 +434,15 @@ owns countdown and start time; each player owns KartContext and RacerState.
 Finish place is fixed at the official final gate, before presentation. One
 finisher must not stop the other. Multiplayer Rematch waits for all remaining
 participants to vote. KartControl never accepts a client kart or target identity.
-If a Rematch voter's opponent returns to Garage, keep the voter waiting for a
-same-track rejoin for 20 seconds before starting Solo. Do not leave an unowned
-race kart visible on the active grid. The minimap shows active same-round racers;
-Garage shows same-server player presence. The user's real 2-client race passed
-driving, items and 2-lap Finish/PLACE; these runtime fixes still need a fresh
-2-client validation.
+If either completed racer returns to Garage while the other votes Rematch,
+keep the voter waiting for a same-track rejoin for 20 seconds before starting
+Solo, regardless of click order. Do not leave an unowned race kart visible on
+the active grid. Minimap positions come from server-published `RaceMapPosition`
+and `RaceMapActive` attributes, never client Workspace Kart discovery. Garage
+shows same-server player presence. `QuitRace` is a server-authoritative RACING
+forfeit and must leave the opponent driving. The user's real 2-client race
+passed driving, items and 2-lap Finish/PLACE; the rival minimap and opposite
+Rematch order failed and M2-A1-R2 runtime changes need a fresh 2-client test.
 
 M2-A1 temporary policy: RacerKart parts do not physically collide with other
 RacerKart parts; track/barrier contact remains unchanged. Revisit after the
