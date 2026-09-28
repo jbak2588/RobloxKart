@@ -1,0 +1,101 @@
+-- lune run tests/multiplayer_presentation_validation.luau
+local fs, luau, rb = require("@lune/fs"), require("@lune/luau"), require("@lune/roblox")
+local count = 0
+local function check(value, label) assert(value, label); count += 1 end
+local methods = {}
+local function object(class, name)
+	local props = {ClassName=class, Name=name or class, Parent=nil}
+	return setmetatable({_props=props, _children={}, _attrs={}}, {
+		__index=function(self, key)
+			if methods[key] then return methods[key] end
+			if key == "Position" and class == "Part" then return props.WorldPosition end
+			return props[key]
+		end,
+		__newindex=function(self, key, value)
+			if key == "Parent" then
+				if props.Parent then local i=table.find(props.Parent._children,self); if i then table.remove(props.Parent._children,i) end end
+				if value then table.insert(value._children,self) end
+			end
+			props[key]=value
+		end,
+	})
+end
+function methods:GetChildren() return table.clone(self._children) end
+function methods:FindFirstChild(name) for _, child in self._children do if child.Name==name then return child end end end
+function methods:WaitForChild(name) return assert(self:FindFirstChild(name),name) end
+function methods:GetAttribute(name) return self._attrs[name] end
+function methods:SetAttribute(name,value) self._attrs[name]=value end
+function methods:IsA(class) return self.ClassName==class or (class=="BasePart" and self.ClassName=="Part") end
+function methods:Destroy() self.Parent=nil end
+local function child(parent,class,name)
+	local item=object(class,name); item.Parent=parent; return item
+end
+local shared=object("Folder","Shared")
+child(shared,"ModuleScript","TrackGeometry")
+local storage=object("ReplicatedStorage")
+shared.Parent=storage
+local course={Samples={rb.Vector3.new(0,0,0),rb.Vector3.new(100,0,0),rb.Vector3.new(100,0,100)},
+	Bounds={MinX=0,MaxX=100,MinZ=0,MaxZ=100}}
+local rendererType=luau.load(fs.readFile("src/client/TrackMapRenderer.luau"), {environment={
+	game={GetService=function() return storage end},
+	require=function() return {getCourse=function() return course end} end,
+	Instance={new=object},Vector2=rb.Vector2,UDim2=rb.UDim2,UDim=rb.UDim,
+	Color3=rb.Color3,Enum=rb.Enum,
+}})()
+local parent=object("Frame","Map")
+local renderer=rendererType.create(parent,{},true)
+local canvas=parent:FindFirstChild("CourseCanvas")
+renderer:setRacerMarker("local:1",rb.Vector3.new(10,0,10),"LOCAL")
+renderer:setRacerMarker("rival:2",rb.Vector3.new(90,0,90),"RIVAL")
+local localDot=canvas:FindFirstChild("KartPosition")
+local rivalDot=canvas:FindFirstChild("RivalPosition")
+check(localDot and rivalDot and localDot.Position~=rivalDot.Position,"two distinct independent markers")
+check(localDot:FindFirstChild("UICorner") and not rivalDot:FindFirstChild("UICorner"),"local circle and rival square differ by shape")
+local oldRivalPosition=rivalDot.Position
+renderer:setRacerMarker("local:1",rb.Vector3.new(40,0,40),"LOCAL")
+check(localDot.Position~=rivalDot.Position and rivalDot.Position==oldRivalPosition,"moving self leaves rival in place")
+renderer:setRacerMarker("rival:2",rb.Vector3.new(70,0,70),"RIVAL")
+check(rivalDot.Position~=oldRivalPosition,"rival moves independently")
+renderer:removeRacerMarker("rival:2")
+check(not canvas:FindFirstChild("RivalPosition") and canvas:FindFirstChild("KartPosition"),"rival removal retains self")
+renderer:clearRacerMarkers()
+check(not canvas:FindFirstChild("KartPosition"),"clear removes all racer markers")
+local preview=rendererType.create(parent,{},false)
+preview:setRacerMarker("local:1",rb.Vector3.new(10,0,10),"LOCAL")
+check(not parent._children[2]:FindFirstChild("KartPosition"),"Garage preview has no racer marker")
+preview:destroy();renderer:destroy()
+
+local rivals=luau.load(fs.readFile("src/client/RaceMinimapRivals.luau"))()
+local prototype=object("Folder","Prototype")
+local kart=child(prototype,"Model","Kart")
+kart:SetAttribute("KartOwnerUserId",2)
+local chassis=child(kart,"Part","Chassis")
+chassis.WorldPosition=rb.Vector3.new(25,0,50)
+local localPlayer=object("Player","A");localPlayer.UserId=1
+local other=object("Player","B");other.UserId=2
+localPlayer:SetAttribute("RaceSessionId",5)
+other:SetAttribute("RaceSessionId",5);other:SetAttribute("RaceState","RACING")
+check(rivals.collect(localPlayer,{localPlayer,other},prototype,2)[2]==chassis.Position,"same-round owned rival appears")
+check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,1))==nil,"solo race has no rival")
+other:SetAttribute("RaceSessionId",6)
+check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"different round filtered")
+other:SetAttribute("RaceSessionId",5);other:SetAttribute("RaceState","GARAGE")
+check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"Garage rival filtered")
+other:SetAttribute("RaceState","RACING");kart:SetAttribute("KartOwnerUserId",0)
+check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"unowned kart filtered")
+kart:SetAttribute("KartOwnerUserId",2);kart:Destroy()
+check(next(rivals.collect(localPlayer,{localPlayer,other},prototype,2))==nil,"destroyed kart filtered")
+
+local presence=luau.load(fs.readFile("src/client/GaragePresence.luau"))()
+localPlayer.DisplayName="";localPlayer.Name="A"
+other.DisplayName="Other Racer";other:SetAttribute("RaceState","GARAGE")
+local total,entries=presence.snapshot({localPlayer},3)
+check(total==1 and entries[1].name=="A" and entries[1].status=="GARAGE","one online uses username fallback")
+total,entries=presence.snapshot({localPlayer,other},3)
+check(total==2 and entries[2].name=="Other Racer","two online use display name")
+other:SetAttribute("RaceState","RACING")
+total,entries=presence.snapshot({localPlayer,other},3)
+check(entries[2].status=="RACING","RaceState change updates status snapshot")
+total=presence.snapshot({localPlayer},3)
+check(total==1,"removed player lowers online count")
+print("PASS: "..count.." multiplayer presentation checks")

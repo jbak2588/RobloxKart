@@ -974,6 +974,7 @@ function PrototypeWorld.start()
 			if self.owner or ownerContexts[player] then return false end
 			self.owner = player
 			ownerContexts[player] = self
+			kart:SetAttribute("KartOwnerUserId", player.UserId)
 			self.ownerConnections = {
 				player.CharacterRemoving:Connect(function()
 					if self.nitro.driver == player then stopNitro("character_removed") end
@@ -999,10 +1000,12 @@ function PrototypeWorld.start()
 			if self.slick.driver == player then stopSlick() end
 			ownerContexts[player] = nil
 			self.owner = nil
+			kart:SetAttribute("KartOwnerUserId", 0)
 		end
 
 		kart.Destroying:Connect(function()
 			context:clearOwner()
+			if context == defaultContext then defaultContext = nil end
 			stopNitro("destroyed")
 			stopSlick()
 			contexts[context] = nil
@@ -1012,6 +1015,7 @@ function PrototypeWorld.start()
 	end
 
 	defaultContext = createContext(nil, kart, chassis, seat, spawnCFrame)
+	kart:SetAttribute("KartOwnerUserId", 0)
 	function PrototypeWorld.acquireKartContext(player: Player, startCFrame: CFrame)
 		local existing = ownerContexts[player]
 		if existing then
@@ -1021,6 +1025,11 @@ function PrototypeWorld.start()
 		if defaultContext and defaultContext.kart.Parent and not defaultContext.seat.Occupant
 			and defaultContext:assignOwner(player) then
 			defaultContext:setSpawnCFrame(startCFrame)
+			return defaultContext
+		end
+		if not defaultContext then
+			local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart")
+			defaultContext = createContext(player, newKart, newChassis, newSeat, startCFrame)
 			return defaultContext
 		end
 		return PrototypeWorld.createKartContext(player, startCFrame)
@@ -1049,11 +1058,9 @@ function PrototypeWorld.start()
 		context.chassis.AssemblyAngularVelocity = Vector3.zero
 		context:clearOwner()
 		if context == defaultContext then
-			context:setSpawnCFrame(context.homeCFrame)
-			context.kart:PivotTo(context.homeCFrame)
-		else
-			context.kart:Destroy()
+			defaultContext = nil
 		end
+		context.kart:Destroy()
 	end
 	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
 		local context = ownerContexts[player]

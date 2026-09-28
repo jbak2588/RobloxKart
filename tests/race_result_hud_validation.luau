@@ -69,18 +69,20 @@ local camera=object("Camera","Camera"); camera.ViewportSize=rb.Vector2.new(800,3
 local workspace=object("Workspace"); workspace.CurrentCamera=camera
 local input=object("UserInputService"); input.PreferredInput=rb.Enum.PreferredInput.Touch
 local guiService=object("GuiService"); guiService.TopbarInset={Min=rb.Vector2.new(165,0),Max=rb.Vector2.new(780,58),Width=615}
-local services={Players={LocalPlayer=player},ReplicatedStorage=replicated,Workspace=workspace,
+local services={Players={LocalPlayer=player,GetPlayers=function() return {player} end},ReplicatedStorage=replicated,Workspace=workspace,
  RunService={RenderStepped=signal()},TweenService={Create=function() return {Play=function() end} end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat"} do
  child(shared,"ModuleScript",name)
 end
 local format=luau.load(fs.readFile("src/shared/RaceResultFormat.luau"))()
 local modules={
  KartInputController={isTouchPreferred=function() return input.PreferredInput==rb.Enum.PreferredInput.Touch end,getEffectiveSteering=function() return 0 end},
- TrackMapRenderer={create=function() return {destroy=function() end,setMarkerWorldPosition=function() end} end},
+ TrackMapRenderer={create=function() return {destroy=function() end,setRacerMarker=function() end,
+  removeRacerMarker=function() end,clearRacerMarkers=function() end} end},
+ RaceMinimapRivals={collect=function() return {} end},
  RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=82},
  DriverCatalog={Entries={}},KartCatalog={Entries={}},
  TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice"}}},
@@ -171,13 +173,20 @@ set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",8);set("RaceState"
 check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACER\n8"
  and hud.Countdown.TextTransparency==0,"two-player waiting display")
 set("RaceState","COUNTDOWN");set("RaceState","RACING")
+set("RaceMatchStatus","RACING")
 local positionLabel=hud.Speedometer:FindFirstChild("Position")
 check(positionLabel.Visible and positionLabel.Text=="POS 2/2","race position display")
 set("RaceFinishPosition",1);set("RaceState","FINISHED")
 check(results.Finish.Text=="PLACE 1/2" and not results.Rematch.Active
  and results.Rematch.Text=="WAITING FOR RACER","first finisher sees fixed place and waits")
+check(hud.RaceMiniMap.Visible,"first finisher keeps multiplayer minimap while rival races")
 set("RaceSessionComplete",true)
 check(results.Rematch.Active and results.Rematch.Text=="REMATCH","all terminal unlocks rematch")
+check(not hud.RaceMiniMap.Visible,"completed result hides spectator minimap")
 set("RaceRematchReadyCount",1);set("RaceRematchRequiredCount",2);set("RaceRematchReady",true)
 check(not results.Rematch.Active and results.Rematch.Text=="READY 1/2","voter waits for opponent")
+set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH_REJOIN");set("RaceMatchWaitRemaining",18)
+set("RaceMatchStatus","WAITING")
+check(results.Rematch.Text=="WAITING FOR RACER  18" and not results.Rematch.Active,
+ "rematch rejoin waiting shows timer instead of READY 1/1")
 print("PASS: "..count.." production race result HUD checks")

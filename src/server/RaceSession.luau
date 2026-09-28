@@ -18,6 +18,7 @@ function RaceSession.new(trackId, mode, targetLaps)
 		participants = {},
 		maxPlayers = 2,
 		waitDeadline = 0,
+		waitingReason = "NONE",
 		countdownEndTime = 0,
 		startTime = 0,
 		startingParticipantCount = 0,

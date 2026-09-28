@@ -12,6 +12,7 @@ local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
+local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
 
 local requireModule = require :: (ModuleScript) -> any
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
@@ -159,6 +160,54 @@ function GarageUiController.start()
 	detailLabel.TextWrapped = true
 	local errorLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.05), UDim2.fromScale(0.1, 0.77), "", 18)
 	errorLabel.TextColor3 = Color3.fromRGB(255, 110, 110)
+	local mobileCompact = false
+	local presencePanel = Instance.new("Frame")
+	presencePanel.Name = "ServerPresence"
+	presencePanel.AnchorPoint = Vector2.new(1, 0)
+	presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
+	presencePanel.Size = UDim2.fromOffset(205, 100)
+	presencePanel.BackgroundColor3 = Color3.fromRGB(25, 36, 52)
+	presencePanel.BackgroundTransparency = 0.08
+	presencePanel.BorderSizePixel = 0
+	presencePanel.Parent = backdrop
+	local presenceCorner = Instance.new("UICorner")
+	presenceCorner.CornerRadius = UDim.new(0, 8)
+	presenceCorner.Parent = presencePanel
+	local presenceHeader = makeText(presencePanel, UDim2.new(1, -12, 0, 23), UDim2.fromOffset(6, 3), "", 14)
+	presenceHeader.TextColor3 = Color3.fromRGB(255, 215, 75)
+	presenceHeader.TextXAlignment = Enum.TextXAlignment.Left
+	local presenceRows = {}
+	for index = 1, 3 do
+		local row = makeText(presencePanel, UDim2.new(1, -12, 0, 20), UDim2.fromOffset(6, 25 + (index - 1) * 22), "", 12)
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.TextTruncate = Enum.TextTruncate.AtEnd
+		table.insert(presenceRows, row)
+	end
+	local presenceConnections = {}
+	local function updatePresence()
+		local count, entries = GaragePresence.snapshot(Players:GetPlayers(), if mobileCompact then 2 else 3)
+		presenceHeader.Text = if mobileCompact then string.format("ONLINE %d", count)
+			else string.format("SERVER  %d ONLINE", count)
+		for index, row in presenceRows do
+			local entry = entries[index]
+			row.Visible = entry ~= nil
+			if entry then row.Text = if mobileCompact then entry.name
+				else string.format("%s  %s", entry.name, entry.status) end
+		end
+	end
+	local function bindPresence(other)
+		if presenceConnections[other] then return end
+		presenceConnections[other] = other:GetAttributeChangedSignal("RaceState"):Connect(updatePresence)
+		updatePresence()
+	end
+	for _, other in Players:GetPlayers() do bindPresence(other) end
+	Players.PlayerAdded:Connect(bindPresence)
+	Players.PlayerRemoving:Connect(function(other)
+		local connection = presenceConnections[other]
+		if connection then connection:Disconnect(); presenceConnections[other] = nil end
+		task.defer(updatePresence)
+	end)
+	updatePresence()
 
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = "SelectionPreview"
@@ -270,7 +319,6 @@ function GarageUiController.start()
 	local previewCamera: Camera? = nil
 	local trackMap = nil
 	local trackMapGeometryId: string? = nil
-	local mobileCompact = false
 	local previewKart: Model? = nil
 	local function fitKartPreview()
 		if previewKart and previewCamera and viewport.AbsoluteSize.Y > 0 then
@@ -310,6 +358,14 @@ function GarageUiController.start()
 			titleSize.MinTextSize = 20
 			stepLabel.Position = UDim2.fromScale(0.1, 0.16)
 			stepLabel.TextSize = 19
+			stepLabel.Size = UDim2.fromScale(0.60, 0.07)
+			presencePanel.Position = UDim2.new(1, -10, 0.155, 0)
+			presencePanel.Size = UDim2.fromOffset(math.min(165, layoutWidth * 0.34), 55)
+			presenceHeader.TextSize = 11
+			for index, row in presenceRows do
+				row.TextSize = 10
+				row.Position = UDim2.fromOffset(6, 19 + (index - 1) * 16)
+			end
 			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
 			choiceLabel.TextSize = 25
 			detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.68 else 0.55)
@@ -343,6 +399,14 @@ function GarageUiController.start()
 			titleSize.MinTextSize = 28
 			stepLabel.Position = UDim2.fromScale(0.1, 0.17)
 			stepLabel.TextSize = 24
+			stepLabel.Size = UDim2.fromScale(0.8, 0.07)
+			presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
+			presencePanel.Size = UDim2.fromOffset(205, 100)
+			presenceHeader.TextSize = 14
+			for index, row in presenceRows do
+				row.TextSize = 12
+				row.Position = UDim2.fromOffset(6, 25 + (index - 1) * 22)
+			end
 			choiceLabel.TextSize = 34
 			detailLabel.TextSize = 19
 			errorLabel.Position = UDim2.fromScale(0.1, 0.77)
@@ -356,6 +420,7 @@ function GarageUiController.start()
 				button.TextSize = 19
 			end
 		end
+		updatePresence()
 	end
 	local function showTrackPreview(trackId: string)
 		local geometryId = TrackCatalog.Entries[trackId].GeometryId

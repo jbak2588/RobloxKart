@@ -18,6 +18,7 @@ local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):Wait
 local TrackGeometry = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry") :: ModuleScript)
 local RaceResultFormat = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceResultFormat") :: ModuleScript)
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
+local RaceMinimapRivals = require(script.Parent:WaitForChild("RaceMinimapRivals"))
 
 local RaceHudController = {}
 
@@ -238,6 +239,7 @@ function RaceHudController.start()
 	miniMapSize.Parent = miniMapPanel
 	local mapRenderer = nil
 	local mapGeometryId: string? = nil
+	local displayedRivalKeys = {}
 	local function showMapForTrack(trackEntry)
 		local geometryId = trackEntry.GeometryId
 		if mapGeometryId == geometryId then
@@ -246,6 +248,7 @@ function RaceHudController.start()
 		if mapRenderer then
 			mapRenderer:destroy()
 		end
+		displayedRivalKeys = {}
 		local definition = TrackGeometry.getDefinition(geometryId)
 		assert(definition, "Selected race track geometry is missing")
 		mapRenderer = TrackMapRenderer.create(miniMapPanel, definition, true)
@@ -435,7 +438,10 @@ function RaceHudController.start()
 		local compact = mobile or (viewportSize.Y > 0 and viewportSize.Y <= 650)
 		if mobile then screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 		else screenGui.IgnoreGuiInset = not compact end
-		miniMapPanel.Visible = speedPanel.Visible
+		miniMapPanel.Visible = speedPanel.Visible or (player:GetAttribute("RaceState") == "FINISHED"
+			and player:GetAttribute("RaceMatchStatus") == "RACING"
+			and getNumberAttribute(player, "RaceParticipantCount", 1) >= 2
+			and player:GetAttribute("RaceSessionComplete") ~= true)
 		if compact then
 			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
 			frame.Position = UDim2.fromOffset(12, 8)
@@ -649,7 +655,8 @@ function RaceHudController.start()
 		steeringDisplay.Visible = speedPanel.Visible
 		positionLabel.Visible = speedPanel.Visible and participantCount >= 2
 		positionLabel.Text = string.format("POS %d/%d", position, participantCount)
-		miniMapPanel.Visible = speedPanel.Visible
+		miniMapPanel.Visible = speedPanel.Visible or (raceState == "FINISHED" and matchStatus == "RACING"
+			and participantCount >= 2 and not sessionComplete)
 		selectionPanel.Visible = DEBUG_UI and (raceState == "PRE_RACE" or raceState == "COUNTDOWN")
 		driverLabel.Text = "DRIVER  " .. (if driver then driver.DisplayName else "--")
 		kartLabel.Text = "KART  " .. (if kartSelection then kartSelection.DisplayName else "--")
@@ -676,7 +683,9 @@ function RaceHudController.start()
 			and (participantCount < 2 or sessionComplete) and not rematchReady
 		rematchButton.Active = canRematch
 		rematchButton.BackgroundColor3 = if canRematch then Color3.fromRGB(45, 130, 235) else Color3.fromRGB(65, 75, 87)
-		rematchButton.Text = if rematchReady then string.format("READY %d/%d",
+		rematchButton.Text = if matchStatus == "WAITING" and player:GetAttribute("RaceMatchWaitReason") == "REMATCH_REJOIN"
+			then "WAITING FOR RACER  " .. tostring(getNumberAttribute(player, "RaceMatchWaitRemaining", 0))
+			elseif rematchReady then string.format("READY %d/%d",
 			getNumberAttribute(player, "RaceRematchReadyCount", 0), getNumberAttribute(player, "RaceRematchRequiredCount", participantCount))
 			elseif participantCount >= 2 and not sessionComplete then "WAITING FOR RACER" else "REMATCH"
 		for lap, row in lapRows do
@@ -793,6 +802,7 @@ function RaceHudController.start()
 		"RacePosition",
 		"RaceFinishPosition",
 		"RaceMatchStatus",
+		"RaceMatchWaitReason",
 		"RaceMatchWaitRemaining",
 		"RaceSessionComplete",
 		"RaceRematchReady",
@@ -826,6 +836,30 @@ function RaceHudController.start()
 	local displayedSteering = 0
 	local speedUpdateElapsed = 0
 	RunService.RenderStepped:Connect(function(deltaTime: number)
+		if miniMapPanel.Visible and mapRenderer then
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local seat = humanoid and humanoid.SeatPart
+			local kart = if seat and seat:GetAttribute("PrototypeKartSeat") == true then seat.Parent else nil
+			local chassis = kart and kart:FindFirstChild("Chassis")
+			mapRenderer:setRacerMarker("local:" .. tostring(player.UserId),
+				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL")
+			local rivals = RaceMinimapRivals.collect(player, Players:GetPlayers(), Workspace:FindFirstChild("Prototype"),
+				getNumberAttribute(player, "RaceParticipantCount", 1))
+			local activeKeys = {}
+			for userId, position in rivals do
+				local key = "rival:" .. tostring(userId)
+				activeKeys[key] = true
+				mapRenderer:setRacerMarker(key, position, "RIVAL")
+			end
+			for key in displayedRivalKeys do
+				if not activeKeys[key] then mapRenderer:removeRacerMarker(key) end
+			end
+			displayedRivalKeys = activeKeys
+		elseif mapRenderer then
+			mapRenderer:clearRacerMarkers()
+			displayedRivalKeys = {}
+		end
 		if not speedPanel.Visible then
 			displayedSpeed = 0
 			displayedSteering = 0
@@ -841,9 +875,6 @@ function RaceHudController.start()
 		if chassis and chassis:IsA("BasePart") then
 			local velocity = chassis.AssemblyLinearVelocity
 			targetSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-			mapRenderer:setMarkerWorldPosition(chassis.Position)
-		else
-			mapRenderer:setMarkerWorldPosition(nil)
 		end
 		local steering = kart and kart:GetAttribute("KartVisualSteering")
 		local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"

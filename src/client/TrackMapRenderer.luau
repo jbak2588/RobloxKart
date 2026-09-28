@@ -56,40 +56,53 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 	startCorner.CornerRadius = UDim.new(1, 0)
 	startCorner.Parent = startMark
 
-	local kartMarker: Frame? = nil
-	if showKartMarker then
-		kartMarker = Instance.new("Frame")
-		kartMarker.Name = "KartPosition"
-		kartMarker.AnchorPoint = Vector2.new(0.5, 0.5)
-		kartMarker.Size = UDim2.fromOffset(11, 11)
-		kartMarker.BackgroundColor3 = Color3.fromRGB(65, 225, 245)
-		kartMarker.BorderSizePixel = 0
-		kartMarker.Visible = false
-		kartMarker.Parent = canvas
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(1, 0)
-		corner.Parent = kartMarker
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(12, 25, 35)
-		stroke.Thickness = 2
-		stroke.Parent = kartMarker
-	end
-
+	local markers = {}
 	local renderer = {}
-	function renderer:setMarkerWorldPosition(position: Vector3?)
-		if not kartMarker then
+	function renderer:setRacerMarker(key, position: Vector3?, style: string?)
+		if not showKartMarker then return end
+		if not position then
+			self:removeRacerMarker(key)
 			return
 		end
-		kartMarker.Visible = position ~= nil
-		if position then
-			local point = mapPoint(position)
-			kartMarker.Position = UDim2.fromScale(math.clamp(point.X, 0.02, 0.98), math.clamp(point.Y, 0.02, 0.98))
+		local marker = markers[key]
+		if not marker then
+			marker = Instance.new("Frame")
+			marker.Name = if style == "RIVAL" then "RivalPosition" else "KartPosition"
+			marker.AnchorPoint = Vector2.new(0.5, 0.5)
+			marker.Size = UDim2.fromOffset(if style == "RIVAL" then 10 else 11, if style == "RIVAL" then 10 else 11)
+			marker.BackgroundColor3 = if style == "RIVAL" then Color3.fromRGB(255, 165, 45) else Color3.fromRGB(65, 225, 245)
+			marker.BorderSizePixel = 0
+			marker.ZIndex = 3
+			marker.Parent = canvas
+			if style ~= "RIVAL" then
+				local corner = Instance.new("UICorner")
+				corner.CornerRadius = UDim.new(1, 0)
+				corner.Parent = marker
+			end
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = if style == "RIVAL" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(12, 25, 35)
+			stroke.Thickness = 2
+			stroke.Parent = marker
+			markers[key] = marker
 		end
+		local point = mapPoint(position)
+		marker.Position = UDim2.fromScale(math.clamp(point.X, 0.02, 0.98), math.clamp(point.Y, 0.02, 0.98))
+	end
+	function renderer:removeRacerMarker(key)
+		local marker = markers[key]
+		if marker then marker:Destroy(); markers[key] = nil end
+	end
+	function renderer:clearRacerMarkers()
+		for key in markers do self:removeRacerMarker(key) end
+	end
+	function renderer:setMarkerWorldPosition(position: Vector3?)
+		self:setRacerMarker("local", position, "LOCAL")
 	end
 	function renderer:setVisible(visible: boolean)
 		canvas.Visible = visible
 	end
 	function renderer:destroy()
+		self:clearRacerMarkers()
 		canvas:Destroy()
 	end
 	return renderer

@@ -101,7 +101,8 @@ local function load(path, parent, name)
 	return result
 end
 
-environment.task={spawn=function() end,delay=function() end}
+local delayed={}
+environment.task={spawn=function() end,delay=function(_,callback) table.insert(delayed,callback) end}
 function methods:Sit(humanoid) self.Occupant=humanoid;humanoid.SeatPart=self end
 load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
@@ -143,6 +144,10 @@ modules.PrototypeWorld={acquireKartContext=function(player,frame)
  if context~=defaultContext then created+=1 end
  context.owner=player;contexts[player]=context;context:setSpawnCFrame(frame)
  return context
+end,releaseKartContext=function(player)
+ local context=contexts[player]
+ if context then context.owner=nil;context.seat.Occupant=nil;contexts[player]=nil
+  if context~=defaultContext then context.kart:Destroy() end end
 end}
 local function makePlayer(name,id)
  local player=child(services.Players,"Player",name);player.UserId=id
@@ -159,6 +164,8 @@ garage.start()
 local remote=services.ReplicatedStorage.GarageControl
 local function ready(player,kartId,trackId)
  remote.OnServerEvent:Fire(player,"Ready","Driver01",kartId,trackId)
+ for _, callback in delayed do callback() end
+ table.clear(delayed)
 end
 ready(a,"Kart01","Track01Race")
 check(contexts[a]==defaultContext and a:GetAttribute("GridSlot")==1,"first ready owns default kart in slot one")
@@ -180,4 +187,11 @@ session:add(b,{})
 session.phase="COUNTDOWN"
 ready(c,"Kart01","Track01Race")
 check(c:GetAttribute("RaceEntryError")=="Race full" and contexts[c]==nil,"third racer refused")
+session:remove(b);modules.PrototypeWorld.releaseKartContext(b)
+b:SetAttribute("RaceState","GARAGE")
+session.phase="WAITING";session.waitingReason="REMATCH_REJOIN"
+ready(b,"Kart02","Track01Race")
+check(b:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceEntryError")==""
+ and contexts[b] and contexts[b].kart.Parent,"Garage accepts same-track rematch rejoin")
+check(b:GetAttribute("GridSlot")==2 and session:count()==1,"returning racer takes free second grid slot")
 print("PASS: "..count.." Garage two-player allocation checks")

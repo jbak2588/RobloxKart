@@ -156,6 +156,7 @@ modules.TrackBuilder={build=function(prototype)
 	road.Size=V.new(60,0.05,2000)
 end}
 local player=child(services.Players,"Player","TestDriver")
+player.UserId=1
 player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100
 local world=load("src/server/PrototypeWorld.luau",server,"PrototypeWorld")
@@ -547,6 +548,8 @@ local secondGrid=CF.new(20,1.75,0)
 local secondContext=world.acquireKartContext(second,secondGrid)
 local firstContext=world.getKartContext(player)
 check(firstContext~=secondContext and world.getKartContext(second)==secondContext,"distinct registered kart contexts")
+check(kart:GetAttribute("KartOwnerUserId")==player.UserId
+	and secondContext.kart:GetAttribute("KartOwnerUserId")==second.UserId,"both kart ownership IDs are server-assigned")
 check(secondContext.kart~=firstContext.kart and secondContext.spawnCFrame==secondGrid
 	and secondContext.kart:GetAttribute("RaceStartCFrame")==secondGrid,"second racer has own kart and grid reset point")
 check(world.acquireKartContext(second,secondGrid)==secondContext,"acquire reuses owned context")
@@ -599,8 +602,15 @@ check(hit and hitReason=="hit" and secondContext.kart:GetAttribute("RaceItemHitI
 services.Players.PlayerRemoving:Fire(player)
 check(second:GetAttribute("RaceChargeNitro")==1 and secondContext.kart:GetAttribute("RaceItemHitImmunity")
 	and hazardCount()==secondHazardCount,"first PlayerRemoving preserves second resources")
-check(world.getKartContext(player)==nil and kart.Parent~=nil and firstContext.spawnCFrame==firstContext.homeCFrame
-	and kart:GetAttribute("RaceStartCFrame")==firstContext.homeCFrame,"default kart released to its home reset point")
+check(world.getKartContext(player)==nil and kart.Parent==nil and kart:GetAttribute("KartOwnerUserId")==0,
+	"default kart loses ownership and is destroyed after player leaves")
+local third=child(services.Players,"Player","ThirdDriver");third.UserId=3
+local replacement=world.acquireKartContext(third,CF.new(30,1.75,0))
+check(replacement and replacement.kart.Parent and replacement.kart~=kart
+	and replacement.kart:GetAttribute("KartOwnerUserId")==third.UserId,
+	"next acquisition recreates an owned default kart")
+world.releaseKartContext(third)
+check(replacement.kart.Parent==nil,"recreated default kart also disappears on release")
 check(not items.grantBonusNitro(player),"removed player has no loadout")
 second:SetAttribute("RaceState","FINISHED")
 local ignored,ignoredReason=items.tryApplyOffensiveItem(second,player,"Slick")

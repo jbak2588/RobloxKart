@@ -307,14 +307,22 @@ gate crossing, before the finish camera sequence. A finished racer leaves the
 other racer driving. The session completes when all remaining racers finish or
 DNF; a disconnect removes that racer without ending another racer's drive.
 Multiplayer Rematch requires a vote from every remaining participant. If a
-voter's opponent returns to Garage, the voter's solo rematch starts.
+voter's opponent returns to Garage, the voter keeps the Result and waits up to
+20 seconds for a same-track rejoin. The returning racer starts a shared
+countdown; otherwise the voter starts a solo Rematch after the deadline.
+Released karts leave the race grid, and `KartOwnerUserId` identifies active
+server-owned karts. The race minimap shows same-round rivals with a separate
+orange square marker; the Garage shows players in the same server.
 
 M2-A1 temporarily disables physical kart-to-kart collision through the
 `RacerKart` collision group. Track and barrier collisions remain enabled.
 Revisit this after synchronized-race validation. Same-Heartbeat finish ties use
 official final time and then ready order; subframe photo-finish interpolation is
-deferred. Automated tests exercise the server contract; a Studio 1-server,
-2-client drive is required before calling the multiplayer beta runtime verified.
+deferred. The user confirmed a real 2-player server/client race: separate
+karts, 2-lap Finish/PLACE, Mini Boost, Nitro, Slick, Shield and multiplayer
+item interactions passed. The rematch rejoin, rival minimap, kart cleanup and
+Garage presence fixes still require a fresh 2-client runtime validation before
+M2-A1 is closed.
 
 ## Known Polish Gates
 

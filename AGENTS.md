@@ -428,6 +428,12 @@ owns countdown and start time; each player owns KartContext and RacerState.
 Finish place is fixed at the official final gate, before presentation. One
 finisher must not stop the other. Multiplayer Rematch waits for all remaining
 participants to vote. KartControl never accepts a client kart or target identity.
+If a Rematch voter's opponent returns to Garage, keep the voter waiting for a
+same-track rejoin for 20 seconds before starting Solo. Do not leave an unowned
+race kart visible on the active grid. The minimap shows active same-round racers;
+Garage shows same-server player presence. The user's real 2-client race passed
+driving, items and 2-lap Finish/PLACE; these runtime fixes still need a fresh
+2-client validation.
 
 M2-A1 temporary policy: RacerKart parts do not physically collide with other
 RacerKart parts; track/barrier contact remains unchanged. Revisit after the

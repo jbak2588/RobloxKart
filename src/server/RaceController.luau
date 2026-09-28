@@ -33,6 +33,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RacePosition", 1)
 	player:SetAttribute("RaceFinishPosition", 0)
 	player:SetAttribute("RaceMatchStatus", "")
+	player:SetAttribute("RaceMatchWaitReason", "NONE")
 	player:SetAttribute("RaceMatchWaitRemaining", 0)
 	player:SetAttribute("RaceSessionComplete", false)
 	player:SetAttribute("RaceRematchReady", false)
@@ -314,6 +315,7 @@ function RaceController.start()
 			resetOffTrackState(player)
 			clearGateState()
 			player:SetAttribute("RaceMatchStatus", "")
+			player:SetAttribute("RaceMatchWaitReason", "NONE")
 			player:SetAttribute("RaceSessionComplete", false)
 		end
 
@@ -572,7 +574,7 @@ function RaceController.start()
 
 	local function publishSession(now: number)
 		local count = session:count()
-		local required = math.max(count, 1)
+		local required = if session.phase == "WAITING" and session.waitingReason == "REMATCH_REJOIN" then 2 else math.max(count, 1)
 		local ready = 0
 		for player in session.rematchVotes do
 			if session:contains(player) then ready += 1 end
@@ -580,6 +582,7 @@ function RaceController.start()
 		for player in session.participants do
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
 			setChanged(player, "RaceMatchStatus", session.phase)
+			setChanged(player, "RaceMatchWaitReason", session.waitingReason)
 			setChanged(player, "RaceMatchWaitRemaining", if session.phase == "WAITING" then math.max(math.ceil(session.waitDeadline - now), 0) else 0)
 			setChanged(player, "RaceSessionComplete", session.phase == "COMPLETE")
 			setChanged(player, "RaceRematchReady", session.rematchVotes[player] == true)
@@ -591,6 +594,7 @@ function RaceController.start()
 	local function startSharedCountdown(now: number)
 		session.roundId += 1
 		session.phase = "COUNTDOWN"
+		session.waitingReason = "NONE"
 		session.waitDeadline = 0
 		session.countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
 		session.startTime = 0
@@ -659,13 +663,17 @@ function RaceController.start()
 		if PrototypeWorld.releaseKartContext then PrototypeWorld.releaseKartContext(player) end
 		if session:count() == 0 then
 			session.phase = "EMPTY"
+			session.waitingReason = "NONE"
 			session.startingParticipantCount = 0
 			return
 		end
 		if session.phase == "COMPLETE" and session:count() == 1 then
 			for remaining in session.participants do
 				if session.rematchVotes[remaining] then
-					startSharedCountdown(time())
+					session.phase = "WAITING"
+					session.waitingReason = "REMATCH_REJOIN"
+					session.waitDeadline = time() + RaceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS
+					publishSession(time())
 					return
 				end
 			end
@@ -705,6 +713,7 @@ function RaceController.start()
 			startSharedCountdown(now)
 		elseif trackId == "Track01Race" and #Players:GetPlayers() >= 2 then
 			session.phase = "WAITING"
+			session.waitingReason = "INITIAL"
 			session.waitDeadline = now + RaceConfig.MULTIPLAYER_WAIT_SECONDS
 			publishSession(now)
 		else

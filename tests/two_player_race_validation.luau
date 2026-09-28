@@ -242,10 +242,32 @@ check(b:GetAttribute("RaceFinishPosition")==2 and a:GetAttribute("RaceFinishPosi
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
 check(session.phase=="COMPLETE" and a:GetAttribute("RaceState")=="FINISHED" and b:GetAttribute("RaceState")=="FINISHED","both results complete session")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
-services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
-check(session.phase=="COUNTDOWN","second shared rematch begins")
+local finishedTime=a:GetAttribute("RaceFinalTime")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"ReturnGarage")
+check(session:count()==1 and session.phase=="WAITING" and session.waitingReason=="REMATCH_REJOIN",
+ "rematch voter waits after opponent returns to Garage")
+check(a:GetAttribute("RaceState")=="FINISHED" and a:GetAttribute("RaceFinalTime")==finishedTime
+ and a:GetAttribute("RaceRematchReadyCount")==1 and a:GetAttribute("RaceRematchRequiredCount")==2,
+ "voter result and two-racer vote requirement remain during rejoin wait")
+check(a:GetAttribute("RaceMatchWaitRemaining")==raceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS,
+ "rematch rejoin uses separate twenty-second timeout")
+b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
+check(session:count()==2 and session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN"
+ and b:GetAttribute("RaceState")=="COUNTDOWN", "Garage racer rejoins same shared countdown")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+ca.chassis.CFrame=CF.new(1500,0,1500);cb.chassis.CFrame=CF.new(1600,0,1600)
+tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
+check(session.phase=="COMPLETE", "both racers can finish after rejoin")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"ReturnGarage")
+check(session.phase=="WAITING" and session.waitingReason=="REMATCH_REJOIN", "second Garage exit waits")
+tick(raceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS-0.1)
+check(session.phase=="WAITING", "solo rematch does not start before deadline")
+tick(0.2)
+check(session.phase=="COUNTDOWN" and session.startingParticipantCount==1
+ and a:GetAttribute("RaceRematchRequiredCount")==1, "timeout starts solo rematch")
 services.Players.PlayerRemoving:Fire(b);b.Parent=nil
-check(session:count()==1 and session.phase=="COUNTDOWN" and ca.kart.Parent~=nil,"countdown disconnect preserves remaining kart and clock")
+check(session:count()==1 and session.phase=="COUNTDOWN" and ca.kart.Parent~=nil,"Garage player's disconnect preserves remaining kart and clock")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 check(a:GetAttribute("RaceState")=="RACING" and session.phase=="RACING","remaining racer starts on original countdown")
 print("PASS: "..count.." synchronized two-player race checks")
