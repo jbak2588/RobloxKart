@@ -231,9 +231,10 @@ two-player beta on Practice Circuit Race. The user has since validated the R3
 shared race on two real devices. The user also confirmed on a real mobile device
 that cumulative progress reaches 5/5 without consecutive successes, the fifth
 Mini Boost awards one Bonus Nitro, the awarded Nitro can be used, and Mini Boost
-reaches 100 stud/s. R4.3 HUD spacing still needs device validation. Tutorial
-preference across a new app session, the 15-second off-track DNF, and the
-initial lobby overlay remain separate device checks.
+reaches 100 stud/s. The user also confirmed initial WAITING, START SOLO, Solo
+Finish to REMATCH to WAITING, tutorial dismissal across a full rejoin, Quit Race
+spacing, and the 15-second off-track DNF. The old mobile Nitro Charge label
+overlaps the item cells; the R4.5 item HUD placement needs real-device validation.
 TrackV2 geometry revision and production-off debug telemetry remain pending.
 
 ### Engine loop asset decision
@@ -304,9 +305,10 @@ The Garage displays **KART DRIFT MASTERS** and the current Roblox PlaceVersion
 as a small build label. Each actual Mini Boost start adds one cumulative point
 toward a five-Boost reward during that race. At 5/5, the racer earns one Bonus
 Nitro, at most once per race. Failed Drifts, off-track events, barriers, Slick,
-and other driving incidents do not remove earned progress. The drift HUD shows
-NITRO CHARGE progress and the award. On mobile, the race-long counter sits
-below the three loadout cells, separate from the Drift gauge over DRIFT.
+and other driving incidents do not remove earned progress. The Race Item HUD
+owns NITRO CHARGE progress and the award beside the Nitro/Slick/Shield loadout.
+On mobile the counter uses the three-cell group width below those cells. The
+current-attempt Drift gauge remains over DRIFT in its own HUD.
 The compact LAP panel ends 4 px below QUIT RACE while that action is visible.
 The last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
 stored separately from race data; CONTROLS still opens the tutorial manually.
@@ -351,8 +353,7 @@ per race, and the 50 stud/s off-track cap stay intact.
 After READY, the Garage overlay now hides in `PRE_RACE` so the host sees the
 waiting controls over the track while seated at the grid.
 The user confirmed on a real mobile device that the initial WAITING FOR RACER
-screen, START SOLO, and the solo two-lap Finish work. The solo REMATCH return
-to this lobby still needs a published real-device check.
+screen, START SOLO, solo two-lap Finish, and solo REMATCH return to WAITING work.
 
 M2-A1 temporarily disables physical kart-to-kart collision through the
 `RacerKart` collision group. Track and barrier collisions remain enabled.
@@ -367,25 +368,12 @@ progress indicator, and two-lap Finish/PLACE. That test also found that
 the initial WAITING controls were covered by the Garage PREPARING GRID overlay;
 the later Garage visibility fix was confirmed on a real mobile device.
 
-R4.2 device checks remain: confirm five total Boosts add one Nitro and
-later boosts add none; confirm DON'T SHOW AGAIN survives leaving and rejoining
-the experience while CONTROLS still opens manually; confirm continuous
-off-track driving reaches DNF at 15 seconds; compare 100 stud/s for 2.0 seconds
-against the earlier 95/1.5 build. The earlier 10-second off-track observation
-came from an older published build. R4 has not been published by Codex.
-
-R4.2 device check after publication: confirm the latest BUILD PV, reach
-4/5 Nitro Charge, then charge a fifth Drift to Gold. Try releasing DRIFT first
-and centering steering first in separate runs. Both clean exits should start
-Mini Boost; the fifth should show NITRO +1 and increase the Nitro count. Five
-more successes in the same race must not award a second Nitro. Failed Drifts
-and driving incidents must leave earned progress unchanged. Also confirm the
-15-second off-track DNF and Controls dismissal after a full leave and rejoin.
-
-For the Controls persistence check: open the tutorial automatically, tap
-DON'T SHOW AGAIN, leave the experience fully, rejoin, confirm it stays closed,
-then tap CONTROLS to confirm manual reopening. Gameplay must continue if
-DataStore loading or saving fails.
+The user's real-device check confirmed cumulative five-Boost progress, Bonus
+Nitro +1 and its use, 100 stud/s Mini Boost, DON'T SHOW AGAIN across a full
+close and rejoin with manual CONTROLS access, and the 15-second off-track DNF.
+The Quit Race panel spacing is accepted. The previous mobile NITRO CHARGE
+placement overlapped the loadout cells and clipped the label; only the R4.5
+placement needs a new mobile visual check within M2-A1 polish.
 
 ## Known Polish Gates
 
@@ -426,7 +414,7 @@ Do not:
 
 ## Next Development Order
 
-1. R4 two-device Mini Boost balance and WAITING overlay validation
+1. R4.5 mobile NITRO CHARGE placement validation
 2. 4-player expansion after the 2-player runtime passes
 3. 6-player tuning only after 4-player validation
 4. TrackV2 geometry revision / beta iteration as scheduled

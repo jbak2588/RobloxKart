@@ -232,8 +232,9 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-M2-A1 2-player synchronized race implementation and Studio 2-client validation.
-Use Practice Circuit Race first; TrackV2 geometry revision remains pending.
+Validate the R4.5 NITRO CHARGE placement on a real mobile device. The
+two-player Practice Circuit Race has already passed the user's device checks;
+TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
 
@@ -453,9 +454,8 @@ For Track01Race, a completed solo REMATCH returns the same host and kart to the
 start-grid PRE_RACE / WAITING FOR RACER lobby without a countdown. The host can
 START SOLO, wait for a second racer READY, or CANCEL to Garage. A completed
 two-player race still begins its shared countdown when both racers vote REMATCH.
-The user confirmed the initial WAITING screen, START SOLO and solo two-lap
-Finish on a real mobile device. The solo REMATCH lobby return needs device
-validation after publication.
+The user confirmed the initial WAITING screen, START SOLO, solo two-lap Finish,
+and solo REMATCH lobby return on a real mobile device.
 The user's R3 two-device test
 confirmed shared racing, two-lap Finish/PLACE, WAITING lobby, host START SOLO
 and CANCEL, same-track join, Rematch re-entry, rival minimap, Garage presence,
@@ -467,13 +467,17 @@ four-Boost requirement. The initial WAITING screen was covered
 by Garage PREPARING GRID; Garage now hides during PRE_RACE so the host sees the
 track lobby. The user confirmed on a real mobile device that cumulative progress
 reaches 5/5 without consecutive successes, the fifth Mini Boost awards one Nitro,
-the awarded Nitro is usable, and Mini Boost reaches 100 stud/s. The R4.3 mobile
-Nitro HUD spacing, lobby overlay, DON'T SHOW AGAIN across a new app session with
-manual CONTROLS access, and the 15-second off-track DNF still need device checks.
+the awarded Nitro is usable, and Mini Boost reaches 100 stud/s. The user also
+confirmed DON'T SHOW AGAIN across a full app rejoin with manual CONTROLS access,
+the 15-second off-track DNF, and acceptable Quit Race panel spacing. The old
+mobile Nitro Charge label overlaps the item cells. R4.5 moves cumulative Nitro
+progress into RaceItemUiController's ScreenGui; the current Drift gauge remains
+in DriftChargeView. The only remaining M2-A1 mobile polish gate is real-device
+validation of the new NITRO CHARGE placement.
 
 M2-A1 temporary policy: RacerKart parts do not physically collide with other
-RacerKart parts; track/barrier contact remains unchanged. Revisit after final
-two-device validation of R4.
+RacerKart parts; track/barrier contact remains unchanged. Revisit after R4.5
+mobile HUD placement validation.
 
 After that validation, expand:
 
@@ -563,7 +567,7 @@ Finish screen-space drift is camera-only. Never add lateral server kart physics
 for this cinematic.
 
 Automated tests do not replace device checks. R3 shared-race runtime was
-confirmed by the user on two real devices. The cumulative Bonus Nitro and 100
-stud/s Mini Boost and initial lobby checks above passed on mobile; the remaining
-R4.3 device checks and solo Rematch lobby still need validation before expanding
-the racer count.
+confirmed by the user on two real devices. The cumulative Bonus Nitro, 100
+stud/s Mini Boost, initial and solo Rematch lobbies, tutorial persistence,
+15-second DNF, and Quit Race spacing passed on mobile. The R4.5 NITRO CHARGE
+placement still needs a real-device visual check before expanding the racer count.

@@ -26,7 +26,7 @@ function Controller.start()
 	root.Active=false
 	root.Selectable=false
 	root.Parent=gui
-	local view=View.create(root,Config.DEBUG_TELEMETRY,player)
+	local view=View.create(root,Config.DEBUG_TELEMETRY)
 	local connections={}
 	local focused,removing=true,false
 	local previousKart,previousSerial,previousRace=nil,nil,nil

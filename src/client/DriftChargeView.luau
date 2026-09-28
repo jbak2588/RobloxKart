@@ -1,13 +1,12 @@
 -- Server attributes are the only source of charge. Local timers animate feedback only.
 local View = require(script.Parent:WaitForChild("MobileControlView"))
-local RewardConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 local Gauge = {}
 
 function Gauge.segmentCount(progress: number): number
 	return math.floor(math.clamp(progress,0,1)*5)
 end
 
-function Gauge.create(root, debugEnabled, player)
+function Gauge.create(root, debugEnabled)
 	local frame=Instance.new("Frame")
 	frame.Name="DriftChargeGauge"
 	frame.AnchorPoint=Vector2.new(0.5,1)
@@ -20,27 +19,6 @@ function Gauge.create(root, debugEnabled, player)
 	frame.Visible=false
 	frame.Parent=root
 	View.round(frame,UDim.new(0,3))
-	local chargeLabel=Instance.new("TextLabel")
-	chargeLabel.Name="NitroCharge"
-	chargeLabel.AnchorPoint=Vector2.new(0.5,1)
-	chargeLabel.Size=UDim2.fromOffset(165,34)
-	chargeLabel.BackgroundTransparency=1
-	chargeLabel.Font=Enum.Font.GothamBold
-	chargeLabel.TextColor3=Color3.fromRGB(65,225,245)
-	chargeLabel.TextSize=13
-	chargeLabel.Visible=false
-	chargeLabel.Parent=root
-	local bonusLabel=Instance.new("TextLabel")
-	bonusLabel.Name="DriftBonusNitro"
-	bonusLabel.AnchorPoint=Vector2.new(0.5,1)
-	bonusLabel.Size=UDim2.fromOffset(165,24)
-	bonusLabel.BackgroundTransparency=1
-	bonusLabel.Font=Enum.Font.GothamBlack
-	bonusLabel.TextColor3=Color3.fromRGB(255,218,75)
-	bonusLabel.TextSize=17
-	bonusLabel.Text="NITRO +1"
-	bonusLabel.Visible=false
-	bonusLabel.Parent=root
 	local border=View.stroke(frame,1)
 	local segments, fills={},{}
 	for i=1,5 do
@@ -85,8 +63,7 @@ function Gauge.create(root, debugEnabled, player)
 		View.round(diagnostic,UDim.new(0,4))
 	end
 	local self={frame=frame,diagnostic=diagnostic,pulse=0,feedback=0,endTime=0,opacity=0,
-		wasActive=false,wasReady=false,wasBoosting=false,lastProgress=0,lastSerial=nil,lastText="",success=false,
-		bonusTime=0,lastAwarded=false}
+		wasActive=false,wasReady=false,wasBoosting=false,lastProgress=0,lastSerial=nil,lastText="",success=false}
 	function self:layout(size,mobile,wheel,origin)
 		local l=View.layout(size)
 		if mobile then
@@ -102,20 +79,6 @@ function Gauge.create(root, debugEnabled, player)
 				local diameter=if size.Y<=650 then 84 else 112
 				frame.Position=UDim2.new(.5,0,1,-diameter*2/3-10)
 			end
-		end
-		if mobile and size.Y >= 360 and size.X >= size.Y then
-			local loadoutCenter=l.margin+(l.slot*3+l.gap*2)/2
-			chargeLabel.Size=UDim2.fromOffset(190,34)
-			chargeLabel.Position=UDim2.new(0,loadoutCenter,
-				frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-8)
-			bonusLabel.Position=UDim2.new(0,loadoutCenter,
-				chargeLabel.Position.Y.Scale,chargeLabel.Position.Y.Offset-chargeLabel.Size.Y.Offset)
-		else
-			chargeLabel.Size=UDim2.fromOffset(165,34)
-			chargeLabel.Position=UDim2.new(frame.Position.X.Scale,frame.Position.X.Offset,
-				frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-5)
-			bonusLabel.Position=UDim2.new(chargeLabel.Position.X.Scale,chargeLabel.Position.X.Offset,
-				chargeLabel.Position.Y.Scale,chargeLabel.Position.Y.Offset-chargeLabel.Size.Y.Offset-5)
 		end
 		if diagnostic then
 			local width=math.min(184,size.X/2-60)
@@ -142,11 +105,7 @@ function Gauge.create(root, debugEnabled, player)
 		self.wasActive,self.wasReady,self.wasBoosting=false,false,false
 		self.lastProgress,self.lastText,self.success=0,"",false
 		self.lastSerial=kart and kart:GetAttribute("KartDriftDiagEndSerial")
-		self.bonusTime=0
-		self.lastAwarded=player and player:GetAttribute("DriftBonusNitroAwarded")==true or false
 		frame.Visible=false
-		chargeLabel.Visible=false
-		bonusLabel.Visible=false
 		frame:SetAttribute("LitSegments",0)
 		border.Thickness=1
 		for i,cell in segments do
@@ -212,17 +171,6 @@ function Gauge.create(root, debugEnabled, player)
 	end
 	function self:update(enabled,kart,held,delta)
 		if not enabled or not kart then self:reset(kart); return end
-		local count=if player then player:GetAttribute("DriftBonusProgress") else 0
-		local awarded=player and player:GetAttribute("DriftBonusNitroAwarded")==true or false
-		if awarded and not self.lastAwarded then self.bonusTime=1 end
-		self.lastAwarded=awarded
-		self.bonusTime=math.max(0,self.bonusTime-delta)
-		chargeLabel.Visible=true
-		chargeLabel.Text=if awarded then string.format("NITRO CHARGE  %d/%d\nBONUS EARNED",
-			RewardConfig.DRIFT_BONUS_REQUIRED_BOOSTS,RewardConfig.DRIFT_BONUS_REQUIRED_BOOSTS)
-			else string.format("NITRO CHARGE  %d/%d",
-				if type(count)=="number" then count else 0,RewardConfig.DRIFT_BONUS_REQUIRED_BOOSTS)
-		bonusLabel.Visible=self.bonusTime>0
 		local progress=math.clamp(kart:GetAttribute("KartDriftChargeProgress") or 0,0,1)
 		local ready=kart:GetAttribute("KartDriftChargeReady")==true
 		local active=kart:GetAttribute("KartDrifting")==true or progress>0 or ready

@@ -6,11 +6,16 @@ local V2, V3 = rb.Vector2, rb.Vector3
 local count = 0
 local function check(value, label) assert(value, label); count += 1 end
 local chargeSource=fs.readFile("src/client/DriftChargeView.luau")
+local itemHudSource=fs.readFile("src/client/RaceItemUiController.luau")
 local rewardSource=fs.readFile("src/shared/RaceItemConfig.luau")
-check(string.find(chargeSource,"NITRO CHARGE",1,true)~=nil
-	and string.find(chargeSource,"DRIFT STREAK",1,true)==nil
-	and string.find(chargeSource,"/4",1,true)==nil,
-	"player-facing charge terminology has no legacy streak or four-count")
+check(string.find(chargeSource,"NitroCharge",1,true)==nil
+	and string.find(chargeSource,"NITRO CHARGE",1,true)==nil
+	and string.find(chargeSource,"BONUS EARNED",1,true)==nil,
+	"DriftChargeView has no cumulative Nitro UI")
+check(string.find(itemHudSource,"NITRO CHARGE",1,true)~=nil
+	and string.find(itemHudSource,"DRIFT STREAK",1,true)==nil
+	and string.find(itemHudSource,"/4",1,true)==nil,
+	"RaceItemUiController owns five-count Nitro terminology")
 check(string.find(rewardSource,"DRIFT_BONUS_REQUIRED_BOOSTS = 5",1,true)~=nil,
 	"production Bonus Nitro threshold remains five")
 local function signal()
@@ -231,31 +236,14 @@ local heldProbe=touch(drift);for _=1,40 do tick() end
 check(gauge.Visible and gauge:GetAttribute("LitSegments")==0,"held button never invents charge")
 heldProbe.UserInputState=rb.Enum.UserInputState.End;tick()
 local productionRoot=object("Frame")
-local productionGauge=modules.DriftChargeView.create(productionRoot,false,player)
+local productionGauge=modules.DriftChargeView.create(productionRoot,false)
 check(productionGauge.diagnostic==nil,"debug-off creates no diagnostic text")
+check(productionRoot:FindFirstChild("NitroCharge",true)==nil
+	and productionRoot:FindFirstChild("DriftBonusNitro",true)==nil,
+	"Drift gauge creates no duplicate cumulative reward labels")
 kart:SetAttribute("KartDriftChargeProgress",.6)
 productionGauge:update(true,kart,false,.12)
 check(productionGauge.frame.Visible and productionGauge.frame:GetAttribute("LitSegments")==3,"debug-off player gauge remains functional")
-for progress=0,4 do
-	player:SetAttribute("DriftBonusProgress",progress)
-	productionGauge:update(true,kart,false,.12)
-	check(productionRoot.NitroCharge.Visible
-		and productionRoot.NitroCharge.Text==string.format("NITRO CHARGE  %d/5",progress),
-		"drift HUD shows cumulative Nitro progress "..progress)
-end
-productionGauge:update(true,kart,false,.12)
-check(productionRoot.NitroCharge.Text=="NITRO CHARGE  4/5",
-	"failed attempt cannot visually erase server-earned progress")
-player:SetAttribute("DriftBonusProgress",5)
-player:SetAttribute("DriftBonusNitroAwarded",true)
-productionGauge:update(true,kart,false,.1)
-check(productionRoot.DriftBonusNitro.Visible and productionRoot.DriftBonusNitro.Text=="NITRO +1"
-	and string.find(productionRoot.NitroCharge.Text,"5/5",1,true),
- "drift HUD flashes bonus Nitro")
-productionGauge:update(true,kart,false,1)
-check(not productionRoot.DriftBonusNitro.Visible
-	and productionRoot.NitroCharge.Text=="NITRO CHARGE  5/5\nBONUS EARNED",
-	"bonus flash ends after one second while earned state remains")
 tick();check(gauge:GetAttribute("LitSegments")==3,"mobile server progress .60")
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;tick()
 check(gauge.Visible and gauge:GetAttribute("LitSegments")==3,"PC uses same server progress without duplicate gauge")
@@ -414,21 +402,11 @@ for _, size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390)} do
 	local l=modules.MobileControlView.layout(size)
 	local row={l.margin,size.Y-l.loadoutBottom-l.slot,
 		l.margin+l.slot*3+l.gap*2,size.Y-l.loadoutBottom}
-	local progress=rect(productionRoot.NitroCharge)
-	local flash=rect(productionRoot.DriftBonusNitro)
 	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
 	local gaugeRect=rect(productionGauge.frame)
-	check(math.abs((progress[1]+progress[3])/2-(row[1]+row[3])/2)<.5,
-		"Nitro progress centers on all three item slots")
-	for _, display in {progress,flash} do
-		check(display[1]>=0 and display[3]<=size.X and display[2]>=0 and display[4]<=size.Y,
-			"Nitro display remains inside safe area")
-		for _, other in {row,driftRect,useRect,gaugeRect} do
-			check(not overlaps(display,other),"Nitro display avoids item cells, controls and gauge")
-		end
-	end
-	check(not overlaps(progress,flash),"earned progress and temporary award have separate space")
+	check(not overlaps(row,driftRect) and not overlaps(row,useRect)
+		and not overlaps(row,gaugeRect),"item row remains separate from driving controls")
 end
 for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),V2.new(320,568),V2.new(929,688)} do
 	safeSize=size; root:GetPropertyChangedSignal("AbsoluteSize"):Fire(); tick()
@@ -484,6 +462,86 @@ for _,size in {V2.new(1920,1080),V2.new(1280,720),V2.new(801,334)} do
 	local d=preview.diagnostic
 	check(d.AbsolutePosition.X>size.X/2 and d.AbsolutePosition.Y>size.Y/2,"desktop debug uses bottom-right corner")
 end
+services.Workspace=object("Workspace")
+local itemCamera=object("Camera")
+itemCamera.ViewportSize=safeSize
+services.Workspace.CurrentCamera=itemCamera
+modules.SlickRearPreview={new=function(parent)
+	local panel=child(parent,"Frame","SlickRearPreview")
+	return {layout=function() end,isVisible=function() return false end,
+		stop=function() end,show=function() end,panel=panel}
+end}
+child(modulesFolder,"ModuleScript","SlickRearPreview")
+local itemModule=child(modulesFolder,"ModuleScript","RaceItemUiController")
+local delayed={}
+local itemEnv=table.clone(env)
+itemEnv.script=itemModule
+itemEnv.time=function() return 0 end
+itemEnv.task={delay=function(_,callback) table.insert(delayed,callback) end}
+modules.RaceItemUiController=luau.load(fs.readFile("src/client/RaceItemUiController.luau"),
+	{environment=itemEnv})()
+safeSize=V2.new(1600,739);itemCamera.ViewportSize=safeSize
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
+player:SetAttribute("RaceState","RACING")
+player:SetAttribute("DriftBonusProgress",0)
+player:SetAttribute("DriftBonusNitroAwarded",false)
+modules.RaceItemUiController.start()
+local itemHud=pg.RobloxKartRaceItemHud
+local nitroProgress=itemHud.NitroProgress
+local progressLabel=nitroProgress.NitroCharge
+local bonusLabel=nitroProgress.DriftBonusNitro
+check(nitroProgress.Parent==itemHud and progressLabel.Text=="NITRO CHARGE  0/5"
+	and not sharedGui:FindFirstChild("NitroCharge",true),
+	"one cumulative Nitro display belongs to RaceItem HUD")
+for progress=1,4 do
+	player:SetAttribute("DriftBonusProgress",progress)
+	check(progressLabel.Text==string.format("NITRO CHARGE  %d/5",progress),
+		"Race Item HUD shows server progress "..progress)
+end
+player:SetAttribute("DriftBonusProgress",5)
+player:SetAttribute("DriftBonusNitroAwarded",true)
+check(bonusLabel.Visible and bonusLabel.Text=="NITRO +1" and not progressLabel.Visible,
+	"fifth Boost flashes Nitro award once inside item group")
+check(#delayed==1,"award transition schedules one flash end")
+delayed[1]()
+check(not bonusLabel.Visible and progressLabel.Visible
+	and progressLabel.Text=="NITRO CHARGE  5/5\nBONUS EARNED",
+	"flash ends with persistent five of five and earned state")
+player:SetAttribute("DriftBonusNitroAwarded",true)
+check(#delayed==1 and not bonusLabel.Visible,"steady awarded state never repeats flash")
+player:SetAttribute("RaceState","COUNTDOWN")
+player:SetAttribute("DriftBonusProgress",0)
+player:SetAttribute("DriftBonusNitroAwarded",false)
+check(progressLabel.Text=="NITRO CHARGE  0/5" and not bonusLabel.Visible,
+	"new countdown clears previous reward presentation")
+for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390),
+	V2.new(801,334),V2.new(389,703)} do
+	safeSize=size;itemCamera.ViewportSize=size
+	itemHud:GetPropertyChangedSignal("AbsoluteSize"):Fire()
+	local first=rect(itemHud.Nitro)
+	local second=rect(itemHud.Slick)
+	local third=rect(itemHud.Shield)
+	local display=rect(nitroProgress)
+	local l=modules.MobileControlView.layout(itemHud.AbsoluteSize)
+	check(first[1]==l.margin and third[3]-first[1]==l.slot*3+l.gap*2
+		and second[1]-first[3]==l.gap,"item group uses production slot and gap geometry")
+	check(display[1]==first[1] and display[3]==third[3]
+		and nitroProgress.AbsoluteSize.X==l.slot*3+l.gap*2,
+		"Nitro progress uses exactly the item group width")
+	check(display[2]>=first[4]+4 and display[4]<size.Y-l.driftBottom-l.action
+		and display[4]<size.Y-l.useBottom-l.action,
+		"Nitro progress stays below all item cells and above Drift/Use")
+	check(bonusLabel.Parent==nitroProgress and progressLabel.Parent==nitroProgress,
+		"award and earned text share the progress rectangle")
+end
+ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+ui:GetPropertyChangedSignal("PreferredInput"):Fire()
+check(nitroProgress.Visible and progressLabel.Visible
+	and rect(nitroProgress)[4]<rect(itemHud.Nitro)[2],
+	"desktop cumulative progress remains visible above item cells")
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
+ui:GetPropertyChangedSignal("PreferredInput"):Fire()
+player:SetAttribute("RaceState","RACING")
 hold(); gui:Destroy(); sharedGui:Destroy(); neutral("destroyed GUI"); check(defaultGui.Enabled,"destroy restores stock controls")
 check(not gauge.Visible and not diagnostic.Visible,"GUI destruction clears charge display")
 print("PASS: "..count.." mobile input, lifecycle, transport and layout checks (mocked; no hardware multi-touch)")
