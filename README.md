@@ -28,7 +28,7 @@ Driver → Kart → Track → Ready → Race → Result
 Current track selections:
 
 1. Practice Circuit — Practice — 1 Lap
-2. Practice Circuit — Race — 3 Laps
+2. Practice Circuit — Race — 2 Laps
 3. Prototype Circuit V2 — Race — 3 Laps
 
 ## Driving
@@ -407,10 +407,10 @@ Latest user decision replaces Driving License with always-available Practice. Ga
 | Order | Selection | Catalog ID | Geometry | Laps |
 | --- | --- | --- | --- | --- |
 | 1 (default) | Practice Circuit - PRACTICE | Track01 | PracticeCircuitV1 | 1 |
-| 2 | Practice Circuit - RACE | Track01Race | PracticeCircuitV1 | 3 |
+| 2 | Practice Circuit - RACE | Track01Race | PracticeCircuitV1 | 2 |
 | 3 | Prototype Circuit V2 - RACE | Track02 | PrototypeCircuitV2 | 3 |
 
-The first two selections share exactly the same geometry and grid positions. Track Select and Ready show PRACTICE / 1 LAP or RACE / 3 LAPS. No existing track geometry is modified. Server derives mode and target laps from the validated catalog selection, never client-provided mode or laps. One RaceController handles all modes; RaceConfig.TOTAL_LAPS remains 3. Checkpoint order/direction checks remain.
+The first two selections share exactly the same geometry and grid positions. Track Select and Ready show PRACTICE / 1 LAP, RACE / 2 LAPS, or RACE / 3 LAPS according to the selected track. No existing track geometry is modified. Server derives mode and target laps from the validated catalog selection, never client-provided mode or laps. One RaceController handles all modes; TrackCatalog.Entries[trackId].TargetLaps sets each track's lap count. RaceConfig.TOTAL_LAPS remains 3 as the fallback. Checkpoint order/direction checks remain.
 
 All modes retain Nitro/Slick/Shield 1/1/1, normal FINISHED/DNF results and Rematch. Repeated Practice always stays one lap. No persistent progression, tutorial requirements or touch driving is added.
 

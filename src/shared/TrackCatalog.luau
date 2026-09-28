@@ -7,6 +7,7 @@ local TrackCatalog = {
 			DisplayName = "Practice Circuit",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeCircuitV1",
+			TargetLaps = 1,
 			-- Original V1 grid slots from 88de2b3. The server adds ground height.
 			GridSlots = {
 				CFrame.new(-350, 0, 465),
@@ -20,6 +21,7 @@ local TrackCatalog = {
 			DisplayName = "Practice Circuit",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeCircuitV1",
+			TargetLaps = 2,
 			-- Original V1 grid slots from 88de2b3. The server adds ground height.
 			GridSlots = {
 				CFrame.new(-350, 0, 465),
@@ -33,6 +35,7 @@ local TrackCatalog = {
 			DisplayName = "Prototype Circuit V2",
 			ModelName = "TestTrack",
 			GeometryId = "PrototypeCircuitV2",
+			TargetLaps = 3,
 			GridSlots = {
 				CFrame.new(-365, 0, 465),
 				CFrame.new(-355, 0, 465),

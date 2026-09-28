@@ -67,7 +67,7 @@ check(rbState.offTrackElapsed == 0 and rbState.lapStartTime == 0
 ra.lastResetSerial = 9
 check(rbState.lastResetSerial ~= 9, "reset serial isolated")
 
-local session = sessionType.new("Track01Race", "RACE", 3)
+local session = sessionType.new("Track01Race", "RACE", 2)
 session:add(a, ra)
 session:add(b, rbState)
 check(sessionType.forPlayer(a) == session and sessionType.forPlayer(b) == session,

@@ -103,7 +103,7 @@ Practice
 
 Track01Race
 Practice Circuit Race
-3 Laps
+2 Laps
 
 Track02
 Prototype Circuit V2 Race

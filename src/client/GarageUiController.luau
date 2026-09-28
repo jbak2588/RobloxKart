@@ -493,9 +493,9 @@ function GarageUiController.start()
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
 			detailLabel.Text = if step == 1 then (DriverCatalog.Entries[driverId].Description or "Choose your racing driver")
 				elseif step == 2 then "All MVP karts use the same physics"
-				else RaceMode.label(mode) .. "\n" .. (if mode == RaceMode.PRACTICE then "Practice driving and item timing" else "Complete three laps")
+				else RaceMode.label(mode, trackId) .. "\n" .. (if mode == RaceMode.PRACTICE then "Practice driving and item timing" else string.format("Complete %d laps", RaceMode.targetLaps(mode, trackId)))
 		else
-			choiceLabel.Text = RaceMode.label(mode)
+			choiceLabel.Text = RaceMode.label(mode, trackId)
 			detailLabel.Text = string.format("%s  /  %s  /  %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
 		end
 		previousButton.Visible = step > 1

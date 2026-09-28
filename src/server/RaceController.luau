@@ -26,7 +26,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceCountdown", 0)
 	player:SetAttribute("RaceCurrentLap", 1)
 	player:SetAttribute("RaceCompletedLaps", 0)
-	player:SetAttribute("RaceTotalLaps", RaceConfig.TOTAL_LAPS)
+	player:SetAttribute("RaceTotalLaps", RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
 	player:SetAttribute("RaceNextCheckpoint", 1)
 	player:SetAttribute("RaceLastLapTime", 0)
 	player:SetAttribute("RaceBestLapTime", 0)
@@ -102,7 +102,8 @@ function RaceController.start()
 	started = true
 
 	local prototype = Workspace:WaitForChild("Prototype")
-	local session = RaceSession.new(TrackCatalog.DefaultId, RaceMode.resolve(TrackCatalog.DefaultId), RaceConfig.TOTAL_LAPS)
+	local session = RaceSession.new(TrackCatalog.DefaultId, RaceMode.resolve(TrackCatalog.DefaultId),
+		RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
 	local checkpointCount = 0
 	local gates: { BasePart } = {}
 	local roadParts: { BasePart } = {}
@@ -219,7 +220,7 @@ function RaceController.start()
 		local kart, chassis, seat = context.kart, context.chassis, context.seat
 		local racer = RacerState.new(player, context,
 			if routeCourse then RaceRouteProgress.new(routeCourse, routeRoadWidth) else nil)
-		racer.targetLaps = RaceConfig.TOTAL_LAPS
+		racer.targetLaps = RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId)
 		local function clearGateState()
 			table.clear(racer.insideGate)
 			racer.previousChassisPosition = nil
@@ -281,7 +282,7 @@ function RaceController.start()
 			local trackId = player:GetAttribute("SelectedTrackId")
 			local mode = RaceMode.resolve(trackId)
 			player:SetAttribute("RaceMode", mode)
-			racer.targetLaps = RaceMode.targetLaps(mode)
+			racer.targetLaps = RaceMode.targetLaps(mode, trackId)
 			if type(trackId) ~= "string" or (session:hasOtherParticipants(player) and session.trackId ~= trackId)
 				or not bindTrackForRace(trackId) then
 				kart:SetAttribute("RaceControlsLocked", true)

@@ -105,8 +105,8 @@ local config=load("src/shared/KartConfig.luau",shared,"KartConfig")
 load("src/shared/TrackGeometry.luau",shared,"TrackGeometry")
 load("src/shared/RaceRouteProgress.luau",shared,"RaceRouteProgress")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
-local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
+local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
 check(#catalog.Order==3 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Practice first/default")
 check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02","two races follow Practice")
 check(catalog.Entries.Track01.GeometryId==catalog.Entries.Track01Race.GeometryId,"Practice and V1 race share geometry")
@@ -116,7 +116,9 @@ end
 for _, id in catalog.Order do
  local kind=mode.resolve(id)
  check(kind==(if id=="Track01" then "PRACTICE" else "RACE"),"mode "..id)
- check(mode.targetLaps(kind)==(if id=="Track01" then 1 else 3),"laps "..id)
+ local expected=if id=="Track01" then 1 elseif id=="Track01Race" then 2 else 3
+ check(catalog.Entries[id].TargetLaps==expected and mode.targetLaps(kind,id)==expected,"laps "..id)
+ check(mode.label(kind,id)==(if id=="Track01" then "PRACTICE / 1 LAP" else "RACE / "..expected.." LAPS"),"label "..id)
 end
 check(raceConfig.TOTAL_LAPS==3,"global laps unchanged")
 check(not fs.isFile("src/client/DrivingLicenseUiController.luau"),"no License/tutorial controller")
@@ -220,7 +222,7 @@ services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
 check(player:GetAttribute("RaceTotalLaps")==1 and player:GetAttribute("RaceMode")=="PRACTICE","practice rematch stays practice")
 for _, id in {"Track01","Track01Race","Track02"} do
  start(id)
- local laps=if id=="Track01" then 1 else 3
+ local laps=catalog.Entries[id].TargetLaps
  check(player:GetAttribute("RaceTotalLaps")==laps,"published target "..id)
  for lap=1,laps do
   local duration=if lap==2 then 2 else (if lap==3 then 2.5 else 3)
