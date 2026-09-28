@@ -151,7 +151,7 @@ player:SetAttribute("SelectedTrackId","Track01")
 kart:SetAttribute("RaceStartCFrame",CF.new(0,0,20))
 child(server,"ModuleScript","PrototypeWorld")
 local kartContext={owner=player,kart=kart,chassis=chassis,seat=seat}
-modules.PrototypeWorld={getKartContext=function(p)
+modules.PrototypeWorld={onDriftOutcome=function() end,getKartContext=function(p)
  if p==player then return kartContext end
 end, getRaceKart=function(p)
  if p==player and p:GetAttribute("RaceState")=="RACING" and not kart:GetAttribute("RaceControlsLocked") then return kart,chassis end
@@ -174,6 +174,11 @@ local function start(trackId)
  player:SetAttribute("RaceMode","UNTRUSTED"); player:SetAttribute("RaceState","PRE_RACE")
  seat.Occupant=human; tick(0.1)
  check(player:GetAttribute("RaceMode")==kind,"server derives mode "..kind)
+ if trackId=="Track01Race" then
+  check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING",
+   "circuit waits for host selection")
+  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"StartSolo")
+ end
  check(player:GetAttribute("RaceState")=="COUNTDOWN","countdown "..kind)
  check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeSlick")==1 and player:GetAttribute("RaceChargeShield")==1,"real loadout "..kind)
  tick(3.1)

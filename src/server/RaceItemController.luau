@@ -13,6 +13,7 @@ local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
 local RaceItemController = {}
 local started = false
 local loadouts, connections, lastUse = {}, {}, {}
+local driftStreaks, driftBonusAwarded = {}, {}
 local kartConnections = {}
 local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
@@ -39,6 +40,8 @@ local function removeHazard(index)
 end
 local function clearPlayer(player)
 	if loadouts[player] then loadouts[player]:clear() end
+	driftStreaks[player] = 0
+	player:SetAttribute("DriftStreakCount", 0)
 	removeShield(player)
 	local state = immunity[player]
 	if state then state.kart:SetAttribute("RaceItemHitImmunity", false) end
@@ -59,7 +62,7 @@ local function clearSession(session)
 	clearHazardsForSession(session)
 end
 
--- Future player-specific reward gate calls this once; no client grant action.
+-- Only server systems call this; RaceLoadout enforces the one-bonus limit.
 function RaceItemController.grantBonusNitro(player: Player): boolean
 	local loadout = loadouts[player]
 	if not loadout or player:GetAttribute("RaceState") ~= "RACING" then return false end
@@ -159,6 +162,9 @@ function RaceItemController.start()
 	local function bind(player)
 		if loadouts[player] then return end
 		loadouts[player] = RaceLoadout.new()
+		driftStreaks[player], driftBonusAwarded[player] = 0, false
+		player:SetAttribute("DriftStreakCount", 0)
+		player:SetAttribute("DriftBonusNitroAwarded", false)
 		publish(player)
 		player:SetAttribute("RaceItemBlockedSerial", 0)
 		local previousState = player:GetAttribute("RaceState")
@@ -169,12 +175,18 @@ function RaceItemController.start()
 				local oldState = previousState
 				previousState = state
 				if state == "COUNTDOWN" then
+					driftBonusAwarded[player] = false
+					player:SetAttribute("DriftBonusNitroAwarded", false)
 					clearPlayer(player)
 					bindKart(player)
 					loadouts[player]:prepare()
 					publish(player)
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
 					clearPlayer(player)
+					if state == "GARAGE" then
+						driftBonusAwarded[player] = false
+						player:SetAttribute("DriftBonusNitroAwarded", false)
+					end
 				end
 			end),
 			player.CharacterRemoving:Connect(function() clearPlayer(player) end),
@@ -186,8 +198,27 @@ function RaceItemController.start()
 		unbindKart(player)
 		for _, connection in connections[player] or {} do connection:Disconnect() end
 		connections[player], loadouts[player] = nil, nil
+		driftStreaks[player], driftBonusAwarded[player] = nil, nil
 	end)
 	for _, player in Players:GetPlayers() do bind(player) end
+	PrototypeWorld.onDriftOutcome(function(player, outcome)
+		if not loadouts[player] then return end
+		if outcome == "RESET" then
+			driftStreaks[player] = 0
+			player:SetAttribute("DriftStreakCount", 0)
+			return
+		end
+		if outcome ~= "BOOST" or player:GetAttribute("RaceState") ~= "RACING" or driftBonusAwarded[player] then return end
+		local streak = (driftStreaks[player] or 0) + 1
+		if streak >= 4 then
+			local accepted = RaceItemController.grantBonusNitro(player)
+			driftBonusAwarded[player] = accepted or loadouts[player].bonusClaimed == true
+			player:SetAttribute("DriftBonusNitroAwarded", driftBonusAwarded[player])
+			streak = 0
+		end
+		driftStreaks[player] = streak
+		player:SetAttribute("DriftStreakCount", streak)
+	end)
 	remote.OnServerEvent:Connect(function(player, action, ...)
 		local loadout = loadouts[player]
 		if not loadout then return end

@@ -91,7 +91,8 @@ for _, name in {"TouchDrivingModel","MobileControlView","MobileTutorialView","Dr
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
 end
 local tutorialRoot=object("Frame")
-local tutorial=modules.MobileTutorialView.create(tutorialRoot)
+local dismissCount=0
+local tutorial=modules.MobileTutorialView.create(tutorialRoot,function() dismissCount+=1 end)
 local tutorialOverlay=tutorialRoot.MobileControlsTutorial
 local tutorialCard=tutorialOverlay.TutorialCard
 local iconSlots=tutorialCard.ActualControlIcons
@@ -127,6 +128,7 @@ check(examples.ReadyGauge.Segment5.BackgroundColor3==rb.Color3.fromRGB(255,218,7
 check(not string.find(tutorialCard.Diagram.Text,"▰",1,true) and not string.find(tutorialCard.Diagram.Text,"▱",1,true),"tutorial gauge uses no Unicode blocks")
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="RACE ITEMS","tutorial advances to items")
+check(tutorialCard.DontShowAgain.Visible,"final tutorial page offers persistent dismissal")
 check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","item page has no spacing-based text row")
 local captions=tutorialCard.ItemCaptions
 check(captions.Visible and #captions:GetChildren()==4,"item page has four independent captions")
@@ -143,8 +145,14 @@ tutorialCard.Back.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial back works")
 tutorialCard.Next.Activated:Fire(); tutorialCard.Next.Activated:Fire()
 check(not tutorial.isOpen(),"GOT IT closes tutorial")
+check(dismissCount==0,"GOT IT does not persist dismissal")
 tutorial.open()
 check(tutorialCard.Title.Text=="DRIVE","tutorial replay restarts at DRIVE")
+tutorialCard.Next.Activated:Fire(); tutorialCard.Next.Activated:Fire()
+tutorialCard.DontShowAgain.Activated:Fire()
+check(not tutorial.isOpen() and dismissCount==1,"DON'T SHOW AGAIN closes and requests save")
+tutorial.open()
+check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","manual controls replay still opens")
 tutorial.close()
 for _, case in {
 	{V2.new(852,393),V2.new(176,0),V2.new(830,58)},
@@ -209,11 +217,22 @@ check(not diagnostic.Visible,"diagnostic hides after two seconds")
 local heldProbe=touch(drift);for _=1,40 do tick() end
 check(gauge.Visible and gauge:GetAttribute("LitSegments")==0,"held button never invents charge")
 heldProbe.UserInputState=rb.Enum.UserInputState.End;tick()
-local productionGauge=modules.DriftChargeView.create(object("Frame"),false)
+local productionRoot=object("Frame")
+local productionGauge=modules.DriftChargeView.create(productionRoot,false,player)
 check(productionGauge.diagnostic==nil,"debug-off creates no diagnostic text")
 kart:SetAttribute("KartDriftChargeProgress",.6)
 productionGauge:update(true,kart,false,.12)
 check(productionGauge.frame.Visible and productionGauge.frame:GetAttribute("LitSegments")==3,"debug-off player gauge remains functional")
+player:SetAttribute("DriftStreakCount",3)
+productionGauge:update(true,kart,false,.12)
+check(productionRoot.DriftStreak.Visible and string.find(productionRoot.DriftStreak.Text,"3 / 4",1,true),
+ "drift HUD shows server streak")
+player:SetAttribute("DriftBonusNitroAwarded",true)
+productionGauge:update(true,kart,false,.1)
+check(productionRoot.DriftBonusNitro.Visible and productionRoot.DriftBonusNitro.Text=="NITRO +1",
+ "drift HUD flashes bonus Nitro")
+productionGauge:update(true,kart,false,1)
+check(not productionRoot.DriftBonusNitro.Visible,"bonus flash ends after one second")
 tick();check(gauge:GetAttribute("LitSegments")==3,"mobile server progress .60")
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;tick()
 check(gauge.Visible and gauge:GetAttribute("LitSegments")==3,"PC uses same server progress without duplicate gauge")

@@ -1,4 +1,4 @@
-# AGENTS.md — RobloxKart / Kart Master
+# AGENTS.md — Kart Drift Masters
 
 Read this before editing the project.
 
@@ -6,10 +6,9 @@ Read this before editing the project.
 
 Commercial mobile-first Roblox arcade kart racing game.
 
-Working titles:
+Player-facing product name: Kart Drift Masters.
 
-RobloxKart
-Kart Master
+RobloxKart remains the internal project and repository name.
 
 Initial commercial milestone:
 
@@ -427,16 +426,21 @@ Use one shared track with multiple kart contexts. M2-A0 makes no kart collision,
 ranking or matchmaking decision and does not enable public multiplayer.
 
 M2-A1 limits synchronized racing to 2 players on Practice Circuit Race (2 laps).
-Track01 Practice (1 lap) and Track02 V2 (3 laps) remain solo. A connected solo
-player counts down immediately. With 2 connected players, the first ready racer
-waits up to 8 seconds, then starts solo if nobody joins. The shared session
+The Garage title is KART DRIFT MASTERS and shows a small PlaceVersion build
+label. Four actual consecutive Mini Boost starts award one Nitro per racer per
+race; failed drift, off-track, barrier, Slick, fall and race reset clear the
+streak. Mobile tutorial dismissal persists in a dedicated preference DataStore;
+CONTROLS still reopens it manually.
+Track01 Practice (1 lap) and Track02 V2 (3 laps) remain solo. The first ready
+racer waits without a timer and becomes host. The host can START SOLO or CANCEL
+to Garage; a second ready racer starts the shared countdown. The shared session
 owns countdown and start time; each player owns KartContext and RacerState.
 Finish place is fixed at the official final gate, before presentation. One
 finisher must not stop the other. Multiplayer Rematch waits for all remaining
 participants to vote. KartControl never accepts a client kart or target identity.
 If either completed racer returns to Garage while the other votes Rematch,
-keep the voter waiting for a same-track rejoin for 20 seconds before starting
-Solo, regardless of click order. Do not leave an unowned race kart visible on
+keep the voter waiting without a timer for a same-track rejoin, regardless of
+click order. The host can START SOLO or CANCEL. Do not leave an unowned race kart visible on
 the active grid. Minimap positions come from server-published `RaceMapPosition`
 and `RaceMapActive` attributes, never client Workspace Kart discovery. Garage
 shows same-server player presence. `QuitRace` is a server-authoritative RACING

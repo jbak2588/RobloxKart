@@ -61,6 +61,7 @@ function methods:Destroy() self.Destroying:Fire(); self.Parent=nil end
 function methods:FireServer(...) self.lastFire={...} end
 local function child(parent,class,name) local result=object(class,name); result.Parent=parent; return result end
 local player=object("Player","LocalPlayer")
+player.UserId=1
 local playerGui=child(player,"PlayerGui","PlayerGui")
 local shared=object("Folder","Shared")
 local replicated=object("ReplicatedStorage")
@@ -170,10 +171,18 @@ check(results.Size.X.Offset==370 and results.Size.Y.Offset==220,"desktop DNF lay
 set("RaceState","FINISHED")
 check(math.abs(results.Position.X.Scale-0.26)<0.001 and not hud.Panel.Visible,"desktop result sits left with no lap HUD")
 set("RaceParticipantCount",2);set("RacePosition",2)
-set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",8);set("RaceState","PRE_RACE")
-check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACER\n8"
- and hud.Countdown.TextTransparency==0,"two-player waiting display")
+set("RaceHostUserId",player.UserId)
+set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
+local lobby=hud:FindFirstChild("RaceLobbyHost")
+check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACER"
+ and hud.Countdown.TextTransparency==0 and lobby.Visible,"host lobby waits without timer")
+lobby.StartSolo.Activated:Fire()
+check(remote.lastFire[1]=="StartSolo","host START SOLO sends server action")
+lobby.Cancel.Activated:Fire()
+check(remote.lastFire[1]=="CancelWait","host CANCEL sends server action")
+remote.lastFire=nil
 set("RaceState","COUNTDOWN");set("RaceState","RACING")
+check(not lobby.Visible,"host lobby hides at countdown")
 set("RaceMatchStatus","RACING")
 local raceKart=object("Model","Kart")
 local raceSeat=child(raceKart,"Seat","Seat")
@@ -212,8 +221,8 @@ check(results.Rematch.Active and results.Rematch.Text=="REMATCH","all terminal u
 check(not hud.RaceMiniMap.Visible,"completed result hides spectator minimap")
 set("RaceRematchReadyCount",1);set("RaceRematchRequiredCount",2);set("RaceRematchReady",true)
 check(not results.Rematch.Active and results.Rematch.Text=="READY 1/2","voter waits for opponent")
-set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH_REJOIN");set("RaceMatchWaitRemaining",18)
+set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH_REJOIN");set("RaceMatchWaitRemaining",0)
 set("RaceMatchStatus","WAITING")
-check(results.Rematch.Text=="WAITING FOR RACER  18" and not results.Rematch.Active,
- "rematch rejoin waiting shows timer instead of READY 1/1")
+check(results.Rematch.Text=="WAITING FOR RACER" and not results.Rematch.Active and lobby.Visible,
+ "rematch rejoin host waits without timer")
 print("PASS: "..count.." production race result HUD checks")

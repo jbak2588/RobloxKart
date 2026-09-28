@@ -118,6 +118,7 @@ function GarageUiController.start()
 
 	local player = Players.LocalPlayer
 	local remote = ReplicatedStorage:WaitForChild("GarageControl") :: RemoteEvent
+	local preferenceRemote = ReplicatedStorage:WaitForChild("ControlsTutorialPreference") :: RemoteEvent
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "RobloxKartGarage"
 	gui.ResetOnSpawn = false
@@ -147,7 +148,7 @@ function GarageUiController.start()
 	backdrop.BorderSizePixel = 0
 	backdrop.Parent = gui
 
-	local title = makeText(backdrop, UDim2.fromScale(0.8, 0.09), UDim2.fromScale(0.1, 0.055), "ROBLOX KART", 40)
+	local title = makeText(backdrop, UDim2.fromScale(0.8, 0.09), UDim2.fromScale(0.1, 0.055), "KART DRIFT MASTERS", 40)
 	title.TextColor3 = Color3.fromRGB(255, 215, 75)
 	title.TextScaled = true
 	local titleSize = Instance.new("UITextSizeConstraint")
@@ -160,6 +161,10 @@ function GarageUiController.start()
 	detailLabel.TextWrapped = true
 	local errorLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.05), UDim2.fromScale(0.1, 0.77), "", 18)
 	errorLabel.TextColor3 = Color3.fromRGB(255, 110, 110)
+	local buildLabel = makeText(backdrop, UDim2.fromOffset(140, 16), UDim2.new(0, 10, 1, -20),
+		"BUILD PV " .. tostring(game.PlaceVersion), 11)
+	buildLabel.TextColor3 = Color3.fromRGB(135, 151, 169)
+	buildLabel.TextXAlignment = Enum.TextXAlignment.Left
 	local mobileCompact = false
 	local presencePanel = Instance.new("Frame")
 	presencePanel.Name = "ServerPresence"
@@ -299,7 +304,9 @@ function GarageUiController.start()
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
-	local tutorial = MobileTutorialView.create(backdrop)
+	local tutorial = MobileTutorialView.create(backdrop, function()
+		preferenceRemote:FireServer("Dismiss")
+	end)
 	local controlsButton = makeButton(backdrop, "CONTROLS", UDim2.new(1, -136, 0, 14))
 	controlsButton.AnchorPoint = Vector2.new(0, 0)
 	controlsButton.Size = UDim2.fromOffset(120, 36)
@@ -523,7 +530,9 @@ function GarageUiController.start()
 		end
 		local driverId, kartId, trackId = selectedIds()
 		controlsButton.Visible = Input.isTouchPreferred() and step == 4
-		if controlsButton.Visible and not tutorialSeenThisSession then
+		if controlsButton.Visible and not tutorialSeenThisSession
+			and player:GetAttribute("ControlsTutorialPreferenceLoaded") == true
+			and player:GetAttribute("ControlsTutorialDismissed") ~= true then
 			tutorialSeenThisSession = true
 			tutorial.open()
 		end
@@ -613,6 +622,8 @@ function GarageUiController.start()
 		update()
 	end)
 	player:GetAttributeChangedSignal("RaceEntryError"):Connect(update)
+	player:GetAttributeChangedSignal("ControlsTutorialPreferenceLoaded"):Connect(update)
+	player:GetAttributeChangedSignal("ControlsTutorialDismissed"):Connect(update)
 	local viewportConnection: RBXScriptConnection? = nil
 	local function bindCamera()
 		if viewportConnection then

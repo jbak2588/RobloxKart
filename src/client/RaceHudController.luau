@@ -363,6 +363,42 @@ function RaceHudController.start()
 	local countdownScale = Instance.new("UIScale")
 	countdownScale.Scale = 1
 	countdownScale.Parent = countdownLabel
+	local lobbyPanel = Instance.new("Frame")
+	lobbyPanel.Name = "RaceLobbyHost"
+	lobbyPanel.AnchorPoint = Vector2.new(0.5, 1)
+	lobbyPanel.Position = UDim2.fromScale(0.5, 0.94)
+	lobbyPanel.Size = UDim2.fromOffset(252, 78)
+	lobbyPanel.BackgroundColor3 = Color3.fromRGB(16, 25, 37)
+	lobbyPanel.BackgroundTransparency = 0.12
+	lobbyPanel.Visible = false
+	lobbyPanel.Parent = screenGui
+	addCorner(lobbyPanel, 7)
+	local lobbyStatus = createLabel(lobbyPanel, "Status", 1)
+	lobbyStatus.Position = UDim2.fromOffset(8, 4)
+	lobbyStatus.Size = UDim2.new(1, -16, 0, 23)
+	lobbyStatus.Text = "SERVER  1 / 2"
+	lobbyStatus.TextSize = 15
+	lobbyStatus.TextColor3 = Color3.fromRGB(255, 225, 70)
+	local function lobbyButton(name, label, x, color)
+		local button = Instance.new("TextButton")
+		button.Name = name
+		button.Position = UDim2.fromOffset(x, 34)
+		button.Size = UDim2.fromOffset(112, 34)
+		button.BackgroundColor3 = color
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Text = label
+		button.TextSize = 14
+		button.Font = Enum.Font.GothamBold
+		button.Parent = lobbyPanel
+		addCorner(button, 5)
+		return button
+	end
+	lobbyButton("StartSolo", "START SOLO", 8, Color3.fromRGB(45, 130, 235)).Activated:Connect(function()
+		remoteEvent:FireServer("StartSolo")
+	end)
+	lobbyButton("Cancel", "CANCEL", 132, Color3.fromRGB(80, 60, 65)).Activated:Connect(function()
+		remoteEvent:FireServer("CancelWait")
+	end)
 
 	local finalLapLabel = Instance.new("TextLabel")
 	finalLapLabel.Name = "FinalLapNotice"
@@ -762,7 +798,7 @@ function RaceHudController.start()
 		rematchButton.Active = canRematch
 		rematchButton.BackgroundColor3 = if canRematch then Color3.fromRGB(45, 130, 235) else Color3.fromRGB(65, 75, 87)
 		rematchButton.Text = if matchStatus == "WAITING" and player:GetAttribute("RaceMatchWaitReason") == "REMATCH_REJOIN"
-			then "WAITING FOR RACER  " .. tostring(getNumberAttribute(player, "RaceMatchWaitRemaining", 0))
+			then "WAITING FOR RACER"
 			elseif rematchReady then string.format("READY %d/%d",
 			getNumberAttribute(player, "RaceRematchReadyCount", 0), getNumberAttribute(player, "RaceRematchRequiredCount", participantCount))
 			elseif participantCount >= 2 and not sessionComplete then "WAITING FOR RACER" else "REMATCH"
@@ -789,8 +825,10 @@ function RaceHudController.start()
 			finishBanner.Visible = false
 		end
 
+		lobbyPanel.Visible = matchStatus == "WAITING" and player:GetAttribute("RaceHostUserId") == player.UserId
+			and (raceState == "PRE_RACE" or raceState == "FINISHED" or raceState == "DNF")
 		if raceState == "PRE_RACE" and matchStatus == "WAITING" then
-			countdownLabel.Text = string.format("WAITING FOR RACER\n%d", getNumberAttribute(player, "RaceMatchWaitRemaining", 0))
+			countdownLabel.Text = "WAITING FOR RACER"
 			countdownLabel.TextTransparency = 0
 			countdownLabel.TextStrokeTransparency = 0.3
 			countdownLabel.Visible = true
@@ -880,6 +918,7 @@ function RaceHudController.start()
 		"RacePosition",
 		"RaceFinishPosition",
 		"RaceMatchStatus",
+		"RaceHostUserId",
 		"RaceMatchWaitReason",
 		"RaceMatchWaitRemaining",
 		"RaceSessionComplete",

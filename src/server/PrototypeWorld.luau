@@ -18,6 +18,20 @@ local RaceConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local KartContext = require(script.Parent:WaitForChild("KartContext"))
 
 local PrototypeWorld = {}
+local driftOutcomeListeners = {}
+
+function PrototypeWorld.onDriftOutcome(callback)
+	table.insert(driftOutcomeListeners, callback)
+	return {Disconnect = function()
+		local index = table.find(driftOutcomeListeners, callback)
+		if index then table.remove(driftOutcomeListeners, index) end
+	end}
+end
+
+local function emitDriftOutcome(player, outcome)
+	if not player then return end
+	for _, callback in driftOutcomeListeners do callback(player, outcome) end
+end
 local contexts = {}
 local ownerContexts = {}
 local defaultContext = nil
@@ -325,6 +339,7 @@ function PrototypeWorld.start()
 		end)
 		kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
 			if kart:GetAttribute("KartOffTrack") then
+				emitDriftOutcome(context.owner, "RESET")
 				if context.nitro.active or context.nitro.exiting then
 					context.commandedSpeed = math.min(context.commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
 				end
@@ -332,7 +347,10 @@ function PrototypeWorld.start()
 				stopSlick()
 			end
 		end)
-		kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() stopNitro("reset"); stopSlick() end)
+		kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function()
+			stopNitro("reset"); stopSlick()
+			emitDriftOutcome(context.owner, "RESET")
+		end)
 		seat:GetPropertyChangedSignal("Occupant"):Connect(function() stopNitro("occupant_changed"); stopSlick() end)
 
 
@@ -361,6 +379,7 @@ function PrototypeWorld.start()
 		local function resetDriftCharge()
 			if context.pendingDriftEnd then
 				context.driftTelemetry:finish(context.pendingDriftEnd, context.driftDuration, context.qualifiedDuration, context.pendingBoostEligible)
+				if not context.pendingBoostEligible then emitDriftOutcome(context.driftDriver, "RESET") end
 			end
 			context.pendingDriftEnd, context.pendingBoostEligible = nil, false
 			context.driftTelemetry:clearCharge()
@@ -374,6 +393,7 @@ function PrototypeWorld.start()
 			context.boostDriver = player
 			context.boostEndTime = now + KartConfig.MINI_BOOST_DURATION
 			kart:SetAttribute("KartBoosting", true)
+			emitDriftOutcome(player, "BOOST")
 			if KartConfig.DEBUG_TELEMETRY then
 				print(string.format(
 					"[KartBoost] START reason=qualified_shift_release chargeDuration=%.2f qualifiedDuration=%.2f",
@@ -427,6 +447,7 @@ function PrototypeWorld.start()
 
 		function context:applySlickHit(player: Player): boolean
 			if not context:getRaceKart(player) or context.slick.active or kart:GetAttribute("KartOffTrack") == true then return false end
+			emitDriftOutcome(player, "RESET")
 			local road = RaceItemGeometry.roadAt(prototype, chassis.Position)
 			if not road then return false end
 			local look = chassis.CFrame.LookVector
@@ -521,6 +542,7 @@ function PrototypeWorld.start()
 			context.currentYawRate = 0
 			kart:SetAttribute("KartVisualSteering", 0)
 			setDriftActive(false, "barrier")
+			emitDriftOutcome(context.owner, "RESET")
 			resetDriftCharge()
 			stopBoost("barrier")
 			stopNitro("barrier")
@@ -639,6 +661,7 @@ function PrototypeWorld.start()
 				context.currentYawRate = 0
 				kart:SetAttribute("KartVisualSteering", 0)
 				setDriftActive(false, "fall")
+				emitDriftOutcome(context.owner, "RESET")
 				resetDriftCharge()
 				stopBoost("fall")
 				stopNitro("fall")

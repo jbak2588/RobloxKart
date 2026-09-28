@@ -29,6 +29,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceCompletedLaps", 0)
 	player:SetAttribute("RaceTotalLaps", RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
 	player:SetAttribute("RaceSessionId", 0)
+	player:SetAttribute("RaceHostUserId", 0)
 	player:SetAttribute("RaceMapPosition", Vector3.zero)
 	player:SetAttribute("RaceMapActive", false)
 	player:SetAttribute("RaceParticipantCount", 1)
@@ -586,7 +587,8 @@ function RaceController.start()
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
 			setChanged(player, "RaceMatchStatus", session.phase)
 			setChanged(player, "RaceMatchWaitReason", session.waitingReason)
-			setChanged(player, "RaceMatchWaitRemaining", if session.phase == "WAITING" then math.max(math.ceil(session.waitDeadline - now - 1e-6), 0) else 0)
+			setChanged(player, "RaceMatchWaitRemaining", 0)
+			setChanged(player, "RaceHostUserId", session.hostUserId)
 			setChanged(player, "RaceSessionComplete", session.phase == "COMPLETE")
 			setChanged(player, "RaceRematchReady", session.rematchVotes[player] == true)
 			setChanged(player, "RaceRematchReadyCount", ready)
@@ -598,7 +600,6 @@ function RaceController.start()
 		session.roundId += 1
 		session.phase = "COUNTDOWN"
 		session.waitingReason = "NONE"
-		session.waitDeadline = 0
 		session.countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
 		session.startTime = 0
 		session.startingParticipantCount = session:count()
@@ -671,7 +672,6 @@ function RaceController.start()
 	local function beginRematchRejoinWait(now: number)
 		session.phase = "WAITING"
 		session.waitingReason = "REMATCH_REJOIN"
-		session.waitDeadline = now + RaceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS
 		publishSession(now)
 	end
 
@@ -683,14 +683,20 @@ function RaceController.start()
 			if not session.terminal[player] then session.terminal[player] = "LEFT" end
 		end
 		setChanged(player, "RaceMapActive", false)
+		setChanged(player, "RaceHostUserId", 0)
 		if racer.context.kart.Parent then racer:finish() end
 		session:remove(player)
 		racers[player] = nil
 		if PrototypeWorld.releaseKartContext then PrototypeWorld.releaseKartContext(player) end
+		if session.hostUserId == player.UserId then
+			local remaining = session:orderedParticipants()
+			session.hostUserId = if remaining[1] then remaining[1].UserId else 0
+		end
 		if session:count() == 0 then
 			session.phase = "EMPTY"
 			session.waitingReason = "NONE"
 			session.startingParticipantCount = 0
+			session.hostUserId = 0
 			return
 		end
 		if session.phase == "COMPLETE" and session:count() == 1 then
@@ -720,8 +726,9 @@ function RaceController.start()
 			session.mode = RaceMode.resolve(trackId)
 			session.targetLaps = RaceMode.targetLaps(session.mode, trackId)
 			session.startingParticipantCount = 0
+			session.hostUserId = player.UserId
 		elseif session.phase ~= "WAITING" or trackId ~= "Track01Race" or session.trackId ~= trackId or session:count() >= session.maxPlayers then
-			player:SetAttribute("RaceEntryError", "Race in progress")
+			player:SetAttribute("RaceEntryError", if session.phase == "COUNTDOWN" or session.phase == "RACING" then "Race in progress" else "Racer not ready")
 			player:SetAttribute("RaceState", "GARAGE")
 			return
 		end
@@ -734,10 +741,9 @@ function RaceController.start()
 		context.kart:SetAttribute("RaceControlsLocked", true)
 		if session:count() == 2 then
 			startSharedCountdown(now)
-		elseif trackId == "Track01Race" and #Players:GetPlayers() >= 2 then
+		elseif trackId == "Track01Race" then
 			session.phase = "WAITING"
 			session.waitingReason = "INITIAL"
-			session.waitDeadline = now + RaceConfig.MULTIPLAYER_WAIT_SECONDS
 			publishSession(now)
 		else
 			startSharedCountdown(now)
@@ -749,6 +755,12 @@ function RaceController.start()
 		if not racer then return end
 		if action == "ReturnGarage" then
 			if racer:handleRemote(action, time()) then removeRacer(player) end
+		elseif action == "CancelWait" and session.phase == "WAITING" and session:count() == 1
+			and session.hostUserId == player.UserId then
+			removeRacer(player)
+		elseif action == "StartSolo" and session.phase == "WAITING" and session:count() == 1
+			and session.trackId == "Track01Race" and session.hostUserId == player.UserId then
+			startSharedCountdown(time())
 		elseif action == "QuitRace" and session:contains(player) and session.phase == "RACING"
 			and player:GetAttribute("RaceState") == "RACING"
 			and PrototypeWorld.getKartContext(player) == racer.context and racer.context.owner == player then
@@ -787,7 +799,6 @@ function RaceController.start()
 				admitRacer(player, context, now)
 			end
 		end
-		if session.phase == "WAITING" and now >= session.waitDeadline then startSharedCountdown(now) end
 		if session.phase == "COUNTDOWN" then
 			local remaining = math.max(math.ceil(session.countdownEndTime - now), 0)
 			for player, racer in session.participants do

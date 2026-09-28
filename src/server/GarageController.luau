@@ -145,7 +145,7 @@ function GarageController.start()
 				return
 			end
 			if session.phase ~= "WAITING" or trackId ~= "Track01Race" or session.trackId ~= trackId then
-				player:SetAttribute("RaceEntryError", "Race in progress")
+				player:SetAttribute("RaceEntryError", if session.phase == "COUNTDOWN" or session.phase == "RACING" then "Race in progress" else "Racer not ready")
 				return
 			end
 		end

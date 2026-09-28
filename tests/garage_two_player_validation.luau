@@ -175,7 +175,7 @@ check(defaultContext.visual:GetAttribute("Color")=="Red","first kart color appli
 local session=sessionType.new("Track01Race","RACE",2)
 session.phase="WAITING";session:add(a,{})
 ready(c,"Kart01","Track02")
-check(c:GetAttribute("RaceEntryError")=="Race in progress" and contexts[c]==nil,"other track cannot rebuild waiting race")
+check(c:GetAttribute("RaceEntryError")=="Racer not ready" and contexts[c]==nil,"other track cannot rebuild waiting race")
 ready(b,"Kart02","Track01Race")
 check(contexts[b] and contexts[b]~=contexts[a] and contexts[b].kart~=contexts[a].kart,"second ready creates distinct kart")
 check(a:GetAttribute("GridSlot")==1 and b:GetAttribute("GridSlot")==2 and created==1,"only two grid slots allocated")
@@ -189,6 +189,13 @@ ready(c,"Kart01","Track01Race")
 check(c:GetAttribute("RaceEntryError")=="Race full" and contexts[c]==nil,"third racer refused")
 session:remove(b);modules.PrototypeWorld.releaseKartContext(b)
 b:SetAttribute("RaceState","GARAGE")
+ready(c,"Kart01","Track01Race")
+check(c:GetAttribute("RaceEntryError")=="Race in progress" and contexts[c]==nil,
+ "countdown rejects entrant with race in progress")
+session.phase="RACING"
+ready(c,"Kart01","Track01Race")
+check(c:GetAttribute("RaceEntryError")=="Race in progress" and contexts[c]==nil,
+ "racing rejects entrant with race in progress")
 session.phase="WAITING";session.waitingReason="REMATCH_REJOIN"
 ready(b,"Kart02","Track01Race")
 check(b:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceEntryError")==""

@@ -105,6 +105,7 @@ local config=load("src/shared/KartConfig.luau",shared,"KartConfig")
 load("src/shared/TrackGeometry.luau",shared,"TrackGeometry")
 load("src/shared/RaceRouteProgress.luau",shared,"RaceRouteProgress")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
+check(raceConfig.OFF_TRACK_TIMEOUT_SECONDS==15,"off-track DNF remains 15 seconds")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
 local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
 local ranking=load("src/server/RaceRanking.luau",server,"RaceRanking")
@@ -187,9 +188,22 @@ check(session.phase=="WAITING" and a:GetAttribute("RaceMatchStatus")=="WAITING",
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"QuitRace")
 check(session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
  and session.terminal[a]==nil,"QuitRace before racing is rejected")
-check(a:GetAttribute("RaceMatchWaitRemaining")==8 and ca.kart:GetAttribute("RaceControlsLocked"),"waiting countdown and locked kart")
-tick(raceConfig.MULTIPLAYER_WAIT_SECONDS+0.1)
-check(session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN","waiting deadline starts solo countdown")
+check(a:GetAttribute("RaceMatchWaitRemaining")==0 and a:GetAttribute("RaceHostUserId")==a.UserId
+ and ca.kart:GetAttribute("RaceControlsLocked"),"first ready is host and waits without timer")
+for _,elapsed in {8,12,40} do
+ tick(elapsed)
+ check(session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE","waiting stays open through 8/20/60 seconds")
+end
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"CancelWait")
+check(session.phase=="WAITING","non-host lobby actions rejected")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"CancelWait")
+check(session.phase=="EMPTY" and session:count()==0 and a:GetAttribute("RaceState")=="GARAGE"
+ and not a:GetAttribute("RaceMapActive") and released[a]>=1,"host cancel returns to Garage and releases kart")
+a:SetAttribute("RaceState","PRE_RACE");tick(0.1)
+check(session.phase=="WAITING","host can ready again")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartSolo")
+check(session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN","host starts solo countdown")
 a:SetAttribute("RaceState","GARAGE");tick(0.1)
 check(session.phase=="EMPTY" and session:count()==0,"solo withdrawal clears session")
 
@@ -272,8 +286,10 @@ check(session:count()==1 and session.phase=="WAITING" and session.waitingReason=
 check(a:GetAttribute("RaceState")=="FINISHED" and a:GetAttribute("RaceFinalTime")==finishedTime
  and a:GetAttribute("RaceRematchReadyCount")==1 and a:GetAttribute("RaceRematchRequiredCount")==2,
  "voter result and two-racer vote requirement remain during rejoin wait")
-check(a:GetAttribute("RaceMatchWaitRemaining")==raceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS,
- "rematch rejoin uses separate twenty-second timeout")
+check(a:GetAttribute("RaceMatchWaitRemaining")==0 and a:GetAttribute("RaceHostUserId")==a.UserId,
+ "rematch rejoin has no timer and waiting racer is host")
+tick(60)
+check(session.phase=="WAITING","rematch rejoin remains waiting")
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
 check(session:count()==2 and session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN"
  and b:GetAttribute("RaceState")=="COUNTDOWN", "Garage racer rejoins same shared countdown")
@@ -310,11 +326,11 @@ cb.chassis.CFrame=CF.new(1600,0,1600);tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+
 check(session.phase=="COMPLETE" and b:GetAttribute("RaceState")=="DNF","remaining racer can finish round after forfeit")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(session.phase=="WAITING" and session.waitingReason=="REMATCH_REJOIN", "forfeit round rematch waits")
-tick(raceConfig.MULTIPLAYER_REMATCH_WAIT_SECONDS-0.1)
-check(session.phase=="WAITING", "solo rematch does not start before deadline")
-tick(0.2)
+tick(60)
+check(session.phase=="WAITING", "solo rematch does not start automatically")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==1
- and b:GetAttribute("RaceRematchRequiredCount")==1, "timeout starts solo rematch")
+ and b:GetAttribute("RaceRematchRequiredCount")==1, "host starts solo rematch")
 services.Players.PlayerRemoving:Fire(a);a.Parent=nil
 check(session:count()==1 and session.phase=="COUNTDOWN" and cb.kart.Parent~=nil,"Garage player's disconnect preserves remaining kart and clock")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)

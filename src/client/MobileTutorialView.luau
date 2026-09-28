@@ -2,7 +2,7 @@ local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
 
 local Tutorial = {}
 
-function Tutorial.create(parent: Instance)
+function Tutorial.create(parent: Instance, onDismiss)
 	local overlay = Instance.new("Frame")
 	overlay.Name = "MobileControlsTutorial"
 	overlay.Size = UDim2.fromScale(1, 1)
@@ -146,10 +146,13 @@ function Tutorial.create(parent: Instance)
 	end
 	local back = button("Back", "BACK", 0.28)
 	local nextButton = button("Next", "NEXT", 0.72)
+	local dismissButton = button("DontShowAgain", "DON'T SHOW AGAIN", 0.83)
+	dismissButton.TextSize = 13
+	dismissButton.Visible = false
 	local page = 1
 	local pages = {
 		{ "DRIVE", "↑       ←   →       ↓", "↑ Accelerate    ← → Steer    ↓ Brake / Reverse\nTap Auto Drive to keep accelerating. Brake overrides it.", { "Forward", "Left", "Right", "Brake" } },
-		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Hold DRIFT while steering. Fill the gauge.\nRelease when it turns gold for MINI BOOST.", { "Drift", "Left", "Right" } },
+		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Release a gold gauge for MINI BOOST.\n4 successful boosts in a row = BONUS NITRO.", { "Drift", "Left", "Right" } },
 		{ "RACE ITEMS", "", "Tap an item to select it.\nTap the Trigger button to use the selected item.", { "Nitro", "Slick", "Shield", "Use" } },
 	}
 	local function layoutContent()
@@ -165,8 +168,14 @@ function Tutorial.create(parent: Instance)
 			else (if page == 2 then (if compact then 167 else 187) else (if compact then 132 else 140)))
 		description.Size = UDim2.new(1, -36, 0, if compact then (if page == 2 then 35 else 56) else (if page == 2 then 60 else 84))
 		description.TextSize = if compact then 14 else 17
-		back.Size = UDim2.fromOffset(118, if compact then 35 else 40)
+		back.Size = UDim2.fromOffset(if page == #pages then (if compact then 90 else 100) else 118,
+			if compact then 35 else 40)
 		nextButton.Size = back.Size
+		dismissButton.Size = UDim2.fromOffset(if compact then 98 else 112, if compact then 35 else 40)
+		back.Position = UDim2.new(if page == #pages then 0.18 else 0.28, 0, 1, -12)
+		nextButton.Position = UDim2.new(if page == #pages then 0.5 else 0.72, 0, 1, -12)
+		dismissButton.Position = UDim2.new(0.82, 0, 1, -12)
+		dismissButton.TextSize = if compact then 11 else 12
 	end
 	local function render()
 		local data = pages[page]
@@ -185,6 +194,7 @@ function Tutorial.create(parent: Instance)
 		end
 		back.Visible = page > 1
 		nextButton.Text = if page == #pages then "GOT IT" else "NEXT"
+		dismissButton.Visible = page == #pages
 		layoutContent()
 	end
 	local function resize()
@@ -202,6 +212,12 @@ function Tutorial.create(parent: Instance)
 	nextButton.Activated:Connect(function()
 		if page == #pages then overlay.Visible = false
 		else page += 1; render() end
+	end)
+	dismissButton.Activated:Connect(function()
+		if page == #pages then
+			overlay.Visible = false
+			if onDismiss then onDismiss() end
+		end
 	end)
 	resize()
 	render()

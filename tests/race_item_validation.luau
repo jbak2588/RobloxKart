@@ -268,6 +268,17 @@ chassis.CFrame=CF.new(0,-50,0); step(1)
 check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"fall reset cleanup")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 for _=1,90 do step(1) end
+for _=1,100 do
+	now+=1/60
+	chassis.AssemblyLinearVelocity=V.new(math.tan(math.rad(15))*60,0,-60)
+	control.OnServerEvent:Fire(player,1,.6,true)
+	services.RunService.Heartbeat:Fire(1/60)
+end
+now+=1/60
+chassis.AssemblyLinearVelocity=V.new(math.tan(math.rad(15))*60,0,-60)
+control.OnServerEvent:Fire(player,1,.6,false)
+services.RunService.Heartbeat:Fire(1/60)
+check(player:GetAttribute("DriftStreakCount")==1,"barrier fixture starts with a successful drift")
 local trigger=child(services.Workspace.Prototype.TestTrack.BarrierTriggers,"Part","TestBarrier")
 trigger.Size=V.new(20,20,20)
 trigger:SetAttribute("BarrierInwardNormal",V.new(0,0,1))
@@ -276,6 +287,7 @@ trigger:SetAttribute("BarrierForwardTangent",V.new(0,0,-1))
 services.Workspace.Prototype.TestTrack.Name="HiddenTrack"; step(1)
 services.Workspace.Prototype.HiddenTrack.Name="TestTrack"; step(1)
 check(kart:GetAttribute("KartCrashActive") and not kart:GetAttribute("KartNitroActive"),"real barrier path cancels Nitro")
+check(player:GetAttribute("DriftStreakCount")==0,"barrier crash resets drift streak")
 check(not world.activateNitro(player),"crash activation rejected")
 check(chassis.AssemblyLinearVelocity.Y==0,"barrier introduces no vertical impulse")
 local input=fs.readFile("src/client/KartInputController.luau")
@@ -526,8 +538,59 @@ check(kart:GetAttribute("KartDriftDiagMaxServerDelta")==.63,"hitch captured with
 charge(15)
 check(world.applySlickHit(player),"slick diagnostic fixture accepted")
 check(kart:GetAttribute("KartDriftDiagEndReason")=="slick" and not kart:GetAttribute("KartDriftChargeReady"),"slick cancels gauge")
+startRace()
+local function successfulDrift()
+	for _=1,100 do driftFrame(false,15) end
+	for _=1,100 do driftFrame(true,15) end
+	driftFrame(false,15)
+end
+successfulDrift()
+check(player:GetAttribute("DriftStreakCount")==1 and not player:GetAttribute("DriftBonusNitroAwarded"),
+	"real Mini Boost begins streak")
+for _=1,100 do driftFrame(false,15) end
+check(player:GetAttribute("DriftStreakCount")==1,"straight driving does not break streak")
+remote.OnServerEvent:Fire(player,"Select","Shield");use()
+check(player:GetAttribute("RaceChargeShield")==0 and player:GetAttribute("DriftStreakCount")==1,
+	"Shield use does not break streak")
+for _=1,10 do driftFrame(false,15) end
+remote.OnServerEvent:Fire(player,"Select","Slick");use()
+check(player:GetAttribute("RaceChargeSlick")==0 and player:GetAttribute("DriftStreakCount")==1,
+	"Slick deploy does not break streak")
+for _=1,100 do driftFrame(true,8) end
+driftFrame(false,8)
+check(player:GetAttribute("DriftStreakCount")==0,"failed drift breaks streak")
+for expected=1,3 do
+	successfulDrift()
+	check(player:GetAttribute("DriftStreakCount")==expected,"successful drift streak "..expected.." actual "..tostring(player:GetAttribute("DriftStreakCount")).." reason "..tostring(kart:GetAttribute("KartDriftDiagEndReason")).." eligible "..tostring(kart:GetAttribute("KartDriftDiagBoostEligible")).." duration "..tostring(kart:GetAttribute("KartDriftDiagDuration")).." qualified "..tostring(kart:GetAttribute("KartDriftDiagQualified")))
+end
+successfulDrift()
+check(player:GetAttribute("DriftStreakCount")==0 and player:GetAttribute("DriftBonusNitroAwarded")
+	and player:GetAttribute("RaceChargeNitro")==2,"four actual Mini Boosts grant one Nitro")
+successfulDrift()
+check(player:GetAttribute("RaceChargeNitro")==2,"further boosts do not grant a second Nitro")
+startRace()
+successfulDrift()
+remote.OnServerEvent:Fire(player,"Select","Nitro");use()
+check(player:GetAttribute("RaceChargeNitro")==0 and player:GetAttribute("DriftStreakCount")==1,
+	"Nitro use does not break streak")
+for _=1,3 do successfulDrift() end
+check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("DriftBonusNitroAwarded"),
+	"four boosts replenish one spent Nitro")
+startRace()
+successfulDrift()
+kart:SetAttribute("KartOffTrack",true)
+check(player:GetAttribute("DriftStreakCount")==0,"off-track resets streak")
+kart:SetAttribute("KartOffTrack",false)
+successfulDrift()
+check(world.applySlickHit(player) and player:GetAttribute("DriftStreakCount")==0,
+	"Slick hit resets streak")
+startRace()
+successfulDrift()
+kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+check(player:GetAttribute("DriftStreakCount")==0,"fall/reset serial clears streak")
 player:SetAttribute("RaceState","GARAGE");kart:SetAttribute("RaceControlsLocked",true);step(0)
-check(not kart:GetAttribute("KartDriftChargeReady"),"race lock clears gauge")
+check(not kart:GetAttribute("KartDriftChargeReady") and not player:GetAttribute("DriftBonusNitroAwarded"),
+	"Garage clears gauge and bonus award flag")
 startRace()
 chassis.AssemblyLinearVelocity=V.new(0,0,-70)
 kart:SetAttribute("KartFinishRollDirection",V.new(0,0,-1))

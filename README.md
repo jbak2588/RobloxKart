@@ -1,4 +1,4 @@
-# RobloxKart / Kart Master
+# Kart Drift Masters
 
 Mobile-first arcade kart racing game for Roblox.
 
@@ -293,11 +293,18 @@ Slick, Shield, barrier recovery and Finish/Result/Rematch by driving in Studio.
 
 ## M2-A1 Two-Player Synchronized Race
 
+The Garage displays **KART DRIFT MASTERS** and the current Roblox PlaceVersion
+as a small build label. Four consecutive successful Mini Boost starts earn one
+bonus Nitro per race; a failed drift, off-track event, barrier, Slick, or reset
+breaks the streak. The drift HUD shows progress and the award. On mobile, the
+last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
+stored separately from race data; CONTROLS still opens the tutorial manually.
+
 `Track01Race` (Practice Circuit Race, **2 laps**) accepts one or two racers.
-`Track01` remains solo with 1 lap; `Track02` remains solo with 3 laps. A lone
-connected player starts the normal countdown immediately. With another player
-connected, the first ready racer waits up to 8 seconds; the second ready racer
-starts the shared 3-second countdown immediately. A single `RaceSession` owns
+`Track01` remains solo with 1 lap; `Track02` remains solo with 3 laps. The first
+ready racer waits without a timer and becomes the lobby host. The host can
+START SOLO or CANCEL back to Garage. A second ready racer starts the shared
+3-second countdown immediately. A single `RaceSession` owns
 the countdown deadline and official start timestamp. The roster locks when
 countdown begins. Each racer has a separate KartContext, grid slot and progress.
 
@@ -308,8 +315,8 @@ other racer driving. The session completes when all remaining racers finish or
 DNF; a disconnect removes that racer without ending another racer's drive.
 Multiplayer Rematch requires a vote from every remaining participant. If one
 racer returns to Garage and the remaining racer votes Rematch, either click
-order starts a 20-second same-track rejoin wait. The returning racer starts a shared
-countdown; otherwise the voter starts a solo Rematch after the deadline.
+order keeps the voter waiting without a timer for a same-track rejoin. The
+returning racer starts a shared countdown; the host can START SOLO or CANCEL.
 Released karts leave the race grid, and `KartOwnerUserId` identifies active
 server-owned karts. The race minimap uses server-published `RaceMapPosition`
 attributes at the 0.10-second ranking interval and shows rivals as orange

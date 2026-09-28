@@ -6,7 +6,7 @@ function Gauge.segmentCount(progress: number): number
 	return math.floor(math.clamp(progress,0,1)*5)
 end
 
-function Gauge.create(root, debugEnabled)
+function Gauge.create(root, debugEnabled, player)
 	local frame=Instance.new("Frame")
 	frame.Name="DriftChargeGauge"
 	frame.AnchorPoint=Vector2.new(0.5,1)
@@ -19,6 +19,27 @@ function Gauge.create(root, debugEnabled)
 	frame.Visible=false
 	frame.Parent=root
 	View.round(frame,UDim.new(0,3))
+	local streakLabel=Instance.new("TextLabel")
+	streakLabel.Name="DriftStreak"
+	streakLabel.AnchorPoint=Vector2.new(0.5,1)
+	streakLabel.Size=UDim2.fromOffset(165,20)
+	streakLabel.BackgroundTransparency=1
+	streakLabel.Font=Enum.Font.GothamBold
+	streakLabel.TextColor3=Color3.fromRGB(65,225,245)
+	streakLabel.TextSize=13
+	streakLabel.Visible=false
+	streakLabel.Parent=root
+	local bonusLabel=Instance.new("TextLabel")
+	bonusLabel.Name="DriftBonusNitro"
+	bonusLabel.AnchorPoint=Vector2.new(0.5,1)
+	bonusLabel.Size=UDim2.fromOffset(165,24)
+	bonusLabel.BackgroundTransparency=1
+	bonusLabel.Font=Enum.Font.GothamBlack
+	bonusLabel.TextColor3=Color3.fromRGB(255,218,75)
+	bonusLabel.TextSize=17
+	bonusLabel.Text="NITRO +1"
+	bonusLabel.Visible=false
+	bonusLabel.Parent=root
 	local border=View.stroke(frame,1)
 	local segments, fills={},{}
 	for i=1,5 do
@@ -63,7 +84,8 @@ function Gauge.create(root, debugEnabled)
 		View.round(diagnostic,UDim.new(0,4))
 	end
 	local self={frame=frame,diagnostic=diagnostic,pulse=0,feedback=0,endTime=0,opacity=0,
-		wasActive=false,wasReady=false,wasBoosting=false,lastProgress=0,lastSerial=nil,lastText="",success=false}
+		wasActive=false,wasReady=false,wasBoosting=false,lastProgress=0,lastSerial=nil,lastText="",success=false,
+		bonusTime=0,lastAwarded=false}
 	function self:layout(size,mobile,wheel,origin)
 		local l=View.layout(size)
 		if mobile then
@@ -80,6 +102,10 @@ function Gauge.create(root, debugEnabled)
 				frame.Position=UDim2.new(.5,0,1,-diameter*2/3-10)
 			end
 		end
+		streakLabel.Position=UDim2.new(frame.Position.X.Scale,frame.Position.X.Offset,
+			frame.Position.Y.Scale,frame.Position.Y.Offset-frame.Size.Y.Offset-5)
+		bonusLabel.Position=UDim2.new(streakLabel.Position.X.Scale,streakLabel.Position.X.Offset,
+			streakLabel.Position.Y.Scale,streakLabel.Position.Y.Offset-20)
 		if diagnostic then
 			local width=math.min(184,size.X/2-60)
 			local x,y=size.X-width-12,size.Y-116
@@ -105,7 +131,11 @@ function Gauge.create(root, debugEnabled)
 		self.wasActive,self.wasReady,self.wasBoosting=false,false,false
 		self.lastProgress,self.lastText,self.success=0,"",false
 		self.lastSerial=kart and kart:GetAttribute("KartDriftDiagEndSerial")
+		self.bonusTime=0
+		self.lastAwarded=player and player:GetAttribute("DriftBonusNitroAwarded")==true or false
 		frame.Visible=false
+		streakLabel.Visible=false
+		bonusLabel.Visible=false
 		frame:SetAttribute("LitSegments",0)
 		border.Thickness=1
 		for i,cell in segments do
@@ -171,6 +201,15 @@ function Gauge.create(root, debugEnabled)
 	end
 	function self:update(enabled,kart,held,delta)
 		if not enabled or not kart then self:reset(kart); return end
+		local count=if player then player:GetAttribute("DriftStreakCount") else 0
+		local awarded=player and player:GetAttribute("DriftBonusNitroAwarded")==true or false
+		if awarded and not self.lastAwarded then self.bonusTime=1 end
+		self.lastAwarded=awarded
+		self.bonusTime=math.max(0,self.bonusTime-delta)
+		streakLabel.Visible=true
+		streakLabel.Text=if awarded then "DRIFT STREAK  BONUS EARNED"
+			else string.format("DRIFT STREAK  %d / 4",if type(count)=="number" then count else 0)
+		bonusLabel.Visible=self.bonusTime>0
 		local progress=math.clamp(kart:GetAttribute("KartDriftChargeProgress") or 0,0,1)
 		local ready=kart:GetAttribute("KartDriftChargeReady")==true
 		local active=kart:GetAttribute("KartDrifting")==true or progress>0 or ready
