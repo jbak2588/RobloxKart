@@ -16,6 +16,8 @@ local RaceItemGeometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local RaceItemConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 local RaceConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
 local KartContext = require(script.Parent:WaitForChild("KartContext"))
+local RacerCollisionIsolation = require(script.Parent:WaitForChild("RacerCollisionIsolation"))
+local KartUprightRecovery = require(script.Parent:WaitForChild("KartUprightRecovery"))
 
 local PrototypeWorld = {}
 local driftOutcomeListeners = {}
@@ -35,22 +37,7 @@ end
 local contexts = {}
 local ownerContexts = {}
 local defaultContext = nil
-local KART_COLLISION_GROUP = "RacerKart"
-
-local function configureKartCollisions()
-	if not physicsAvailable then return end
-	if not PhysicsService:IsCollisionGroupRegistered(KART_COLLISION_GROUP) then
-		PhysicsService:RegisterCollisionGroup(KART_COLLISION_GROUP)
-	end
-	PhysicsService:CollisionGroupSetCollidable(KART_COLLISION_GROUP, KART_COLLISION_GROUP, false)
-end
-
-local function assignKartCollisionGroup(kart: Model)
-	if not physicsAvailable then return end
-	for _, descendant in kart:GetDescendants() do
-		if descendant:IsA("BasePart") then descendant.CollisionGroup = KART_COLLISION_GROUP end
-	end
-end
+local collisionIsolation = RacerCollisionIsolation.new(if physicsAvailable then PhysicsService else nil)
 
 function PrototypeWorld.getKartContext(player: Player)
 	return ownerContexts[player]
@@ -187,7 +174,7 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame, kartName: stri
 
 	kart.PrimaryPart = chassis
 	kart.Parent = prototype
-	assignKartCollisionGroup(kart)
+	collisionIsolation:bindKart(kart)
 	chassis:SetNetworkOwner(nil)
 
 	return kart, chassis, seat
@@ -239,7 +226,7 @@ local function crossedBarrier(trigger: BasePart, fromPosition: Vector3, toPositi
 end
 
 function PrototypeWorld.start()
-	configureKartCollisions()
+	collisionIsolation:configure()
 	local prototype = Workspace:FindFirstChild("Prototype")
 	if not prototype or not prototype:IsA("Folder") then
 		if prototype then
@@ -301,6 +288,20 @@ function PrototypeWorld.start()
 	local function createContext(owner: Player?, kart: Model, chassis: BasePart, seat: Seat, spawnCFrame: CFrame)
 		local context = KartContext.new(nil, kart, chassis, seat, spawnCFrame, KartConfig, RaceItemConfig, NitroState, SlickMotion, DriftTelemetry)
 		contexts[context] = true
+		local driverCollisionBinding = nil
+		local function restoreDriverCollision()
+			if driverCollisionBinding then driverCollisionBinding:restore(); driverCollisionBinding = nil end
+		end
+		local function bindDriverCollision(player: Player)
+			restoreDriverCollision()
+			local character = player.Character
+			if not character then return end
+			driverCollisionBinding = collisionIsolation:bindDriver(character)
+			if physicsAvailable and RunService:IsStudio() then
+				local kartParts, driverParts, mismatches = collisionIsolation:audit(kart, character)
+				print(string.format("[KartCollision] kart=%d driver=%d mismatches=%d", kartParts, driverParts, mismatches))
+			end
+		end
 
 		local function stopSlick()
 			context.slick:stop()
@@ -661,6 +662,7 @@ function PrototypeWorld.start()
 				context.commandedSpeed = 0
 				context.smoothedSteering = 0
 				context.currentYawRate = 0
+				context.tiltUnsafeElapsed = 0
 				kart:SetAttribute("KartVisualSteering", 0)
 				setDriftActive(false, "fall")
 				emitDriftOutcome(context.owner, "RESET")
@@ -686,6 +688,7 @@ function PrototypeWorld.start()
 				return
 			end
 			if raceControlsLocked then
+				context.tiltUnsafeElapsed = 0
 				stopNitro("locked")
 				stopSlick()
 				stopCrash()
@@ -711,6 +714,23 @@ function PrototypeWorld.start()
 			local driftRequested = false
 			local occupant = seat.Occupant
 			local player = occupant and Players:GetPlayerFromCharacter(occupant.Parent)
+			local resetSerial = kart:GetAttribute("RaceResetSerial")
+			if resetSerial ~= context.lastUprightResetSerial then
+				context.lastUprightResetSerial = resetSerial
+				context.tiltUnsafeElapsed = 0
+			elseif player == context.owner and player:GetAttribute("RaceState") == "RACING"
+				and not context.crashActive then
+				local upDot = chassis.CFrame.UpVector:Dot(Vector3.yAxis)
+				local elapsed, recover = KartUprightRecovery.advance(upDot, context.tiltUnsafeElapsed, deltaTime, KartConfig)
+				context.tiltUnsafeElapsed = elapsed
+				if recover then
+					context.lastPlanarForward = KartUprightRecovery.apply(kart, chassis, context.lastPlanarForward)
+					context.tiltUnsafeElapsed = 0
+					return
+				end
+			else
+				context.tiltUnsafeElapsed = 0
+			end
 			local control = player and context.control
 			local inputAge = if control then now - control.lastUpdate else nil
 			local hasValidInput = control ~= nil and inputAge ~= nil and inputAge <= KartConfig.INPUT_TIMEOUT
@@ -732,7 +752,7 @@ function PrototypeWorld.start()
 				then checkBarrierEntries(now, previousBarrierPosition, planarVelocity)
 				else false
 			if context.crashActive then
-				if chassis.CFrame.UpVector.Y < 0.55 then
+				if chassis.CFrame.UpVector.Y < KartConfig.KART_UPRIGHT_MIN_DOT then
 					local look = chassis.CFrame.LookVector
 					local flatLook = Vector3.new(look.X, 0, look.Z)
 					local heading = if flatLook.Magnitude > 0.001 then flatLook.Unit else context.lastPlanarForward
@@ -783,7 +803,7 @@ function PrototypeWorld.start()
 			local lookVector = chassis.CFrame.LookVector
 			local flatForward = Vector3.new(lookVector.X, 0, lookVector.Z)
 			local forward = if flatForward.Magnitude > 0.001 then flatForward.Unit else Vector3.new(0, 0, -1)
-			if chassis.CFrame.UpVector.Y >= 0.55 then
+			if chassis.CFrame.UpVector.Y >= KartConfig.KART_UPRIGHT_MIN_DOT then
 				context.lastPlanarForward = forward
 			end
 			local rightVector = chassis.CFrame.RightVector
@@ -1010,15 +1030,27 @@ function PrototypeWorld.start()
 			self.owner = player
 			ownerContexts[player] = self
 			kart:SetAttribute("KartOwnerUserId", player.UserId)
+			bindDriverCollision(player)
 			self.ownerConnections = {
 				player.CharacterRemoving:Connect(function()
+					restoreDriverCollision()
 					if self.nitro.driver == player then stopNitro("character_removed") end
 					if self.slick.driver == player then stopSlick() end
 				end),
 				player:GetAttributeChangedSignal("RaceState"):Connect(function()
+					if player:GetAttribute("RaceState") == "GARAGE" then restoreDriverCollision() end
 					if player:GetAttribute("RaceState") ~= "RACING" then
 						if self.nitro.driver == player then stopNitro("race_state") end
 						if self.slick.driver == player then stopSlick() end
+					end
+				end),
+				seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+					local character = player.Character
+					local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+					if humanoid and seat.Occupant == humanoid then
+						if not driverCollisionBinding then bindDriverCollision(player) end
+					else
+						restoreDriverCollision()
 					end
 				end),
 			}
@@ -1029,6 +1061,8 @@ function PrototypeWorld.start()
 			local player = self.owner
 			if not player then return end
 			for _, connection in self.ownerConnections or {} do connection:Disconnect() end
+			restoreDriverCollision()
+			self.tiltUnsafeElapsed = 0
 			self.ownerConnections = nil
 			self.control = nil
 			if self.nitro.driver == player then stopNitro("player_removed") end

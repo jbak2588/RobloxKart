@@ -43,6 +43,8 @@ function KartContext.new(owner, kart, chassis, seat, spawnCFrame, config, itemCo
 		crashSpinRate = 0,
 		crashTrackForward = Vector3.new(0, 0, -1),
 		lastPlanarForward = Vector3.new(0, 0, -1),
+		tiltUnsafeElapsed = 0,
+		lastUprightResetSerial = kart:GetAttribute("RaceResetSerial"),
 		finishRollElapsed = 0,
 		finishRollInitialSpeed = 0,
 		finishRollDirection = Vector3.new(0, 0, -1),

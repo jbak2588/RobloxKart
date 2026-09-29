@@ -490,8 +490,10 @@ and items until they finish, quit, DNF or time out. Remaining racers at expiry
 receive `RACE_TIMEOUT` DNF without a finish place/time. All terminal results
 complete the round early, while solo races retain their existing lifecycle.
 Finished racers see a waiting countdown with Rematch disabled and Garage
-available; active racers see a compact LAP HUD warning. R1 Studio/device runtime
-verification is still required.
+available; active racers see a compact LAP HUD warning. The user confirmed
+M2-B0-R1 RUNTIME PASS in Studio with 1 Server / 4 Clients: the flexible lobby,
+same-server AVAILABLE / INVITE / JOIN, revised WAITING panel, 45-second grace,
+finished-racer countdown, RACE_TIMEOUT DNF, and resolution of the infinite wait.
 M2-B1 makes TrackCatalog authoritative for match type, minimum/maximum racers,
 laps and Garage preview rotation. Practice Circuit is solo practice (1 lap),
 Base Circuit is public 1–4 (2 laps), and Prototype Circuit V2 remains solo
@@ -503,8 +505,14 @@ The Garage ONLINE list continues to include all players on that server.
 The MVP supports one active RaceSession / track at a time. Four-player server
 capacity is recommended for the public beta. The user checked M2-B1 in Studio
 and on mobile; screenshots exposed a waiting-title overlap with the availability
-panel. The title was moved into that panel, so the revised composition still
-needs a device recheck.
+panel. The user then confirmed AVAILABLE IN SERVER, host INVITE, the RACE INVITE
+modal, JOIN, a three-player race, and the revised waiting composition in Studio
+and on mobile. Fourth invited JOIN auto-start has not been explicitly tested.
+M2-B0-R2 isolates kart and seated-driver parts with RacerKart and RacerDriver
+groups, including late descendants, and restores each avatar part's original
+group on release. A per-kart upright guard corrects sustained roll/pitch during
+RACING without increasing planar speed. R2 Studio close-contact and manual-tilt
+runtime validation is still required before closing M2-B multiplayer.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

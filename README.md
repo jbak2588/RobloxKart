@@ -349,7 +349,10 @@ expiry, racers still driving receive `RACE_TIMEOUT` DNF without an official
 finish place or time. The original position denominator remains fixed. Finished
 racers see the waiting countdown with Rematch disabled and Garage available;
 drivers see a compact race-end warning in the LAP HUD. Solo races have no grace
-timer. R1 Studio/device runtime verification remains pending.
+timer. The user confirmed M2-B0-R1 RUNTIME PASS in Studio with 1 Server /
+4 Clients: the flexible 1/4–4/4 lobby, same-server AVAILABLE / INVITE / JOIN,
+revised WAITING panel, 45-second first-finisher grace, finished-racer countdown,
+RACE_TIMEOUT DNF, and resolution of the infinite wait.
 M2-B1 reads match type, capacity, laps and preview rotation from `TrackCatalog`.
 Track Select and READY show each track's capability. Base Circuit's Garage
 preview rotates 90 degrees clockwise; gameplay geometry and minimap stay in
@@ -366,8 +369,17 @@ invites and possibly a reserved server; it is not implemented in M2-B1.
 Different selected tracks may have different capacity; Prototype Circuit V2
 remains solo until its geometry is validated for public multiplayer. The user
 checked M2-B1 in Studio and on a mobile device. Screenshots exposed overlap
-between the waiting title and availability panel; the title now sits inside
-that panel, and this revised composition needs a device recheck.
+between the waiting title and availability panel. The user then confirmed
+AVAILABLE IN SERVER, host INVITE, the RACE INVITE modal, JOIN, a three-player
+race, and the revised waiting composition in Studio and on mobile. Fourth
+invited JOIN auto-start has not been explicitly validated.
+
+M2-B0-R2 isolates kart and seated-driver BaseParts, including late-added
+accessories, using RacerKart and RacerDriver collision groups. Original avatar
+groups are restored when the driver leaves the race kart. A per-kart upright
+guard corrects sustained abnormal roll/pitch during RACING while preserving
+planar heading and momentum. Its Studio close-contact and manual-tilt runtime
+validation remains pending; M2-B multiplayer is not yet closed.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent

@@ -166,6 +166,8 @@ local player=child(services.Players,"Player","TestDriver")
 player.UserId=1
 player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100
+load("src/server/RacerCollisionIsolation.luau",server,"RacerCollisionIsolation")
+load("src/server/KartUprightRecovery.luau",server,"KartUprightRecovery")
 local world=load("src/server/PrototypeWorld.luau",server,"PrototypeWorld")
 check(not world.activateNitro(player),"pre-start rejection")
 world.start()
