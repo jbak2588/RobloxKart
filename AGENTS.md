@@ -534,16 +534,16 @@ adds concurrent Base MatchRooms and reserved multiplayer race launch. M3-A2
 polishes return/rematch/failure recovery and verifies the no-blocking MVP gate.
 Selected future tracks may support up to six racers; do not implement six here.
 
-M3-A0 local implementation is complete, but its first published mobile routing
-test FAILED: Practice/V2 leave HUB, appear briefly at the reserved destination,
-then return to HUB Garage. The PC Studio "RACE SERVER UNAVAILABLE" result is
-expected from Studio's unsupported TeleportService playtest and is not a
-published-runtime result. M3-A0-R1 checks the source Experience via
-`SourceGameId`, reuses the initial validated launch context, logs concrete
-role/bootstrap/teleport reasons, and confirms the seat over a 2.5-second
-window before PRE_RACE. Do not mark M3-A0 runtime PASS until a published Roblox
-client completes HUB → reserved Practice/V2 → Countdown → Race without an
-automatic return to HUB.
+M3-A0-R1 published PC/mobile runtime PASSED for Practice and V2 independent
+reserved races, same-track and different-track Solo instances, Practice
+Countdown/Race/Finish, Solo REMATCH, and result GARAGE returning to public HUB.
+Studio teleport failure is expected and is not a published-runtime result.
+The remaining M3-A0 defect was in-race QUIT removing the kart while leaving
+the avatar in the reserved Race server. M3-A0-R2 keeps the forfeited kart locked
+until PlayerRemoving and requests HUB return through the existing service;
+failed return leaves a FORFEIT result with GARAGE retry. Public Base Circuit
+still forfeits locally. M3-A0 runtime closure requires published PC/mobile
+Practice and V2 in-race QUIT to reach HUB Garage.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

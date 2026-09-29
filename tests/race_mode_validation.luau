@@ -162,16 +162,19 @@ player:SetAttribute("SelectedTrackId","Track01")
 kart:SetAttribute("RaceStartCFrame",CF.new(0,0,20))
 child(server,"ModuleScript","PrototypeWorld")
 local kartContext={owner=player,kart=kart,chassis=chassis,seat=seat}
+local releasedKartContexts=0
 modules.PrototypeWorld={onDriftOutcome=function() end,getKartContext=function(p)
  if p==player then return kartContext end
 end, getRaceKart=function(p)
  if p==player and p:GetAttribute("RaceState")=="RACING" and not kart:GetAttribute("RaceControlsLocked") then return kart,chassis end
-end, activateNitro=function() return true end, applySlickHit=function() return true end}
+end, activateNitro=function() return true end, applySlickHit=function() return true end,
+ releaseKartContext=function() releasedKartContexts+=1 end}
 load("src/server/RaceSession.luau",server,"RaceSession")
 load("src/server/RaceRanking.luau",server,"RaceRanking")
 load("src/server/RacerState.luau",server,"RacerState")
 local race=load("src/server/RaceController.luau",server,"RaceController")
-race.start()
+local routeOptions={}
+race.start(routeOptions)
 load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
@@ -270,6 +273,13 @@ end
 start("Track01")
 cross(checkpoints[1]); cross(checkpoints[2]); cross(finish)
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.01)
+local hubReturns=0
+local releaseCountBeforeReserved= releasedKartContexts
+routeOptions.returnToHub=function() hubReturns+=1; return true end
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"ReturnGarage")
+check(hubReturns==1 and player:GetAttribute("RaceState")=="FINISHED"
+ and releasedKartContexts==releaseCountBeforeReserved,"reserved Finish Garage requests HUB without premature kart cleanup")
+routeOptions.returnToHub=nil
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"ReturnGarage")
 check(player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("RaceFinishPhase")=="NONE"
  and not kart:GetAttribute("KartFinishRollActive"),"Garage clears finish presentation")
@@ -325,4 +335,33 @@ end
 -- Provisional recovery must not bypass the existing off-road timeout.
 chassis.CFrame=CF.new(1500,0,1500); tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
 check(player:GetAttribute("RaceState")=="DNF","offroad timeout still wins")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+check(player:GetAttribute("RaceState")=="RACING","reserved quit setup reaches active V2 race")
+routeOptions.returnToHub=function()
+ hubReturns+=1
+ player:SetAttribute("RaceEntryError","RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN")
+ return false
+end
+releaseCountBeforeReserved=releasedKartContexts
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"QuitRace")
+local session=modules.RaceSession.active()
+check(hubReturns==2 and session.terminal[player]=="FORFEIT"
+ and player:GetAttribute("RaceState")=="DNF" and player:GetAttribute("RaceDNFReason")=="FORFEIT"
+ and player:GetAttribute("RaceSessionComplete")==true,"reserved quit forfeits and requests HUB exactly once")
+check(kart:GetAttribute("RaceControlsLocked")==true and kart:GetAttribute("KartFinishRollActive")==false
+ and chassis.AssemblyLinearVelocity==V.zero and chassis.AssemblyAngularVelocity==V.zero
+ and player:GetAttribute("RaceMapActive")==false,"failed HUB return leaves locked inert kart")
+check(player:GetAttribute("RaceFinalTime")==0 and player:GetAttribute("RaceFinishPosition")==0
+ and releasedKartContexts==releaseCountBeforeReserved and session:contains(player),"forfeit gives no finish result and retains kart until departure")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"QuitRace")
+check(hubReturns==2,"repeated Quit cannot duplicate HUB return")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
+check(player:GetAttribute("RaceState")=="DNF" and hubReturns==2,"forfeit cannot rematch while HUB return is pending")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"ReturnGarage")
+check(hubReturns==3 and session:contains(player) and releasedKartContexts==releaseCountBeforeReserved,
+ "failed HUB return keeps Garage retry path and kart")
+services.Players.PlayerRemoving:Fire(player)
+check(releasedKartContexts==releaseCountBeforeReserved+1 and not session:contains(player),
+ "successful departure releases reserved kart through PlayerRemoving")
 print("PASS: "..count.." total race integration checks including real V2 recovery")

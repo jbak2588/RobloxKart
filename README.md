@@ -398,16 +398,17 @@ Studio does not support TeleportService playtests. The configured server size
 remains 50: HUB may hold more users, while a reserved race's participant count
 is constrained by its payload and TrackCatalog.
 
-M3-A0 local implementation is complete, but the first published mobile test
-did not pass: Practice and V2 teleported out of HUB, briefly appeared in the
-destination server, then returned to HUB Garage. A PC Studio
-"RACE SERVER UNAVAILABLE" log is expected because Studio cannot test real
-TeleportService routing; it is not evidence of the published defect. M3-A0-R1
-validates the source Experience with `SourceGameId`, reuses the first accepted
-launch context at arrival, logs role/launch/bootstrap rejection reasons, and
-waits up to 2.5 seconds for seating before PRE_RACE. Published Roblox client
-validation must confirm Practice and V2 reach Countdown and remain in their
-reserved Race servers before M3-A0 is marked runtime PASS.
+M3-A0-R1 published PC and mobile runtime passed for independent Practice and V2
+reserved races, same-track and different-track Solo instances, Practice
+Countdown/Race/Finish, Solo REMATCH in the same reserved server, and result
+GARAGE returning to public HUB. A PC Studio "RACE SERVER UNAVAILABLE" result
+is expected because Studio cannot test real TeleportService routing. The
+remaining published defect was in-race QUIT: it removed the kart but left the
+avatar in the reserved Race server. M3-A0-R2 routes a reserved forfeit through
+the existing HUB return, keeping the kart locked until PlayerRemoving cleanup.
+If return fails, the FORFEIT result retains GARAGE for retry. Public Base
+Circuit still forfeits locally. M3-A0 remains open until published PC/mobile
+Practice and V2 in-race QUIT both return to HUB Garage.
 
 M3-A1 will add concurrent Base Circuit MatchRooms in HUB and launch reserved
 multiplayer Race Servers. M3-A2 will polish return, rematch and failure recovery

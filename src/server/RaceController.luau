@@ -389,6 +389,22 @@ function RaceController.start(options)
 			session.terminal[player] = "RACE_TIMEOUT"
 		end
 
+		function racer:forfeit()
+			if player:GetAttribute("RaceState") ~= "RACING" then return false end
+			kart:SetAttribute("RaceControlsLocked", true)
+			kart:SetAttribute("KartFinishRollActive", false)
+			chassis.AssemblyLinearVelocity = Vector3.zero
+			chassis.AssemblyAngularVelocity = Vector3.zero
+			resetOffTrackState(player)
+			clearGateState()
+			player:SetAttribute("RaceCountdown", 0)
+			player:SetAttribute("RaceDNFReason", "FORFEIT")
+			player:SetAttribute("RaceMapActive", false)
+			setRaceState(player, "DNF")
+			session.terminal[player] = "FORFEIT"
+			return true
+		end
+
 		local function beginFinishSequence(player: Player, now: number)
 			player:SetAttribute("RaceCurrentLap", racer.targetLaps)
 			player:SetAttribute("RaceNextCheckpoint", 1)
@@ -855,10 +871,19 @@ function RaceController.start(options)
 		elseif action == "QuitRace" and session:contains(player) and session.phase == "RACING"
 			and player:GetAttribute("RaceState") == "RACING"
 			and PrototypeWorld.getKartContext(player) == racer.context and racer.context.owner == player then
-			session.terminal[player] = "FORFEIT"
-			removeRacer(player)
+			if options and options.returnToHub then
+				if racer:forfeit() then
+					updateComplete()
+					publishSession(time())
+					options.returnToHub(player)
+				end
+			else
+				session.terminal[player] = "FORFEIT"
+				removeRacer(player)
+			end
 		elseif action == "Rematch" and session.phase == "COMPLETE"
-			and (player:GetAttribute("RaceState") == "FINISHED" or player:GetAttribute("RaceState") == "DNF") then
+			and (player:GetAttribute("RaceState") == "FINISHED" or player:GetAttribute("RaceState") == "DNF"
+				and player:GetAttribute("RaceDNFReason") ~= "FORFEIT") then
 			session.rematchVotes[player] = true
 			publishSession(time())
 			if allRematchVotes() then

@@ -170,6 +170,9 @@ check(results.Visible and results.Total.Text=="OFF TRACK" and not results.Lap1Ro
 set("RaceDNFReason","RACE_TIMEOUT")
 check(results.Total.Text=="RACE TIMEOUT" and results.Finish.Text=="DNF",
  "race deadline DNF is distinct from off-track DNF")
+set("RaceDNFReason","FORFEIT")
+check(results.Total.Text=="FORFEIT" and not results.Rematch.Active
+ and results.ReturnGarage.Visible,"reserved forfeit keeps Garage retry and disables Rematch")
 set("RaceDNFReason","")
 check(results.Position.X.Scale==0.5 and results.AnchorPoint.X==0.5,"DNF remains centered")
 input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse

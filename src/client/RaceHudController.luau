@@ -875,10 +875,12 @@ function RaceHudController.start()
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
 		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"
-			then "RACE TIMEOUT" else "OFF TRACK") elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
+			then "RACE TIMEOUT" elseif player:GetAttribute("RaceDNFReason") == "FORFEIT"
+			then "FORFEIT" else "OFF TRACK") elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
 		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP %d  -  %s", bestLapNumber, RaceResultFormat.time(bestLap)) else "BEST LAP  --"
 		resultsBestLabel.Visible = raceState == "FINISHED"
-		local canRematch = (raceState == "FINISHED" or raceState == "DNF")
+		local canRematch = (raceState == "FINISHED" or raceState == "DNF"
+			and player:GetAttribute("RaceDNFReason") ~= "FORFEIT")
 			and (participantCount < 2 or sessionComplete) and not rematchReady
 		rematchButton.Active = canRematch
 		rematchButton.BackgroundColor3 = if canRematch then Color3.fromRGB(45, 130, 235) else Color3.fromRGB(65, 75, 87)
