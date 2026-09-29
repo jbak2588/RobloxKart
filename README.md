@@ -407,13 +407,21 @@ TeleportService routing. The observed teleport handoff takes roughly one
 second on tested devices and is acceptable. M3-P0 shows JOINING RACE after
 Solo READY and RETURNING TO GARAGE during HUB return, restores controls after
 failure, enlarges the mobile LAP-panel Quit target within Core UI safe insets,
-and makes the same-server ONLINE list vertically scrollable. Galaxy Tab Quit
-touch behavior and transition presentation still need post-publish device
-validation before M3-P0 is considered runtime verified.
+and makes the same-server ONLINE list vertically scrollable. M3-P0 published
+runtime checks passed for transitions, Solo launch, HUB return and ONLINE
+scrolling. Known device polish: Galaxy Tab Quit Race touch may open Roblox Chat;
+PC and regular phone did not reproduce it. This remains deferred.
 
-M3-A1 will add concurrent Base Circuit MatchRooms in HUB and launch reserved
-multiplayer Race Servers. M3-A2 will polish return, rematch and failure recovery
-and verify the MVP no-blocking gate. Future tracks may support up to six racers.
+M3-A1 adds concurrent in-memory Base Circuit MatchRooms to each public HUB
+(current server capacity: 50). Each room holds 1–4 racers; multiple rooms can
+wait independently while Practice/V2 Solo routes remain available. Base READY
+opens the room browser without building a HUB kart. The host starts a room at
+1–3 racers and 4/4 starts automatically. One group teleport sends a launched
+room to its own reserved RACE server, where the ordered payload fixes grid slots
+and the arriving roster starts a shared Countdown after all arrive or a 10-second
+deadline. Remaining racers Rematch directly in that reserved server. Rooms are
+same-HUB-server only; there is no cross-HUB matchmaking. M3-A1 published
+multiplayer routing still needs runtime validation. M3-A2 has not started.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
@@ -491,9 +499,8 @@ Do not:
 
 ## Next Development Order
 
-1. M3-A0 independent Solo Race routing and published Roblox client validation
-2. M3-A1 Base Circuit MatchRooms and reserved multiplayer Race routing
-3. M3-A2 no-blocking MVP gate and return/rematch/failure polish
+1. M3-A1 published Base Circuit MatchRoom and reserved multiplayer validation
+2. M3-A2 no-blocking MVP gate and return/rematch/failure polish
 4. Combat expansion / Missile, then additional track and public capacity work
 5. Persistence, Shop and cosmetics as scheduled
 

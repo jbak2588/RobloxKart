@@ -11,6 +11,7 @@ local RaceController = require(script:WaitForChild("RaceController"))
 local GarageController = require(script:WaitForChild("GarageController"))
 local RaceServerBootstrap = require(script:WaitForChild("RaceServerBootstrap"))
 local PlayerPreferences = require(script:WaitForChild("PlayerPreferences"))
+local MatchRoomService = require(script:WaitForChild("MatchRoomService"))
 
 local firstPlayer
 local joinData
@@ -45,6 +46,8 @@ if ServerRuntime.isRace() then
 		RaceItemController.start()
 		print(string.format("[KDMRoute] race controller start match=%s", payload.matchId))
 		assert(RaceController.start({ trackId = payload.trackId,
+			preformedMatch = payload.roomId ~= nil,
+			expectedParticipantCount = #payload.participantUserIds,
 			returnToHub = RaceLaunchService.returnToHub }), "Race controller startup failed")
 		print(string.format("[KDMRoute] race controller ready match=%s", payload.matchId))
 		PlayerPreferences.start()
@@ -72,6 +75,7 @@ else
 	PrototypeWorld.start()
 	RaceItemController.start()
 	RaceController.start()
+	MatchRoomService.start()
 	GarageController.start()
 	PlayerPreferences.start()
 end

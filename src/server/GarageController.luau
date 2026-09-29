@@ -140,6 +140,11 @@ function GarageController.start()
 		if not driver or not kartSelection or not track or track.ModelName ~= "TestTrack" then
 			return
 		end
+		if track.MatchType == "PUBLIC_RACE" then
+			local matchRooms = require(script.Parent:WaitForChild("MatchRoomService"))
+			matchRooms.openBrowser(player, driverId, kartId)
+			return
+		end
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = character and character:FindFirstChild("HumanoidRootPart")

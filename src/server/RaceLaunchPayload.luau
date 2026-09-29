@@ -20,6 +20,13 @@ function RaceLaunchPayload.validate(payload, soloOnly)
 	if type(payload.trackId) ~= "string" then return false, "invalid_track" end
 	local track = TrackCatalog.Entries[payload.trackId]
 	if not track then return false, "invalid_track" end
+	if track.MatchType == "PUBLIC_RACE" then
+		if type(payload.roomId) ~= "string" or #payload.roomId < 8 or #payload.roomId > 64 then
+			return false, "invalid_room"
+		end
+	elseif payload.roomId ~= nil then
+		return false, "unexpected_room"
+	end
 	if soloOnly and track.MatchType ~= "SOLO_PRACTICE" and track.MatchType ~= "SOLO_PROTOTYPE" then
 		return false, "unsupported_track"
 	end
@@ -48,6 +55,27 @@ function RaceLaunchPayload.validate(payload, soloOnly)
 		end
 	end
 	return true, track
+end
+
+function RaceLaunchPayload.buildMatch(matchId, roomId, members, trackId)
+	local track = TrackCatalog.Entries[trackId]
+	if not track or track.MatchType ~= "PUBLIC_RACE" or type(members) ~= "table" then
+		return nil, "unsupported_track"
+	end
+	local payload = {
+		schema = RaceLaunchPayload.SCHEMA, role = "RACE", source = "HUB",
+		matchId = matchId, roomId = roomId, trackId = trackId,
+		participantUserIds = {}, selections = {},
+	}
+	for _, member in members do
+		table.insert(payload.participantUserIds, member.userId)
+		payload.selections[tostring(member.userId)] = {
+			driverId = member.driverId, kartId = member.kartId,
+		}
+	end
+	local valid, reason = RaceLaunchPayload.validate(payload, false)
+	if not valid then return nil, reason end
+	return payload
 end
 
 function RaceLaunchPayload.buildSolo(matchId, player, trackId, driverId, kartId)

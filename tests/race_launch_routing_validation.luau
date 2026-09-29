@@ -212,6 +212,77 @@ check(player:GetAttribute("RaceEntryError") == "TELEPORT TEST REQUIRES PUBLISHED
 teleport.failNow = false
 services.RunService.studio = false
 
+local members = {
+	{ userId = 42, driverId = "Driver02", kartId = "Kart02" },
+	{ userId = 99, driverId = "Driver01", kartId = "Kart01" },
+}
+local matchPayload = assert(Payload.buildMatch("group-match-123", "base-room-123", members, "Track01Race"))
+for rosterSize = 1, 4 do
+	local roster = {}
+	for index = 1, rosterSize do
+		table.insert(roster, { userId = 100 + index, driverId = "Driver01", kartId = "Kart01" })
+	end
+	local generated = assert(Payload.buildMatch("group-match-123", "base-room-123", roster, "Track01Race"))
+	check(Payload.validate(generated, false), "Base payload supports " .. rosterSize .. " racers")
+	for index = rosterSize, 1, -1 do
+		local plan = Arrival.forPlayer(generated, 100 + index)
+		check(plan and plan.gridSlot == index and plan.readyOrder == index,
+			"grid order remains payload order across reversed arrival")
+	end
+end
+local oversized = {}
+for index = 1, 5 do
+	table.insert(oversized, { userId = 100 + index, driverId = "Driver01", kartId = "Kart01" })
+end
+check(Payload.buildMatch("group-match-123", "base-room-123", oversized, "Track01Race") == nil,
+	"fifth Base racer rejected")
+check(Payload.buildMatch("group-match-123", "base-room-123", { members[1], members[1] }, "Track01Race") == nil,
+	"duplicate group user rejected")
+check(Payload.buildMatch("group-match-123", "base-room-123",
+	{ { userId = 42, driverId = "Driver02", kartId = "MissingKart" } }, "Track01Race") == nil,
+	"missing group selection rejected")
+check(Payload.validate(matchPayload, false), "multiplayer payload validates")
+check(not Payload.validate(matchPayload, true), "multiplayer payload cannot masquerade as Solo")
+check(Arrival.forPlayer(matchPayload, 99).gridSlot == 2
+	and Arrival.forPlayer(matchPayload, 99).readyOrder == 2, "ordered payload assigns second grid slot")
+local matchRole, _, matchReason = Runtime.resolve("reserved-id", 0,
+	{ SourceGameId = 987654, TeleportData = matchPayload }, 987654, 99)
+check(matchRole == "RACE" and matchReason == "VALID_KDM_RACE", "listed group member enters reserved RACE")
+check(not Payload.validate({ schema = matchPayload.schema, role = matchPayload.role,
+	source = matchPayload.source, matchId = matchPayload.matchId, trackId = matchPayload.trackId,
+	participantUserIds = matchPayload.participantUserIds, selections = matchPayload.selections }, false),
+	"public race requires room identity")
+local groupFailures = {}
+check(Launch.launchMatch({ player, joiningPlayer }, matchPayload, function(failedPlayer)
+	table.insert(groupFailures, failedPlayer.UserId)
+end), "group launch accepted")
+call = teleport.calls[#teleport.calls]
+check(#call.group == 2 and call.group[1] == player and call.group[2] == joiningPlayer
+	and call.options.ShouldReserveServer and call.options.payload == matchPayload,
+	"one TeleportAsync transports ordered group with shared payload")
+check(player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"
+	and joiningPlayer:GetAttribute("KDMRoutePending") == "RACE_LAUNCH", "all group members show transition")
+teleport.TeleportInitFailed:Fire(joiningPlayer, "Failure", "second player failed", 123456, {})
+check(#groupFailures == 1 and groupFailures[1] == 99
+	and joiningPlayer:GetAttribute("KDMRoutePending") == ""
+	and player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH",
+	"per-player failure does not clear surviving participant")
+player.Parent = nil
+players.PlayerRemoving:Fire(player)
+joiningPlayer.Parent = nil
+players.PlayerRemoving:Fire(joiningPlayer)
+player.Parent = players
+joiningPlayer.Parent = players
+teleport.failNow = true
+local synchronousFailures = 0
+check(not Launch.launchMatch({ player, joiningPlayer }, matchPayload, function()
+	synchronousFailures += 1
+end), "group request failure reported")
+check(synchronousFailures == 2 and player:GetAttribute("KDMRoutePending") == ""
+	and joiningPlayer:GetAttribute("KDMRoutePending") == "",
+	"group request failure restores every HUB participant")
+teleport.failNow = false
+
 -- Exercise the production arrival path with simulated server objects.
 local CF, V = rb.CFrame, rb.Vector3
 modules.TrackCatalog.Entries.Track01.GridSlots = { CF.new(10, 0, 20) }
@@ -236,6 +307,7 @@ modules.PrototypeWorld = { acquireKartContext = function(_, spawn)
 	return { kart = kart, seat = seat, visual = visual,
 		setSpawnCFrame = function(self, frame) self.spawn = frame end }
 end, releaseKartContext = function() end }
+modules.RaceController = { isRosterLocked = function() return false end }
 local baseplate = { Position = V.new(0, -10, 0), Size = V.new(2048, 20, 2048),
 	IsA = function(_, class) return class == "BasePart" end }
 services.Workspace = {
@@ -405,6 +477,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 		RaceItemController = { start = function() calls.items = true end },
 		RaceController = { start = function(options) calls.race = options or "default"; return not failRace end },
 		GarageController = { start = function() calls.garage = true end },
+		MatchRoomService = { start = function() calls.matchRooms = true end },
 		RaceServerBootstrap = { start = function(value, initialPlayer, initialJoinData)
 			calls.bootstrap = value; calls.initialPlayer = initialPlayer; calls.initialJoinData = initialJoinData
 			return true
@@ -424,7 +497,8 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 end
 local publicInit = runServerInit("", nil, false)
 check(publicInit.KDMServerRole == "HUB" and publicInit.garage and publicInit.world == "default"
-	and publicInit.race == "default" and not publicInit.bootstrap, "public startup retains Base HUB flow")
+	and publicInit.race == "default" and publicInit.matchRooms and not publicInit.bootstrap,
+	"public startup initializes concurrent MatchRooms")
 local racePayload = build("Track02")
 local reservedInit = runServerInit("reserved-id", racePayload, false)
 check(reservedInit.KDMServerRole == "RACE" and reservedInit.world.trackId == "Track02"

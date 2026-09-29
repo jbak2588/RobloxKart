@@ -21,6 +21,11 @@ local RaceController = {}
 local DIRECTION_THRESHOLD = 0.25
 local MIN_GATE_SPEED = 1
 local started = false
+local rosterLocked = false
+
+function RaceController.isRosterLocked(): boolean
+	return rosterLocked
+end
 
 local function initializePlayerAttributes(player: Player, checkpointCount: number, initialTrackId: string)
 	player:SetAttribute("RaceState", "GARAGE")
@@ -119,6 +124,10 @@ function RaceController.start(options)
 		return true
 	end
 	started = true
+	rosterLocked = false
+	local preformedMatch = options and options.preformedMatch == true
+	local expectedParticipantCount = if preformedMatch then options.expectedParticipantCount else 0
+	local arrivalDeadline = 0
 	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
 
 	local prototype = Workspace:WaitForChild("Prototype")
@@ -643,7 +652,8 @@ function RaceController.start(options)
 		end
 		for player in session.participants do
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
-			setChanged(player, "RaceMaxPlayers", session.maxPlayers)
+			setChanged(player, "RaceMaxPlayers", if preformedMatch and session.phase == "ARRIVAL"
+				then expectedParticipantCount else session.maxPlayers)
 			setChanged(player, "RaceMatchStatus", session.phase)
 			setChanged(player, "RaceMatchWaitReason", session.waitingReason)
 			setChanged(player, "RaceMatchWaitRemaining", 0)
@@ -660,6 +670,7 @@ function RaceController.start(options)
 	end
 
 	local function startSharedCountdown(now: number)
+		rosterLocked = true
 		session.roundId += 1
 		session.phase = "COUNTDOWN"
 		session.waitingReason = "NONE"
@@ -774,7 +785,7 @@ function RaceController.start(options)
 	end
 
 	local function beginVotedRound(now: number)
-		if session:count() == session.maxPlayers then
+		if preformedMatch or session:count() == session.maxPlayers then
 			startSharedCountdown(now)
 		else
 			enterWaitingLobby(now, "REMATCH")
@@ -800,6 +811,7 @@ function RaceController.start(options)
 		end
 		if session:count() == 0 then
 			session.phase = "EMPTY"
+			arrivalDeadline = 0
 			session.firstFinishAt = 0
 			session.raceEndDeadline = 0
 			session.waitingReason = "NONE"
@@ -817,6 +829,13 @@ function RaceController.start(options)
 	end
 
 	local function admitRacer(player: Player, context, now: number)
+		if preformedMatch and rosterLocked then
+			warn(string.format("[KDMRoute] race admission reject user=%d reason=LATE_RACE_ARRIVAL", player.UserId))
+			player:SetAttribute("RaceEntryError", "RACE SERVER UNAVAILABLE - RETURNING TO HUB")
+			PrototypeWorld.releaseKartContext(player)
+			if options.returnToHub then options.returnToHub(player) end
+			return
+		end
 		local trackId = player:GetAttribute("SelectedTrackId")
 		local track = if type(trackId) == "string" then TrackCatalog.Entries[trackId] else nil
 		if not track then player:SetAttribute("RaceEntryError", "Track unavailable"); player:SetAttribute("RaceState", "GARAGE"); return end
@@ -832,7 +851,8 @@ function RaceController.start(options)
 			session.targetLaps = RaceMode.targetLaps(session.mode, trackId)
 			session.startingParticipantCount = 0
 			session.hostUserId = player.UserId
-		elseif session.phase ~= "WAITING" or track.MatchType ~= "PUBLIC_RACE" or session.trackId ~= trackId or session:count() >= session.maxPlayers then
+		elseif (session.phase ~= "WAITING" and (not preformedMatch or session.phase ~= "ARRIVAL"))
+			or track.MatchType ~= "PUBLIC_RACE" or session.trackId ~= trackId or session:count() >= session.maxPlayers then
 			player:SetAttribute("RaceEntryError", if session.phase == "COUNTDOWN" or session.phase == "RACING" then "Race in progress" else "Racer not ready")
 			player:SetAttribute("RaceState", "GARAGE")
 			return
@@ -844,7 +864,14 @@ function RaceController.start(options)
 		player:SetAttribute("RaceMode", session.mode)
 		setChanged(player, "RaceSessionId", session.roundId + 1)
 		context.kart:SetAttribute("RaceControlsLocked", true)
-		if track.MatchType == "PUBLIC_RACE" and session:count() == session.maxPlayers then
+		if preformedMatch then
+			if arrivalDeadline == 0 then arrivalDeadline = now + RaceConfig.RESERVED_ROSTER_WAIT_SECONDS end
+			session.phase = "ARRIVAL"
+			session.waitingReason = "ARRIVAL"
+			racer:enterWaitingLobby()
+			publishSession(now)
+			if session:count() >= expectedParticipantCount then startSharedCountdown(now) end
+		elseif track.MatchType == "PUBLIC_RACE" and session:count() == session.maxPlayers then
 			startSharedCountdown(now)
 		elseif track.MatchType == "PUBLIC_RACE" then
 			enterWaitingLobby(now, "INITIAL")
@@ -909,6 +936,10 @@ function RaceController.start(options)
 			elseif not racer and seated and player:GetAttribute("RaceState") == "PRE_RACE" then
 				admitRacer(player, context, now)
 			end
+		end
+		if preformedMatch and session.phase == "ARRIVAL" and arrivalDeadline > 0
+			and now >= arrivalDeadline and session:count() > 0 then
+			startSharedCountdown(now)
 		end
 		if session.phase == "COUNTDOWN" then
 			local remaining = math.max(math.ceil(session.countdownEndTime - now), 0)

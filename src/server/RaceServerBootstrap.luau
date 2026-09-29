@@ -11,6 +11,7 @@ local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"))
 local RaceArrivalPlan = require(script.Parent:WaitForChild("RaceArrivalPlan"))
 local RaceLaunchService = require(script.Parent:WaitForChild("RaceLaunchService"))
+local RaceController = require(script.Parent:WaitForChild("RaceController"))
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 
 local RaceServerBootstrap = {}
@@ -37,11 +38,12 @@ function RaceServerBootstrap.checkArrival(payload, player, initialPlayer, gameId
 	if not ok or type(joinData) ~= "table" then return nil, "JOIN_DATA_UNAVAILABLE" end
 	if joinData.SourceGameId ~= gameId then return nil, "WRONG_SOURCE_GAME" end
 	local arrivalPayload = joinData.TeleportData
-	if type(arrivalPayload) ~= "table" or arrivalPayload.matchId ~= payload.matchId then
+	if type(arrivalPayload) ~= "table" or arrivalPayload.matchId ~= payload.matchId
+		or arrivalPayload.roomId ~= payload.roomId then
 		return nil, "MATCH_ID_MISMATCH"
 	end
 	local arrivalPlan = RaceArrivalPlan.forPlayer(arrivalPayload, player.UserId)
-	if not arrivalPlan or arrivalPlan.trackId ~= plan.trackId
+	if not arrivalPlan or arrivalPlan.trackId ~= plan.trackId or arrivalPlan.gridSlot ~= plan.gridSlot
 		or arrivalPlan.driverId ~= plan.driverId or arrivalPlan.kartId ~= plan.kartId then
 		return nil, "ARRIVAL_PLAN_INVALID"
 	end
@@ -50,13 +52,13 @@ end
 
 function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	if started then return type(payload) == "table" and payload.matchId == activeMatchId end
-	if not RaceLaunchPayload.validate(payload, true) or not initialPlayer
+	if not RaceLaunchPayload.validate(payload, false) or not initialPlayer
 		or type(initialJoinData) ~= "table" then return false end
 	started = true
 	activeMatchId = payload.matchId
 	local processed = {}
 	local track = TrackCatalog.Entries[payload.trackId]
-	if not track or not track.GridSlots or not track.GridSlots[1] then
+	if not track or not track.GridSlots or not track.GridSlots[#payload.participantUserIds] then
 		warn(string.format("[KDMRoute] race bootstrap reject user=%d reason=TRACK_INVALID match=%s",
 			initialPlayer.UserId, payload.matchId))
 		return false
@@ -80,6 +82,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	local function arrive(player)
 		if processed[player] then return end
 		processed[player] = true
+		if RaceController.isRosterLocked() then reject(player, "LATE_RACE_ARRIVAL"); return end
 		local plan, reason = RaceServerBootstrap.checkArrival(payload, player, initialPlayer, game.GameId)
 		if not plan then reject(player, reason); return end
 		print(string.format("[KDMRoute] arrival user=%d", player.UserId))
@@ -96,7 +99,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		root.Anchored = true
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if not humanoid or humanoid.Health <= 0 then reject(player, "HUMANOID_INVALID"); return end
-		local spawnCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[1]
+		local spawnCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[plan.gridSlot]
 		local context = PrototypeWorld.acquireKartContext(player, spawnCFrame)
 		if not context then reject(player, "KART_CONTEXT_FAILED"); return end
 		local seat, kart = context.seat, context.kart
@@ -106,8 +109,8 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		player:SetAttribute("SelectedTrackId", plan.trackId)
 		player:SetAttribute("RaceMaxPlayers", plan.maxPlayers)
 		player:SetAttribute("RaceMode", plan.mode)
-		player:SetAttribute("GridSlot", 1)
-		player:SetAttribute("ReadyOrder", 1)
+		player:SetAttribute("GridSlot", plan.gridSlot)
+		player:SetAttribute("ReadyOrder", plan.readyOrder)
 		player:SetAttribute("RaceEntryError", "")
 		DriverAppearance.applyToCharacter(character, DriverCatalog.Entries[plan.driverId])
 		local visual = kart:FindFirstChild("Visual")
@@ -133,6 +136,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 			return
 		end
 		print(string.format("[KDMRoute] seat confirmed user=%d match=%s", player.UserId, payload.matchId))
+		if RaceController.isRosterLocked() then reject(player, "LATE_RACE_ARRIVAL"); return end
 		player:SetAttribute("RaceState", "PRE_RACE")
 	end
 	local function safeArrive(player)

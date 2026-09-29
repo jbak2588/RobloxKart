@@ -78,6 +78,40 @@ function RaceLaunchService.launchSolo(player, trackId, driverId, kartId, onFailu
 	return ok
 end
 
+function RaceLaunchService.launchMatch(players, payload, onPlayerFailure)
+	if #players ~= #payload.participantUserIds then return false end
+	for index, player in players do
+		if player.Parent ~= Players or pending[player] or player.UserId ~= payload.participantUserIds[index] then
+			return false
+		end
+	end
+	local token = {}
+	for _, player in players do
+		local selection = payload.selections[tostring(player.UserId)]
+		pending[player] = { token = token, kind = "launch", onFailure = function()
+			if onPlayerFailure then onPlayerFailure(player) end
+		end }
+		player:SetAttribute("KDMRoutePending", "RACE_LAUNCH")
+		player:SetAttribute("SelectedDriverId", selection.driverId)
+		player:SetAttribute("SelectedKartId", selection.kartId)
+		player:SetAttribute("SelectedTrackId", payload.trackId)
+		player:SetAttribute("RaceEntryError", "")
+		task.delay(30, function() watchdog(player, token) end)
+	end
+	local options = Instance.new("TeleportOptions")
+	options.ShouldReserveServer = true
+	options:SetTeleportData(payload)
+	print(string.format("[KDMRoute] group launch match=%s room=%s racers=%d", payload.matchId, payload.roomId, #players))
+	local ok, resultOrError = pcall(function()
+		return TeleportService:TeleportAsync(game.PlaceId, players, options)
+	end)
+	if not ok then
+		warn("[KDMRoute] group teleport request failed: " .. tostring(resultOrError))
+		for _, player in players do fail(player, token) end
+	end
+	return ok
+end
+
 function RaceLaunchService.returnToHub(player, onFailure)
 	if player.Parent ~= Players or pending[player] then return false end
 	local token = {}

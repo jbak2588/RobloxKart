@@ -233,9 +233,9 @@ Driver seating issue is deferred.
 ## NEXT PRIORITY
 
 M3-A0 routes the two Solo tracks from the public HUB to independent reserved
-RACE servers in the same Place. Published Roblox client routing validation is
-next. M3-A1 then moves Base Circuit to concurrent HUB MatchRooms and reserved
-multiplayer Race servers. M3-A2 closes the no-blocking MVP gate. Combat/Missile,
+RACE servers in the same Place. M3-A1 adds concurrent same-HUB Base Circuit
+MatchRooms and independent reserved multiplayer Race servers; published routing
+validation is next. M3-A2 closes the no-blocking MVP gate. Combat/Missile,
 additional track capacity, persistence and Shop follow. TrackV2 geometry
 revision remains pending.
 
@@ -541,9 +541,18 @@ GARAGE to public HUB, and in-race QUIT to HUB Garage. Studio teleport failure
 is not a published-runtime result. Observed handoff takes roughly one second
 and is acceptable. M3-P0 adds JOINING RACE and RETURNING TO GARAGE transition
 feedback through `KDMRoutePending`, a larger mobile LAP-panel Quit target in
-Core UI safe insets, and a fixed-height scrollable ONLINE list. Post-publish
-Galaxy Tab Quit touch and transition checks remain required for M3-P0 runtime
-validation. M3-A1 has not started.
+Core UI safe insets, and a fixed-height scrollable ONLINE list. M3-P0 published
+runtime passed for transition feedback, Solo launch, HUB return
+and ONLINE scrolling. Known device polish: Galaxy Tab Quit Race touch may open
+Roblox Chat; PC and regular phone did not reproduce it. This is deferred.
+M3-A1 code supports multiple in-memory Track01Race MatchRooms in a single
+50-user public HUB, with 1–4 racers per room and no HUB Base race karts.
+The host starts at 1–3 racers; four auto-start. A launched room uses one group
+TeleportAsync and an ordered payload to enter an independent reserved RACE
+server. The race waits up to 10 seconds for arrivals, then starts with actual
+participants. Remaining racers Rematch directly in that reserved server.
+Rooms do not match across HUB servers. Published M3-A1 multiplayer routing
+remains unverified. M3-A2 has not started.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
@@ -583,6 +592,10 @@ tests/four_player_race_validation.luau
 tests/player_preferences_validation.luau
 tests/kart_contact_validation.luau
 tests/race_launch_routing_validation.luau
+tests/match_room_validation.luau
+tests/match_room_service_validation.luau
+tests/reserved_match_validation.luau
+tests/reserved_arrival_validation.luau
 
 Always run:
 

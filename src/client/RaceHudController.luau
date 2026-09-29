@@ -941,9 +941,10 @@ function RaceHudController.start()
 			finishBanner.Visible = false
 		end
 
+		local arrivalWaiting = matchStatus == "ARRIVAL" and raceState == "PRE_RACE"
 		local lobbyWaiting = matchStatus == "WAITING" and raceState == "PRE_RACE"
 		local isHost = player:GetAttribute("RaceHostUserId") == player.UserId
-		lobbyPanel.Visible = lobbyWaiting
+		lobbyPanel.Visible = lobbyWaiting or arrivalWaiting
 		availabilityPanel.Visible = lobbyWaiting and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")] ~= nil
 			and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")].MatchType == "PUBLIC_RACE"
 		if availabilityPanel.Visible then
@@ -963,8 +964,11 @@ function RaceHudController.start()
 			getNumberAttribute(player, "RaceMaxPlayers", 4))
 		lobbyStart.Visible = lobbyWaiting and isHost
 		lobbyStart.Text = if participantCount == 1 then "START SOLO" else "START RACE"
+		lobbyLeave.Visible = lobbyWaiting
 		lobbyLeave.Text = if participantCount == 1 and isHost then "CANCEL" else "LEAVE"
 		lobbyLeave.Position = UDim2.fromOffset(if isHost then 132 else 70, 34)
+		lobbyStatus.Text = if arrivalWaiting then string.format("WAITING FOR RACERS  %d / %d",
+			participantCount, getNumberAttribute(player, "RaceMaxPlayers", 4)) else lobbyStatus.Text
 		if raceState == "PRE_RACE" and matchStatus == "WAITING" then
 			countdownLabel.Text = if isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
 			countdownLabel.TextTransparency = 0

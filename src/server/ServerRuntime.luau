@@ -16,7 +16,7 @@ function ServerRuntime.resolve(privateServerId, privateServerOwnerId, joinData, 
 	if joinData.SourceGameId ~= gameId then return ServerRuntime.HUB, nil, "WRONG_SOURCE_GAME" end
 	local payload = joinData.TeleportData
 	if payload == nil then return ServerRuntime.HUB, nil, "MISSING_TELEPORT_DATA" end
-	local valid = RaceLaunchPayload.validate(payload, true)
+	local valid = RaceLaunchPayload.validate(payload, false)
 	if not valid then return ServerRuntime.HUB, nil, "INVALID_PAYLOAD" end
 	local participating = false
 	for _, participantUserId in payload.participantUserIds do
