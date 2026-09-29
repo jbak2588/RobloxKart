@@ -78,6 +78,7 @@ local replicated=object("ReplicatedStorage")
 shared.Parent=replicated
 local remote=child(replicated,"RemoteEvent","RaceControl")
 local garageRemote=child(replicated,"RemoteEvent","GarageControl")
+garageRemote.OnClientEvent=signal()
 local camera=object("Camera","Camera"); camera.ViewportSize=rb.Vector2.new(800,320)
 local workspace=object("Workspace"); workspace.CurrentCamera=camera
 local input=object("UserInputService"); input.PreferredInput=rb.Enum.PreferredInput.Touch
@@ -352,4 +353,19 @@ set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH");set("RaceM
 set("RaceMatchStatus","WAITING");set("RaceState","PRE_RACE")
 check(lobby.Visible and not results.Visible and hud.Countdown.Text=="WAITING FOR RACERS",
  "rematch voters return to flexible lobby without result overlap")
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+ maxPlayers=4,queuedCount=1,queued={{name="Friend",kind="INVITED"}},
+ available={{userId=9,name="Remote Friend"}}})
+check(availability.WaitingTitle.Text=="WAITING NEXT  1"
+ and availability.AvailableRacer1.Text=="NEXT Friend  INVITED"
+ and availability.AvailableRacer2.Text=="Remote Friend",
+ "reserved Room lobby shows queued friend and cross-server availability")
+availability.Invite2.Activated:Fire()
+check(garageRemote.lastFire[1]=="Invite" and garageRemote.lastFire[2]==9,
+ "track-side invite selects cross-server HUB user")
+set("RaceState","RACING")
+check(hud.RacingInviteToggle.Visible and hud.RoomQueueStatus.Visible,
+ "racing host sees queue count and invite control")
+hud.RacingInviteToggle.Activated:Fire()
+check(availability.Visible,"racing host can open cross-server invite list")
 print("PASS: "..count.." production race result HUD checks")

@@ -113,25 +113,26 @@ function MatchRoomUiController.start()
 			title.Text = "RACE INVITE"
 			status.Text = string.format("%s invited you to Base Circuit  •  %d / %d",
 				invitation.hostName, invitation.count, invitation.maxPlayers)
-			bindButtons("JOIN", function()
+			bindButtons(if invitation.state == "WAITING" and invitation.count < invitation.maxPlayers
+				then "JOIN" else "QUEUE NEXT", function()
 				remote:FireServer("AcceptInvite", player:GetAttribute("SelectedDriverId"), player:GetAttribute("SelectedKartId"))
 				invitation = nil
 			end, "DECLINE", function() remote:FireServer("DeclineInvite"); invitation = nil; render() end)
 			return
 		end
-		if snapshot.room and snapshot.room.membershipKind == "QUEUED" then
+		if snapshot and snapshot.room and snapshot.room.membershipKind == "QUEUED" then
 			local room = snapshot.room
 			title.Text = "QUEUED FOR NEXT RACE"
-			status.Text = if room.nextRoundStarting then "NEXT RACE STARTING"
+			status.Text = if room.nextRoundStarting then "JOINING ROOM STAGING"
 				else string.format("%s'S ROOM  •  QUEUE %d  •  CURRENT %s %d / %d",
 					room.hostName, room.queuePosition or 0, room.state, room.count, room.maxPlayers)
-			row(if room.nextRoundStarting then "Moving you to the next race..."
+			row(if room.nextRoundStarting then "Moving you to the starting grid..."
 				else "You will join when the next round is ready.", nil, nil)
 			primary.Visible = false
 			back.Visible = not room.nextRoundStarting
 			bindButtons("", function() end, "CANCEL QUEUE",
 				function() remote:FireServer("CancelQueue") end)
-		elseif snapshot.room then
+		elseif snapshot and snapshot.room then
 			local room = snapshot.room
 			title.Text = "BASE CIRCUIT ROOM"
 			status.Text = string.format("HOST: %s   RACERS %d / %d  •  %s",
@@ -152,7 +153,7 @@ function MatchRoomUiController.start()
 			title.Text = "BASE CIRCUIT ROOMS"
 			status.Text = "CREATE OR JOIN A 1–4 RACER ROOM"
 			for _, room in snapshot.rooms do
-				local waiting = room.state == "WAITING"
+				local waiting = room.state == "WAITING" and room.count < room.maxPlayers
 				row(string.format("%s  •  %s  %d / %d  •  QUEUED %d",
 					room.hostName, room.state, room.count, room.maxPlayers, room.queuedCount),
 					if waiting then "JOIN" else "QUEUE NEXT",

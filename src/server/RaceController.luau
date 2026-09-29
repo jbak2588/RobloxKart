@@ -654,6 +654,9 @@ function RaceController.start(options)
 	end
 
 	local function publishSession(now: number)
+		if persistentRoom and options.getRoomHostUserId then
+			session.hostUserId = options.getRoomHostUserId()
+		end
 		local count = session:count()
 		local required = math.max(count, 1)
 		local ready = 0
@@ -680,6 +683,19 @@ function RaceController.start(options)
 	end
 
 	local function startSharedCountdown(now: number)
+		if persistentRoom and options.getRoomHostUserId then
+			session.hostUserId = options.getRoomHostUserId()
+		end
+		if persistentRoom and options.onRoundStart then
+			for player in session.participants do
+				if player:GetAttribute("KDMRoutePending") == "HUB_RETURN" then return end
+			end
+			local ok, accepted = pcall(options.onRoundStart, session.hostUserId, session:count())
+			if not ok or not accepted then
+				warn("[KDMRoom] round start rejected")
+				return
+			end
+		end
 		rosterLocked = true
 		session.roundId += 1
 		session.phase = "COUNTDOWN"
@@ -779,7 +795,7 @@ function RaceController.start(options)
 			table.clear(session.terminal)
 			table.clear(session.finishOrder)
 			local ordered = session:orderedParticipants()
-			session.hostUserId = ordered[1].UserId
+			session.hostUserId = if ordered[1] then ordered[1].UserId else 0
 			for _, player in ordered do
 				local racer = racers[player]
 				racer:enterWaitingLobby()
@@ -811,16 +827,20 @@ function RaceController.start(options)
 		local participants = session:orderedParticipants()
 		task.spawn(function()
 			local ok, accepted = pcall(options.onRoundReady, participants)
-			if not ok or not accepted then
-				nextRoundPending = false
-				warn("[KDMRoom] next round launch unavailable")
-			end
+			if ok and accepted then
+				enterWaitingLobby(time(), "REMATCH")
+				rosterLocked = false
+				publishRoomPhase("WAITING", session:count())
+				if session:count() == session.maxPlayers then startSharedCountdown(time()) end
+			else warn("[KDMRoom] next staging unavailable") end
+			nextRoundPending = false
 		end)
 	end
 
 	local function removeRacer(player: Player)
 		local racer = racers[player]
 		if not racer then return end
+		local previousPhase = session.phase
 		if session.phase == "RACING" and player:GetAttribute("RaceState") ~= "FINISHED"
 			and player:GetAttribute("RaceState") ~= "DNF" then
 			if not session.terminal[player] then session.terminal[player] = "LEFT" end
@@ -831,15 +851,18 @@ function RaceController.start(options)
 		session:remove(player)
 		racers[player] = nil
 		if PrototypeWorld.releaseKartContext then PrototypeWorld.releaseKartContext(player) end
+		if persistentRoom and options.onRoomLeave then task.spawn(options.onRoomLeave, player.UserId) end
 		if session.hostUserId == player.UserId then
 			local remaining = session:orderedParticipants()
 			session.hostUserId = if remaining[1] then remaining[1].UserId else 0
 		end
 		if session:count() == 0 then
 			session.phase = "EMPTY"
-			if persistentRoom then
+			if persistentRoom and previousPhase ~= "WAITING" then
 				publishRoomPhase("ROUND_COMPLETE", 0)
 				prepareNextRoomRound()
+			elseif persistentRoom then
+				publishRoomPhase("WAITING", 0)
 			end
 			arrivalDeadline = 0
 			session.firstFinishAt = 0
@@ -906,6 +929,7 @@ function RaceController.start(options)
 			publishSession(now)
 			if session:count() >= expectedParticipantCount then startSharedCountdown(now) end
 		elseif track.MatchType == "PUBLIC_RACE" and session:count() == session.maxPlayers then
+			enterWaitingLobby(now, "INITIAL")
 			startSharedCountdown(now)
 		elseif track.MatchType == "PUBLIC_RACE" then
 			enterWaitingLobby(now, "INITIAL")
@@ -923,11 +947,14 @@ function RaceController.start(options)
 				if state == "FINISHED" or state == "DNF" then options.returnToHub(player) end
 			elseif racer:handleRemote(action, time()) then removeRacer(player) end
 		elseif action == "CancelWait" and session.phase == "WAITING" and session:contains(player) then
-			removeRacer(player)
+			if persistentRoom and options.returnToHub then options.returnToHub(player)
+			else removeRacer(player) end
 		elseif (action == "StartRace" or (action == "StartSolo" and session:count() == 1))
 			and session.phase == "WAITING" and session:count() >= 1
 			and session:count() < session.maxPlayers
-			and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE" and session.hostUserId == player.UserId then
+			and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE"
+			and (if persistentRoom and options.getRoomHostUserId
+				then options.getRoomHostUserId() else session.hostUserId) == player.UserId then
 			startSharedCountdown(time())
 		elseif action == "QuitRace" and session:contains(player) and session.phase == "RACING"
 			and player:GetAttribute("RaceState") == "RACING"

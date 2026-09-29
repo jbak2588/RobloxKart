@@ -439,6 +439,24 @@ function RaceHudController.start()
 	availabilityPanel.Visible = false
 	availabilityPanel.Parent = screenGui
 	addCorner(availabilityPanel, 7)
+	local racingInvitesOpen = false
+	local racingInviteToggle = Instance.new("TextButton")
+	racingInviteToggle.Name = "RacingInviteToggle"
+	racingInviteToggle.AnchorPoint = Vector2.new(1, 0)
+	racingInviteToggle.Position = UDim2.new(1, -12, 0, 132)
+	racingInviteToggle.Size = UDim2.fromOffset(118, 32)
+	racingInviteToggle.BackgroundColor3 = Color3.fromRGB(35, 95, 165)
+	racingInviteToggle.TextColor3 = Color3.new(1, 1, 1)
+	racingInviteToggle.Font = Enum.Font.GothamBold
+	racingInviteToggle.TextSize = 12
+	racingInviteToggle.Text = "INVITE RACERS"
+	racingInviteToggle.Visible = false
+	racingInviteToggle.Parent = screenGui
+	addCorner(racingInviteToggle, 5)
+	racingInviteToggle.Activated:Connect(function()
+		racingInvitesOpen = not racingInvitesOpen
+		availabilityPanel.Visible = racingInvitesOpen
+	end)
 	local availabilityHeading = createLabel(availabilityPanel, "WaitingTitle", 1)
 	availabilityHeading.Position = UDim2.fromOffset(8, 4)
 	availabilityHeading.Size = UDim2.new(1, -16, 0, 22)
@@ -473,6 +491,15 @@ function RaceHudController.start()
 		end)
 	end
 	local availableTotal = 0
+	local roomSnapshot = nil
+	local roomQueueLabel = createLabel(screenGui, "RoomQueueStatus", 30)
+	roomQueueLabel.AnchorPoint = Vector2.new(0.5, 0)
+	roomQueueLabel.Position = UDim2.new(0.5, 0, 0, 96)
+	roomQueueLabel.Size = UDim2.fromOffset(300, 26)
+	roomQueueLabel.TextXAlignment = Enum.TextXAlignment.Center
+	roomQueueLabel.TextColor3 = Color3.fromRGB(255, 218, 73)
+	roomQueueLabel.TextSize = 15
+	roomQueueLabel.Visible = false
 
 	local finalLapLabel = Instance.new("TextLabel")
 	finalLapLabel.Name = "FinalLapNotice"
@@ -945,18 +972,32 @@ function RaceHudController.start()
 		local lobbyWaiting = matchStatus == "WAITING" and raceState == "PRE_RACE"
 		local isHost = player:GetAttribute("RaceHostUserId") == player.UserId
 		lobbyPanel.Visible = lobbyWaiting or arrivalWaiting
-		availabilityPanel.Visible = lobbyWaiting and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")] ~= nil
+		racingInviteToggle.Visible = roomSnapshot ~= nil and isHost and raceState == "RACING"
+		if not racingInviteToggle.Visible then racingInvitesOpen = false end
+		availabilityPanel.Visible = (lobbyWaiting or racingInvitesOpen) and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")] ~= nil
 			and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")].MatchType == "PUBLIC_RACE"
+		roomQueueLabel.Visible = roomSnapshot ~= nil and isHost
+			and roomSnapshot.queuedCount > 0 and not lobbyWaiting
+		roomQueueLabel.Text = if roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount) else ""
 		if availabilityPanel.Visible then
-			local availableCount, available = GaragePresence.availableSnapshot(Players:GetPlayers(), player, #availabilityRows)
-			availableTotal = availableCount
-			availabilityHeading.Text = if isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
-			availabilityTitle.Text = string.format("AVAILABLE IN SERVER  %d", availableCount)
+			local availableCount, available
+			if roomSnapshot then
+				available = roomSnapshot.available or {}
+				availableCount = #available
+			else availableCount, available = GaragePresence.availableSnapshot(Players:GetPlayers(), player, #availabilityRows) end
+			availableTotal = availableCount + (if roomSnapshot then #roomSnapshot.queued else 0)
+			availabilityHeading.Text = if roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount)
+				elseif isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
+			availabilityTitle.Text = if roomSnapshot then string.format("AVAILABLE RACERS  %d", availableCount)
+				else string.format("AVAILABLE IN SERVER  %d", availableCount)
 			for index, row in availabilityRows do
-				local entry = available[index]
+				local queued = roomSnapshot and roomSnapshot.queued[index]
+				local entry = if queued then nil else available[index - (if roomSnapshot then math.min(#roomSnapshot.queued, #availabilityRows) else 0)]
 				row.userId = if entry then entry.userId else nil
-				row.label.Text = if entry then entry.name elseif index == 1 and availableCount == 0 then "No available racers in this server." else ""
-				row.label.Visible = entry ~= nil or (index == 1 and availableCount == 0)
+				row.label.Text = if queued then string.format("NEXT %s  %s", queued.name, queued.kind)
+					elseif entry then entry.name elseif index == 1 and availableCount == 0
+						then (if roomSnapshot then "No available racers." else "No available racers in this server.") else ""
+				row.label.Visible = queued ~= nil or entry ~= nil or (index == 1 and availableCount == 0)
 				row.button.Visible = entry ~= nil and isHost
 			end
 		end
@@ -1038,6 +1079,9 @@ function RaceHudController.start()
 		displayedLap = currentLap
 		applyResponsiveLayout()
 	end
+	garageRemote.OnClientEvent:Connect(function(action, data)
+		if action == "RoomSnapshot" then roomSnapshot = data; updateHud() end
+	end)
 
 	for _, attributeName in {
 		"RaceState",

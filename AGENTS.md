@@ -232,13 +232,10 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-M3-A0 routes the two Solo tracks from the public HUB to independent reserved
-RACE servers in the same Place. M3-A1 adds independent Base Circuit reserved
-Race servers. M3-A1-R1 keeps active Room identity in MemoryStore across HUBs
-and adds Next-Round Queue; published R1 validation is next. M3-A2 closes the
-no-blocking MVP gate. Combat/Missile,
-additional track capacity, persistence and Shop follow. TrackV2 geometry
-revision remains pending.
+M3-A1-R2 moves Base Circuit CREATE into a persistent reserved Room server.
+Published R2 runtime validation is next. M3-A2 closes the no-blocking MVP gate.
+Combat/Missile, additional track capacity, persistence and Shop follow.
+TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
 
@@ -548,16 +545,22 @@ and ONLINE scrolling. Known device polish: Galaxy Tab Quit Race touch may open
 Roblox Chat; PC and regular phone did not reproduce it. This is deferred.
 M3-A1 Base Circuit rooms hold 1–4 racers and create no HUB race kart. The user
 confirmed three concurrent Base START SOLO reserved races on real devices.
-M3-A1-R1 stores logical Rooms in the server-only `KDM_ActiveBaseRooms_v1`
-MemoryStore SortedMap with a 45-second TTL and heartbeat. GUID Room IDs are
-visible across HUB servers; secret reserved access codes never reach clients.
-WAITING rooms accept JOIN. STARTING/RACING/FINISHING/ROUND_COMPLETE rooms remain
-visible and accept QUEUE NEXT, with no mid-race join or spectator mode. After
-the round, remaining Rematch voters take priority, then queued racers join FIFO
-up to four; excess queue persists. A new reserved server runs each next round.
-Base START SOLO previously showed Nitro/Slick/Shield 0/0/0; an automated
-Countdown reset reproduced it, and RACING now refills 1/1/1 server-side.
-Published R1 queue and loadout validation remains required. M3-A2 has not started.
+KDM persistent Room: a race is temporary; the logical Room and Host identity
+remain discoverable across rounds. CREATE reserves the Room server and moves
+Host to GridSlot 1 in locked PRE_RACE / WAITING. JOIN seats authorized racers
+in staging on that server. No mid-race join is allowed; late friends and rivals
+queue for next staging. At 2/4 or 3/4 staged, only the Host starts; 4/4 seated
+racers auto-start. REMATCH returns to staging without auto-starting a sub-full
+round. Current rematch voters, accepted invited queue, prior rivals, then
+public queue have priority; FIFO applies within each class. The preferred
+server is the same reservation for every round while a participant remains.
+`KDM_ActiveBaseRooms_v1` keeps staged, current-round and queued members separate
+with 45-second TTL and heartbeat. `KDM_HubPresence_v1` lists only available HUB
+racers; cross-server invitations are server-authoritative and revalidated on
+acceptance. Reservation access codes never reach clients. Room Browser x/4 is
+room capacity; POS x/y is actual current-round participation. Base rounds
+retain Nitro/Slick/Shield 1/1/1. Published R2 runtime remains unverified.
+M3-A2 has not started.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

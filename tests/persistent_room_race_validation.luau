@@ -178,17 +178,24 @@ local race=load("src/server/RaceController.luau",server,"RaceController")
 track:SetAttribute("TrackId", "Track01Race")
 local readyRoster
 local phases={}
-race.start({ trackId="Track01Race", preformedMatch=true, persistentRoom=true,
- expectedParticipantCount=2,
+local starts=0
+race.start({ trackId="Track01Race", persistentRoom=true,
  onRoomPhase=function(phase,count) table.insert(phases,{phase=phase,count=count}) end,
+ onRoundStart=function() starts+=1; return true end,
  onRoundReady=function(players) readyRoster=players; return true end })
 local session=sessionType.active()
 local function tick(dt) now+=dt;services.RunService.Heartbeat:Fire(dt) end
 local remote=services.ReplicatedStorage.RaceControl.OnServerEvent
 local function ready(player) player:SetAttribute("RaceState","PRE_RACE");tick(0.1) end
-ready(a);ready(b)
-check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2,
- "preformed two-racer room starts together")
+ready(a)
+check(session.phase=="WAITING" and session:count()==1 and starts==0,
+ "host create stays on grid with START SOLO available")
+ready(b)
+check(session.phase=="WAITING" and session:count()==2 and starts==0,
+ "second racer does not auto-start")
+remote:Fire(a,"StartRace")
+check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2 and starts==1,
+ "host explicitly starts two-racer round")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 check(session.phase=="RACING" and phases[#phases].phase=="RACING",
  "race phase is published")
@@ -202,6 +209,12 @@ check(readyRoster==nil,"one vote does not launch next round early")
 b:SetAttribute("RaceState","GARAGE");tick(0.1)
 check(readyRoster and #readyRoster==1 and readyRoster[1]==a,
  "remaining rematcher is handed to room coordinator")
-check(session.phase=="COMPLETE" and session.startingParticipantCount==2,
- "old race never starts a local rematch countdown")
+check(session.phase=="WAITING" and starts==1 and a:GetAttribute("RaceState")=="PRE_RACE",
+ "rematch returns to staging without countdown")
+ready(c);ready(d)
+check(session.phase=="WAITING" and session:count()==3 and starts==1,
+ "three staged racers wait for host")
+ready(e)
+check(session.phase=="COUNTDOWN" and session:count()==4 and starts==2,
+ "four seated racers auto-start next round")
 print(string.format("PASS: %d persistent room race checks",count))

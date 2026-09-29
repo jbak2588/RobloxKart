@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MemoryStoreService = game:GetService("MemoryStoreService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -11,6 +12,7 @@ local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"))
 local RaceArrivalPlan = require(script.Parent:WaitForChild("RaceArrivalPlan"))
 local RaceLaunchService = require(script.Parent:WaitForChild("RaceLaunchService"))
+local ActiveMatchDirectory = require(script.Parent:WaitForChild("ActiveMatchDirectory"))
 local RaceController = require(script.Parent:WaitForChild("RaceController"))
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 
@@ -50,6 +52,34 @@ function RaceServerBootstrap.checkArrival(payload, player, initialPlayer, gameId
 	return plan
 end
 
+function RaceServerBootstrap.roomPlan(payload, arrivalPayload, record, userId, privateServerId, raceJobId)
+	if not RaceLaunchPayload.validate(arrivalPayload, false)
+		or arrivalPayload.roomId ~= payload.roomId or arrivalPayload.matchId ~= payload.matchId
+		or #arrivalPayload.participantUserIds ~= 1
+		or arrivalPayload.participantUserIds[1] ~= userId
+		or type(record) ~= "table" or record.state ~= "WAITING"
+		or record.roomId ~= payload.roomId or record.matchId ~= payload.matchId
+		or record.privateServerId ~= privateServerId
+		or (record.raceJobId ~= "" and record.raceJobId ~= raceJobId
+			and record.currentRacers > 0) then return nil end
+	local token = arrivalPayload.admissionToken
+	if type(token) ~= "string" or #token < 8 then return nil end
+	for index, member in record.stagedMembers or {} do
+		if member.userId == userId and member.admissionToken == token
+			and type(member.admissionExpiresAt) == "number"
+			and member.admissionExpiresAt > os.time()
+			and member.driverId == arrivalPayload.selections[tostring(userId)].driverId
+			and member.kartId == arrivalPayload.selections[tostring(userId)].kartId then
+			local plan = RaceArrivalPlan.forPlayer(arrivalPayload, userId)
+			if not plan then return nil end
+			plan.gridSlot = index
+			plan.readyOrder = index
+			return plan
+		end
+	end
+	return nil
+end
+
 function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	if started then return type(payload) == "table" and payload.matchId == activeMatchId end
 	if not RaceLaunchPayload.validate(payload, false) or not initialPlayer
@@ -57,6 +87,8 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	started = true
 	activeMatchId = payload.matchId
 	local processed = {}
+	local roomDirectory = if payload.roomId then ActiveMatchDirectory.new(
+		MemoryStoreService:GetSortedMap(ActiveMatchDirectory.MAP_NAME)) else nil
 	local track = TrackCatalog.Entries[payload.trackId]
 	if not track or not track.GridSlots or not track.GridSlots[#payload.participantUserIds] then
 		warn(string.format("[KDMRoute] race bootstrap reject user=%d reason=TRACK_INVALID match=%s",
@@ -71,6 +103,9 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		warn(string.format("[KDMRoute] race bootstrap reject user=%d reason=%s match=%s",
 			player.UserId, reason, payload.matchId))
 		PrototypeWorld.releaseKartContext(player)
+		if roomDirectory then
+			pcall(function() roomDirectory:removeStaged(payload.roomId, player.UserId) end)
+		end
 		player:SetAttribute("RaceEntryError", "RACE SERVER UNAVAILABLE - RETURNING TO HUB")
 		if not RaceLaunchService.returnToHub(player, function()
 			if player.Parent == Players then
@@ -82,9 +117,33 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	local function arrive(player)
 		if processed[player] then return end
 		processed[player] = true
-		if RaceController.isRosterLocked() then reject(player, "LATE_RACE_ARRIVAL"); return end
-		local plan, reason = RaceServerBootstrap.checkArrival(payload, player, initialPlayer, game.GameId)
+		local plan, reason
+		local admissionToken
+		if roomDirectory then
+			local ok, joinData = pcall(function() return player:GetJoinData() end)
+			local arrivalPayload = if ok and type(joinData) == "table" then joinData.TeleportData else nil
+			if not ok or type(joinData) ~= "table" or joinData.SourceGameId ~= game.GameId
+				or type(arrivalPayload) ~= "table" then
+				reject(player, "ROOM_PAYLOAD_INVALID"); return
+			end
+			admissionToken = arrivalPayload.admissionToken
+			local found, record = pcall(function() return roomDirectory:get(payload.roomId) end)
+			if not found or not record then
+				reject(player, "ROOM_UNAVAILABLE"); return
+			end
+			plan = RaceServerBootstrap.roomPlan(payload, arrivalPayload, record,
+				player.UserId, game.PrivateServerId, game.JobId)
+			if not plan then reject(player, "ROOM_ADMISSION_INVALID"); return end
+		else
+			plan, reason = RaceServerBootstrap.checkArrival(payload, player, initialPlayer, game.GameId)
+		end
 		if not plan then reject(player, reason); return end
+		if roomDirectory and RaceController.isRosterLocked() then
+			local deadline = os.clock() + 10
+			while RaceController.isRosterLocked() and player.Parent == Players
+				and os.clock() < deadline do task.wait(0.1) end
+		end
+		if RaceController.isRosterLocked() then reject(player, "LATE_RACE_ARRIVAL"); return end
 		print(string.format("[KDMRoute] arrival user=%d", player.UserId))
 		local character = player.Character
 		local characterDeadline = os.clock() + 10
@@ -137,6 +196,12 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		end
 		print(string.format("[KDMRoute] seat confirmed user=%d match=%s", player.UserId, payload.matchId))
 		if RaceController.isRosterLocked() then reject(player, "LATE_RACE_ARRIVAL"); return end
+		if roomDirectory then
+			local confirmed, record = pcall(function()
+				return roomDirectory:confirmArrival(payload.roomId, player.UserId, admissionToken, game.JobId)
+			end)
+			if not confirmed or not record then reject(player, "ROOM_ADMISSION_EXPIRED"); return end
+		end
 		player:SetAttribute("RaceState", "PRE_RACE")
 	end
 	local function safeArrive(player)

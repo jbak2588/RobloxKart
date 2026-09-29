@@ -4,6 +4,7 @@ ActiveMatchDirectory.__index = ActiveMatchDirectory
 ActiveMatchDirectory.MAP_NAME = "KDM_ActiveBaseRooms_v1"
 ActiveMatchDirectory.TTL_SECONDS = 45
 ActiveMatchDirectory.MAX_QUEUED = 32
+ActiveMatchDirectory.ADMISSION_SECONDS = 60
 
 function ActiveMatchDirectory.new(map, now)
 	return setmetatable({ map = map, now = now or os.time }, ActiveMatchDirectory)
@@ -36,7 +37,7 @@ function ActiveMatchDirectory:update(roomId, mutate)
 	local result = self.map:UpdateAsync(roomId, function(old)
 		if type(old) ~= "table" or old.roomId ~= roomId then return nil end
 		local draft = table.clone(old)
-		for _, field in { "queued", "waitingMembers", "currentUserIds", "launchRoster" } do
+		for _, field in { "queued", "waitingMembers", "currentUserIds", "launchRoster", "stagedMembers", "currentRoundMembers", "rivalUserIds", "leftUserIds" } do
 			if type(old[field]) == "table" then draft[field] = table.clone(old[field]) end
 		end
 		local changed = mutate(draft)
@@ -44,6 +45,195 @@ function ActiveMatchDirectory:update(roomId, mutate)
 		return stamp(self, changed), self.now()
 	end, self.TTL_SECONDS)
 	return result
+end
+
+-- R2 rooms keep staging, the locked round, and the next-round queue separate.
+function ActiveMatchDirectory:createPersistent(room, accessCode, privateServerId)
+	local record = stamp(self, {
+		roomId = room.id, trackId = room.trackId, state = "WAITING",
+		hostUserId = room.hostUserId, hostName = room.hostName,
+		maxPlayers = room.maxPlayers, currentRacers = 0,
+		stagedMembers = {}, currentRoundMembers = {}, rivalUserIds = {}, leftUserIds = {}, queued = {},
+		roundId = 0, matchId = room.matchId, raceJobId = "",
+		privateServerId = privateServerId, reservedServerAccessCode = accessCode,
+	})
+	self.map:SetAsync(room.id, record, self.TTL_SECONDS, record.updatedAt)
+	return record
+end
+
+local function contains(members, userId)
+	for _, member in members or {} do if member.userId == userId then return true end end
+	return false
+end
+
+function ActiveMatchDirectory:stage(roomId, member, token)
+	return self:update(roomId, function(record)
+		if record.state ~= "WAITING" or #record.stagedMembers >= record.maxPlayers
+			or contains(record.stagedMembers, member.userId)
+			or contains(record.queued, member.userId) then return nil end
+		member.admissionToken = token
+		member.admissionExpiresAt = self.now() + self.ADMISSION_SECONDS
+		member.arrived = false
+		table.insert(record.stagedMembers, member)
+		return record
+	end)
+end
+
+function ActiveMatchDirectory:confirmArrival(roomId, userId, token, raceJobId)
+	return self:update(roomId, function(record)
+		if record.state ~= "WAITING" then return nil end
+		if record.raceJobId ~= "" and record.raceJobId ~= raceJobId then
+			if record.currentRacers > 0 then return nil end
+			for _, staged in record.stagedMembers do if staged.arrived then return nil end end
+		end
+		for _, member in record.stagedMembers do
+			if member.userId == userId and member.admissionToken == token
+				and type(member.admissionExpiresAt) == "number"
+				and member.admissionExpiresAt > self.now() then
+				member.arrived = true
+				member.admissionToken = nil
+				record.raceJobId = raceJobId
+				record.currentRacers = 0
+				for _, staged in record.stagedMembers do
+					if staged.arrived then record.currentRacers += 1 end
+				end
+				return record
+			end
+		end
+		return nil
+	end)
+end
+
+function ActiveMatchDirectory:renewAdmission(roomId, userId, oldToken, newToken)
+	return self:update(roomId, function(record)
+		if record.state ~= "WAITING" then return nil end
+		for _, member in record.stagedMembers do
+			if member.userId == userId and not member.arrived
+				and member.admissionToken == oldToken then
+				member.admissionToken = newToken
+				member.admissionExpiresAt = self.now() + self.ADMISSION_SECONDS
+				return record
+			end
+		end
+		return nil
+	end)
+end
+
+function ActiveMatchDirectory:removeStaged(roomId, userId)
+	local result = self:update(roomId, function(record)
+		if record.state ~= "WAITING" then return nil end
+		for index, member in record.stagedMembers do
+			if member.userId == userId then table.remove(record.stagedMembers, index); break end
+		end
+		if #record.stagedMembers < record.maxPlayers and #record.queued > 0 then
+			table.sort(record.queued, function(a, b)
+				if (a.priority or 3) ~= (b.priority or 3) then return (a.priority or 3) < (b.priority or 3) end
+				if a.queuedAt ~= b.queuedAt then return a.queuedAt < b.queuedAt end
+				return a.userId < b.userId
+			end)
+			local promoted = table.remove(record.queued, 1)
+			promoted.arrived = false
+			table.insert(record.stagedMembers, promoted)
+		end
+		record.currentRacers = 0
+		for _, member in record.stagedMembers do if member.arrived then record.currentRacers += 1 end end
+		if record.hostUserId == userId and record.stagedMembers[1] then
+			record.hostUserId = record.stagedMembers[1].userId
+			record.hostName = record.stagedMembers[1].name
+		end
+		return record
+	end)
+	if result and #result.stagedMembers == 0 and #result.queued == 0 then
+		self:remove(roomId)
+	end
+	return result
+end
+
+function ActiveMatchDirectory:leaveMember(roomId, userId)
+	local record = self:get(roomId)
+	if not record then return nil end
+	if record.state == "WAITING" then return self:removeStaged(roomId, userId) end
+	return self:update(roomId, function(draft)
+		if not draft.currentRoundMembers then return nil end
+		if not contains(draft.currentRoundMembers, userId) then return nil end
+		if not table.find(draft.leftUserIds, userId) then table.insert(draft.leftUserIds, userId) end
+		if draft.hostUserId == userId then
+			for _, member in draft.currentRoundMembers do
+				if not table.find(draft.leftUserIds, member.userId) then
+					draft.hostUserId = member.userId
+					draft.hostName = member.name
+					break
+				end
+			end
+		end
+		return draft
+	end)
+end
+
+function ActiveMatchDirectory:startRound(roomId, hostUserId, expectedCount)
+	return self:update(roomId, function(record)
+		if record.state ~= "WAITING" or record.hostUserId ~= hostUserId
+			or record.currentRacers < 1
+			or #record.stagedMembers ~= record.currentRacers
+			or (expectedCount and expectedCount ~= record.currentRacers) then return nil end
+		local roster = {}
+		for _, member in record.stagedMembers do
+			if member.arrived then table.insert(roster, member) end
+		end
+		if #roster ~= record.currentRacers then return nil end
+		record.currentRoundMembers = roster
+		record.leftUserIds = {}
+		record.stagedMembers = {}
+		record.state = "STARTING"
+		record.roundId += 1
+		record.currentRacers = #roster
+		return record
+	end)
+end
+
+function ActiveMatchDirectory:nextStaging(roomId, rematchMembers)
+	return self:update(roomId, function(record)
+		if record.state ~= "ROUND_COMPLETE" then return nil end
+		local staged, seen = {}, {}
+		for _, member in rematchMembers do
+			if #staged < record.maxPlayers and not seen[member.userId] then
+				member.arrived = true
+				seen[member.userId] = true
+				table.insert(staged, member)
+			end
+		end
+		table.sort(record.queued, function(a, b)
+			local pa, pb = a.priority or 3, b.priority or 3
+			if pa ~= pb then return pa < pb end
+			if a.queuedAt ~= b.queuedAt then return a.queuedAt < b.queuedAt end
+			return a.userId < b.userId
+		end)
+		local remaining = {}
+		for _, member in record.queued do
+			if #staged < record.maxPlayers and not seen[member.userId] then
+				seen[member.userId] = true
+				member.arrived = false
+				member.admissionToken = member.admissionToken or member.token
+				member.admissionExpiresAt = self.now() + self.ADMISSION_SECONDS
+				table.insert(staged, member)
+			else table.insert(remaining, member) end
+		end
+		if #staged == 0 and #remaining == 0 then return nil end
+		record.stagedMembers = staged
+		record.rivalUserIds = {}
+		for _, member in record.currentRoundMembers do
+			table.insert(record.rivalUserIds, member.userId)
+		end
+		record.currentRoundMembers = {}
+		record.queued = remaining
+		record.state = "WAITING"
+		record.currentRacers = #rematchMembers
+		if not contains(staged, record.hostUserId) then
+			record.hostUserId = staged[1].userId
+			record.hostName = staged[1].name
+		end
+		return record
+	end)
 end
 
 function ActiveMatchDirectory:waiting(room)
@@ -152,6 +342,25 @@ end
 function ActiveMatchDirectory:raceState(roomId, matchId, state, racerCount, privateServerId, raceJobId)
 	return self:update(roomId, function(record)
 		if record.matchId ~= matchId then return nil end
+		if record.stagedMembers then
+			if state == "WAITING" then
+				if record.state ~= "WAITING" then return nil end
+			else
+				local order = { STARTING = 1, RACING = 2, FINISHING = 3, ROUND_COMPLETE = 4 }
+				if not order[state] or not order[record.state]
+					or order[state] < order[record.state] then return nil end
+			end
+			record.state = state
+			if state == "WAITING" then
+				record.currentRacers = 0
+				for _, staged in record.stagedMembers do
+					if staged.arrived then record.currentRacers += 1 end
+				end
+			else record.currentRacers = racerCount end
+			if privateServerId then record.privateServerId = privateServerId end
+			if raceJobId then record.raceJobId = raceJobId end
+			return record
+		end
 		local order = { STARTING = 1, RACING = 2, FINISHING = 3, ROUND_COMPLETE = 4 }
 		if (order[state] or 0) < (order[record.state] or 0) then return record end
 		record.state = state
@@ -164,8 +373,10 @@ end
 
 function ActiveMatchDirectory:queue(roomId, member)
 	return self:update(roomId, function(record)
-		if record.state == "WAITING" or record.state == "CLOSING"
+		if (record.state == "WAITING" and (not record.stagedMembers
+			or #record.stagedMembers < record.maxPlayers)) or record.state == "CLOSING"
 			or #record.queued >= self.MAX_QUEUED then return nil end
+		if record.stagedMembers and contains(record.stagedMembers, member.userId) then return nil end
 		for _, queued in record.queued do
 			if queued.userId == member.userId then return nil end
 		end
@@ -259,7 +470,9 @@ end
 function ActiveMatchDirectory:display(record)
 	return { id = record.roomId, trackId = record.trackId, state = record.state,
 		hostUserId = record.hostUserId, hostName = record.hostName,
-		count = record.currentRacers, maxPlayers = record.maxPlayers,
+		count = if record.state == "WAITING" and record.stagedMembers
+			then #record.stagedMembers else record.currentRacers,
+		maxPlayers = record.maxPlayers,
 		queuedCount = #record.queued, roundId = record.roundId }
 end
 

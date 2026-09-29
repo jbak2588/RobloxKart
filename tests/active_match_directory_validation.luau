@@ -116,4 +116,45 @@ local paged = { GetRangeAsync = function(_, _, pageSize, bound)
 end }
 check(#Directory.new(paged):list() == 201,
 	"browser pagination includes more than the first hundred active rooms")
+local persistentId = "guid-persistent-room"
+directory:createPersistent({ id = persistentId, matchId = "match-persistent",
+	trackId = "Track01Race", hostUserId = 50, hostName = "Racer50",
+	maxPlayers = 4 }, "persistent-secret", "private-persistent")
+directory:stage(persistentId, member(50), "token-50")
+directory:confirmArrival(persistentId, 50, "token-50", "race-job")
+check(directory:display(directory:get(persistentId)).count == 1
+	and directory:get(persistentId).state == "WAITING",
+	"persistent Room creates host staging without countdown")
+directory:startRound(persistentId, 50, 1)
+directory:raceState(persistentId, "match-persistent", "RACING", 1)
+local invitedFirst = member(52); invitedFirst.priority = 1; invitedFirst.queuedAt = 2
+local invitedSecond = member(51); invitedSecond.priority = 1; invitedSecond.queuedAt = 3
+local rival = member(53); rival.priority = 2; rival.queuedAt = 1
+local public = member(54); public.priority = 3; public.queuedAt = 0
+for _, queued in { public, invitedSecond, rival, invitedFirst } do
+	queued.admissionToken = "token-" .. queued.userId
+	directory:queue(persistentId, queued)
+end
+check(directory:display(directory:get(persistentId)).state == "RACING"
+	and directory:display(directory:get(persistentId)).queuedCount == 4,
+	"full active Room remains browser-visible with waiting count")
+directory:raceState(persistentId, "match-persistent", "ROUND_COMPLETE", 1)
+local staging = directory:nextStaging(persistentId, { member(50) })
+check(staging.state == "WAITING" and staging.roomId == persistentId
+	and staging.reservedServerAccessCode == "persistent-secret"
+	and staging.roundId == 1 and staging.currentRacers == 1,
+	"next round reopens staging under same Room and reservation")
+check(staging.stagedMembers[1].userId == 50
+	and staging.stagedMembers[2].userId == 52
+	and staging.stagedMembers[3].userId == 51
+	and staging.stagedMembers[4].userId == 53
+	and staging.queued[1].userId == 54,
+	"rematch, invited FIFO, rival, then public priority")
+staging = directory:removeStaged(persistentId, 50)
+check(staging.hostUserId == 52 and staging.stagedMembers[4].userId == 54
+	and #staging.queued == 0,
+	"host departure transfers authority and promotes waiting public racer")
+for _, userId in { 52, 51, 53, 54 } do directory:removeStaged(persistentId, userId) end
+check(directory:get(persistentId) == nil,
+	"empty persistent Room closes only after staged and queued racers leave")
 print(string.format("PASS: %d ActiveMatchDirectory checks", count))

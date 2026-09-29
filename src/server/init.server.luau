@@ -48,10 +48,13 @@ if ServerRuntime.isRace() then
 		print(string.format("[KDMRoute] race controller start match=%s", payload.matchId))
 		local roomCoordinator = if payload.roomId then RaceRoomCoordinator.start(payload) else nil
 		assert(RaceController.start({ trackId = payload.trackId,
-			preformedMatch = payload.roomId ~= nil,
+			preformedMatch = false,
 			persistentRoom = roomCoordinator ~= nil,
 			onRoomPhase = if roomCoordinator then roomCoordinator.onRoomPhase else nil,
+			onRoundStart = if roomCoordinator then roomCoordinator.onRoundStart else nil,
 			onRoundReady = if roomCoordinator then roomCoordinator.onRoundReady else nil,
+			onRoomLeave = if roomCoordinator then roomCoordinator.onRoomLeave else nil,
+			getRoomHostUserId = if roomCoordinator then roomCoordinator.getRoomHostUserId else nil,
 			expectedParticipantCount = #payload.participantUserIds,
 			returnToHub = RaceLaunchService.returnToHub }), "Race controller startup failed")
 		print(string.format("[KDMRoute] race controller ready match=%s", payload.matchId))

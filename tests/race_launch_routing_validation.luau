@@ -32,6 +32,7 @@ local services = {
 	TeleportService = teleport,
 	HttpService = { GenerateGUID = function() return "guid-12345678" end },
 	RunService = { studio = false, IsStudio = function(self) return self.studio end },
+	MemoryStoreService = {},
 }
 local modules = {
 	TrackCatalog = { Entries = {
@@ -42,6 +43,7 @@ local modules = {
 	DriverCatalog = { Entries = { Driver01 = {}, Driver02 = {} } },
 	KartCatalog = { Entries = { Kart01 = {}, Kart02 = {} } },
 	RaceMode = { resolve = function(trackId) return if trackId == "Track01" then "PRACTICE" else "RACE" end },
+	ActiveMatchDirectory = {},
 }
 local delayed = {}
 local warnings = {}
@@ -375,6 +377,38 @@ check(laterPlan == nil and laterReason == "WRONG_SOURCE_GAME", "later arrival wr
 later.GetJoinData = function() error("GetJoinData failed") end
 laterPlan, laterReason = Checker.checkArrival(checkPayload, later, player, 987654)
 check(laterPlan == nil and laterReason == "JOIN_DATA_UNAVAILABLE", "later arrival missing join data reason")
+local roomArrival = assert(Payload.buildMatch(matchPayload.matchId, matchPayload.roomId,
+	{ members[2] }, "Track01Race"))
+roomArrival.admissionToken = "admission-token-99"
+local roomRecord = { roomId = matchPayload.roomId, matchId = matchPayload.matchId,
+	state = "WAITING", privateServerId = "room-private", raceJobId = "race-job",
+	currentRacers = 1, stagedMembers = {
+		{ userId = 42, driverId = "Driver02", kartId = "Kart02", arrived = true },
+		{ userId = 99, driverId = "Driver01", kartId = "Kart01",
+			admissionToken = "admission-token-99", admissionExpiresAt = os.time() + 60 },
+	} }
+local roomPlan = Checker.roomPlan(matchPayload, roomArrival, roomRecord, 99,
+	"room-private", "race-job")
+check(roomPlan and roomPlan.gridSlot == 2 and roomPlan.readyOrder == 2,
+	"authorized late Room JOIN receives second staging slot")
+local wrongToken = table.clone(roomArrival); wrongToken.admissionToken = "wrong-token-99"
+check(Checker.roomPlan(matchPayload, wrongToken, roomRecord, 99,
+	"room-private", "race-job") == nil, "forged Room admission token rejected")
+local expiredRecord = table.clone(roomRecord)
+expiredRecord.stagedMembers = { roomRecord.stagedMembers[1], table.clone(roomRecord.stagedMembers[2]) }
+expiredRecord.stagedMembers[2].admissionExpiresAt = os.time() - 1
+check(Checker.roomPlan(matchPayload, roomArrival, expiredRecord, 99,
+	"room-private", "race-job") == nil, "expired Room admission rejected")
+check(Checker.roomPlan(matchPayload, roomArrival, roomRecord, 99,
+	"other-private", "race-job") == nil, "different reserved server rejected")
+check(Checker.roomPlan(matchPayload, roomArrival, roomRecord, 99,
+	"room-private", "other-job") == nil, "different active Room job rejected")
+local racingRecord = table.clone(roomRecord); racingRecord.state = "RACING"
+check(Checker.roomPlan(matchPayload, roomArrival, racingRecord, 99,
+	"room-private", "race-job") == nil, "mid-race arrival rejected")
+local wrongRoom = table.clone(roomRecord); wrongRoom.roomId = "unrelated-room"
+check(Checker.roomPlan(matchPayload, roomArrival, wrongRoom, 99,
+	"room-private", "race-job") == nil, "stale Room identity rejected")
 local unexpected = { UserId = 43, Parent = players, attrs = {} }
 function unexpected:SetAttribute(name, value) self.attrs[name] = value end
 function unexpected:GetJoinData() return { SourcePlaceId = 123456, SourceGameId = 987654,

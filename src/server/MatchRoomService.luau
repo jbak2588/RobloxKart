@@ -8,19 +8,18 @@ local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local ActiveMatchDirectory = require(script.Parent:WaitForChild("ActiveMatchDirectory"))
+local RoomSocialDirectory = require(script.Parent:WaitForChild("RoomSocialDirectory"))
 local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"))
 local RaceLaunchService = require(script.Parent:WaitForChild("RaceLaunchService"))
 
 local MatchRoomService = {}
 local TRACK_ID = "Track01Race"
-local track = TrackCatalog.Entries[TRACK_ID]
 local directory = ActiveMatchDirectory.new(MemoryStoreService:GetSortedMap(ActiveMatchDirectory.MAP_NAME))
-local browsing, selections, invitations, membership, launched = {}, {}, {}, {}, {}
-local cachedRooms = {}
-local remote
-local started = false
-local starting = {}
-local startingQueue = {}
+local social = RoomSocialDirectory.new(
+	MemoryStoreService:GetSortedMap(RoomSocialDirectory.PRESENCE_MAP),
+	MemoryStoreService:GetHashMap(RoomSocialDirectory.INVITE_MAP))
+local browsing, selections, membership, launched, creating = {}, {}, {}, {}, {}
+local cachedRooms, remote, started = {}, nil, false
 
 local function eligible(player)
 	return player and player.Parent == Players and player:GetAttribute("RaceState") == "GARAGE"
@@ -34,6 +33,14 @@ local function choose(player, driverId, kartId)
 	return true
 end
 
+local function memberFor(player, priority)
+	local selected = selections[player.UserId]
+	return { userId = player.UserId, name = player.DisplayName,
+		driverId = selected.driverId, kartId = selected.kartId,
+		hubJobId = game.JobId, queuedAt = DateTime.now().UnixTimestampMillis, priority = priority or 3,
+		admissionToken = HttpService:GenerateGUID(false) }
+end
+
 local function findCached(roomId)
 	for _, record in cachedRooms do if record.roomId == roomId then return record end end
 end
@@ -43,36 +50,23 @@ local function snapshotFor(player)
 	local rooms = {}
 	for _, record in cachedRooms do table.insert(rooms, directory:display(record)) end
 	local ownRoom
-	if own then
+	if own and own.kind == "QUEUED" then
 		local record = findCached(own.roomId)
 		if record then
 			ownRoom = directory:display(record)
-			ownRoom.members = {}
-			ownRoom.available = {}
-			ownRoom.membershipKind = own.kind
-			for _, member in record.waitingMembers or {} do
-				table.insert(ownRoom.members, { userId = member.userId, name = member.name })
+			ownRoom.membershipKind = "QUEUED"
+			for index, member in record.queued do
+				if member.userId == player.UserId then ownRoom.queuePosition = index; break end
 			end
-			if own.kind == "QUEUED" then
-				for index, member in record.queued or {} do
-					if member.userId == player.UserId then ownRoom.queuePosition = index; break end
-				end
-				if not ownRoom.queuePosition then
-					for _, member in record.launchRoster or {} do
-						if member.userId == player.UserId then ownRoom.nextRoundStarting = true; break end
-					end
-				end
-			elseif record.hostUserId == player.UserId and record.state == "WAITING" then
-				for _, other in Players:GetPlayers() do
-					if other ~= player and eligible(other) and not membership[other.UserId] then
-						table.insert(ownRoom.available, { userId = other.UserId, name = other.DisplayName })
-					end
+			if not ownRoom.queuePosition then
+				for _, member in record.stagedMembers or {} do
+					if member.userId == player.UserId then ownRoom.nextRoundStarting = true; break end
 				end
 			end
 		end
 	end
-	return { visible = browsing[player.UserId] == true or ownRoom ~= nil,
-		rooms = rooms, room = ownRoom }
+	return { visible = (browsing[player.UserId] == true or ownRoom ~= nil)
+		and not (own and own.kind == "STAGED"), rooms = rooms, room = ownRoom }
 end
 
 local function broadcast()
@@ -81,143 +75,111 @@ end
 
 local function refresh()
 	local ok, records = pcall(function() return directory:list() end)
-	if ok then
-		cachedRooms = records
-		for userId, own in membership do
-			if not findCached(own.roomId) then
-				membership[userId] = nil
-				launched[userId] = nil
-				local player = Players:GetPlayerByUserId(userId)
-				if player then remote:FireClient(player, "Error", "ROOM EXPIRED - PLEASE CHOOSE ANOTHER") end
-			end
+	if not ok then warn("[KDMRoom] directory listing failed: " .. tostring(records)); return end
+	cachedRooms = records
+	for userId, own in membership do
+		if not findCached(own.roomId) then
+			membership[userId] = nil
+			launched[userId] = nil
+			local player = Players:GetPlayerByUserId(userId)
+			if player then remote:FireClient(player, "Error", "ROOM EXPIRED - PLEASE CHOOSE ANOTHER") end
 		end
-		broadcast()
-	else warn("[KDMRoom] directory listing failed: " .. tostring(records)) end
-	return ok
+	end
+	broadcast()
 end
 
 local function errorTo(player, message)
-	if player and player.Parent == Players then remote:FireClient(player, "Error", message) end
+	if player.Parent == Players then remote:FireClient(player, "Error", message) end
 end
 
-local function memberFor(player)
-	local selected = selections[player.UserId]
-	return { userId = player.UserId, name = player.DisplayName,
-		driverId = selected.driverId, kartId = selected.kartId,
-		hubJobId = game.JobId, queuedAt = os.time() }
-end
-
-local function launchLocal(record)
-	if record.state ~= "STARTING" or type(record.launchRoster) ~= "table"
-		or type(record.reservedServerAccessCode) ~= "string"
-		or record.reservedServerAccessCode == "" then return end
-	local payload = RaceLaunchPayload.buildMatch(record.matchId, record.roomId,
-		record.launchRoster, TRACK_ID)
-	if not payload then return end
-	local group = {}
-	for _, member in record.launchRoster do
-		local player = Players:GetPlayerByUserId(member.userId)
-		if player and eligible(player) and membership[player.UserId]
-			and membership[player.UserId].roomId == record.roomId
-			and launched[player.UserId] ~= record.matchId then
-			launched[player.UserId] = record.matchId
-			table.insert(group, player)
+local function launchStaged(player, record, member)
+	if launched[player.UserId] == member.admissionToken then return end
+	if type(member.admissionExpiresAt) ~= "number"
+		or member.admissionExpiresAt <= os.time() + 5 then
+		local newToken = HttpService:GenerateGUID(false)
+		local ok, updated = pcall(function()
+			return directory:renewAdmission(record.roomId, player.UserId,
+				member.admissionToken, newToken)
+		end)
+		if not ok or not updated then return end
+		record = updated
+		for _, staged in record.stagedMembers do
+			if staged.userId == player.UserId then member = staged; break end
 		end
 	end
-	if #group == 0 then return end
-	local requestInFlight = true
-	local earlyFailures = {}
-	local function requeueFailed(player)
+	local payload = RaceLaunchPayload.buildMatch(record.matchId, record.roomId, { member }, TRACK_ID)
+	if not payload then return end
+	payload.admissionToken = member.admissionToken
+	launched[player.UserId] = member.admissionToken
+	local function failed()
 		launched[player.UserId] = nil
-		membership[player.UserId] = { roomId = record.roomId, kind = "QUEUED" }
-		pcall(function() directory:queue(record.roomId, memberFor(player)) end)
+		pcall(function() directory:removeStaged(record.roomId, player.UserId) end)
+		membership[player.UserId] = nil
 		browsing[player.UserId] = true
 		refresh()
 	end
-	local ok = RaceLaunchService.launchMatch(group, payload, function(player)
-		if requestInFlight then earlyFailures[player] = true
-		else requeueFailed(player) end
-	end, record.reservedServerAccessCode)
-	requestInFlight = false
-	if not ok then
-		local allLocalInitial = record.roundId == 1 and #group == #record.launchRoster
-		if allLocalInitial then
-			local rolledBack, restored = pcall(function()
-				return directory:launchFailed(record.roomId, record.matchId)
-			end)
-			if rolledBack and restored then
-				for _, player in group do
-					membership[player.UserId] = { roomId = record.roomId, kind = "WAITING" }
-					launched[player.UserId] = nil
-				end
-				refresh()
-				for _, player in group do errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN") end
-				return false
-			end
-		end
-		for player in earlyFailures do requeueFailed(player) end
-		for _, player in group do
-			launched[player.UserId] = nil
-			errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN")
-		end
-	else
-		for player in earlyFailures do requeueFailed(player) end
-	end
-	return ok
+	local ok = RaceLaunchService.launchMatch({ player }, payload, failed,
+		record.reservedServerAccessCode)
+	if not ok then failed(); errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN") end
 end
 
-local function startRoom(player)
-	if not player or starting[player.UserId] then return end
-	local own = membership[player.UserId]
-	if not own or own.kind ~= "WAITING" then return end
-	starting[player.UserId] = true
-	local ok, record = pcall(function() return directory:get(own.roomId) end)
-	if not ok or not record or record.state ~= "WAITING"
-		or record.hostUserId ~= player.UserId then
-		starting[player.UserId] = nil
-		return
+local function stagePlayer(player, roomId)
+	local member = memberFor(player)
+	local ok, record = pcall(function() return directory:stage(roomId, member, member.admissionToken) end)
+	if not ok or not record then
+		if not ok then warn("[KDMRoom] staging failed: " .. tostring(record)) end
+		errorTo(player, "ROOM UNAVAILABLE")
+		return false
 	end
-	local reserved, accessCode, privateServerId = pcall(function()
+	membership[player.UserId] = { roomId = roomId, kind = "STAGED" }
+	pcall(function() social:remove(player.UserId) end)
+	refresh()
+	launchStaged(player, record, member)
+	return true
+end
+
+local function queuePlayer(player, roomId, priority)
+	local member = memberFor(player, priority)
+	local ok, record = pcall(function() return directory:queue(roomId, member) end)
+	if not ok or not record then errorTo(player, "QUEUE UNAVAILABLE"); return false end
+	membership[player.UserId] = { roomId = roomId, kind = "QUEUED" }
+	pcall(function() social:remove(player.UserId) end)
+	refresh()
+	return true
+end
+
+local function createRoom(player)
+	if not eligible(player) or membership[player.UserId] or not selections[player.UserId]
+		or creating[player.UserId] then return end
+	creating[player.UserId] = true
+	local reserved, code, privateId = pcall(function()
 		return TeleportService:ReserveServerAsync(game.PlaceId)
 	end)
-	if not reserved or type(accessCode) ~= "string" or accessCode == "" then
-		starting[player.UserId] = nil
-		errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN")
+	if not reserved or type(code) ~= "string" or code == "" then
+		creating[player.UserId] = nil
+		errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN"); return
+	end
+	if not eligible(player) or membership[player.UserId] then
+		creating[player.UserId] = nil
 		return
 	end
-	local matchId = HttpService:GenerateGUID(false)
-	local claimed, nextRecord = pcall(function()
-		return directory:initialLaunch(record.roomId, player.UserId, matchId,
-			accessCode, privateServerId)
+	local roomId = HttpService:GenerateGUID(false)
+	local created, createError = pcall(function()
+		directory:createPersistent({ id = roomId, matchId = HttpService:GenerateGUID(false),
+			trackId = TRACK_ID, hostUserId = player.UserId,
+			hostName = player.DisplayName, maxPlayers = TrackCatalog.Entries[TRACK_ID].MaxPlayers },
+			code, privateId)
 	end)
-	starting[player.UserId] = nil
-	if not claimed or not nextRecord then
+	if not created then
+		creating[player.UserId] = nil
+		warn("[KDMRoom] create failed: " .. tostring(createError))
 		errorTo(player, "ROOM UNAVAILABLE")
 		return
 	end
-	refresh()
-	launchLocal(nextRecord)
-end
-
-local function recoverQueuedRound(record)
-	if startingQueue[record.roomId] or #record.queued == 0
-		or record.queued[1].hubJobId ~= game.JobId then return end
-	startingQueue[record.roomId] = true
-	local reserved, accessCode, privateServerId = pcall(function()
-		return TeleportService:ReserveServerAsync(game.PlaceId)
-	end)
-	if reserved and type(accessCode) == "string" and accessCode ~= "" then
-		local matchId = HttpService:GenerateGUID(false)
-		local claimed, nextRecord = pcall(function()
-			return directory:claimNext(record.roomId, record.matchId, matchId,
-				accessCode, privateServerId, {})
-		end)
-		if claimed and nextRecord then
-			refresh()
-			launchLocal(nextRecord)
-		end
+	if not stagePlayer(player, roomId) then
+		pcall(function() directory:remove(roomId) end)
 	end
-	startingQueue[record.roomId] = nil
+	creating[player.UserId] = nil
 end
 
 function MatchRoomService.openBrowser(player, driverId, kartId)
@@ -240,127 +202,96 @@ function MatchRoomService.start()
 		elseif action == "Back" then
 			if not own then browsing[player.UserId] = nil; broadcast() end
 		elseif action == "Create" then
-			if not eligible(player) or own or not selections[player.UserId] then return end
-			local roomId = HttpService:GenerateGUID(false)
-			local member = memberFor(player)
-			local ok = pcall(function()
-				directory:create({ id = roomId, trackId = TRACK_ID,
-					hostUserId = player.UserId, hostName = player.DisplayName,
-					ownerJobId = game.JobId, maxPlayers = track.MaxPlayers,
-					members = { member } })
-			end)
-			if not ok then errorTo(player, "ROOM UNAVAILABLE"); return end
-			membership[player.UserId] = { roomId = roomId, kind = "WAITING" }
-			refresh()
+			createRoom(player)
 		elseif action == "Join" and type(first) == "string" then
-			if not eligible(player) or own or not selections[player.UserId] then return end
-			local ok, record = pcall(function() return directory:joinWaiting(first, memberFor(player)) end)
-			if not ok or not record then errorTo(player, "ROOM UNAVAILABLE"); return end
-			membership[player.UserId] = { roomId = first, kind = "WAITING" }
-			refresh()
-			if #record.waitingMembers == record.maxPlayers then
-				local host = Players:GetPlayerByUserId(record.hostUserId)
-				if host then startRoom(host) end
+			if eligible(player) and not own and selections[player.UserId] then
+				stagePlayer(player, first)
 			end
 		elseif action == "Queue" and type(first) == "string" then
-			if not eligible(player) or own or not selections[player.UserId] then return end
-			local ok, record = pcall(function() return directory:queue(first, memberFor(player)) end)
-			if not ok or not record then errorTo(player, "QUEUE UNAVAILABLE"); return end
-			membership[player.UserId] = { roomId = first, kind = "QUEUED" }
-			refresh()
-		elseif action == "CancelQueue" then
-			if not own or own.kind ~= "QUEUED" then return end
-			local ok, removed = pcall(function() return directory:cancelQueue(own.roomId, player.UserId) end)
-			if not ok or not removed then return end
-			membership[player.UserId] = nil
-			refresh()
-		elseif action == "Leave" then
-			if not own or own.kind ~= "WAITING" then return end
-			pcall(function() directory:leaveWaiting(own.roomId, player.UserId) end)
-			membership[player.UserId] = nil
-			refresh()
-		elseif action == "Start" then
-			startRoom(player)
-		elseif action == "Invite" and type(first) == "number" then
-			if not own or own.kind ~= "WAITING" then return end
-			local target = Players:GetPlayerByUserId(first)
-			local ok, record = pcall(function() return directory:get(own.roomId) end)
-			if not ok or not record or record.state ~= "WAITING" or record.hostUserId ~= player.UserId
-				or record.currentRacers >= record.maxPlayers or not eligible(target)
-				or membership[first] then return end
-			invitations[first] = { roomId = record.roomId, hostUserId = player.UserId,
-				sentAt = os.clock() }
-			remote:FireClient(target, "Invite", { roomId = record.roomId,
-				hostUserId = player.UserId, hostName = player.DisplayName,
-				trackId = TRACK_ID, count = record.currentRacers, maxPlayers = record.maxPlayers })
-		elseif action == "AcceptInvite" then
-			local invite = invitations[player.UserId]
-			invitations[player.UserId] = nil
-			if not invite or os.clock() - invite.sentAt > 30 or own
-				or not eligible(player) or not choose(player, first, second) then
-				errorTo(player, "INVITE EXPIRED"); return
-			end
-			local ok, record = pcall(function() return directory:get(invite.roomId) end)
-			if not ok or not record or record.hostUserId ~= invite.hostUserId
-				or record.state ~= "WAITING" then errorTo(player, "INVITE EXPIRED"); return end
-			local joined, updated = pcall(function()
-				return directory:joinWaiting(invite.roomId, memberFor(player))
-			end)
-			if not joined or not updated then errorTo(player, "INVITE EXPIRED"); return end
-			membership[player.UserId] = { roomId = invite.roomId, kind = "WAITING" }
-			browsing[player.UserId] = true
-			refresh()
-			if #updated.waitingMembers == updated.maxPlayers then
-				local host = Players:GetPlayerByUserId(updated.hostUserId)
-				if host then startRoom(host) end
-			end
-		elseif action == "DeclineInvite" then
-			invitations[player.UserId] = nil
-		end
-	end)
-	local function watchPlayer(player)
-		player:GetAttributeChangedSignal("RaceState"):Connect(broadcast)
-	end
-	for _, player in Players:GetPlayers() do watchPlayer(player) end
-	Players.PlayerAdded:Connect(function(player) watchPlayer(player); broadcast() end)
-	Players.PlayerRemoving:Connect(function(player)
-		local own = membership[player.UserId]
-		if own then
-			if own.kind == "WAITING" then
-				pcall(function() directory:leaveWaiting(own.roomId, player.UserId) end)
-			elseif own.kind == "QUEUED" then
-				pcall(function() directory:cancelQueue(own.roomId, player.UserId) end)
-			end
-		end
-		membership[player.UserId] = nil
-		browsing[player.UserId] = nil
-		selections[player.UserId] = nil
-		invitations[player.UserId] = nil
-		launched[player.UserId] = nil
-		refresh()
-	end)
-	task.spawn(function()
-		local heartbeatElapsed = 0
-		while true do
-			task.wait(5)
-			heartbeatElapsed += 5
-			if refresh() then
-				for _, record in cachedRooms do
-					if heartbeatElapsed >= 15 and record.state == "WAITING"
-						and record.ownerJobId == game.JobId then
-						pcall(function() directory:heartbeatWaiting(record.roomId, game.JobId) end)
+			if eligible(player) and not own and selections[player.UserId] then
+				local ok, record = pcall(function() return directory:get(first) end)
+				local priority = 3
+				if ok and record then
+					for _, userId in record.rivalUserIds or {} do
+						if userId == player.UserId then priority = 2; break end
 					end
-					if record.state == "STARTING" then launchLocal(record)
-					elseif record.state == "WAITING" and record.currentRacers == record.maxPlayers then
-						local host = Players:GetPlayerByUserId(record.hostUserId)
-						if host then startRoom(host) end
-					elseif record.state == "ROUND_COMPLETE" and #record.queued > 0
-						and (record.currentRacers == 0 or os.time() - record.updatedAt > 20) then
-						recoverQueuedRound(record)
+					for _, member in record.currentRoundMembers or {} do
+						if member.userId == player.UserId then priority = 2; break end
 					end
 				end
+				queuePlayer(player, first, priority)
 			end
-			if heartbeatElapsed >= 15 then heartbeatElapsed = 0 end
+		elseif action == "CancelQueue" then
+			if not own or own.kind ~= "QUEUED" then return end
+			pcall(function() directory:cancelQueue(own.roomId, player.UserId) end)
+			pcall(function() directory:removeStaged(own.roomId, player.UserId) end)
+			membership[player.UserId] = nil
+			launched[player.UserId] = nil
+			refresh()
+		elseif action == "AcceptInvite" then
+			if own or not eligible(player) or not choose(player, first, second) then return end
+			local ok, invite = pcall(function() return social:getInvite(player.UserId) end)
+			if not ok or not invite then errorTo(player, "INVITE EXPIRED"); return end
+			local found, record = pcall(function() return directory:get(invite.roomId) end)
+			if not found or not record or record.hostUserId ~= invite.hostUserId
+				or record.trackId ~= invite.trackId then
+				errorTo(player, "INVITE EXPIRED"); return
+			end
+			pcall(function() social:clearInvite(player.UserId) end)
+			if record.state == "WAITING" and #record.stagedMembers < record.maxPlayers then
+				stagePlayer(player, record.roomId)
+			else queuePlayer(player, record.roomId, 1) end
+		elseif action == "DeclineInvite" then
+			pcall(function() social:clearInvite(player.UserId) end)
+		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		local own = membership[player.UserId]
+		if own and own.kind == "QUEUED" then
+			pcall(function() directory:cancelQueue(own.roomId, player.UserId) end)
+		elseif own and own.kind == "STAGED"
+			and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH" then
+			pcall(function() directory:removeStaged(own.roomId, player.UserId) end)
+		end
+		pcall(function() social:remove(player.UserId) end)
+		membership[player.UserId], browsing[player.UserId] = nil, nil
+		selections[player.UserId], launched[player.UserId] = nil, nil
+		creating[player.UserId] = nil
+	end)
+
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			refresh()
+			for _, player in Players:GetPlayers() do
+				if eligible(player) and not membership[player.UserId] then
+					pcall(function() social:publish(player, game.JobId) end)
+				else pcall(function() social:remove(player.UserId) end) end
+				local own = membership[player.UserId]
+				if own and own.kind == "QUEUED" then
+					local record = findCached(own.roomId)
+					if record then
+						for _, member in record.stagedMembers or {} do
+							if member.userId == player.UserId and not member.arrived then
+								launchStaged(player, record, member)
+								break
+							end
+						end
+					end
+				end
+				local ok, invite = pcall(function() return social:getInvite(player.UserId) end)
+				if ok and invite and not membership[player.UserId] and eligible(player) then
+					local record = findCached(invite.roomId)
+					if record and record.hostUserId == invite.hostUserId then
+						remote:FireClient(player, "Invite", { roomId = invite.roomId,
+							hostUserId = invite.hostUserId, hostName = invite.hostName,
+							trackId = invite.trackId, state = record.state,
+							count = directory:display(record).count,
+							maxPlayers = record.maxPlayers })
+					else pcall(function() social:clearInvite(player.UserId) end) end
+				end
+			end
 		end
 	end)
 	refresh()
