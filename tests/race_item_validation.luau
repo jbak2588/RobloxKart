@@ -255,9 +255,15 @@ check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceCha
 services.RunService.studio=false
 player:SetAttribute("RaceState","RACING")
 check(player:GetAttribute("RaceChargeNitro")==1,"published server equal loadout")
+player:SetAttribute("RaceState","COUNTDOWN")
+kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+check(player:GetAttribute("RaceChargeNitro")==0,"countdown kart reset reproduces empty loadout")
+player:SetAttribute("RaceState","RACING")
+check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceChargeSlick")==1
+	and player:GetAttribute("RaceChargeShield")==1,"reserved Base start restores authoritative 1/1/1")
 services.RunService.studio=true
 startRace(); remote.OnServerEvent:Fire(player,"Use")
-kart:SetAttribute("RaceResetSerial",1)
+kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
 check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"reset clears both")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 seat.Occupant=nil

@@ -282,6 +282,19 @@ check(synchronousFailures == 2 and player:GetAttribute("KDMRoutePending") == ""
 	and joiningPlayer:GetAttribute("KDMRoutePending") == "",
 	"group request failure restores every HUB participant")
 teleport.failNow = false
+check(Launch.launchMatch({ joiningPlayer }, matchPayload, nil, "same-room-code"),
+	"queued roster subset launches to existing reservation")
+call = teleport.calls[#teleport.calls]
+check(call.group[1] == joiningPlayer and call.options.ReservedServerAccessCode == "same-room-code"
+	and call.options.ShouldReserveServer ~= true, "existing reservation uses access code")
+teleport.TeleportInitFailed:Fire(joiningPlayer, "Failure", "queued launch failed", 123456, {})
+player:SetAttribute("RaceState", "FINISHED")
+check(Launch.launchMatch({ player }, matchPayload, nil, "next-round-code", true),
+	"rematch voter requests next reserved server")
+teleport.TeleportInitFailed:Fire(player, "Failure", "rematch launch failed", 123456, {})
+check(player:GetAttribute("RaceState") == "FINISHED" and player:GetAttribute("KDMRoutePending") == "",
+	"failed rematch teleport preserves result and Garage exit")
+player:SetAttribute("RaceState", "GARAGE")
 
 -- Exercise the production arrival path with simulated server objects.
 local CF, V = rb.CFrame, rb.Vector3
@@ -478,6 +491,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 		RaceController = { start = function(options) calls.race = options or "default"; return not failRace end },
 		GarageController = { start = function() calls.garage = true end },
 		MatchRoomService = { start = function() calls.matchRooms = true end },
+		RaceRoomCoordinator = { start = function() return {} end },
 		RaceServerBootstrap = { start = function(value, initialPlayer, initialJoinData)
 			calls.bootstrap = value; calls.initialPlayer = initialPlayer; calls.initialJoinData = initialJoinData
 			return true

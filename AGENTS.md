@@ -233,9 +233,10 @@ Driver seating issue is deferred.
 ## NEXT PRIORITY
 
 M3-A0 routes the two Solo tracks from the public HUB to independent reserved
-RACE servers in the same Place. M3-A1 adds concurrent same-HUB Base Circuit
-MatchRooms and independent reserved multiplayer Race servers; published routing
-validation is next. M3-A2 closes the no-blocking MVP gate. Combat/Missile,
+RACE servers in the same Place. M3-A1 adds independent Base Circuit reserved
+Race servers. M3-A1-R1 keeps active Room identity in MemoryStore across HUBs
+and adds Next-Round Queue; published R1 validation is next. M3-A2 closes the
+no-blocking MVP gate. Combat/Missile,
 additional track capacity, persistence and Shop follow. TrackV2 geometry
 revision remains pending.
 
@@ -545,14 +546,18 @@ Core UI safe insets, and a fixed-height scrollable ONLINE list. M3-P0 published
 runtime passed for transition feedback, Solo launch, HUB return
 and ONLINE scrolling. Known device polish: Galaxy Tab Quit Race touch may open
 Roblox Chat; PC and regular phone did not reproduce it. This is deferred.
-M3-A1 code supports multiple in-memory Track01Race MatchRooms in a single
-50-user public HUB, with 1–4 racers per room and no HUB Base race karts.
-The host starts at 1–3 racers; four auto-start. A launched room uses one group
-TeleportAsync and an ordered payload to enter an independent reserved RACE
-server. The race waits up to 10 seconds for arrivals, then starts with actual
-participants. Remaining racers Rematch directly in that reserved server.
-Rooms do not match across HUB servers. Published M3-A1 multiplayer routing
-remains unverified. M3-A2 has not started.
+M3-A1 Base Circuit rooms hold 1–4 racers and create no HUB race kart. The user
+confirmed three concurrent Base START SOLO reserved races on real devices.
+M3-A1-R1 stores logical Rooms in the server-only `KDM_ActiveBaseRooms_v1`
+MemoryStore SortedMap with a 45-second TTL and heartbeat. GUID Room IDs are
+visible across HUB servers; secret reserved access codes never reach clients.
+WAITING rooms accept JOIN. STARTING/RACING/FINISHING/ROUND_COMPLETE rooms remain
+visible and accept QUEUE NEXT, with no mid-race join or spectator mode. After
+the round, remaining Rematch voters take priority, then queued racers join FIFO
+up to four; excess queue persists. A new reserved server runs each next round.
+Base START SOLO previously showed Nitro/Slick/Shield 0/0/0; an automated
+Countdown reset reproduced it, and RACING now refills 1/1/1 server-side.
+Published R1 queue and loadout validation remains required. M3-A2 has not started.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
@@ -594,6 +599,9 @@ tests/kart_contact_validation.luau
 tests/race_launch_routing_validation.luau
 tests/match_room_validation.luau
 tests/match_room_service_validation.luau
+tests/active_match_directory_validation.luau
+tests/race_room_coordinator_validation.luau
+tests/persistent_room_race_validation.luau
 tests/reserved_match_validation.luau
 tests/reserved_arrival_validation.luau
 

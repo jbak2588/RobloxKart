@@ -5,7 +5,12 @@ local Registry = luau.load(fs.readFile("src/server/MatchRoomRegistry.luau"))()
 local count = 0
 local function check(value, message) assert(value, message); count += 1 end
 
-local hub = Registry.new("Track01Race", 4)
+local nextId = 0
+local function testId()
+	nextId += 1
+	return "test-room-" .. nextId
+end
+local hub = Registry.new("Track01Race", 4, testId)
 local a = assert(hub:create(1, "Driver01", "Kart01"))
 local b = assert(hub:create(5, "Driver02", "Kart02"))
 local c = assert(hub:create(8, "Driver01", "Kart01"))
@@ -36,7 +41,7 @@ check(c.hostUserId == 9 and c.members[1].joinOrder < c.members[2].joinOrder,
 hub:leave(9); hub:leave(10)
 check(#hub:snapshot() == 0 and hub.rooms[c.id] == nil, "last departure deletes room")
 for size = 1, 3 do
-	local standalone = Registry.new("Track01Race", 4)
+	local standalone = Registry.new("Track01Race", 4, testId)
 	local room = assert(standalone:create(100, "Driver01", "Kart01"))
 	for index = 2, size do assert(standalone:join(room.id, 99 + index, "Driver01", "Kart01")) end
 	check(standalone:launch(room.id, 100) == room, "host may start at " .. size .. "/4")

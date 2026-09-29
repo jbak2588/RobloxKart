@@ -1,9 +1,10 @@
 local MatchRoomRegistry = {}
 MatchRoomRegistry.__index = MatchRoomRegistry
 
-function MatchRoomRegistry.new(trackId, maxPlayers)
+function MatchRoomRegistry.new(trackId, maxPlayers, idFactory)
+	idFactory = idFactory or function() return game:GetService("HttpService"):GenerateGUID(false) end
 	return setmetatable({ trackId = trackId, maxPlayers = maxPlayers,
-		rooms = {}, membership = {}, nextId = 0, nextOrder = 0 }, MatchRoomRegistry)
+		rooms = {}, membership = {}, nextId = 0, nextOrder = 0, idFactory = idFactory }, MatchRoomRegistry)
 end
 
 function MatchRoomRegistry:roomFor(userId)
@@ -13,7 +14,8 @@ end
 function MatchRoomRegistry:create(userId, driverId, kartId)
 	if self:roomFor(userId) then return nil, "ALREADY_IN_ROOM" end
 	self.nextId += 1
-	local room = { id = string.format("base-room-%d", self.nextId), trackId = self.trackId,
+	local roomId = self.idFactory()
+	local room = { id = roomId, trackId = self.trackId,
 		maxPlayers = self.maxPlayers, createdOrder = self.nextId, state = "WAITING",
 		members = {}, hostUserId = userId }
 	self.rooms[room.id] = room

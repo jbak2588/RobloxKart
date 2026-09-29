@@ -184,6 +184,11 @@ function RaceItemController.start()
 					bindKart(player)
 					loadouts[player]:prepare()
 					publish(player)
+				elseif state == "RACING" and oldState == "COUNTDOWN" then
+					-- Grid/seat reset events can clear the countdown loadout after prepare.
+					-- No item can be used in COUNTDOWN, so refill at the authoritative start.
+					loadouts[player]:prepare()
+					publish(player)
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
 					clearPlayer(player)
 					if state == "GARAGE" then

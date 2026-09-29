@@ -9,7 +9,11 @@ local function check(condition, message)
 	count += 1
 end
 
-local rooms = Registry.new("Track01Race", 4)
+local nextId = 0
+local rooms = Registry.new("Track01Race", 4, function()
+	nextId += 1
+	return "test-room-" .. nextId
+end)
 local alpha = assert(rooms:create(1, "Driver01", "Kart01"))
 local beta = assert(rooms:create(2, "Driver02", "Kart02"))
 check(alpha.id ~= beta.id and #rooms:snapshot() == 2, "independent rooms coexist")

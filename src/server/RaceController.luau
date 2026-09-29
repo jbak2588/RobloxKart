@@ -126,8 +126,17 @@ function RaceController.start(options)
 	started = true
 	rosterLocked = false
 	local preformedMatch = options and options.preformedMatch == true
+	local persistentRoom = options and options.persistentRoom == true
 	local expectedParticipantCount = if preformedMatch then options.expectedParticipantCount else 0
 	local arrivalDeadline = 0
+	local nextRoundPending = false
+	local roomPresentationPhase = "STARTING"
+	local function publishRoomPhase(phase, count)
+		roomPresentationPhase = phase
+		if options and options.onRoomPhase then
+			task.spawn(options.onRoomPhase, phase, count)
+		end
+	end
 	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
 
 	local prototype = Workspace:WaitForChild("Prototype")
@@ -271,6 +280,7 @@ function RaceController.start(options)
 				return
 			end
 			player:SetAttribute("RaceState", state)
+			if state == "FINISHING" then publishRoomPhase("FINISHING", session:count()) end
 			print(string.format("[Race] state %s -> %s", tostring(previousState), state))
 		end
 
@@ -693,6 +703,7 @@ function RaceController.start(options)
 			setChanged(player, "RaceMapActive", true)
 		end
 		publishSession(now)
+		publishRoomPhase("STARTING", session:count())
 	end
 
 	local function startSharedRace()
@@ -701,6 +712,7 @@ function RaceController.start(options)
 		for _, player in session:orderedParticipants() do
 			racers[player]:startRace(session.startTime)
 		end
+		publishRoomPhase("RACING", session:count())
 	end
 
 	local function updateComplete()
@@ -718,6 +730,7 @@ function RaceController.start(options)
 				and (state ~= "FINISHING" or session.startingParticipantCount == 1) then return end
 		end
 		session.phase = "COMPLETE"
+		publishRoomPhase("ROUND_COMPLETE", session:count())
 	end
 
 	local function updateRanking()
@@ -792,6 +805,19 @@ function RaceController.start(options)
 		end
 	end
 
+	local function prepareNextRoomRound()
+		if nextRoundPending or not options or not options.onRoundReady then return end
+		nextRoundPending = true
+		local participants = session:orderedParticipants()
+		task.spawn(function()
+			local ok, accepted = pcall(options.onRoundReady, participants)
+			if not ok or not accepted then
+				nextRoundPending = false
+				warn("[KDMRoom] next round launch unavailable")
+			end
+		end)
+	end
+
 	local function removeRacer(player: Player)
 		local racer = racers[player]
 		if not racer then return end
@@ -811,6 +837,10 @@ function RaceController.start(options)
 		end
 		if session:count() == 0 then
 			session.phase = "EMPTY"
+			if persistentRoom then
+				publishRoomPhase("ROUND_COMPLETE", 0)
+				prepareNextRoomRound()
+			end
 			arrivalDeadline = 0
 			session.firstFinishAt = 0
 			session.raceEndDeadline = 0
@@ -820,12 +850,16 @@ function RaceController.start(options)
 			return
 		end
 		if session.phase == "COMPLETE" and allRematchVotes() then
-			beginVotedRound(time())
+			if persistentRoom then prepareNextRoomRound() else beginVotedRound(time()) end
 			return
 		end
 		updateComplete()
 		publishSession(time())
 		updateRanking()
+		if persistentRoom and (session.phase == "RACING" or session.phase == "COMPLETE") then
+			publishRoomPhase(if session.phase == "COMPLETE" then "ROUND_COMPLETE"
+				else roomPresentationPhase, session:count())
+		end
 	end
 
 	local function admitRacer(player: Player, context, now: number)
@@ -914,7 +948,8 @@ function RaceController.start(options)
 			session.rematchVotes[player] = true
 			publishSession(time())
 			if allRematchVotes() then
-				if TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE" then beginVotedRound(time())
+				if persistentRoom then prepareNextRoomRound()
+				elseif TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE" then beginVotedRound(time())
 				else startSharedCountdown(time()) end
 			end
 		end

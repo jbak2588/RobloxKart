@@ -119,7 +119,19 @@ function MatchRoomUiController.start()
 			end, "DECLINE", function() remote:FireServer("DeclineInvite"); invitation = nil; render() end)
 			return
 		end
-		if snapshot.room then
+		if snapshot.room and snapshot.room.membershipKind == "QUEUED" then
+			local room = snapshot.room
+			title.Text = "QUEUED FOR NEXT RACE"
+			status.Text = if room.nextRoundStarting then "NEXT RACE STARTING"
+				else string.format("%s'S ROOM  •  QUEUE %d  •  CURRENT %s %d / %d",
+					room.hostName, room.queuePosition or 0, room.state, room.count, room.maxPlayers)
+			row(if room.nextRoundStarting then "Moving you to the next race..."
+				else "You will join when the next round is ready.", nil, nil)
+			primary.Visible = false
+			back.Visible = not room.nextRoundStarting
+			bindButtons("", function() end, "CANCEL QUEUE",
+				function() remote:FireServer("CancelQueue") end)
+		elseif snapshot.room then
 			local room = snapshot.room
 			title.Text = "BASE CIRCUIT ROOM"
 			status.Text = string.format("HOST: %s   RACERS %d / %d  •  %s",
@@ -140,10 +152,13 @@ function MatchRoomUiController.start()
 			title.Text = "BASE CIRCUIT ROOMS"
 			status.Text = "CREATE OR JOIN A 1–4 RACER ROOM"
 			for _, room in snapshot.rooms do
-				row(string.format("%s   %d / %d", room.hostName, room.count, room.maxPlayers),
-					"JOIN", function() remote:FireServer("Join", room.id) end)
+				local waiting = room.state == "WAITING"
+				row(string.format("%s  •  %s  %d / %d  •  QUEUED %d",
+					room.hostName, room.state, room.count, room.maxPlayers, room.queuedCount),
+					if waiting then "JOIN" else "QUEUE NEXT",
+					function() remote:FireServer(if waiting then "Join" else "Queue", room.id) end)
 			end
-			if #snapshot.rooms == 0 then row("NO OPEN ROOMS", nil, nil) end
+			if #snapshot.rooms == 0 then row("NO ACTIVE ROOMS", nil, nil) end
 			primary.Visible = true
 			back.Visible = true
 			bindButtons("CREATE ROOM", function() remote:FireServer("Create") end,

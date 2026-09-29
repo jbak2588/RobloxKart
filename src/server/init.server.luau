@@ -12,6 +12,7 @@ local GarageController = require(script:WaitForChild("GarageController"))
 local RaceServerBootstrap = require(script:WaitForChild("RaceServerBootstrap"))
 local PlayerPreferences = require(script:WaitForChild("PlayerPreferences"))
 local MatchRoomService = require(script:WaitForChild("MatchRoomService"))
+local RaceRoomCoordinator = require(script:WaitForChild("RaceRoomCoordinator"))
 
 local firstPlayer
 local joinData
@@ -45,8 +46,12 @@ if ServerRuntime.isRace() then
 		garageRemote.Parent = ReplicatedStorage
 		RaceItemController.start()
 		print(string.format("[KDMRoute] race controller start match=%s", payload.matchId))
+		local roomCoordinator = if payload.roomId then RaceRoomCoordinator.start(payload) else nil
 		assert(RaceController.start({ trackId = payload.trackId,
 			preformedMatch = payload.roomId ~= nil,
+			persistentRoom = roomCoordinator ~= nil,
+			onRoomPhase = if roomCoordinator then roomCoordinator.onRoomPhase else nil,
+			onRoundReady = if roomCoordinator then roomCoordinator.onRoundReady else nil,
 			expectedParticipantCount = #payload.participantUserIds,
 			returnToHub = RaceLaunchService.returnToHub }), "Race controller startup failed")
 		print(string.format("[KDMRoute] race controller ready match=%s", payload.matchId))

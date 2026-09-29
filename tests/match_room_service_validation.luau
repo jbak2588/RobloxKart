@@ -32,27 +32,62 @@ local roomRemote
 local replicated = { WaitForChild = function(_, name)
 	return { Name = name, WaitForChild = function(_, childName) return { Name = childName } end }
 end }
+local map = { values = {} }
+function map:SetAsync(key, value) self.values[key] = value end
+function map:GetAsync(key) return self.values[key] end
+function map:UpdateAsync(key, transform)
+	local value = transform(self.values[key])
+	if value then self.values[key] = value end
+	return value
+end
+function map:RemoveAsync(key) self.values[key] = nil end
+function map:GetRangeAsync()
+	local rows = {}
+	for key, value in self.values do table.insert(rows, { key = key, value = value }) end
+	return rows
+end
+local serial = 0
 local services = { Players = players, ReplicatedStorage = replicated,
-	HttpService = { GenerateGUID = function() return "match-guid-12345" end } }
+	MemoryStoreService = { GetSortedMap = function() return map end },
+	TeleportService = { ReserveServerAsync = function() return "server-code", "private-server" end },
+	HttpService = { GenerateGUID = function()
+		serial += 1
+		return "match-guid-" .. serial
+	end } }
 local modules = {
 	TrackCatalog = { Entries = { Track01Race = { MaxPlayers = 4 } } },
 	DriverCatalog = { Entries = { Driver01 = {} } },
 	KartCatalog = { Entries = { Kart01 = {} } },
 }
-local Registry = luau.load(fs.readFile("src/server/MatchRoomRegistry.luau"))()
-modules.MatchRoomRegistry = Registry
+local directoryEnvironment = { Enum = { SortDirection = { Ascending = "Ascending" } } }
+modules.ActiveMatchDirectory = luau.load(fs.readFile("src/server/ActiveMatchDirectory.luau"),
+	{ environment = directoryEnvironment })()
 local launches = {}
+local failLaunch = false
 modules.RaceLaunchPayload = { buildMatch = function(matchId, roomId, members, trackId)
 	local ids = {}
 	for _, member in members do table.insert(ids, member.userId) end
 	return { matchId = matchId, roomId = roomId, trackId = trackId, participantUserIds = ids }
 end }
-modules.RaceLaunchService = { launchMatch = function(group, payload)
-	table.insert(launches, { group = group, payload = payload })
+modules.RaceLaunchService = { launchMatch = function(group, payload, onFailure, accessCode)
+	table.insert(launches, { group = group, payload = payload, accessCode = accessCode })
+	if failLaunch then
+		for _, player in group do onFailure(player) end
+		return false
+	end
 	return true
 end }
+local background = {}
+local waitCalls = 0
 local environment = {
-	game = { GetService = function(_, name) return assert(services[name], name) end },
+	game = { JobId = "hub-job", PlaceId = 123,
+		GetService = function(_, name) return assert(services[name], name) end },
+	task = { spawn = function(callback) table.insert(background, callback) end,
+		wait = function()
+			waitCalls += 1
+			if waitCalls > 1 then error("stop polling fixture") end
+		end },
+	warn = function() end,
 	Instance = { new = function(class)
 		assert(class == "RemoteEvent")
 		roomRemote = { OnServerEvent = signal(), messages = {} }
@@ -110,7 +145,35 @@ check(#latest(c, "Snapshot").room.members == 3, "valid invite joins only Room B"
 browse(f); action(f, "Join", roomB)
 check(#launches == 2 and launches[2].payload.roomId == roomB
 	and #launches[2].group == 4, "fourth member auto-launches one shared group")
-check(#latest(g, "Snapshot").rooms == 0, "launching rooms hidden from browser")
-action(h, "Join", roomB)
+check(#latest(g, "Snapshot").rooms == 2
+	and latest(g, "Snapshot").rooms[1].state == "STARTING",
+	"launched rooms remain in active browser")
+browse(h); action(h, "Join", roomB)
 check(#launches == 2, "closed room rejects further joins")
+check(latest(h, "Error") == "ROOM UNAVAILABLE", "active room rejects current-race JOIN")
+browse(g); action(g, "Queue", roomA)
+check(latest(g, "Snapshot").room.membershipKind == "QUEUED"
+	and map.values[roomA].queued[1].userId == g.UserId, "queue targets active room")
+action(g, "Queue", roomB)
+check(#map.values[roomB].queued == 0, "queued racer cannot enter a second room")
+action(g, "CancelQueue")
+check(#map.values[roomA].queued == 0, "queue cancellation removes entry")
+browse(g); action(g, "Queue", roomA)
+map.values[roomA].state = "ROUND_COMPLETE"
+local sharedDirectory = modules.ActiveMatchDirectory.new(map)
+local nextRound = assert(sharedDirectory:claimNext(roomA, map.values[roomA].matchId,
+	"match-guid-next", "next-round-code", "private-next", {}))
+check(nextRound.launchRoster[1].userId == g.UserId, "queued racer claimed for next round")
+local stopped = pcall(background[1])
+check(not stopped and #launches == 3 and launches[3].group[1] == g
+	and launches[3].accessCode == "next-round-code",
+	"HUB polling sends queued racer to the claimed reserved server")
+failLaunch = true
+action(h, "Create")
+local roomC = latest(h, "Snapshot").room.id
+action(h, "Start")
+check(map.values[roomC].state == "WAITING" and latest(h, "Snapshot").room.state == "WAITING",
+	"complete initial launch failure restores room and host membership")
+check(latest(h, "Error") == "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN",
+	"failed group launch displays retry error")
 print(string.format("PASS: %d MatchRoom RemoteEvent checks", count))

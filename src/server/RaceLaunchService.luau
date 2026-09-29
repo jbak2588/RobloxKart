@@ -78,17 +78,22 @@ function RaceLaunchService.launchSolo(player, trackId, driverId, kartId, onFailu
 	return ok
 end
 
-function RaceLaunchService.launchMatch(players, payload, onPlayerFailure)
-	if #players ~= #payload.participantUserIds then return false end
+function RaceLaunchService.launchMatch(players, payload, onPlayerFailure, accessCode, preserveStateOnFailure)
+	if #players < 1 or (accessCode == nil and #players ~= #payload.participantUserIds) then return false end
+	local listed = {}
+	for _, userId in payload.participantUserIds do listed[userId] = true end
+	local seen = {}
 	for index, player in players do
-		if player.Parent ~= Players or pending[player] or player.UserId ~= payload.participantUserIds[index] then
+		if player.Parent ~= Players or pending[player] or seen[player.UserId] or not listed[player.UserId]
+			or (accessCode == nil and player.UserId ~= payload.participantUserIds[index]) then
 			return false
 		end
+		seen[player.UserId] = true
 	end
 	local token = {}
 	for _, player in players do
 		local selection = payload.selections[tostring(player.UserId)]
-		pending[player] = { token = token, kind = "launch", onFailure = function()
+		pending[player] = { token = token, kind = if preserveStateOnFailure then "round" else "launch", onFailure = function()
 			if onPlayerFailure then onPlayerFailure(player) end
 		end }
 		player:SetAttribute("KDMRoutePending", "RACE_LAUNCH")
@@ -99,7 +104,8 @@ function RaceLaunchService.launchMatch(players, payload, onPlayerFailure)
 		task.delay(30, function() watchdog(player, token) end)
 	end
 	local options = Instance.new("TeleportOptions")
-	options.ShouldReserveServer = true
+	if accessCode then options.ReservedServerAccessCode = accessCode
+	else options.ShouldReserveServer = true end
 	options:SetTeleportData(payload)
 	print(string.format("[KDMRoute] group launch match=%s room=%s racers=%d", payload.matchId, payload.roomId, #players))
 	local ok, resultOrError = pcall(function()
@@ -109,7 +115,7 @@ function RaceLaunchService.launchMatch(players, payload, onPlayerFailure)
 		warn("[KDMRoute] group teleport request failed: " .. tostring(resultOrError))
 		for _, player in players do fail(player, token) end
 	end
-	return ok
+	return ok, if ok then resultOrError else nil
 end
 
 function RaceLaunchService.returnToHub(player, onFailure)
