@@ -24,6 +24,8 @@ function RaceSession.new(trackId, mode, targetLaps)
 		countdownEndTime = 0,
 		startTime = 0,
 		startingParticipantCount = 0,
+		firstFinishAt = 0,
+		raceEndDeadline = 0,
 		finishOrder = {},
 		rematchVotes = {},
 		terminal = {},

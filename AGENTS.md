@@ -483,6 +483,15 @@ RacerKart parts; track/barrier contact remains unchanged. Revisit after four-rac
 runtime validation.
 
 The user reported completing the M2-B0 Studio 1 Server / 4 Clients validation.
+That check found a stationary on-track racer could keep a finisher waiting
+indefinitely. M2-B0-R1 adds a session-owned 45-second deadline starting at the
+first official multiplayer finish gate. Racing opponents retain normal control
+and items until they finish, quit, DNF or time out. Remaining racers at expiry
+receive `RACE_TIMEOUT` DNF without a finish place/time. All terminal results
+complete the round early, while solo races retain their existing lifecycle.
+Finished racers see a waiting countdown with Rematch disabled and Garage
+available; active racers see a compact LAP HUD warning. R1 Studio/device runtime
+verification is still required.
 M2-B1 makes TrackCatalog authoritative for match type, minimum/maximum racers,
 laps and Garage preview rotation. Practice Circuit is solo practice (1 lap),
 Base Circuit is public 1–4 (2 laps), and Prototype Circuit V2 remains solo

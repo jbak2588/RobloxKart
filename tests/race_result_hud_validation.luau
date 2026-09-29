@@ -167,6 +167,10 @@ check(results.Size.X.Offset<=250 and results.Size.X.Offset<=safeSize.X*0.36
  and results.AnchorPoint.X==0,"one-lap phone result uses smaller left panel")
 set("RaceState","DNF")
 check(results.Visible and results.Total.Text=="OFF TRACK" and not results.Lap1Row.Visible and not results.Best.Visible,"DNF keeps simple result")
+set("RaceDNFReason","RACE_TIMEOUT")
+check(results.Total.Text=="RACE TIMEOUT" and results.Finish.Text=="DNF",
+ "race deadline DNF is distinct from off-track DNF")
+set("RaceDNFReason","")
 check(results.Position.X.Scale==0.5 and results.AnchorPoint.X==0.5,"DNF remains centered")
 input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 camera.ViewportSize=rb.Vector2.new(1280,720)
@@ -175,6 +179,17 @@ check(results.Size.X.Offset==370 and results.Size.Y.Offset==220,"desktop DNF lay
 set("RaceState","FINISHED")
 check(math.abs(results.Position.X.Scale-0.26)<0.001 and not hud.Panel.Visible,"desktop result sits left with no lap HUD")
 set("RaceParticipantCount",2);set("RacePosition",2)
+set("RaceMatchStatus","RACING")
+set("RaceSessionComplete",false)
+set("RaceEndCountdownRemaining",45);set("RaceEndCountdownActive",true)
+check(not results.Rematch.Active and results.Rematch.Text=="WAITING FOR RACERS\n0:45"
+ and results.ReturnGarage.Visible,"finished racer sees deadline with disabled Rematch and available Garage")
+set("RaceEndCountdownRemaining",44)
+check(results.Rematch.Text=="WAITING FOR RACERS\n0:44","finished waiting time follows replicated seconds")
+set("RaceSessionComplete",true);set("RaceEndCountdownActive",false)
+check(results.Rematch.Active and results.Rematch.Text=="REMATCH",
+ "completed race restores Rematch and hides waiting countdown")
+set("RaceSessionComplete",false)
 set("RaceHostUserId",player.UserId)
 set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
 local lobby=hud:FindFirstChild("RaceLobbyHost")
@@ -233,6 +248,10 @@ for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
 check(speedFill.Size.X.Scale>0.99 and speedFill.Size.X.Scale<=1,
  "100 Nitro fills the speed bar")
 check(hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit Race appears only while racing")
+set("RaceEndCountdownRemaining",42);set("RaceEndCountdownActive",true)
+check(hud.Panel.RaceEndWarning.Visible and hud.Panel.RaceEndWarning.Text=="RACE ENDS IN 42",
+ "driving racer sees compact race-end warning in lap HUD")
+set("RaceEndCountdownActive",false)
 input.PreferredInput=rb.Enum.PreferredInput.Touch
 safeSize=rb.Vector2.new(844,390)
 camera.ViewportSize=rb.Vector2.new(844,390)

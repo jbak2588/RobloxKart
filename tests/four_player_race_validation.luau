@@ -276,8 +276,11 @@ local function cross(context,gate)
  context.chassis.AssemblyLinearVelocity=V.new(0,0,-70)
  tick(3)
 end
-local function finishRacer(context)
- for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(context,gate) end end
+for _,context in {ca,cb,cc,cd} do
+ for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(context,gate) end
+end
+local function finishRacer(context,laps)
+ for _=1,(laps or 1) do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(context,gate) end end
  tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
 end
 finishRacer(cb)
@@ -296,7 +299,8 @@ remote:Fire(d,"Rematch")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==4,
  "four-of-four rematch automatically starts shared countdown")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
-finishRacer(cb)
+finishRacer(cb,2)
+local mixedDeadline=session.raceEndDeadline
 remote:Fire(a,"QuitRace")
 check(a:GetAttribute("RaceState")=="GARAGE" and session.terminal[a]=="FORFEIT"
  and session:count()==3 and b:GetAttribute("RaceParticipantCount")==4
@@ -306,10 +310,11 @@ cc.chassis.CFrame=CF.new(1600,0,1600);tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+
 check(c:GetAttribute("RaceState")=="DNF" and not c:GetAttribute("RaceMapActive")
  and d:GetAttribute("RaceState")=="RACING" and session.phase=="RACING",
  "DNF removes inactive marker without ending last driver's race")
-finishRacer(cd)
+finishRacer(cd,2)
 check(session.phase=="COMPLETE" and b:GetAttribute("RaceFinalTime")>0
  and d:GetAttribute("RaceFinalTime")>0 and c:GetAttribute("RaceState")=="DNF"
- and b:GetAttribute("RaceParticipantCount")==4,
+ and b:GetAttribute("RaceParticipantCount")==4 and now<mixedDeadline
+ and session.raceEndDeadline==mixedDeadline,
  "mixed finish, forfeit and DNF complete without corrupting surviving results")
 remote:Fire(b,"Rematch");remote:Fire(c,"Rematch");remote:Fire(d,"Rematch")
 check(session.phase=="WAITING" and session:count()==3 and session.hostUserId==b.UserId,
@@ -325,4 +330,25 @@ ready(c)
 check(session.phase=="COUNTDOWN" and session:count()==4
  and session.startingParticipantCount==4,
  "fourth ready racer fills rematch lobby and auto-starts")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+for _,context in {ca,cb,cc,cd} do
+ for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(context,gate) end
+end
+finishRacer(cb)
+local firstDeadline=session.raceEndDeadline
+check(firstDeadline>now and b:GetAttribute("RaceFinishPosition")==1,
+ "first of four finishers starts race-end grace")
+finishRacer(ca)
+check(session.raceEndDeadline==firstDeadline and a:GetAttribute("RaceFinishPosition")==2,
+ "second finisher does not restart deadline")
+finishRacer(cc)
+check(session.raceEndDeadline==firstDeadline and c:GetAttribute("RaceFinishPosition")==3
+ and d:GetAttribute("RaceState")=="RACING","third finisher leaves last on-road racer active")
+tick(firstDeadline-now-0.1)
+check(d:GetAttribute("RaceState")=="RACING","fourth racer remains active before first deadline")
+tick(0.1)
+check(d:GetAttribute("RaceState")=="DNF" and d:GetAttribute("RaceDNFReason")=="RACE_TIMEOUT"
+ and d:GetAttribute("RaceFinishPosition")==0 and d:GetAttribute("RaceFinalTime")==0
+ and b:GetAttribute("RaceParticipantCount")==4 and session.phase=="COMPLETE",
+ "first finisher deadline times out only unfinished fourth racer")
 print("PASS: "..count.." flexible four-player race checks")

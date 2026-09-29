@@ -341,6 +341,15 @@ attributes at the 0.10-second ranking interval and shows rivals as orange
 hollow rings around cyan local dots. The Garage shows players in the same server.
 
 The user reported completing the M2-B0 Studio 1 Server / 4 Clients runtime check.
+That check found a stalled on-track racer could keep a finished racer waiting
+indefinitely. M2-B0-R1 starts a shared 45-second deadline at the first official
+multiplayer finish gate crossing. Remaining racers keep normal controls and
+items. The round completes early if everyone finishes, forfeits or DNF; at
+expiry, racers still driving receive `RACE_TIMEOUT` DNF without an official
+finish place or time. The original position denominator remains fixed. Finished
+racers see the waiting countdown with Rematch disabled and Garage available;
+drivers see a compact race-end warning in the LAP HUD. Solo races have no grace
+timer. R1 Studio/device runtime verification remains pending.
 M2-B1 reads match type, capacity, laps and preview rotation from `TrackCatalog`.
 Track Select and READY show each track's capability. Base Circuit's Garage
 preview rotates 90 degrees clockwise; gameplay geometry and minimap stay in

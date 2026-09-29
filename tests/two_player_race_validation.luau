@@ -349,6 +349,8 @@ check(session:count()==1 and session.phase=="COUNTDOWN" and cb.kart.Parent~=nil,
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 check(b:GetAttribute("RaceState")=="RACING" and session.phase=="RACING","remaining racer starts on original countdown")
 for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(cb,gate) end end
+check(session.raceEndDeadline==0 and session.firstFinishAt==0
+ and not b:GetAttribute("RaceEndCountdownActive"),"solo official finish never starts grace timer")
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
 check(session.phase=="COMPLETE" and b:GetAttribute("RaceState")=="FINISHED"
  and session.startingParticipantCount==1,"solo circuit round reaches result")
@@ -411,4 +413,70 @@ check(session.phase=="COMPLETE" and a:GetAttribute("RaceRematchReady"), "first t
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(session.phase=="WAITING" and session:count()==2,
  "both two-racer rematch votes return to flexible lobby")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+check(session.raceEndDeadline==0 and not a:GetAttribute("RaceEndCountdownActive"),
+ "no race-end timer before an official finish")
+for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(ca,gate) end end
+local firstFinishDeadline=session.raceEndDeadline
+check(session.firstFinishAt==now and firstFinishDeadline==now+raceConfig.POST_FIRST_FINISH_GRACE_SECONDS
+ and a:GetAttribute("RaceFinishPosition")==1 and b:GetAttribute("RaceState")=="RACING",
+ "first official gate starts shared 45-second deadline")
+tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
+check(a:GetAttribute("RaceState")=="FINISHED" and a:GetAttribute("RaceEndCountdownActive")
+ and b:GetAttribute("RaceEndCountdownRemaining")>0 and session.phase=="RACING",
+ "finished racer waits while stationary opponent may still drive")
+tick(firstFinishDeadline-now-0.1)
+check(b:GetAttribute("RaceState")=="RACING" and session.phase=="RACING",
+ "stationary on-road racer remains active before deadline")
+tick(0.1)
+check(b:GetAttribute("RaceState")=="DNF" and b:GetAttribute("RaceDNFReason")=="RACE_TIMEOUT"
+ and session.terminal[b]=="RACE_TIMEOUT" and b:GetAttribute("RaceFinalTime")==0
+ and b:GetAttribute("RaceFinishPosition")==0 and not b:GetAttribute("RaceMapActive")
+ and cb.kart:GetAttribute("RaceControlsLocked") and session.phase=="COMPLETE"
+ and a:GetAttribute("RaceParticipantCount")==2 and not a:GetAttribute("RaceEndCountdownActive"),
+ "45-second expiry ends stationary rival without fake finish or denominator change")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
+check(session.phase=="WAITING" and session.raceEndDeadline==0,
+ "timeout result permits normal rematch and clears deadline")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(ca,gate) end end
+local leaveDeadline=session.raceEndDeadline
+tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"ReturnGarage")
+check(session:count()==1 and session.raceEndDeadline==leaveDeadline
+ and b:GetAttribute("RaceState")=="RACING", "first finisher leaving preserves shared deadline")
+tick(leaveDeadline-now)
+check(b:GetAttribute("RaceState")=="DNF" and session.phase=="COMPLETE",
+ "remaining racer times out after first finisher returned to Garage")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
+check(session.phase=="WAITING" and session:count()==1,"timeout DNF can enter flexible rematch lobby")
+a:SetAttribute("RaceState","PRE_RACE");tick(0.1)
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(cb,gate) end
+for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(ca,gate) end end
+local finishInTimeDeadline=session.raceEndDeadline
+tick(20)
+for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(cb,gate) end
+check(b:GetAttribute("RaceState")=="FINISHING" and b:GetAttribute("RaceFinishPosition")==2
+ and b:GetAttribute("RaceDNFReason")=="" and session.phase=="COMPLETE"
+ and now<finishInTimeDeadline and session.raceEndDeadline==finishInTimeDeadline,
+ "second racer finishing within grace completes immediately with official place")
+tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(ca,gate) end end
+local disconnectDeadline=session.raceEndDeadline
+tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
+a.Parent=nil;services.Players.PlayerRemoving:Fire(a)
+check(session:count()==1 and session.raceEndDeadline==disconnectDeadline,
+ "first finisher disconnect preserves session deadline")
+tick(disconnectDeadline-now)
+check(b:GetAttribute("RaceState")=="DNF" and session.phase=="COMPLETE",
+ "stationary racer still times out after first finisher disconnects")
 print("PASS: "..count.." synchronized two-player race checks")

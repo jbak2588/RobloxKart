@@ -40,6 +40,9 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceMatchWaitReason", "NONE")
 	player:SetAttribute("RaceMatchWaitRemaining", 0)
 	player:SetAttribute("RaceSessionComplete", false)
+	player:SetAttribute("RaceEndCountdownActive", false)
+	player:SetAttribute("RaceEndCountdownRemaining", 0)
+	player:SetAttribute("RaceDNFReason", "")
 	player:SetAttribute("RaceRematchReady", false)
 	player:SetAttribute("RaceRematchReadyCount", 0)
 	player:SetAttribute("RaceRematchRequiredCount", 1)
@@ -283,6 +286,7 @@ function RaceController.start()
 			player:SetAttribute("RaceBestLapNumber", 0)
 			for lap = 1, 3 do player:SetAttribute("RaceLap" .. lap .. "Time", 0) end
 			player:SetAttribute("RaceFinalTime", 0)
+			player:SetAttribute("RaceDNFReason", "")
 			player:SetAttribute("RaceFinishMissedSerial", 0)
 			racer.raceStartTime = 0
 			racer.lapStartTime = 0
@@ -335,6 +339,8 @@ function RaceController.start()
 			player:SetAttribute("RaceMatchStatus", "")
 			player:SetAttribute("RaceMatchWaitReason", "NONE")
 			player:SetAttribute("RaceSessionComplete", false)
+			player:SetAttribute("RaceEndCountdownActive", false)
+			player:SetAttribute("RaceEndCountdownRemaining", 0)
 			player:SetAttribute("RaceMapActive", false)
 		end
 
@@ -362,8 +368,24 @@ function RaceController.start()
 			kart:SetAttribute("RaceControlsLocked", true)
 			resetOffTrackState(player)
 			clearGateState()
+			player:SetAttribute("RaceDNFReason", "OFF_TRACK")
+			player:SetAttribute("RaceMapActive", false)
 			setRaceState(player, "DNF")
 			session.terminal[player] = "DNF"
+		end
+
+		function racer:timeoutRace()
+			if player:GetAttribute("RaceState") ~= "RACING" then return end
+			kart:SetAttribute("RaceControlsLocked", true)
+			kart:SetAttribute("KartFinishRollActive", false)
+			chassis.AssemblyLinearVelocity = Vector3.zero
+			chassis.AssemblyAngularVelocity = Vector3.zero
+			resetOffTrackState(player)
+			clearGateState()
+			player:SetAttribute("RaceDNFReason", "RACE_TIMEOUT")
+			player:SetAttribute("RaceMapActive", false)
+			setRaceState(player, "DNF")
+			session.terminal[player] = "RACE_TIMEOUT"
 		end
 
 		local function beginFinishSequence(player: Player, now: number)
@@ -373,6 +395,10 @@ function RaceController.start()
 			local finalTime = now - racer.raceStartTime
 			player:SetAttribute("RaceFinalTime", finalTime)
 			session:recordFinish(player, finalTime)
+			if session.startingParticipantCount > 1 and session.raceEndDeadline == 0 then
+				session.firstFinishAt = now
+				session.raceEndDeadline = now + RaceConfig.POST_FIRST_FINISH_GRACE_SECONDS
+			end
 			local gate = startFinishGate :: BasePart
 			local look = gate.CFrame.LookVector
 			local flat = Vector3.new(look.X, 0, look.Z)
@@ -606,6 +632,10 @@ function RaceController.start()
 			setChanged(player, "RaceMatchWaitRemaining", 0)
 			setChanged(player, "RaceHostUserId", session.hostUserId)
 			setChanged(player, "RaceSessionComplete", session.phase == "COMPLETE")
+			local graceActive = session.phase == "RACING" and session.raceEndDeadline > 0
+			setChanged(player, "RaceEndCountdownActive", graceActive)
+			setChanged(player, "RaceEndCountdownRemaining", if graceActive
+				then math.max(math.ceil(session.raceEndDeadline - now), 0) else 0)
 			setChanged(player, "RaceRematchReady", session.rematchVotes[player] == true)
 			setChanged(player, "RaceRematchReadyCount", ready)
 			setChanged(player, "RaceRematchRequiredCount", required)
@@ -619,6 +649,8 @@ function RaceController.start()
 		session.countdownEndTime = now + RaceConfig.COUNTDOWN_SECONDS
 		session.startTime = 0
 		session.startingParticipantCount = session:count()
+		session.firstFinishAt = 0
+		session.raceEndDeadline = 0
 		table.clear(session.finishOrder)
 		table.clear(session.rematchVotes)
 		table.clear(session.terminal)
@@ -646,10 +678,16 @@ function RaceController.start()
 	local function updateComplete()
 		if session.phase ~= "RACING" then return end
 		local count = session:count()
-		if count == 0 then session.phase = "EMPTY"; return end
+		if count == 0 then
+			session.phase = "EMPTY"
+			session.firstFinishAt = 0
+			session.raceEndDeadline = 0
+			return
+		end
 		for player in session.participants do
 			local state = player:GetAttribute("RaceState")
-			if state ~= "FINISHED" and state ~= "DNF" then return end
+			if state ~= "FINISHED" and state ~= "DNF"
+				and (state ~= "FINISHING" or session.startingParticipantCount == 1) then return end
 		end
 		session.phase = "COMPLETE"
 	end
@@ -692,6 +730,8 @@ function RaceController.start()
 		session.waitingReason = reason
 		if reason ~= "INITIAL" then
 			session.startingParticipantCount = 0
+			session.firstFinishAt = 0
+			session.raceEndDeadline = 0
 			session.countdownEndTime = 0
 			session.startTime = 0
 			table.clear(session.rematchVotes)
@@ -743,6 +783,8 @@ function RaceController.start()
 		end
 		if session:count() == 0 then
 			session.phase = "EMPTY"
+			session.firstFinishAt = 0
+			session.raceEndDeadline = 0
 			session.waitingReason = "NONE"
 			session.startingParticipantCount = 0
 			session.hostUserId = 0
@@ -848,6 +890,12 @@ function RaceController.start()
 			if remaining == 0 then startSharedRace() end
 		end
 		for player, racer in session.participants do racer:step(deltaTime, now) end
+		if session.phase == "RACING" and session.raceEndDeadline > 0
+			and now >= session.raceEndDeadline then
+			for player, racer in session.participants do
+				if player:GetAttribute("RaceState") == "RACING" then racer:timeoutRace() end
+			end
+		end
 		updateComplete()
 		rankElapsed += deltaTime
 		if rankElapsed >= RaceConfig.RANK_UPDATE_INTERVAL then

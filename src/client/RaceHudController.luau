@@ -115,9 +115,13 @@ function RaceHudController.start()
 	local offTrackLabel = createLabel(frame, "OffTrack", 4)
 	offTrackLabel.TextSize = 16
 	offTrackLabel.TextColor3 = Color3.fromRGB(255, 175, 80)
+	local raceEndLabel = createLabel(frame, "RaceEndWarning", 5)
+	raceEndLabel.TextSize = 14
+	raceEndLabel.TextColor3 = Color3.fromRGB(255, 205, 73)
+	raceEndLabel.Visible = false
 	local quitRow = Instance.new("Frame")
 	quitRow.Name = "QuitRow"
-	quitRow.LayoutOrder = 5
+	quitRow.LayoutOrder = 6
 	quitRow.Size = UDim2.new(1, -20, 0, 24)
 	quitRow.BackgroundTransparency = 1
 	quitRow.Visible = false
@@ -564,6 +568,7 @@ function RaceHudController.start()
 	rematchButton.Text = "REMATCH"
 	rematchButton.TextColor3 = Color3.new(1, 1, 1)
 	rematchButton.TextSize = 20
+	rematchButton.TextWrapped = true
 	rematchButton.Parent = resultsPanel
 	addCorner(rematchButton, 6)
 	rematchButton.Activated:Connect(function()
@@ -605,14 +610,15 @@ function RaceHudController.start()
 		if compact then
 			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
 			frame.Position = UDim2.fromOffset(12, 8)
-			frame.Size = UDim2.fromOffset(lapWidth, (if offTrackLabel.Visible then 116 else 96) + (if quitRow.Visible then 24 else 0))
+			frame.Size = UDim2.fromOffset(lapWidth, (if offTrackLabel.Visible then 116 else 96)
+				+ (if raceEndLabel.Visible then 20 else 0) + (if quitRow.Visible then 24 else 0))
 			padding.PaddingTop = UDim.new(0, 6)
 			padding.PaddingBottom = UDim.new(0, 6)
 			padding.PaddingLeft = UDim.new(0, 8)
 			padding.PaddingRight = UDim.new(0, 8)
 			lapLabel.Size = UDim2.new(1, -16, 0, 25)
 			lapLabel.TextSize = 20
-			for _, label in { checkpointLabel, bestLabel, offTrackLabel } do
+			for _, label in { checkpointLabel, bestLabel, offTrackLabel, raceEndLabel } do
 				label.Size = UDim2.new(1, -16, 0, 20)
 				label.TextSize = 14
 			end
@@ -673,14 +679,15 @@ function RaceHudController.start()
 			garageButton.TextSize = rematchButton.TextSize
 		else
 			frame.Position = UDim2.fromOffset(24, 118)
-			frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112) + (if quitRow.Visible then 24 else 0))
+			frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112)
+				+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then 24 else 0))
 			padding.PaddingTop = UDim.new(0, 8)
 			padding.PaddingBottom = UDim.new(0, 8)
 			padding.PaddingLeft = UDim.new(0, 10)
 			padding.PaddingRight = UDim.new(0, 10)
 			lapLabel.Size = UDim2.new(1, -20, 0, 30)
 			lapLabel.TextSize = 23
-			for _, label in { checkpointLabel, bestLabel, offTrackLabel } do
+			for _, label in { checkpointLabel, bestLabel, offTrackLabel, raceEndLabel } do
 				label.Size = UDim2.new(1, -20, 0, 23)
 				label.TextSize = 16
 			end
@@ -738,6 +745,7 @@ function RaceHudController.start()
 			local lapWidth = math.min(170, safeSize.X*0.28)
 			frame.Size = UDim2.fromOffset(lapWidth,
 				6 + 25 + 20 + 20 + (if offTrackLabel.Visible then 20 else 0)
+				+ (if raceEndLabel.Visible then 20 else 0)
 				+ (if quitRow.Visible then 24 else 0) + (if quitRow.Visible then 4 else 6))
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
@@ -751,6 +759,7 @@ function RaceHudController.start()
 			checkpointLabel.TextSize = 12
 			bestLabel.TextSize = 12
 			offTrackLabel.TextSize = 11
+			raceEndLabel.TextSize = 11
 			miniMapPanel.AnchorPoint = Vector2.new(1, 0)
 			miniMapPanel.Position = UDim2.new(1, -12, 0, 8)
 			miniMapSize.MinSize = Vector2.zero
@@ -773,6 +782,8 @@ function RaceHudController.start()
 		end
 		countdownLabel.Position = UDim2.fromScale(0.5, if waitingLobby then (if shortLobby then 0.15 else 0.22) else 0.5)
 		if waitingLobby then countdownLabel.Size = UDim2.fromOffset(math.min(320, viewportSize.X - 24), 50) end
+		if player:GetAttribute("RaceEndCountdownActive") == true
+			and player:GetAttribute("RaceSessionComplete") ~= true then rematchButton.TextSize = 14 end
 		MobileView.layoutSteeringWheel(wheelClip, steeringDisplay, steeringRingScale,
 			if mobile then screenGui.AbsoluteSize else viewportSize, mobile)
 	end
@@ -820,6 +831,8 @@ function RaceHudController.start()
 		local bestLapNumber = getNumberAttribute(player, "RaceBestLapNumber", 0)
 		local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
 		local offTrackRemaining = getNumberAttribute(player, "RaceOffTrackRemaining", 0)
+		local raceEndActive = player:GetAttribute("RaceEndCountdownActive") == true
+		local raceEndRemaining = getNumberAttribute(player, "RaceEndCountdownRemaining", 0)
 		local participantCount = getNumberAttribute(player, "RaceParticipantCount", 1)
 		local position = getNumberAttribute(player, "RacePosition", 1)
 		local matchStatus = player:GetAttribute("RaceMatchStatus")
@@ -850,19 +863,25 @@ function RaceHudController.start()
 		bestLabel.Text = if bestLap > 0 then string.format("BEST LAP  %.2fs", bestLap) else "BEST LAP  --"
 		offTrackLabel.Text = if raceState == "RACING" and offTrackRemaining > 0 then string.format("RETURN TO TRACK  %ds", offTrackRemaining) else ""
 		offTrackLabel.Visible = raceState == "RACING" and offTrackRemaining > 0
-		frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112) + (if quitRow.Visible then 24 else 0))
+		raceEndLabel.Visible = raceState == "RACING" and raceEndActive
+		raceEndLabel.Text = string.format("RACE ENDS IN %d", raceEndRemaining)
+		frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112)
+			+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then 24 else 0))
 
 		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
-		totalLabel.Text = if raceState == "DNF" then "OFF TRACK" elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
+		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"
+			then "RACE TIMEOUT" else "OFF TRACK") elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
 		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP %d  -  %s", bestLapNumber, RaceResultFormat.time(bestLap)) else "BEST LAP  --"
 		resultsBestLabel.Visible = raceState == "FINISHED"
 		local canRematch = (raceState == "FINISHED" or raceState == "DNF")
 			and (participantCount < 2 or sessionComplete) and not rematchReady
 		rematchButton.Active = canRematch
 		rematchButton.BackgroundColor3 = if canRematch then Color3.fromRGB(45, 130, 235) else Color3.fromRGB(65, 75, 87)
-		rematchButton.Text = if rematchReady then string.format("READY %d/%d",
+		rematchButton.Text = if raceEndActive and not sessionComplete and participantCount >= 2 then
+			string.format("WAITING FOR RACERS\n0:%02d", raceEndRemaining)
+			elseif rematchReady then string.format("READY %d/%d",
 			getNumberAttribute(player, "RaceRematchReadyCount", 0), getNumberAttribute(player, "RaceRematchRequiredCount", participantCount))
 			elseif participantCount >= 2 and not sessionComplete then "WAITING FOR RACERS" else "REMATCH"
 		for lap, row in lapRows do
@@ -1008,6 +1027,9 @@ function RaceHudController.start()
 		"RaceMatchWaitReason",
 		"RaceMatchWaitRemaining",
 		"RaceSessionComplete",
+		"RaceEndCountdownActive",
+		"RaceEndCountdownRemaining",
+		"RaceDNFReason",
 		"RaceRematchReady",
 		"RaceRematchReadyCount",
 		"RaceRematchRequiredCount",
