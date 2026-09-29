@@ -129,7 +129,9 @@ function RaceRoomCoordinator.start(payload)
 		while active do
 			task.wait(5)
 			local ok, record = pcall(function() return directory:get(roomId) end)
-			if ok and record and record.matchId == matchId then
+			if not ok then
+				warn("[KDMRoom] heartbeat lookup failed: " .. tostring(record))
+			elseif record and record.matchId == matchId then
 				publish(phase, racerCount)
 			else active = false end
 		end

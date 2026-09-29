@@ -199,6 +199,22 @@ check(latest(e, "Error") == "INVITE EXPIRED" and directory:get(roomA).hostUserId
 
 failLaunch = true
 browse(e); action(e, "Create")
-check(latest(e, "Error") == "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN",
+check(latest(e, "Error") == "JOIN FAILED - PLEASE TRY AGAIN",
 	"failed host teleport reports retry error")
+action(e, "Join", roomB)
+check(directory:get(roomB) ~= nil and #directory:get(roomB).stagedMembers == 1
+	and directory:get(roomB).stagedMembers[1].userId == f.UserId,
+	"failed JOIN releases staged slot without closing occupied Room")
+local originalRange = roomMap.GetRangeAsync
+roomMap.GetRangeAsync = function() error("directory unavailable") end
+browse(e)
+local stale = latest(e, "Snapshot")
+check(stale.directoryStale and #stale.rooms > 0,
+	"directory failure retains last good Browser list")
+roomMap.GetRangeAsync = originalRange
+directory:remove(roomA)
+browse(e)
+check(latest(c, "Error") == "ROOM CLOSED - CHOOSE ANOTHER ROOM"
+	and latest(c, "Snapshot").visible,
+	"expired queued Room returns player to Browser")
 print(string.format("PASS: %d persistent MatchRoom service checks", count))

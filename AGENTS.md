@@ -232,8 +232,9 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-M3-A1-R2 moves Base Circuit CREATE into a persistent reserved Room server.
-Published R2 runtime validation is next. M3-A2 closes the no-blocking MVP gate.
+M3-A1-R2 moved Base Circuit CREATE into a persistent reserved Room server and is
+RUNTIME PASS / CLOSED on published real devices. M3-A2 hardens population UX,
+Room status and failure recovery; published M3-A2 validation is next.
 Combat/Missile, additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 
@@ -502,7 +503,8 @@ prototype (3 laps) until separate geometry validation. Only Base Circuit's
 Garage preview rotates 90 degrees clockwise; gameplay orientation is unchanged.
 Waiting public lobbies show eligible same-server Garage racers. Only the current
 host may invite, and joining revalidates the invitation through normal READY.
-The Garage ONLINE list continues to include all players on that server.
+The Garage local player list continues to include all players on that server;
+M3-A2 labels it LOBBY.
 The M2-B public server supports one active RaceSession / track at a time. The
 current published server size is 50; TrackCatalog limits a public race to four
 racers. The user checked M2-B1 in Studio and on mobile; screenshots exposed a
@@ -559,8 +561,21 @@ with 45-second TTL and heartbeat. `KDM_HubPresence_v1` lists only available HUB
 racers; cross-server invitations are server-authoritative and revalidated on
 acceptance. Reservation access codes never reach clients. Room Browser x/4 is
 room capacity; POS x/y is actual current-round participation. Base rounds
-retain Nitro/Slick/Shield 1/1/1. Published R2 runtime remains unverified.
-M3-A2 has not started.
+retain Nitro/Slick/Shield 1/1/1 and Smoke 0. Published R2 runtime passed:
+CREATE moves Host to the persistent track Room, JOIN reaches the same reserved
+server, active RACING remains Browser-visible for QUEUE NEXT, queued racers
+enter the next round, REMATCH returns to WAITING, track Host invite and queue
+flow work, and valid 4/4 arrivals auto-start. Host departure transfers to a
+remaining racer, updates the Browser Host name, and preserves logical Room ID
+and queue. M3-A1-R2 is RUNTIME PASS / CLOSED.
+
+The local Garage player list is LOBBY, never total ONLINE. Experience-wide
+KDM ONLINE, LOBBY and IN RACE are approximate server-summary presence counts;
+one short-lived record per HUB or RACE job, with no per-player global writes.
+Base Rooms remain visible during racing. Current-round JOIN is forbidden after
+WAITING; QUEUE NEXT remains available. Host migration preserves logical Room
+identity and queue. Cross-server directory or population metadata failure must
+never abort an active race. M3-A2 code requires published client validation.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

@@ -508,13 +508,14 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 	local first = { UserId = 42, GetJoinData = function()
 		return { SourcePlaceId = 999, SourceGameId = 987654, TeleportData = launchPayload }
 	end }
-	local startupPlayers = { GetPlayers = function()
+	local startupPlayers = { PlayerRemoving = signal(), GetPlayers = function()
 		return if privateId == "" or studio then {} else { first }
 	end }
 	local startupWorkspace = { SetAttribute = function(_, name, value) calls[name] = value end }
 	local startupReplicated = {}
 	local startupServices = { Players = startupPlayers, Workspace = startupWorkspace,
 		ReplicatedStorage = startupReplicated,
+		MemoryStoreService = { GetSortedMap = function() return {} end },
 		RunService = { IsStudio = function() return studio end } }
 	local startupModules = {
 		ServerRuntime = Runtime,
@@ -531,11 +532,16 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 			return true
 		end },
 		PlayerPreferences = { start = function() calls.preferences = true end },
+		KDMServerPresence = { MAP_NAME = "KDM_ServerPresence_v1", HEARTBEAT_SECONDS = 9,
+			new = function() return { publish = function() end, remove = function() end,
+				aggregate = function() return { stale = true } end } end },
 	}
 	local env = { game = { PrivateServerId = privateId, PrivateServerOwnerId = 0,
 		PlaceId = 123456, GameId = 987654, JobId = "test-job",
+		BindToClose = function() end,
 		GetService = function(_, name) return assert(startupServices[name], name) end },
 		Instance = { new = function() return {} end },
+		task = { spawn = function() end },
 		print = function(message) table.insert(calls.logs, message) end,
 		warn = function(message) calls.warned = true; table.insert(calls.warnings, message) end,
 		script = { WaitForChild = function(_, name) return { Name = name } end },

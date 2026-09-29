@@ -79,6 +79,7 @@ local playersService = { LocalPlayer = player, PlayerAdded = signal(), PlayerRem
 local replicated = object("ReplicatedStorage")
 local shared = child(replicated, "Folder", "Shared")
 local remote = child(replicated, "RemoteEvent", "GarageControl")
+local populationRemote = child(replicated, "RemoteEvent", "KDMPopulationStatus")
 child(replicated, "RemoteEvent", "ControlsTutorialPreference")
 local camera = object("Camera"); camera.ViewportSize = rb.Vector2.new(844, 390)
 local workspace = object("Workspace"); workspace.CurrentCamera = camera
@@ -117,13 +118,18 @@ local gui = playerGui.RobloxKartGarage
 local backdrop = gui:FindFirstChild("Frame")
 local presencePanel = backdrop.ServerPresence
 local list = presencePanel.OnlineList
+local populationLabel = presencePanel.KDMPopulation
+populationRemote.OnClientEvent:Fire({ online = 7, lobby = 3, inRace = 4, stale = false })
+check(populationLabel.Text == "KDM ONLINE 7\nLOBBY 3 • IN RACE 4", "experience counts remain separate from local list")
+populationRemote.OnClientEvent:Fire({ stale = true })
+check(populationLabel.Text == "KDM STATUS UPDATING...", "failed population query never shows zero")
 local function rows()
 	local found = {}
 	for _, item in list:GetChildren() do if item.ClassName == "TextLabel" then table.insert(found, item) end end
 	return found
 end
 check(list.ClassName == "ScrollingFrame" and list.ScrollingDirection == rb.Enum.ScrollingDirection.Y
-	and presencePanel.Size.Y.Offset == 62, "mobile presence uses fixed-height vertical scrolling")
+	and presencePanel.Size.Y.Offset == 112, "mobile presence uses fixed-height vertical scrolling")
 local function addPlayer(index)
 	local other = object("Player", "Player" .. index)
 	other.UserId = index; other.DisplayName = "Racer " .. index
@@ -133,15 +139,15 @@ local function addPlayer(index)
 	return other
 end
 local second, third = addPlayer(2), addPlayer(3)
-check(#rows() == 3 and presencePanel:FindFirstChild("TextLabel").Text == "ONLINE 3"
+check(#rows() == 3 and presencePanel:FindFirstChild("TextLabel").Text == "LOBBY 3"
 	and list.CanvasSize.Y.Offset > list.Size.Y.Offset,
 	"three online names are represented and the third is reachable by scroll")
 for index = 4, 10 do addPlayer(index) end
 check(#rows() == 10 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(10, 16, 2)
-	and presencePanel.Size.Y.Offset == 62, "ten players fit fixed mobile panel with scroll canvas")
+	and presencePanel.Size.Y.Offset == 112, "ten players fit fixed mobile panel with scroll canvas")
 for index = 11, 50 do addPlayer(index) end
 check(#rows() == 50 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(50, 16, 2)
-	and presencePanel.Size.Y.Offset == 62, "50 players remain represented without expanding panel")
+	and presencePanel.Size.Y.Offset == 112, "50 players remain represented without expanding panel")
 list.CanvasPosition = rb.Vector2.new(0, 120)
 third:SetAttribute("RaceState", "RACING")
 check(#rows() == 50 and list.CanvasPosition.Y == 120,
@@ -152,7 +158,7 @@ check(#rows() == 49 and list:FindFirstChild("Player2") == nil, "PlayerRemoving d
 safeSize = rb.Vector2.new(1280, 720); input.TouchEnabled = false
 camera.ViewportSize = safeSize
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
-check(presencePanel.Size.Y.Offset == 121 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(49, 20, 2),
+check(presencePanel.Size.Y.Offset == 155 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(49, 20, 2),
 	"desktop shows four rows with all remaining players scrollable")
 check(string.find(list.Player3.Text, "RACING", 1, true) ~= nil,
 	"desktop presence updates the changed racer status")

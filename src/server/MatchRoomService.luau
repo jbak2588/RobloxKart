@@ -19,7 +19,7 @@ local social = RoomSocialDirectory.new(
 	MemoryStoreService:GetSortedMap(RoomSocialDirectory.PRESENCE_MAP),
 	MemoryStoreService:GetHashMap(RoomSocialDirectory.INVITE_MAP))
 local browsing, selections, membership, launched, creating = {}, {}, {}, {}, {}
-local cachedRooms, remote, started = {}, nil, false
+local cachedRooms, remote, started, directoryStale = {}, nil, false, false
 
 local function eligible(player)
 	return player and player.Parent == Players and player:GetAttribute("RaceState") == "GARAGE"
@@ -66,7 +66,8 @@ local function snapshotFor(player)
 		end
 	end
 	return { visible = (browsing[player.UserId] == true or ownRoom ~= nil)
-		and not (own and own.kind == "STAGED"), rooms = rooms, room = ownRoom }
+		and not (own and own.kind == "STAGED"), rooms = rooms, room = ownRoom,
+		directoryStale = directoryStale }
 end
 
 local function broadcast()
@@ -75,14 +76,23 @@ end
 
 local function refresh()
 	local ok, records = pcall(function() return directory:list() end)
-	if not ok then warn("[KDMRoom] directory listing failed: " .. tostring(records)); return end
+	if not ok then
+		warn("[KDMRoom] directory listing failed: " .. tostring(records))
+		directoryStale = true
+		broadcast()
+		return
+	end
+	directoryStale = false
 	cachedRooms = records
 	for userId, own in membership do
 		if not findCached(own.roomId) then
 			membership[userId] = nil
 			launched[userId] = nil
 			local player = Players:GetPlayerByUserId(userId)
-			if player then remote:FireClient(player, "Error", "ROOM EXPIRED - PLEASE CHOOSE ANOTHER") end
+			if player then
+				pcall(function() social:clearInvite(userId) end)
+				remote:FireClient(player, "Error", "ROOM CLOSED - CHOOSE ANOTHER ROOM")
+			end
 		end
 	end
 	broadcast()
@@ -112,15 +122,26 @@ local function launchStaged(player, record, member)
 	payload.admissionToken = member.admissionToken
 	launched[player.UserId] = member.admissionToken
 	local function failed()
+		if membership[player.UserId] == nil then return end
 		launched[player.UserId] = nil
-		pcall(function() directory:removeStaged(record.roomId, player.UserId) end)
+		local removed, updated = pcall(function() return directory:removeStaged(record.roomId, player.UserId) end)
+		if not removed then
+			warn("[KDMRoom] staged rollback failed: " .. tostring(updated))
+			task.delay(2, function()
+				local retry, retryError = pcall(function()
+					directory:removeStaged(record.roomId, player.UserId)
+				end)
+				if not retry then warn("[KDMRoom] staged rollback retry failed: " .. tostring(retryError)) end
+			end)
+		end
 		membership[player.UserId] = nil
 		browsing[player.UserId] = true
 		refresh()
+		errorTo(player, "JOIN FAILED - PLEASE TRY AGAIN")
 	end
 	local ok = RaceLaunchService.launchMatch({ player }, payload, failed,
 		record.reservedServerAccessCode)
-	if not ok then failed(); errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN") end
+	if not ok then failed() end
 end
 
 local function stagePlayer(player, roomId)
@@ -128,7 +149,11 @@ local function stagePlayer(player, roomId)
 	local ok, record = pcall(function() return directory:stage(roomId, member, member.admissionToken) end)
 	if not ok or not record then
 		if not ok then warn("[KDMRoom] staging failed: " .. tostring(record)) end
-		errorTo(player, "ROOM UNAVAILABLE")
+		local found, current = pcall(function() return directory:get(roomId) end)
+		errorTo(player, if found and not current then "ROOM CLOSED - CHOOSE ANOTHER ROOM"
+			elseif found and current and current.state ~= "WAITING" then "ROOM STARTED - QUEUE FOR NEXT RACE"
+			elseif found and current and #current.stagedMembers >= current.maxPlayers then "ROOM FULL"
+			else "ROOM STATUS UPDATING...")
 		return false
 	end
 	membership[player.UserId] = { roomId = roomId, kind = "STAGED" }
@@ -141,7 +166,12 @@ end
 local function queuePlayer(player, roomId, priority)
 	local member = memberFor(player, priority)
 	local ok, record = pcall(function() return directory:queue(roomId, member) end)
-	if not ok or not record then errorTo(player, "QUEUE UNAVAILABLE"); return false end
+	if not ok or not record then
+		local found, current = pcall(function() return directory:get(roomId) end)
+		errorTo(player, if found and not current then "ROOM CLOSED - CHOOSE ANOTHER ROOM"
+			else "ROOM STATUS UPDATING...")
+		return false
+	end
 	membership[player.UserId] = { roomId = roomId, kind = "QUEUED" }
 	pcall(function() social:remove(player.UserId) end)
 	refresh()
@@ -173,7 +203,7 @@ local function createRoom(player)
 	if not created then
 		creating[player.UserId] = nil
 		warn("[KDMRoom] create failed: " .. tostring(createError))
-		errorTo(player, "ROOM UNAVAILABLE")
+		errorTo(player, "ROOM STATUS UPDATING...")
 		return
 	end
 	if not stagePlayer(player, roomId) then
@@ -289,7 +319,11 @@ function MatchRoomService.start()
 							trackId = invite.trackId, state = record.state,
 							count = directory:display(record).count,
 							maxPlayers = record.maxPlayers })
-					else pcall(function() social:clearInvite(player.UserId) end) end
+					elseif not directoryStale then
+						pcall(function() social:clearInvite(player.UserId) end)
+						errorTo(player, if record then "INVITE EXPIRED"
+							else "ROOM CLOSED - CHOOSE ANOTHER ROOM")
+					end
 				end
 			end
 		end

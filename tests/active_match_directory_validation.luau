@@ -157,4 +157,20 @@ check(staging.hostUserId == 52 and staging.stagedMembers[4].userId == 54
 for _, userId in { 52, 51, 53, 54 } do directory:removeStaged(persistentId, userId) end
 check(directory:get(persistentId) == nil,
 	"empty persistent Room closes only after staged and queued racers leave")
+local migrationId = "guid-host-migration"
+directory:createPersistent({ id = migrationId, matchId = "migration-match",
+	trackId = "Track01Race", hostUserId = 70, hostName = "Racer70",
+	maxPlayers = 4 }, "migration-secret", "private-migration")
+directory:stage(migrationId, member(70), "token-70")
+directory:stage(migrationId, member(71), "token-71")
+directory:confirmArrival(migrationId, 70, "token-70", "migration-job")
+directory:confirmArrival(migrationId, 71, "token-71", "migration-job")
+directory:startRound(migrationId, 70, 2)
+directory:raceState(migrationId, "migration-match", "RACING", 2)
+directory:queue(migrationId, member(72))
+local migrated = directory:leaveMember(migrationId, 70)
+local browser = directory:display(migrated)
+check(migrated.roomId == migrationId and migrated.hostUserId == 71
+	and migrated.queued[1].userId == 72 and browser.hostName == "Racer71",
+	"active Host migration preserves Room ID and queue and updates Browser Host")
 print(string.format("PASS: %d ActiveMatchDirectory checks", count))

@@ -976,9 +976,13 @@ function RaceHudController.start()
 		if not racingInviteToggle.Visible then racingInvitesOpen = false end
 		availabilityPanel.Visible = (lobbyWaiting or racingInvitesOpen) and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")] ~= nil
 			and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")].MatchType == "PUBLIC_RACE"
-		roomQueueLabel.Visible = roomSnapshot ~= nil and isHost
-			and roomSnapshot.queuedCount > 0 and not lobbyWaiting
-		roomQueueLabel.Text = if roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount) else ""
+		roomQueueLabel.Visible = roomSnapshot ~= nil and (raceState == "RACING"
+			or raceState == "FINISHED" or raceState == "DNF")
+		roomQueueLabel.Text = if not roomSnapshot then ""
+			elseif raceState == "RACING" then string.format("ROOM %d/%d  •  NEXT %d",
+				roomSnapshot.count, roomSnapshot.maxPlayers, roomSnapshot.queuedCount)
+			else string.format("NEXT ROUND  •  %d READY  •  %d QUEUED",
+				getNumberAttribute(player, "RaceRematchReadyCount", 0), roomSnapshot.queuedCount)
 		if availabilityPanel.Visible then
 			local availableCount, available
 			if roomSnapshot then

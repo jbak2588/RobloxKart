@@ -204,10 +204,27 @@ function GarageUiController.start()
 	local presenceHeader = makeText(presencePanel, UDim2.new(1, -12, 0, 23), UDim2.fromOffset(6, 3), "", 14)
 	presenceHeader.TextColor3 = Color3.fromRGB(255, 215, 75)
 	presenceHeader.TextXAlignment = Enum.TextXAlignment.Left
+	local populationLabel = makeText(presencePanel, UDim2.new(1, -12, 0, 42),
+		UDim2.fromOffset(6, 25), "KDM STATUS UPDATING...", 12)
+	populationLabel.Name = "KDMPopulation"
+	populationLabel.TextXAlignment = Enum.TextXAlignment.Left
+	populationLabel.TextYAlignment = Enum.TextYAlignment.Top
+	populationLabel.TextWrapped = true
+	local populationRemote = ReplicatedStorage:WaitForChild("KDMPopulationStatus")
+	populationRemote.OnClientEvent:Connect(function(snapshot)
+		if type(snapshot) ~= "table" then return end
+		if snapshot.stale then
+			populationLabel.Text = "KDM STATUS UPDATING..."
+		elseif type(snapshot.online) == "number" and type(snapshot.lobby) == "number"
+			and type(snapshot.inRace) == "number" then
+			populationLabel.Text = string.format("KDM ONLINE %d\nLOBBY %d • IN RACE %d",
+				snapshot.online, snapshot.lobby, snapshot.inRace)
+		end
+	end)
 	local presenceList = Instance.new("ScrollingFrame")
 	presenceList.Name = "OnlineList"
-	presenceList.Position = UDim2.fromOffset(6, 26)
-	presenceList.Size = UDim2.new(1, -12, 1, -32)
+	presenceList.Position = UDim2.fromOffset(6, 68)
+	presenceList.Size = UDim2.new(1, -12, 1, -74)
 	presenceList.BackgroundTransparency = 1
 	presenceList.BorderSizePixel = 0
 	presenceList.ScrollBarThickness = 4
@@ -223,8 +240,7 @@ function GarageUiController.start()
 	local presenceConnections = {}
 	local function updatePresence()
 		local count, entries = GaragePresence.snapshot(Players:GetPlayers(), player)
-		presenceHeader.Text = if mobileCompact then string.format("ONLINE %d", count)
-			else string.format("SERVER  %d ONLINE", count)
+		presenceHeader.Text = string.format("LOBBY %d", count)
 		local seen = {}
 		for index, entry in entries do
 			seen[entry.userId] = true
@@ -453,10 +469,9 @@ function GarageUiController.start()
 			stepLabel.TextSize = 19
 			stepLabel.Size = UDim2.fromScale(0.60, 0.07)
 			presencePanel.Position = UDim2.new(1, -10, 0.155, 0)
-			presencePanel.Size = UDim2.fromOffset(math.min(165, layoutWidth * 0.34), 62)
+			presencePanel.Size = UDim2.fromOffset(math.min(165, layoutWidth * 0.34), 112)
 			presenceHeader.TextSize = 11
-			presenceList.Position = UDim2.fromOffset(6, 20)
-			presenceList.Size = UDim2.new(1, -12, 1, -24)
+			populationLabel.TextSize = 10
 			presenceRowHeight = 16
 			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
 			choiceLabel.TextSize = 25
@@ -493,10 +508,9 @@ function GarageUiController.start()
 			stepLabel.TextSize = 24
 			stepLabel.Size = UDim2.fromScale(0.8, 0.07)
 			presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
-			presencePanel.Size = UDim2.fromOffset(205, 121)
+			presencePanel.Size = UDim2.fromOffset(205, 155)
 			presenceHeader.TextSize = 14
-			presenceList.Position = UDim2.fromOffset(6, 26)
-			presenceList.Size = UDim2.new(1, -12, 1, -32)
+			populationLabel.TextSize = 12
 			presenceRowHeight = 20
 			choiceLabel.TextSize = 34
 			detailLabel.TextSize = 19

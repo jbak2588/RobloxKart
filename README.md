@@ -407,8 +407,8 @@ TeleportService routing. The observed teleport handoff takes roughly one
 second on tested devices and is acceptable. M3-P0 shows JOINING RACE after
 Solo READY and RETURNING TO GARAGE during HUB return, restores controls after
 failure, enlarges the mobile LAP-panel Quit target within Core UI safe insets,
-and makes the same-server ONLINE list vertically scrollable. M3-P0 published
-runtime checks passed for transitions, Solo launch, HUB return and ONLINE
+and makes the same-server player list vertically scrollable. M3-P0 published
+runtime checks passed for transitions, Solo launch, HUB return and local-list
 scrolling. Known device polish: Galaxy Tab Quit Race touch may open Roblox Chat;
 PC and regular phone did not reproduce it. This remains deferred.
 
@@ -432,8 +432,29 @@ reservation data and separate staged, current-round and queued membership.
 are delivered across servers and revalidated on acceptance. Reservation access
 codes stay server-side; join tokens are short-lived and verified by the Room
 server. Base round loadout remains Nitro/Slick/Shield
-1/1/1. M3-A1-R2 published-client validation is still required; M3-A2 has not
-started.
+1/1/1 with Smoke 0. M3-A1-R2 is RUNTIME PASS / CLOSED after published real-device
+checks: CREATE moved Host into a waiting persistent Room, JOIN reached the same
+reserved server, active RACING remained Browser-visible for QUEUE NEXT, queued
+racers entered the next round, REMATCH returned to WAITING, track Host invites
+and queue flow worked, and valid 4/4 arrivals started automatically. When Host A
+left, racer B became Host and the Browser name updated while logical Room ID and
+queue stayed intact.
+
+M3-A2 labels the same-HUB Garage player list LOBBY. A separate approximate
+KDM ONLINE / LOBBY / IN RACE summary aggregates one short-lived presence record
+per live HUB or RACE job. RACE includes reserved Base WAITING through results,
+Practice and V2. Records refresh every 9 seconds and expire after 30 seconds;
+departing HUB racers with a committed race launch leave the HUB count. A failed
+aggregation shows KDM STATUS UPDATING rather than a fabricated zero. Room Browser
+maps ROUND_COMPLETE to RESULTS, shows NEXT count, and keeps JOIN limited to an
+open WAITING slot; active rounds offer QUEUE NEXT. Queued racers see their
+position and staging transition. Host-only invite controls and compact Room/NEXT
+status stay on track; results show next-round readiness. Directory list failure
+retains the last Room list and shows ROOM STATUS UPDATING. Room expiry, failed
+joining and failed teleport return players to a usable Browser with explicit
+errors; staged slots are released. Cross-server metadata outages do not stop
+local race gameplay. M3-A2 published client checks for cross-server population,
+teleport failure recovery and queue promotion remain required.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent

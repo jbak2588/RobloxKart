@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RoomDisplay = require(script.Parent:WaitForChild("RoomDisplay"))
 local MatchRoomUiController = {}
 local started = false
 
@@ -104,18 +105,46 @@ function MatchRoomUiController.start()
 	end
 	local invitation
 	local snapshot
-	local function render()
+	local pendingAction, errorMessage, pendingSerial = nil, nil, 0
+	local render
+	local function send(action, ...)
+		if pendingAction then return end
+		pendingAction = action
+		errorMessage = nil
+		pendingSerial += 1
+		local serial = pendingSerial
+		remote:FireServer(action, ...)
+		render()
+		task.delay(15, function()
+			if pendingSerial == serial and pendingAction then
+				pendingAction = nil
+				errorMessage = "ROOM STATUS UPDATING..."
+				render()
+			end
+		end)
+	end
+	render = function()
 		clearRows()
 		gui.Enabled = ((snapshot and snapshot.visible == true) or invitation ~= nil)
 			and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
 		if not gui.Enabled then return end
+		if pendingAction then
+			status.Text = ({ Create = "CREATING ROOM...", Join = "JOINING ROOM...",
+				Queue = "JOINING QUEUE...", AcceptInvite = "JOINING ROOM...",
+				CancelQueue = "CANCELING QUEUE..." })[pendingAction] or "JOINING RACE..."
+			primary.Active = false
+			back.Active = false
+			return
+		end
+		primary.Active = true
+		back.Active = true
 		if invitation and (not snapshot or not snapshot.room) then
 			title.Text = "RACE INVITE"
 			status.Text = string.format("%s invited you to Base Circuit  •  %d / %d",
 				invitation.hostName, invitation.count, invitation.maxPlayers)
 			bindButtons(if invitation.state == "WAITING" and invitation.count < invitation.maxPlayers
 				then "JOIN" else "QUEUE NEXT", function()
-				remote:FireServer("AcceptInvite", player:GetAttribute("SelectedDriverId"), player:GetAttribute("SelectedKartId"))
+				send("AcceptInvite", player:GetAttribute("SelectedDriverId"), player:GetAttribute("SelectedKartId"))
 				invitation = nil
 			end, "DECLINE", function() remote:FireServer("DeclineInvite"); invitation = nil; render() end)
 			return
@@ -123,21 +152,21 @@ function MatchRoomUiController.start()
 		if snapshot and snapshot.room and snapshot.room.membershipKind == "QUEUED" then
 			local room = snapshot.room
 			title.Text = "QUEUED FOR NEXT RACE"
-			status.Text = if room.nextRoundStarting then "JOINING ROOM STAGING"
-				else string.format("%s'S ROOM  •  QUEUE %d  •  CURRENT %s %d / %d",
-					room.hostName, room.queuePosition or 0, room.state, room.count, room.maxPlayers)
+			status.Text = if room.nextRoundStarting then "JOINING NEXT RACE..."
+				else string.format("%s'S ROOM  •  QUEUE #%d  •  CURRENT %s %d / %d",
+					room.hostName, room.queuePosition or 0, RoomDisplay.state(room.state), room.count, room.maxPlayers)
 			row(if room.nextRoundStarting then "Moving you to the starting grid..."
 				else "You will join when the next round is ready.", nil, nil)
 			primary.Visible = false
 			back.Visible = not room.nextRoundStarting
 			bindButtons("", function() end, "CANCEL QUEUE",
-				function() remote:FireServer("CancelQueue") end)
+				function() send("CancelQueue") end)
 		elseif snapshot and snapshot.room then
 			local room = snapshot.room
 			title.Text = "BASE CIRCUIT ROOM"
 			status.Text = string.format("HOST: %s   RACERS %d / %d  •  %s",
 				room.hostName, #room.members, room.maxPlayers,
-				if room.hostUserId ~= player.UserId and room.state == "WAITING" then "WAITING FOR HOST" else room.state)
+				if room.hostUserId ~= player.UserId and room.state == "WAITING" then "WAITING FOR HOST" else RoomDisplay.state(room.state))
 			for _, member in room.members do row(member.name, nil, nil) end
 			if room.hostUserId == player.UserId then
 				for _, available in room.available do
@@ -151,25 +180,39 @@ function MatchRoomUiController.start()
 				function() remote:FireServer("Start") end, "LEAVE", function() remote:FireServer("Leave") end)
 		else
 			title.Text = "BASE CIRCUIT ROOMS"
-			status.Text = "CREATE OR JOIN A 1–4 RACER ROOM"
+			status.Text = if snapshot.directoryStale then "ROOM STATUS UPDATING..." else "CREATE OR JOIN A 1–4 RACER ROOM"
 			for _, room in snapshot.rooms do
-				local waiting = room.state == "WAITING" and room.count < room.maxPlayers
-				row(string.format("%s  •  %s  %d / %d  •  QUEUED %d",
-					room.hostName, room.state, room.count, room.maxPlayers, room.queuedCount),
+				local waiting = RoomDisplay.canJoin(room)
+				row(string.format("%s  •  %s  %d / %d  •  NEXT %d",
+					room.hostName, RoomDisplay.state(room.state), room.count, room.maxPlayers, room.queuedCount),
 					if waiting then "JOIN" else "QUEUE NEXT",
-					function() remote:FireServer(if waiting then "Join" else "Queue", room.id) end)
+					function() send(if waiting then "Join" else "Queue", room.id) end)
 			end
-			if #snapshot.rooms == 0 then row("NO ACTIVE ROOMS", nil, nil) end
+			if #snapshot.rooms == 0 then row(if snapshot.directoryStale then "ROOM STATUS UPDATING..." else "NO ACTIVE ROOMS", nil, nil) end
 			primary.Visible = true
 			back.Visible = true
-			bindButtons("CREATE ROOM", function() remote:FireServer("Create") end,
+			bindButtons("CREATE ROOM", function() send("Create") end,
 				"BACK", function() remote:FireServer("Back") end)
 		end
+		if errorMessage then status.Text = errorMessage end
 	end
 	remote.OnClientEvent:Connect(function(action, data)
-		if action == "Snapshot" then snapshot = data; render()
+		if action == "Snapshot" then
+			snapshot = data
+			local completed = (pendingAction == "Queue" and data.room ~= nil)
+				or (pendingAction == "CancelQueue" and data.room == nil)
+				or ((pendingAction == "Create" or pendingAction == "Join"
+					or pendingAction == "AcceptInvite") and (data.visible == false or data.room ~= nil))
+			if completed then pendingAction = nil; pendingSerial += 1 end
+			render()
 		elseif action == "Invite" then invitation = data; render()
-		elseif action == "Error" then status.Text = tostring(data) end
+		elseif action == "Error" then
+			pendingAction = nil; pendingSerial += 1
+			errorMessage = tostring(data)
+			if errorMessage == "ROOM CLOSED - CHOOSE ANOTHER ROOM"
+				or errorMessage == "INVITE EXPIRED" then invitation = nil end
+			render()
+		end
 	end)
 	player:GetAttributeChangedSignal("RaceState"):Connect(function()
 		if player:GetAttribute("RaceState") ~= "GARAGE" then gui.Enabled = false end

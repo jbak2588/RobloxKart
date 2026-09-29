@@ -13,6 +13,8 @@ local RaceServerBootstrap = require(script:WaitForChild("RaceServerBootstrap"))
 local PlayerPreferences = require(script:WaitForChild("PlayerPreferences"))
 local MatchRoomService = require(script:WaitForChild("MatchRoomService"))
 local RaceRoomCoordinator = require(script:WaitForChild("RaceRoomCoordinator"))
+local KDMServerPresence = require(script:WaitForChild("KDMServerPresence"))
+local MemoryStoreService = game:GetService("MemoryStoreService")
 
 local firstPlayer
 local joinData
@@ -34,6 +36,32 @@ print(string.format("[KDMRoute] resolve role=%s reason=%s private=%s owner=%s so
 	tostring(if payload then payload.matchId else nil), tostring(if payload then payload.trackId else nil),
 	tostring(game.JobId)))
 RaceLaunchService.start()
+
+local presence = KDMServerPresence.new(MemoryStoreService:GetSortedMap(KDMServerPresence.MAP_NAME),
+	game.JobId, role, if payload then payload.trackId else nil)
+local presenceRemote = Instance.new("RemoteEvent")
+presenceRemote.Name = "KDMPopulationStatus"
+presenceRemote.Parent = ReplicatedStorage
+task.spawn(function()
+	while true do
+		local published, publishError = pcall(function() presence:publish(Players:GetPlayers()) end)
+		if not published then warn("[KDMPresence] publish failed: " .. tostring(publishError)) end
+		if role == "HUB" then
+			local snapshot = if published then presence:aggregate() else { stale = true }
+			presenceRemote:FireAllClients(snapshot)
+		end
+		task.wait(KDMServerPresence.HEARTBEAT_SECONDS)
+	end
+end)
+Players.PlayerRemoving:Connect(function()
+	task.defer(function()
+		if #Players:GetPlayers() <= 1 then
+			local ok, err = pcall(function() presence:remove() end)
+			if not ok then warn("[KDMPresence] remove failed: " .. tostring(err)) end
+		end
+	end)
+end)
+game:BindToClose(function() pcall(function() presence:remove() end) end)
 
 if ServerRuntime.isRace() then
 	local initialized, reason = pcall(function()
