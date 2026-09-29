@@ -140,6 +140,26 @@ function GarageController.start()
 		if not driver or not kartSelection or not track or track.ModelName ~= "TestTrack" then
 			return
 		end
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not character or not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then
+			player:SetAttribute("RaceEntryError", "Driver not ready")
+			return
+		end
+		if track.MatchType == "SOLO_PRACTICE" or track.MatchType == "SOLO_PROTOTYPE" then
+			readyPending[player] = true
+			local launchService = require(script.Parent:WaitForChild("RaceLaunchService"))
+			if not launchService.launchSolo(player, trackId, driverId, kartId, function()
+				readyPending[player] = nil
+			end) then
+				readyPending[player] = nil
+				if player:GetAttribute("RaceEntryError") == "" then
+					player:SetAttribute("RaceEntryError", "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN")
+				end
+			end
+			return
+		end
 		local session = RaceSession.active()
 		if session and session:count() > 0 then
 			if session:count() >= session.maxPlayers then
@@ -157,13 +177,6 @@ function GarageController.start()
 			return
 		end
 
-		local character = player.Character
-		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if not character or not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then
-			player:SetAttribute("RaceEntryError", "Driver not ready")
-			return
-		end
 		local gridCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[slotIndex]
 		readyPending[player] = true
 		reservedSlots[player] = slotIndex

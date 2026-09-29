@@ -869,6 +869,9 @@ function RaceHudController.start()
 			+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then 24 else 0))
 
 		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
+		local routeError = player:GetAttribute("RaceEntryError")
+		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
+			and type(routeError) == "string" and routeError ~= "" then "HUB UNAVAILABLE\nRETRY" else "GARAGE"
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
 		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"
@@ -1036,6 +1039,7 @@ function RaceHudController.start()
 		"SelectedDriverId",
 		"SelectedKartId",
 		"SelectedTrackId",
+		"RaceEntryError",
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end

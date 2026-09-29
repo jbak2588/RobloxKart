@@ -22,18 +22,18 @@ local DIRECTION_THRESHOLD = 0.25
 local MIN_GATE_SPEED = 1
 local started = false
 
-local function initializePlayerAttributes(player: Player, checkpointCount: number)
+local function initializePlayerAttributes(player: Player, checkpointCount: number, initialTrackId: string)
 	player:SetAttribute("RaceState", "GARAGE")
 	player:SetAttribute("RaceCountdown", 0)
 	player:SetAttribute("RaceCurrentLap", 1)
 	player:SetAttribute("RaceCompletedLaps", 0)
-	player:SetAttribute("RaceTotalLaps", RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
+	player:SetAttribute("RaceTotalLaps", RaceMode.targetLaps(RaceMode.resolve(initialTrackId), initialTrackId))
 	player:SetAttribute("RaceSessionId", 0)
 	player:SetAttribute("RaceHostUserId", 0)
 	player:SetAttribute("RaceMapPosition", Vector3.zero)
 	player:SetAttribute("RaceMapActive", false)
 	player:SetAttribute("RaceParticipantCount", 1)
-	player:SetAttribute("RaceMaxPlayers", TrackCatalog.Entries[TrackCatalog.DefaultId].MaxPlayers)
+	player:SetAttribute("RaceMaxPlayers", TrackCatalog.Entries[initialTrackId].MaxPlayers)
 	player:SetAttribute("RacePosition", 1)
 	player:SetAttribute("RaceFinishPosition", 0)
 	player:SetAttribute("RaceMatchStatus", "")
@@ -114,15 +114,16 @@ local function planarDistance(first: Vector3, second: Vector3): number
 	return Vector2.new(delta.X, delta.Z).Magnitude
 end
 
-function RaceController.start()
+function RaceController.start(options)
 	if started then
-		return
+		return true
 	end
 	started = true
+	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
 
 	local prototype = Workspace:WaitForChild("Prototype")
-	local session = RaceSession.new(TrackCatalog.DefaultId, RaceMode.resolve(TrackCatalog.DefaultId),
-		RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId))
+	local session = RaceSession.new(initialTrackId, RaceMode.resolve(initialTrackId),
+		RaceMode.targetLaps(RaceMode.resolve(initialTrackId), initialTrackId))
 	local checkpointCount = 0
 	local gates: { BasePart } = {}
 	local roadParts: { BasePart } = {}
@@ -211,15 +212,15 @@ function RaceController.start()
 		return true
 	end
 
-	if not bindTrackForRace(TrackCatalog.DefaultId) then
-		return
+	if not bindTrackForRace(initialTrackId) then
+		return false
 	end
 
 	for _, player in Players:GetPlayers() do
-		initializePlayerAttributes(player, checkpointCount)
+		initializePlayerAttributes(player, checkpointCount, initialTrackId)
 	end
 	Players.PlayerAdded:Connect(function(player: Player)
-		initializePlayerAttributes(player, checkpointCount)
+		initializePlayerAttributes(player, checkpointCount, initialTrackId)
 	end)
 
 	local remoteEvent = ReplicatedStorage:FindFirstChild(RaceConfig.CONTROL_REMOTE_EVENT_NAME)
@@ -239,7 +240,7 @@ function RaceController.start()
 		local kart, chassis, seat = context.kart, context.chassis, context.seat
 		local racer = RacerState.new(player, context,
 			if routeCourse then RaceRouteProgress.new(routeCourse, routeRoadWidth) else nil)
-		racer.targetLaps = RaceMode.targetLaps(RaceMode.resolve(TrackCatalog.DefaultId), TrackCatalog.DefaultId)
+		racer.targetLaps = RaceMode.targetLaps(RaceMode.resolve(initialTrackId), initialTrackId)
 		local function clearGateState()
 			table.clear(racer.insideGate)
 			racer.previousChassisPosition = nil
@@ -840,7 +841,10 @@ function RaceController.start()
 		local racer = racers[player]
 		if not racer then return end
 		if action == "ReturnGarage" then
-			if racer:handleRemote(action, time()) then removeRacer(player) end
+			if options and options.returnToHub then
+				local state = player:GetAttribute("RaceState")
+				if state == "FINISHED" or state == "DNF" then options.returnToHub(player) end
+			elseif racer:handleRemote(action, time()) then removeRacer(player) end
 		elseif action == "CancelWait" and session.phase == "WAITING" and session:contains(player) then
 			removeRacer(player)
 		elseif (action == "StartRace" or (action == "StartSolo" and session:count() == 1))
@@ -908,6 +912,7 @@ function RaceController.start()
 
 	print(string.format("[Race] minimumValidLapTime=%.2f", minimumValidLapTime))
 	print("[RobloxKart] Race controller ready")
+	return true
 end
 
 return RaceController

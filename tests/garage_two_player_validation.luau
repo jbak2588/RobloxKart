@@ -163,6 +163,14 @@ local function makePlayer(name,id)
  return player
 end
 local a,b,c,d,e=makePlayer("A",1),makePlayer("B",2),makePlayer("C",3),makePlayer("D",4),makePlayer("E",5)
+local launches={}
+child(server,"ModuleScript","RaceLaunchService")
+modules.RaceLaunchService={launchSolo=function(player,trackId,driverId,kartId,onFailure)
+ table.insert(launches,{player=player,trackId=trackId,driverId=driverId,kartId=kartId})
+ player:SetAttribute("RaceEntryError","")
+ onFailure() -- Clear the fixture's pending flag so the same mock player can try another track.
+ return true
+end}
 local garage=load("src/server/GarageController.luau",server,"GarageController")
 garage.start()
 local remote=services.ReplicatedStorage.GarageControl
@@ -180,7 +188,13 @@ check(defaultContext.visual:GetAttribute("Color")=="Red","first kart color appli
 local session=sessionType.new("Track01Race","RACE",2)
 session.phase="WAITING";session:add(a,{})
 ready(c,"Kart01","Track02")
-check(c:GetAttribute("RaceEntryError")=="Racer not ready" and contexts[c]==nil,"other track cannot rebuild waiting race")
+check(#launches==1 and launches[1].trackId=="Track02" and contexts[c]==nil
+ and c:GetAttribute("RaceEntryError")=="","V2 solo routes despite active Base lobby")
+ready(c,"Kart01","Track01")
+check(#launches==2 and launches[2].trackId=="Track01" and contexts[c]==nil
+ and builds==1,"Practice solo routes without rebuilding HUB track")
+check(session:contains(a) and a:GetAttribute("RaceState")=="PRE_RACE"
+ and track:GetAttribute("TrackId")=="Track01Race","Solo routing leaves Base lobby and track intact")
 ready(b,"Kart02","Track01Race")
 check(contexts[b] and contexts[b]~=contexts[a] and contexts[b].kart~=contexts[a].kart,"second ready creates distinct kart")
 check(a:GetAttribute("GridSlot")==1 and b:GetAttribute("GridSlot")==2 and created==1,"only two grid slots allocated")

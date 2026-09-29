@@ -361,9 +361,9 @@ same-server Garage players. Only the host may send an in-game invite; JOIN is
 optional and is revalidated through the normal READY admission path. The Garage
 ONLINE list still shows everyone connected to that Roblox server.
 
-The MVP server supports one active RaceSession and active track at a time.
-Four-player Roblox server capacity is the recommended public beta configuration.
-M2-B0 enables only four public racers. The architecture may expand to six later.
+The M2-B public server supports one active RaceSession and active track at a time.
+The current published Roblox server size is 50; M2-B0 limits each public race
+to four racers through TrackCatalog. The architecture may expand to six later.
 A future friend/private room could offer a chosen capacity of 2, 3, 4 or 6 with
 invites and possibly a reserved server; it is not implemented in M2-B1.
 Different selected tracks may have different capacity; Prototype Circuit V2
@@ -378,8 +378,29 @@ M2-B0-R2 isolates kart and seated-driver BaseParts, including late-added
 accessories, using RacerKart and RacerDriver collision groups. Original avatar
 groups are restored when the driver leaves the race kart. A per-kart upright
 guard corrects sustained abnormal roll/pitch during RACING while preserving
-planar heading and momentum. Its Studio close-contact and manual-tilt runtime
-validation remains pending; M2-B multiplayer is not yet closed.
+planar heading and momentum. The user confirmed R2 RUNTIME PASS for close kart
+contact: racers pass through without physical pushing or rollover. Forced
+60–90 degree manual tilt recovery has not been separately device-validated.
+
+### M3 MVP session routing
+
+MVP requires independent race instances so another track's active session does
+not normally block READY with "Racer not ready", "Track full", or "Grid full".
+M3-A0 uses the current PlaceId in two roles: public HUB for Garage and track
+selection, and reserved RACE server for one track, one RaceSession and its
+racers. HUB Solo READY for Practice Circuit (Track01) and Prototype Circuit V2
+(Track02) launches a new reserved server with a validated `KDM_RACE_V1` payload.
+Base Circuit (Track01Race) retains the M2-B public 1–4 racer flow during this
+phase. A Solo result's GARAGE returns to a public HUB; REMATCH stays in the same
+reserved server and reuses the race stack. Published Roblox client testing is
+required for actual teleport, return, and concurrent HUB Base/Solo behavior;
+Studio does not support TeleportService playtests. The configured server size
+remains 50: HUB may hold more users, while a reserved race's participant count
+is constrained by its payload and TrackCatalog.
+
+M3-A1 will add concurrent Base Circuit MatchRooms in HUB and launch reserved
+multiplayer Race Servers. M3-A2 will polish return, rematch and failure recovery
+and verify the MVP no-blocking gate. Future tracks may support up to six racers.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
@@ -457,13 +478,11 @@ Do not:
 
 ## Next Development Order
 
-1. M2-B0 flexible public lobby and 4-player runtime validation
-2. 4-player race balance after runtime validation
-3. 6-player tuning only after 4-player validation
-4. TrackV2 geometry revision / beta iteration as scheduled
-5. Persistence / Racer XP
-6. Shop / Inventory / cosmetics
-7. Optional Tilt if player feedback requires it
+1. M3-A0 independent Solo Race routing and published Roblox client validation
+2. M3-A1 Base Circuit MatchRooms and reserved multiplayer Race routing
+3. M3-A2 no-blocking MVP gate and return/rematch/failure polish
+4. Combat expansion / Missile, then additional track and public capacity work
+5. Persistence, Shop and cosmetics as scheduled
 
 ## Driver appearance decision (2026-09-26)
 

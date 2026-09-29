@@ -225,7 +225,9 @@ local function crossedBarrier(trigger: BasePart, fromPosition: Vector3, toPositi
 	return true
 end
 
-function PrototypeWorld.start()
+function PrototypeWorld.start(options)
+	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
+	local initialTrack = assert(TrackCatalog.Entries[initialTrackId], "Unknown initial track")
 	collisionIsolation:configure()
 	local prototype = Workspace:FindFirstChild("Prototype")
 	if not prototype or not prototype:IsA("Folder") then
@@ -250,10 +252,10 @@ function PrototypeWorld.start()
 		ground.Position.Z
 	))
 
-	TrackBuilder.build(prototype, TrackCatalog.Entries[TrackCatalog.DefaultId], groundTop)
-	print("[RobloxKart] Practice Circuit ready")
+	TrackBuilder.build(prototype, initialTrack, groundTop)
+	print(string.format("[RobloxKart] %s ready", initialTrack.DisplayName or initialTrackId))
 
-	local initialGrid = TrackCatalog.Entries[TrackCatalog.DefaultId].GridSlots[1]
+	local initialGrid = initialTrack.GridSlots[1]
 	local spawnCFrame = CFrame.new(0, groundTop + WORLD.CHASSIS_CLEARANCE, 0) * initialGrid
 	local kart, chassis, seat = createKart(prototype, spawnCFrame, "Kart")
 

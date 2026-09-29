@@ -11,14 +11,21 @@ local ShieldEffectsController = require(script:WaitForChild("ShieldEffectsContro
 local TouchDrivingController = require(script:WaitForChild("TouchDrivingController"))
 local DriftChargeController = require(script:WaitForChild("DriftChargeController"))
 local DriverCelebrationController = require(script:WaitForChild("DriverCelebrationController"))
+local Workspace = game:GetService("Workspace")
 
-print("RobloxKart CLIENT sync OK")
+local role = Workspace:GetAttribute("KDMServerRole")
+while role ~= "HUB" and role ~= "RACE" do
+	Workspace:GetAttributeChangedSignal("KDMServerRole"):Wait()
+	role = Workspace:GetAttribute("KDMServerRole")
+end
+
+print("RobloxKart CLIENT sync OK role=" .. role)
 KartInputController.start()
 KartCameraController.start()
 RaceHudController.start()
 TouchDrivingController.start()
 DriftChargeController.start()
-GarageUiController.start()
+if role == "HUB" then GarageUiController.start() end
 KartVisualMotionController.start()
 KartEffectsController.start()
 KartAudioController.start()
