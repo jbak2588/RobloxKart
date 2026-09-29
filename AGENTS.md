@@ -534,6 +534,17 @@ adds concurrent Base MatchRooms and reserved multiplayer race launch. M3-A2
 polishes return/rematch/failure recovery and verifies the no-blocking MVP gate.
 Selected future tracks may support up to six racers; do not implement six here.
 
+M3-A0 local implementation is complete, but its first published mobile routing
+test FAILED: Practice/V2 leave HUB, appear briefly at the reserved destination,
+then return to HUB Garage. The PC Studio "RACE SERVER UNAVAILABLE" result is
+expected from Studio's unsupported TeleportService playtest and is not a
+published-runtime result. M3-A0-R1 checks the source Experience via
+`SourceGameId`, reuses the initial validated launch context, logs concrete
+role/bootstrap/teleport reasons, and confirms the seat over a 2.5-second
+window before PRE_RACE. Do not mark M3-A0 runtime PASS until a published Roblox
+client completes HUB → reserved Practice/V2 → Countdown → Race without an
+automatic return to HUB.
+
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
 choose 2, 3, 4 or 6 racers with invites and a reserved server; M2-B0 does not

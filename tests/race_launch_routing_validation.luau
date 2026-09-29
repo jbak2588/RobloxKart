@@ -23,12 +23,15 @@ local teleport = { TeleportInitFailed = signal(), calls = {} }
 function teleport:TeleportAsync(placeId, group, options)
 	table.insert(self.calls, { placeId = placeId, group = group, options = options })
 	if self.failNow then error("TeleportAsync failed") end
+	return { PrivateServerId = if options then "private-id" else "",
+		ReservedServerAccessCode = if options then "SECRET_CODE_MUST_NOT_LOG" else "" }
 end
 local services = {
 	ReplicatedStorage = { WaitForChild = function(_, name) check(name == "Shared", "shared root"); return shared end },
 	Players = players,
 	TeleportService = teleport,
 	HttpService = { GenerateGUID = function() return "guid-12345678" end },
+	RunService = { studio = false, IsStudio = function(self) return self.studio end },
 }
 local modules = {
 	TrackCatalog = { Entries = {
@@ -41,14 +44,18 @@ local modules = {
 	RaceMode = { resolve = function(trackId) return if trackId == "Track01" then "PRACTICE" else "RACE" end },
 }
 local delayed = {}
+local warnings = {}
+local logs = {}
 local environment = {
-	game = { PlaceId = 123456, GetService = function(_, name) return assert(services[name], name) end },
+	game = { PlaceId = 123456, GameId = 987654,
+		GetService = function(_, name) return assert(services[name], name) end },
 	Instance = { new = function(class)
 		check(class == "TeleportOptions", "TeleportOptions allocated")
 		return { SetTeleportData = function(self, payload) self.payload = payload end }
 	end },
 	task = { delay = function(_, callback) table.insert(delayed, callback) end },
-	print = function() end,
+	print = function(message) table.insert(logs, message) end,
+	warn = function(message) table.insert(warnings, message) end,
 }
 local function load(path, name)
 	local env = table.clone(environment)
@@ -84,13 +91,22 @@ for _, trackId in { "Track01", "Track02" } do
 	check(plan and plan.trackId == trackId and plan.maxPlayers == 1 and plan.gridSlot == 1
 		and plan.driverId == "Driver02" and plan.kartId == "Kart02", "arrival plan restores selection/grid")
 	check(Arrival.forPlayer(payload, 43) == nil, "other user cannot claim solo arrival")
-	check(Runtime.resolve("", { SourcePlaceId = 123456, TeleportData = payload }, 123456, 42) == "HUB",
-		"public context remains HUB")
-	local role, resolved = Runtime.resolve("reserved-id", { SourcePlaceId = 123456, TeleportData = payload }, 123456, 42)
-	check(role == "RACE" and resolved == payload, "same-place reserved launch is RACE")
-	check(Runtime.resolve("reserved-id", { SourcePlaceId = 9, TeleportData = payload }, 123456, 42) == "HUB",
-		"foreign source cannot start race")
-	check(Runtime.resolve("vip-id", { SourcePlaceId = 123456, TeleportData = payload }, 123456, 42, 81) == "HUB",
+	local joinData = { SourcePlaceId = 123456, SourceGameId = 987654, TeleportData = payload }
+	local publicRole, _, publicReason = Runtime.resolve("", 0, joinData, 987654, 42)
+	check(publicRole == "HUB" and publicReason == "PUBLIC_SERVER", "public context remains HUB")
+	local role, resolved, reason = Runtime.resolve("reserved-id", 0, joinData, 987654, 42)
+	check(role == "RACE" and resolved == payload and reason == "VALID_KDM_RACE",
+		"same-experience reserved launch is RACE")
+	local otherPlaceRole, _, otherPlaceReason = Runtime.resolve("reserved-id", 0,
+		{ SourcePlaceId = 9, SourceGameId = 987654, TeleportData = payload }, 987654, 42)
+	check(otherPlaceRole == "RACE" and otherPlaceReason == "VALID_KDM_RACE",
+		"different source Place in same Experience is accepted")
+	local wrongGameRole, _, wrongGameReason = Runtime.resolve("reserved-id", 0,
+		{ SourcePlaceId = 123456, SourceGameId = 8, TeleportData = payload }, 987654, 42)
+	check(wrongGameRole == "HUB" and wrongGameReason == "WRONG_SOURCE_GAME",
+		"foreign Experience is rejected")
+	local vipRole, _, vipReason = Runtime.resolve("vip-id", 81, joinData, 987654, 42)
+	check(vipRole == "HUB" and vipReason == "PLAYER_OWNED_PRIVATE_SERVER",
 		"VIP server remains HUB even with launch data")
 end
 local invalid = build("Track01")
@@ -122,8 +138,17 @@ invalid.selections["43"] = { driverId = "Driver01", kartId = "Kart01" }
 check(not Payload.validate(invalid, true), "solo capacity enforced")
 check(Payload.buildSolo("match-12345678", player, "Track01Race", "Driver01", "Kart01") == nil,
 	"Base Circuit reserved launch deferred")
-check(Runtime.resolve("reserved-id", { SourcePlaceId = 123456, TeleportData = invalid }, 123456, 42) == "HUB",
+local invalidRole, _, invalidReason = Runtime.resolve("reserved-id", 0,
+	{ SourceGameId = 987654, TeleportData = invalid }, 987654, 42)
+check(invalidRole == "HUB" and invalidReason == "INVALID_PAYLOAD",
 	"invalid reserved context cannot become RACE")
+local _, _, noJoinReason = Runtime.resolve("reserved-id", 0, nil, 987654, 42)
+check(noJoinReason == "NO_JOIN_DATA", "missing join data reason")
+local _, _, missingDataReason = Runtime.resolve("reserved-id", 0, { SourceGameId = 987654 }, 987654, 42)
+check(missingDataReason == "MISSING_TELEPORT_DATA", "missing teleport data reason")
+local _, _, wrongUserReason = Runtime.resolve("reserved-id", 0,
+	{ SourceGameId = 987654, TeleportData = build("Track01") }, 987654, 43)
+check(wrongUserReason == "USER_NOT_PARTICIPANT", "nonparticipant reason")
 
 Launch.start()
 local failed = 0
@@ -134,9 +159,15 @@ check(call.placeId == 123456 and call.group[1] == player and call.options.Should
 	"same PlaceId receives new reserved server")
 check(call.options.payload.trackId == "Track02" and call.options.payload.matchId == "guid-12345678",
 	"server GUID and selected track transmitted")
-teleport.TeleportInitFailed:Fire(player)
+teleport.TeleportInitFailed:Fire(player, "Failure", "network error", 123456, {})
 check(failed == 1 and player:GetAttribute("RaceState") == "GARAGE"
 	and player:GetAttribute("RaceEntryError") ~= "", "failed launch restores Garage and visible error")
+check(string.find(warnings[#warnings], "result=Failure", 1, true) ~= nil
+	and string.find(warnings[#warnings], "network error", 1, true) ~= nil,
+	"TeleportInitFailed logs result and engine error on server")
+check(string.find(table.concat(logs, "\n"), "teleport accepted", 1, true) ~= nil
+	and not string.find(table.concat(logs, "\n"), "SECRET_CODE_MUST_NOT_LOG", 1, true),
+	"accepted teleport logs presence without access code")
 check(player:GetAttribute("SelectedDriverId") == "Driver02"
 	and player:GetAttribute("SelectedKartId") == "Kart02"
 	and player:GetAttribute("SelectedTrackId") == "Track02", "failure preserves selections")
@@ -144,7 +175,7 @@ player:SetAttribute("RaceState", "FINISHED")
 check(Launch.returnToHub(player), "Result GARAGE requests public HUB")
 call = teleport.calls[#teleport.calls]
 check(call.placeId == 123456 and call.options == nil, "return omits reserved-server option")
-teleport.TeleportInitFailed:Fire(player)
+teleport.TeleportInitFailed:Fire(player, "Failure", "return error", 123456, {})
 check(player:GetAttribute("RaceState") == "FINISHED" and player:GetAttribute("RaceEntryError") ~= "",
 	"failed HUB return preserves result for retry")
 player:SetAttribute("RaceState", "GARAGE")
@@ -152,9 +183,23 @@ teleport.failNow = true
 check(not Launch.launchSolo(player, "Track01", "Driver01", "Kart01", function() failed += 1 end)
 	and failed == 2 and player:GetAttribute("RaceEntryError") ~= "",
 	"synchronous teleport exception restores retryable Garage")
+check(string.find(warnings[#warnings], "teleport request failed", 1, true) ~= nil,
+	"request exception logged with route context")
 teleport.failNow = false
 check(Launch.launchSolo(player, "Track01", "Driver01", "Kart01", function() failed += 1 end),
 	"failure clears pending reservation for retry")
+player.Parent = nil
+players.PlayerRemoving:Fire(player)
+for _, callback in delayed do callback() end
+check(failed == 2, "successful departure clears pending watchdog without false failure")
+player.Parent = players
+services.RunService.studio = true
+teleport.failNow = true
+Launch.launchSolo(player, "Track01", "Driver01", "Kart01", function() failed += 1 end)
+check(player:GetAttribute("RaceEntryError") == "TELEPORT TEST REQUIRES PUBLISHED ROBLOX CLIENT",
+	"Studio teleport displays development-only guidance")
+teleport.failNow = false
+services.RunService.studio = false
 
 -- Exercise the production arrival path with simulated server objects.
 local CF, V = rb.CFrame, rb.Vector3
@@ -173,11 +218,13 @@ modules.PrototypeWorld = { acquireKartContext = function(_, spawn)
 	local visual = { IsA = function(_, class) return class == "Model" end }
 	local kart = { FindFirstChild = function(_, name) return if name == "Visual" then visual else nil end,
 		PivotTo = function(self, frame) self.pivot = frame end }
-	local seat = { CFrame = CF.identity, Sit = function(self, humanoid) self.Occupant = humanoid end }
+	local seat = { CFrame = CF.identity, Sit = function(self, humanoid)
+		self.Occupant = humanoid; humanoid.SeatPart = self
+	end }
 	table.insert(seats, seat)
 	return { kart = kart, seat = seat, visual = visual,
 		setSpawnCFrame = function(self, frame) self.spawn = frame end }
-end }
+end, releaseKartContext = function() end }
 local baseplate = { Position = V.new(0, -10, 0), Size = V.new(2048, 20, 2048),
 	IsA = function(_, class) return class == "BasePart" end }
 services.Workspace = {
@@ -194,13 +241,15 @@ end, PivotTo = function(self, frame) self.pivot = frame end }
 player.Character = character
 environment.CFrame = CF
 environment.task = { spawn = function(callback, argument) callback(argument) end,
-	delay = function(_, callback) table.insert(delayed, callback) end }
+	delay = function(_, callback) table.insert(delayed, callback) end,
+	wait = function() end }
 for _, trackId in { "Track01", "Track02" } do
 	local payload = build(trackId)
-	player.GetJoinData = function() return { SourcePlaceId = 123456, TeleportData = payload } end
+	local initialJoinData = { SourcePlaceId = 999, SourceGameId = 987654, TeleportData = payload }
+	player.GetJoinData = function() return initialJoinData end
 	local Bootstrap = load("src/server/RaceServerBootstrap.luau", "RaceServerBootstrap" .. trackId)
 	check(Bootstrap.plan(payload, 42).trackId == trackId, "bootstrap plan selects " .. trackId)
-	Bootstrap.start(payload)
+	check(Bootstrap.start(payload, player, initialJoinData), "validated initial arrival starts")
 	check(player:GetAttribute("SelectedTrackId") == trackId and player:GetAttribute("SelectedDriverId") == "Driver02"
 		and player:GetAttribute("SelectedKartId") == "Kart02" and player:GetAttribute("RaceMaxPlayers") == 1
 		and player:GetAttribute("GridSlot") == 1 and player:GetAttribute("RaceState") == "PRE_RACE",
@@ -209,24 +258,125 @@ for _, trackId in { "Track01", "Track02" } do
 		and character.appliedDriver == appearance, "arriving driver is styled and seated")
 	local before = contextCount
 	players.PlayerAdded:Fire(player)
-	check(Bootstrap.start(payload), "same match startup is idempotent")
+	check(Bootstrap.start(payload, player, initialJoinData), "same match startup is idempotent")
 	local otherMatch = build(trackId)
 	otherMatch.matchId = "different-match-123"
-	check(not Bootstrap.start(otherMatch), "different match cannot restart reserved server")
+	check(not Bootstrap.start(otherMatch, player, initialJoinData), "different match cannot restart reserved server")
 	check(contextCount == before, "duplicate arrival/start does not create a second kart")
 end
+local checkPayload = build("Track01")
+local Checker = load("src/server/RaceServerBootstrap.luau", "RaceServerBootstrapChecker")
+local unlistedPlan, unlistedReason = Checker.checkArrival(checkPayload, { UserId = 43 }, player, 987654)
+check(unlistedPlan == nil and unlistedReason == "USER_NOT_PARTICIPANT", "unlisted arrival reason")
+local later = { UserId = 42, GetJoinData = function()
+	return { SourceGameId = 987654, TeleportData = { matchId = "other-match" } }
+end }
+local laterPlan, laterReason = Checker.checkArrival(checkPayload, later, player, 987654)
+check(laterPlan == nil and laterReason == "MATCH_ID_MISMATCH", "later arrival wrong MatchId reason")
+later.GetJoinData = function() return { SourceGameId = 12, TeleportData = checkPayload } end
+laterPlan, laterReason = Checker.checkArrival(checkPayload, later, player, 987654)
+check(laterPlan == nil and laterReason == "WRONG_SOURCE_GAME", "later arrival wrong Experience reason")
+later.GetJoinData = function() error("GetJoinData failed") end
+laterPlan, laterReason = Checker.checkArrival(checkPayload, later, player, 987654)
+check(laterPlan == nil and laterReason == "JOIN_DATA_UNAVAILABLE", "later arrival missing join data reason")
 local unexpected = { UserId = 43, Parent = players, attrs = {} }
 function unexpected:SetAttribute(name, value) self.attrs[name] = value end
-function unexpected:GetJoinData() return { SourcePlaceId = 123456, TeleportData = build("Track01") } end
+function unexpected:GetJoinData() return { SourcePlaceId = 123456, SourceGameId = 987654,
+	TeleportData = build("Track01") } end
 local contextsBefore = contextCount
 players.PlayerAdded:Fire(unexpected)
 check(contextCount == contextsBefore and unexpected.attrs.RaceEntryError ~= nil,
 	"unlisted arrival cannot create a kart and is directed to HUB")
+check(string.find(warnings[#warnings], "reason=USER_NOT_PARTICIPANT", 1, true) ~= nil,
+	"bootstrap rejection logs concrete reason")
+
+local normalWorld = modules.PrototypeWorld
+local virtualNow = 0
+environment.os = { clock = function() return virtualNow end }
+environment.task = { spawn = function(callback, argument) callback(argument) end,
+	wait = function(seconds) virtualNow += seconds end,
+	delay = function(_, callback) table.insert(delayed, callback) end }
+local failureSerial = 0
+local function runBootstrapFailure(expectedReason, scenario)
+	failureSerial += 1
+	virtualNow = 0
+	local payload = build("Track01")
+	local casePlayer = { UserId = 42, Parent = players, attrs = { RaceState = "GARAGE" } }
+	function casePlayer:SetAttribute(name, value) self.attrs[name] = value end
+	function casePlayer:GetAttribute(name) return self.attrs[name] end
+	casePlayer.GetJoinData = function() return { SourceGameId = 987654, TeleportData = payload } end
+	local caseRoot = { Anchored = false }
+	local caseHumanoid = { Health = 100 }
+	if scenario ~= "no_character" then
+		casePlayer.Character = { WaitForChild = function(_, name)
+			if name == "HumanoidRootPart" then return caseRoot end
+			return if scenario == "no_humanoid" then nil else caseHumanoid
+		end, PivotTo = function() end }
+	end
+	players.GetPlayers = function() return { casePlayer } end
+	local releases = 0
+	modules.PrototypeWorld = { releaseKartContext = function() releases += 1 end,
+		acquireKartContext = function()
+			if scenario == "no_context" then return nil end
+			local seat = { CFrame = CF.identity, Sit = function(self, humanoid)
+				if scenario ~= "seat_timeout" then self.Occupant = humanoid; humanoid.SeatPart = self end
+			end }
+			return { seat = seat,
+				kart = { FindFirstChild = function() end, PivotTo = function() end },
+				setSpawnCFrame = function() end }
+		end }
+	local Bootstrap = load("src/server/RaceServerBootstrap.luau", "RaceServerBootstrapFailure" .. failureSerial)
+	local beforeWarning = #warnings
+	check(Bootstrap.start(payload, casePlayer, casePlayer:GetJoinData()), "failure case handler starts")
+	local reasonFound = false
+	for index = beforeWarning + 1, #warnings do
+		if string.find(warnings[index], "reason=" .. expectedReason, 1, true) then reasonFound = true end
+	end
+	check(reasonFound, scenario .. " logs " .. expectedReason)
+	check(casePlayer:GetAttribute("RaceState") ~= "PRE_RACE", scenario .. " never enters countdown")
+	check(casePlayer:GetAttribute("RaceEntryError") == "RACE SERVER UNAVAILABLE - RETURNING TO HUB",
+		scenario .. " keeps a player-facing fallback while returning")
+	if scenario == "seat_timeout" then check(releases == 1, "seat timeout releases KartContext") end
+end
+runBootstrapFailure("CHARACTER_TIMEOUT", "no_character")
+runBootstrapFailure("HUMANOID_INVALID", "no_humanoid")
+runBootstrapFailure("KART_CONTEXT_FAILED", "no_context")
+runBootstrapFailure("SEAT_TIMEOUT", "seat_timeout")
+modules.PrototypeWorld = normalWorld
+
+virtualNow = 0
+local delayedPayload = build("Track01")
+local delayedPlayer = { UserId = 42, Parent = players, attrs = { RaceState = "GARAGE" } }
+function delayedPlayer:SetAttribute(name, value) self.attrs[name] = value end
+function delayedPlayer:GetAttribute(name) return self.attrs[name] end
+local delayedRoot = { Anchored = false }
+local delayedHumanoid = { Health = 100 }
+delayedPlayer.Character = { WaitForChild = function(_, name)
+	return if name == "HumanoidRootPart" then delayedRoot else delayedHumanoid
+end, PivotTo = function() end }
+players.GetPlayers = function() return { delayedPlayer } end
+local delayedSeat = { CFrame = CF.identity, Sit = function() end }
+modules.PrototypeWorld = { releaseKartContext = function() error("must stay seated") end,
+	acquireKartContext = function()
+		return { seat = delayedSeat,
+			kart = { FindFirstChild = function() end, PivotTo = function() end },
+			setSpawnCFrame = function() end }
+	end }
+environment.task.wait = function(seconds)
+	virtualNow += seconds
+	if virtualNow >= 0.5 then delayedSeat.Occupant = delayedHumanoid; delayedHumanoid.SeatPart = delayedSeat end
+end
+local DelayedBootstrap = load("src/server/RaceServerBootstrap.luau", "RaceServerBootstrapDelayed")
+check(DelayedBootstrap.start(delayedPayload, delayedPlayer,
+	{ SourceGameId = 987654, TeleportData = delayedPayload }), "delayed seat bootstrap starts")
+check(delayedPlayer:GetAttribute("RaceState") == "PRE_RACE" and virtualNow >= 0.5
+	and virtualNow < 2.5, "delayed seat confirms before PRE_RACE and within handshake window")
+modules.PrototypeWorld = normalWorld
 
 local function runServerInit(privateId, launchPayload, studio, failRace)
-	local calls = {}
+	local calls = { logs = {}, warnings = {} }
 	local first = { UserId = 42, GetJoinData = function()
-		return { SourcePlaceId = 123456, TeleportData = launchPayload }
+		return { SourcePlaceId = 999, SourceGameId = 987654, TeleportData = launchPayload }
 	end }
 	local startupPlayers = { GetPlayers = function()
 		return if privateId == "" or studio then {} else { first }
@@ -244,14 +394,18 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 		RaceItemController = { start = function() calls.items = true end },
 		RaceController = { start = function(options) calls.race = options or "default"; return not failRace end },
 		GarageController = { start = function() calls.garage = true end },
-		RaceServerBootstrap = { start = function(value) calls.bootstrap = value; return true end },
+		RaceServerBootstrap = { start = function(value, initialPlayer, initialJoinData)
+			calls.bootstrap = value; calls.initialPlayer = initialPlayer; calls.initialJoinData = initialJoinData
+			return true
+		end },
 		PlayerPreferences = { start = function() calls.preferences = true end },
 	}
 	local env = { game = { PrivateServerId = privateId, PrivateServerOwnerId = 0,
-		PlaceId = 123456, JobId = "test-job",
+		PlaceId = 123456, GameId = 987654, JobId = "test-job",
 		GetService = function(_, name) return assert(startupServices[name], name) end },
-		Instance = { new = function() return {} end }, print = function() end,
-		warn = function() calls.warned = true end,
+		Instance = { new = function() return {} end },
+		print = function(message) table.insert(calls.logs, message) end,
+		warn = function(message) calls.warned = true; table.insert(calls.warnings, message) end,
 		script = { WaitForChild = function(_, name) return { Name = name } end },
 		require = function(module) return assert(startupModules[module.Name], module.Name) end }
 	luau.load(fs.readFile("src/server/init.server.luau"), { environment = env })()
@@ -265,9 +419,14 @@ local reservedInit = runServerInit("reserved-id", racePayload, false)
 check(reservedInit.KDMServerRole == "RACE" and reservedInit.world.trackId == "Track02"
 	and reservedInit.race.trackId == "Track02" and reservedInit.bootstrap == racePayload
 	and not reservedInit.garage, "reserved startup builds only selected V2 and skips Garage admission")
+check(reservedInit.initialJoinData.SourceGameId == 987654 and reservedInit.initialPlayer.UserId == 42
+	and string.find(reservedInit.logs[1], "reason=VALID_KDM_RACE", 1, true) ~= nil,
+	"initial validated join context passed through with resolve diagnostic")
 local malformedInit = runServerInit("reserved-id", { schema = "bad" }, false)
 check(malformedInit.KDMServerRole == "HUB" and malformedInit.returnToHub and not malformedInit.world,
 	"malformed reserved startup returns to HUB without default track")
+check(string.find(malformedInit.warnings[1], "reason=INVALID_PAYLOAD", 1, true) ~= nil,
+	"reserved rejection logs precise resolver reason")
 local failedInit = runServerInit("reserved-id", racePayload, false, true)
 check(failedInit.KDMServerRole == "RACE" and failedInit.returnToHub and failedInit.warned
 	and not failedInit.bootstrap, "race initialization failure returns arrival to HUB")

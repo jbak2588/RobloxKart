@@ -20,27 +20,37 @@ if not RunService:IsStudio() and game.PrivateServerId ~= "" then
 	if ok then joinData = result end
 end
 
-local role, payload = ServerRuntime.resolve(if RunService:IsStudio() then "" else game.PrivateServerId,
-	joinData, game.PlaceId,
-	if firstPlayer then firstPlayer.UserId else 0, game.PrivateServerOwnerId)
+local role, payload, resolveReason = ServerRuntime.resolve(if RunService:IsStudio() then "" else game.PrivateServerId,
+	game.PrivateServerOwnerId, joinData, game.GameId,
+	if firstPlayer then firstPlayer.UserId else 0)
 ServerRuntime.setRole(role)
 Workspace:SetAttribute("KDMServerRole", role)
-print(string.format("[KDMRoute] role=%s job=%s", role, game.JobId))
+print(string.format("[KDMRoute] resolve role=%s reason=%s private=%s owner=%s sourcePlace=%s sourceGame=%s match=%s track=%s job=%s",
+	role, resolveReason, tostring(game.PrivateServerId ~= ""), tostring(game.PrivateServerOwnerId),
+	tostring(if joinData then joinData.SourcePlaceId else nil),
+	tostring(if joinData then joinData.SourceGameId else nil),
+	tostring(if payload then payload.matchId else nil), tostring(if payload then payload.trackId else nil),
+	tostring(game.JobId)))
 RaceLaunchService.start()
 
 if ServerRuntime.isRace() then
-	print(string.format("[KDMRoute] role=RACE match=%s track=%s expected=1", payload.matchId, payload.trackId))
 	local initialized, reason = pcall(function()
+		print(string.format("[KDMRoute] race world start match=%s track=%s", payload.matchId, payload.trackId))
 		PrototypeWorld.start({ trackId = payload.trackId })
+		print(string.format("[KDMRoute] race world ready match=%s track=%s", payload.matchId, payload.trackId))
 		-- RaceHudController waits for this RemoteEvent, while Garage admission stays HUB-only.
 		local garageRemote = Instance.new("RemoteEvent")
 		garageRemote.Name = "GarageControl"
 		garageRemote.Parent = ReplicatedStorage
 		RaceItemController.start()
+		print(string.format("[KDMRoute] race controller start match=%s", payload.matchId))
 		assert(RaceController.start({ trackId = payload.trackId,
 			returnToHub = RaceLaunchService.returnToHub }), "Race controller startup failed")
+		print(string.format("[KDMRoute] race controller ready match=%s", payload.matchId))
 		PlayerPreferences.start()
-		assert(RaceServerBootstrap.start(payload), "Race arrival startup failed")
+		print(string.format("[KDMRoute] race bootstrap start match=%s", payload.matchId))
+		assert(RaceServerBootstrap.start(payload, firstPlayer, joinData), "Race arrival startup failed")
+		print(string.format("[KDMRoute] race bootstrap ready match=%s", payload.matchId))
 	end)
 	if not initialized then
 		warn("[KDMRoute] race startup failed: " .. tostring(reason))
@@ -52,8 +62,11 @@ if ServerRuntime.isRace() then
 	end
 elseif firstPlayer and game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0 then
 	-- A malformed reserved launch never creates a default Practice race.
+	warn("[KDMRoute] reserved launch rejected reason=" .. resolveReason)
 	RaceLaunchService.returnToHub(firstPlayer, function()
-		firstPlayer:Kick("Race launch unavailable. Please rejoin Kart Drift Masters.")
+		if firstPlayer.Parent == Players then
+			firstPlayer:Kick("Race launch unavailable. Please rejoin Kart Drift Masters.")
+		end
 	end)
 else
 	PrototypeWorld.start()

@@ -398,6 +398,17 @@ Studio does not support TeleportService playtests. The configured server size
 remains 50: HUB may hold more users, while a reserved race's participant count
 is constrained by its payload and TrackCatalog.
 
+M3-A0 local implementation is complete, but the first published mobile test
+did not pass: Practice and V2 teleported out of HUB, briefly appeared in the
+destination server, then returned to HUB Garage. A PC Studio
+"RACE SERVER UNAVAILABLE" log is expected because Studio cannot test real
+TeleportService routing; it is not evidence of the published defect. M3-A0-R1
+validates the source Experience with `SourceGameId`, reuses the first accepted
+launch context at arrival, logs role/launch/bootstrap rejection reasons, and
+waits up to 2.5 seconds for seating before PRE_RACE. Published Roblox client
+validation must confirm Practice and V2 reach Countdown and remain in their
+reserved Race servers before M3-A0 is marked runtime PASS.
+
 M3-A1 will add concurrent Base Circuit MatchRooms in HUB and launch reserved
 multiplayer Race Servers. M3-A2 will polish return, rematch and failure recovery
 and verify the MVP no-blocking gate. Future tracks may support up to six racers.
