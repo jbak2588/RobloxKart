@@ -145,18 +145,29 @@ function GarageController.start()
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if not character or not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then
 			player:SetAttribute("RaceEntryError", "Driver not ready")
+			if track.MatchType == "SOLO_PRACTICE" or track.MatchType == "SOLO_PROTOTYPE" then
+				remote:FireClient(player, "RouteLaunchFailed")
+			end
 			return
 		end
 		if track.MatchType == "SOLO_PRACTICE" or track.MatchType == "SOLO_PROTOTYPE" then
 			readyPending[player] = true
 			local launchService = require(script.Parent:WaitForChild("RaceLaunchService"))
+			local failureNotified = false
+			local function notifyLaunchFailure()
+				if failureNotified or player.Parent ~= Players then return end
+				failureNotified = true
+				remote:FireClient(player, "RouteLaunchFailed")
+			end
 			if not launchService.launchSolo(player, trackId, driverId, kartId, function()
 				readyPending[player] = nil
+				notifyLaunchFailure()
 			end) then
 				readyPending[player] = nil
 				if player:GetAttribute("RaceEntryError") == "" then
 					player:SetAttribute("RaceEntryError", "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN")
 				end
+				notifyLaunchFailure()
 			end
 			return
 		end

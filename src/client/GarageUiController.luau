@@ -144,6 +144,32 @@ function GarageUiController.start()
 	backdrop.BackgroundTransparency = 1
 	backdrop.BorderSizePixel = 0
 	backdrop.Parent = gui
+	local routeOverlay = Instance.new("Frame")
+	routeOverlay.Name = "RouteTransition"
+	routeOverlay.Size = UDim2.fromScale(1, 1)
+	routeOverlay.BackgroundColor3 = Color3.fromRGB(8, 14, 24)
+	routeOverlay.BackgroundTransparency = 0.35
+	routeOverlay.BorderSizePixel = 0
+	routeOverlay.Active = true
+	routeOverlay.ZIndex = 30
+	routeOverlay.Visible = false
+	routeOverlay.Parent = gui
+	local routeCard = Instance.new("TextLabel")
+	routeCard.Name = "Message"
+	routeCard.AnchorPoint = Vector2.new(0.5, 0.5)
+	routeCard.Position = UDim2.fromScale(0.5, 0.5)
+	routeCard.Size = UDim2.fromOffset(280, 72)
+	routeCard.BackgroundColor3 = Color3.fromRGB(25, 36, 52)
+	routeCard.BorderSizePixel = 0
+	routeCard.Font = Enum.Font.GothamBold
+	routeCard.TextColor3 = Color3.fromRGB(255, 215, 75)
+	routeCard.TextSize = 20
+	routeCard.Text = "JOINING RACE..."
+	routeCard.ZIndex = 31
+	routeCard.Parent = routeOverlay
+	local routeCorner = Instance.new("UICorner")
+	routeCorner.CornerRadius = UDim.new(0, 9)
+	routeCorner.Parent = routeCard
 
 	local title = makeText(backdrop, UDim2.fromScale(0.8, 0.09), UDim2.fromScale(0.1, 0.055), "KART DRIFT MASTERS", 40)
 	title.TextColor3 = Color3.fromRGB(255, 215, 75)
@@ -178,35 +204,64 @@ function GarageUiController.start()
 	local presenceHeader = makeText(presencePanel, UDim2.new(1, -12, 0, 23), UDim2.fromOffset(6, 3), "", 14)
 	presenceHeader.TextColor3 = Color3.fromRGB(255, 215, 75)
 	presenceHeader.TextXAlignment = Enum.TextXAlignment.Left
+	local presenceList = Instance.new("ScrollingFrame")
+	presenceList.Name = "OnlineList"
+	presenceList.Position = UDim2.fromOffset(6, 26)
+	presenceList.Size = UDim2.new(1, -12, 1, -32)
+	presenceList.BackgroundTransparency = 1
+	presenceList.BorderSizePixel = 0
+	presenceList.ScrollBarThickness = 4
+	presenceList.ScrollingDirection = Enum.ScrollingDirection.Y
+	presenceList.CanvasSize = UDim2.fromOffset(0, 0)
+	presenceList.Parent = presencePanel
+	local presenceLayout = Instance.new("UIListLayout")
+	presenceLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	presenceLayout.Padding = UDim.new(0, 2)
+	presenceLayout.Parent = presenceList
 	local presenceRows = {}
-	for index = 1, 3 do
-		local row = makeText(presencePanel, UDim2.new(1, -12, 0, 20), UDim2.fromOffset(6, 25 + (index - 1) * 22), "", 12)
-		row.TextXAlignment = Enum.TextXAlignment.Left
-		row.TextTruncate = Enum.TextTruncate.AtEnd
-		table.insert(presenceRows, row)
-	end
+	local presenceRowHeight = 20
 	local presenceConnections = {}
 	local function updatePresence()
-		local count, entries = GaragePresence.snapshot(Players:GetPlayers(), if mobileCompact then 2 else 3)
+		local count, entries = GaragePresence.snapshot(Players:GetPlayers(), player)
 		presenceHeader.Text = if mobileCompact then string.format("ONLINE %d", count)
 			else string.format("SERVER  %d ONLINE", count)
-		for index, row in presenceRows do
-			local entry = entries[index]
-			row.Visible = entry ~= nil
-			if entry then row.Text = if mobileCompact then entry.name
-				else string.format("%s  %s", entry.name, entry.status) end
+		local seen = {}
+		for index, entry in entries do
+			seen[entry.userId] = true
+			local row = presenceRows[entry.userId]
+			if not row then
+				row = makeText(presenceList, UDim2.new(1, -8, 0, presenceRowHeight), UDim2.new(), "", 12)
+				row.Name = "Player" .. tostring(entry.userId)
+				row.TextXAlignment = Enum.TextXAlignment.Left
+				row.TextTruncate = Enum.TextTruncate.AtEnd
+				presenceRows[entry.userId] = row
+			end
+			row.LayoutOrder = index
+			row.Size = UDim2.new(1, -8, 0, presenceRowHeight)
+			row.TextSize = if mobileCompact then 10 else 12
+			row.Text = if mobileCompact then entry.name else string.format("%s  %s", entry.name, entry.status)
 		end
+		for userId, row in presenceRows do
+			if not seen[userId] then row:Destroy(); presenceRows[userId] = nil end
+		end
+		presenceList.CanvasSize = UDim2.fromOffset(0, GaragePresence.canvasHeight(count, presenceRowHeight, 2))
 	end
 	local function bindPresence(other)
 		if presenceConnections[other] then return end
-		presenceConnections[other] = other:GetAttributeChangedSignal("RaceState"):Connect(updatePresence)
+		presenceConnections[other] = {
+			other:GetAttributeChangedSignal("RaceState"):Connect(updatePresence),
+			other:GetAttributeChangedSignal("ReadyOrder"):Connect(updatePresence),
+		}
 		updatePresence()
 	end
 	for _, other in Players:GetPlayers() do bindPresence(other) end
 	Players.PlayerAdded:Connect(bindPresence)
 	Players.PlayerRemoving:Connect(function(other)
-		local connection = presenceConnections[other]
-		if connection then connection:Disconnect(); presenceConnections[other] = nil end
+		local connections = presenceConnections[other]
+		if connections then
+			for _, connection in connections do connection:Disconnect() end
+			presenceConnections[other] = nil
+		end
 		task.defer(updatePresence)
 	end)
 	updatePresence()
@@ -339,6 +394,7 @@ function GarageUiController.start()
 	local tutorialSeenThisSession = false
 
 	local step = 1
+	local localRouteRequested = false
 	local driverIndex = 1
 	local kartIndex = 1
 	local trackIndex = 1
@@ -350,6 +406,13 @@ function GarageUiController.start()
 	local trackMap = nil
 	local trackMapKey: string? = nil
 	local previewKart: Model? = nil
+	local function updateRouteOverlay()
+		local pending = localRouteRequested or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"
+		routeOverlay.Visible = pending and player:GetAttribute("RaceState") == "GARAGE"
+		for _, button in { previousButton, cycleButton, nextButton, leftArrow, rightArrow } do
+			button.Active = not pending
+		end
+	end
 	local function fitKartPreview()
 		if previewKart and previewCamera and viewport.AbsoluteSize.Y > 0 then
 			local fitted = KartPreviewFraming.fit(previewKart, viewport.AbsoluteSize.X / viewport.AbsoluteSize.Y, previewCamera.FieldOfView)
@@ -390,12 +453,11 @@ function GarageUiController.start()
 			stepLabel.TextSize = 19
 			stepLabel.Size = UDim2.fromScale(0.60, 0.07)
 			presencePanel.Position = UDim2.new(1, -10, 0.155, 0)
-			presencePanel.Size = UDim2.fromOffset(math.min(165, layoutWidth * 0.34), 55)
+			presencePanel.Size = UDim2.fromOffset(math.min(165, layoutWidth * 0.34), 62)
 			presenceHeader.TextSize = 11
-			for index, row in presenceRows do
-				row.TextSize = 10
-				row.Position = UDim2.fromOffset(6, 19 + (index - 1) * 16)
-			end
+			presenceList.Position = UDim2.fromOffset(6, 20)
+			presenceList.Size = UDim2.new(1, -12, 1, -24)
+			presenceRowHeight = 16
 			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
 			choiceLabel.TextSize = 25
 			detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.68 else 0.55)
@@ -431,12 +493,11 @@ function GarageUiController.start()
 			stepLabel.TextSize = 24
 			stepLabel.Size = UDim2.fromScale(0.8, 0.07)
 			presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
-			presencePanel.Size = UDim2.fromOffset(205, 100)
+			presencePanel.Size = UDim2.fromOffset(205, 121)
 			presenceHeader.TextSize = 14
-			for index, row in presenceRows do
-				row.TextSize = 12
-				row.Position = UDim2.fromOffset(6, 25 + (index - 1) * 22)
-			end
+			presenceList.Position = UDim2.fromOffset(6, 26)
+			presenceList.Size = UDim2.new(1, -12, 1, -32)
+			presenceRowHeight = 20
 			choiceLabel.TextSize = 34
 			detailLabel.TextSize = 19
 			errorLabel.Position = UDim2.fromScale(0.1, 0.77)
@@ -522,6 +583,11 @@ function GarageUiController.start()
 	end
 	local inviteSerial = 0
 	remote.OnClientEvent:Connect(function(action, hostName, trackId, count, maxPlayers)
+		if action == "RouteLaunchFailed" then
+			localRouteRequested = false
+			updateRouteOverlay()
+			return
+		end
 		if action == "InviteExpired" then
 			inviteModal.Visible = false
 			return
@@ -615,10 +681,12 @@ function GarageUiController.start()
 		cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 10 else -85, 0.84, 0)
 		nextButton.Position = UDim2.new(0.5, 10, 0.84, 0)
 		errorLabel.Text = tostring(player:GetAttribute("RaceEntryError") or "")
+		updateRouteOverlay()
 		applyResponsiveLayout()
 	end
 
 	local function changeChoice(direction: number)
+		if routeOverlay.Visible then return end
 		if step == 1 then
 			driverIndex = (driverIndex - 1 + direction + #DriverCatalog.Order) % #DriverCatalog.Order + 1
 		elseif step == 2 then
@@ -636,16 +704,24 @@ function GarageUiController.start()
 	end)
 
 	previousButton.Activated:Connect(function()
+		if routeOverlay.Visible then return end
 		step = math.max(1, step - 1)
 		update()
 	end)
 	cycleButton.Activated:Connect(function()
+		if routeOverlay.Visible then return end
 		step = math.min(4, step + 1)
 		update()
 	end)
 	nextButton.Activated:Connect(function()
+		if routeOverlay.Visible then return end
 		if step == 4 then
 			local driverId, kartId, trackId = selectedIds()
+			local track = TrackCatalog.Entries[trackId]
+			if track and (track.MatchType == "SOLO_PRACTICE" or track.MatchType == "SOLO_PROTOTYPE") then
+				localRouteRequested = true
+				updateRouteOverlay()
+			end
 			remote:FireServer("Ready", driverId, kartId, trackId)
 		end
 	end)
@@ -654,6 +730,10 @@ function GarageUiController.start()
 			step = 1
 		end
 		update()
+	end)
+	player:GetAttributeChangedSignal("KDMRoutePending"):Connect(function()
+		localRouteRequested = false
+		updateRouteOverlay()
 	end)
 	player:GetAttributeChangedSignal("RaceEntryError"):Connect(update)
 	player:GetAttributeChangedSignal("ControlsTutorialPreferenceLoaded"):Connect(update)

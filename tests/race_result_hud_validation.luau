@@ -16,6 +16,16 @@ local function object(class,name)
  return setmetatable({_p=p,_children={},_attrs={},_signals={},_properties={}}, {
   __index=function(self,key)
    if methods[key] then return methods[key] end
+   if key=="AbsolutePosition" then
+    if class=="ScreenGui" or not p.Parent then
+     return if p.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets
+      then rb.Vector2.new(0,58) else rb.Vector2.zero
+    end
+    local parentPosition,parentSize=p.Parent.AbsolutePosition,p.Parent.AbsoluteSize
+    local ownSize=self.AbsoluteSize
+    return rb.Vector2.new(parentPosition.X+parentSize.X*p.Position.X.Scale+p.Position.X.Offset-p.AnchorPoint.X*ownSize.X,
+     parentPosition.Y+parentSize.Y*p.Position.Y.Scale+p.Position.Y.Offset-p.AnchorPoint.Y*ownSize.Y)
+   end
    if key=="AbsoluteSize" then
     if class=="ScreenGui" or not p.Parent then return safeSize end
     local parent=p.Parent.AbsoluteSize
@@ -128,6 +138,11 @@ set("RaceState","FINISHING")
 check(hud.FinishBanner.Visible and not results.Visible and not playerGui.RobloxKartMobileTopHud.Speedometer.Visible,"FINISHING shows banner, hides result and speed")
 set("RaceState","FINISHED")
 check(results.Visible and not hud.FinishBanner.Visible,"result waits for FINISHED")
+set("KDMRoutePending","HUB_RETURN")
+check(hud.RouteTransition.Visible and hud.RouteTransition.Message.Text=="RETURNING TO GARAGE..."
+ and not results.Visible,"HUB return shows transition instead of result choices")
+set("KDMRoutePending","")
+check(not hud.RouteTransition.Visible and results.Visible,"failed HUB return restores result choices")
 check(not hud.Panel.Visible and results.AnchorPoint.X==0 and results.Position.X.Offset==14
  and results.Size.X.Offset<=285 and results.Size.X.Offset<=safeSize.X*0.39,
  "mobile result anchors to safe left edge with capped width")
@@ -167,6 +182,12 @@ check(results.Size.X.Offset<=250 and results.Size.X.Offset<=safeSize.X*0.36
  and results.AnchorPoint.X==0,"one-lap phone result uses smaller left panel")
 set("RaceState","DNF")
 check(results.Visible and results.Total.Text=="OFF TRACK" and not results.Lap1Row.Visible and not results.Best.Visible,"DNF keeps simple result")
+set("KDMRoutePending","HUB_RETURN")
+check(hud.RouteTransition.Visible and not results.Visible,
+ "Quit forfeit suppresses transient DNF choices while returning to HUB")
+set("KDMRoutePending","")
+check(results.Visible and not hud.RouteTransition.Visible,
+ "Quit return failure restores DNF Garage retry")
 set("RaceDNFReason","RACE_TIMEOUT")
 check(results.Total.Text=="RACE TIMEOUT" and results.Finish.Text=="DNF",
  "race deadline DNF is distinct from off-track DNF")
@@ -269,8 +290,37 @@ local function quitBottomSpace()
 		-(if quitPanel.OffTrack.Visible then quitPanel.OffTrack.Size.Y.Offset else 0)
 		-quitButton.Size.Y.Offset
 end
-check(quitButton.Size.Y.Offset>=23 and quitBottomSpace()>=4 and quitBottomSpace()<=8,
-	"mobile Quit button retains touch height and 4-8px bottom space")
+check(quitButton.Size.X.Offset>=110 and quitButton.Size.Y.Offset>=36
+ and quitBottomSpace()>=4 and quitBottomSpace()<=8,
+	"mobile Quit button meets touch target with 4-8px bottom space")
+local function checkTouchQuitRect(label)
+ local buttonPosition,buttonSize=quitButton.AbsolutePosition,quitButton.AbsoluteSize
+ local panelPosition,panelSize=quitPanel.AbsolutePosition,quitPanel.AbsoluteSize
+ check(hud.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets
+  and buttonPosition.X>=panelPosition.X and buttonPosition.X+buttonSize.X<=panelPosition.X+panelSize.X
+  and buttonPosition.Y>=guiService.TopbarInset.Max.Y+8
+  and buttonPosition.Y+buttonSize.Y<=panelPosition.Y+panelSize.Y,
+  label.." Quit hit rectangle stays in LAP panel below Core UI")
+end
+checkTouchQuitRect("phone landscape 844x390")
+safeSize=rb.Vector2.new(1600,680);camera.ViewportSize=rb.Vector2.new(1600,739)
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+checkTouchQuitRect("phone landscape 1600x739")
+safeSize=rb.Vector2.new(1920,1140);camera.ViewportSize=rb.Vector2.new(1920,1200)
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+checkTouchQuitRect("tablet landscape 1920x1200")
+safeSize=rb.Vector2.new(1280,740);camera.ViewportSize=rb.Vector2.new(1280,800)
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+checkTouchQuitRect("narrow tablet landscape 1280x800")
+input.TouchEnabled=true;input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+input:GetPropertyChangedSignal("PreferredInput"):Fire()
+check(quitButton.Size.X.Offset>=110 and quitButton.Size.Y.Offset>=36,
+ "touch-enabled tablet keeps a large Quit target even with keyboard preferred")
+checkTouchQuitRect("touch tablet with keyboard preferred")
+input.TouchEnabled=false;input.PreferredInput=rb.Enum.PreferredInput.Touch
+input:GetPropertyChangedSignal("PreferredInput"):Fire()
+safeSize=rb.Vector2.new(844,390);camera.ViewportSize=rb.Vector2.new(844,390)
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 set("RaceOffTrackRemaining",10)
 check(quitPanel.OffTrack.Visible and quitBottomSpace()>=4 and quitBottomSpace()<=8,
 	"off-track warning and Quit button fit in panel")

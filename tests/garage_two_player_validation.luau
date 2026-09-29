@@ -193,6 +193,9 @@ check(#launches==1 and launches[1].trackId=="Track02" and contexts[c]==nil
 ready(c,"Kart01","Track01")
 check(#launches==2 and launches[2].trackId=="Track01" and contexts[c]==nil
  and builds==1,"Practice solo routes without rebuilding HUB track")
+-- The mock invokes onFailure to unlock a second Solo attempt; real successful
+-- teleports do not invoke it, so discard those synthetic failure UI events.
+remote.lastClient=nil;remote.lastClientArgs=nil;remote.clientFireCount=0
 check(session:contains(a) and a:GetAttribute("RaceState")=="PRE_RACE"
  and track:GetAttribute("TrackId")=="Track01Race","Solo routing leaves Base lobby and track intact")
 ready(b,"Kart02","Track01Race")

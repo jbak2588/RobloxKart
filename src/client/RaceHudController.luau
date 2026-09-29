@@ -146,6 +146,28 @@ function RaceHudController.start()
 	quitOverlay.ZIndex = 20
 	quitOverlay.Visible = false
 	quitOverlay.Parent = screenGui
+	local routeOverlay = Instance.new("Frame")
+	routeOverlay.Name = "RouteTransition"
+	routeOverlay.Size = UDim2.fromScale(1, 1)
+	routeOverlay.BackgroundColor3 = Color3.fromRGB(8, 14, 24)
+	routeOverlay.BackgroundTransparency = 0.35
+	routeOverlay.BorderSizePixel = 0
+	routeOverlay.Active = true
+	routeOverlay.ZIndex = 30
+	routeOverlay.Visible = false
+	routeOverlay.Parent = screenGui
+	local routeMessage = createLabel(routeOverlay, "Message", 1)
+	routeMessage.AnchorPoint = Vector2.new(0.5, 0.5)
+	routeMessage.Position = UDim2.fromScale(0.5, 0.5)
+	routeMessage.Size = UDim2.fromOffset(300, 72)
+	routeMessage.BackgroundColor3 = Color3.fromRGB(25, 36, 52)
+	routeMessage.BackgroundTransparency = 0
+	routeMessage.TextColor3 = Color3.fromRGB(255, 215, 75)
+	routeMessage.TextXAlignment = Enum.TextXAlignment.Center
+	routeMessage.TextSize = 19
+	routeMessage.Text = "RETURNING TO GARAGE..."
+	routeMessage.ZIndex = 31
+	addCorner(routeMessage, 9)
 	local quitDialog = Instance.new("Frame")
 	quitDialog.AnchorPoint = Vector2.new(0.5, 0.5)
 	quitDialog.Position = UDim2.fromScale(0.5, 0.5)
@@ -595,14 +617,19 @@ function RaceHudController.start()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local mobile = Input.isTouchPreferred()
+		local touchTarget = mobile or UserInputService.TouchEnabled
 		local speedParent = if mobile then mobileTopGui else screenGui
 		if speedPanel.Parent ~= speedParent then speedPanel.Parent = speedParent end
 		speedPanel.BackgroundTransparency = if mobile then 0.30 else 0.15
 		speedTrack.BackgroundColor3 = if mobile then Color3.fromRGB(92, 106, 124) else Color3.fromRGB(59, 68, 81)
 		speedOutline.Enabled = mobile
-		local compact = mobile or (viewportSize.Y > 0 and viewportSize.Y <= 650)
-		if mobile then screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+		local compact = touchTarget or (viewportSize.Y > 0 and viewportSize.Y <= 650)
+		if touchTarget then screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 		else screenGui.IgnoreGuiInset = not compact end
+		local quitHeight = if touchTarget then 40 else 24
+		quitRow.Size = UDim2.new(1, -20, 0, quitHeight)
+		quitButton.Size = UDim2.fromOffset(if touchTarget then 120 else 72, if touchTarget then 40 else 23)
+		quitButton.TextSize = if touchTarget then 14 else 11
 		miniMapPanel.Visible = speedPanel.Visible or (player:GetAttribute("RaceState") == "FINISHED"
 			and player:GetAttribute("RaceMatchStatus") == "RACING"
 			and getNumberAttribute(player, "RaceParticipantCount", 1) >= 2
@@ -611,7 +638,7 @@ function RaceHudController.start()
 			local lapWidth = math.min(220, math.max(175, (viewportSize.X - 160) * 0.5 - 24))
 			frame.Position = UDim2.fromOffset(12, 8)
 			frame.Size = UDim2.fromOffset(lapWidth, (if offTrackLabel.Visible then 116 else 96)
-				+ (if raceEndLabel.Visible then 20 else 0) + (if quitRow.Visible then 24 else 0))
+				+ (if raceEndLabel.Visible then 20 else 0) + (if quitRow.Visible then quitHeight else 0))
 			padding.PaddingTop = UDim.new(0, 6)
 			padding.PaddingBottom = UDim.new(0, 6)
 			padding.PaddingLeft = UDim.new(0, 8)
@@ -680,7 +707,7 @@ function RaceHudController.start()
 		else
 			frame.Position = UDim2.fromOffset(24, 118)
 			frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112)
-				+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then 24 else 0))
+				+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then quitHeight else 0))
 			padding.PaddingTop = UDim.new(0, 8)
 			padding.PaddingBottom = UDim.new(0, 8)
 			padding.PaddingLeft = UDim.new(0, 10)
@@ -746,7 +773,7 @@ function RaceHudController.start()
 			frame.Size = UDim2.fromOffset(lapWidth,
 				6 + 25 + 20 + 20 + (if offTrackLabel.Visible then 20 else 0)
 				+ (if raceEndLabel.Visible then 20 else 0)
-				+ (if quitRow.Visible then 24 else 0) + (if quitRow.Visible then 4 else 6))
+				+ (if quitRow.Visible then quitHeight else 0) + (if quitRow.Visible then 4 else 6))
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
 			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,
@@ -805,8 +832,10 @@ function RaceHudController.start()
 	end
 	local function updateHud()
 		local raceState = player:GetAttribute("RaceState")
-		quitRow.Visible = raceState == "RACING"
-		if raceState ~= "RACING" then quitOverlay.Visible = false end
+		local returningToHub = player:GetAttribute("KDMRoutePending") == "HUB_RETURN"
+		routeOverlay.Visible = returningToHub
+		quitRow.Visible = raceState == "RACING" and not returningToHub
+		if raceState ~= "RACING" or returningToHub then quitOverlay.Visible = false end
 		local finishMissSerial = getNumberAttribute(player, "RaceFinishMissedSerial", 0)
 		if raceState == "RACING" and finishMissSerial > displayedFinishMissSerial then
 			finishMissDisplayToken += 1
@@ -866,9 +895,9 @@ function RaceHudController.start()
 		raceEndLabel.Visible = raceState == "RACING" and raceEndActive
 		raceEndLabel.Text = string.format("RACE ENDS IN %d", raceEndRemaining)
 		frame.Size = UDim2.fromOffset(260, (if offTrackLabel.Visible then 139 else 112)
-			+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then 24 else 0))
+			+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then quitRow.Size.Y.Offset else 0))
 
-		resultsPanel.Visible = raceState == "FINISHED" or raceState == "DNF"
+		resultsPanel.Visible = (raceState == "FINISHED" or raceState == "DNF") and not returningToHub
 		local routeError = player:GetAttribute("RaceEntryError")
 		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
 			and type(routeError) == "string" and routeError ~= "" then "HUB UNAVAILABLE\nRETRY" else "GARAGE"
@@ -1042,6 +1071,7 @@ function RaceHudController.start()
 		"SelectedKartId",
 		"SelectedTrackId",
 		"RaceEntryError",
+		"KDMRoutePending",
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end

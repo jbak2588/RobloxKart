@@ -18,7 +18,7 @@ local function folder(name)
 	return { Name = name, WaitForChild = function(_, child) return { Name = child } end }
 end
 local shared, server = folder("Shared"), folder("Server")
-local players = { Name = "Players", PlayerRemoving = signal() }
+local players = { Name = "Players", PlayerAdded = signal(), PlayerRemoving = signal(), GetPlayers = function() return {} end }
 local teleport = { TeleportInitFailed = signal(), calls = {} }
 function teleport:TeleportAsync(placeId, group, options)
 	table.insert(self.calls, { placeId = placeId, group = group, options = options })
@@ -150,10 +150,18 @@ local _, _, wrongUserReason = Runtime.resolve("reserved-id", 0,
 	{ SourceGameId = 987654, TeleportData = build("Track01") }, 987654, 43)
 check(wrongUserReason == "USER_NOT_PARTICIPANT", "nonparticipant reason")
 
+players.GetPlayers = function() return { player } end
 Launch.start()
+check(player:GetAttribute("KDMRoutePending") == "", "HUB player starts without routing transition")
+local joiningPlayer = { UserId = 99, Parent = players, attrs = {} }
+function joiningPlayer:SetAttribute(name, value) self.attrs[name] = value end
+function joiningPlayer:GetAttribute(name) return self.attrs[name] end
+players.PlayerAdded:Fire(joiningPlayer)
+check(joiningPlayer:GetAttribute("KDMRoutePending") == "", "new HUB player starts without routing transition")
 local failed = 0
 check(Launch.launchSolo(player, "Track02", "Driver02", "Kart02", function() failed += 1 end),
 	"server launches V2")
+check(player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH", "solo launch publishes routing transition")
 local call = teleport.calls[#teleport.calls]
 check(call.placeId == 123456 and call.group[1] == player and call.options.ShouldReserveServer == true,
 	"same PlaceId receives new reserved server")
@@ -161,7 +169,8 @@ check(call.options.payload.trackId == "Track02" and call.options.payload.matchId
 	"server GUID and selected track transmitted")
 teleport.TeleportInitFailed:Fire(player, "Failure", "network error", 123456, {})
 check(failed == 1 and player:GetAttribute("RaceState") == "GARAGE"
-	and player:GetAttribute("RaceEntryError") ~= "", "failed launch restores Garage and visible error")
+	and player:GetAttribute("RaceEntryError") ~= "" and player:GetAttribute("KDMRoutePending") == "",
+	"failed launch restores Garage, clears transition and shows error")
 check(string.find(warnings[#warnings], "result=Failure", 1, true) ~= nil
 	and string.find(warnings[#warnings], "network error", 1, true) ~= nil,
 	"TeleportInitFailed logs result and engine error on server")
@@ -173,10 +182,12 @@ check(player:GetAttribute("SelectedDriverId") == "Driver02"
 	and player:GetAttribute("SelectedTrackId") == "Track02", "failure preserves selections")
 player:SetAttribute("RaceState", "FINISHED")
 check(Launch.returnToHub(player), "Result GARAGE requests public HUB")
+check(player:GetAttribute("KDMRoutePending") == "HUB_RETURN", "HUB return publishes routing transition")
 call = teleport.calls[#teleport.calls]
 check(call.placeId == 123456 and call.options == nil, "return omits reserved-server option")
 teleport.TeleportInitFailed:Fire(player, "Failure", "return error", 123456, {})
-check(player:GetAttribute("RaceState") == "FINISHED" and player:GetAttribute("RaceEntryError") ~= "",
+check(player:GetAttribute("RaceState") == "FINISHED" and player:GetAttribute("RaceEntryError") ~= ""
+	and player:GetAttribute("KDMRoutePending") == "",
 	"failed HUB return preserves result for retry")
 player:SetAttribute("RaceState", "GARAGE")
 teleport.failNow = true

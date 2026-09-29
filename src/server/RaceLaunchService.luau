@@ -14,6 +14,7 @@ local function fail(player, token)
 	if not entry or entry.token ~= token then return end
 	pending[player] = nil
 	if player.Parent ~= Players then return end
+	player:SetAttribute("KDMRoutePending", "")
 	if entry.kind == "launch" then player:SetAttribute("RaceState", "GARAGE") end
 	player:SetAttribute("RaceEntryError", if RunService:IsStudio() then
 		"TELEPORT TEST REQUIRES PUBLISHED ROBLOX CLIENT" else ERROR_TEXT)
@@ -30,6 +31,8 @@ end
 function RaceLaunchService.start()
 	if started then return end
 	started = true
+	for _, player in Players:GetPlayers() do player:SetAttribute("KDMRoutePending", "") end
+	Players.PlayerAdded:Connect(function(player) player:SetAttribute("KDMRoutePending", "") end)
 	TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage, placeId)
 		local entry = pending[player]
 		warn(string.format("[KDMRoute] teleport init failed user=%d kind=%s result=%s place=%s error=%s",
@@ -46,6 +49,7 @@ function RaceLaunchService.launchSolo(player, trackId, driverId, kartId, onFailu
 	if not payload then return false end
 	local token = {}
 	pending[player] = { token = token, kind = "launch", onFailure = onFailure }
+	player:SetAttribute("KDMRoutePending", "RACE_LAUNCH")
 	player:SetAttribute("SelectedDriverId", driverId)
 	player:SetAttribute("SelectedKartId", kartId)
 	player:SetAttribute("SelectedTrackId", trackId)
@@ -78,6 +82,7 @@ function RaceLaunchService.returnToHub(player, onFailure)
 	if player.Parent ~= Players or pending[player] then return false end
 	local token = {}
 	pending[player] = { token = token, kind = "return", onFailure = onFailure }
+	player:SetAttribute("KDMRoutePending", "HUB_RETURN")
 	if not onFailure then player:SetAttribute("RaceEntryError", "") end
 	task.delay(30, function() watchdog(player, token) end)
 	local ok, resultOrError = pcall(function() return TeleportService:TeleportAsync(game.PlaceId, { player }) end)

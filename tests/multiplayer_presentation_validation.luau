@@ -137,15 +137,33 @@ check(rivals.collect(localPlayer,{localPlayer,other,third,fourth},4)[4]==nil,
 local presence=luau.load(fs.readFile("src/client/GaragePresence.luau"))()
 localPlayer.DisplayName="";localPlayer.Name="A"
 other.DisplayName="Other Racer";other:SetAttribute("RaceState","GARAGE")
-local total,entries=presence.snapshot({localPlayer},3)
+local total,entries=presence.snapshot({localPlayer},localPlayer)
 check(total==1 and entries[1].name=="A" and entries[1].status=="GARAGE","one online uses username fallback")
-total,entries=presence.snapshot({localPlayer,other},3)
+total,entries=presence.snapshot({localPlayer,other},localPlayer)
 check(total==2 and entries[2].name=="Other Racer","two online use display name")
+third.DisplayName="Zed";fourth.DisplayName="Aaron"
+third:SetAttribute("ReadyOrder",2);fourth:SetAttribute("ReadyOrder",1)
+total,entries=presence.snapshot({third,other,localPlayer,fourth},localPlayer)
+check(entries[1].userId==localPlayer.UserId and entries[2].userId==fourth.UserId
+ and entries[3].userId==third.UserId,"presence keeps local first then deterministic ReadyOrder")
 other:SetAttribute("RaceState","RACING")
-total,entries=presence.snapshot({localPlayer,other},3)
+total,entries=presence.snapshot({localPlayer,other},localPlayer)
 check(entries[2].status=="RACING","RaceState change updates status snapshot")
-total=presence.snapshot({localPlayer},3)
+total=presence.snapshot({localPlayer},localPlayer)
 check(total==1,"removed player lowers online count")
+for _, population in {3,10,50} do
+	local synthetic={localPlayer}
+	for index=2,population do
+		local racer={UserId=index+100,Name=string.format("Racer%02d",index),DisplayName="",
+			GetAttribute=function(_,name) return if name=="RaceState" then "GARAGE" else 0 end}
+		table.insert(synthetic,racer)
+	end
+	total,entries=presence.snapshot(synthetic,localPlayer)
+	check(total==population and #entries==population and entries[1].userId==localPlayer.UserId
+		and entries[#entries].userId==population+100,"presence retains all "..population.." connected players")
+	local canvas=presence.canvasHeight(population,16,2)
+	check(canvas==population*16+(population-1)*2,"presence scroll canvas covers "..population.." rows")
+end
 other:SetAttribute("RaceState","GARAGE")
 local availableCount,available=presence.availableSnapshot({localPlayer,other,third,fourth},localPlayer,4)
 check(availableCount==1 and available[1].userId==other.UserId,

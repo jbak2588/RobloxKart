@@ -398,17 +398,18 @@ Studio does not support TeleportService playtests. The configured server size
 remains 50: HUB may hold more users, while a reserved race's participant count
 is constrained by its payload and TrackCatalog.
 
-M3-A0-R1 published PC and mobile runtime passed for independent Practice and V2
-reserved races, same-track and different-track Solo instances, Practice
-Countdown/Race/Finish, Solo REMATCH in the same reserved server, and result
-GARAGE returning to public HUB. A PC Studio "RACE SERVER UNAVAILABLE" result
-is expected because Studio cannot test real TeleportService routing. The
-remaining published defect was in-race QUIT: it removed the kart but left the
-avatar in the reserved Race server. M3-A0-R2 routes a reserved forfeit through
-the existing HUB return, keeping the kart locked until PlayerRemoving cleanup.
-If return fails, the FORFEIT result retains GARAGE for retry. Public Base
-Circuit still forfeits locally. M3-A0 remains open until published PC/mobile
-Practice and V2 in-race QUIT both return to HUB Garage.
+M3-A0 is CLOSED / RUNTIME PASS. Published PC/mobile testing confirmed
+independent Practice and V2 reserved races, same-track and different-track Solo
+instances, three simultaneous independent Solo races, Countdown/Race/Finish,
+Solo REMATCH in the same reserved server, result GARAGE returning to public
+HUB, and in-race QUIT returning to HUB Garage. Studio cannot validate real
+TeleportService routing. The observed teleport handoff takes roughly one
+second on tested devices and is acceptable. M3-P0 shows JOINING RACE after
+Solo READY and RETURNING TO GARAGE during HUB return, restores controls after
+failure, enlarges the mobile LAP-panel Quit target within Core UI safe insets,
+and makes the same-server ONLINE list vertically scrollable. Galaxy Tab Quit
+touch behavior and transition presentation still need post-publish device
+validation before M3-P0 is considered runtime verified.
 
 M3-A1 will add concurrent Base Circuit MatchRooms in HUB and launch reserved
 multiplayer Race Servers. M3-A2 will polish return, rematch and failure recovery

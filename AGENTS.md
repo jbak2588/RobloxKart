@@ -534,16 +534,16 @@ adds concurrent Base MatchRooms and reserved multiplayer race launch. M3-A2
 polishes return/rematch/failure recovery and verifies the no-blocking MVP gate.
 Selected future tracks may support up to six racers; do not implement six here.
 
-M3-A0-R1 published PC/mobile runtime PASSED for Practice and V2 independent
-reserved races, same-track and different-track Solo instances, Practice
-Countdown/Race/Finish, Solo REMATCH, and result GARAGE returning to public HUB.
-Studio teleport failure is expected and is not a published-runtime result.
-The remaining M3-A0 defect was in-race QUIT removing the kart while leaving
-the avatar in the reserved Race server. M3-A0-R2 keeps the forfeited kart locked
-until PlayerRemoving and requests HUB return through the existing service;
-failed return leaves a FORFEIT result with GARAGE retry. Public Base Circuit
-still forfeits locally. M3-A0 runtime closure requires published PC/mobile
-Practice and V2 in-race QUIT to reach HUB Garage.
+M3-A0 is CLOSED / RUNTIME PASS. Published PC/mobile checks confirmed Practice
+and V2 independent reserved races, same-track and different-track Solo,
+three simultaneous Solo races, Countdown/Race/Finish, Solo REMATCH, result
+GARAGE to public HUB, and in-race QUIT to HUB Garage. Studio teleport failure
+is not a published-runtime result. Observed handoff takes roughly one second
+and is acceptable. M3-P0 adds JOINING RACE and RETURNING TO GARAGE transition
+feedback through `KDMRoutePending`, a larger mobile LAP-panel Quit target in
+Core UI safe insets, and a fixed-height scrollable ONLINE list. Post-publish
+Galaxy Tab Quit touch and transition checks remain required for M3-P0 runtime
+validation. M3-A1 has not started.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
