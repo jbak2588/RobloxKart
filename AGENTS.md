@@ -492,8 +492,10 @@ Waiting public lobbies show eligible same-server Garage racers. Only the current
 host may invite, and joining revalidates the invitation through normal READY.
 The Garage ONLINE list continues to include all players on that server.
 The MVP supports one active RaceSession / track at a time. Four-player server
-capacity is recommended for the public beta. M2-B1 invite and preview runtime
-still need Studio/device validation.
+capacity is recommended for the public beta. The user checked M2-B1 in Studio
+and on mobile; screenshots exposed a waiting-title overlap with the availability
+panel. The title was moved into that panel, so the revised composition still
+needs a device recheck.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

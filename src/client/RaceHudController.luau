@@ -407,26 +407,31 @@ function RaceHudController.start()
 	availabilityPanel.Name = "AvailableRacers"
 	availabilityPanel.AnchorPoint = Vector2.new(0.5, 1)
 	availabilityPanel.Position = UDim2.new(0.5, 0, 0.94, -86)
-	availabilityPanel.Size = UDim2.fromOffset(252, 144)
+	availabilityPanel.Size = UDim2.fromOffset(252, 80)
 	availabilityPanel.BackgroundColor3 = Color3.fromRGB(16, 25, 37)
 	availabilityPanel.BackgroundTransparency = 0.12
 	availabilityPanel.Visible = false
 	availabilityPanel.Parent = screenGui
 	addCorner(availabilityPanel, 7)
-	local availabilityTitle = createLabel(availabilityPanel, "AvailableTitle", 1)
-	availabilityTitle.Position = UDim2.fromOffset(8, 5)
+	local availabilityHeading = createLabel(availabilityPanel, "WaitingTitle", 1)
+	availabilityHeading.Position = UDim2.fromOffset(8, 4)
+	availabilityHeading.Size = UDim2.new(1, -16, 0, 22)
+	availabilityHeading.TextSize = 17
+	availabilityHeading.TextColor3 = Color3.fromRGB(255, 225, 70)
+	local availabilityTitle = createLabel(availabilityPanel, "AvailableTitle", 2)
+	availabilityTitle.Position = UDim2.fromOffset(8, 28)
 	availabilityTitle.Size = UDim2.new(1, -16, 0, 20)
 	availabilityTitle.TextSize = 13
 	availabilityTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
 	local availabilityRows = {}
 	for index = 1, 4 do
 		local row = createLabel(availabilityPanel, "AvailableRacer" .. index, index + 1)
-		row.Position = UDim2.fromOffset(8, 26 + (index - 1) * 28)
+		row.Position = UDim2.fromOffset(8, 52 + (index - 1) * 28)
 		row.Size = UDim2.new(1, -88, 0, 25)
 		row.TextSize = 13
 		local invite = Instance.new("TextButton")
 		invite.Name = "Invite" .. index
-		invite.Position = UDim2.new(1, -76, 0, 26 + (index - 1) * 28)
+		invite.Position = UDim2.new(1, -76, 0, 52 + (index - 1) * 28)
 		invite.Size = UDim2.fromOffset(68, 24)
 		invite.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
 		invite.TextColor3 = Color3.new(1, 1, 1)
@@ -441,6 +446,7 @@ function RaceHudController.start()
 			if userId then garageRemote:FireServer("Invite", userId) end
 		end)
 	end
+	local availableTotal = 0
 
 	local finalLapLabel = Instance.new("TextLabel")
 	finalLapLabel.Name = "FinalLapNotice"
@@ -756,7 +762,8 @@ function RaceHudController.start()
 		local waitingLobby = player:GetAttribute("RaceState") == "PRE_RACE"
 			and player:GetAttribute("RaceMatchStatus") == "WAITING"
 		local shortLobby = viewportSize.Y < 320
-		availabilityPanel.Size = UDim2.fromOffset(252, if shortLobby then 84 else 144)
+		local shownRows = math.max(1, math.min(availableTotal, if shortLobby then 2 else 4))
+		availabilityPanel.Size = UDim2.fromOffset(252, 52 + shownRows * 28)
 		for index, row in availabilityRows do
 			if index > 2 then
 				row.label.Visible = not shortLobby and row.userId ~= nil
@@ -888,6 +895,8 @@ function RaceHudController.start()
 			and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")].MatchType == "PUBLIC_RACE"
 		if availabilityPanel.Visible then
 			local availableCount, available = GaragePresence.availableSnapshot(Players:GetPlayers(), player, #availabilityRows)
+			availableTotal = availableCount
+			availabilityHeading.Text = if isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
 			availabilityTitle.Text = string.format("AVAILABLE IN SERVER  %d", availableCount)
 			for index, row in availabilityRows do
 				local entry = available[index]
@@ -907,7 +916,7 @@ function RaceHudController.start()
 			countdownLabel.Text = if isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
 			countdownLabel.TextTransparency = 0
 			countdownLabel.TextStrokeTransparency = 0.3
-			countdownLabel.Visible = true
+			countdownLabel.Visible = not availabilityPanel.Visible
 		elseif raceState == "COUNTDOWN" then
 			local countdown = getNumberAttribute(player, "RaceCountdown", 0)
 			if previousRaceState ~= "COUNTDOWN" then

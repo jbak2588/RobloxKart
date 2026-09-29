@@ -355,8 +355,10 @@ M2-B0 enables only four public racers. The architecture may expand to six later.
 A future friend/private room could offer a chosen capacity of 2, 3, 4 or 6 with
 invites and possibly a reserved server; it is not implemented in M2-B1.
 Different selected tracks may have different capacity; Prototype Circuit V2
-remains solo until its geometry is validated for public multiplayer. M2-B1's
-new invite and preview flows still need Studio/device runtime checks.
+remains solo until its geometry is validated for public multiplayer. The user
+checked M2-B1 in Studio and on a mobile device. Screenshots exposed overlap
+between the waiting title and availability panel; the title now sits inside
+that panel, and this revised composition needs a device recheck.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent

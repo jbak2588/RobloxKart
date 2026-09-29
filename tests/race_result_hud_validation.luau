@@ -179,14 +179,14 @@ set("RaceHostUserId",player.UserId)
 set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
 local lobby=hud:FindFirstChild("RaceLobbyHost")
 local availability=hud:FindFirstChild("AvailableRacers")
-check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACERS"
- and hud.Countdown.TextTransparency==0 and lobby.Visible and not results.Visible
+check(not hud.Countdown.Visible and lobby.Visible and not results.Visible
  and lobby.Status.Text=="RACERS  2 / 4" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE",
  "host lobby waits without timer or result overlay")
-check(availability.Visible and availability.AvailableTitle.Text=="AVAILABLE IN SERVER  1"
+check(availability.Visible and availability.WaitingTitle.Text=="WAITING FOR RACERS"
+ and availability.AvailableTitle.Text=="AVAILABLE IN SERVER  1"
  and availability.AvailableRacer1.Text=="Available Racer" and availability.Invite1.Visible,
- "waiting host sees eligible same-server racer and invite control")
+ "waiting title and available racer share one panel without overlap")
 availability.Invite1.Activated:Fire()
 check(garageRemote.lastFire[1]=="Invite" and garageRemote.lastFire[2]==2,
  "invite control sends target user ID")
@@ -203,7 +203,7 @@ lobby.Cancel.Activated:Fire()
 check(remote.lastFire[1]=="CancelWait","host LEAVE sends server action")
 set("RaceHostUserId",999)
 check(lobby.Visible and not lobby.StartRace.Visible and lobby.Cancel.Visible
- and hud.Countdown.Text=="WAITING FOR HOST","non-host sees waiting and LEAVE only")
+ and availability.WaitingTitle.Text=="WAITING FOR HOST","non-host sees waiting and LEAVE only")
 check(availability.Visible and not availability.Invite1.Visible,
  "non-host sees availability without invite control")
 otherPlayer:SetAttribute("RaceState","RACING")
