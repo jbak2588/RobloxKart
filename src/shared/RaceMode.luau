@@ -4,7 +4,8 @@ local RaceConfig = requireModule(script.Parent:WaitForChild("RaceConfig") :: Mod
 local TrackCatalog = requireModule(script.Parent:WaitForChild("TrackCatalog") :: ModuleScript)
 local Mode = { RACE = "RACE", PRACTICE = "PRACTICE" }
 function Mode.resolve(trackId)
-	return if trackId == "Track01" then Mode.PRACTICE else Mode.RACE
+	local track = TrackCatalog.Entries[trackId]
+	return if track and track.MatchType == "SOLO_PRACTICE" then Mode.PRACTICE else Mode.RACE
 end
 function Mode.targetLaps(mode, trackId)
 	local track = TrackCatalog.Entries[trackId]

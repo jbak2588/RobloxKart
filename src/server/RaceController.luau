@@ -33,7 +33,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceMapPosition", Vector3.zero)
 	player:SetAttribute("RaceMapActive", false)
 	player:SetAttribute("RaceParticipantCount", 1)
-	player:SetAttribute("RaceMaxPlayers", RaceConfig.PUBLIC_RACE_MAX_PLAYERS)
+	player:SetAttribute("RaceMaxPlayers", TrackCatalog.Entries[TrackCatalog.DefaultId].MaxPlayers)
 	player:SetAttribute("RacePosition", 1)
 	player:SetAttribute("RaceFinishPosition", 0)
 	player:SetAttribute("RaceMatchStatus", "")
@@ -768,11 +768,12 @@ function RaceController.start()
 				return
 			end
 			session.trackId = trackId
+			session.maxPlayers = track.MaxPlayers
 			session.mode = RaceMode.resolve(trackId)
 			session.targetLaps = RaceMode.targetLaps(session.mode, trackId)
 			session.startingParticipantCount = 0
 			session.hostUserId = player.UserId
-		elseif session.phase ~= "WAITING" or trackId ~= "Track01Race" or session.trackId ~= trackId or session:count() >= session.maxPlayers then
+		elseif session.phase ~= "WAITING" or track.MatchType ~= "PUBLIC_RACE" or session.trackId ~= trackId or session:count() >= session.maxPlayers then
 			player:SetAttribute("RaceEntryError", if session.phase == "COUNTDOWN" or session.phase == "RACING" then "Race in progress" else "Racer not ready")
 			player:SetAttribute("RaceState", "GARAGE")
 			return
@@ -784,9 +785,9 @@ function RaceController.start()
 		player:SetAttribute("RaceMode", session.mode)
 		setChanged(player, "RaceSessionId", session.roundId + 1)
 		context.kart:SetAttribute("RaceControlsLocked", true)
-		if trackId == "Track01Race" and session:count() == session.maxPlayers then
+		if track.MatchType == "PUBLIC_RACE" and session:count() == session.maxPlayers then
 			startSharedCountdown(now)
-		elseif trackId == "Track01Race" then
+		elseif track.MatchType == "PUBLIC_RACE" then
 			enterWaitingLobby(now, "INITIAL")
 		else
 			startSharedCountdown(now)
@@ -803,7 +804,7 @@ function RaceController.start()
 		elseif (action == "StartRace" or (action == "StartSolo" and session:count() == 1))
 			and session.phase == "WAITING" and session:count() >= 1
 			and session:count() < session.maxPlayers
-			and session.trackId == "Track01Race" and session.hostUserId == player.UserId then
+			and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE" and session.hostUserId == player.UserId then
 			startSharedCountdown(time())
 		elseif action == "QuitRace" and session:contains(player) and session.phase == "RACING"
 			and player:GetAttribute("RaceState") == "RACING"
@@ -815,7 +816,7 @@ function RaceController.start()
 			session.rematchVotes[player] = true
 			publishSession(time())
 			if allRematchVotes() then
-				if session.trackId == "Track01Race" then beginVotedRound(time())
+				if TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE" then beginVotedRound(time())
 				else startSharedCountdown(time()) end
 			end
 		end

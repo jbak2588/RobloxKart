@@ -101,11 +101,11 @@ Practice
 1 Lap
 
 Track01Race
-Practice Circuit Race
+Base Circuit Public Race (1–4 racers)
 2 Laps
 
 Track02
-Prototype Circuit V2 Race
+Prototype Circuit V2 Solo Prototype
 3 Laps
 
 Do not re-add a separate Driving License flow unless explicitly requested.
@@ -482,12 +482,25 @@ M2-B0 temporary policy: RacerKart parts do not physically collide with other
 RacerKart parts; track/barrier contact remains unchanged. Revisit after four-racer
 runtime validation.
 
+The user reported completing the M2-B0 Studio 1 Server / 4 Clients validation.
+M2-B1 makes TrackCatalog authoritative for match type, minimum/maximum racers,
+laps and Garage preview rotation. Practice Circuit is solo practice (1 lap),
+Base Circuit is public 1–4 (2 laps), and Prototype Circuit V2 remains solo
+prototype (3 laps) until separate geometry validation. Only Base Circuit's
+Garage preview rotates 90 degrees clockwise; gameplay orientation is unchanged.
+Waiting public lobbies show eligible same-server Garage racers. Only the current
+host may invite, and joining revalidates the invitation through normal READY.
+The Garage ONLINE list continues to include all players on that server.
+The MVP supports one active RaceSession / track at a time. Four-player server
+capacity is recommended for the public beta. M2-B1 invite and preview runtime
+still need Studio/device validation.
+
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
 choose 2, 3, 4 or 6 racers with invites and a reserved server; M2-B0 does not
 implement private rooms, reserved servers or cross-server matchmaking.
-Four-player runtime needs a 1 Server / 4 Clients Studio or device check before
-claiming 4-player validation.
+Selected tracks may have different capacities; none is automatically enabled
+for multiplayer by the presence of four GridSlots.
 
 Before declaring four-player runtime validation, verify:
 

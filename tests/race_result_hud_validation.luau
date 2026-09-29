@@ -67,15 +67,18 @@ local shared=object("Folder","Shared")
 local replicated=object("ReplicatedStorage")
 shared.Parent=replicated
 local remote=child(replicated,"RemoteEvent","RaceControl")
+local garageRemote=child(replicated,"RemoteEvent","GarageControl")
 local camera=object("Camera","Camera"); camera.ViewportSize=rb.Vector2.new(800,320)
 local workspace=object("Workspace"); workspace.CurrentCamera=camera
 local input=object("UserInputService"); input.PreferredInput=rb.Enum.PreferredInput.Touch
 local guiService=object("GuiService"); guiService.TopbarInset={Min=rb.Vector2.new(165,0),Max=rb.Vector2.new(780,58),Width=615}
-local services={Players={LocalPlayer=player,GetPlayers=function() return {player} end},ReplicatedStorage=replicated,Workspace=workspace,
+local otherPlayer=object("Player","AvailableRacer");otherPlayer.UserId=2;otherPlayer.DisplayName="Available Racer"
+otherPlayer:SetAttribute("RaceState","GARAGE")
+local services={Players={LocalPlayer=player,GetPlayers=function() return {player,otherPlayer} end,PlayerAdded=signal(),PlayerRemoving=signal()},ReplicatedStorage=replicated,Workspace=workspace,
  RunService={RenderStepped=signal()},TweenService={Create=function() return {Play=function() end} end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat"} do
  child(shared,"ModuleScript",name)
 end
@@ -85,9 +88,10 @@ local modules={
  TrackMapRenderer={create=function() return {destroy=function() end,setRacerMarker=function() end,
   removeRacerMarker=function() end,clearRacerMarkers=function() end} end},
  RaceMinimapRivals={collect=function() return {} end},
+ GaragePresence=luau.load(fs.readFile("src/client/GaragePresence.luau"))(),
  RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=100,NITRO_MAX_SPEED=100},
  DriverCatalog={Entries={}},KartCatalog={Entries={}},
- TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice"}}},
+ TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice",MatchType="PUBLIC_RACE"}}},
  TrackGeometry={getDefinition=function() return {} end},RaceResultFormat=format,
 }
 local common={Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vector2,Vector3=rb.Vector3,
@@ -174,16 +178,23 @@ set("RaceParticipantCount",2);set("RacePosition",2)
 set("RaceHostUserId",player.UserId)
 set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
 local lobby=hud:FindFirstChild("RaceLobbyHost")
+local availability=hud:FindFirstChild("AvailableRacers")
 check(hud.Countdown.Visible and hud.Countdown.Text=="WAITING FOR RACERS"
  and hud.Countdown.TextTransparency==0 and lobby.Visible and not results.Visible
- and lobby.Status.Text=="SERVER  2 / 4" and lobby.StartRace.Text=="START RACE"
+ and lobby.Status.Text=="RACERS  2 / 4" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE",
  "host lobby waits without timer or result overlay")
+check(availability.Visible and availability.AvailableTitle.Text=="AVAILABLE IN SERVER  1"
+ and availability.AvailableRacer1.Text=="Available Racer" and availability.Invite1.Visible,
+ "waiting host sees eligible same-server racer and invite control")
+availability.Invite1.Activated:Fire()
+check(garageRemote.lastFire[1]=="Invite" and garageRemote.lastFire[2]==2,
+ "invite control sends target user ID")
 set("RaceParticipantCount",1)
-check(lobby.Status.Text=="SERVER  1 / 4" and lobby.StartRace.Text=="START SOLO"
+check(lobby.Status.Text=="RACERS  1 / 4" and lobby.StartRace.Text=="START SOLO"
  and lobby.Cancel.Text=="CANCEL","solo host sees one-of-four choice")
 set("RaceParticipantCount",3)
-check(lobby.Status.Text=="SERVER  3 / 4" and lobby.StartRace.Text=="START RACE"
+check(lobby.Status.Text=="RACERS  3 / 4" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE","three-racer host may start or leave")
 set("RaceParticipantCount",2)
 lobby.StartRace.Activated:Fire()
@@ -193,6 +204,12 @@ check(remote.lastFire[1]=="CancelWait","host LEAVE sends server action")
 set("RaceHostUserId",999)
 check(lobby.Visible and not lobby.StartRace.Visible and lobby.Cancel.Visible
  and hud.Countdown.Text=="WAITING FOR HOST","non-host sees waiting and LEAVE only")
+check(availability.Visible and not availability.Invite1.Visible,
+ "non-host sees availability without invite control")
+otherPlayer:SetAttribute("RaceState","RACING")
+check(availability.AvailableTitle.Text=="AVAILABLE IN SERVER  0"
+ and availability.AvailableRacer1.Text=="No available racers in this server.",
+ "racing player disappears from available list")
 set("RaceHostUserId",player.UserId)
 remote.lastFire=nil
 set("RaceState","COUNTDOWN");set("RaceState","RACING")

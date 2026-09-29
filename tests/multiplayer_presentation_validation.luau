@@ -84,6 +84,13 @@ check(not canvas:FindFirstChild("KartPosition"),"clear removes all racer markers
 local preview=rendererType.create(parent,{},false)
 preview:setRacerMarker("local:1",rb.Vector3.new(10,0,10),"LOCAL")
 check(not parent._children[2]:FindFirstChild("KartPosition"),"Garage preview has no racer marker")
+local rotated=rendererType.create(parent,{},false,90)
+local originalStart=parent._children[1]:FindFirstChild("StartFinishMarker").Position
+local rotatedStart=parent._children[3]:FindFirstChild("StartFinishMarker").Position
+check(originalStart.X.Scale<0.5 and originalStart.Y.Scale>0.5
+ and rotatedStart.X.Scale<0.5 and rotatedStart.Y.Scale<0.5,
+ "Base preview rotates clockwise while gameplay map remains unrotated")
+rotated:destroy()
 preview:destroy();renderer:destroy()
 
 local rivals=luau.load(fs.readFile("src/client/RaceMinimapRivals.luau"))()
@@ -139,4 +146,12 @@ total,entries=presence.snapshot({localPlayer,other},3)
 check(entries[2].status=="RACING","RaceState change updates status snapshot")
 total=presence.snapshot({localPlayer},3)
 check(total==1,"removed player lowers online count")
+other:SetAttribute("RaceState","GARAGE")
+local availableCount,available=presence.availableSnapshot({localPlayer,other,third,fourth},localPlayer,4)
+check(availableCount==1 and available[1].userId==other.UserId,
+ "only another Garage racer is available, excluding lobby and racing states")
+third:SetAttribute("RaceState","GARAGE")
+availableCount,available=presence.availableSnapshot({localPlayer,other,third,fourth},localPlayer,4)
+check(availableCount==2 and available[1].userId==other.UserId and available[2].userId==third.UserId,
+ "available racers update and sort by user ID")
 print("PASS: "..count.." multiplayer presentation checks")

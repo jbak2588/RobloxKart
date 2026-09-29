@@ -3,16 +3,19 @@ local TrackGeometry = require(ReplicatedStorage:WaitForChild("Shared"):WaitForCh
 
 local TrackMapRenderer = {}
 
-function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: boolean)
+function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: boolean, previewRotationDegrees: number?)
 	local course = TrackGeometry.getCourse(definition)
 	local samples = course.Samples
 	local bounds = course.Bounds
 	local centerX = (bounds.MinX + bounds.MaxX) * 0.5
 	local centerZ = (bounds.MinZ + bounds.MaxZ) * 0.5
 	local extent = math.max(bounds.MaxX - bounds.MinX, bounds.MaxZ - bounds.MinZ) * 1.14
+	local radians = math.rad(previewRotationDegrees or 0)
+	local cosine, sine = math.cos(radians), math.sin(radians)
 	local function mapPoint(point: Vector3): Vector2
 		-- World +X goes right; world +Z goes up on the GUI.
-		return Vector2.new(0.5 + (point.X - centerX) / extent, 0.5 - (point.Z - centerZ) / extent)
+		local x, y = (point.X - centerX) / extent, -(point.Z - centerZ) / extent
+		return Vector2.new(0.5 + x * cosine - y * sine, 0.5 + x * sine + y * cosine)
 	end
 
 	local canvas = Instance.new("Frame")

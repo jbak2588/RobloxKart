@@ -6,7 +6,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
-local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
@@ -64,6 +63,7 @@ function GarageController.start()
 	remote.Name = REMOTE_NAME
 	remote.Parent = ReplicatedStorage
 	local readyPending: { [Player]: boolean } = {}
+	local pendingInvites: { [Player]: { hostUserId: number, sessionId: number, roundId: number, trackId: string, sentAt: number } } = {}
 	local reservedSlots: { [Player]: number } = {}
 	local readyOrder = 0
 
@@ -122,11 +122,12 @@ function GarageController.start()
 	Players.PlayerAdded:Connect(bindPlayer)
 	Players.PlayerRemoving:Connect(function(player)
 		readyPending[player] = nil
+		pendingInvites[player] = nil
 		releaseSlot(player)
 	end)
 
-	remote.OnServerEvent:Connect(function(player: Player, action: unknown, driverId: unknown, kartId: unknown, trackId: unknown)
-		if action ~= "Ready" or readyPending[player] or player:GetAttribute("RaceState") ~= "GARAGE" then
+	local function ready(player: Player, driverId: unknown, kartId: unknown, trackId: unknown)
+		if readyPending[player] or player:GetAttribute("RaceState") ~= "GARAGE" then
 			return
 		end
 		if type(driverId) ~= "string" or type(kartId) ~= "string" or type(trackId) ~= "string" then
@@ -145,13 +146,12 @@ function GarageController.start()
 				player:SetAttribute("RaceEntryError", "Race full")
 				return
 			end
-			if session.phase ~= "WAITING" or trackId ~= "Track01Race" or session.trackId ~= trackId then
+			if session.phase ~= "WAITING" or track.MatchType ~= "PUBLIC_RACE" or session.trackId ~= trackId then
 				player:SetAttribute("RaceEntryError", if session.phase == "COUNTDOWN" or session.phase == "RACING" then "Race in progress" else "Racer not ready")
 				return
 			end
 		end
-		local slotIndex = nextGridSlot(track.GridSlots,
-			if trackId == "Track01Race" then RaceConfig.PUBLIC_RACE_MAX_PLAYERS else 1)
+		local slotIndex = nextGridSlot(track.GridSlots, track.MaxPlayers)
 		if not slotIndex then
 			player:SetAttribute("RaceEntryError", "Grid full")
 			return
@@ -194,6 +194,7 @@ function GarageController.start()
 		player:SetAttribute("SelectedDriverId", driverId)
 		player:SetAttribute("SelectedKartId", kartId)
 		player:SetAttribute("SelectedTrackId", trackId)
+		player:SetAttribute("RaceMaxPlayers", track.MaxPlayers)
 		player:SetAttribute("RaceMode", mode)
 		readyOrder += 1
 		player:SetAttribute("ReadyOrder", readyOrder)
@@ -223,6 +224,48 @@ function GarageController.start()
 				PrototypeWorld.releaseKartContext(player)
 			end
 		end)
+	end
+
+	local function validInvite(host: Player, target: Player, session): boolean
+		local track = TrackCatalog.Entries[session.trackId]
+		return host ~= target and host.Parent == Players and target.Parent == Players
+			and session.phase == "WAITING" and track ~= nil and track.MatchType == "PUBLIC_RACE"
+			and session.hostUserId == host.UserId and session:contains(host)
+			and session:count() < track.MaxPlayers and not session:contains(target)
+			and target:GetAttribute("RaceState") == "GARAGE"
+	end
+
+	remote.OnServerEvent:Connect(function(player: Player, action: unknown, first: unknown, second: unknown, third: unknown)
+		if action == "Ready" then
+			ready(player, first, second, third)
+		elseif action == "Invite" and type(first) == "number" and first > 0 and first % 1 == 0 then
+			local target = Players:GetPlayerByUserId(first)
+			local session = RaceSession.active()
+			if not target or not session or not validInvite(player, target, session) then return end
+			local previous = pendingInvites[target]
+			local now = os.clock()
+			if previous and previous.hostUserId == player.UserId and previous.sessionId == session.id
+				and previous.roundId == session.roundId and now - previous.sentAt < 5 then return end
+			pendingInvites[target] = { hostUserId = player.UserId, sessionId = session.id,
+				roundId = session.roundId, trackId = session.trackId, sentAt = now }
+			remote:FireClient(target, "Invite", player.DisplayName, session.trackId,
+				session:count(), TrackCatalog.Entries[session.trackId].MaxPlayers)
+		elseif action == "DeclineInvite" then
+			pendingInvites[player] = nil
+		elseif action == "JoinInvite" then
+			local invitation = pendingInvites[player]
+			pendingInvites[player] = nil
+			if not invitation then return end
+			local session = RaceSession.active()
+			local host = Players:GetPlayerByUserId(invitation.hostUserId)
+			if not session or session.id ~= invitation.sessionId or session.roundId ~= invitation.roundId
+				or session.trackId ~= invitation.trackId or os.clock() - invitation.sentAt > 30
+				or not host or not validInvite(host, player, session) then
+				remote:FireClient(player, "InviteExpired")
+				return
+			end
+			ready(player, first, second, invitation.trackId)
+		end
 	end)
 
 	print("[RobloxKart] Garage controller ready")

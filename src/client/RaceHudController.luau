@@ -19,6 +19,7 @@ local TrackGeometry = requireModule(ReplicatedStorage:WaitForChild("Shared"):Wai
 local RaceResultFormat = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceResultFormat") :: ModuleScript)
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 local RaceMinimapRivals = require(script.Parent:WaitForChild("RaceMinimapRivals"))
+local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
 
 local RaceHudController = {}
 
@@ -59,6 +60,7 @@ function RaceHudController.start()
 
 	local player = Players.LocalPlayer
 	local remoteEvent = ReplicatedStorage:WaitForChild(RaceConfig.CONTROL_REMOTE_EVENT_NAME) :: RemoteEvent
+	local garageRemote = ReplicatedStorage:WaitForChild("GarageControl") :: RemoteEvent
 	local playerGui = player:WaitForChild("PlayerGui")
 	local previousHud = playerGui:FindFirstChild(HUD_NAME)
 	if previousHud then
@@ -376,7 +378,7 @@ function RaceHudController.start()
 	local lobbyStatus = createLabel(lobbyPanel, "Status", 1)
 	lobbyStatus.Position = UDim2.fromOffset(8, 4)
 	lobbyStatus.Size = UDim2.new(1, -16, 0, 23)
-	lobbyStatus.Text = "SERVER  1 / 4"
+	lobbyStatus.Text = "RACERS  1 / 4"
 	lobbyStatus.TextSize = 15
 	lobbyStatus.TextColor3 = Color3.fromRGB(255, 225, 70)
 	local function lobbyButton(name, label, x, color)
@@ -401,6 +403,44 @@ function RaceHudController.start()
 	lobbyLeave.Activated:Connect(function()
 		remoteEvent:FireServer("CancelWait")
 	end)
+	local availabilityPanel = Instance.new("Frame")
+	availabilityPanel.Name = "AvailableRacers"
+	availabilityPanel.AnchorPoint = Vector2.new(0.5, 1)
+	availabilityPanel.Position = UDim2.new(0.5, 0, 0.94, -86)
+	availabilityPanel.Size = UDim2.fromOffset(252, 144)
+	availabilityPanel.BackgroundColor3 = Color3.fromRGB(16, 25, 37)
+	availabilityPanel.BackgroundTransparency = 0.12
+	availabilityPanel.Visible = false
+	availabilityPanel.Parent = screenGui
+	addCorner(availabilityPanel, 7)
+	local availabilityTitle = createLabel(availabilityPanel, "AvailableTitle", 1)
+	availabilityTitle.Position = UDim2.fromOffset(8, 5)
+	availabilityTitle.Size = UDim2.new(1, -16, 0, 20)
+	availabilityTitle.TextSize = 13
+	availabilityTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+	local availabilityRows = {}
+	for index = 1, 4 do
+		local row = createLabel(availabilityPanel, "AvailableRacer" .. index, index + 1)
+		row.Position = UDim2.fromOffset(8, 26 + (index - 1) * 28)
+		row.Size = UDim2.new(1, -88, 0, 25)
+		row.TextSize = 13
+		local invite = Instance.new("TextButton")
+		invite.Name = "Invite" .. index
+		invite.Position = UDim2.new(1, -76, 0, 26 + (index - 1) * 28)
+		invite.Size = UDim2.fromOffset(68, 24)
+		invite.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
+		invite.TextColor3 = Color3.new(1, 1, 1)
+		invite.Font = Enum.Font.GothamBold
+		invite.TextSize = 12
+		invite.Text = "INVITE"
+		invite.Parent = availabilityPanel
+		addCorner(invite, 4)
+		availabilityRows[index] = {label = row, button = invite, userId = nil}
+		invite.Activated:Connect(function()
+			local userId = availabilityRows[index].userId
+			if userId then garageRemote:FireServer("Invite", userId) end
+		end)
+	end
 
 	local finalLapLabel = Instance.new("TextLabel")
 	finalLapLabel.Name = "FinalLapNotice"
@@ -713,6 +753,19 @@ function RaceHudController.start()
 				miniMapPanel.Visible = false
 			end
 		end
+		local waitingLobby = player:GetAttribute("RaceState") == "PRE_RACE"
+			and player:GetAttribute("RaceMatchStatus") == "WAITING"
+		local shortLobby = viewportSize.Y < 320
+		availabilityPanel.Size = UDim2.fromOffset(252, if shortLobby then 84 else 144)
+		for index, row in availabilityRows do
+			if index > 2 then
+				row.label.Visible = not shortLobby and row.userId ~= nil
+				row.button.Visible = not shortLobby and row.userId ~= nil
+					and player:GetAttribute("RaceHostUserId") == player.UserId
+			end
+		end
+		countdownLabel.Position = UDim2.fromScale(0.5, if waitingLobby then (if shortLobby then 0.15 else 0.22) else 0.5)
+		if waitingLobby then countdownLabel.Size = UDim2.fromOffset(math.min(320, viewportSize.X - 24), 50) end
 		MobileView.layoutSteeringWheel(wheelClip, steeringDisplay, steeringRingScale,
 			if mobile then screenGui.AbsoluteSize else viewportSize, mobile)
 	end
@@ -831,7 +884,20 @@ function RaceHudController.start()
 		local lobbyWaiting = matchStatus == "WAITING" and raceState == "PRE_RACE"
 		local isHost = player:GetAttribute("RaceHostUserId") == player.UserId
 		lobbyPanel.Visible = lobbyWaiting
-		lobbyStatus.Text = string.format("SERVER  %d / %d", participantCount,
+		availabilityPanel.Visible = lobbyWaiting and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")] ~= nil
+			and TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")].MatchType == "PUBLIC_RACE"
+		if availabilityPanel.Visible then
+			local availableCount, available = GaragePresence.availableSnapshot(Players:GetPlayers(), player, #availabilityRows)
+			availabilityTitle.Text = string.format("AVAILABLE IN SERVER  %d", availableCount)
+			for index, row in availabilityRows do
+				local entry = available[index]
+				row.userId = if entry then entry.userId else nil
+				row.label.Text = if entry then entry.name elseif index == 1 and availableCount == 0 then "No available racers in this server." else ""
+				row.label.Visible = entry ~= nil or (index == 1 and availableCount == 0)
+				row.button.Visible = entry ~= nil and isHost
+			end
+		end
+		lobbyStatus.Text = string.format("RACERS  %d / %d", participantCount,
 			getNumberAttribute(player, "RaceMaxPlayers", 4))
 		lobbyStart.Visible = lobbyWaiting and isHost
 		lobbyStart.Text = if participantCount == 1 then "START SOLO" else "START RACE"
@@ -942,6 +1008,19 @@ function RaceHudController.start()
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end
+	local presenceConnections = {}
+	local function bindAvailablePlayer(other)
+		if other == player or presenceConnections[other] then return end
+		presenceConnections[other] = other:GetAttributeChangedSignal("RaceState"):Connect(updateHud)
+		updateHud()
+	end
+	for _, other in Players:GetPlayers() do bindAvailablePlayer(other) end
+	Players.PlayerAdded:Connect(bindAvailablePlayer)
+	Players.PlayerRemoving:Connect(function(other)
+		local connection = presenceConnections[other]
+		if connection then connection:Disconnect(); presenceConnections[other] = nil end
+		task.defer(updateHud)
+	end)
 
 	local viewportConnection: RBXScriptConnection? = nil
 	local function bindCamera()

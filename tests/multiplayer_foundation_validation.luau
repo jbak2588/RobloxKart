@@ -14,11 +14,12 @@ end
 local contextType = load("src/server/KartContext.luau", { Vector3 = rb.Vector3 })
 local racerType = load("src/server/RacerState.luau", {})
 local raceConfig = load("src/shared/RaceConfig.luau", { table = table })
+local trackCatalog = { Entries = { Track01Race = { MaxPlayers = 4 }, Track02 = { MaxPlayers = 1 } } }
 local sessionType = load("src/server/RaceSession.luau", {
 	game = { GetService = function() return {
-		WaitForChild = function() return { WaitForChild = function() return {} end } end,
+		WaitForChild = function() return { WaitForChild = function(_, name) return { Name = name } end } end,
 	} end },
-	require = function() return raceConfig end,
+	require = function(module) return if module.Name == "TrackCatalog" then trackCatalog else raceConfig end,
 })
 local config = load("src/shared/RaceItemConfig.luau", {})
 local function kart()

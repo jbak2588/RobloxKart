@@ -14,9 +14,6 @@ local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
 
-local requireModule = require :: (ModuleScript) -> any
-local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
-
 local GarageUiController = {}
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialView"))
@@ -304,6 +301,32 @@ function GarageUiController.start()
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
+	local inviteModal = Instance.new("Frame")
+	inviteModal.Name = "RaceInvite"
+	inviteModal.AnchorPoint = Vector2.new(0.5, 0.5)
+	inviteModal.Position = UDim2.fromScale(0.5, 0.5)
+	inviteModal.Size = UDim2.fromOffset(290, 174)
+	inviteModal.BackgroundColor3 = Color3.fromRGB(20, 31, 46)
+	inviteModal.BorderSizePixel = 0
+	inviteModal.ZIndex = 10
+	inviteModal.Visible = false
+	inviteModal.Parent = backdrop
+	local inviteCorner = Instance.new("UICorner")
+	inviteCorner.CornerRadius = UDim.new(0, 10)
+	inviteCorner.Parent = inviteModal
+	local inviteTitle = makeText(inviteModal, UDim2.new(1, -24, 0, 28), UDim2.fromOffset(12, 10), "RACE INVITE", 19)
+	inviteTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+	inviteTitle.ZIndex = 11
+	local inviteDescription = makeText(inviteModal, UDim2.new(1, -24, 0, 70), UDim2.fromOffset(12, 40), "", 14)
+	inviteDescription.TextWrapped = true
+	inviteDescription.ZIndex = 11
+	local declineInvite = makeButton(inviteModal, "DECLINE", UDim2.fromOffset(12, 120))
+	declineInvite.Size = UDim2.fromOffset(126, 40)
+	declineInvite.BackgroundColor3 = Color3.fromRGB(80, 60, 65)
+	declineInvite.ZIndex = 11
+	local joinInvite = makeButton(inviteModal, "JOIN", UDim2.fromOffset(152, 120))
+	joinInvite.Size = UDim2.fromOffset(126, 40)
+	joinInvite.ZIndex = 11
 	local tutorial = MobileTutorialView.create(backdrop, function()
 		preferenceRemote:FireServer("Dismiss")
 	end)
@@ -325,7 +348,7 @@ function GarageUiController.start()
 	local previewWorld: WorldModel? = nil
 	local previewCamera: Camera? = nil
 	local trackMap = nil
-	local trackMapGeometryId: string? = nil
+	local trackMapKey: string? = nil
 	local previewKart: Model? = nil
 	local function fitKartPreview()
 		if previewKart and previewCamera and viewport.AbsoluteSize.Y > 0 then
@@ -430,8 +453,10 @@ function GarageUiController.start()
 		updatePresence()
 	end
 	local function showTrackPreview(trackId: string)
-		local geometryId = TrackCatalog.Entries[trackId].GeometryId
-		if geometryId == trackMapGeometryId then
+		local track = TrackCatalog.Entries[trackId]
+		local geometryId = track.GeometryId
+		local key = TrackCatalog.previewKey(track)
+		if key == trackMapKey then
 			return
 		end
 		if trackMap then
@@ -439,8 +464,8 @@ function GarageUiController.start()
 		end
 		local definition = TrackGeometry.getDefinition(geometryId)
 		assert(definition, "Selected track geometry is missing")
-		trackMap = TrackMapRenderer.create(mapPanel, definition, false)
-		trackMapGeometryId = geometryId
+		trackMap = TrackMapRenderer.create(mapPanel, definition, false, track.PreviewRotationDegrees)
+		trackMapKey = key
 	end
 
 	local function clearPreview()
@@ -495,11 +520,42 @@ function GarageUiController.start()
 	local function selectedIds(): (string, string, string)
 		return DriverCatalog.Order[driverIndex], KartCatalog.Order[kartIndex], TrackCatalog.Order[trackIndex]
 	end
+	local inviteSerial = 0
+	remote.OnClientEvent:Connect(function(action, hostName, trackId, count, maxPlayers)
+		if action == "InviteExpired" then
+			inviteModal.Visible = false
+			return
+		end
+		if action ~= "Invite" or player:GetAttribute("RaceState") ~= "GARAGE" then return end
+		local track = TrackCatalog.Entries[trackId]
+		if not track then return end
+		inviteSerial += 1
+		local serial = inviteSerial
+		inviteDescription.Text = string.format("%s invited you to\n%s\nRACERS %d / %d",
+			tostring(hostName), track.DisplayName, count, maxPlayers)
+		inviteModal.Visible = true
+		task.delay(30, function()
+			if serial == inviteSerial then inviteModal.Visible = false end
+		end)
+	end)
+	declineInvite.Activated:Connect(function()
+		inviteSerial += 1
+		inviteModal.Visible = false
+		remote:FireServer("DeclineInvite")
+	end)
+	joinInvite.Activated:Connect(function()
+		if not inviteModal.Visible then return end
+		inviteSerial += 1
+		inviteModal.Visible = false
+		local driverId, kartId = selectedIds()
+		remote:FireServer("JoinInvite", driverId, kartId)
+	end)
 
 	local function update()
 		local raceState = player:GetAttribute("RaceState")
 		gui.Enabled = raceState == "GARAGE"
 		if not gui.Enabled then
+			inviteModal.Visible = false
 			tutorial.close()
 			controlsButton.Visible = false
 			mapPanel.Visible = false
@@ -515,7 +571,6 @@ function GarageUiController.start()
 			tutorialSeenThisSession = true
 			tutorial.open()
 		end
-		local mode = RaceMode.resolve(trackId)
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= 2
 		mapPanel.Visible = step == 3
@@ -546,10 +601,10 @@ function GarageUiController.start()
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
 			detailLabel.Text = if step == 1 then (DriverCatalog.Entries[driverId].Description or "Choose your racing driver")
 				elseif step == 2 then "All MVP karts use the same physics"
-				else RaceMode.label(mode, trackId) .. "\n" .. (if mode == RaceMode.PRACTICE then "Practice driving and item timing" else string.format("Complete %d laps", RaceMode.targetLaps(mode, trackId)))
+				else TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		else
-			choiceLabel.Text = RaceMode.label(mode, trackId)
-			detailLabel.Text = string.format("%s  /  %s  /  %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
+			choiceLabel.Text = string.format("%s / %s / %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
+			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
 		previousButton.Visible = step > 1
 		cycleButton.Visible = step <= 3

@@ -27,9 +27,9 @@ Driver → Kart → Track → Ready → Race → Result
 
 Current track selections:
 
-1. Practice Circuit — Practice — 1 Lap
-2. Practice Circuit — Race — 2 Laps
-3. Prototype Circuit V2 — Race — 3 Laps
+1. Practice Circuit — Solo Practice — 1 Lap
+2. Base Circuit — Public Race — 1–4 Racers — 2 Laps
+3. Prototype Circuit V2 — Solo Prototype — 3 Laps
 
 ## Driving
 
@@ -313,8 +313,8 @@ The compact LAP panel ends 4 px below QUIT RACE while that action is visible.
 The last controls tutorial page offers **DON'T SHOW AGAIN**. This preference is
 stored separately from race data; CONTROLS still opens the tutorial manually.
 
-`Track01Race` (Practice Circuit Race, **2 laps**) has one public lobby with a
-capacity of four racers (`RaceConfig.PUBLIC_RACE_MAX_PLAYERS`). `Track01` remains
+`Track01Race` (Base Circuit, **2 laps**) has one public lobby with a
+capacity of four racers (`TrackCatalog.Entries.Track01Race.MaxPlayers`). `Track01` remains
 solo with 1 lap; `Track02` remains solo with 3 laps. The first READY racer becomes
 the lobby host. At 1/4 the host
 may START SOLO; at 2/4 or 3/4 the host may START RACE or keep waiting. The fourth
@@ -340,11 +340,23 @@ server-owned karts. The race minimap uses server-published `RaceMapPosition`
 attributes at the 0.10-second ranking interval and shows rivals as orange
 hollow rings around cyan local dots. The Garage shows players in the same server.
 
+The user reported completing the M2-B0 Studio 1 Server / 4 Clients runtime check.
+M2-B1 reads match type, capacity, laps and preview rotation from `TrackCatalog`.
+Track Select and READY show each track's capability. Base Circuit's Garage
+preview rotates 90 degrees clockwise; gameplay geometry and minimap stay in
+their original orientation. In a waiting public lobby, racers see eligible
+same-server Garage players. Only the host may send an in-game invite; JOIN is
+optional and is revalidated through the normal READY admission path. The Garage
+ONLINE list still shows everyone connected to that Roblox server.
+
+The MVP server supports one active RaceSession and active track at a time.
+Four-player Roblox server capacity is the recommended public beta configuration.
 M2-B0 enables only four public racers. The architecture may expand to six later.
 A future friend/private room could offer a chosen capacity of 2, 3, 4 or 6 with
-invites and possibly a reserved server; it is not implemented in M2-B0.
-The four-client Studio/runtime check remains required before claiming 4-player
-runtime validation; automated session tests cover the new lobby and race rules.
+invites and possibly a reserved server; it is not implemented in M2-B1.
+Different selected tracks may have different capacity; Prototype Circuit V2
+remains solo until its geometry is validated for public multiplayer. M2-B1's
+new invite and preview flows still need Studio/device runtime checks.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
@@ -498,10 +510,10 @@ Latest user decision replaces Driving License with always-available Practice. Ga
 | Order | Selection | Catalog ID | Geometry | Laps |
 | --- | --- | --- | --- | --- |
 | 1 (default) | Practice Circuit - PRACTICE | Track01 | PracticeCircuitV1 | 1 |
-| 2 | Practice Circuit - RACE | Track01Race | PracticeCircuitV1 | 2 |
-| 3 | Prototype Circuit V2 - RACE | Track02 | PrototypeCircuitV2 | 3 |
+| 2 | Base Circuit - PUBLIC RACE (1–4) | Track01Race | PracticeCircuitV1 | 2 |
+| 3 | Prototype Circuit V2 - SOLO PROTOTYPE | Track02 | PrototypeCircuitV2 | 3 |
 
-The first two selections share exactly the same geometry and grid positions. Track Select and Ready show PRACTICE / 1 LAP, RACE / 2 LAPS, or RACE / 3 LAPS according to the selected track. No existing track geometry is modified. Server derives mode and target laps from the validated catalog selection, never client-provided mode or laps. One RaceController handles all modes; TrackCatalog.Entries[trackId].TargetLaps sets each track's lap count. RaceConfig.TOTAL_LAPS remains 3 as the fallback. Checkpoint order/direction checks remain.
+The first two selections share exactly the same geometry and grid positions. Track Select and Ready show SOLO PRACTICE / 1 LAP, PUBLIC RACE / 1–4 RACERS / 2 LAPS, or SOLO PROTOTYPE / 3 LAPS according to the selected track. No existing track geometry is modified. Server derives mode, capacity and target laps from the validated catalog selection, never client-provided mode or laps. One RaceController handles all modes; TrackCatalog.Entries[trackId].TargetLaps sets each track's lap count. RaceConfig.TOTAL_LAPS remains 3 as the fallback. Checkpoint order/direction checks remain.
 
 All modes retain Nitro/Slick/Shield 1/1/1, normal FINISHED/DNF results and Rematch. Repeated Practice always stays one lap. No persistent progression, tutorial requirements or touch driving is added.
 

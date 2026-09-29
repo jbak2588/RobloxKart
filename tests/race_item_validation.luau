@@ -132,6 +132,9 @@ local Nitro=load("src/server/NitroState.luau",server,"NitroState")
 load("src/server/DriftTelemetry.luau",server,"DriftTelemetry")
 load("src/server/KartContext.luau",server,"KartContext")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
+child(shared,"ModuleScript","TrackCatalog")
+modules.TrackCatalog={DefaultId="Track01",Entries={Track01={GridSlots={CF.identity},MaxPlayers=1},
+ Track01Race={MaxPlayers=4}}}
 local sessionType=load("src/server/RaceSession.luau",server,"RaceSession")
 local itemConfig=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 check(itemConfig.DRIFT_BONUS_REQUIRED_BOOSTS==5,"cumulative reward requires five actual Boosts")
@@ -149,7 +152,6 @@ check(overlap:forwardSpeed(95,true,1,1/60)>95,"active Mini Boost accelerates tow
 -- Minimal world dependencies; actual movement/controller modules run below.
 for name, result in {
 	KartCatalog={DefaultId="Kart01",Entries={Kart01={}}},
-	TrackCatalog={DefaultId="Track01",Entries={Track01={GridSlots={CF.identity}}}},
 	KartVisualFactory={createVisual=function() return object("Model","Visual") end},
 } do child(shared,"ModuleScript",name); modules[name]=result end
 child(server,"ModuleScript","TrackBuilder")

@@ -72,6 +72,10 @@ function methods:Destroy() self.Destroying:Fire(); self.Parent=nil end
 function methods:SetNetworkOwner() end
 function methods:PivotTo(cf) if self.PrimaryPart then self.PrimaryPart.CFrame=cf end end
 function methods:GetPlayers() return self._children end
+function methods:GetPlayerByUserId(userId)
+	for _, player in self._children do if player.UserId==userId then return player end end
+end
+function methods:FireClient(player, ...) self.lastClient=player; self.lastClientArgs={...}; self.clientFireCount=(self.clientFireCount or 0)+1 end
 function methods:GetPlayerFromCharacter(character)
 	for _, player in self._children do if player.Character==character then return player end end
 end
@@ -170,6 +174,7 @@ end
 ready(a,"Kart01","Track01Race")
 check(contexts[a]==defaultContext and a:GetAttribute("GridSlot")==1,"first ready owns default kart in slot one")
 check(a:GetAttribute("RaceState")=="PRE_RACE" and defaultContext.seat.Occupant~=nil,"first driver seated")
+check(a:GetAttribute("RaceMaxPlayers")==4,"selected public track publishes four-player capacity")
 check(defaultContext.spawnCFrame==CF.new(0,1.75,0)*catalog.Entries.Track01Race.GridSlots[1],"first reset point is slot one")
 check(defaultContext.visual:GetAttribute("Color")=="Red","first kart color applied")
 local session=sessionType.new("Track01Race","RACE",2)
@@ -202,12 +207,44 @@ check(b:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceEntryError
  and contexts[b] and contexts[b].kart.Parent,"Garage accepts same-track rematch rejoin")
 check(b:GetAttribute("GridSlot")==2 and session:count()==1,"returning racer takes free second grid slot")
 session:add(b,{})
-ready(c,"Kart01","Track01Race");session:add(c,{})
-ready(d,"Kart01","Track01Race");session:add(d,{})
+session.hostUserId=a.UserId
+remote.OnServerEvent:Fire(b,"Invite",c.UserId)
+check(remote.lastClient==nil,"non-host cannot invite")
+remote.OnServerEvent:Fire(a,"Invite",c.UserId)
+check(remote.lastClient==c and remote.lastClientArgs[1]=="Invite"
+ and remote.lastClientArgs[3]=="Track01Race","host invites available Garage racer")
+remote.OnServerEvent:Fire(a,"Invite",c.UserId)
+check(remote.clientFireCount==1,"repeat invite is throttled")
+remote.OnServerEvent:Fire(c,"JoinInvite","Driver02","Kart02")
+for _, callback in delayed do callback() end;table.clear(delayed)
+check(c:GetAttribute("RaceState")=="PRE_RACE" and c:GetAttribute("SelectedDriverId")=="Driver02"
+ and c:GetAttribute("SelectedKartId")=="Kart02" and c:GetAttribute("SelectedTrackId")=="Track01Race"
+ and c:GetAttribute("GridSlot")==3,"invite JOIN uses selected driver and kart through READY")
+session:add(c,{})
+remote.OnServerEvent:Fire(a,"Invite",d.UserId)
+remote.OnServerEvent:Fire(d,"JoinInvite","Driver01","Kart01")
+for _, callback in delayed do callback() end;table.clear(delayed)
+check(d:GetAttribute("RaceState")=="PRE_RACE" and d:GetAttribute("GridSlot")==4,
+ "invited fourth racer takes final grid slot")
+session:add(d,{})
 check(c:GetAttribute("GridSlot")==3 and d:GetAttribute("GridSlot")==4
  and contexts[a]~=contexts[b] and contexts[b]~=contexts[c] and contexts[c]~=contexts[d],
  "four ready racers reserve distinct kart contexts and grid slots")
 ready(e,"Kart01","Track01Race")
 check(e:GetAttribute("RaceEntryError")=="Race full" and contexts[e]==nil,
  "fifth ready racer cannot enter full four-slot lobby")
+remote.OnServerEvent:Fire(a,"Invite",e.UserId)
+check(remote.lastClient~=e,"full lobby cannot send invite")
+session:remove(d);modules.PrototypeWorld.releaseKartContext(d);d:SetAttribute("RaceState","GARAGE")
+remote.OnServerEvent:Fire(a,"Invite",e.UserId)
+check(remote.lastClient==e,"vacant lobby can invite fifth connected player")
+session.hostUserId=b.UserId
+remote.OnServerEvent:Fire(e,"JoinInvite","Driver01","Kart01")
+check(e:GetAttribute("RaceState")=="GARAGE" and remote.lastClientArgs[1]=="InviteExpired",
+ "host transfer invalidates pending invitation")
+remote.OnServerEvent:Fire(b,"Invite",e.UserId)
+session.phase="COUNTDOWN"
+remote.OnServerEvent:Fire(e,"JoinInvite","Driver01","Kart01")
+check(e:GetAttribute("RaceState")=="GARAGE" and remote.lastClientArgs[1]=="InviteExpired",
+ "race start invalidates pending invitation")
 print("PASS: "..count.." Garage two-player allocation checks")

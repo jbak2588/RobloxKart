@@ -110,6 +110,17 @@ local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
 check(#catalog.Order==3 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Practice first/default")
 check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02","two races follow Practice")
 check(catalog.Entries.Track01.GeometryId==catalog.Entries.Track01Race.GeometryId,"Practice and V1 race share geometry")
+check(catalog.Entries.Track01.MaxPlayers==1 and catalog.Entries.Track01.TargetLaps==1
+ and catalog.Entries.Track01.MatchType=="SOLO_PRACTICE","Practice stays solo")
+check(catalog.Entries.Track01Race.DisplayName=="Base Circuit" and catalog.Entries.Track01Race.MaxPlayers==4
+ and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track01Race.PreviewRotationDegrees==90,
+ "Base Circuit public capability")
+check(catalog.Entries.Track02.MaxPlayers==1 and catalog.Entries.Track02.TargetLaps==3
+ and catalog.Entries.Track02.MatchType=="SOLO_PROTOTYPE","prototype stays solo")
+check(catalog.previewKey(catalog.Entries.Track01)~=catalog.previewKey(catalog.Entries.Track01Race),
+ "shared geometry uses distinct preview key")
+check(string.find(catalog.capabilityLabel(catalog.Entries.Track01Race),"1–4 RACERS",1,true)~=nil,
+ "public selection communicates flexible capacity")
 for i,cf in catalog.Entries.Track01.GridSlots do
  check(cf==catalog.Entries.Track01Race.GridSlots[i],"identical V1 grid "..i)
 end
@@ -143,7 +154,7 @@ for i=1,2 do
  checkpoints[i]=cp
 end
 child(shared,"ModuleScript","TrackCatalog")
-modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1"},Track02={Id="Track02",GeometryId="PracticeCircuitV1"},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1"}}}
+modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="SOLO_PRACTICE",MaxPlayers=1},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
 local player=child(services.Players,"Player","Driver")
 player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100; human.SeatPart=seat
@@ -174,6 +185,8 @@ local function start(trackId)
  player:SetAttribute("RaceMode","UNTRUSTED"); player:SetAttribute("RaceState","PRE_RACE")
  seat.Occupant=human; tick(0.1)
  check(player:GetAttribute("RaceMode")==kind,"server derives mode "..kind)
+ check(player:GetAttribute("RaceMaxPlayers")==modules.TrackCatalog.Entries[trackId].MaxPlayers,
+  "server publishes selected capacity "..trackId)
  if trackId=="Track01Race" then
   check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING",
    "circuit waits for host selection")

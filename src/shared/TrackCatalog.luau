@@ -7,6 +7,10 @@ local TrackCatalog = {
 			DisplayName = "Practice Circuit",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeCircuitV1",
+			MatchType = "SOLO_PRACTICE",
+			MinPlayers = 1,
+			MaxPlayers = 1,
+			PreviewRotationDegrees = 0,
 			TargetLaps = 1,
 			-- Original V1 grid slots from 88de2b3. The server adds ground height.
 			GridSlots = {
@@ -18,9 +22,13 @@ local TrackCatalog = {
 		},
 		Track01Race = {
 			Id = "Track01Race",
-			DisplayName = "Practice Circuit",
+			DisplayName = "Base Circuit",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeCircuitV1",
+			MatchType = "PUBLIC_RACE",
+			MinPlayers = 1,
+			MaxPlayers = 4,
+			PreviewRotationDegrees = 90,
 			TargetLaps = 2,
 			-- Original V1 grid slots from 88de2b3. The server adds ground height.
 			GridSlots = {
@@ -35,6 +43,10 @@ local TrackCatalog = {
 			DisplayName = "Prototype Circuit V2",
 			ModelName = "TestTrack",
 			GeometryId = "PrototypeCircuitV2",
+			MatchType = "SOLO_PROTOTYPE",
+			MinPlayers = 1,
+			MaxPlayers = 1,
+			PreviewRotationDegrees = 0,
 			TargetLaps = 3,
 			GridSlots = {
 				CFrame.new(-365, 0, 465),
@@ -45,5 +57,17 @@ local TrackCatalog = {
 		},
 	},
 }
+
+function TrackCatalog.capabilityLabel(track)
+	local laps = string.format("%d %s", track.TargetLaps, if track.TargetLaps == 1 then "LAP" else "LAPS")
+	if track.MatchType == "PUBLIC_RACE" then
+		return string.format("PUBLIC RACE • %d–%d RACERS • %s", track.MinPlayers, track.MaxPlayers, laps)
+	end
+	return string.format("%s • %s", if track.MatchType == "SOLO_PRACTICE" then "SOLO PRACTICE" else "SOLO PROTOTYPE", laps)
+end
+
+function TrackCatalog.previewKey(track)
+	return string.format("%s:%d", track.Id, track.PreviewRotationDegrees)
+end
 
 return table.freeze(TrackCatalog)
