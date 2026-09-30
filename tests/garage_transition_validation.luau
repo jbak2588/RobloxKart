@@ -18,6 +18,14 @@ local function object(class, name)
 	return setmetatable({ _p = props, _children = {}, _attrs = {}, _signals = {}, _properties = {} }, {
 		__index = function(self, key)
 			if methods[key] then return methods[key] end
+			if key == "AbsoluteContentSize" and class == "UIListLayout" then
+				local height, items = 0, 0
+				for _, item in props.Parent:GetChildren() do
+					if item.ClassName == "TextLabel" then height += item.AbsoluteSize.Y; items += 1 end
+				end
+				return rb.Vector2.new(props.Parent.AbsoluteSize.X,
+					height + math.max(0, items - 1) * props.Padding.Offset)
+			end
 			if key == "AbsoluteSize" then
 				if class == "ScreenGui" or not props.Parent then return safeSize end
 				local parent = props.Parent.AbsoluteSize
@@ -129,14 +137,16 @@ local function rows()
 	return found
 end
 check(list.ClassName == "ScrollingFrame" and list.ScrollingDirection == rb.Enum.ScrollingDirection.Y
-	and presencePanel.Size.Y.Offset == 102 and list.AbsoluteSize.Y == 70,
-	"mobile presence reserves four 16px rows with 2px gaps")
+	and presencePanel.Size.Y.Offset == 48 and list.AbsoluteSize.Y == 16
+	and list.AutomaticCanvasSize == rb.Enum.AutomaticSize.None and list.ClipsDescendants,
+	"one mobile name receives a complete explicit viewport and manual canvas")
 local function checkPopulationRows(expected)
 	local contentHeight = modules.GaragePresence.canvasHeight(expected, 16, 2)
 	check(#rows() == expected and list.CanvasSize.Y.Offset == contentHeight,
 		"local list contains exactly " .. expected .. " names without blank rows")
 	if expected <= 4 then
-		check(contentHeight <= list.AbsoluteSize.Y, tostring(expected) .. " names visible without scrolling")
+		check(contentHeight == list.AbsoluteSize.Y and presencePanel.Size.Y.Offset == 32 + contentHeight,
+			tostring(expected) .. " names visible in count-derived panel without scrolling")
 	else
 		check(contentHeight > list.AbsoluteSize.Y and list.ScrollBarThickness > 0 and list.ScrollingEnabled ~= false,
 			tostring(expected) .. " names retain vertical scrolling")
@@ -204,11 +214,13 @@ local function intersects(a, b)
 end
 -- Screen width/height, approved aggregate width, local Lobby width, visible rows.
 local resolutions = { {1600,739,560,140,4}, {1280,720,560,108,4},
-	{844,390,511,65,4}, {390,844,326,54,4}, {390,600,326,54,1} }
+	{844,390,511,65,4}, {932,430,511,65,4,120,79},
+	-- Notch + home-indicator stress: old 72px gutter breakpoint chose one row.
+	{844,390,455,56,4,120,79}, {390,844,326,54,4}, {390,600,326,54,1} }
 for step = 1, 4 do
 	for _, resolution in resolutions do
-		-- Model a 58px Core UI top inset and 16px side safe margins.
-		safeSize = rb.Vector2.new(resolution[1] - 32, resolution[2] - 58)
+		-- Already-safe parent bounds: ordinary margins or larger notch/home insets.
+		safeSize = rb.Vector2.new(resolution[1] - (resolution[6] or 32), resolution[2] - (resolution[7] or 58))
 		input.TouchEnabled = true
 		camera.ViewportSize = rb.Vector2.new(resolution[1], resolution[2])
 		camera:GetPropertyChangedSignal("ViewportSize"):Fire()
@@ -225,6 +237,36 @@ for step = 1, 4 do
 		check(list.CanvasPosition.Y == 120 and #rows() == 50
 			and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(50, 16, 2),
 			"resize preserves names, canvas and scroll position " .. tag)
+		local allPlayers = players
+		for _, lobbyCount in {1, 2, 3, 4, 5, 10, 50} do
+			players = {}
+			for i = 1, lobbyCount do table.insert(players, allPlayers[i]) end
+			player:GetAttributeChangedSignal("ReadyOrder"):Fire()
+			local expectedRows = math.min(lobbyCount, visibleRows)
+			local viewportHeight = modules.GaragePresence.canvasHeight(expectedRows, 16, 2)
+			local canvasHeight = modules.GaragePresence.canvasHeight(lobbyCount, 16, 2)
+			check(#rows() == lobbyCount and list.AbsoluteSize.Y == viewportHeight
+				and list.CanvasSize.Y.Offset == canvasHeight
+				and list.UIListLayout.AbsoluteContentSize.Y == canvasHeight
+				and presencePanel.Size.Y.Offset == 32 + viewportHeight,
+				"count-derived viewport/canvas " .. lobbyCount .. " " .. tag)
+			check(list.ScrollBarThickness == (if lobbyCount > visibleRows then 4 else 0),
+				"scrollbar only consumes name width when needed " .. lobbyCount .. " " .. tag)
+			for _, row in rows() do
+				check(row.AbsoluteSize.X == list.AbsoluteSize.X - (if lobbyCount > visibleRows then 6 else 0)
+					and row.TextTruncate == rb.Enum.TextTruncate.AtEnd,
+					"name fits panel and clears scrollbar " .. lobbyCount .. " " .. tag)
+			end
+			check(viewportHeight == expectedRows * 16 + (expectedRows - 1) * 2,
+				"last visible row fully inside clipped viewport " .. lobbyCount .. " " .. tag)
+			if lobbyCount <= visibleRows then
+				check(not list.CanvasPosition or list.CanvasPosition.Y == 0,
+					"shrinking list removes obsolete scroll offset " .. lobbyCount .. " " .. tag)
+			end
+		end
+		players = allPlayers
+		player:GetAttributeChangedSignal("ReadyOrder"):Fire()
+		list.CanvasPosition = rb.Vector2.new(0, 120)
 		check(status.w == resolution[3] and populationLabel.Position.Y.Scale == rb.UDim2.new(0, 0, 0.13, 0).Y.Scale
 			and populationLabel.Position.Y.Offset == 22, "approved aggregate placement unchanged " .. tag)
 		check(gui.ScreenInsets == rb.Enum.ScreenInsets.CoreUISafeInsets and populationLabel.Parent == backdrop,

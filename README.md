@@ -497,7 +497,27 @@ The Garage validation also checks 1/2/3/4/5/10/50 names, scroll retention and
 separation from the approved aggregate status and selection controls.
 The local-list patch passed all 32 validation runs, including 951 Garage checks,
 Rojo build and `git diff --check`. Studio runtime NOT VERIFIED for this patch.
-**PUBLISHED MOBILE VISUAL VALIDATION REQUIRED** for the expanded local LOBBY list.
+Published R1 local Lobby list: **Android PASS; iOS FAIL** — only approximately
+one row was visible with `LOBBY 3`, while aggregate and local counts were correct.
+M3-A2-R2 fixes the responsive width breakpoint: a landscape gutter narrower than
+72px now stays in the landscape lane instead of falling into the short portrait
+lane. No platform branch or additional safe-inset subtraction is used. The
+already-safe parent bounds determine the available space; 1/2/3/4 players receive
+1/2/3/4 complete 16px rows with 2px gaps. Panel height is 32px plus row content;
+5+ players retain a 102px panel / 70px viewport with an expanding manual canvas.
+Portrait keeps its constrained fallback. Smaller inner padding and reserving
+scrollbar width only when needed improve compact name rendering.
+
+R2 automated checks cover all four Garage steps at 1600×739, 1280×720, 844×390,
+932×430 and 390×844, plus narrow notch-safe landscape and 390×600 fallback,
+with 1/2/3/4/5/10/50-player simulations, complete last rows, control separation,
+join/leave updates and scroll retention. Core Population / Room UX remains
+**PASS / CLOSED**: aggregation, Room Browser, Queue Next, queue promotion/order,
+Host migration and stale population expiry are confirmed published runtime.
+**M3-A2-R2 CODE COMPLETE — PUBLISHED iOS VISUAL VALIDATION REQUIRED.**
+Studio runtime NOT VERIFIED for R2; automated geometry does not verify device fonts.
+R2 validation passed all 31 Luau suites plus the mobile Joystick variant (32
+runs), Rojo build and `git diff --check`.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent

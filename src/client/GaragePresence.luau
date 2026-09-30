@@ -34,6 +34,25 @@ function GaragePresence.canvasHeight(count, rowHeight, spacing)
 	return math.max(0, count * rowHeight + math.max(0, count - 1) * spacing)
 end
 
+-- width/height are already CoreUISafeInsets content bounds. Do not inset again.
+function GaragePresence.mobileLayout(count, width, height, previewWidth, presenceWidth, twoLines)
+	local top = if twoLines then height * 0.13 + 64 else height * 0.155
+	local availableHeight = height * 0.38 - top - 8
+	local panelWidth = presenceWidth
+	if width > height then
+		-- A narrow notch-safe gutter is still landscape, not the portrait lane.
+		panelWidth = math.min(presenceWidth, math.floor((width - previewWidth) * 0.5 - 62),
+			math.floor(width * 0.1 - 16))
+		top = math.max(56, height * 0.12 + 6)
+		availableHeight = height - top - 8
+	end
+	local capacity = math.clamp(math.floor((availableHeight - 30) / 18), 0, 4)
+	local visibleRows = math.min(count, capacity)
+	local listHeight = GaragePresence.canvasHeight(visibleRows, 16, 2)
+	return { width = math.max(0, panelWidth), top = top, visibleRows = visibleRows,
+		listHeight = listHeight, panelHeight = 32 + listHeight }
+end
+
 function GaragePresence.availableSnapshot(players, localPlayer, limit)
 	local entries = {}
 	for _, player in players do

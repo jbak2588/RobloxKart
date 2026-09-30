@@ -235,9 +235,10 @@ Driver seating issue is deferred.
 M3-A1-R2 moved Base Circuit CREATE into a persistent reserved Room server and is
 RUNTIME PASS / CLOSED on published real devices. M3-A2 hardens population UX,
 Room status and failure recovery. M3-A2 FUNCTIONAL RUNTIME: PASS / CLOSED.
-M3-A2 aggregate Population mobile runtime is PASS. M3-A2-R1 expands the local
-LOBBY name list to four visible rows; published mobile list visual validation
-is next.
+M3-A2 aggregate Population mobile runtime is PASS. The R1 local LOBBY list
+passed Android but failed iOS (only ~1 visible row with LOBBY 3). M3-A2-R2
+targets up to four visible names with iOS/Android parity; published iOS visual
+validation is next.
 Combat/Missile, additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 
@@ -603,7 +604,18 @@ portrait uses the space below the summary and above the arrow, with fewer
 complete rows when necessary. Four visible rows are checked at 1600×739,
 1280×720, 844×390 and 390×844; 390×600 safely falls back to one. Existing
 scrolling for 5+ names, player updates and scroll retention stay intact.
-PUBLISHED MOBILE VISUAL VALIDATION REQUIRED for this local LOBBY expansion.
+Published R1 local Lobby list: Android PASS; iOS FAIL — only ~1 visible row
+despite LOBBY 3. Aggregate and local counts were correct on both devices.
+M3-A2-R2 removes the 72px landscape-gutter breakpoint that incorrectly selected
+the short portrait lane under larger side safe insets. It uses the already-safe
+Garage parent bounds once, count-derived 1–4 row heights (16px rows, 2px gaps),
+and a maximum 70px scrolling viewport for 5+ names. Portrait remains bounded by
+the summary and carousel arrow. Names gain width through smaller inner padding
+and reserve scrollbar space only when scrolling is needed. Core Population /
+Room UX remains PASS / CLOSED; aggregation, Room Browser, Queue Next, promotion,
+queue order, Host migration and stale population expiry remain confirmed.
+M3-A2-R2 CODE COMPLETE — PUBLISHED iOS VISUAL VALIDATION REQUIRED.
+Studio runtime NOT VERIFIED for R2.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

@@ -243,6 +243,8 @@ function GarageUiController.start()
 	presenceList.ScrollBarThickness = 4
 	presenceList.ScrollingDirection = Enum.ScrollingDirection.Y
 	presenceList.CanvasSize = UDim2.fromOffset(0, 0)
+	presenceList.AutomaticCanvasSize = Enum.AutomaticSize.None
+	presenceList.ClipsDescendants = true
 	presenceList.Parent = presencePanel
 	local presenceLayout = Instance.new("UIListLayout")
 	presenceLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -251,9 +253,22 @@ function GarageUiController.start()
 	local presenceRows = {}
 	local presenceRowHeight = 20
 	local presenceConnections = {}
+	local presenceGeometry = nil
 	local function updatePresence()
 		local count, entries = GaragePresence.snapshot(Players:GetPlayers(), player)
 		presenceHeader.Text = string.format("LOBBY %d", count)
+		local contentHeight = GaragePresence.canvasHeight(count, presenceRowHeight, 2)
+		local listHeight = presenceList.AbsoluteSize.Y
+		if mobileCompact and presenceGeometry then
+			local g = presenceGeometry
+			local layout = GaragePresence.mobileLayout(count, g.width, g.height, g.previewWidth, g.presenceWidth, g.twoLines)
+			presencePanel.Position = UDim2.new(1, -10, 0, layout.top)
+			presencePanel.Size = UDim2.fromOffset(layout.width, layout.panelHeight)
+			presenceList.Size = UDim2.new(1, -8, 0, layout.listHeight)
+			listHeight = layout.listHeight
+		end
+		local scrolling = contentHeight > listHeight
+		presenceList.ScrollBarThickness = if scrolling then 4 else 0
 		local seen = {}
 		for index, entry in entries do
 			seen[entry.userId] = true
@@ -266,14 +281,18 @@ function GarageUiController.start()
 				presenceRows[entry.userId] = row
 			end
 			row.LayoutOrder = index
-			row.Size = UDim2.new(1, -8, 0, presenceRowHeight)
+			row.Size = UDim2.new(1, if mobileCompact then (if scrolling then -6 else 0) else -8, 0, presenceRowHeight)
 			row.TextSize = if mobileCompact then 10 else 12
 			row.Text = if mobileCompact then entry.name else string.format("%s  %s", entry.name, entry.status)
 		end
 		for userId, row in presenceRows do
 			if not seen[userId] then row:Destroy(); presenceRows[userId] = nil end
 		end
-		presenceList.CanvasSize = UDim2.fromOffset(0, GaragePresence.canvasHeight(count, presenceRowHeight, 2))
+		presenceList.CanvasSize = UDim2.fromOffset(0, contentHeight)
+		local scroll = presenceList.CanvasPosition
+		if scroll and scroll.Y > math.max(0, contentHeight - listHeight) then
+			presenceList.CanvasPosition = Vector2.new(0, math.max(0, contentHeight - listHeight))
+		end
 	end
 	local function bindPresence(other)
 		if presenceConnections[other] then return end
@@ -491,23 +510,11 @@ function GarageUiController.start()
 			stepLabel.TextSize = 19
 			stepLabel.Size = UDim2.fromOffset(statusWidth, 20)
 			-- Keep the approved aggregate header width independent of the local list.
-			local lobbyWidth = presenceWidth
-			local lobbyTop = if populationTwoLines then layoutHeight * 0.13 + 64 else layoutHeight * 0.155
-			local availableHeight = layoutHeight * 0.38 - lobbyTop - 8
-			local outerGutterWidth = math.floor((layoutWidth - previewWidth) * 0.5 - 62)
-			if layoutWidth > layoutHeight and outerGutterWidth >= 72 then
-				-- Outside the 40px carousel arrow, below the top CONTROLS button.
-				lobbyWidth = math.min(presenceWidth, outerGutterWidth, math.floor(layoutWidth * 0.1 - 16))
-				lobbyTop = math.max(56, layoutHeight * 0.12 + 6)
-				availableHeight = layoutHeight - lobbyTop - 8
-			end
-			local visibleRows = math.clamp(math.floor((availableHeight - 30) / 18), 1, 4)
-			presencePanel.Position = UDim2.new(1, -10, 0, lobbyTop)
-			presencePanel.Size = UDim2.fromOffset(lobbyWidth, 30 + visibleRows * 18)
+			presenceGeometry = { width = layoutWidth, height = layoutHeight, previewWidth = previewWidth,
+				presenceWidth = presenceWidth, twoLines = populationTwoLines }
 			presenceHeader.TextSize = 11
 			presenceHeader.Size = UDim2.new(1, -12, 0, 20)
-			presenceList.Position = UDim2.fromOffset(6, 26)
-			presenceList.Size = UDim2.new(1, -12, 1, -32)
+			presenceList.Position = UDim2.fromOffset(4, 26)
 			populationLabel.Parent = backdrop
 			populationLabel.AnchorPoint = Vector2.new(0.5, 0)
 			populationLabel.Position = UDim2.new(0.5, 0, 0.13, 22)
