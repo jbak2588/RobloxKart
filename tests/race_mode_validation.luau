@@ -176,6 +176,8 @@ local race=load("src/server/RaceController.luau",server,"RaceController")
 local routeOptions={}
 race.start(routeOptions)
 load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
+load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
+load("src/shared/RaceItemSlots.luau",shared,"RaceItemSlots")
 load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")

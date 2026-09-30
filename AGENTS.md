@@ -182,6 +182,24 @@ PC:
 4 Missile
 Q Use
 
+M4-A2: Catalog metadata and active RaceLoadout are separate. Catalog size may
+exceed four; `RaceItemSlots.RACE_ITEM_SLOT_COUNT = 4` fixes active slot count.
+Production slot order remains Nitro / Slick / Shield / Missile with 1/1/1/1.
+RaceLoadout owns slots, temporary counts and selection. Server-only prepare
+validates exactly four unique implemented catalog IDs with initial/max charges;
+never add a client loadout-setting API. Publish RaceItemSlot1..4; HUD cells and
+desktop 1/2/3/4 resolve those slots, mobile taps directly use the displayed ID.
+Selection/use must validate membership in this player's server slots, implemented
+status and positive charge; only successful item activation consumes. Incoming
+Shield emphasis follows item identity, not slot 3. Keep published HUD geometry.
+Bonus Nitro requires an active Nitro slot; no hidden charge when absent.
+Race/Rematch defaults refill; GO preserves valid Countdown selection/order.
+Lifecycle/session cleanup clears active slots and charges. Smoke is unimplemented
+catalog metadata only, zero charge, rejected from prepare/select/use. No Smoke,
+Thunder/Rain gameplay, persistence, Shop or Garage selector in this milestone.
+M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY.
+Studio runtime NOT VERIFIED; published input/loadout/Rematch smoke is pending.
+
 ## Slick
 
 ~10 studs behind Kart
@@ -304,7 +322,7 @@ session boundaries clear transient feedback. No arbitrary audio IDs or reused
 Countdown/Boost sounds; no new audio hooks, combat SFX deferred pending assets.
 Studio runtime NOT VERIFIED. A short published two-player Missile hit / Shield
 block / Slick contact smoke test remains; no repeated full-race balance test.
-M4-A1 CODE COMPLETE — PUBLISHED COMBAT FEEDBACK SMOKE TEST REQUIRED.
+M4-A1 CODE COMPLETE — PUBLISHED FEEDBACK SMOKE TEST PENDING.
 
 ## Production Kart
 

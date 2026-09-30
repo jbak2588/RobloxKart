@@ -61,6 +61,8 @@ local function load(path,parent,name)
 	local result=luau.load(fs.readFile(path),{environment=e,debugName=path})();modules[name]=result;return result
 end
 local config=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
+load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
+load("src/shared/RaceItemSlots.luau",shared,"RaceItemSlots")
 local Loadout=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 local boundLoadouts={}
 local originalLoadoutNew=Loadout.new

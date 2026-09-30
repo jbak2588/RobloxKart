@@ -102,6 +102,12 @@ services.GuiService.MenuIsOpen=false
 local env={game={GetService=function(_,name) return assert(services[name],name) end},
 	script={Parent=modulesFolder},require=function(m) return assert(modules[m.Name],m.Name) end,
 	Instance={new=object},Vector2=V2,Vector3=V3,UDim2=rb.UDim2,UDim=rb.UDim,Color3=rb.Color3,Enum=rb.Enum}
+for _, name in {"RaceItemCatalog", "RaceItemSlots"} do
+	local module=child(shared,"ModuleScript",name)
+	local sharedEnv=table.clone(env);sharedEnv.script=module
+	modules[name]=luau.load(fs.readFile("src/shared/"..name..".luau"),{environment=sharedEnv})()
+end
+for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end
 for _, name in {"TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
 end
@@ -674,6 +680,42 @@ for _, boundary in {"FINISHED","DNF","GARAGE","COUNTDOWN","session","reset","sea
 end
 kart.Parent=services.Workspace;humanoid.SeatPart=seat;player.Character=character
 player:SetAttribute("RaceState","RACING");tick()
+local reordered={"Shield","Nitro","Missile","Slick"}
+for index,id in reordered do player:SetAttribute("RaceItemSlot"..index,id);player:SetAttribute("RaceCharge"..id,1) end
+player:SetAttribute("RaceMissileIncomingCount",1)
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
+local beforeReorder=#item._p.calls
+local actualSlots=0
+for _,button in itemHud:GetChildren() do
+	local index=button:GetAttribute("RaceItemSlotIndex")
+	if index then
+		actualSlots+=1
+		local id=reordered[index]
+		check(button:GetAttribute("RaceItemId")==id and button:FindFirstChild(id.."Icon")~=nil,
+		 "reordered slot uses matching native icon "..index)
+		button.Activated:Fire()
+		check(item._p.calls[#item._p.calls][1]=="UseItem" and item._p.calls[#item._p.calls][2]==id,
+		 "reordered mobile cell directly uses active id "..index)
+		if index==1 then check(button.SelectedMark.Visible and button.SelectedMark.Text=="!",
+		 "incoming emphasis finds Shield in slot 1") end
+	end
+end
+check(actualSlots==4 and #item._p.calls==beforeReorder+4 and not itemHud:FindFirstChild("Smoke"),
+	"expanded catalog still renders exactly four active cells")
+ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+for index,key in {rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three,rb.Enum.KeyCode.Four} do
+	ui.InputBegan:Fire({KeyCode=key},false)
+	check(item._p.calls[#item._p.calls][1]=="Select" and item._p.calls[#item._p.calls][2]==reordered[index],
+	 "desktop key resolves reordered authoritative slot "..index)
+end
+local beforeInvalid=#item._p.calls
+input.useRaceItemDirect("Smoke");input.selectRaceItem("Unknown")
+player:SetAttribute("RaceItemSlot1","")
+local vacant=itemHud:FindFirstChild("ItemSlot1")
+vacant.Activated:Fire()
+check(not vacant.Visible and #item._p.calls==beforeInvalid,"vacant/deferred/invalid slots never send use or selection")
+for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
 itemHud:Destroy();player:SetAttribute("RaceCombatFeedbackSerial",1000);tick()
 check(not result.Parent and not edge.Parent,"HUD destruction disconnects result and effect listeners")
 player.CharacterAdded:Fire(character)

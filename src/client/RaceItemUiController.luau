@@ -5,6 +5,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
+local Catalog = require(Shared:WaitForChild("RaceItemCatalog"))
+local Slots = require(Shared:WaitForChild("RaceItemSlots"))
 local SlickRearPreview = require(script.Parent:WaitForChild("SlickRearPreview"))
 local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
 local CombatFeedbackView = require(script.Parent:WaitForChild("CombatFeedbackView"))
@@ -37,7 +39,8 @@ function RaceItemUiController.start()
 	corner.Parent = label
 	local buttons = {}
 	local mobileIcons = {}
-	for index, id in { "Nitro", "Slick", "Shield", "Missile" } do
+	for index = 1, Slots.RACE_ITEM_SLOT_COUNT do
+		local id = Slots.get(player, index) or ""
 		local button = Instance.new("TextButton")
 		button.Name = id
 		button.AnchorPoint = Vector2.new(0, 1)
@@ -46,9 +49,11 @@ function RaceItemUiController.start()
 		button.BorderSizePixel = 0
 		button.Parent = gui
 		button.Activated:Connect(function()
+			local activeId = Slots.get(player, index)
+			if not activeId then return end
 			if Input.isTouchPreferred() then
-				Input.useRaceItemDirect(id)
-			else Input.selectRaceItem(id) end
+				Input.useRaceItemDirect(activeId)
+			else Input.selectRaceItem(activeId) end
 		end)
 		buttons[index] = button
 		local icon = MobileView.icon(button, id)
@@ -78,7 +83,7 @@ function RaceItemUiController.start()
 		chosenMark.TextColor3 = Color3.new(1, 1, 1)
 		chosenMark.TextSize = 14
 		chosenMark.Parent = button
-		mobileIcons[index] = {icon=icon, border=border, borderColor=border.Color, count=count, mark=chosenMark}
+		mobileIcons[index] = {id=id, icon=icon, border=border, borderColor=border.Color, count=count, mark=chosenMark}
 	end
 	local nitroProgress = Instance.new("Frame")
 	nitroProgress.Name = "NitroProgress"
@@ -141,7 +146,7 @@ function RaceItemUiController.start()
 		local incoming = (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0
 		combat.Visible = racing and (incoming or time() < feedbackUntil)
 		local mobile = Input.isTouchPreferred()
-		local shieldReady = (player:GetAttribute("RaceChargeShield") or 0) > 0
+		local shieldReady = Slots.contains(player, "Shield") and (player:GetAttribute("RaceChargeShield") or 0) > 0
 		local emergencyReady = mobile and racing and incoming and shieldReady
 		-- A cosmetic deploy replay/feedback must not hide the manual defense target.
 		if emergencyReady and preview then preview:stop() end
@@ -153,16 +158,28 @@ function RaceItemUiController.start()
 			and not (preview and preview:isVisible())
 		local selected = player:GetAttribute("SelectedRaceItemId")
 		for index, button in buttons do
-			local id = button.Name
+			local id = Slots.get(player, index) or ""
+			local symbols = mobileIcons[index]
+			if symbols.id ~= id then
+				symbols.icon.root:Destroy()
+				symbols.icon = MobileView.icon(button, id)
+				local scale = Instance.new("UIScale")
+				scale.Scale = 0.8
+				scale.Parent = symbols.icon.root
+				symbols.icon.root.Position = UDim2.fromScale(0.45, 0.43)
+				symbols.id = id
+			end
+			button.Name = if id ~= "" then id else "ItemSlot" .. index
+			button:SetAttribute("RaceItemSlotIndex", index)
+			button:SetAttribute("RaceItemId", id)
 			local charges = player:GetAttribute("RaceCharge" .. id) or 0
 			local chosen = not mobile and selected == id and charges > 0
 			local emergency = mobile and racing and incoming and id == "Shield" and charges > 0
-			button.Visible = showLoadout and (emergency or not blocked and not deployed)
+			button.Visible = id ~= "" and showLoadout and (emergency or not blocked and not deployed)
 			button.BackgroundColor3 = if chosen then Color3.fromRGB(32, 102, 145) else Color3.fromRGB(16, 25, 35)
 			button.TextColor3 = if charges == 0 then Color3.fromRGB(110, 118, 128) else Color3.fromRGB(220, 240, 250)
-			button.Text = if mobile then "" else string.upper(id) .. " " .. charges .. (if UserInputService.KeyboardEnabled then
+			button.Text = if mobile or id == "" then "" else Catalog[id].DisplayName .. " " .. charges .. (if UserInputService.KeyboardEnabled then
 				"\n" .. (if chosen then "Q USE" else tostring(index)) else "")
-			local symbols = mobileIcons[index]
 			symbols.icon.root.Visible = mobile
 			symbols.icon:setEnabled(charges > 0)
 			symbols.count.Visible = mobile
@@ -256,8 +273,12 @@ function RaceItemUiController.start()
 	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(layout)
 	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(layout)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	for _, attribute in { "RaceState", "SelectedRaceItemId", "RaceChargeNitro", "RaceChargeSlick", "RaceChargeShield", "RaceChargeMissile", "DriftBonusProgress", "RaceMissileIncomingCount" } do
+	for _, attribute in { "RaceState", "SelectedRaceItemId", "DriftBonusProgress", "RaceMissileIncomingCount" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
+	end
+	for id in Catalog do player:GetAttributeChangedSignal("RaceCharge" .. id):Connect(refresh) end
+	for index = 1, Slots.RACE_ITEM_SLOT_COUNT do
+		player:GetAttributeChangedSignal("RaceItemSlot" .. index):Connect(refresh)
 	end
 	player:GetAttributeChangedSignal("RaceItemFeedbackSerial"):Connect(function()
 		if player:GetAttribute("RaceState") ~= "RACING" then return end

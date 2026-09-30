@@ -110,6 +110,7 @@ check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==100
 	"approved Mini Boost Beta 2 tuning preserves normal speed and acceleration")
 check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.OFF_TRACK_MAX_SPEED==50,
 	"Nitro identity and off-track safety remain unchanged")
+local slots=load("src/shared/RaceItemSlots.luau",shared,"RaceItemSlots")
 local loadoutType=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 local loadout=loadoutType.new()
 loadout:prepare()
@@ -137,10 +138,10 @@ end
 for _,id in {"Smoke","unknown",1,{}} do
 	check(not loadout:useItem(id,function() error("invalid item reached activation") end),"direct API rejects invalid item")
 end
-loadout:prepare();loadout:select("Shield");loadout:prepare(true)
+loadout:prepare();loadout:select("Shield");loadout:prepare(nil,true)
 check(loadout.selected=="Shield" and loadout.counts.Shield==1 and not loadout.bonusClaimed,
 	"authoritative refill preserves valid selection while resetting resources")
-loadout:clear();loadout:prepare(true)
+loadout:clear();loadout:prepare(nil,true)
 check(loadout.selected=="Nitro" and loadout.counts.Nitro==1,"cleared Countdown still refills safely with default selection")
 -- Capture server state for legacy scenario fixture setup only; no production grant API.
 local instances={}
@@ -534,6 +535,21 @@ end
 
 -- Production selection/actions and base refill, independent of Studio flags.
 fresh()
+player:SetAttribute("RaceState","COUNTDOWN")
+local reordered={"Shield","Nitro","Missile","Slick"}
+check(state:prepare(reordered),"server-only preparation accepts alternate four-slot ordering")
+player:SetAttribute("RaceState","RACING")
+for index,id in reordered do
+	check(player:GetAttribute("RaceItemSlot"..index)==id,"server publishes authoritative reordered slot "..index)
+	local key=({rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three,rb.Enum.KeyCode.Four})[index]
+	uis.InputBegan:Fire({KeyCode=key},false)
+	check(state.selected==id,"production key selection follows active server slot "..index)
+end
+-- Tampered client asks for a catalog-implemented item outside its server slots.
+state.slots={"Shield","Slick","Missile"};state.counts.Nitro=1
+now+=.2;remote.OnServerEvent:Fire(player,"UseItem","Nitro")
+check(state.counts.Nitro==1 and not kart:GetAttribute("KartNitroActive"),"server rejects implemented inactive item without activation/consumption")
+fresh()
 for index,id in {"Nitro","Slick","Shield","Missile"} do
 	local key=({rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three,rb.Enum.KeyCode.Four})[index]
 	uis.InputBegan:Fire({KeyCode=key},false)
@@ -567,6 +583,10 @@ player:SetAttribute("RaceState","RACING")
 check(items.grantBonusNitro(player) and state.counts.Nitro==2,"new race renews bonus eligibility")
 player:SetAttribute("RaceState","GARAGE")
 check(state.counts.Nitro==0 and state.counts.Slick==0 and state.counts.Shield==0,"Garage clears all")
+for index=1,4 do check(player:GetAttribute("RaceItemSlot"..index)=="","Garage clears published slot "..index) end
+fresh();player:SetAttribute("RaceSessionId",99)
+check(#state.slots==0 and state.counts.Nitro==0 and player:GetAttribute("RaceItemSlot1")=="",
+	"session change removes old slots and charges")
 -- Direct-use transport exercises the same production activation/physics bridges.
 fresh()
 for _,id in {"Smoke","Unknown",2,{}} do remote.OnServerEvent:Fire(player,"UseItem",id) end
@@ -911,10 +931,10 @@ local realMissile, realMissileReason=items.tryApplyOffensiveItem(second,player,"
 check(realMissile and realMissileReason=="hit" and secondContext.kart:GetAttribute("KartMissileHitActive"),"controller invokes real per-context Missile effect")
 local repeatMissile, repeatMissileReason=items.tryApplyOffensiveItem(second,player,"Missile")
 check(not repeatMissile and repeatMissileReason=="immune","real Missile shares offensive immunity")
+second:SetAttribute("RaceSessionId",7)
 second:SetAttribute("RaceState","COUNTDOWN");second:SetAttribute("RaceState","RACING")
 check(not secondContext.kart:GetAttribute("KartMissileHitActive") and second:GetAttribute("RaceChargeMissile")==1,"second racer reset clears hit and refills independently")
 remote.OnServerEvent:Fire(second,"Select","Shield");remote.OnServerEvent:Fire(second,"Use")
-second:SetAttribute("RaceSessionId",7)
 remote.OnServerEvent:Fire(second,"Select","Slick")
 now+=0.2; remote.OnServerEvent:Fire(second,"Use")
 local secondHazardCount=hazardCount()

@@ -4,6 +4,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
+local Catalog = require(Shared:WaitForChild("RaceItemCatalog"))
+local Slots = require(Shared:WaitForChild("RaceItemSlots"))
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local RaceLoadout = require(script.Parent:WaitForChild("RaceLoadout"))
@@ -42,8 +44,11 @@ end
 
 local function publish(player)
 	local loadout = loadouts[player]
-	for _, id in { "Nitro", "Slick", "Shield", "Missile", "Smoke" } do
+	for id in Catalog do
 		player:SetAttribute("RaceCharge" .. id, if loadout then loadout.counts[id] else 0)
+	end
+	for index = 1, Slots.RACE_ITEM_SLOT_COUNT do
+		player:SetAttribute("RaceItemSlot" .. index, if loadout then loadout.slots[index] or "" else "")
 	end
 	player:SetAttribute("SelectedRaceItemId", if loadout then loadout.selected else "")
 end
@@ -265,6 +270,14 @@ function RaceItemController.start()
 		player:SetAttribute("RaceItemFeedbackCode", "")
 		local previousState = player:GetAttribute("RaceState")
 		connections[player] = {
+			player:GetAttributeChangedSignal("RaceSessionId"):Connect(function()
+				clearPlayer(player)
+				resetBonusProgress(player)
+				if player:GetAttribute("RaceState") == "COUNTDOWN" then
+					loadouts[player]:prepare()
+					publish(player)
+				end
+			end),
 			player:GetAttributeChangedSignal("RaceState"):Connect(function()
 				local state = player:GetAttribute("RaceState")
 				if state == previousState then return end
@@ -279,7 +292,8 @@ function RaceItemController.start()
 				elseif state == "RACING" and oldState == "COUNTDOWN" then
 					-- Grid/seat reset events can clear the countdown loadout after prepare.
 					-- No item can be used in COUNTDOWN, so refill at the authoritative start.
-					loadouts[player]:prepare(true) -- Preserve valid desktop Countdown selection.
+					local active = loadouts[player].slots
+					loadouts[player]:prepare(if #active == Slots.RACE_ITEM_SLOT_COUNT then active else nil, true)
 					publish(player)
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
 					clearPlayer(player)
@@ -324,8 +338,7 @@ function RaceItemController.start()
 		if state ~= "RACING" then return end
 		local id = ...
 		if action == "UseItem" then
-			if select("#", ...) ~= 1 or type(id) ~= "string"
-				or not table.find({"Nitro", "Slick", "Shield", "Missile"}, id) then return end
+			if select("#", ...) ~= 1 or not loadout:contains(id) then return end
 		elseif action ~= "Use" or select("#", ...) ~= 0 then return end
 		local now = time()
 		if lastUse[player] and now-lastUse[player] < 0.15 then return end

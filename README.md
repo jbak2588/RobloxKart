@@ -53,6 +53,39 @@ PC controls: `1` Nitro / `2` Slick / `3` Shield / `4` Missile; `Q` = use.
 
 RaceLoadout is temporary. Inventory is reserved for future persistent Shop ownership.
 
+### M4-A2 Four-Slot Item Expansion Foundation
+
+`RaceItemCatalog` owns item metadata, implementation status and initial/max charges.
+The catalog may grow beyond four; `RaceItemSlots.RACE_ITEM_SLOT_COUNT = 4` fixes
+the race HUD at exactly four active slots. Production defaults remain
+`Nitro / Slick / Shield / Missile`, each with one charge. Smoke remains catalog
+metadata only (`Implemented = false`, zero charge), with no icon or usable slot.
+
+Server-only `RaceLoadout:prepare(slotIds, preserveSelection)` validates exactly
+four unique implemented items with charge configuration, copies their order,
+and owns `slots`, `counts` and `selected`. Invalid preparation changes nothing.
+The server publishes `RaceItemSlot1..4` and charge attributes. Mobile taps use
+the displayed active item directly; desktop `1/2/3/4` select slot positions and
+`Q` uses the selection. Both selection and use require membership in that
+player's server loadout. Existing icons, HUD geometry and combat feedback stay
+unchanged; incoming emphasis finds Shield by item identity, wherever its slot is.
+Bonus Nitro still awards once after five Mini Boosts, up to two charges, and
+requires Nitro in the active loadout. No hidden Nitro charge is created.
+
+New Race/Rematch prepares the default; terminal/exit, seat/character/reset and
+session boundaries clear slots and charges. GO refills valid Countdown slots
+and preserves desktop preselection; a cleared loadout safely uses the default.
+No persistence, inventory, Shop, Garage loadout selector, Smoke gameplay or
+speculative Thunder/Rain definitions are added.
+
+Automated production tests cover alternate slot order, publication, keys/taps,
+icons, Shield emphasis, deferred/inactive rejection, lifecycle and Bonus Nitro.
+Studio runtime NOT VERIFIED for M4-A2; published default-loadout/input/Rematch
+smoke checks remain required. M4-A1 CODE COMPLETE — PUBLISHED FEEDBACK SMOKE TEST
+PENDING (Missile hit, Shield block, Slick hit); no published PASS is claimed.
+
+**M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY**
+
 ## Production Kart
 
 Sprint V1

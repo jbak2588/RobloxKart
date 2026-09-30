@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local requireModule = require :: (ModuleScript) -> any
 local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig") :: ModuleScript
 local KartConfig = requireModule(kartConfigModule)
+local Slots = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemSlots"))
 
 local KartInputController = {}
 local raceItemRemote: RemoteEvent? = nil
@@ -89,14 +90,14 @@ function KartInputController.selectRaceItem(id: string)
 	if not raceItemRemote or UserInputService:GetFocusedTextBox() then return end
 	local state = Players.LocalPlayer:GetAttribute("RaceState")
 	if state ~= "RACING" and state ~= "COUNTDOWN" then return end
-	if id ~= "Nitro" and id ~= "Slick" and id ~= "Shield" and id ~= "Missile" then return end
+	if not Slots.contains(Players.LocalPlayer, id) then return end
 	raceItemRemote:FireServer("Select", id)
 end
 
 function KartInputController.useRaceItemDirect(id: string)
 	if not raceItemRemote or UserInputService:GetFocusedTextBox() or not KartInputController.isTouchPreferred()
 		or Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING" then return end
-	if not table.find({"Nitro", "Slick", "Shield", "Missile"}, id) then return end
+	if not Slots.contains(Players.LocalPlayer, id) then return end
 	raceItemRemote:FireServer("UseItem", id)
 end
 
@@ -135,12 +136,13 @@ function KartInputController.start()
 	end
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-		local selection = if input.KeyCode == Enum.KeyCode.One then "Nitro"
-			elseif input.KeyCode == Enum.KeyCode.Two then "Slick"
-			elseif input.KeyCode == Enum.KeyCode.Three then "Shield"
-			elseif input.KeyCode == Enum.KeyCode.Four then "Missile" else nil
-		if selection then
-			if not gameProcessed then KartInputController.selectRaceItem(selection) end
+		local slot = if input.KeyCode == Enum.KeyCode.One then 1
+			elseif input.KeyCode == Enum.KeyCode.Two then 2
+			elseif input.KeyCode == Enum.KeyCode.Three then 3
+			elseif input.KeyCode == Enum.KeyCode.Four then 4 else nil
+		if slot then
+			local selection = Slots.get(Players.LocalPlayer, slot)
+			if selection and not gameProcessed then KartInputController.selectRaceItem(selection) end
 			return
 		end
 		if input.KeyCode == Enum.KeyCode.Q then
