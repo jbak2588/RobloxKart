@@ -210,7 +210,7 @@ valid target
 Server selects only the immediate RACING racer ahead (`RacePosition - 1`) in
 the same RaceSession with a valid KartContext. No target retains the charge and
 publishes NO TARGET AHEAD. Client target identity/position is never accepted.
-Target remains fixed; no mid-flight retarget. A 1.50-second incoming warning
+Target remains fixed; no mid-flight retarget. A 0.90-second pre-launch warning
 allows the existing 5-second/one-attack Shield to block with no physics effect.
 Server Heartbeat homing uses relative swept proximity, noncolliding native
 geometry, speed 165, lifetime 7 seconds, radius 5.5, turn rate 8 rad/sec and a
@@ -256,7 +256,7 @@ NOT VERIFIED. R2 published runtime PASS, confirmed by the user: Missile
 targeting/fire and 55 / 2.50-second slowdown, Slick visibility to the following
 racer and hit/effect, and mobile four-item HUD. Mobile Shield select -> USE
 remains too difficult within the 1.50-second warning. M4-A0 remains OPEN.
-R3 keeps warning at 1.50 seconds and all Missile/Slick/physics/M3 tuning unchanged.
+R3 initially kept warning at 1.50 seconds with Missile/Slick/physics/M3 unchanged.
 Published mobile racing showed two-step selection/use is too slow for combat.
 R3 unifies every touch item slot: TAP ITEM -> USE ITEM while RACING, via one
 UseItem request with exactly one validated Nitro/Slick/Shield/Missile id. The
@@ -271,10 +271,20 @@ button is hidden and disconnected. Countdown taps do nothing. Desktop keys
 while empty/reset loadouts safely refill with default Nitro. Cyan border / ! /
 TAP SHIELD emphasize the existing slot during incoming; cosmetic Slick feedback
 cannot hide it. Preserve the published left-side geometry and driving controls.
-R3 Studio runtime NOT VERIFIED. Published Android/iPhone one-tap checks for all
-four items, rejection/empty/active states, duplicate taps, warning counterplay,
-Countdown and PC preselection remain required; 3/4-player combat checks remain.
-M4-A0-R3 CODE COMPLETE — PUBLISHED MOBILE ONE-TAP ITEM RETEST REQUIRED.
+R3 published mobile PASS, confirmed by the user: direct one-tap item activation
+works, and MISSILE INCOMING -> tap Shield -> BLOCKED is natural and reliable.
+The 1.50-second warning now makes defense too easy. Balance follow-up changes
+only pre-launch warning to 0.90 seconds; actual reaction time also includes
+flight time. Shield remains manual, five seconds/one attack; no auto-activation.
+All other Missile/Slick values and behavior remain unchanged. Studio runtime
+NOT VERIFIED for this balance follow-up. Published two-player mobile retest:
+leader A / attacker B, at least ten attacks across straight/corner/drifting/
+other-item-use situations and short/long distances. Record blocks, hits, warning
+readability and fairness; prioritize player feel without a fixed success rate.
+Freeze 0.90 only after fair published results; 0.75 (too easy) or 1.00 (too hard)
+are future candidates requiring a follow-up. Other unconfirmed edge cases and
+3/4-player combat checks remain. M4-A0 remains OPEN for balance/runtime checks.
+M4-A0-R3 BALANCE CODE COMPLETE — PUBLISHED 0.90-SECOND WARNING RETEST REQUIRED.
 
 ## Production Kart
 

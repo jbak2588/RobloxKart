@@ -142,15 +142,15 @@ for _, injected in {target,target.UserId,contexts[target].kart,V.new(0,0,0)} do 
 check(source:GetAttribute("RaceChargeMissile")==1 and (target:GetAttribute("RaceMissileIncomingCount") or 0)==0,"all client target injection rejected")
 use(source,"Missile")
 local warningStart=now
-check(config.MISSILE_WARNING_SECONDS==1.50,"R2 mobile reaction window is 1.50 seconds")
+check(config.MISSILE_WARNING_SECONDS==0.90,"R3 one-tap Shield pre-launch warning is 0.90 seconds")
 check(source:GetAttribute("RaceChargeMissile")==0 and source:GetAttribute("RaceMissileTargetName")==target.DisplayName
 	and source:GetAttribute("RaceMissileLaunchSerial")==1 and target:GetAttribute("RaceMissileIncomingCount")==1,"acceptance consumes only Missile and publishes lock/incoming")
-tick(1.0)
+tick(.60)
 check(projectileCount()==0 and effectCount==0 and target:GetAttribute("RaceMissileIncomingCount")==1,
-	"immediate incoming warning remains active beyond old .75 launch time")
+	"immediate incoming warning remains active before launch without an early hit")
 use(target,"Shield")
-tick(warningStart+1.499-now)
-check(projectileCount()==0 and contexts[target].kart:GetAttribute("KartShieldActive"),"Shield selected/used before full 1.50 warning ends")
+tick(warningStart+config.MISSILE_WARNING_SECONDS-.001-now)
+check(projectileCount()==0 and contexts[target].kart:GetAttribute("KartShieldActive"),"Shield usable before full 0.90 pre-launch warning ends")
 tick(.0011)
 check(projectileCount()==1 and contexts[target].kart:GetAttribute("KartShieldActive"),"target can Shield during warning")
 for _, part in prototype.RaceMissiles:GetChildren()[1]:GetChildren() do

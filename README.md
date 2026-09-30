@@ -78,7 +78,7 @@ and Use actions, never a target, position or hit report.
 
 `RaceItemController` owns target acquisition, loadout consumption and the shared
 valid target → immunity → Shield → effect path. `HomingMissileService` owns
-the 1.50-second warning, fixed target, Heartbeat flight and cleanup. Incoming
+the 0.90-second pre-launch warning, fixed target, Heartbeat flight and cleanup. Incoming
 feedback publishes immediately; projectile flight waits for the full window. It moves
 noncolliding native geometry at 165 stud/s, turning at up to 8 rad/sec, with a
 7-second flight lifetime and 5.5-stud relative swept hit radius. Up to 16 active
@@ -122,7 +122,9 @@ R2 published runtime PASS, confirmed by the user: Missile targeting/fire and
 and the mobile four-item HUD. Mobile Shield select -> USE remains too difficult
 even with the 1.50-second warning; M4-A0 remains OPEN.
 
-**M4-A0-R3 CODE COMPLETE — PUBLISHED MOBILE ONE-TAP ITEM RETEST REQUIRED.**
+**M4-A0-R3 mobile one-tap activation / Shield counterplay: PUBLISHED PASS.**
+The user confirmed direct one-tap item activation works and
+`MISSILE INCOMING -> tap Shield -> BLOCKED` is natural and reliable.
 Published mobile racing showed SELECT ITEM -> USE was too slow and required
 unnecessary attention during combat. Touch now uses TAP ITEM -> USE ITEM for
 Nitro, Slick, Shield and Missile while RACING. Each tap sends one atomic
@@ -137,12 +139,22 @@ and Q use stay unchanged; valid Countdown selection survives GO's authoritative
 refill, while reset/empty loadouts refill safely. A cyan border, `!` and
 `TAP SHIELD` emphasize the existing Shield slot during incoming, including
 cosmetic Slick feedback. The four-item group stays in its approved left lane.
-Warning stays 1.50 seconds; Missile/Slick balance, physics and M3 are unchanged.
-R3 Studio runtime NOT VERIFIED. Published Android/iPhone retests must cover
-all four one-tap actions, rejected activation, empty/already-active Shield,
-no-target Missile, Countdown taps, PC preselection, duplicates and multiple incoming. Leader
-rejection and 3–4-player immediate targeting remain required. Automated tests
-do not establish device touch or published counterplay PASS.
+With one-tap defense, the user found 1.50 seconds too forgiving. This balance
+follow-up changes only `MISSILE_WARNING_SECONDS` to **0.90 seconds**. This is
+the pre-launch warning; total reaction time also includes projectile flight.
+Shield is still a manual tap, five seconds or one offensive hit. Other Missile
+values, Slick 16x5 and behavior, physics and M3 are unchanged.
+**BALANCE CODE COMPLETE — PUBLISHED 0.90-SECOND WARNING RETEST REQUIRED.**
+Studio runtime NOT VERIFIED for this follow-up. Published two-player mobile test:
+A leads / B attacks, repeat at least ten attacks across straights, normal corners,
+leader drifting or using another item, and short/long racer distances. Record
+approximate Shield blocks, Missile hits, readability and perceived fairness;
+use player feel without a fixed statistical target. If fair, freeze 0.90; if too
+easy, next candidate 0.75; if clearly too hard, next candidate 1.00. Neither
+candidate is implemented. Unconfirmed edge cases (empty/active items, no-target,
+Countdown, PC preselection, duplicates/multiple incoming) and leader rejection /
+3–4-player combat validation remain. Automated tests do not establish published
+balance or device PASS. M4-A0 remains OPEN.
 Production KartContext tests enforce cap 55 every simulation
 step, with active samples at 0.25, 1.00, 1.50, 2.25 and 2.49 seconds, followed by
 normal acceleration after 2.50 seconds; braking/throttle and Shield are covered.
