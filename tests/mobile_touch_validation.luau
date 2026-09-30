@@ -647,13 +647,15 @@ tick()
 local result=itemHud.CombatResult
 local edge=itemHud.CombatEdge1
 kart:SetAttribute("KartMissileHitActive",true);tick()
-check(result.Visible and result.Text=="MISSILE HIT" and edge.Visible and edge.AbsoluteSize.X==3,
+check(result.Visible and result.Text=="MISSILE HIT!" and edge.Visible and edge.AbsoluteSize.X==6,
 	"authoritative Missile rising edge gives compact text and peripheral flash, no central overlay")
-combatNow+=.46;tick()
-check(not result.Visible and not edge.Visible,"victim feedback expires in .45 seconds while damage remains active")
+combatNow+=.61;tick()
+check(result.Visible and not edge.Visible,"victim badge remains readable after .60 second edge cue expires")
+combatNow+=.40;tick()
+check(not result.Visible,"victim badge expires after one second while damage remains active")
 tick();check(not result.Visible,"continuous active state does not repeatedly retrigger a hit cue")
 kart:SetAttribute("KartMissileHitActive",false);kart:SetAttribute("KartSlickActive",true);tick()
-check(result.Text=="SLICK!" and result.Visible and edge.BackgroundColor3==rb.Color3.fromRGB(185,125,255),
+check(result.Text=="SLICK HIT!" and result.Visible and edge.BackgroundColor3==rb.Color3.fromRGB(185,125,255),
 	"authoritative Slick rising edge shows the purple victim cue")
 player:SetAttribute("RaceItemBlockedSerial",1)
 check(result.Text=="BLOCKED!" and edge.BackgroundColor3==rb.Color3.fromRGB(65,225,255),"Shield block cue is cyan")
@@ -663,7 +665,7 @@ for index, pair in {{"MISSILE_HIT","HIT: Rival"},{"MISSILE_BLOCKED","SHIELD BLOC
 	player:SetAttribute("RaceCombatFeedbackCode",pair[1]);player:SetAttribute("RaceCombatFeedbackSerial",index)
 	check(result.Visible and result.Text==pair[2],"server result maps to compact presentation "..pair[1])
 end
-combatNow+=.81;tick();check(not result.Visible,"attacker confirmation expires in .8 seconds")
+combatNow+=1.21;tick();check(not result.Visible,"attacker confirmation expires in 1.2 seconds")
 for _, boundary in {"FINISHED","DNF","GARAGE","COUNTDOWN","session","reset","seat","destroy","character"} do
 	kart.Parent=services.Workspace;humanoid.SeatPart=seat;player.Character=character
 	player:SetAttribute("RaceState","RACING");tick()

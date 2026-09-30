@@ -198,7 +198,9 @@ Lifecycle/session cleanup clears active slots and charges. Smoke is unimplemente
 catalog metadata only, zero charge, rejected from prepare/select/use. No Smoke,
 Thunder/Rain gameplay, persistence, Shop or Garage selector in this milestone.
 M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY.
-Studio runtime NOT VERIFIED; published input/loadout/Rematch smoke is pending.
+Studio runtime NOT VERIFIED. M4-A2 basic published smoke: PUBLISHED PASS, confirmed
+by the user (four slots, mobile direct use, Rematch refills each item to one).
+Mobile ROOM/NEXT above minimap: PUBLISHED PASS. Preserve these accepted behaviors.
 
 ## Slick
 
@@ -312,17 +314,28 @@ KartSlickActive rising edges, never infer hits from visual proximity.
 HomingMissileService owns native launch flash and attached Trail cleanup.
 Shield uses separate cosmetic cyan activation/block pulses: .30 seconds, max 32,
 updated by the existing server loop; never another defense or duration.
-CombatFeedbackView uses one compact result lane below incoming, .45-second victim
-text and 3px edge cues, .8-second owner confirmations. Preserve locked/incoming /
+R1 CombatFeedbackView uses a 240x34 dark rounded badge, 17px text, .25 background
+transparency below actual speed HUD bounds across GUI insets. Incoming has
+priority, moving the result below warning; portrait stays below LAP. Victim
+MISSILE HIT! / SLICK HIT! / BLOCKED! last 1.0 sec; 6px edges last .60 sec.
+Owner confirmations last 1.2 sec. Preserve locked/incoming /
 TAP SHIELD / BLOCKED, the item row, Nitro Charge and driving control positions.
 No physics, camera shake/rotation, opaque central flashes or combat balance edits.
 Serials support repeated attacks; latest result replaces the cue, no stale queue.
 Finish/DNF/Quit/Garage/Rematch, seat/character loss, Kart destruction, reset and
 session boundaries clear transient feedback. No arbitrary audio IDs or reused
 Countdown/Boost sounds; no new audio hooks, combat SFX deferred pending assets.
-Studio runtime NOT VERIFIED. A short published two-player Missile hit / Shield
-block / Slick contact smoke test remains; no repeated full-race balance test.
-M4-A1 CODE COMPLETE — PUBLISHED FEEDBACK SMOKE TEST PENDING.
+M4-A1 PUBLISHED FEEDBACK VISIBILITY FAIL, user-confirmed: gameplay effects work
+but all three cues were imperceptible. Not CLOSED. R1 fixes initial binding
+swallowing an already-active hit and adds direct Kart attribute observation;
+Heartbeat remains a lifecycle/expiry fallback. DEBUG_TELEMETRY gates bounded
+server source/target/code/serial and client event/victim logs, never per-frame.
+The existing cosmetic Shield pulse uses cyan Neon for visibility; defense shell,
+duration/consumption and physics are unchanged. Production view tests cover real
+mocked serials/state, short transitions, lifecycle and mobile safe bounds.
+Studio runtime NOT VERIFIED. Published two-player Missile hit / Shield block /
+Slick hit retest must confirm both sides; no new item before feedback is resolved.
+M4-A1-R1 CODE COMPLETE — PUBLISHED 3-EVENT FEEDBACK RETEST REQUIRED.
 
 ## Production Kart
 
@@ -356,7 +369,7 @@ Driver seating issue is deferred.
 M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
 Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
 queue, invitation, routing, staging, timeout and Rematch behavior.
-M4-A0 MVP CLOSED. Current next priority: M4-A1 published combat feedback smoke
+M4-A0 MVP CLOSED. Current next priority: M4-A1-R1 published three-event feedback
 test, then approved combat audio assets. Broader 3–4 player balance is deferred.
 Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.

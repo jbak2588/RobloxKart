@@ -258,7 +258,10 @@ function RaceItemUiController.start()
 			nitroProgress.Size = UDim2.fromOffset(width * #buttons + 4 * (#buttons-1), 32)
 			progressLabel.TextSize = 13
 		end
-		combatView:layout(combat.Position, combat.Size)
+		local topHud = gui.Parent:FindFirstChild("RobloxKartMobileTopHud")
+		local raceHud = gui.Parent:FindFirstChild("RobloxKartRaceHud")
+		local speedHud = if mobile then topHud else raceHud
+		combatView:layout(combat.Position, combat.Size, combat, speedHud and speedHud:FindFirstChild("Speedometer"))
 		refresh()
 	end
 	local viewportConnection = nil

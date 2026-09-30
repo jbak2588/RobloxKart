@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
+local KartConfig = require(Shared:WaitForChild("KartConfig"))
 local Catalog = require(Shared:WaitForChild("RaceItemCatalog"))
 local Slots = require(Shared:WaitForChild("RaceItemSlots"))
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
@@ -40,6 +41,10 @@ local function combatFeedback(source, target, item, result)
 	source:SetAttribute("RaceCombatFeedbackTargetName", target.DisplayName or target.Name)
 	source:SetAttribute("RaceCombatFeedbackCode", string.upper(item) .. "_" .. string.upper(result))
 	source:SetAttribute("RaceCombatFeedbackSerial", (source:GetAttribute("RaceCombatFeedbackSerial") or 0) + 1)
+	if KartConfig.DEBUG_TELEMETRY then
+		print(string.format("[CombatFeedback] source=%s target=%s code=%s serial=%d", source.Name, target.Name,
+			source:GetAttribute("RaceCombatFeedbackCode"), source:GetAttribute("RaceCombatFeedbackSerial")))
+	end
 end
 
 local function publish(player)

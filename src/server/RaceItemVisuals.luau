@@ -135,7 +135,7 @@ end
 function Visuals.shieldPulse(kart, chassis)
 	local pulse = part(kart, "ShieldPulse", Vector3.new(9, 6.5, 11) * 0.9,
 		chassis.CFrame * CFrame.new(0, 1.3, 0), Color3.fromRGB(65, 225, 255))
-	pulse.Shape, pulse.Material, pulse.Transparency = Enum.PartType.Ball, Enum.Material.ForceField, 0.45
+	pulse.Shape, pulse.Material, pulse.Transparency = Enum.PartType.Ball, Enum.Material.Neon, 0.45
 	pulse.Anchored = false
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0, weld.Part1, weld.Parent = chassis, pulse, pulse

@@ -80,9 +80,10 @@ speculative Thunder/Rain definitions are added.
 
 Automated production tests cover alternate slot order, publication, keys/taps,
 icons, Shield emphasis, deferred/inactive rejection, lifecycle and Bonus Nitro.
-Studio runtime NOT VERIFIED for M4-A2; published default-loadout/input/Rematch
-smoke checks remain required. M4-A1 CODE COMPLETE — PUBLISHED FEEDBACK SMOKE TEST
-PENDING (Missile hit, Shield block, Slick hit); no published PASS is claimed.
+Studio runtime NOT VERIFIED for M4-A2. User-confirmed M4-A2 basic published smoke:
+PUBLISHED PASS (four slots, mobile direct use, Rematch refills each default item
+to one). Mobile ROOM/NEXT above minimap: PUBLISHED PASS. M4-A1 published feedback
+visibility failed; see R1 below. Broader multiplayer balance remains deferred.
 
 **M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY**
 
@@ -205,10 +206,13 @@ the projectile owns and destroys these objects. Shield activation and block use
 short cyan expanding shells, separate from the five-second/one-hit defense.
 At most 32 cosmetic Shield pulses live for 0.30 seconds in the existing server
 loop. Slick's 16x5 pad/perimeter and all effects stay unchanged.
-CombatFeedbackView reuses one compact result lane below the existing warning.
-Victim Kart rising edges produce MISSILE HIT / SLICK! with two 3px peripheral
-flashes for .45 seconds; attackers see HIT: name / SHIELD BLOCKED / SLICK HIT:
-name / SLICK BLOCKED for .8 seconds. Existing MISSILE LOCKED, incoming/TAP
+R1 CombatFeedbackView uses a dark rounded 240x34 badge, 17px GothamBold and .25
+background transparency, below the actual speed panel in screen coordinates.
+Incoming warning has priority; the badge moves below it while visible. Portrait
+uses the existing safe lane below LAP. Victims see MISSILE HIT! / SLICK HIT! /
+BLOCKED! for 1.0 second, with 6px peripheral cues fading over .60 seconds.
+Attackers see HIT: name / SHIELD BLOCKED / SLICK HIT: name / SLICK BLOCKED for
+1.2 seconds. Existing MISSILE LOCKED, incoming/TAP
 SHIELD and BLOCKED! remain. No camera motion, central opaque flash or physics.
 No new audio assets or audio hooks were added; combat remains silent until
 approved owned/licensed assets are provided. Existing audio is unchanged.
@@ -219,10 +223,23 @@ serials; newest result replaces the compact cue without queuing old messages.
 Automated checks cover resolution, native visuals, cleanup and safe GUI bounds
 including 932x430 / 844x390 and smaller notch-safe landscape parents. The item
 row, Nitro Charge, Drift, wheel and pad geometry are unchanged.
-Studio runtime NOT VERIFIED for M4-A1. Published short two-player smoke test:
-Missile hit (victim + attacker cues), Shield activation/block (both sides BLOCKED,
-no slowdown), and Slick contact (victim effect + owner confirmation). No long
-balance-rate test is required.
+M4-A1: PUBLISHED FEEDBACK VISIBILITY FAIL, confirmed by the user's mobile
+two-player test: effects work but Missile hit, Shield block and Slick hit cues
+were not perceived. M4-A1 is not CLOSED. The audit confirms server hit/block
+authoring and deterministic client serial/state rendering, but does not prove
+published replication. Initial view binding could swallow an already-active hit;
+R1 displays that initial edge and directly observes Kart attributes so short
+Slick transitions do not depend solely on Heartbeat sampling. Telemetry-gated
+server source/target/code/serial and client event/victim logs occur only on actual
+transitions. Shield defense shell/timing stay unchanged; the existing cosmetic
+pulse uses cyan Neon for clearer contact. No combat balance changes.
+Production view tests execute all four attacker results, three victim cues,
+expiry, replacement, initial binding, short transitions and lifecycle cleanup.
+Geometry checks use actual speed bounds across separate GUI insets at 932x430,
+844x390 and notch-safe landscape, clearing LAP/map/ROOM/items/road center.
+Studio runtime NOT VERIFIED for R1. Published two-player Missile hit, Shield
+block and Slick hit retest is required, checking both attacker and victim.
+M4-A1-R1 CODE COMPLETE — PUBLISHED 3-EVENT FEEDBACK RETEST REQUIRED.
 
 ### M1-A Digital Driving Pad v1
 

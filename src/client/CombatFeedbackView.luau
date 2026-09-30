@@ -1,12 +1,17 @@
 -- Local presentation only. Outcomes come from server serials / Kart attributes.
 local RunService = game:GetService("RunService")
+local KartConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("KartConfig"))
 local View = {}
 function View.new(gui, player, onClear)
 	local cue = Instance.new("TextLabel")
 	cue.Name = "CombatResult"
 	cue.AnchorPoint = Vector2.new(0.5, 0)
-	cue.BackgroundTransparency = 1
-	cue.Font, cue.TextSize = Enum.Font.GothamBold, 14
+	cue.BackgroundColor3 = Color3.fromRGB(16, 25, 35)
+	cue.BackgroundTransparency = 0.25
+	cue.BorderSizePixel, cue.ZIndex = 0, 20
+	cue.Font, cue.TextSize = Enum.Font.GothamBold, 17
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius, corner.Parent = UDim.new(0, 8), cue
 	cue.TextStrokeColor3, cue.TextStrokeTransparency = Color3.fromRGB(16, 25, 35), 0.35
 	cue.TextTruncate = Enum.TextTruncate.AtEnd
 	cue.Active, cue.Visible, cue.Parent = false, false, gui
@@ -14,13 +19,16 @@ function View.new(gui, player, onClear)
 	for i = 1, 2 do
 		local edge = Instance.new("Frame")
 		edge.Name = "CombatEdge" .. i
-		edge.Position = UDim2.new(i-1, if i == 2 then -3 else 0, 0.1, 0)
-		edge.Size = UDim2.new(0, 3, 0.8, 0)
+		edge.Position = UDim2.new(i-1, if i == 2 then -6 else 0, 0.1, 0)
+		edge.Size = UDim2.new(0, 6, 0.8, 0)
 		edge.BorderSizePixel, edge.Active, edge.Visible, edge.Parent = 0, false, false, gui
 		table.insert(edges, edge)
 	end
 	local untilTime, flashUntil = 0, 0
 	local kart, session, reset, wasMissile, wasSlick
+	local kartSignals = {}
+	local observeHits
+	local boundBefore = false
 	local connections = {}
 	local stopped = false
 	local function clear(notify)
@@ -44,10 +52,22 @@ function View.new(gui, player, onClear)
 		local currentSession = player:GetAttribute("RaceSessionId")
 		local currentReset = current and current:GetAttribute("RaceResetSerial")
 		if current ~= kart or currentSession ~= session or currentReset ~= reset then
+			for _, connection in kartSignals do connection:Disconnect() end
+			kartSignals = {}
 			clear(kart ~= nil) -- Initial seat binding must not erase a just-authored launch notice.
 			kart, session, reset = current, currentSession, currentReset
-			wasMissile = current and current:GetAttribute("KartMissileHitActive") == true
-			wasSlick = current and current:GetAttribute("KartSlickActive") == true
+			-- The first replicated hit can arrive with the initial seat/Kart binding.
+			-- Observe that active edge instead of treating it as already displayed.
+			wasMissile = boundBefore and current and current:GetAttribute("KartMissileHitActive") == true
+			wasSlick = boundBefore and current and current:GetAttribute("KartSlickActive") == true
+			if current then
+				boundBefore = true
+				for _, attribute in {"KartMissileHitActive", "KartSlickActive"} do
+					table.insert(kartSignals, current:GetAttributeChangedSignal(attribute):Connect(function()
+						if activeKart() == current and current:GetAttribute("RaceResetSerial") == reset and observeHits then observeHits(current) end
+					end))
+				end
+			end
 		end
 		if not current then clear() end
 		return current
@@ -56,52 +76,80 @@ function View.new(gui, player, onClear)
 		cue.Text, cue.TextColor3, untilTime = text, color, time()+duration
 		cue.Visible = true
 		if flash then
-			flashUntil = time()+0.45
+			flashUntil = time()+0.60
 			for _, edge in edges do edge.BackgroundColor3, edge.BackgroundTransparency, edge.Visible = color, 0.4, true end
 		end
 	end
 	local orange = Color3.fromRGB(255, 200, 75)
 	local cyan = Color3.fromRGB(65, 225, 255)
 	local purple = Color3.fromRGB(185, 125, 255)
+	local function diagnostic(message)
+		if KartConfig.DEBUG_TELEMETRY then print("[CombatFeedbackView] "..message) end
+	end
+	observeHits = function(current)
+		local missile = current:GetAttribute("KartMissileHitActive") == true
+		local slick = current:GetAttribute("KartSlickActive") == true
+		if missile and not wasMissile then show("MISSILE HIT!", orange, 1.0, true); diagnostic("victim=MISSILE_HIT")
+		elseif slick and not wasSlick then show("SLICK HIT!", purple, 1.0, true); diagnostic("victim=SLICK_HIT") end
+		wasMissile, wasSlick = missile, slick
+	end
 	table.insert(connections, player:GetAttributeChangedSignal("RaceCombatFeedbackSerial"):Connect(function()
-		if not sync() then return end
 		local code = player:GetAttribute("RaceCombatFeedbackCode")
 		local name = player:GetAttribute("RaceCombatFeedbackTargetName") or ""
-		if code == "MISSILE_HIT" then show("HIT: "..name, orange, 0.8, false)
-		elseif code == "MISSILE_BLOCKED" then show("SHIELD BLOCKED", cyan, 0.8, false)
-		elseif code == "SLICK_HIT" then show("SLICK HIT: "..name, purple, 0.8, false)
-		elseif code == "SLICK_BLOCKED" then show("SLICK BLOCKED", cyan, 0.8, false) end
+		if code ~= "MISSILE_HIT" and code ~= "MISSILE_BLOCKED" and code ~= "SLICK_HIT" and code ~= "SLICK_BLOCKED" then return end
+		diagnostic("code="..code.." serial="..tostring(player:GetAttribute("RaceCombatFeedbackSerial")))
+		if not sync() then diagnostic("suppressed=INACTIVE_KART"); return end
+		if code == "MISSILE_HIT" then show("HIT: "..name, orange, 1.2, false)
+		elseif code == "MISSILE_BLOCKED" then show("SHIELD BLOCKED", cyan, 1.2, false)
+		elseif code == "SLICK_HIT" then show("SLICK HIT: "..name, purple, 1.2, false)
+		elseif code == "SLICK_BLOCKED" then show("SLICK BLOCKED", cyan, 1.2, false)
+		else return end
 	end))
 	table.insert(connections, player:GetAttributeChangedSignal("RaceItemBlockedSerial"):Connect(function()
-		if sync() then show("BLOCKED!", cyan, 0.45, true) end
+		if sync() then show("BLOCKED!", cyan, 1.0, true); diagnostic("victim=BLOCKED") end
 	end))
 	for _, attr in {"RaceState", "RaceSessionId"} do
-		table.insert(connections, player:GetAttributeChangedSignal(attr):Connect(function() clear(true); kart=nil end))
+		table.insert(connections, player:GetAttributeChangedSignal(attr):Connect(function() clear(true); kart=nil; sync() end))
 	end
 	table.insert(connections, player.CharacterRemoving:Connect(function() clear(true); kart=nil end))
+	local warning, speedPanel
+	local fallbackPosition = UDim2.new(0.5, 0, 0, 6)
+	local function placeBadge()
+		local size = gui.AbsoluteSize
+		local x = size.X * fallbackPosition.X.Scale + fallbackPosition.X.Offset
+		local y = if size.X < 600 then 180 else 6
+		if speedPanel and speedPanel.Parent then
+			x = speedPanel.AbsolutePosition.X + speedPanel.AbsoluteSize.X/2 - gui.AbsolutePosition.X
+			y = math.max(y, speedPanel.AbsolutePosition.Y + speedPanel.AbsoluteSize.Y - gui.AbsolutePosition.Y + 6)
+		end
+		if warning and warning.Visible then
+			y = math.max(y, warning.AbsolutePosition.Y + warning.AbsoluteSize.Y - gui.AbsolutePosition.Y + 6)
+		end
+		local width = math.min(240, math.max(0, size.X-24))
+		cue.Position = UDim2.fromOffset(math.clamp(x, width/2+12, math.max(width/2+12, size.X-width/2-12)),
+			math.clamp(y, 0, math.max(0, size.Y-34)))
+		cue.Size = UDim2.fromOffset(width, 34)
+	end
 	table.insert(connections, RunService.Heartbeat:Connect(function()
 		local current = sync()
-		if current then
-			local missile = current:GetAttribute("KartMissileHitActive") == true
-			local slick = current:GetAttribute("KartSlickActive") == true
-			if missile and not wasMissile then show("MISSILE HIT", orange, 0.45, true)
-			elseif slick and not wasSlick then show("SLICK!", purple, 0.45, true) end
-			wasMissile, wasSlick = missile, slick
-		end
+		if current then observeHits(current) end
 		cue.Visible = current ~= nil and time() < untilTime
 		for _, edge in edges do
 			edge.Visible = current ~= nil and time() < flashUntil
-			if edge.Visible then edge.BackgroundTransparency = 0.4 + 0.6 * (1-(flashUntil-time())/0.45) end
+			if edge.Visible then edge.BackgroundTransparency = 0.4 + 0.6 * (1-(flashUntil-time())/0.60) end
 		end
+		placeBadge()
 	end))
 	local self = {}
-	function self:layout(position, size)
-		cue.Position, cue.Size = position + UDim2.fromOffset(0, 44), UDim2.fromOffset(size.X.Offset, 22)
+	function self:layout(position, _size, incoming, speed)
+		fallbackPosition, warning, speedPanel = position, incoming, speed
+		placeBadge()
 	end
 	function self:destroy()
 		if stopped then return end
 		stopped=true; clear()
 		for _, connection in connections do connection:Disconnect() end
+		for _, connection in kartSignals do connection:Disconnect() end
 		cue:Destroy(); for _, edge in edges do edge:Destroy() end
 	end
 	table.insert(connections, gui.Destroying:Connect(function() self:destroy() end))
