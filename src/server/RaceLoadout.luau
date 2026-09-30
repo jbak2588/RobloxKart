@@ -30,22 +30,31 @@ function RaceLoadout:grantBonusNitro()
 	if self.selected == "" then self.selected = "Nitro" end
 	return true
 end
+local function consume(self, id)
+	self.counts[id] -= 1
+	if self.selected == id and self.counts[id] == 0 then
+		self.selected = ""
+		local index = table.find(ORDER, id)
+		for offset = 1, #ORDER do
+			local nextId = ORDER[(index + offset - 1) % #ORDER + 1]
+			if self.counts[nextId] > 0 then self.selected = nextId; break end
+		end
+	end
+end
 function RaceLoadout:use(action, extraCount, activate)
 	if action ~= "Use" or extraCount ~= 0 then return false, "invalid_request" end
 	local id = self.selected
 	if not MAX[id] or self.counts[id] <= 0 then return false, "empty_charge" end
 	local accepted, reason = activate(id)
-	if accepted then
-		self.counts[id] -= 1
-		if self.counts[id] == 0 then
-			self.selected = ""
-			local index = table.find(ORDER, id)
-			for offset = 1, #ORDER do
-				local nextId = ORDER[(index + offset - 1) % #ORDER + 1]
-				if self.counts[nextId] > 0 then self.selected = nextId; break end
-			end
-		end
-	end
+	if accepted then consume(self, id) end
+	return accepted, reason
+end
+-- Shield-only atomic path. The server validates incoming; callbacks never yield.
+-- Keep another selected item selected, so emergency defense does not spend it.
+function RaceLoadout:emergencyShield(activate)
+	if self.counts.Shield <= 0 then return false, "empty_charge" end
+	local accepted, reason = activate()
+	if accepted then consume(self, "Shield") end
 	return accepted, reason
 end
 return RaceLoadout

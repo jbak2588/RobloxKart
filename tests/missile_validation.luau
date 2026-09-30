@@ -62,6 +62,9 @@ local function load(path,parent,name)
 end
 local config=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 local Loadout=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
+local boundLoadouts={}
+local originalLoadoutNew=Loadout.new
+Loadout.new=function() local l=originalLoadoutNew();table.insert(boundLoadouts,l);return l end
 local Visuals=load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 local Service=load("src/server/HomingMissileService.luau",server,"HomingMissileService")
 local sessions, contexts = {}, {}
@@ -168,6 +171,69 @@ check(not hit and reason=="immune" and effectCount==1,"second Missile inside imm
 hit,reason=items.tryApplyOffensiveItem(target,source,"Slick")
 check(not hit and reason=="immune" and effectCount==1,"shared offensive immunity blocks Slick too")
 tick(.21);check(projectileCount()==0,"hit flash cleanup")
+
+-- One atomic request spends only Shield, using real service-owned incoming state.
+reset();use(source,"Missile")
+local blockedBeforeEmergency=target:GetAttribute("RaceItemBlockedSerial") or 0
+for _,injected in {"Shield",target,2,{incoming=1}} do
+	remote.OnServerEvent:Fire(target,"EmergencyShield",injected)
+end
+check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
+	"EmergencyShield rejects all client-supplied payloads without spending")
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(contexts[target].kart:GetAttribute("KartShieldActive") and target:GetAttribute("RaceChargeShield")==0
+	and target:GetAttribute("RaceChargeNitro")==1 and target:GetAttribute("SelectedRaceItemId")=="Nitro",
+	"one EmergencyShield request activates and consumes only Shield while preserving selection")
+local emergencyShell=contexts[target].kart:FindFirstChild("RaceItemShield")
+for _=1,10 do remote.OnServerEvent:Fire(target,"EmergencyShield") end
+check(target:GetAttribute("RaceChargeShield")==0 and contexts[target].kart:FindFirstChild("RaceItemShield")==emergencyShell,
+	"duplicate emergency taps cannot consume again or create another Shield")
+-- Supply a charge behind an already-active Shield to isolate that validation.
+boundLoadouts[3].counts.Shield=1;remote.OnServerEvent:Fire(target,"Select","Nitro")
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceChargeShield")==1 and contexts[target].kart:FindFirstChild("RaceItemShield")==emergencyShell,
+	"already-active Shield rejects emergency activation even with a charge")
+tick(config.MISSILE_WARNING_SECONDS)
+for _=1,30 do tick(1/60) end
+check(not contexts[target].kart:GetAttribute("KartShieldActive") and not contexts[target].kart:GetAttribute("KartMissileHitActive")
+	and target:GetAttribute("RaceItemBlockedSerial")==blockedBeforeEmergency+1,"emergency Shield is the ordinary one-hit defense with no slowdown")
+reset();use(source,"Missile")
+boundLoadouts[3].counts.Shield=0;remote.OnServerEvent:Fire(target,"Select","Nitro")
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceChargeShield")==0 and not contexts[target].kart:GetAttribute("KartShieldActive"),
+	"incoming with zero Shield rejects without negative charge")
+reset();target:SetAttribute("RaceMissileIncomingCount",5)
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
+	"an incoming attribute alone cannot forge the server service counter")
+reset();use(source,"Missile");source:SetAttribute("RaceState","GARAGE")
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceMissileIncomingCount")==0 and target:GetAttribute("RaceChargeShield")==1
+	and not contexts[target].kart:GetAttribute("KartShieldActive"),"incoming ended before request consumes nothing")
+use(target,"Shield")
+check(contexts[target].kart:GetAttribute("KartShieldActive") and target:GetAttribute("RaceChargeShield")==0,
+	"normal Select/Use still works after the emergency window closes")
+reset();use(source,"Missile")
+contexts[target].seat._p.Occupant=nil
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
+	"invalid active Kart rejects atomic emergency without consuming")
+reset();use(players[4],"Missile");players[2]:SetAttribute("RacePosition",4);use(players[2],"Missile")
+check(target:GetAttribute("RaceMissileIncomingCount")==2,"two actual incoming records before emergency")
+remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceChargeShield")==0 and contexts[target].kart:GetAttribute("KartShieldActive"),
+	"multiple incoming still create just one ordinary Shield")
+local firstBlocked,firstReason=items.tryApplyOffensiveItem(target,source,"Missile")
+local secondHit,secondReason=items.tryApplyOffensiveItem(target,players[2],"Missile")
+check(firstBlocked and firstReason=="blocked" and secondHit and secondReason=="hit",
+	"one emergency Shield blocks one attack; the next attack can hit")
+for _,state in {"GARAGE","COUNTDOWN","FINISHED","DNF"} do
+	reset();use(source,"Missile");target:SetAttribute("RaceState",state)
+	local before=target:GetAttribute("RaceChargeShield")
+	remote.OnServerEvent:Fire(target,"EmergencyShield")
+	check(target:GetAttribute("RaceChargeShield")==before and not contexts[target].kart:GetAttribute("KartShieldActive"),
+		"emergency is RACING-only "..state)
+end
 
 for _, phase in {"WARNING","FLYING"} do
 for _, boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant","lock","destroy","session","round","leave","owner_leave"} do

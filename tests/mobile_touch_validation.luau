@@ -470,8 +470,9 @@ itemCamera.ViewportSize=safeSize
 services.Workspace.CurrentCamera=itemCamera
 modules.SlickRearPreview={new=function(parent)
 	local panel=child(parent,"Frame","SlickRearPreview")
-	return {layout=function() end,isVisible=function() return false end,
-		stop=function() end,show=function() end,panel=panel}
+	local visible=false
+	return {layout=function() end,isVisible=function() return visible end,
+		stop=function() visible=false end,show=function() visible=true end,panel=panel}
 end}
 child(modulesFolder,"ModuleScript","SlickRearPreview")
 local itemModule=child(modulesFolder,"ModuleScript","RaceItemUiController")
@@ -568,13 +569,46 @@ local missileSelect=item._p.calls[#item._p.calls-1]
 check(missileSelect[1]=="Select" and missileSelect[2]=="Missile" and item._p.calls[#item._p.calls][1]=="Use",
 	"fourth native mobile cell selects Missile; Use retains target-free protocol")
 check(itemHud.Missile:FindFirstChild("MissileIcon") and #itemHud.Missile.MissileIcon:GetChildren()>0,"native Missile icon drawn without asset")
+local beforeWarning=#item._p.calls
+player:SetAttribute("SlickDeployedSerial",1)
+check(not itemHud.Shield.Visible,"cosmetic Slick preview hides ordinary item row")
 player:SetAttribute("RaceMissileIncomingCount",2)
-check(itemHud.MissileFeedback.Visible and itemHud.MissileFeedback.Text=="MISSILE INCOMING\nSHIELD CAN BLOCK"
+player:SetAttribute("RaceChargeShield",1)
+check(#item._p.calls==beforeWarning and itemHud.Shield.Visible and not itemHud.RaceLoadoutFeedback.Visible,
+	"incoming never auto-defends and restores manual Shield target over cosmetic Slick feedback")
+check(itemHud.MissileFeedback.Visible and itemHud.MissileFeedback.Text=="MISSILE INCOMING\nTAP SHIELD"
 	and itemHud.Shield.Visible,"multiple incoming warnings leave Shield cell available")
+local shieldStroke=itemHud.Shield:FindFirstChildOfClass("UIStroke")
+check(shieldStroke.Thickness==3 and shieldStroke.Transparency==0 and itemHud.Shield.SelectedMark.Text=="!"
+	and itemHud.Shield.SelectedMark.Visible,"incoming emphasizes Shield inside the existing slot")
+local beforeTap=#item._p.calls
+itemHud.Shield.Activated:Fire()
+check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="EmergencyShield"
+	and #item._p.calls[#item._p.calls]==1,"mobile Shield tap emits one payload-free atomic action, no Select/Use pair")
+player:SetAttribute("RaceChargeShield",0)
+itemHud.Shield.Activated:Fire()
+check(item._p.calls[#item._p.calls][1]=="EmergencyShield" and itemHud.Shield.Charges.Text=="0"
+	and not itemHud.Shield.SelectedMark.Visible,"empty Shield remains server validated with no invented negative count/highlight")
+player:SetAttribute("RaceChargeShield",1)
+ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;ui:GetPropertyChangedSignal("PreferredInput"):Fire()
+itemHud.Shield.Activated:Fire()
+check(item._p.calls[#item._p.calls][1]=="Select" and item._p.calls[#item._p.calls][2]=="Shield"
+	and itemHud.MissileFeedback.Text=="MISSILE INCOMING\nSHIELD CAN BLOCK","desktop incoming retains ordinary Shield selection")
+ui.PreferredInput=rb.Enum.PreferredInput.Touch;ui:GetPropertyChangedSignal("PreferredInput"):Fire()
 player:SetAttribute("RaceMissileIncomingCount",1)
 check(itemHud.MissileFeedback.Visible,"one of multiple missiles remains warned")
 player:SetAttribute("RaceMissileIncomingCount",0)
 check(not itemHud.MissileFeedback.Visible,"last projectile clears incoming warning")
+beforeTap=#item._p.calls;itemHud.Shield.Activated:Fire()
+check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="Select"
+	and item._p.calls[#item._p.calls][2]=="Shield" and itemHud.Shield.SelectedMark.Text=="✓",
+	"no incoming restores normal select-only slot behavior and clears emergency mark")
+use.Activated:Fire();check(item._p.calls[#item._p.calls][1]=="Use","normal Shield still requires ordinary USE")
+player:SetAttribute("RaceState","COUNTDOWN");player:SetAttribute("RaceMissileIncomingCount",1)
+itemHud.Shield.Activated:Fire()
+check(item._p.calls[#item._p.calls][1]=="Select" and not itemHud.MissileFeedback.Visible,
+	"non-RACING mobile slot cannot dispatch emergency even with stale incoming")
+player:SetAttribute("RaceMissileIncomingCount",0);player:SetAttribute("RaceState","RACING")
 player:SetAttribute("RaceItemFeedbackCode","NO_TARGET_AHEAD");player:SetAttribute("RaceItemFeedbackSerial",1)
 check(itemHud.MissileFeedback.Visible and itemHud.MissileFeedback.Text=="NO TARGET AHEAD","source no-target message")
 player:SetAttribute("RaceMissileTargetName","Racer Ahead")

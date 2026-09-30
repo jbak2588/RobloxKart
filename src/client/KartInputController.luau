@@ -93,6 +93,13 @@ function KartInputController.selectRaceItem(id: string)
 	raceItemRemote:FireServer("Select", id)
 end
 
+function KartInputController.emergencyShield()
+	if not raceItemRemote or UserInputService:GetFocusedTextBox() or not KartInputController.isTouchPreferred()
+		or Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING"
+		or (Players.LocalPlayer:GetAttribute("RaceMissileIncomingCount") or 0) <= 0 then return end
+	raceItemRemote:FireServer("EmergencyShield")
+end
+
 function KartInputController.start()
 	local remoteEvent = ReplicatedStorage:WaitForChild(KartConfig.REMOTE_EVENT_NAME) :: RemoteEvent
 	raceItemRemote = ReplicatedStorage:WaitForChild("RaceItemControl") :: RemoteEvent

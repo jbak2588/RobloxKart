@@ -44,7 +44,12 @@ function RaceItemUiController.start()
 		button.TextSize = 12
 		button.BorderSizePixel = 0
 		button.Parent = gui
-		button.Activated:Connect(function() Input.selectRaceItem(id) end)
+		button.Activated:Connect(function()
+			if id == "Shield" and Input.isTouchPreferred() and player:GetAttribute("RaceState") == "RACING"
+				and (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0 then
+				Input.emergencyShield()
+			else Input.selectRaceItem(id) end
+		end)
 		buttons[index] = button
 		local icon = MobileView.icon(button, id)
 		local scale = Instance.new("UIScale")
@@ -73,7 +78,7 @@ function RaceItemUiController.start()
 		chosenMark.TextColor3 = Color3.new(1, 1, 1)
 		chosenMark.TextSize = 14
 		chosenMark.Parent = button
-		mobileIcons[index] = {icon=icon, border=border, count=count, mark=chosenMark}
+		mobileIcons[index] = {icon=icon, border=border, borderColor=border.Color, count=count, mark=chosenMark}
 	end
 	local nitroProgress = Instance.new("Frame")
 	nitroProgress.Name = "NitroProgress"
@@ -135,19 +140,24 @@ function RaceItemUiController.start()
 		if not racing then blockedUntil = 0; deployedUntil = 0; feedbackUntil = 0 end
 		local incoming = (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0
 		combat.Visible = racing and (incoming or time() < feedbackUntil)
-		combat.Text = if incoming then "MISSILE INCOMING\nSHIELD CAN BLOCK" else feedbackText
+		local mobile = Input.isTouchPreferred()
+		local shieldReady = (player:GetAttribute("RaceChargeShield") or 0) > 0
+		local emergencyReady = mobile and racing and incoming and shieldReady
+		-- A cosmetic deploy replay/feedback must not hide the manual defense target.
+		if emergencyReady and preview then preview:stop() end
+		combat.Text = if incoming then "MISSILE INCOMING\n" .. (if mobile and shieldReady then "TAP SHIELD" else "SHIELD CAN BLOCK") else feedbackText
 		if not racing and preview then preview:stop() end
 		local blocked = time() < blockedUntil
 		local deployed = time() < deployedUntil
 		local showLoadout = (racing or player:GetAttribute("RaceState") == "COUNTDOWN")
 			and not (preview and preview:isVisible())
 		local selected = player:GetAttribute("SelectedRaceItemId")
-		local mobile = Input.isTouchPreferred()
 		for index, button in buttons do
 			local id = button.Name
 			local charges = player:GetAttribute("RaceCharge" .. id) or 0
 			local chosen = selected == id and charges > 0
-			button.Visible = showLoadout and not blocked and not deployed
+			local emergency = mobile and racing and incoming and id == "Shield" and charges > 0
+			button.Visible = showLoadout and (emergency or not blocked and not deployed)
 			button.BackgroundColor3 = if chosen then Color3.fromRGB(32, 102, 145) else Color3.fromRGB(16, 25, 35)
 			button.TextColor3 = if charges == 0 then Color3.fromRGB(110, 118, 128) else Color3.fromRGB(220, 240, 250)
 			button.Text = if mobile then "" else string.upper(id) .. " " .. charges .. (if UserInputService.KeyboardEnabled then
@@ -157,12 +167,14 @@ function RaceItemUiController.start()
 			symbols.icon:setEnabled(charges > 0)
 			symbols.count.Visible = mobile
 			symbols.count.Text = tostring(charges)
-			symbols.mark.Visible = mobile and chosen
+			symbols.mark.Text = if emergency then "!" else "✓"
+			symbols.mark.Visible = mobile and (chosen or emergency)
 			symbols.border.Enabled = mobile
-			symbols.border.Thickness = if chosen then 3 else 1
-			symbols.border.Transparency = if charges == 0 then 0.7 elseif chosen then 0 else 0.5
+			symbols.border.Color = if emergency then Color3.fromRGB(65, 225, 255) else symbols.borderColor
+			symbols.border.Thickness = if chosen or emergency then 3 else 1
+			symbols.border.Transparency = if charges == 0 then 0.7 elseif chosen or emergency then 0 else 0.5
 		end
-		label.Visible = racing and (blocked or deployed) and not (preview and preview:isVisible())
+		label.Visible = racing and (blocked or deployed) and not emergencyReady and not (preview and preview:isVisible())
 		label.Text = if blocked then "BLOCKED!" else "SLICK DEPLOYED"
 		local awarded = player:GetAttribute("DriftBonusNitroAwarded") == true
 		local progress = player:GetAttribute("DriftBonusProgress")

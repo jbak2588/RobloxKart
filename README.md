@@ -117,13 +117,27 @@ was too short for mobile Shield select -> USE, and Slick was not visible/effecti
 to the trailing racer. R2 gives a 1.50-second reaction window and audits/widens
 Slick as described below. M4-A0 remains OPEN.
 
-**M4-A0-R2 CODE COMPLETE — PUBLISHED 2-PLAYER SLICK + MISSILE RETEST REQUIRED.**
-Full combat Studio runtime NOT VERIFIED. Automated tests use deterministic mocks
-and do not establish published combat, device touch or visual PASS. Published R2
-checks must cover warning-to-Shield defense, Slick deployment/visibility from both
-lanes, avoidance and hits, unchanged effect recovery, immunity and Rematch.
-Leader rejection and 3–4-player immediate targeting remain required after the
-2-player retest. Production KartContext tests enforce cap 55 every simulation
+R2 published runtime PASS, confirmed by the user: Missile targeting/fire and
+55 / 2.50-second slowdown, Slick visible to the following racer and its hit/effect,
+and the mobile four-item HUD. Mobile Shield select -> USE remains too difficult
+even with the 1.50-second warning; M4-A0 remains OPEN.
+
+**M4-A0-R3 CODE COMPLETE — PUBLISHED EMERGENCY SHIELD RETEST REQUIRED.**
+During RACING with an incoming Missile, tapping the mobile Shield slot sends one
+payload-free `EmergencyShield` request. The server checks its own incoming record,
+loadout, charge, active Kart and existing Shield before activating and consuming
+exactly one Shield. Rejections consume nothing. This remains manual defense with
+the same five-second/one-attack Shield; multiple incoming Missiles do not create
+extra Shields. A cyan border, `!` and `TAP SHIELD` emphasize the existing slot,
+including during cosmetic Slick feedback. Outside incoming warnings, mobile
+selection -> USE and PC controls are unchanged. Warning stays 1.50 seconds;
+Missile/Slick balance, physics and M3 behavior are unchanged.
+R3 Studio runtime NOT VERIFIED. Published Android/iPhone retests must cover
+one-tap activation, empty/already-active Shield, warning expiry before receipt,
+normal selection/use, duplicate taps and multiple incoming Missiles. Leader
+rejection and 3–4-player immediate targeting remain required. Automated tests
+do not establish device touch or published counterplay PASS.
+Production KartContext tests enforce cap 55 every simulation
 step, with active samples at 0.25, 1.00, 1.50, 2.25 and 2.49 seconds, followed by
 normal acceleration after 2.50 seconds; braking/throttle and Shield are covered.
 AUTO TEST PASS: all 33 `*_validation.luau` suites plus Joystick (34 runs),
@@ -694,9 +708,9 @@ Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Missile 1, Smoke 0 d
 RaceLoadout is server-authoritative temporary state, replacing RaceItemSlot. Inventory means future persistent Shop/ownership only. No persistent Inventory or DataStore is implemented.
 
 - Maximum charges: Nitro 2, Slick 1, Shield 1, Missile 1; Smoke deferred.
-- PC 1/2/3/4 selects Nitro/Slick/Shield/Missile; Q uses the server-selected item. Mobile item cells call the same selection function; the Use button calls useRaceItem().
+- PC 1/2/3/4 selects Nitro/Slick/Shield/Missile; Q uses the server-selected item. Mobile item cells select normally; the Use button calls useRaceItem(). Only the Shield slot during RACING with incoming Missiles sends the atomic EmergencyShield request for immediate manual defense.
 - Accepted use consumes only that item; rejected use retains charges. Once empty, selection advances deterministically Nitro -> Slick -> Shield -> Missile -> Nitro. Keys override the selection at any time if charges remain.
-- RaceItemControl accepts Select with one validated item ID, or Use with no arguments. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.
+- RaceItemControl accepts Select with one validated item ID, Use with no arguments, or payload-free EmergencyShield during server-confirmed incoming Missiles in RACING. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.
 - Race item HUD: four cells, desktop 88 x 48 each, compact PC 70 x 40 each; mobile 44–48px square cells in the safe GUI area. Available selected cell highlighted; empty cells dimmed. Visible in COUNTDOWN and RACING.
 
 ### Slick / Shield

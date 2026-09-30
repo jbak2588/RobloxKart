@@ -295,6 +295,14 @@ function RaceItemController.start()
 			if loadout:select(...) then publish(player) end
 			return
 		end
+		if action == "EmergencyShield" then
+			if select("#", ...) ~= 0 or state ~= "RACING" then return end
+			-- Use the service-owned incoming counter, never a client assertion.
+			if (missiles.incoming[player] or 0) <= 0 then return end
+			local accepted = loadout:emergencyShield(function() return activate(player, "Shield") end)
+			if accepted then lastUse[player] = time(); publish(player) end
+			return
+		end
 		if action ~= "Use" or select("#", ...) ~= 0 or state ~= "RACING" then return end
 		local now = time()
 		if lastUse[player] and now-lastUse[player] < 0.15 then return end

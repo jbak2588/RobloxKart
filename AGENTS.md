@@ -252,8 +252,23 @@ Neon edges at .55 and 9.5 seconds, gone at 10.5. A scripted swept Player2 crossi
 consumed the hazard and activated the real effect at speed 38.5. Test karts were
 anchored and positioned in Play only; this does not verify natural mobile driving,
 chase-camera readability or published counterplay. Full combat Studio runtime
-NOT VERIFIED. M4-A0 remains OPEN; published 2-player retest precedes 3/4 players.
-M4-A0-R2 CODE COMPLETE — PUBLISHED 2-PLAYER SLICK + MISSILE RETEST REQUIRED.
+NOT VERIFIED. R2 published runtime PASS, confirmed by the user: Missile
+targeting/fire and 55 / 2.50-second slowdown, Slick visibility to the following
+racer and hit/effect, and mobile four-item HUD. Mobile Shield select -> USE
+remains too difficult within the 1.50-second warning. M4-A0 remains OPEN.
+R3 keeps warning at 1.50 seconds and all Missile/Slick/physics/M3 tuning unchanged.
+During RACING with incoming Missiles, a mobile Shield-slot tap sends exactly one
+payload-free EmergencyShield action. The server uses its own incoming records,
+requires a loadout, positive Shield charge, valid active Kart and inactive Shield,
+then activates and consumes one charge without yielding. Rejected requests spend
+nothing. Defense remains manual and uses the normal five-second/one-hit Shield,
+even with multiple incoming Missiles. Preserve other selected items, normal
+mobile select -> USE outside incoming, and PC controls. Cyan border / ! / TAP
+SHIELD highlight the existing slot; cosmetic Slick feedback cannot hide it.
+R3 Studio runtime NOT VERIFIED. Published Android/iPhone one-tap counterplay,
+empty/already-active Shield, expired incoming, duplicate taps, multiple incoming
+and normal select/use remain required; 3/4-player combat validation also remains.
+M4-A0-R3 CODE COMPLETE — PUBLISHED EMERGENCY SHIELD RETEST REQUIRED.
 
 ## Production Kart
 
