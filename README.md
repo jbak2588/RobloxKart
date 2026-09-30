@@ -478,10 +478,26 @@ Automated Garage checks cover all four steps at 1600×739, 1280×720, 844×390 a
 action buttons, CONTROLS, BUILD PV, local LOBBY separation, modal precedence and
 long counts (`KDM ONLINE 50 • LOBBY 38 • IN RACE 12`). Text width checks use a
 conservative glyph budget and do not replace Roblox font/device rendering.
-Validation passed: all 31 Luau validation suites plus the Joystick variant
-(32 runs), including 412 Garage checks; Rojo build and `git diff --check` passed.
-Studio runtime NOT VERIFIED for this UI revision.
-**M3-A2-R1 published mobile visual validation is still required.**
+Initial R1 validation passed all 31 Luau validation suites plus the Joystick
+variant (32 runs), including 412 Garage checks, Rojo build and `git diff --check`.
+**M3-A2 aggregate Population mobile runtime: PASS.** The user confirmed
+`KDM ONLINE 3 • LOBBY 3 • IN RACE 0` on published mobile after the initial
+updating state. Preserve that summary's logic and centered Garage placement.
+
+The follow-up R1 local LOBBY polish expands only the player-name panel to four
+visible rows at 1600×739, 1280×720, 844×390 and 390×844. Its four-row height is
+102px: a 20px header, 16px name rows, 2px row gaps and a 70px scroll viewport.
+The existing fifth-and-later scrolling, name truncation and player-specific
+join/leave updates remain. Landscape panels fit in the right gutter beyond the
+carousel arrow, below CONTROLS and the title. Portrait panels stay below the
+aggregate summary and above the arrow, falling back to fewer complete rows when
+vertical space is limited (390×600 shows one). With simulated 16px side and 58px
+top safe insets, tested panel widths are 140 / 108 / 65 / 54px respectively.
+The Garage validation also checks 1/2/3/4/5/10/50 names, scroll retention and
+separation from the approved aggregate status and selection controls.
+The local-list patch passed all 32 validation runs, including 951 Garage checks,
+Rojo build and `git diff --check`. Studio runtime NOT VERIFIED for this patch.
+**PUBLISHED MOBILE VISUAL VALIDATION REQUIRED** for the expanded local LOBBY list.
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
@@ -559,7 +575,7 @@ Do not:
 
 ## Next Development Order
 
-1. M3-A2-R1 published mobile Population HUD visual validation
+1. M3-A2-R1 published mobile local LOBBY four-row visual validation
 2. Combat expansion / Missile, then additional track and public capacity work
 3. Persistence, Shop and cosmetics as scheduled
 

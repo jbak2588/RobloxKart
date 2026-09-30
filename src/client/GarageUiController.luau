@@ -490,12 +490,24 @@ function GarageUiController.start()
 			stepLabel.Position = UDim2.new(0.5, -statusWidth * 0.5, 0.13, 0)
 			stepLabel.TextSize = 19
 			stepLabel.Size = UDim2.fromOffset(statusWidth, 20)
-			presencePanel.Position = if populationTwoLines then UDim2.new(1, -10, 0.13, 64)
-				else UDim2.new(1, -10, 0.155, 0)
-			presencePanel.Size = UDim2.fromOffset(presenceWidth, 60)
+			-- Keep the approved aggregate header width independent of the local list.
+			local lobbyWidth = presenceWidth
+			local lobbyTop = if populationTwoLines then layoutHeight * 0.13 + 64 else layoutHeight * 0.155
+			local availableHeight = layoutHeight * 0.38 - lobbyTop - 8
+			local outerGutterWidth = math.floor((layoutWidth - previewWidth) * 0.5 - 62)
+			if layoutWidth > layoutHeight and outerGutterWidth >= 72 then
+				-- Outside the 40px carousel arrow, below the top CONTROLS button.
+				lobbyWidth = math.min(presenceWidth, outerGutterWidth, math.floor(layoutWidth * 0.1 - 16))
+				lobbyTop = math.max(56, layoutHeight * 0.12 + 6)
+				availableHeight = layoutHeight - lobbyTop - 8
+			end
+			local visibleRows = math.clamp(math.floor((availableHeight - 30) / 18), 1, 4)
+			presencePanel.Position = UDim2.new(1, -10, 0, lobbyTop)
+			presencePanel.Size = UDim2.fromOffset(lobbyWidth, 30 + visibleRows * 18)
 			presenceHeader.TextSize = 11
-			presenceList.Position = UDim2.fromOffset(6, 28)
-			presenceList.Size = UDim2.new(1, -12, 1, -34)
+			presenceHeader.Size = UDim2.new(1, -12, 0, 20)
+			presenceList.Position = UDim2.fromOffset(6, 26)
+			presenceList.Size = UDim2.new(1, -12, 1, -32)
 			populationLabel.Parent = backdrop
 			populationLabel.AnchorPoint = Vector2.new(0.5, 0)
 			populationLabel.Position = UDim2.new(0.5, 0, 0.13, 22)
@@ -541,6 +553,7 @@ function GarageUiController.start()
 			presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
 			presencePanel.Size = UDim2.fromOffset(205, 155)
 			presenceHeader.TextSize = 14
+			presenceHeader.Size = UDim2.new(1, -12, 0, 23)
 			presenceList.Position = UDim2.fromOffset(6, 68)
 			presenceList.Size = UDim2.new(1, -12, 1, -74)
 			populationTwoLines = true

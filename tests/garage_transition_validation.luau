@@ -129,7 +129,20 @@ local function rows()
 	return found
 end
 check(list.ClassName == "ScrollingFrame" and list.ScrollingDirection == rb.Enum.ScrollingDirection.Y
-	and presencePanel.Size.Y.Offset == 60, "mobile presence uses fixed-height vertical scrolling")
+	and presencePanel.Size.Y.Offset == 102 and list.AbsoluteSize.Y == 70,
+	"mobile presence reserves four 16px rows with 2px gaps")
+local function checkPopulationRows(expected)
+	local contentHeight = modules.GaragePresence.canvasHeight(expected, 16, 2)
+	check(#rows() == expected and list.CanvasSize.Y.Offset == contentHeight,
+		"local list contains exactly " .. expected .. " names without blank rows")
+	if expected <= 4 then
+		check(contentHeight <= list.AbsoluteSize.Y, tostring(expected) .. " names visible without scrolling")
+	else
+		check(contentHeight > list.AbsoluteSize.Y and list.ScrollBarThickness > 0 and list.ScrollingEnabled ~= false,
+			tostring(expected) .. " names retain vertical scrolling")
+	end
+end
+checkPopulationRows(1)
 local function addPlayer(index)
 	local other = object("Player", "Player" .. index)
 	other.UserId = index; other.DisplayName = "Racer " .. index
@@ -138,27 +151,39 @@ local function addPlayer(index)
 	playersService.PlayerAdded:Fire(other)
 	return other
 end
-local second, third = addPlayer(2), addPlayer(3)
+local second = addPlayer(2)
+checkPopulationRows(2)
+local third = addPlayer(3)
+checkPopulationRows(3)
 check(#rows() == 3 and presencePanel:FindFirstChild("TextLabel").Text == "LOBBY 3"
-	and list.CanvasSize.Y.Offset > list.Size.Y.Offset,
-	"three online names are represented and the third is reachable by scroll")
-for index = 4, 10 do addPlayer(index) end
+	and list.CanvasSize.Y.Offset <= list.AbsoluteSize.Y,
+	"three Lobby names are visible without scrolling")
+addPlayer(4); checkPopulationRows(4)
+addPlayer(5); checkPopulationRows(5)
+for index = 6, 10 do addPlayer(index) end
+checkPopulationRows(10)
 check(#rows() == 10 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(10, 16, 2)
-	and presencePanel.Size.Y.Offset == 60, "ten players fit fixed mobile panel with scroll canvas")
+	and presencePanel.Size.Y.Offset == 102, "ten players fit fixed mobile panel with scroll canvas")
 for index = 11, 50 do addPlayer(index) end
+checkPopulationRows(50)
 check(#rows() == 50 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(50, 16, 2)
-	and presencePanel.Size.Y.Offset == 60, "50 players remain represented without expanding panel")
+	and presencePanel.Size.Y.Offset == 102, "50 players remain represented without expanding panel")
 list.CanvasPosition = rb.Vector2.new(0, 120)
 third:SetAttribute("RaceState", "RACING")
 check(#rows() == 50 and list.CanvasPosition.Y == 120,
 	"RaceState update retains presence rows and scroll position")
 local index = table.find(players, second); table.remove(players, index)
 playersService.PlayerRemoving:Fire(second)
-check(#rows() == 49 and list:FindFirstChild("Player2") == nil, "PlayerRemoving deletes only departed row")
+check(#rows() == 49 and list:FindFirstChild("Player2") == nil and list.CanvasPosition.Y == 120
+	and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(49, 16, 2),
+	"PlayerRemoving deletes only departed row, retains scroll and updates canvas")
+local replacement = addPlayer(51)
+check(#rows() == 50 and list.Player51.Text == replacement.DisplayName and list.CanvasPosition.Y == 120,
+	"join adds one current name without jumping scroll position")
 safeSize = rb.Vector2.new(1280, 720); input.TouchEnabled = false
 camera.ViewportSize = safeSize
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
-check(presencePanel.Size.Y.Offset == 155 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(49, 20, 2),
+check(presencePanel.Size.Y.Offset == 155 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(50, 20, 2),
 	"desktop shows four rows with all remaining players scrollable")
 check(string.find(list.Player3.Text, "RACING", 1, true) ~= nil,
 	"desktop presence updates the changed racer status")
@@ -177,7 +202,9 @@ end
 local function intersects(a, b)
 	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 end
-local resolutions = { {1600,739}, {1280,720}, {844,390}, {390,844} }
+-- Screen width/height, approved aggregate width, local Lobby width, visible rows.
+local resolutions = { {1600,739,560,140,4}, {1280,720,560,108,4},
+	{844,390,511,65,4}, {390,844,326,54,4}, {390,600,326,54,1} }
 for step = 1, 4 do
 	for _, resolution in resolutions do
 		-- Model a 58px Core UI top inset and 16px side safe margins.
@@ -187,6 +214,19 @@ for step = 1, 4 do
 		camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 		local tag = string.format("%dx%d step %d", resolution[1], resolution[2], step)
 		local status = bounds(populationLabel)
+		local lobby = bounds(presencePanel)
+		check(lobby.x >= 0 and lobby.y >= 0 and lobby.x + lobby.w <= safeSize.X
+			and lobby.y + lobby.h <= safeSize.Y, "local Lobby stays inside Core UI safe bounds " .. tag)
+		local visibleRows = resolution[5]
+		check(presencePanel.Size.X.Offset == resolution[4]
+			and presencePanel.Size.Y.Offset == 30 + visibleRows * 18
+			and list.AbsoluteSize.Y == visibleRows * 16 + (visibleRows - 1) * 2,
+			tostring(visibleRows) .. " local Lobby rows visible " .. tag)
+		check(list.CanvasPosition.Y == 120 and #rows() == 50
+			and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(50, 16, 2),
+			"resize preserves names, canvas and scroll position " .. tag)
+		check(status.w == resolution[3] and populationLabel.Position.Y.Scale == rb.UDim2.new(0, 0, 0.13, 0).Y.Scale
+			and populationLabel.Position.Y.Offset == 22, "approved aggregate placement unchanged " .. tag)
 		check(gui.ScreenInsets == rb.Enum.ScreenInsets.CoreUISafeInsets and populationLabel.Parent == backdrop,
 			"safe-area mobile header " .. tag)
 		check(status.x >= 0 and status.y >= 0 and status.x + status.w <= safeSize.X
@@ -202,6 +242,12 @@ for step = 1, 4 do
 				or item.ClassName == "TextButton" or item == backdrop.GarageStep
 				or (item.ClassName == "TextLabel" and string.sub(item.Text or "", 1, 8) == "BUILD PV") then
 				check(not intersects(status, bounds(item)), "status clears " .. item.Name .. " " .. tag)
+				if item ~= presencePanel then
+					check(not intersects(lobby, bounds(item)), "local Lobby clears " .. item.Name .. " " .. tag)
+				end
+			end
+			if item.ClassName == "TextLabel" and item ~= populationLabel then
+				check(not intersects(lobby, bounds(item)), "local Lobby clears Garage text " .. item.Name .. " " .. tag)
 			end
 		end
 		for _, snapshot in { { online = 3, lobby = 2, inRace = 1 }, { online = 50, lobby = 38, inRace = 12 } } do

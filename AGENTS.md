@@ -235,8 +235,9 @@ Driver seating issue is deferred.
 M3-A1-R2 moved Base Circuit CREATE into a persistent reserved Room server and is
 RUNTIME PASS / CLOSED on published real devices. M3-A2 hardens population UX,
 Room status and failure recovery. M3-A2 FUNCTIONAL RUNTIME: PASS / CLOSED.
-M3-A2-R1 mobile Population placement is implemented; published mobile visual
-validation is next.
+M3-A2 aggregate Population mobile runtime is PASS. M3-A2-R1 expands the local
+LOBBY name list to four visible rows; published mobile list visual validation
+is next.
 Combat/Missile, additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 
@@ -591,7 +592,18 @@ step header, with two lines for narrow headers. Keep CoreUISafeInsets, separate
 local scrollable LOBBY names, and the existing desktop right-side panel.
 Automated geometry checks cover all four Garage steps at 1600×739, 1280×720,
 844×390 and 390×844 with safe insets and long counts (50 / 38 / 12).
-M3-A2-R1 published mobile visual validation still required.
+M3-A2 aggregate Population mobile runtime: PASS. The user confirmed
+`KDM ONLINE 3 • LOBBY 3 • IN RACE 0` after the initial updating state.
+Preserve the aggregate logic and centered placement.
+
+The R1 follow-up expands only the local LOBBY name panel: four 16px rows with
+2px gaps, a 20px header, 102px panel height and 70px scroll viewport. Landscape
+uses the right gutter beyond the carousel arrow and below CONTROLS/title;
+portrait uses the space below the summary and above the arrow, with fewer
+complete rows when necessary. Four visible rows are checked at 1600×739,
+1280×720, 844×390 and 390×844; 390×600 safely falls back to one. Existing
+scrolling for 5+ names, player updates and scroll retention stay intact.
+PUBLISHED MOBILE VISUAL VALIDATION REQUIRED for this local LOBBY expansion.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
