@@ -25,7 +25,7 @@ function View.new(gui, player, onClear)
 		table.insert(edges, edge)
 	end
 	local untilTime, flashUntil = 0, 0
-	local kart, session, reset, wasMissile, wasSlick
+	local kart, session, reset, wasMissile, wasSlick, wasSmoke
 	local kartSignals = {}
 	local observeHits
 	local boundBefore = false
@@ -60,9 +60,10 @@ function View.new(gui, player, onClear)
 			-- Observe that active edge instead of treating it as already displayed.
 			wasMissile = boundBefore and current and current:GetAttribute("KartMissileHitActive") == true
 			wasSlick = boundBefore and current and current:GetAttribute("KartSlickActive") == true
+			wasSmoke = boundBefore and current and current:GetAttribute("KartSmokeObscuredActive") == true
 			if current then
 				boundBefore = true
-				for _, attribute in {"KartMissileHitActive", "KartSlickActive"} do
+				for _, attribute in {"KartMissileHitActive", "KartSlickActive", "KartSmokeObscuredActive"} do
 					table.insert(kartSignals, current:GetAttributeChangedSignal(attribute):Connect(function()
 						if activeKart() == current and current:GetAttribute("RaceResetSerial") == reset and observeHits then observeHits(current) end
 					end))
@@ -73,7 +74,8 @@ function View.new(gui, player, onClear)
 		return current
 	end
 	local function show(text, color, duration, flash)
-		cue.Text, cue.TextColor3, untilTime = text, color, time()+duration
+		-- One style for actual combat results, matching the accepted cyan BLOCKED cue.
+		cue.Text, cue.TextColor3, untilTime = text, Color3.fromRGB(65, 225, 245), time()+duration
 		cue.Visible = true
 		if flash then
 			flashUntil = time()+0.60
@@ -89,20 +91,25 @@ function View.new(gui, player, onClear)
 	observeHits = function(current)
 		local missile = current:GetAttribute("KartMissileHitActive") == true
 		local slick = current:GetAttribute("KartSlickActive") == true
+		local smoked = current:GetAttribute("KartSmokeObscuredActive") == true
 		if missile and not wasMissile then show("MISSILE HIT!", orange, 1.0, true); diagnostic("victim=MISSILE_HIT")
-		elseif slick and not wasSlick then show("SLICK HIT!", purple, 1.0, true); diagnostic("victim=SLICK_HIT") end
-		wasMissile, wasSlick = missile, slick
+		elseif slick and not wasSlick then show("SLICK HIT!", purple, 1.0, true); diagnostic("victim=SLICK_HIT")
+		elseif smoked and not wasSmoke then show("SMOKED!", cyan, 1.0, true); diagnostic("victim=SMOKED") end
+		wasMissile, wasSlick, wasSmoke = missile, slick, smoked
 	end
 	table.insert(connections, player:GetAttributeChangedSignal("RaceCombatFeedbackSerial"):Connect(function()
 		local code = player:GetAttribute("RaceCombatFeedbackCode")
 		local name = player:GetAttribute("RaceCombatFeedbackTargetName") or ""
-		if code ~= "MISSILE_HIT" and code ~= "MISSILE_BLOCKED" and code ~= "SLICK_HIT" and code ~= "SLICK_BLOCKED" then return end
+		if code ~= "MISSILE_HIT" and code ~= "MISSILE_BLOCKED" and code ~= "SLICK_HIT" and code ~= "SLICK_BLOCKED"
+			and code ~= "SMOKE_HIT" and code ~= "SMOKE_BLOCKED" then return end
 		diagnostic("code="..code.." serial="..tostring(player:GetAttribute("RaceCombatFeedbackSerial")))
 		if not sync() then diagnostic("suppressed=INACTIVE_KART"); return end
 		if code == "MISSILE_HIT" then show("HIT: "..name, orange, 1.2, false)
 		elseif code == "MISSILE_BLOCKED" then show("SHIELD BLOCKED", cyan, 1.2, false)
 		elseif code == "SLICK_HIT" then show("SLICK HIT: "..name, purple, 1.2, false)
 		elseif code == "SLICK_BLOCKED" then show("SLICK BLOCKED", cyan, 1.2, false)
+		elseif code == "SMOKE_HIT" then show("SMOKE HIT: "..name, cyan, 1.2, false)
+		elseif code == "SMOKE_BLOCKED" then show("SMOKE BLOCKED", cyan, 1.2, false)
 		else return end
 	end))
 	table.insert(connections, player:GetAttributeChangedSignal("RaceItemBlockedSerial"):Connect(function()

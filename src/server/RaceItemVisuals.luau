@@ -151,4 +151,20 @@ function Visuals.missileImpact(parent, position, blocked)
 	return flash
 end
 
+function Visuals.smoke(parent, frame, config)
+	local model = Instance.new("Model")
+	model.Name = "SmokeHazard"
+	local center = frame * CFrame.new(0, config.SMOKE_HEIGHT/2, 0)
+	local trigger = part(model, "SmokeTrigger", Vector3.new(config.SMOKE_WIDTH, config.SMOKE_HEIGHT, config.SMOKE_LENGTH), center, Color3.fromRGB(65, 65, 70))
+	trigger.Transparency = 1
+	-- Fixed seven-puff budget; bounds match the trigger without becoming a wall.
+	for index, offset in {Vector3.new(-5,0,0), Vector3.new(5,0,0), Vector3.new(0,0,-3),
+		Vector3.new(0,0,3), Vector3.new(-3,1,-2), Vector3.new(3,1,2), Vector3.zero} do
+		local puff = part(model, "Cloud"..index, Vector3.new(8,6,8), center * CFrame.new(offset), Color3.fromRGB(55, 58, 63))
+		puff.Shape, puff.Transparency = Enum.PartType.Ball, 0.62
+	end
+	model.Parent = parent
+	return model, trigger
+end
+
 return Visuals

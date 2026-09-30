@@ -182,6 +182,8 @@ load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 load("src/server/HomingMissileService.luau",server,"HomingMissileService")
+load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
+load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local items=load("src/server/RaceItemController.luau",server,"RaceItemController"); items.start()
 local function tick(dt) now+=dt; services.RunService.Heartbeat:Fire(dt) end
 local function start(trackId)

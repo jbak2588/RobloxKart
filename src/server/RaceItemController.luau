@@ -13,6 +13,8 @@ local RaceLoadout = require(script.Parent:WaitForChild("RaceLoadout"))
 local Geometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
 local HomingMissileService = require(script.Parent:WaitForChild("HomingMissileService"))
+local SmokeHazardService = require(script.Parent:WaitForChild("SmokeHazardService"))
+local TacticalLoadoutService = require(script.Parent:WaitForChild("TacticalLoadoutService"))
 
 local RaceItemController = {}
 local started = false
@@ -23,6 +25,8 @@ local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
 local prototype, hazardFolder
 local missiles
+local smoke
+local tactical = TacticalLoadoutService.new(RaceSession.forPlayer)
 local shieldPulses = {}
 local function clearPulses(player)
 	for i = #shieldPulses, 1, -1 do
@@ -56,6 +60,8 @@ local function publish(player)
 		player:SetAttribute("RaceItemSlot" .. index, if loadout then loadout.slots[index] or "" else "")
 	end
 	player:SetAttribute("SelectedRaceItemId", if loadout then loadout.selected else "")
+	local choice = tactical:get(player)
+	for index=1,3 do player:SetAttribute("RaceTacticalItem"..index, choice[index+1]) end
 end
 local function removeShield(player)
 	local state = shields[player]
@@ -79,6 +85,7 @@ local function clearPlayer(player)
 	player:SetAttribute("RaceCombatFeedbackCode", "")
 	player:SetAttribute("RaceCombatFeedbackTargetName", "")
 	if missiles then missiles:clearPlayer(player) end
+	if smoke then smoke:clearPlayer(player) end
 	player:SetAttribute("RaceMissileIncomingCount", 0)
 	player:SetAttribute("RaceMissileTargetName", "")
 	player:SetAttribute("RaceItemFeedbackCode", "")
@@ -106,6 +113,7 @@ end
 -- Reserved for an explicit shared-session reset; individual lifecycle events use clearPlayer.
 local function clearSession(session)
 	if missiles then missiles:clearSession(session) end
+	if smoke then smoke:clearSession(session) end
 	for player in session.participants do clearPlayer(player) end
 	clearHazardsForSession(session)
 end
@@ -121,7 +129,7 @@ end
 
 -- One offensive-item resolution path; source identity comes only from server hazards/projectiles.
 function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePlayer: Player, itemId: string): (boolean, string)
-	if itemId ~= "Slick" and itemId ~= "Missile" then return false, "unsupported_item" end
+	if itemId ~= "Slick" and itemId ~= "Missile" and itemId ~= "Smoke" then return false, "unsupported_item" end
 	local sourceSession = RaceSession.forPlayer(sourcePlayer)
 	local targetSession = RaceSession.forPlayer(targetPlayer)
 	if not sourceSession or sourceSession ~= targetSession then return false, "cross_session" end
@@ -145,6 +153,7 @@ function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePl
 		return true, "blocked"
 	end
 	local applied = if itemId == "Missile" then PrototypeWorld.applyMissileHit(targetPlayer)
+		elseif itemId == "Smoke" then smoke:apply(targetPlayer, now)
 		else PrototypeWorld.applySlickHit(targetPlayer)
 	if not applied then return false, "effect_rejected" end
 	immunity[targetPlayer] = { untilTime = now + Config.RACE_ITEM_HIT_IMMUNITY, kart = kart }
@@ -196,6 +205,8 @@ local function activate(player, id)
 			feedback(player, "MISSILE_LOCKED")
 		end
 		return accepted, reason
+	elseif id == "Smoke" then
+		return smoke:deploy(player, prototype, time())
 	elseif id == "Slick" then
 		if kart:GetAttribute("KartOffTrack") == true then return false, "off_track" end
 		local frame = Geometry.dropFrame(prototype, chassis, Config.SLICK_DROP_DISTANCE)
@@ -238,6 +249,8 @@ function RaceItemController.start()
 	missiles = HomingMissileService.new(Config, { getKart = PrototypeWorld.getRaceKart,
 		getSession = RaceSession.forPlayer, resolve = RaceItemController.tryApplyOffensiveItem,
 		visuals = Visuals, parent = missileFolder })
+	smoke = SmokeHazardService.new(Config, {getKart=PrototypeWorld.getRaceKart, getSession=RaceSession.forPlayer,
+		resolve=RaceItemController.tryApplyOffensiveItem, geometry=Geometry, visuals=Visuals, parent=hazardFolder})
 	local function unbindKart(player)
 		for _, connection in kartConnections[player] or {} do connection:Disconnect() end
 		kartConnections[player] = nil
@@ -279,7 +292,7 @@ function RaceItemController.start()
 				clearPlayer(player)
 				resetBonusProgress(player)
 				if player:GetAttribute("RaceState") == "COUNTDOWN" then
-					loadouts[player]:prepare()
+					loadouts[player]:prepare(tactical:get(player))
 					publish(player)
 				end
 			end),
@@ -292,18 +305,22 @@ function RaceItemController.start()
 					resetBonusProgress(player)
 					clearPlayer(player)
 					bindKart(player)
-					loadouts[player]:prepare()
+					loadouts[player]:prepare(tactical:get(player))
 					publish(player)
 				elseif state == "RACING" and oldState == "COUNTDOWN" then
 					-- Grid/seat reset events can clear the countdown loadout after prepare.
 					-- No item can be used in COUNTDOWN, so refill at the authoritative start.
 					local active = loadouts[player].slots
-					loadouts[player]:prepare(if #active == Slots.RACE_ITEM_SLOT_COUNT then active else nil, true)
+					loadouts[player]:prepare(if #active == Slots.RACE_ITEM_SLOT_COUNT then active else tactical:get(player), true)
 					publish(player)
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
 					clearPlayer(player)
 					if state == "GARAGE" then
+						tactical:clear(player)
 						resetBonusProgress(player)
+						publish(player)
+					elseif state == "PRE_RACE" then
+						publish(player)
 					end
 				end
 			end),
@@ -313,6 +330,7 @@ function RaceItemController.start()
 	Players.PlayerAdded:Connect(bind)
 	Players.PlayerRemoving:Connect(function(player)
 		clearPlayer(player)
+		tactical:clear(player)
 		unbindKart(player)
 		for _, connection in connections[player] or {} do connection:Disconnect() end
 		connections[player], loadouts[player] = nil, nil
@@ -335,6 +353,15 @@ function RaceItemController.start()
 		local loadout = loadouts[player]
 		if not loadout then return end
 		local state = player:GetAttribute("RaceState")
+		if action == "SetTacticalLoadout" then
+			local accepted, message = false, "ITEMS UNAVAILABLE"
+			if select("#", ...) == 1 and Workspace:GetAttribute("KDMServerRole") == "RACE" then
+				accepted, message = tactical:set(player, ..., time())
+			end
+			if accepted then publish(player) end
+			remote:FireClient(player, "TacticalLoadoutResult", accepted, message)
+			return
+		end
 		if action == "Select" then
 			if select("#", ...) ~= 1 or (state ~= "COUNTDOWN" and state ~= "RACING") then return end
 			if loadout:select(...) then publish(player) end
@@ -382,6 +409,7 @@ function RaceItemController.start()
 				previousPositions[player] = chassis.Position
 			else previousPositions[player] = nil end
 		end
+		smoke:update(now, targets)
 		for index = #hazards, 1, -1 do
 			local hazard = hazards[index]
 			local remove = now-hazard.born >= Config.SLICK_LIFETIME or not hazard.model.Parent

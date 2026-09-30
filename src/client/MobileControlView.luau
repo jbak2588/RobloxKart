@@ -202,6 +202,8 @@ function View.icon(parent: Instance, kind: string, zIndex: number?)
 		line(24,20,24,15,2); line(24,15,34,15,2)
 		lockShackle = line(34,15,34,20,2)
 		lockShackle.Name = "LockShackle"
+	elseif kind == "Smoke" then
+		shape(6,17,18,16,0,true);shape(15,10,19,21,0,true);shape(23,18,13,13,0,true)
 	elseif kind == "Use" then
 		-- Fingertip contacting a circular trigger with three activation rays.
 		local trigger = shape(17,11,13,13,0,true)

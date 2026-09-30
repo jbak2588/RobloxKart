@@ -718,6 +718,66 @@ vacant.Activated:Fire()
 check(not vacant.Visible and #item._p.calls==beforeInvalid,"vacant/deferred/invalid slots never send use or selection")
 for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end
 ui.PreferredInput=rb.Enum.PreferredInput.Touch
+for index,id in {"Nitro","Shield","Smoke","Missile"} do player:SetAttribute("RaceItemSlot"..index,id);player:SetAttribute("RaceCharge"..id,1) end
+check(itemHud.Smoke:GetAttribute("RaceItemSlotIndex")==3 and itemHud.Smoke:FindFirstChild("SmokeIcon"),"native Smoke icon follows slot 3, not fixed slot 4")
+itemHud.Smoke.Activated:Fire()
+check(item._p.calls[#item._p.calls][1]=="UseItem" and item._p.calls[#item._p.calls][2]=="Smoke","mobile Smoke uses exact authoritative slot item")
+player:SetAttribute("RaceItemBlockedSerial",(player:GetAttribute("RaceItemBlockedSerial") or 0)+1)
+check(itemHud.CombatResult.Text=="BLOCKED!" and itemHud.CombatResult.Visible and not itemHud.RaceLoadoutFeedback.Visible,
+	"actual block has only the production combat badge, no legacy duplicate")
+local smokeView=luau.load(fs.readFile("src/client/SmokeEffectView.luau"),{environment=itemEnv})().new(pg,player)
+kart:SetAttribute("KartSmokeSessionId",player:GetAttribute("RaceSessionId"));kart:SetAttribute("KartSmokeResetSerial",kart:GetAttribute("RaceResetSerial"))
+kart:SetAttribute("KartSmokeObscuredActive",true);tick();combatNow+=.13;tick()
+local hazeGui=pg.KDMSmokeHaze
+check(hazeGui.Haze.Visible and hazeGui.Haze.BackgroundTransparency>=.75 and not hazeGui.Haze.Active,
+	"Smoke native haze is translucent and never captures input")
+check(hazeGui.DisplayOrder<gui.DisplayOrder and hazeGui.DisplayOrder<itemHud.DisplayOrder,
+	"Smoke is behind all driving/item HUD controls")
+local smokeBefore=#item._p.calls;itemHud.Shield.Activated:Fire()
+check(#item._p.calls==smokeBefore+1,"driving item remains tappable through Smoke")
+for _,boundary in {"FINISHED","DNF","GARAGE","COUNTDOWN","session","seat","reset","character"} do
+	player.Character=character;humanoid.SeatPart=seat;kart.Parent=services.Workspace
+	player:SetAttribute("RaceState","RACING");kart:SetAttribute("KartSmokeObscuredActive",false);tick()
+	kart:SetAttribute("KartSmokeSessionId",player:GetAttribute("RaceSessionId"));kart:SetAttribute("KartSmokeResetSerial",kart:GetAttribute("RaceResetSerial"))
+	kart:SetAttribute("KartSmokeObscuredActive",true);tick();check(hazeGui.Haze.Visible,"haze starts "..boundary)
+	if boundary=="session" then player:SetAttribute("RaceSessionId","smoke-next")
+	elseif boundary=="seat" then humanoid.SeatPart=nil
+	elseif boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+	elseif boundary=="character" then player.CharacterRemoving:Fire();player.Character=nil
+	else player:SetAttribute("RaceState",boundary) end
+	tick();check(not hazeGui.Haze.Visible,"haze lifecycle cleanup "..boundary)
+end
+smokeView:destroy()
+player.Character=character;humanoid.SeatPart=seat;kart:SetAttribute("KartSmokeObscuredActive",false)
+item.OnClientEvent=signal()
+local selector=luau.load(fs.readFile("src/client/TacticalLoadoutController.luau"),{environment=itemEnv})()
+player:SetAttribute("RaceState","PRE_RACE");player:SetAttribute("RaceMatchStatus","WAITING")
+selector.start()
+local tactical=pg.KDMTacticalLoadout;local card=tactical.Modal.Card
+for _,size in {V2.new(844,332),V2.new(748,303),V2.new(724,311)} do
+	safeSize=size;tactical:GetPropertyChangedSignal("AbsoluteSize"):Fire()
+	local r=rect(card)
+	check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"tactical modal fits notch-safe landscape "..tostring(size))
+	for _,id in {"Slick","Shield","Missile","Smoke","Confirm","Reset","Back"} do
+		check(card[id].AbsoluteSize.X>=44 and card[id].AbsoluteSize.Y>=44,"tactical modal comfortable target "..id)
+	end
+end
+tactical.Items.Activated:Fire()
+check(tactical.Modal.Visible and card.Status.Text=="3 / 3 SELECTED","waiting ITEMS opens default three-tactical modal")
+card.Smoke.Activated:Fire();check(card.Status.Text=="3 / 3 SELECTED","fourth tactical selection cannot exceed three")
+card.Missile.Activated:Fire();check(not card.Confirm.Active and card.Status.Text=="2 / 3 SELECTED","incomplete draft cannot confirm")
+card.Smoke.Activated:Fire();local saveBefore=#item._p.calls
+card.Confirm.Activated:Fire();card.Confirm.Activated:Fire()
+check(#item._p.calls==saveBefore+1 and item._p.calls[#item._p.calls][1]=="SetTacticalLoadout"
+	and #item._p.calls[#item._p.calls][2]==3,"confirm sends bounded tactical-only choices once while pending")
+item.OnClientEvent:Fire("TacticalLoadoutResult",false,"CHOOSE 3 TACTICAL ITEMS")
+check(tactical.Modal.Visible and card.Confirm.Active,"server rejection restores usable modal")
+card.Confirm.Activated:Fire();item.OnClientEvent:Fire("TacticalLoadoutResult",true,"ITEMS CONFIRMED")
+check(not tactical.Modal.Visible,"server confirmation closes modal")
+tactical.Items.Activated:Fire();player:SetAttribute("RaceState","COUNTDOWN")
+check(not tactical.Modal.Visible and not tactical.Items.Visible,"Countdown immediately closes/locks selector")
+player:SetAttribute("RaceState","RACING")
+for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end
 itemHud:Destroy();player:SetAttribute("RaceCombatFeedbackSerial",1000);tick()
 check(not result.Parent and not edge.Parent,"HUD destruction disconnects result and effect listeners")
 player.CharacterAdded:Fire(character)

@@ -66,22 +66,25 @@ local function result(code)
 	player:SetAttribute("RaceCombatFeedbackTargetName","RacerB");player:SetAttribute("RaceCombatFeedbackSerial",serial)
 end
 for _,pair in {{"MISSILE_HIT","HIT: RacerB"},{"MISSILE_BLOCKED","SHIELD BLOCKED"},
- {"SLICK_HIT","SLICK HIT: RacerB"},{"SLICK_BLOCKED","SLICK BLOCKED"}} do
+ {"SLICK_HIT","SLICK HIT: RacerB"},{"SLICK_BLOCKED","SLICK BLOCKED"},
+ {"SMOKE_HIT","SMOKE HIT: RacerB"},{"SMOKE_BLOCKED","SMOKE BLOCKED"}} do
 	result(pair[1]);check(cue.Visible and cue.Text==pair[2],"serial received and rendered "..pair[1])
 	tick(1.19);check(cue.Visible,"attacker readable for 1.2 seconds")
 	tick(.02);check(not cue.Visible,"attacker expires")
 end
 tick()
-for _,pair in {{"KartMissileHitActive","MISSILE HIT!"},{"KartSlickActive","SLICK HIT!"}} do
+for _,pair in {{"KartMissileHitActive","MISSILE HIT!"},{"KartSlickActive","SLICK HIT!"},{"KartSmokeObscuredActive","SMOKED!"}} do
 	kart:SetAttribute(pair[1],true)
 	check(cue.Visible and cue.Text==pair[2] and edge.Visible,"victim attribute renders without waiting for Heartbeat")
+	check(cue.Font==rb.Enum.Font.GothamBold and cue.TextSize==17 and cue.BackgroundTransparency==.25
+		and cue.TextColor3==rb.Color3.fromRGB(65,225,245),"all victim results share accepted BLOCKED badge style")
 	kart:SetAttribute(pair[1],false) -- Both edges may occur between sampled frames.
 	tick(.59);check(cue.Visible and edge.Visible,"edge persists .60 seconds")
 	tick(.02);check(cue.Visible and not edge.Visible,"badge outlives edge cue")
 	tick(.40);check(not cue.Visible,"victim expires after one second")
 end
 player:SetAttribute("RaceItemBlockedSerial",1)
-check(cue.Visible and cue.Text=="BLOCKED!" and cue.TextColor3==rb.Color3.fromRGB(65,225,255),"block victim receives cyan badge")
+check(cue.Visible and cue.Text=="BLOCKED!" and cue.TextColor3==rb.Color3.fromRGB(65,225,245),"block victim receives cyan badge")
 result("SLICK_HIT");check(cue.Text=="SLICK HIT: RacerB","latest result replaces block immediately")
 check(cue.TextSize==17 and cue.BackgroundTransparency==.25 and cue.AbsoluteSize.Y==34 and edge.AbsoluteSize.X==6,
 	"readable badge and bounded peripheral width")

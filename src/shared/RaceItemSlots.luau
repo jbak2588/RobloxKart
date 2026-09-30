@@ -3,6 +3,21 @@ local Catalog = require(script.Parent:WaitForChild("RaceItemCatalog"))
 local Slots = {}
 Slots.RACE_ITEM_SLOT_COUNT = 4
 Slots.DEFAULT = table.freeze({ "Nitro", "Slick", "Shield", "Missile" })
+Slots.TACTICAL = table.freeze({ "Slick", "Shield", "Missile", "Smoke" })
+
+-- Only this bounded tactical pool is client-selectable, never arbitrary slots.
+function Slots.tactical(ids)
+	if type(ids) ~= "table" then return nil end
+	local result, seen, count = {"Nitro"}, {}, 0
+	for index, id in ids do
+		if type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > 3
+			or type(id) ~= "string" or not table.find(Slots.TACTICAL, id)
+			or not Catalog[id].Implemented or seen[id] then return nil end
+		seen[id], count = true, count+1
+		result[index+1] = id
+	end
+	return if count == 3 then result else nil
+end
 
 function Slots.isImplemented(id)
 	return type(id) == "string" and Catalog[id] ~= nil and Catalog[id].Implemented == true

@@ -114,7 +114,6 @@ function RaceItemUiController.start()
 	bonusLabel.Text = "NITRO +1"
 	bonusLabel.Visible = false
 	bonusLabel.Parent = nitroProgress
-	local blockedUntil = 0
 	local combat = Instance.new("TextLabel")
 	combat.Name = "MissileFeedback"
 	combat.AnchorPoint = Vector2.new(0.5, 0)
@@ -142,7 +141,7 @@ function RaceItemUiController.start()
 			bonusFlashVisible = false
 			bonusFlashSerial += 1
 		end
-		if not racing then blockedUntil = 0; deployedUntil = 0; feedbackUntil = 0 end
+		if not racing then deployedUntil = 0; feedbackUntil = 0 end
 		local incoming = (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0
 		combat.Visible = racing and (incoming or time() < feedbackUntil)
 		local mobile = Input.isTouchPreferred()
@@ -152,7 +151,6 @@ function RaceItemUiController.start()
 		if emergencyReady and preview then preview:stop() end
 		combat.Text = if incoming then "MISSILE INCOMING\n" .. (if mobile then "TAP SHIELD" else "SHIELD CAN BLOCK") else feedbackText
 		if not racing and preview then preview:stop() end
-		local blocked = time() < blockedUntil
 		local deployed = time() < deployedUntil
 		local showLoadout = (racing or player:GetAttribute("RaceState") == "COUNTDOWN")
 			and not (preview and preview:isVisible())
@@ -175,7 +173,7 @@ function RaceItemUiController.start()
 			local charges = player:GetAttribute("RaceCharge" .. id) or 0
 			local chosen = not mobile and selected == id and charges > 0
 			local emergency = mobile and racing and incoming and id == "Shield" and charges > 0
-			button.Visible = id ~= "" and showLoadout and (emergency or not blocked and not deployed)
+			button.Visible = id ~= "" and showLoadout and (emergency or not deployed)
 			button.BackgroundColor3 = if chosen then Color3.fromRGB(32, 102, 145) else Color3.fromRGB(16, 25, 35)
 			button.TextColor3 = if charges == 0 then Color3.fromRGB(110, 118, 128) else Color3.fromRGB(220, 240, 250)
 			button.Text = if mobile or id == "" then "" else Catalog[id].DisplayName .. " " .. charges .. (if UserInputService.KeyboardEnabled then
@@ -191,8 +189,8 @@ function RaceItemUiController.start()
 			symbols.border.Thickness = if chosen or emergency then 3 else 1
 			symbols.border.Transparency = if charges == 0 then 0.7 elseif chosen or emergency then 0 else 0.5
 		end
-		label.Visible = racing and (blocked or deployed) and not emergencyReady and not (preview and preview:isVisible())
-		label.Text = if blocked then "BLOCKED!" else "SLICK DEPLOYED"
+		label.Visible = racing and deployed and not emergencyReady and not (preview and preview:isVisible())
+		label.Text = "SLICK DEPLOYED"
 		local awarded = player:GetAttribute("DriftBonusNitroAwarded") == true
 		local progress = player:GetAttribute("DriftBonusProgress")
 		local threshold = Config.DRIFT_BONUS_REQUIRED_BOOSTS
@@ -206,7 +204,7 @@ function RaceItemUiController.start()
 	end
 	preview = SlickRearPreview.new(gui, refresh)
 	local combatView = CombatFeedbackView.new(gui, player, function()
-		blockedUntil, deployedUntil, feedbackUntil = 0, 0, 0
+		deployedUntil, feedbackUntil = 0, 0
 		feedbackText = ""
 		preview:stop()
 		refresh()
@@ -309,10 +307,9 @@ function RaceItemUiController.start()
 	end)
 	player:GetAttributeChangedSignal("RaceItemBlockedSerial"):Connect(function()
 		if player:GetAttribute("RaceState") ~= "RACING" then return end
-		blockedUntil = time() + Config.BLOCKED_FEEDBACK_DURATION
+		deployedUntil = 0
 		preview:stop() -- Actual attack feedback takes priority over the deploy replay.
 		refresh()
-		task.delay(Config.BLOCKED_FEEDBACK_DURATION, refresh)
 	end)
 	player:GetAttributeChangedSignal("SlickDeployedSerial"):Connect(function()
 		if player:GetAttribute("RaceState") ~= "RACING" then return end

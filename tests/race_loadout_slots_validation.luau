@@ -3,6 +3,7 @@ local fs, luau = require("@lune/fs"), require("@lune/luau")
 local count = 0
 local function check(v, label) assert(v, label); count += 1 end
 local catalog = table.clone(luau.load(fs.readFile("src/shared/RaceItemCatalog.luau"))())
+catalog.Deferred = {Id="Deferred", Implemented=false}
 catalog.TestItem = {Id="TestItem", Implemented=true, InitialCharges=1, MaxCharges=1}
 local modules = {RaceItemCatalog=catalog}
 local shared = {WaitForChild=function(_, name) return {Name=name} end}
@@ -16,10 +17,10 @@ check(l:prepare() and #l.slots==4 and slots.RACE_ITEM_SLOT_COUNT==4, "catalog ex
 for index,id in {"Nitro","Slick","Shield","Missile"} do
  check(l.slots[index]==id and l.counts[id]==1, "default slot/charge "..index)
 end
-check(l.counts.Smoke==0 and catalog.Smoke.Implemented==false, "Smoke metadata remains deferred")
+check(l.counts.Smoke==0 and catalog.Smoke.Implemented==true, "implemented Smoke is still absent from default")
 check(not l:prepare(false) and not l:prepare("Nitro"), "non-table explicit loadouts reject instead of silently defaulting")
 for _,ids in {{"Nitro","Slick","Shield"}, {"Nitro","Slick","Shield","Missile","TestItem"},
- {"Nitro","Nitro","Shield","Missile"}, {"Nitro","Smoke","Shield","Missile"},
+ {"Nitro","Nitro","Shield","Missile"}, {"Nitro","Deferred","Shield","Missile"},
  {"Nitro","Unknown","Shield","Missile"}, {[1]="Nitro",[2]="Slick",[4]="Missile"},
  {"Nitro","Slick","Shield","Missile",extra="TestItem"}} do
  check(not l:prepare(ids) and l.slots[2]=="Slick" and l.counts.Nitro==1,

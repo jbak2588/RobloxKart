@@ -161,6 +161,8 @@ local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry"
 local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 load("src/server/HomingMissileService.luau",server,"HomingMissileService")
+load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
+load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local overlap=Nitro.new(config)
 overlap:activate("driver",0)
 check(overlap:forwardSpeed(95,true,1,1/60)>95 and overlap:forwardSpeed(95,true,1,1/60)<100,"Mini Boost to Nitro ramp")

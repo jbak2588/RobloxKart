@@ -156,7 +156,7 @@ Mobile must use the SAME Kart physics.
 
 ## RaceLoadout
 
-Every Race / Rematch:
+Default Race / Rematch (M4-A3 may replace one tactical item with Smoke):
 
 Nitro = 1
 Slick = 1
@@ -182,25 +182,55 @@ PC:
 4 Missile
 Q Use
 
-M4-A2: Catalog metadata and active RaceLoadout are separate. Catalog size may
+M4-A2 foundation: Catalog metadata and active RaceLoadout are separate. Catalog size may
 exceed four; `RaceItemSlots.RACE_ITEM_SLOT_COUNT = 4` fixes active slot count.
 Production slot order remains Nitro / Slick / Shield / Missile with 1/1/1/1.
 RaceLoadout owns slots, temporary counts and selection. Server-only prepare
 validates exactly four unique implemented catalog IDs with initial/max charges;
-never add a client loadout-setting API. Publish RaceItemSlot1..4; HUD cells and
+never accept arbitrary client slot tables. M4-A3 allows only validated three-ID
+tactical choices below. Publish RaceItemSlot1..4; HUD cells and
 desktop 1/2/3/4 resolve those slots, mobile taps directly use the displayed ID.
 Selection/use must validate membership in this player's server slots, implemented
 status and positive charge; only successful item activation consumes. Incoming
 Shield emphasis follows item identity, not slot 3. Keep published HUD geometry.
 Bonus Nitro requires an active Nitro slot; no hidden charge when absent.
 Race/Rematch defaults refill; GO preserves valid Countdown selection/order.
-Lifecycle/session cleanup clears active slots and charges. Smoke is unimplemented
-catalog metadata only, zero charge, rejected from prepare/select/use. No Smoke,
-Thunder/Rain gameplay, persistence, Shop or Garage selector in this milestone.
+Lifecycle/session cleanup clears active slots and charges. Smoke was deferred
+at M4-A2; M4-A3 implements it below. No Thunder/Rain, persistence, Shop or Garage
+selector is implemented.
 M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY.
 Studio runtime NOT VERIFIED. M4-A2 basic published smoke: PUBLISHED PASS, confirmed
 by the user (four slots, mobile direct use, Rematch refills each item to one).
 Mobile ROOM/NEXT above minimap: PUBLISHED PASS. Preserve these accepted behaviors.
+
+## M4-A3 Smoke and Tactical Loadouts
+
+Nitro is mandatory locked Core slot 1; choose exactly three of Slick / Shield /
+Missile / Smoke. Default remains Slick/Shield/Missile, each active item charge 1.
+Only a reserved RACE server's PRE_RACE/WAITING staging offers ITEMS; do not change
+Garage flow or delay automatic Solo launches. SetTacticalLoadout validates actual
+RaceSession membership, waiting phase, exactly three unique implemented tactical
+IDs and excludes Nitro. Server constructs four slots. Choices live only for the
+current server stay/logical session, survive Rematch and refill, reset on Garage/
+departure/different logical session. Never add arbitrary client slot ownership,
+a fifth HUD cell or key 5. Keep five-Boost Bonus Nitro unchanged.
+
+Smoke is implemented Attack/DropBehind, charge 1/max 1 only when selected.
+Prototype drop 10, volume 18x14x8, lifetime 6, effect 1.75, grace .75, cap 12.
+SmokeHazardService owns bounded native clouds, per-target handled sets, swept
+contact and vision-only metadata. Shared immunity -> Shield -> Smoke effect;
+cloud remains after one hit/block. Same cloud affects each target at most once,
+including immune rejection; never cross RaceSession/rounds. Do not change velocity,
+steering, grip, Drift, Nitro or Mini Boost. Haze is local native UI below all HUDs,
+non-interactive, translucent with partial central visibility and .12 sec fades.
+Session/reset markers reject stale haze. Clean hazards/effects on terminal/exit,
+Rematch/reset, seat/character loss, destruction, departure and session/round change.
+No persistence, Inventory, Shop, DataStore or external assets in M4-A3.
+CombatFeedbackView solely owns actual results with one cyan badge style;
+legacy BLOCKED presentation is removed, SLICK DEPLOYED remains owner-only.
+SMOKE_HIT/SMOKE_BLOCKED and victim SMOKED! use this same contract.
+M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED.
+Studio runtime NOT VERIFIED. Do not claim published Smoke PASS.
 
 ## Slick
 
@@ -325,17 +355,17 @@ Serials support repeated attacks; latest result replaces the cue, no stale queue
 Finish/DNF/Quit/Garage/Rematch, seat/character loss, Kart destruction, reset and
 session boundaries clear transient feedback. No arbitrary audio IDs or reused
 Countdown/Boost sounds; no new audio hooks, combat SFX deferred pending assets.
-M4-A1 PUBLISHED FEEDBACK VISIBILITY FAIL, user-confirmed: gameplay effects work
-but all three cues were imperceptible. Not CLOSED. R1 fixes initial binding
+M4-A1 initially had published visibility failure. R1 fixes initial binding
 swallowing an already-active hit and adds direct Kart attribute observation;
 Heartbeat remains a lifecycle/expiry fallback. DEBUG_TELEMETRY gates bounded
 server source/target/code/serial and client event/victim logs, never per-frame.
 The existing cosmetic Shield pulse uses cyan Neon for visibility; defense shell,
 duration/consumption and physics are unchanged. Production view tests cover real
 mocked serials/state, short transitions, lifecycle and mobile safe bounds.
-Studio runtime NOT VERIFIED. Published two-player Missile hit / Shield block /
-Slick hit retest must confirm both sides; no new item before feedback is resolved.
-M4-A1-R1 CODE COMPLETE — PUBLISHED 3-EVENT FEEDBACK RETEST REQUIRED.
+M4-A1 MVP ACCEPTED FOR PROGRESSION, user-confirmed: Shield Missile BLOCKED and
+Slick victim feedback are visible. M4-A3 normalizes the minor style inconsistency
+and removes duplicate legacy BLOCKED. No blanket PASS for all combat paths.
+Studio runtime NOT VERIFIED; broader combat checks remain published-client work.
 
 ## Production Kart
 
@@ -369,8 +399,9 @@ Driver seating issue is deferred.
 M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
 Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
 queue, invitation, routing, staging, timeout and Rematch behavior.
-M4-A0 MVP CLOSED. Current next priority: M4-A1-R1 published three-event feedback
-test, then approved combat audio assets. Broader 3–4 player balance is deferred.
+M4-A0 MVP CLOSED. M4-A1 MVP accepted for progression. Current next priority:
+M4-A3 published Smoke/tactical loadout retest, then approved combat audio assets.
+Broader 3–4 player balance is deferred.
 Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 
@@ -503,7 +534,6 @@ Deferred.
 
 Nitro Reward / collectible challenge
 Obby
-Smoke
 Racer XP
 Mastery
 DataStore

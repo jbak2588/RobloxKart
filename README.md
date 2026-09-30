@@ -47,7 +47,7 @@ Every race starts with:
 - Slick 1
 - Shield 1
 - Missile 1
-- Smoke 0 (deferred)
+- Smoke 0 in the default (optional tactical choice in M4-A3)
 
 PC controls: `1` Nitro / `2` Slick / `3` Shield / `4` Missile; `Q` = use.
 
@@ -58,8 +58,9 @@ RaceLoadout is temporary. Inventory is reserved for future persistent Shop owner
 `RaceItemCatalog` owns item metadata, implementation status and initial/max charges.
 The catalog may grow beyond four; `RaceItemSlots.RACE_ITEM_SLOT_COUNT = 4` fixes
 the race HUD at exactly four active slots. Production defaults remain
-`Nitro / Slick / Shield / Missile`, each with one charge. Smoke remains catalog
-metadata only (`Implemented = false`, zero charge), with no icon or usable slot.
+`Nitro / Slick / Shield / Missile`, each with one charge. At M4-A2 Smoke was
+deferred metadata only; M4-A3 below implements the fifth catalog item without
+adding a fifth active slot.
 
 Server-only `RaceLoadout:prepare(slotIds, preserveSelection)` validates exactly
 four unique implemented items with charge configuration, copies their order,
@@ -75,8 +76,9 @@ requires Nitro in the active loadout. No hidden Nitro charge is created.
 New Race/Rematch prepares the default; terminal/exit, seat/character/reset and
 session boundaries clear slots and charges. GO refills valid Countdown slots
 and preserves desktop preselection; a cleared loadout safely uses the default.
-No persistence, inventory, Shop, Garage loadout selector, Smoke gameplay or
-speculative Thunder/Rain definitions are added.
+The M4-A2 foundation added no persistence, inventory, Shop or selector. M4-A3
+adds server-local pre-race tactical choices and Smoke below; Garage selection,
+Thunder/Rain and persistence remain deferred.
 
 Automated production tests cover alternate slot order, publication, keys/taps,
 icons, Shield emphasis, deferred/inactive rejection, lifecycle and Bonus Nitro.
@@ -86,6 +88,55 @@ to one). Mobile ROOM/NEXT above minimap: PUBLISHED PASS. M4-A1 published feedbac
 visibility failed; see R1 below. Broader multiplayer balance remains deferred.
 
 **M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY**
+
+### M4-A3 Smoke Screen + Pre-Race Tactical Loadout v1
+
+Nitro is the mandatory locked Core in slot 1. In a reserved RACE server's existing
+PRE_RACE/WAITING staging, ITEMS opens a compact modal: choose exactly three of
+Slick / Shield / Missile / Smoke, RESET DEFAULT, CONFIRM or BACK to discard edits.
+Default remains Nitro / Slick / Shield / Missile. All buttons are at least 44px
+high. No Garage-flow change or new waiting timer is added for automatic Solo
+launches. A round starting closes the modal and locks changes.
+
+SetTacticalLoadout accepts only three unique implemented allowed tactical IDs.
+The server checks RaceSession membership and PRE_RACE plus a waiting session,
+constructs Nitro + three choices, and stores them only for the current server
+stay/session. Rematch keeps choices and refills each active item to one. Garage,
+departure or a different logical RaceSession restores safe defaults. No fifth
+HUD cell, key 5, persistence, Inventory, Shop or DataStore is added. Bonus Nitro's
+five-Boost reward is unchanged. Smoke icon follows its actual active slot.
+
+Smoke prototype: drop 10 studs behind; volume 18x14x8; lifetime 6 seconds;
+vision effect 1.75 seconds; owner grace .75 seconds; maximum 12 clouds. Seven
+charcoal translucent native puffs match the invisible volume. All parts are
+anchored, noncolliding, non-touching and non-querying; no external assets or
+particle spam. Server swept volume checks handle each cloud/target once. Clouds
+survive a hit/block and can independently affect multiple racers in the same
+RaceSession; session/round boundaries remove them. Existing offensive immunity
+precedes Shield. A block consumes that target's Shield, adds no obscuration,
+and preserves the cloud; immune contact is marked handled without repeated work.
+
+KartSmokeObscuredActive and session/reset markers drive a local translucent haze
+with partial central visibility and .12-second fades. Its GUI is below all
+driving/item HUDs, never captures input, and changes no camera/physics. Speed,
+steering, Drift, Nitro and Mini Boost remain active. Smoke lifecycle clears at
+terminal/exit, seat/character loss, reset/destruction and session/round changes.
+
+CombatFeedbackView is the sole actual result badge owner. Legacy BLOCKED text and
+item-row hiding were removed; owner SLICK DEPLOYED may remain. MISSILE HIT! /
+SLICK HIT! / BLOCKED! / SMOKED! share the approved cyan text, font, badge and
+one-second victim timing. New SMOKE_HIT / SMOKE_BLOCKED give deployer confirmations
+with the same badge; latest result replaces the previous one. Item geometry,
+Incoming priority and ROOM/NEXT above minimap remain unchanged.
+
+M4-A1 is MVP ACCEPTED FOR PROGRESSION, user-confirmed: Shield Missile defense
+BLOCKED and Slick victim feedback are visible. Minor style inconsistency is
+fixed here. Four slots, mobile direct use, Rematch default refill and ROOM/NEXT
+placement retain published PASS. This does not claim every combat path or Smoke
+published PASS. Studio runtime NOT VERIFIED for M4-A3. Published 2–4-player
+Smoke cloud/haze, Shield/immunity, tactical selection and Rematch retest required.
+
+**M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED**
 
 ## Production Kart
 
@@ -223,9 +274,9 @@ serials; newest result replaces the compact cue without queuing old messages.
 Automated checks cover resolution, native visuals, cleanup and safe GUI bounds
 including 932x430 / 844x390 and smaller notch-safe landscape parents. The item
 row, Nitro Charge, Drift, wheel and pad geometry are unchanged.
-M4-A1: PUBLISHED FEEDBACK VISIBILITY FAIL, confirmed by the user's mobile
+Initial M4-A1: PUBLISHED FEEDBACK VISIBILITY FAIL, confirmed by the user's mobile
 two-player test: effects work but Missile hit, Shield block and Slick hit cues
-were not perceived. M4-A1 is not CLOSED. The audit confirms server hit/block
+were not perceived. The audit confirms server hit/block
 authoring and deterministic client serial/state rendering, but does not prove
 published replication. Initial view binding could swallow an already-active hit;
 R1 displays that initial edge and directly observes Kart attributes so short
@@ -237,9 +288,10 @@ Production view tests execute all four attacker results, three victim cues,
 expiry, replacement, initial binding, short transitions and lifecycle cleanup.
 Geometry checks use actual speed bounds across separate GUI insets at 932x430,
 844x390 and notch-safe landscape, clearing LAP/map/ROOM/items/road center.
-Studio runtime NOT VERIFIED for R1. Published two-player Missile hit, Shield
-block and Slick hit retest is required, checking both attacker and victim.
-M4-A1-R1 CODE COMPLETE — PUBLISHED 3-EVENT FEEDBACK RETEST REQUIRED.
+Studio runtime NOT VERIFIED for R1. Subsequent user-confirmed published mobile
+BLOCKED and Slick victim visibility are PASS; M4-A1 is MVP ACCEPTED FOR
+PROGRESSION. M4-A3 above fixes the remaining style inconsistency. This is not
+a blanket published PASS for all attacker/victim combat paths.
 
 ### M1-A Digital Driving Pad v1
 
@@ -458,7 +510,6 @@ steady-RPM texture over a startup, throttle-blip or rev-up/release clip.
 
 - Nitro Reward Challenge
 - Obby
-- Smoke gameplay
 - Racer XP / Mastery
 - gameplay progression DataStore
 - Shop
@@ -800,11 +851,11 @@ C1-A baseline: `be66348e599631775ce8293ca2c3a893a91df7a1`.
 
 ### Equal starting resources
 
-Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Missile 1, Smoke 0 during COUNTDOWN, in Studio and production. Selection is permitted during COUNTDOWN; use is blocked until RACING. Garage, Finish, DNF, reset and occupant loss clear temporary resources/effects. Grid seating during COUNTDOWN preserves prepared counts. Rematch refills all four and clears old hazards, Shield, Nitro, Missile incoming/projectiles/effects, immunity and preview.
+Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Missile 1, Smoke 0 by default during COUNTDOWN, in Studio and production. M4-A3 preserves approved tactical choices on Rematch and refills each active item to one. Selection is permitted during COUNTDOWN; use is blocked until RACING. Garage, Finish, DNF, reset and occupant loss clear temporary resources/effects. Grid seating during COUNTDOWN preserves prepared counts. Rematch refills all four and clears old hazards, Shield, Nitro, Missile incoming/projectiles/effects, immunity and preview.
 
 RaceLoadout is server-authoritative temporary state, replacing RaceItemSlot. Inventory means future persistent Shop/ownership only. No persistent Inventory or DataStore is implemented.
 
-- Maximum charges: Nitro 2, Slick 1, Shield 1, Missile 1; Smoke deferred.
+- Maximum charges: Nitro 2, Slick 1, Shield 1, Missile 1; Smoke max 1 when chosen in M4-A3, zero in the default.
 - PC 1/2/3/4 selects Nitro/Slick/Shield/Missile; Q uses the server-selected item. Mobile slots directly use that exact item while RACING via UseItem; Countdown taps do nothing. Valid desktop Countdown selection survives the authoritative GO refill.
 - Accepted use consumes only that item; rejected use retains charges. Once empty, selection advances deterministically Nitro -> Slick -> Shield -> Missile -> Nitro. Keys override the selection at any time if charges remain.
 - RaceItemControl accepts Select with one validated item ID, Use with no arguments, or UseItem with exactly one validated item ID while RACING. All activation uses the same server checks and throttle. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.

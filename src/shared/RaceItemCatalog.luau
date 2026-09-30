@@ -4,5 +4,5 @@ return table.freeze({
 	Slick = table.freeze({ Id = "Slick", DisplayName = "SLICK", Type = "Attack", TargetMode = "DropBehind", Implemented = true, InitialCharges = 1, MaxCharges = 1 }),
 	Shield = table.freeze({ Id = "Shield", DisplayName = "SHIELD", Type = "Defense", TargetMode = "Self", Implemented = true, InitialCharges = 1, MaxCharges = 1 }),
 	Missile = table.freeze({ Id = "Missile", DisplayName = "MISSILE", Type = "Attack", TargetMode = "ImmediateAhead", Implemented = true, InitialCharges = 1, MaxCharges = 1 }),
-	Smoke = table.freeze({ Id = "Smoke", DisplayName = "SMOKE", Type = "Attack", TargetMode = "Behind", Implemented = false }),
+	Smoke = table.freeze({ Id = "Smoke", DisplayName = "SMOKE", Type = "Attack", TargetMode = "DropBehind", Implemented = true, InitialCharges = 1, MaxCharges = 1 }),
 })
