@@ -78,7 +78,7 @@ function KartInputController.getEffectiveSteering(): number
 	return if isDrivingPrototypeKart() then steering else 0
 end
 
--- Keyboard and touch use the same server-authoritative item actions.
+-- Desktop selected-item use; mobile slots use the atomic direct-item path below.
 function KartInputController.useRaceItem()
 	if not raceItemRemote or UserInputService:GetFocusedTextBox() or not isDrivingPrototypeKart() then return end
 	if Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING" then return end
@@ -93,11 +93,11 @@ function KartInputController.selectRaceItem(id: string)
 	raceItemRemote:FireServer("Select", id)
 end
 
-function KartInputController.emergencyShield()
+function KartInputController.useRaceItemDirect(id: string)
 	if not raceItemRemote or UserInputService:GetFocusedTextBox() or not KartInputController.isTouchPreferred()
-		or Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING"
-		or (Players.LocalPlayer:GetAttribute("RaceMissileIncomingCount") or 0) <= 0 then return end
-	raceItemRemote:FireServer("EmergencyShield")
+		or Players.LocalPlayer:GetAttribute("RaceState") ~= "RACING" then return end
+	if not table.find({"Nitro", "Slick", "Shield", "Missile"}, id) then return end
+	raceItemRemote:FireServer("UseItem", id)
 end
 
 function KartInputController.start()

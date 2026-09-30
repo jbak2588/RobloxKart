@@ -68,6 +68,7 @@ function Controller.start()
 	drift.AnchorPoint = Vector2.new(0, 1)
 	local driftIcon = View.icon(drift, "Drift")
 	local use = button("UseItem")
+	use.Visible = false -- Item-only control superseded by direct item-slot actions.
 	use.AnchorPoint = Vector2.new(0, 1)
 	local useIcon = View.icon(use, "Use")
 	local auto, autoStroke = button("AutoForward")
@@ -180,7 +181,6 @@ function Controller.start()
 	connect(UserInputService.InputChanged, function(input)
 		if input == state.owner and canDrive() then state:move(input, displacement(input)); publish() end
 	end)
-	connect(use.Activated, function() if canDrive() then Input.useRaceItem() end end)
 	connect(auto.Activated, function()
 		if canDrive() then state:toggleAutoForward(); publish() end
 	end)

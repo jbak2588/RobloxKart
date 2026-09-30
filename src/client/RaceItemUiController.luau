@@ -45,9 +45,8 @@ function RaceItemUiController.start()
 		button.BorderSizePixel = 0
 		button.Parent = gui
 		button.Activated:Connect(function()
-			if id == "Shield" and Input.isTouchPreferred() and player:GetAttribute("RaceState") == "RACING"
-				and (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0 then
-				Input.emergencyShield()
+			if Input.isTouchPreferred() then
+				Input.useRaceItemDirect(id)
 			else Input.selectRaceItem(id) end
 		end)
 		buttons[index] = button
@@ -145,7 +144,7 @@ function RaceItemUiController.start()
 		local emergencyReady = mobile and racing and incoming and shieldReady
 		-- A cosmetic deploy replay/feedback must not hide the manual defense target.
 		if emergencyReady and preview then preview:stop() end
-		combat.Text = if incoming then "MISSILE INCOMING\n" .. (if mobile and shieldReady then "TAP SHIELD" else "SHIELD CAN BLOCK") else feedbackText
+		combat.Text = if incoming then "MISSILE INCOMING\n" .. (if mobile then "TAP SHIELD" else "SHIELD CAN BLOCK") else feedbackText
 		if not racing and preview then preview:stop() end
 		local blocked = time() < blockedUntil
 		local deployed = time() < deployedUntil
@@ -155,7 +154,7 @@ function RaceItemUiController.start()
 		for index, button in buttons do
 			local id = button.Name
 			local charges = player:GetAttribute("RaceCharge" .. id) or 0
-			local chosen = selected == id and charges > 0
+			local chosen = not mobile and selected == id and charges > 0
 			local emergency = mobile and racing and incoming and id == "Shield" and charges > 0
 			button.Visible = showLoadout and (emergency or not blocked and not deployed)
 			button.BackgroundColor3 = if chosen then Color3.fromRGB(32, 102, 145) else Color3.fromRGB(16, 25, 35)

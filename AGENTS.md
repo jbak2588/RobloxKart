@@ -257,18 +257,24 @@ targeting/fire and 55 / 2.50-second slowdown, Slick visibility to the following
 racer and hit/effect, and mobile four-item HUD. Mobile Shield select -> USE
 remains too difficult within the 1.50-second warning. M4-A0 remains OPEN.
 R3 keeps warning at 1.50 seconds and all Missile/Slick/physics/M3 tuning unchanged.
-During RACING with incoming Missiles, a mobile Shield-slot tap sends exactly one
-payload-free EmergencyShield action. The server uses its own incoming records,
-requires a loadout, positive Shield charge, valid active Kart and inactive Shield,
-then activates and consumes one charge without yielding. Rejected requests spend
-nothing. Defense remains manual and uses the normal five-second/one-hit Shield,
-even with multiple incoming Missiles. Preserve other selected items, normal
-mobile select -> USE outside incoming, and PC controls. Cyan border / ! / TAP
-SHIELD highlight the existing slot; cosmetic Slick feedback cannot hide it.
-R3 Studio runtime NOT VERIFIED. Published Android/iPhone one-tap counterplay,
-empty/already-active Shield, expired incoming, duplicate taps, multiple incoming
-and normal select/use remain required; 3/4-player combat validation also remains.
-M4-A0-R3 CODE COMPLETE — PUBLISHED EMERGENCY SHIELD RETEST REQUIRED.
+Published mobile racing showed two-step selection/use is too slow for combat.
+R3 unifies every touch item slot: TAP ITEM -> USE ITEM while RACING, via one
+UseItem request with exactly one validated Nitro/Slick/Shield/Missile id. The
+server requires a loadout, positive charge, valid active Kart and successful
+item-specific activation; only then consume one charge and publish. Rejects spend
+nothing. Direct and desktop use share the existing .15-second server throttle.
+No Shield-only action remains; Shield works identically with or without incoming,
+using its normal five-second/one-hit defense, including multiple incoming.
+Mobile has no persistent selection mark or redundant USE button; the item-only
+button is hidden and disconnected. Countdown taps do nothing. Desktop keys
+1/2/3/4 select and Q uses; valid Countdown selection survives the GO refill,
+while empty/reset loadouts safely refill with default Nitro. Cyan border / ! /
+TAP SHIELD emphasize the existing slot during incoming; cosmetic Slick feedback
+cannot hide it. Preserve the published left-side geometry and driving controls.
+R3 Studio runtime NOT VERIFIED. Published Android/iPhone one-tap checks for all
+four items, rejection/empty/active states, duplicate taps, warning counterplay,
+Countdown and PC preselection remain required; 3/4-player combat checks remain.
+M4-A0-R3 CODE COMPLETE — PUBLISHED MOBILE ONE-TAP ITEM RETEST REQUIRED.
 
 ## Production Kart
 
@@ -381,7 +387,7 @@ Default Digital Driving Pad:
 → Right
 ↓ Brake / Reverse
 
-Auto Accelerate toggle, DRIFT, tappable RaceLoadout selection and Item Use.
+Auto Accelerate toggle, DRIFT, and one-tap RaceLoadout item use while RACING.
 Normal digital steering is ±1.00; steering while Drifting is ±0.60.
 Legacy Joystick is a developer rollback mode.
 

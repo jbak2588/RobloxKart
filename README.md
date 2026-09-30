@@ -122,19 +122,25 @@ R2 published runtime PASS, confirmed by the user: Missile targeting/fire and
 and the mobile four-item HUD. Mobile Shield select -> USE remains too difficult
 even with the 1.50-second warning; M4-A0 remains OPEN.
 
-**M4-A0-R3 CODE COMPLETE — PUBLISHED EMERGENCY SHIELD RETEST REQUIRED.**
-During RACING with an incoming Missile, tapping the mobile Shield slot sends one
-payload-free `EmergencyShield` request. The server checks its own incoming record,
-loadout, charge, active Kart and existing Shield before activating and consuming
-exactly one Shield. Rejections consume nothing. This remains manual defense with
-the same five-second/one-attack Shield; multiple incoming Missiles do not create
-extra Shields. A cyan border, `!` and `TAP SHIELD` emphasize the existing slot,
-including during cosmetic Slick feedback. Outside incoming warnings, mobile
-selection -> USE and PC controls are unchanged. Warning stays 1.50 seconds;
-Missile/Slick balance, physics and M3 behavior are unchanged.
+**M4-A0-R3 CODE COMPLETE — PUBLISHED MOBILE ONE-TAP ITEM RETEST REQUIRED.**
+Published mobile racing showed SELECT ITEM -> USE was too slow and required
+unnecessary attention during combat. Touch now uses TAP ITEM -> USE ITEM for
+Nitro, Slick, Shield and Missile while RACING. Each tap sends one atomic
+`UseItem` request with exactly one item id; the server validates the id, loadout,
+charge, active Kart and item-specific activation before consuming one charge.
+Rejections spend nothing, and direct/desktop use share the .15-second throttle.
+Shield uses the same direct path with or without incoming; it remains manual
+five-second/one-attack defense. The Shield-only action has been removed.
+Mobile has no persistent selection checkmark and the redundant item-only USE
+button is hidden/disconnected. Countdown taps do nothing. Desktop 1/2/3/4 select
+and Q use stay unchanged; valid Countdown selection survives GO's authoritative
+refill, while reset/empty loadouts refill safely. A cyan border, `!` and
+`TAP SHIELD` emphasize the existing Shield slot during incoming, including
+cosmetic Slick feedback. The four-item group stays in its approved left lane.
+Warning stays 1.50 seconds; Missile/Slick balance, physics and M3 are unchanged.
 R3 Studio runtime NOT VERIFIED. Published Android/iPhone retests must cover
-one-tap activation, empty/already-active Shield, warning expiry before receipt,
-normal selection/use, duplicate taps and multiple incoming Missiles. Leader
+all four one-tap actions, rejected activation, empty/already-active Shield,
+no-target Missile, Countdown taps, PC preselection, duplicates and multiple incoming. Leader
 rejection and 3–4-player immediate targeting remain required. Automated tests
 do not establish device touch or published counterplay PASS.
 Production KartContext tests enforce cap 55 every simulation
@@ -163,14 +169,14 @@ ON maintains forward throttle without holding forward; down still brakes
 or reverses, and releasing resumes forward. Race transitions, seat loss, focus
 loss, driving-touch cancellation and hidden/destroyed controls switch the hold OFF.
 
-The left side has icon buttons for hold-to-drift, Nitro/Slick/Shield/Missile selection,
-and using the selected item. Counts and a selection checkmark show loadout state.
+The left side has hold-to-drift and Nitro/Slick/Shield/Missile action icons.
+Tap an available item once to use it while racing; counts and dimming show loadout
+state. No separate mobile USE button or persistent selection checkmark is needed.
 The cropped bottom-center steering wheel only displays steering; it accepts no input.
 
 Mobile HUD icons are built from native UI shapes: a lightning bolt for Nitro,
 a small car with winding skid marks for Slick, a shield for Shield, a missile
-body/nose/fins for Missile, and a finger
-pressing a circular trigger for item activation. No external icon assets or packages
+body/nose/fins for Missile. No external icon assets or packages
 are required. The mobile speed panel is 160 x 56 with 0.30 background transparency;
 it uses a separate full-screen overlay and `GuiService.TopbarInset` to align
 with the Roblox top control band. Driving input is unchanged
@@ -708,10 +714,10 @@ Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Missile 1, Smoke 0 d
 RaceLoadout is server-authoritative temporary state, replacing RaceItemSlot. Inventory means future persistent Shop/ownership only. No persistent Inventory or DataStore is implemented.
 
 - Maximum charges: Nitro 2, Slick 1, Shield 1, Missile 1; Smoke deferred.
-- PC 1/2/3/4 selects Nitro/Slick/Shield/Missile; Q uses the server-selected item. Mobile item cells select normally; the Use button calls useRaceItem(). Only the Shield slot during RACING with incoming Missiles sends the atomic EmergencyShield request for immediate manual defense.
+- PC 1/2/3/4 selects Nitro/Slick/Shield/Missile; Q uses the server-selected item. Mobile slots directly use that exact item while RACING via UseItem; Countdown taps do nothing. Valid desktop Countdown selection survives the authoritative GO refill.
 - Accepted use consumes only that item; rejected use retains charges. Once empty, selection advances deterministically Nitro -> Slick -> Shield -> Missile -> Nitro. Keys override the selection at any time if charges remain.
-- RaceItemControl accepts Select with one validated item ID, Use with no arguments, or payload-free EmergencyShield during server-confirmed incoming Missiles in RACING. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.
-- Race item HUD: four cells, desktop 88 x 48 each, compact PC 70 x 40 each; mobile 44–48px square cells in the safe GUI area. Available selected cell highlighted; empty cells dimmed. Visible in COUNTDOWN and RACING.
+- RaceItemControl accepts Select with one validated item ID, Use with no arguments, or UseItem with exactly one validated item ID while RACING. All activation uses the same server checks and throttle. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.
+- Race item HUD: four cells, desktop 88 x 48 each, compact PC 70 x 40 each; mobile 44–48px square cells in the safe GUI area. Desktop highlights selection; mobile uses bright available/dim empty action icons, with cyan Shield emphasis during incoming. Visible in COUNTDOWN and RACING.
 
 ### Slick / Shield
 

@@ -70,7 +70,7 @@ function Tutorial.create(parent: Instance, onDismiss)
 	itemCaptions.ZIndex = 32
 	itemCaptions.Visible = false
 	itemCaptions.Parent = card
-	for index, text in { "NITRO", "SLICK", "SHIELD", "USE" } do
+	for index, text in { "NITRO", "SLICK", "SHIELD", "MISSILE" } do
 		local caption = Instance.new("TextLabel")
 		caption.Name = "Caption" .. index
 		caption.Position = UDim2.fromOffset((index - 1) * 56, 0)
@@ -153,7 +153,7 @@ function Tutorial.create(parent: Instance, onDismiss)
 	local pages = {
 		{ "DRIVE", "↑       ←   →       ↓", "↑ Accelerate    ← → Steer    ↓ Brake / Reverse\nTap Auto Drive to keep accelerating. Brake overrides it.", { "Forward", "Left", "Right", "Brake" } },
 		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Exit a READY Drift for MINI BOOST.\nLand 5 boosts in one race for +1 NITRO.", { "Drift", "Left", "Right" } },
-		{ "RACE ITEMS", "", "Tap an item to select it.\nTap the Trigger button to use the selected item.", { "Nitro", "Slick", "Shield", "Use" } },
+		{ "RACE ITEMS", "", "Tap an item once to use it while racing.\nWhen a Missile is incoming, tap Shield to defend.", { "Nitro", "Slick", "Shield", "Missile" } },
 	}
 	local function layoutContent()
 		local compact = card.Size.Y.Offset < 280

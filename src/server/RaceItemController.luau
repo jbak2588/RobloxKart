@@ -253,7 +253,7 @@ function RaceItemController.start()
 				elseif state == "RACING" and oldState == "COUNTDOWN" then
 					-- Grid/seat reset events can clear the countdown loadout after prepare.
 					-- No item can be used in COUNTDOWN, so refill at the authoritative start.
-					loadouts[player]:prepare()
+					loadouts[player]:prepare(true) -- Preserve valid desktop Countdown selection.
 					publish(player)
 				elseif state ~= "RACING" or oldState ~= "COUNTDOWN" then
 					clearPlayer(player)
@@ -295,19 +295,18 @@ function RaceItemController.start()
 			if loadout:select(...) then publish(player) end
 			return
 		end
-		if action == "EmergencyShield" then
-			if select("#", ...) ~= 0 or state ~= "RACING" then return end
-			-- Use the service-owned incoming counter, never a client assertion.
-			if (missiles.incoming[player] or 0) <= 0 then return end
-			local accepted = loadout:emergencyShield(function() return activate(player, "Shield") end)
-			if accepted then lastUse[player] = time(); publish(player) end
-			return
-		end
-		if action ~= "Use" or select("#", ...) ~= 0 or state ~= "RACING" then return end
+		if state ~= "RACING" then return end
+		local id = ...
+		if action == "UseItem" then
+			if select("#", ...) ~= 1 or type(id) ~= "string"
+				or not table.find({"Nitro", "Slick", "Shield", "Missile"}, id) then return end
+		elseif action ~= "Use" or select("#", ...) ~= 0 then return end
 		local now = time()
 		if lastUse[player] and now-lastUse[player] < 0.15 then return end
 		lastUse[player] = now
-		local accepted = loadout:use(action, 0, function(id) return activate(player, id) end)
+		local accepted = if action == "UseItem"
+			then loadout:useItem(id, function(itemId) return activate(player, itemId) end)
+			else loadout:use("Use", 0, function(itemId) return activate(player, itemId) end)
 		if accepted then publish(player) end
 	end)
 	-- One loop for every hazard's lifetime/contact and every defense's expiry.

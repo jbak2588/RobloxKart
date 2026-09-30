@@ -150,14 +150,14 @@ check(tutorialCard.DontShowAgain.Visible,"final tutorial page offers persistent 
 check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","item page has no spacing-based text row")
 local captions=tutorialCard.ItemCaptions
 check(captions.Visible and #captions:GetChildren()==4,"item page has four independent captions")
-for index,name in {"NITRO","SLICK","SHIELD","USE"} do
+for index,name in {"NITRO","SLICK","SHIELD","MISSILE"} do
  local caption=captions:FindFirstChild("Caption"..index)
  local slot=iconSlots:FindFirstChild("IconSlot"..index)
  check(caption.Text==name and caption.TextXAlignment==rb.Enum.TextXAlignment.Center
   and caption.Position.X.Offset+caption.Size.X.Offset/2==slot.Position.X.Offset+slot.Size.X.Offset/2,
   "item caption centers on its icon column: "..name)
 end
-assertTutorialIcons({"Nitro","Slick","Shield","Use"})
+assertTutorialIcons({"Nitro","Slick","Shield","Missile"})
 check(not string.find(fs.readFile("src/client/GarageUiController.luau"),"CONTROLS ?",1,true),"Garage control replay label has no question mark")
 tutorialCard.Back.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial back works")
@@ -269,8 +269,8 @@ check(a.n==3 and a[1]==1 and a[2]>0,"unchanged KartControl protocol / forward di
 local heldT,heldS=a[1],a[2]
 local second=touch(joy,-50,50); check(latest()[1]==heldT and latest()[2]==heldS,"second finger cannot steal joystick")
 local d=touch(drift); check(latest()[3] and latest()[1]==heldT,"joystick plus drift")
-input.selectRaceItem("Shield"); use.Activated:Fire(); tick()
-check(item._p.calls[1][1]=="Select" and item._p.calls[1][2]=="Shield" and item._p.calls[2][1]=="Use","selection/use existing actions")
+input.useRaceItemDirect("Shield"); tick()
+check(#item._p.calls==1 and item._p.calls[1][1]=="UseItem" and item._p.calls[1][2]=="Shield","one direct use while joystick and drift are held")
 check(latest()[1]==heldT and latest()[2]==heldS and latest()[3],"item actions preserve simultaneous driving/drift")
 second.UserInputState=rb.Enum.UserInputState.End; ui.InputEnded:Fire(second); tick()
 check(latest()[1]==heldT,"unowned release cannot cancel joystick")
@@ -282,7 +282,7 @@ for _, direction in {-1,1} do
 	local f=touch(joy,direction*25,-30); local driftFinger=touch(drift)
 	check(latest()[1]>0 and math.sign(latest()[2])==direction and latest()[3],"both diagonal drift combinations")
 	for _, id in {"Nitro","Slick","Shield","Missile"} do
-		input.selectRaceItem(id); use.Activated:Fire(); tick()
+		input.useRaceItemDirect(id); tick()
 		check(latest()[1]>0 and math.sign(latest()[2])==direction and latest()[3],"selection/use does not cancel held axes")
 	end
 	f.UserInputState=rb.Enum.UserInputState.End; tick()
@@ -334,7 +334,7 @@ else
 		local opposite=touch(other); check(latest()[2]==-direction*0.60,"last pressed wins")
 		opposite.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==direction*0.60,"release falls back to held direction")
 		for _, id in {"Nitro","Slick","Shield","Missile"} do
-			input.selectRaceItem(id); use.Activated:Fire(); tick()
+			input.useRaceItemDirect(id); tick()
 			check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"digital drift and item actions coexist")
 		end
 		d.UserInputState=rb.Enum.UserInputState.End; tick()
@@ -349,7 +349,7 @@ else
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"auto drift release restores full steering")
 		steer.UserInputState=rb.Enum.UserInputState.Cancel; neutral("cancel disables auto")
 	end
-	check(#item._p.calls==16,"all four digital item select/use calls delivered")
+	check(#item._p.calls==8,"all four digital item direct-use requests delivered once per tap")
 end
 local function hold()
 	tick(); touch(if legacy then joy else root.Forward,20,-40)
@@ -424,7 +424,7 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y-3,"mobile clip leaves a three-pixel bottom margin")
 	mobileWheel:Destroy();mobileClip:Destroy()
 	local rects={}
-	local buttons=if legacy then {joy,drift,use,auto,gauge,diagnostic} else {root.Forward,root.Left,root.Right,root.Brake,drift,use,auto,gauge,diagnostic}
+	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.Forward,root.Left,root.Right,root.Brake,drift,auto,gauge,diagnostic}
 	for _, button in buttons do
 		local p,z=button.AbsolutePosition,button.AbsoluteSize
 		table.insert(rects,{p.X,p.Y,p.X+z.X,p.Y+z.Y})
@@ -564,10 +564,15 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 		"four comfortable tap targets and readable warning in its own lane")
 end
 player:SetAttribute("RaceChargeMissile",1);player:SetAttribute("RaceState","RACING")
-itemHud.Missile.Activated:Fire();use.Activated:Fire();tick()
-local missileSelect=item._p.calls[#item._p.calls-1]
-check(missileSelect[1]=="Select" and missileSelect[2]=="Missile" and item._p.calls[#item._p.calls][1]=="Use",
-	"fourth native mobile cell selects Missile; Use retains target-free protocol")
+check(not use.Visible,"redundant item-only USE button is hidden on touch")
+for _,id in {"Nitro","Slick","Shield","Missile"} do
+ local before=#item._p.calls
+ itemHud[id].Activated:Fire();tick()
+ check(#item._p.calls==before+1 and item._p.calls[#item._p.calls][1]=="UseItem"
+  and item._p.calls[#item._p.calls][2]==id and #item._p.calls[#item._p.calls]==2,
+  "one mobile tap uses exactly "..id.." without Select or second USE")
+ check(not itemHud[id].SelectedMark.Visible,"mobile action button has no persistent selection mark "..id)
+end
 check(itemHud.Missile:FindFirstChild("MissileIcon") and #itemHud.Missile.MissileIcon:GetChildren()>0,"native Missile icon drawn without asset")
 local beforeWarning=#item._p.calls
 player:SetAttribute("SlickDeployedSerial",1)
@@ -583,11 +588,11 @@ check(shieldStroke.Thickness==3 and shieldStroke.Transparency==0 and itemHud.Shi
 	and itemHud.Shield.SelectedMark.Visible,"incoming emphasizes Shield inside the existing slot")
 local beforeTap=#item._p.calls
 itemHud.Shield.Activated:Fire()
-check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="EmergencyShield"
-	and #item._p.calls[#item._p.calls]==1,"mobile Shield tap emits one payload-free atomic action, no Select/Use pair")
+check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="UseItem"
+	and item._p.calls[#item._p.calls][2]=="Shield" and #item._p.calls[#item._p.calls]==2,"incoming Shield uses the same atomic UseItem path")
 player:SetAttribute("RaceChargeShield",0)
 itemHud.Shield.Activated:Fire()
-check(item._p.calls[#item._p.calls][1]=="EmergencyShield" and itemHud.Shield.Charges.Text=="0"
+check(item._p.calls[#item._p.calls][1]=="UseItem" and itemHud.Shield.Charges.Text=="0"
 	and not itemHud.Shield.SelectedMark.Visible,"empty Shield remains server validated with no invented negative count/highlight")
 player:SetAttribute("RaceChargeShield",1)
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse;ui:GetPropertyChangedSignal("PreferredInput"):Fire()
@@ -600,14 +605,15 @@ check(itemHud.MissileFeedback.Visible,"one of multiple missiles remains warned")
 player:SetAttribute("RaceMissileIncomingCount",0)
 check(not itemHud.MissileFeedback.Visible,"last projectile clears incoming warning")
 beforeTap=#item._p.calls;itemHud.Shield.Activated:Fire()
-check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="Select"
-	and item._p.calls[#item._p.calls][2]=="Shield" and itemHud.Shield.SelectedMark.Text=="✓",
-	"no incoming restores normal select-only slot behavior and clears emergency mark")
-use.Activated:Fire();check(item._p.calls[#item._p.calls][1]=="Use","normal Shield still requires ordinary USE")
+check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="UseItem"
+ and item._p.calls[#item._p.calls][2]=="Shield" and not itemHud.Shield.SelectedMark.Visible,
+ "Shield without incoming uses identically and has no persistent selection")
+beforeTap=#item._p.calls;use.Activated:Fire()
+check(#item._p.calls==beforeTap,"hidden redundant USE button has no action handler")
 player:SetAttribute("RaceState","COUNTDOWN");player:SetAttribute("RaceMissileIncomingCount",1)
-itemHud.Shield.Activated:Fire()
-check(item._p.calls[#item._p.calls][1]=="Select" and not itemHud.MissileFeedback.Visible,
-	"non-RACING mobile slot cannot dispatch emergency even with stale incoming")
+for _,id in {"Nitro","Slick","Shield","Missile"} do itemHud[id].Activated:Fire() end
+check(#item._p.calls==beforeTap and not itemHud.MissileFeedback.Visible,
+ "COUNTDOWN inventory taps never select, activate or dispatch requests")
 player:SetAttribute("RaceMissileIncomingCount",0);player:SetAttribute("RaceState","RACING")
 player:SetAttribute("RaceItemFeedbackCode","NO_TARGET_AHEAD");player:SetAttribute("RaceItemFeedbackSerial",1)
 check(itemHud.MissileFeedback.Visible and itemHud.MissileFeedback.Text=="NO TARGET AHEAD","source no-target message")

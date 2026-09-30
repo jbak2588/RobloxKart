@@ -172,67 +172,78 @@ hit,reason=items.tryApplyOffensiveItem(target,source,"Slick")
 check(not hit and reason=="immune" and effectCount==1,"shared offensive immunity blocks Slick too")
 tick(.21);check(projectileCount()==0,"hit flash cleanup")
 
--- One atomic request spends only Shield, using real service-owned incoming state.
+-- Direct Shield uses the normal defense against a real service-owned Missile.
 reset();use(source,"Missile")
-local blockedBeforeEmergency=target:GetAttribute("RaceItemBlockedSerial") or 0
+local blockedBeforeDirect=target:GetAttribute("RaceItemBlockedSerial") or 0
 for _,injected in {"Shield",target,2,{incoming=1}} do
-	remote.OnServerEvent:Fire(target,"EmergencyShield",injected)
+	remote.OnServerEvent:Fire(target,"UseItem","Shield",injected)
 end
 check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
-	"EmergencyShield rejects all client-supplied payloads without spending")
-remote.OnServerEvent:Fire(target,"EmergencyShield")
+	"direct Shield use rejects all client-supplied payloads without spending")
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
 check(contexts[target].kart:GetAttribute("KartShieldActive") and target:GetAttribute("RaceChargeShield")==0
 	and target:GetAttribute("RaceChargeNitro")==1 and target:GetAttribute("SelectedRaceItemId")=="Nitro",
-	"one EmergencyShield request activates and consumes only Shield while preserving selection")
-local emergencyShell=contexts[target].kart:FindFirstChild("RaceItemShield")
-for _=1,10 do remote.OnServerEvent:Fire(target,"EmergencyShield") end
-check(target:GetAttribute("RaceChargeShield")==0 and contexts[target].kart:FindFirstChild("RaceItemShield")==emergencyShell,
-	"duplicate emergency taps cannot consume again or create another Shield")
+	"one direct Shield use request activates and consumes only Shield while preserving selection")
+local directShell=contexts[target].kart:FindFirstChild("RaceItemShield")
+for _=1,10 do remote.OnServerEvent:Fire(target,"UseItem","Shield") end
+check(target:GetAttribute("RaceChargeShield")==0 and contexts[target].kart:FindFirstChild("RaceItemShield")==directShell,
+	"duplicate direct taps cannot consume again or create another Shield")
 -- Supply a charge behind an already-active Shield to isolate that validation.
-boundLoadouts[3].counts.Shield=1;remote.OnServerEvent:Fire(target,"Select","Nitro")
-remote.OnServerEvent:Fire(target,"EmergencyShield")
-check(target:GetAttribute("RaceChargeShield")==1 and contexts[target].kart:FindFirstChild("RaceItemShield")==emergencyShell,
-	"already-active Shield rejects emergency activation even with a charge")
+boundLoadouts[3].counts.Shield=1;remote.OnServerEvent:Fire(target,"Select","Nitro");now+=.16
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
+check(target:GetAttribute("RaceChargeShield")==1 and contexts[target].kart:FindFirstChild("RaceItemShield")==directShell,
+	"already-active Shield rejects direct activation even with a charge")
 tick(config.MISSILE_WARNING_SECONDS)
 for _=1,30 do tick(1/60) end
 check(not contexts[target].kart:GetAttribute("KartShieldActive") and not contexts[target].kart:GetAttribute("KartMissileHitActive")
-	and target:GetAttribute("RaceItemBlockedSerial")==blockedBeforeEmergency+1,"emergency Shield is the ordinary one-hit defense with no slowdown")
+	and target:GetAttribute("RaceItemBlockedSerial")==blockedBeforeDirect+1,"direct Shield is the ordinary one-hit defense with no slowdown")
 reset();use(source,"Missile")
 boundLoadouts[3].counts.Shield=0;remote.OnServerEvent:Fire(target,"Select","Nitro")
-remote.OnServerEvent:Fire(target,"EmergencyShield")
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
 check(target:GetAttribute("RaceChargeShield")==0 and not contexts[target].kart:GetAttribute("KartShieldActive"),
 	"incoming with zero Shield rejects without negative charge")
-reset();target:SetAttribute("RaceMissileIncomingCount",5)
-remote.OnServerEvent:Fire(target,"EmergencyShield")
-check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
-	"an incoming attribute alone cannot forge the server service counter")
+reset()
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
+check(target:GetAttribute("RaceMissileIncomingCount")==0 and target:GetAttribute("RaceChargeShield")==0
+ and contexts[target].kart:GetAttribute("KartShieldActive"),"direct Shield requires no incoming warning")
 reset();use(source,"Missile");source:SetAttribute("RaceState","GARAGE")
-remote.OnServerEvent:Fire(target,"EmergencyShield")
-check(target:GetAttribute("RaceMissileIncomingCount")==0 and target:GetAttribute("RaceChargeShield")==1
-	and not contexts[target].kart:GetAttribute("KartShieldActive"),"incoming ended before request consumes nothing")
-use(target,"Shield")
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
+check(target:GetAttribute("RaceMissileIncomingCount")==0 and target:GetAttribute("RaceChargeShield")==0
+ and contexts[target].kart:GetAttribute("KartShieldActive"),"expired incoming does not change direct Shield semantics")
+reset();use(target,"Shield")
 check(contexts[target].kart:GetAttribute("KartShieldActive") and target:GetAttribute("RaceChargeShield")==0,
-	"normal Select/Use still works after the emergency window closes")
+ "desktop Select/Use still works without incoming")
+reset();remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
+ "removed special action cannot spend a charge")
+reset();remote.OnServerEvent:Fire(source,"UseItem","Missile")
+local directSerial=source:GetAttribute("RaceMissileLaunchSerial")
+for _=1,10 do remote.OnServerEvent:Fire(source,"UseItem","Missile") end
+check(source:GetAttribute("RaceChargeMissile")==0 and source:GetAttribute("RaceMissileLaunchSerial")==directSerial
+ and target:GetAttribute("RaceMissileIncomingCount")==1,"direct Missile launches once despite rapid duplicate requests")
+reset();remote.OnServerEvent:Fire(players[1],"UseItem","Missile")
+check(players[1]:GetAttribute("RaceChargeMissile")==1 and players[1]:GetAttribute("RaceItemFeedbackCode")=="NO_TARGET_AHEAD",
+ "direct Missile with no target retains its charge and publishes feedback")
 reset();use(source,"Missile")
 contexts[target].seat._p.Occupant=nil
-remote.OnServerEvent:Fire(target,"EmergencyShield")
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
 check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:GetAttribute("KartShieldActive"),
-	"invalid active Kart rejects atomic emergency without consuming")
+	"invalid active Kart rejects atomic direct without consuming")
 reset();use(players[4],"Missile");players[2]:SetAttribute("RacePosition",4);use(players[2],"Missile")
-check(target:GetAttribute("RaceMissileIncomingCount")==2,"two actual incoming records before emergency")
-remote.OnServerEvent:Fire(target,"EmergencyShield")
+check(target:GetAttribute("RaceMissileIncomingCount")==2,"two actual incoming records before direct")
+remote.OnServerEvent:Fire(target,"UseItem","Shield")
 check(target:GetAttribute("RaceChargeShield")==0 and contexts[target].kart:GetAttribute("KartShieldActive"),
 	"multiple incoming still create just one ordinary Shield")
 local firstBlocked,firstReason=items.tryApplyOffensiveItem(target,source,"Missile")
 local secondHit,secondReason=items.tryApplyOffensiveItem(target,players[2],"Missile")
 check(firstBlocked and firstReason=="blocked" and secondHit and secondReason=="hit",
-	"one emergency Shield blocks one attack; the next attack can hit")
+	"one direct Shield blocks one attack; the next attack can hit")
 for _,state in {"GARAGE","COUNTDOWN","FINISHED","DNF"} do
 	reset();use(source,"Missile");target:SetAttribute("RaceState",state)
 	local before=target:GetAttribute("RaceChargeShield")
-	remote.OnServerEvent:Fire(target,"EmergencyShield")
+	remote.OnServerEvent:Fire(target,"UseItem","Shield")
 	check(target:GetAttribute("RaceChargeShield")==before and not contexts[target].kart:GetAttribute("KartShieldActive"),
-		"emergency is RACING-only "..state)
+		"direct is RACING-only "..state)
 end
 
 for _, phase in {"WARNING","FLYING"} do

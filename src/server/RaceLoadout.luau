@@ -13,10 +13,12 @@ function RaceLoadout:clear()
 	self.selected = ""
 	self.bonusClaimed = false
 end
-function RaceLoadout:prepare()
+function RaceLoadout:prepare(preserveSelection)
+	local selected = if preserveSelection then self.selected else nil
 	self:clear()
 	for _, id in ORDER do self.counts[id] = 1 end
 	self.selected = "Nitro"
+	if selected then self:select(selected) end
 end
 function RaceLoadout:select(id)
 	if type(id) ~= "string" or not MAX[id] or self.counts[id] <= 0 then return false end
@@ -43,18 +45,14 @@ local function consume(self, id)
 end
 function RaceLoadout:use(action, extraCount, activate)
 	if action ~= "Use" or extraCount ~= 0 then return false, "invalid_request" end
-	local id = self.selected
-	if not MAX[id] or self.counts[id] <= 0 then return false, "empty_charge" end
+	return self:useItem(self.selected, activate)
+end
+-- Direct atomic use shares desktop activation/consumption; callbacks never yield.
+function RaceLoadout:useItem(id, activate)
+	if type(id) ~= "string" or not MAX[id] then return false, "invalid_item" end
+	if self.counts[id] <= 0 then return false, "empty_charge" end
 	local accepted, reason = activate(id)
 	if accepted then consume(self, id) end
-	return accepted, reason
-end
--- Shield-only atomic path. The server validates incoming; callbacks never yield.
--- Keep another selected item selected, so emergency defense does not spend it.
-function RaceLoadout:emergencyShield(activate)
-	if self.counts.Shield <= 0 then return false, "empty_charge" end
-	local accepted, reason = activate()
-	if accepted then consume(self, "Shield") end
 	return accepted, reason
 end
 return RaceLoadout

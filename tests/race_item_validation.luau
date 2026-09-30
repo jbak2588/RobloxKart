@@ -124,6 +124,24 @@ loadout:prepare()
 check(loadout:grantBonusNitro() and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"Nitro maximum two")
 loadout:clear()
 check(loadout.selected=="" and loadout.counts.Nitro==0 and loadout.counts.Slick==0 and loadout.counts.Shield==0,"clear temporary resources")
+for _,id in {"Nitro","Slick","Shield","Missile"} do
+	loadout:prepare();loadout:select("Shield")
+	check(not loadout:useItem(id,function() return false,"unsafe" end) and loadout.counts[id]==1
+		and loadout.selected=="Shield","direct rejection preserves charge and selection "..id)
+	local calls=0
+	check(loadout:useItem(id,function(actual) calls+=1;return actual==id end) and loadout.counts[id]==0,
+		"direct callback activates and consumes exactly the requested item "..id)
+	check(not loadout:useItem(id,function() calls+=1;return true end) and calls==1,
+		"empty direct item cannot activate again "..id)
+end
+for _,id in {"Smoke","unknown",1,{}} do
+	check(not loadout:useItem(id,function() error("invalid item reached activation") end),"direct API rejects invalid item")
+end
+loadout:prepare();loadout:select("Shield");loadout:prepare(true)
+check(loadout.selected=="Shield" and loadout.counts.Shield==1 and not loadout.bonusClaimed,
+	"authoritative refill preserves valid selection while resetting resources")
+loadout:clear();loadout:prepare(true)
+check(loadout.selected=="Nitro" and loadout.counts.Nitro==1,"cleared Countdown still refills safely with default selection")
 -- Capture server state for legacy scenario fixture setup only; no production grant API.
 local instances={}
 local originalNew=loadoutType.new
@@ -256,6 +274,14 @@ check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceCha
 services.RunService.studio=false
 player:SetAttribute("RaceState","RACING")
 check(player:GetAttribute("RaceChargeNitro")==1,"published server equal loadout")
+player:SetAttribute("RaceState","COUNTDOWN")
+remote.OnServerEvent:Fire(player,"Select","Shield")
+for _,id in {"Nitro","Slick","Shield","Missile"} do remote.OnServerEvent:Fire(player,"UseItem",id) end
+check(player:GetAttribute("SelectedRaceItemId")=="Shield" and player:GetAttribute("RaceChargeShield")==1
+	and not kart:GetAttribute("KartShieldActive"),"Countdown selection valid but direct activations forbidden")
+player:SetAttribute("RaceState","RACING")
+check(player:GetAttribute("SelectedRaceItemId")=="Shield" and player:GetAttribute("RaceChargeNitro")==1
+	and player:GetAttribute("RaceChargeShield")==1,"desktop Countdown Shield selection survives authoritative GO refill")
 player:SetAttribute("RaceState","COUNTDOWN")
 kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
 check(player:GetAttribute("RaceChargeNitro")==0,"countdown kart reset reproduces empty loadout")
@@ -533,6 +559,45 @@ player:SetAttribute("RaceState","RACING")
 check(items.grantBonusNitro(player) and state.counts.Nitro==2,"new race renews bonus eligibility")
 player:SetAttribute("RaceState","GARAGE")
 check(state.counts.Nitro==0 and state.counts.Slick==0 and state.counts.Shield==0,"Garage clears all")
+-- Direct-use transport exercises the same production activation/physics bridges.
+fresh()
+for _,id in {"Smoke","Unknown",2,{}} do remote.OnServerEvent:Fire(player,"UseItem",id) end
+remote.OnServerEvent:Fire(player,"UseItem")
+remote.OnServerEvent:Fire(player,"UseItem","Nitro",{target=player})
+check(player:GetAttribute("RaceChargeNitro")==1 and not kart:GetAttribute("KartNitroActive"),
+	"UseItem validates allowed id, exact arity and no injected activation material")
+kart:SetAttribute("KartOffTrack",true)
+remote.OnServerEvent:Fire(player,"UseItem","Nitro")
+check(player:GetAttribute("RaceChargeNitro")==1 and not kart:GetAttribute("KartNitroActive"),
+	"unsafe direct Nitro preserves charge")
+kart:SetAttribute("KartOffTrack",false)
+remote.OnServerEvent:Fire(player,"UseItem","Nitro")
+check(player:GetAttribute("RaceChargeNitro")==1,"direct requests retain existing .15-second server throttle")
+step(0,.16);remote.OnServerEvent:Fire(player,"UseItem","Nitro")
+check(kart:GetAttribute("KartNitroActive") and player:GetAttribute("RaceChargeNitro")==0,
+	"one direct Nitro request activates the real Kart and consumes one")
+for _=1,10 do remote.OnServerEvent:Fire(player,"UseItem","Nitro") end
+check(player:GetAttribute("RaceChargeNitro")==0,"rapid direct Nitro repeats never produce negative charges")
+fresh()
+remote.OnServerEvent:Fire(player,"UseItem","Slick")
+check(hazardCount()==1 and player:GetAttribute("RaceChargeSlick")==0
+	and player:GetAttribute("SelectedRaceItemId")=="Nitro","direct Slick creates one world hazard without selecting it")
+remote.OnServerEvent:Fire(player,"UseItem","Slick")
+check(hazardCount()==1,"double direct Slick cannot duplicate its world hazard")
+fresh()
+remote.OnServerEvent:Fire(player,"UseItem","Shield")
+local directShield=kart:FindFirstChild("RaceItemShield")
+check(kart:GetAttribute("KartShieldActive") and directShield and player:GetAttribute("RaceChargeShield")==0
+	and player:GetAttribute("SelectedRaceItemId")=="Nitro","direct Shield activates the normal defense without incoming")
+for _=1,10 do remote.OnServerEvent:Fire(player,"UseItem","Shield") end
+check(player:GetAttribute("RaceChargeShield")==0 and kart:FindFirstChild("RaceItemShield")==directShield,
+	"rapid direct Shield repeats neither consume nor create another defense")
+step(0,.16);fixtureItem(player,"Shield");remote.OnServerEvent:Fire(player,"UseItem","Shield")
+check(player:GetAttribute("RaceChargeShield")==1 and kart:FindFirstChild("RaceItemShield")==directShield,
+	"already-active direct Shield rejects even with another fixture charge")
+fresh();seat.Occupant=nil
+remote.OnServerEvent:Fire(player,"UseItem","Shield")
+check(not kart:GetAttribute("KartShieldActive"),"direct use cannot activate without the active driver")
 print("PASS: "..(count-nitroChecks).." Slick/Shield/loadout integration checks")
 -- Existing production Drift/Mini Boost decisions, with controlled velocity
 -- samples (not a physics simulation), must agree with replicated diagnostics.
