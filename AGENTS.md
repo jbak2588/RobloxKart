@@ -161,6 +161,7 @@ Every Race / Rematch:
 Nitro = 1
 Slick = 1
 Shield = 1
+Missile = 1
 Smoke = 0
 
 Temporary state:
@@ -178,6 +179,7 @@ PC:
 1 Nitro
 2 Slick
 3 Shield
+4 Missile
 Q Use
 
 ## Slick
@@ -202,6 +204,27 @@ valid target
 → item immunity
 → Shield
 → offensive item
+
+## M4-A0 Auto Homing Missile Prototype
+
+Server selects only the immediate RACING racer ahead (`RacePosition - 1`) in
+the same RaceSession with a valid KartContext. No target retains the charge and
+publishes NO TARGET AHEAD. Client target identity/position is never accepted.
+Target remains fixed; no mid-flight retarget. A 0.75-second incoming warning
+allows the existing 5-second/one-attack Shield to block with no physics effect.
+Server Heartbeat homing uses relative swept proximity, noncolliding native
+geometry, speed 165, lifetime 7 seconds, radius 5.5, turn rate 8 rad/sec and a
+16-record active limit including warnings. Shared offensive immunity precedes
+Shield and effect. Unshielded hits cancel Nitro/Mini Boost/current Drift, then
+cap planar speed at 55 and multiply lateral grip by 0.70 for 1.25 seconds.
+Steering/throttle remain active; no long stun, flip, forced yaw, vertical launch
+or zero-speed restart. Earned cumulative Bonus Nitro progress stays unchanged.
+New Nitro/Boost cannot start during the effect. Per-context `KartMissileHitActive`
+and all projectile/incoming state clear at lifecycle boundaries; Rematch refills
+the four temporary items. Mobile has four native-icon tap cells; Nitro Charge
+spans the complete group. Inventory/persistence and other attacks remain deferred.
+M4-A0 CODE COMPLETE — PUBLISHED 2–4 PLAYER RUNTIME VALIDATION REQUIRED.
+Studio runtime NOT VERIFIED for M4-A0.
 
 ## Production Kart
 
@@ -232,14 +255,12 @@ Driver seating issue is deferred.
 
 ## NEXT PRIORITY
 
-M3-A1-R2 moved Base Circuit CREATE into a persistent reserved Room server and is
-RUNTIME PASS / CLOSED on published real devices. M3-A2 hardens population UX,
-Room status and failure recovery. M3-A2 FUNCTIONAL RUNTIME: PASS / CLOSED.
-M3-A2 aggregate Population mobile runtime is PASS. The R1 local LOBBY list
-passed Android but failed iOS (only ~1 visible row with LOBBY 3). M3-A2-R2
-targets up to four visible names with iOS/Android parity; published iOS visual
-validation is next.
-Combat/Missile, additional track capacity, persistence and Shop follow.
+M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
+Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
+queue, invitation, routing, staging, timeout and Rematch behavior.
+Current next priority: M4-A0 Auto Homing Missile Prototype, followed by published
+2–4 player combat runtime checks and M4-A1 production combat VFX/audio polish.
+Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 
 Do NOT add XP / Shop / Reward systems first.
@@ -614,8 +635,9 @@ the summary and carousel arrow. Names gain width through smaller inner padding
 and reserve scrollbar space only when scrolling is needed. Core Population /
 Room UX remains PASS / CLOSED; aggregation, Room Browser, Queue Next, promotion,
 queue order, Host migration and stale population expiry remain confirmed.
-M3-A2-R2 CODE COMPLETE — PUBLISHED iOS VISUAL VALIDATION REQUIRED.
-Studio runtime NOT VERIFIED for R2.
+M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED. The user confirmed the published
+local Lobby list now matches Android. Android/iOS Lobby list parity: PASS.
+M3: CLOSED. The historical automated R2 run did not verify Studio runtime.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may
@@ -641,6 +663,7 @@ tests/mobile_touch_validation.luau
 tests/drift_telemetry_validation.luau
 tests/kart_visual_validation.luau
 tests/race_item_validation.luau
+tests/missile_validation.luau
 tests/race_mode_validation.luau
 tests/race_route_validation.luau
 tests/race_audio_validation.luau

@@ -141,6 +141,7 @@ check(itemConfig.DRIFT_BONUS_REQUIRED_BOOSTS==5,"cumulative reward requires five
 local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
 local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
+load("src/server/HomingMissileService.luau",server,"HomingMissileService")
 local overlap=Nitro.new(config)
 overlap:activate("driver",0)
 check(overlap:forwardSpeed(95,true,1,1/60)>95 and overlap:forwardSpeed(95,true,1,1/60)<100,"Mini Boost to Nitro ramp")
@@ -497,8 +498,8 @@ end
 
 -- Production selection/actions and base refill, independent of Studio flags.
 fresh()
-for index,id in {"Nitro","Slick","Shield"} do
-	local key=({rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three})[index]
+for index,id in {"Nitro","Slick","Shield","Missile"} do
+	local key=({rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three,rb.Enum.KeyCode.Four})[index]
 	uis.InputBegan:Fire({KeyCode=key},false)
 	check(player:GetAttribute("SelectedRaceItemId")==id,"keyboard selection "..index)
 end
@@ -706,6 +707,70 @@ kart:SetAttribute("KartFinishRollActive",false)
 check(step(1,0)==0,"locked kart remains stopped after finish roll")
 config.DEBUG_TELEMETRY=false
 
+-- Real KartContext movement with a Missile effect; no injected stun/steering lock.
+fresh()
+local missileContext = world.getKartContext(player)
+for _=1,100 do step(1) end
+check(world.activateNitro(player),"Missile fixture Nitro active")
+for _=1,60 do step(1) end
+check(step(1)>99,"Missile fixture boosted speed")
+local hitFrame = chassis.CFrame
+local earned = player:GetAttribute("DriftBonusProgress")
+chassis.AssemblyLinearVelocity += V.new(0,3,0)
+check(world.applyMissileHit(player) and kart:GetAttribute("KartMissileHitActive")
+	and not kart:GetAttribute("KartNitroActive") and not kart:GetAttribute("KartSlickActive"),"Missile owns explicit state and cancels Nitro")
+check(chassis.CFrame==hitFrame and chassis.AssemblyLinearVelocity.Y==3
+	and missileContext.commandedSpeed==55,"Missile preserves pose/vertical motion and starts from 55, not zero")
+check(not world.activateNitro(player) and not world.applyMissileHit(player),"Nitro and repeated Missile reject during effect")
+remote.OnServerEvent:Fire(player,"Select","Nitro");remote.OnServerEvent:Fire(player,"Use")
+check(player:GetAttribute("RaceChargeNitro")==1,"rejected Nitro during Missile keeps charge")
+local missileEnd=missileContext.missileHitEndTime
+for _=1,70 do
+	now+=1/60; control.OnServerEvent:Fire(player,1,.6,true); services.RunService.Heartbeat:Fire(1/60)
+	local velocity=chassis.AssemblyLinearVelocity
+	check(V.new(velocity.X,0,velocity.Z).Magnitude<=55.00001 and not kart:GetAttribute("KartDrifting")
+		and not kart:GetAttribute("KartBoosting"),"Missile cap retains throttle without Drift/Boost")
+end
+check(kart:GetAttribute("KartMissileHitActive") and math.abs(chassis.AssemblyAngularVelocity.Y)>0
+	and chassis.AssemblyAngularVelocity.X==0 and chassis.AssemblyAngularVelocity.Z==0,
+	"steering works during Missile; no forced roll/pitch")
+now=missileEnd+.001;control.OnServerEvent:Fire(player,1,0,false);services.RunService.Heartbeat:Fire(.001)
+check(not kart:GetAttribute("KartMissileHitActive") and step(1)>55 and step(1)<70,
+	"1.25 second Missile expiry accelerates naturally from current speed")
+for _=1,60 do step(1) end
+check(math.abs(step(1)-70)<.001 and player:GetAttribute("DriftBonusProgress")==earned,"normal recovery and earned charge preserved")
+fresh()
+successfulDrift()
+check(kart:GetAttribute("KartBoosting") and world.applyMissileHit(player)
+	and not kart:GetAttribute("KartBoosting") and player:GetAttribute("DriftBonusProgress")==1,
+	"Missile cancels actual Mini Boost without subtracting cumulative success")
+fresh()
+for _=1,100 do driftFrame(true,15) end
+check(kart:GetAttribute("KartDrifting") and world.applyMissileHit(player)
+	and not kart:GetAttribute("KartDrifting") and not kart:GetAttribute("KartDriftChargeReady"),"Missile ends current Drift attempt")
+fresh()
+step(1)
+chassis.AssemblyLinearVelocity=V.new(10,0,-50)
+check(world.applyMissileHit(player),"traction fixture hits")
+remote.OnServerEvent:Fire(player,"Select","Shield");remote.OnServerEvent:Fire(player,"Use")
+check(kart:GetAttribute("KartShieldActive"),"Shield still usable during Missile slowdown")
+step(1,.01)
+check(math.abs(chassis.AssemblyLinearVelocity.X-10*math.exp(-config.LATERAL_GRIP*.70*.01))<.001,
+	"Missile multiplies normal lateral grip by .70")
+for _, boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant","lock","owner"} do
+	fresh();step(1);assert(world.applyMissileHit(player))
+	if boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+	elseif boundary=="occupant" then seat.Occupant=nil
+	elseif boundary=="lock" then kart:SetAttribute("RaceControlsLocked",true)
+	elseif boundary=="owner" then missileContext:clearOwner()
+	else player:SetAttribute("RaceState",boundary) end
+	check(not kart:GetAttribute("KartMissileHitActive") and missileContext.missileHitEndTime==0,"Missile immediate lifecycle cleanup "..boundary)
+	if boundary=="owner" then assert(missileContext:assignOwner(player)) end
+end
+fresh()
+check(player:GetAttribute("RaceChargeMissile")==1 and player:GetAttribute("RaceChargeSmoke")==0,
+	"Rematch-style COUNTDOWN/RACING refills Missile and leaves Smoke zero")
+
 -- Two real production contexts and item controllers must keep ownership isolated.
 local second=child(services.Players,"Player","SecondDriver"); second.UserId=2
 second.Character=object("Model","SecondCharacter")
@@ -730,8 +795,9 @@ second:SetAttribute("RaceState","RACING")
 check(second:GetAttribute("RaceChargeNitro")==1
 	and second:GetAttribute("RaceChargeSlick")==1
 	and second:GetAttribute("RaceChargeShield")==1
+	and second:GetAttribute("RaceChargeMissile")==1
 	and second:GetAttribute("RaceChargeSmoke")==0,
-	"second staged Base racer receives 1/1/1/0 at race start")
+	"second staged Base racer receives 1/1/1/1/0 at race start")
 secondContext.kart:SetAttribute("RaceControlsLocked",false)
 control.OnServerEvent:Fire(second,1,0.7,true)
 check(secondContext.control and secondContext.control.steering==0.7 and firstContext.control.steering==0,
@@ -744,6 +810,19 @@ remote.OnServerEvent:Fire(second,"Select","Shield")
 remote.OnServerEvent:Fire(second,"Use")
 check(secondContext.kart:GetAttribute("KartShieldActive"),"second player shield active")
 check(not kart:GetAttribute("KartShieldActive"),"second player Shield does not set first kart Shield")
+local shieldVelocity, shieldFrame = secondContext.chassis.AssemblyLinearVelocity, secondContext.chassis.CFrame
+local blockedMissile, blockedMissileReason = items.tryApplyOffensiveItem(second,player,"Missile")
+check(blockedMissile and blockedMissileReason=="blocked" and not secondContext.kart:GetAttribute("KartShieldActive")
+	and not secondContext.kart:GetAttribute("KartMissileHitActive") and secondContext.chassis.CFrame==shieldFrame
+	and secondContext.chassis.AssemblyLinearVelocity==shieldVelocity,
+	"real Shield consumes Missile with no cap, traction effect, pose or velocity change")
+local realMissile, realMissileReason=items.tryApplyOffensiveItem(second,player,"Missile")
+check(realMissile and realMissileReason=="hit" and secondContext.kart:GetAttribute("KartMissileHitActive"),"controller invokes real per-context Missile effect")
+local repeatMissile, repeatMissileReason=items.tryApplyOffensiveItem(second,player,"Missile")
+check(not repeatMissile and repeatMissileReason=="immune","real Missile shares offensive immunity")
+second:SetAttribute("RaceState","COUNTDOWN");second:SetAttribute("RaceState","RACING")
+check(not secondContext.kart:GetAttribute("KartMissileHitActive") and second:GetAttribute("RaceChargeMissile")==1,"second racer reset clears hit and refills independently")
+remote.OnServerEvent:Fire(second,"Select","Shield");remote.OnServerEvent:Fire(second,"Use")
 second:SetAttribute("RaceSessionId",7)
 remote.OnServerEvent:Fire(second,"Select","Slick")
 now+=0.2; remote.OnServerEvent:Fire(second,"Use")
@@ -838,8 +917,14 @@ local replacement=world.acquireKartContext(third,CF.new(30,1.75,0))
 check(replacement and replacement.kart.Parent and replacement.kart~=kart
 	and replacement.kart:GetAttribute("KartOwnerUserId")==third.UserId,
 	"next acquisition recreates an owned default kart")
+third.Character=object("Model","ThirdCharacter")
+local thirdHuman=child(third.Character,"Humanoid","Humanoid");thirdHuman.Health=100
+replacement.seat.Occupant=thirdHuman;thirdHuman.SeatPart=replacement.seat
+third:SetAttribute("RaceState","RACING");replacement.kart:SetAttribute("RaceControlsLocked",false)
+check(world.applyMissileHit(third),"replacement destruction fixture has live Missile state")
 world.releaseKartContext(third)
-check(replacement.kart.Parent==nil,"recreated default kart also disappears on release")
+check(replacement.kart.Parent==nil and not replacement.missileHitActive and replacement.missileHitEndTime==0,
+	"kart destruction/owner release clears Missile state")
 check(not items.grantBonusNitro(player),"removed player has no loadout")
 second:SetAttribute("RaceState","FINISHED")
 local ignored,ignoredReason=items.tryApplyOffensiveItem(second,player,"Slick")

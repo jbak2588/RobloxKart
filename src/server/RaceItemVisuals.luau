@@ -87,4 +87,29 @@ function Visuals.shield(kart, chassis)
 	weld.Parent = shell
 	return shell
 end
+function Visuals.missile(parent, frame)
+	local model = Instance.new("Model")
+	model.Name = "HomingMissile"
+	local body = part(model, "Body", Vector3.new(0.8, 0.8, 2.8), frame, Color3.fromRGB(230, 240, 250))
+	body.Shape = Enum.PartType.Ball
+	model.PrimaryPart = body
+	local nose = part(model, "Nose", Vector3.one * 0.85, frame * CFrame.new(0, 0, -1.2), Color3.fromRGB(255, 95, 60))
+	nose.Shape = Enum.PartType.Ball
+	part(model, "FinLeft", Vector3.new(1.4, 0.15, 0.8), frame * CFrame.new(-0.45, 0, 0.9), Color3.fromRGB(255, 180, 65))
+	part(model, "FinRight", Vector3.new(1.4, 0.15, 0.8), frame * CFrame.new(0.45, 0, 0.9), Color3.fromRGB(255, 180, 65))
+	local exhaust = part(model, "Exhaust", Vector3.new(0.45, 0.45, 1.2), frame * CFrame.new(0, 0, 1.7), Color3.fromRGB(255, 225, 75))
+	exhaust.Material = Enum.Material.Neon
+	model.Parent = parent
+	return model
+end
+
+function Visuals.missileImpact(parent, position, blocked)
+	local flash = part(parent, "MissileImpact", Vector3.one, CFrame.new(position),
+		if blocked then Color3.fromRGB(65, 210, 255) else Color3.fromRGB(255, 200, 75))
+	flash.Shape = Enum.PartType.Ball
+	flash.Material = Enum.Material.Neon
+	flash.Transparency = 0.3
+	return flash
+end
+
 return Visuals

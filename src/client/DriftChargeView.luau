@@ -87,8 +87,9 @@ function Gauge.create(root, debugEnabled)
 				if size.X<500 and size.Y>size.X then
 					x,y=12,116
 				elseif size.X<700 then
-					width=math.min(144,size.X-l.margin-l.padWidth-8-(l.margin+l.slot*3+24))
-					x,y=l.margin+l.slot*3+24,64
+					local itemRight=l.margin+l.slot*4+l.gap*3+8
+					width=math.min(144,size.X-l.margin-l.padWidth-8-itemRight)
+					x,y=itemRight,64
 				else
 					-- Fit between the 160px speed panel and minimap, including phone safe insets.
 					width=math.min(width,size.X-112-8-(size.X/2+80+8))

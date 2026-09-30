@@ -36,7 +36,7 @@ function RaceItemUiController.start()
 	corner.Parent = label
 	local buttons = {}
 	local mobileIcons = {}
-	for index, id in { "Nitro", "Slick", "Shield" } do
+	for index, id in { "Nitro", "Slick", "Shield", "Missile" } do
 		local button = Instance.new("TextButton")
 		button.Name = id
 		button.AnchorPoint = Vector2.new(0, 1)
@@ -105,6 +105,22 @@ function RaceItemUiController.start()
 	bonusLabel.Visible = false
 	bonusLabel.Parent = nitroProgress
 	local blockedUntil = 0
+	local combat = Instance.new("TextLabel")
+	combat.Name = "MissileFeedback"
+	combat.AnchorPoint = Vector2.new(0.5, 0)
+	combat.BackgroundColor3 = Color3.fromRGB(16, 25, 35)
+	combat.BackgroundTransparency = 0.12
+	combat.BorderSizePixel = 0
+	combat.Font = Enum.Font.GothamBold
+	combat.TextSize = 14
+	combat.TextColor3 = Color3.fromRGB(255, 215, 75)
+	combat.TextTruncate = Enum.TextTruncate.AtEnd
+	combat.Active = false
+	combat.Visible = false
+	combat.Parent = gui
+	MobileView.round(combat, UDim.new(0, 8))
+	local feedbackUntil = 0
+	local feedbackText = ""
 	local deployedUntil = 0
 	local lastAwarded = player:GetAttribute("DriftBonusNitroAwarded") == true
 	local bonusFlashSerial = 0
@@ -116,7 +132,10 @@ function RaceItemUiController.start()
 			bonusFlashVisible = false
 			bonusFlashSerial += 1
 		end
-		if not racing then blockedUntil = 0; deployedUntil = 0 end
+		if not racing then blockedUntil = 0; deployedUntil = 0; feedbackUntil = 0 end
+		local incoming = (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0
+		combat.Visible = racing and (incoming or time() < feedbackUntil)
+		combat.Text = if incoming then "MISSILE INCOMING\nSHIELD CAN BLOCK" else feedbackText
 		if not racing and preview then preview:stop() end
 		local blocked = time() < blockedUntil
 		local deployed = time() < deployedUntil
@@ -175,27 +194,33 @@ function RaceItemUiController.start()
 		end
 		label.TextSize = if compact then 14 else 18
 		preview:layout(compact, label.Position)
+		combat.Position = UDim2.new(0.5, 0, 0, 64)
+		combat.Size = UDim2.fromOffset(math.max(160, math.min(320, gui.AbsoluteSize.X - 384)), 40)
 		if mobile then
 			local l = MobileView.layout(gui.AbsoluteSize)
-			local groupWidth = l.slot * 3 + l.gap * 2
-			local progressHeight = math.min(34,
-				l.loadoutBottom - math.max(l.driftBottom + l.action, l.useBottom + l.action) - 7)
+			local items = MobileView.itemLayout(gui.AbsoluteSize, #buttons)
+			local groupWidth = items.width
+			local progressHeight = items.progressHeight
 			for index, button in buttons do
-				button.Position = UDim2.new(0, l.margin+(index-1)*(l.slot+l.gap), 1, -l.loadoutBottom)
+				button.Position = UDim2.new(0, items.x+(index-1)*(l.slot+l.gap), 1, -items.bottom)
 				button.Size = UDim2.fromOffset(l.slot, l.slot)
 			end
-			label.Position = UDim2.new(0, l.margin, 1, -l.loadoutBottom)
+			label.Position = UDim2.new(0, items.x, 1, -items.bottom)
 			label.Size = UDim2.fromOffset(groupWidth, l.slot)
-			nitroProgress.Position = UDim2.new(0, l.margin, 1, -l.loadoutBottom + 6)
+			nitroProgress.Position = UDim2.fromOffset(items.x, items.progressTop)
 			nitroProgress.Size = UDim2.fromOffset(groupWidth, progressHeight)
 			progressLabel.TextSize = if progressHeight < 30 then 10 else 13
 			preview:layout(true, label.Position)
 			local panel = gui:FindFirstChild("SlickRearPreview")
-			if panel then panel.Size = UDim2.fromOffset(groupWidth, math.clamp(gui.AbsoluteSize.Y-l.loadoutBottom-116,44,112)) end
+			if panel then panel.Size = UDim2.fromOffset(groupWidth, math.clamp(gui.AbsoluteSize.Y-items.bottom-116,44,112)) end
+			if gui.AbsoluteSize.X < 600 then
+				combat.Position = UDim2.new(0.5, 0, 0, 180)
+				combat.Size = UDim2.fromOffset(math.min(300, gui.AbsoluteSize.X-24), 40)
+			end
 		else
 			nitroProgress.Position = UDim2.new(label.Position.X.Scale, label.Position.X.Offset,
 				label.Position.Y.Scale, label.Position.Y.Offset - (if compact then 40 else 48) - 38)
-			nitroProgress.Size = UDim2.fromOffset(width * 3 + 8, 32)
+			nitroProgress.Size = UDim2.fromOffset(width * #buttons + 4 * (#buttons-1), 32)
 			progressLabel.TextSize = 13
 		end
 		refresh()
@@ -212,9 +237,18 @@ function RaceItemUiController.start()
 	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(layout)
 	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(layout)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	for _, attribute in { "RaceState", "SelectedRaceItemId", "RaceChargeNitro", "RaceChargeSlick", "RaceChargeShield", "DriftBonusProgress" } do
+	for _, attribute in { "RaceState", "SelectedRaceItemId", "RaceChargeNitro", "RaceChargeSlick", "RaceChargeShield", "RaceChargeMissile", "DriftBonusProgress", "RaceMissileIncomingCount" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end
+	player:GetAttributeChangedSignal("RaceItemFeedbackSerial"):Connect(function()
+		if player:GetAttribute("RaceState") ~= "RACING" then return end
+		local code = player:GetAttribute("RaceItemFeedbackCode")
+		feedbackText = if code == "NO_TARGET_AHEAD" then "NO TARGET AHEAD"
+			elseif code == "MISSILE_LOCKED" then "MISSILE LOCKED: " .. (player:GetAttribute("RaceMissileTargetName") or "") else ""
+		feedbackUntil = time() + 1.75
+		refresh()
+		task.delay(1.75, refresh)
+	end)
 	player:GetAttributeChangedSignal("DriftBonusNitroAwarded"):Connect(function()
 		local awarded = player:GetAttribute("DriftBonusNitroAwarded") == true
 		bonusFlashSerial += 1

@@ -281,7 +281,7 @@ finger.UserInputState=rb.Enum.UserInputState.Cancel; neutral("cancel clears all 
 for _, direction in {-1,1} do
 	local f=touch(joy,direction*25,-30); local driftFinger=touch(drift)
 	check(latest()[1]>0 and math.sign(latest()[2])==direction and latest()[3],"both diagonal drift combinations")
-	for _, id in {"Nitro","Slick","Shield"} do
+	for _, id in {"Nitro","Slick","Shield","Missile"} do
 		input.selectRaceItem(id); use.Activated:Fire(); tick()
 		check(latest()[1]>0 and math.sign(latest()[2])==direction and latest()[3],"selection/use does not cancel held axes")
 	end
@@ -333,7 +333,7 @@ else
 		other.InputBegan:Fire(steer); tick(); check(latest()[2]==direction*0.60,"one finger cannot own two buttons")
 		local opposite=touch(other); check(latest()[2]==-direction*0.60,"last pressed wins")
 		opposite.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==direction*0.60,"release falls back to held direction")
-		for _, id in {"Nitro","Slick","Shield"} do
+		for _, id in {"Nitro","Slick","Shield","Missile"} do
 			input.selectRaceItem(id); use.Activated:Fire(); tick()
 			check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"digital drift and item actions coexist")
 		end
@@ -349,7 +349,7 @@ else
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"auto drift release restores full steering")
 		steer.UserInputState=rb.Enum.UserInputState.Cancel; neutral("cancel disables auto")
 	end
-	check(#item._p.calls==12,"all digital item select/use calls delivered")
+	check(#item._p.calls==16,"all four digital item select/use calls delivered")
 end
 local function hold()
 	tick(); touch(if legacy then joy else root.Forward,20,-40)
@@ -382,10 +382,10 @@ for _, case in {{rb.Enum.KeyCode.W,rb.Enum.KeyCode.D,1,1},{rb.Enum.KeyCode.S,rb.
 	check(latest()[1]==case[3] and latest()[2]==case[4] and latest()[3],"PC throttle/steering/Shift regression")
 	keys={}; neutral("PC release")
 end
-for i,key in {rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three} do
+for i,key in {rb.Enum.KeyCode.One,rb.Enum.KeyCode.Two,rb.Enum.KeyCode.Three,rb.Enum.KeyCode.Four} do
 	local k=object("InputObject"); k.KeyCode=key; ui.InputBegan:Fire(k,false)
 	local call=item._p.calls[#item._p.calls]
-	check(call[1]=="Select" and call[2]==({"Nitro","Slick","Shield"})[i],"PC item selection")
+	check(call[1]=="Select" and call[2]==({"Nitro","Slick","Shield","Missile"})[i],"PC item selection")
 end
 local q=object("InputObject"); q.KeyCode=rb.Enum.KeyCode.Q; ui.InputBegan:Fire(q,false); ui.InputEnded:Fire(q)
 check(item._p.calls[#item._p.calls][1]=="Use","PC Q item trigger")
@@ -400,8 +400,9 @@ for _, size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390)} do
 	safeSize=size
 	productionGauge:layout(size,true)
 	local l=modules.MobileControlView.layout(size)
-	local row={l.margin,size.Y-l.loadoutBottom-l.slot,
-		l.margin+l.slot*3+l.gap*2,size.Y-l.loadoutBottom}
+	local items=modules.MobileControlView.itemLayout(size,4)
+	local row={items.x,size.Y-items.bottom-l.slot,
+		items.x+items.width,size.Y-items.bottom}
 	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
 	local gaugeRect=rect(productionGauge.frame)
@@ -434,7 +435,8 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	end
 	local speedX=if size.X<450 then size.X-172 else size.X/2-80
 	check(not overlaps(rects[#rects],{speedX,l.speedTop,speedX+160,l.speedTop+l.speedHeight}),"debug avoids speed HUD including inset phone width")
-	table.insert(rects,{l.margin,size.Y-l.loadoutBottom-l.slot,l.margin+l.slot*3+l.gap*2,size.Y-l.loadoutBottom})
+	local items=modules.MobileControlView.itemLayout(size,4)
+	table.insert(rects,{items.x,size.Y-items.bottom-l.slot,items.x+items.width,size.Y-items.bottom})
 	table.insert(rects,{size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3})
 	for i,r in rects do
 		check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"inside safe area")
@@ -514,26 +516,67 @@ player:SetAttribute("DriftBonusProgress",0)
 player:SetAttribute("DriftBonusNitroAwarded",false)
 check(progressLabel.Text=="NITRO CHARGE  0/5" and not bonusLabel.Visible,
 	"new countdown clears previous reward presentation")
-for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390),
-	V2.new(801,334),V2.new(389,703)} do
+for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
+	V2.new(812,351),V2.new(724,311),V2.new(801,334),V2.new(389,703)} do
 	safeSize=size;itemCamera.ViewportSize=size
 	itemHud:GetPropertyChangedSignal("AbsoluteSize"):Fire()
 	local first=rect(itemHud.Nitro)
 	local second=rect(itemHud.Slick)
 	local third=rect(itemHud.Shield)
+	local fourth=rect(itemHud.Missile)
 	local display=rect(nitroProgress)
 	local l=modules.MobileControlView.layout(itemHud.AbsoluteSize)
-	check(first[1]==l.margin and third[3]-first[1]==l.slot*3+l.gap*2
+	local items=modules.MobileControlView.itemLayout(itemHud.AbsoluteSize,4)
+	check(first[1]==items.x and fourth[3]-first[1]==l.slot*4+l.gap*3
 		and second[1]-first[3]==l.gap,"item group uses production slot and gap geometry")
-	check(display[1]==first[1] and display[3]==third[3]
-		and nitroProgress.AbsoluteSize.X==l.slot*3+l.gap*2,
+	check(display[1]==first[1] and display[3]==fourth[3]
+		and nitroProgress.AbsoluteSize.X==l.slot*4+l.gap*3,
 		"Nitro progress uses exactly the item group width")
+	check(nitroProgress.AbsoluteSize.Y>=32 and progressLabel.TextSize>=13,
+		"two-line BONUS EARNED remains readable without clipping")
 	check(display[2]>=first[4]+4 and display[4]<size.Y-l.driftBottom-l.action
 		and display[4]<size.Y-l.useBottom-l.action,
 		"Nitro progress stays below all item cells and above Drift/Use")
 	check(bonusLabel.Parent==nitroProgress and progressLabel.Parent==nitroProgress,
 		"award and earned text share the progress rectangle")
+	local combat=rect(itemHud.MissileFeedback)
+	local lap={12,8,12+math.min(170,size.X*.28),163}
+	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
+	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
+	local gaugeRect={l.driftX,size.Y-l.driftBottom-l.action-l.driftGaugeGap-l.gaugeHeight,
+		l.driftX+l.action,size.Y-l.driftBottom-l.action-l.driftGaugeGap}
+	local wheelRect={size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3}
+	local padRect={size.X-l.margin-l.padWidth,size.Y-l.padBottom-l.padHeight,size.X-l.margin,size.Y-l.padBottom}
+	for _, hudRect in {first,second,third,fourth,display,combat} do
+		check(hudRect[1]>=0 and hudRect[2]>=0 and hudRect[3]<=size.X and hudRect[4]<=size.Y,"combat/item UI inside safe area")
+		for _, controlRect in {lap,driftRect,useRect,gaugeRect,wheelRect,padRect} do
+			check(not overlaps(hudRect,controlRect),"combat/item UI clears LAP, Drift, Use, gauge, wheel and pad "..tostring(size))
+		end
+	end
+	check(l.slot>=44 and not overlaps(combat,display) and not overlaps(combat,first)
+		and not overlaps(combat,fourth) and itemHud.MissileFeedback.TextSize>=14,
+		"four comfortable tap targets and readable warning in its own lane")
 end
+player:SetAttribute("RaceChargeMissile",1);player:SetAttribute("RaceState","RACING")
+itemHud.Missile.Activated:Fire();use.Activated:Fire();tick()
+local missileSelect=item._p.calls[#item._p.calls-1]
+check(missileSelect[1]=="Select" and missileSelect[2]=="Missile" and item._p.calls[#item._p.calls][1]=="Use",
+	"fourth native mobile cell selects Missile; Use retains target-free protocol")
+check(itemHud.Missile:FindFirstChild("MissileIcon") and #itemHud.Missile.MissileIcon:GetChildren()>0,"native Missile icon drawn without asset")
+player:SetAttribute("RaceMissileIncomingCount",2)
+check(itemHud.MissileFeedback.Visible and itemHud.MissileFeedback.Text=="MISSILE INCOMING\nSHIELD CAN BLOCK"
+	and itemHud.Shield.Visible,"multiple incoming warnings leave Shield cell available")
+player:SetAttribute("RaceMissileIncomingCount",1)
+check(itemHud.MissileFeedback.Visible,"one of multiple missiles remains warned")
+player:SetAttribute("RaceMissileIncomingCount",0)
+check(not itemHud.MissileFeedback.Visible,"last projectile clears incoming warning")
+player:SetAttribute("RaceItemFeedbackCode","NO_TARGET_AHEAD");player:SetAttribute("RaceItemFeedbackSerial",1)
+check(itemHud.MissileFeedback.Visible and itemHud.MissileFeedback.Text=="NO TARGET AHEAD","source no-target message")
+player:SetAttribute("RaceMissileTargetName","Racer Ahead")
+player:SetAttribute("RaceItemFeedbackCode","MISSILE_LOCKED");player:SetAttribute("RaceItemFeedbackSerial",2)
+check(itemHud.MissileFeedback.Text=="MISSILE LOCKED: Racer Ahead","source lock message")
+player:SetAttribute("RaceState","COUNTDOWN")
+check(not itemHud.MissileFeedback.Visible,"rematch hides old combat feedback")
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 ui:GetPropertyChangedSignal("PreferredInput"):Fire()
 check(nitroProgress.Visible and progressLabel.Visible

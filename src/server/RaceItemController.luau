@@ -9,6 +9,7 @@ local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local RaceLoadout = require(script.Parent:WaitForChild("RaceLoadout"))
 local Geometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
+local HomingMissileService = require(script.Parent:WaitForChild("HomingMissileService"))
 
 local RaceItemController = {}
 local started = false
@@ -18,10 +19,11 @@ local kartConnections = {}
 local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
 local prototype, hazardFolder
+local missiles
 
 local function publish(player)
 	local loadout = loadouts[player]
-	for _, id in { "Nitro", "Slick", "Shield", "Smoke" } do
+	for _, id in { "Nitro", "Slick", "Shield", "Missile", "Smoke" } do
 		player:SetAttribute("RaceCharge" .. id, if loadout then loadout.counts[id] else 0)
 	end
 	player:SetAttribute("SelectedRaceItemId", if loadout then loadout.selected else "")
@@ -39,6 +41,10 @@ local function removeHazard(index)
 	table.remove(hazards, index)
 end
 local function clearPlayer(player)
+	if missiles then missiles:clearPlayer(player) end
+	player:SetAttribute("RaceMissileIncomingCount", 0)
+	player:SetAttribute("RaceMissileTargetName", "")
+	player:SetAttribute("RaceItemFeedbackCode", "")
 	if loadouts[player] then loadouts[player]:clear() end
 	removeShield(player)
 	local state = immunity[player]
@@ -62,6 +68,7 @@ local function clearHazardsForSession(session)
 end
 -- Reserved for an explicit shared-session reset; individual lifecycle events use clearPlayer.
 local function clearSession(session)
+	if missiles then missiles:clearSession(session) end
 	for player in session.participants do clearPlayer(player) end
 	clearHazardsForSession(session)
 end
@@ -75,12 +82,16 @@ function RaceItemController.grantBonusNitro(player: Player): boolean
 	return accepted
 end
 
--- One offensive-item resolution path; source identity comes only from server hazards.
+-- One offensive-item resolution path; source identity comes only from server hazards/projectiles.
 function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePlayer: Player, itemId: string): (boolean, string)
-	if itemId ~= "Slick" then return false, "unsupported_item" end
+	if itemId ~= "Slick" and itemId ~= "Missile" then return false, "unsupported_item" end
 	local sourceSession = RaceSession.forPlayer(sourcePlayer)
 	local targetSession = RaceSession.forPlayer(targetPlayer)
 	if not sourceSession or sourceSession ~= targetSession then return false, "cross_session" end
+	if targetPlayer:GetAttribute("RaceState") ~= "RACING" then return false, "invalid_target" end
+	if itemId == "Missile" and (targetPlayer == sourcePlayer or sourcePlayer:GetAttribute("RaceState") ~= "RACING") then
+		return false, "invalid_source"
+	end
 	local kart = PrototypeWorld.getRaceKart(targetPlayer)
 	if not kart or kart:GetAttribute("KartOffTrack") == true then return false, "invalid_target" end
 	local now = time()
@@ -94,10 +105,33 @@ function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePl
 		targetPlayer:SetAttribute("RaceItemBlockedSerial", serial + 1)
 		return true, "blocked"
 	end
-	if not PrototypeWorld.applySlickHit(targetPlayer) then return false, "effect_rejected" end
+	local applied = if itemId == "Missile" then PrototypeWorld.applyMissileHit(targetPlayer)
+		else PrototypeWorld.applySlickHit(targetPlayer)
+	if not applied then return false, "effect_rejected" end
 	immunity[targetPlayer] = { untilTime = now + Config.RACE_ITEM_HIT_IMMUNITY, kart = kart }
 	kart:SetAttribute("RaceItemHitImmunity", true)
 	return true, "hit"
+end
+
+-- RacePosition is authored by RaceController. Never skip an invalid immediate rival.
+function RaceItemController.missileTarget(player)
+	local session = RaceSession.forPlayer(player)
+	local position = player:GetAttribute("RacePosition")
+	if not session or player:GetAttribute("RaceState") ~= "RACING" or not PrototypeWorld.getRaceKart(player)
+		or type(position) ~= "number" or position <= 1 or position % 1 ~= 0 then return nil end
+	for target in session.participants do
+		if target ~= player and RaceSession.forPlayer(target) == session
+			and target:GetAttribute("RaceState") == "RACING"
+			and target:GetAttribute("RacePosition") == position - 1 and PrototypeWorld.getRaceKart(target) then
+			return target
+		end
+	end
+	return nil
+end
+
+local function feedback(player, code)
+	player:SetAttribute("RaceItemFeedbackCode", code)
+	player:SetAttribute("RaceItemFeedbackSerial", (player:GetAttribute("RaceItemFeedbackSerial") or 0) + 1)
 end
 
 local function activate(player, id)
@@ -111,6 +145,16 @@ local function activate(player, id)
 		shields[player] = { untilTime = time() + Config.SHIELD_DURATION, kart = kart, visual = Visuals.shield(kart, chassis) }
 		kart:SetAttribute("KartShieldActive", true)
 		return true
+	elseif id == "Missile" then
+		local target = RaceItemController.missileTarget(player)
+		if not target then feedback(player, "NO_TARGET_AHEAD"); return false, "no_target_ahead" end
+		local accepted, reason = missiles:launch(player, target, RaceSession.forPlayer(player), time())
+		if accepted then
+			player:SetAttribute("RaceMissileTargetName", target.DisplayName or target.Name)
+			player:SetAttribute("RaceMissileLaunchSerial", (player:GetAttribute("RaceMissileLaunchSerial") or 0) + 1)
+			feedback(player, "MISSILE_LOCKED")
+		end
+		return accepted, reason
 	elseif id == "Slick" then
 		if kart:GetAttribute("KartOffTrack") == true then return false, "off_track" end
 		local frame = Geometry.dropFrame(prototype, chassis, Config.SLICK_DROP_DISTANCE)
@@ -144,6 +188,12 @@ function RaceItemController.start()
 	hazardFolder = Instance.new("Folder")
 	hazardFolder.Name = "RaceItemHazards"
 	hazardFolder.Parent = prototype
+	local missileFolder = Instance.new("Folder")
+	missileFolder.Name = "RaceMissiles"
+	missileFolder.Parent = prototype
+	missiles = HomingMissileService.new(Config, { getKart = PrototypeWorld.getRaceKart,
+		getSession = RaceSession.forPlayer, resolve = RaceItemController.tryApplyOffensiveItem,
+		visuals = Visuals, parent = missileFolder })
 	local function unbindKart(player)
 		for _, connection in kartConnections[player] or {} do connection:Disconnect() end
 		kartConnections[player] = nil
@@ -154,6 +204,9 @@ function RaceItemController.start()
 		if not context then return end
 		local kart, seat = context.kart, context.seat
 		kartConnections[player] = {
+			kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
+				if kart:GetAttribute("RaceControlsLocked") == true then missiles:clearPlayer(player) end
+			end),
 			kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() clearPlayer(player) end),
 			seat:GetPropertyChangedSignal("Occupant"):Connect(function()
 				-- Grid seating during COUNTDOWN keeps the prepared loadout.
@@ -171,6 +224,11 @@ function RaceItemController.start()
 		resetBonusProgress(player)
 		publish(player)
 		player:SetAttribute("RaceItemBlockedSerial", 0)
+		player:SetAttribute("RaceMissileIncomingCount", 0)
+		player:SetAttribute("RaceMissileLaunchSerial", 0)
+		player:SetAttribute("RaceMissileTargetName", "")
+		player:SetAttribute("RaceItemFeedbackSerial", 0)
+		player:SetAttribute("RaceItemFeedbackCode", "")
 		local previousState = player:GetAttribute("RaceState")
 		connections[player] = {
 			player:GetAttributeChangedSignal("RaceState"):Connect(function()
@@ -239,6 +297,7 @@ function RaceItemController.start()
 	-- One loop for every hazard's lifetime/contact and every defense's expiry.
 	RunService.Heartbeat:Connect(function()
 		local now = time()
+		missiles:update(now)
 		for player, shield in shields do
 			if now >= shield.untilTime or not PrototypeWorld.getRaceKart(player) then removeShield(player) end
 		end

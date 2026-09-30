@@ -1,15 +1,15 @@
 -- Temporary authoritative race resources. Activation callbacks must not yield.
 local RaceLoadout = {}
 RaceLoadout.__index = RaceLoadout
-local ORDER = { "Nitro", "Slick", "Shield" }
-local MAX = { Nitro=2, Slick=1, Shield=1 }
+local ORDER = { "Nitro", "Slick", "Shield", "Missile" }
+local MAX = { Nitro=2, Slick=1, Shield=1, Missile=1 }
 function RaceLoadout.new()
 	local self = setmetatable({}, RaceLoadout)
 	self:clear()
 	return self
 end
 function RaceLoadout:clear()
-	self.counts = { Nitro=0, Slick=0, Shield=0, Smoke=0 }
+	self.counts = { Nitro=0, Slick=0, Shield=0, Missile=0, Smoke=0 }
 	self.selected = ""
 	self.bonusClaimed = false
 end

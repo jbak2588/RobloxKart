@@ -393,7 +393,7 @@ function GarageUiController.start()
 		"A / D   Steer",
 		"SHIFT   Drift",
 		"GOLD GAUGE + SHIFT RELEASE = BOOST",
-		"1 / 2 / 3   Select item",
+		"1 / 2 / 3 / 4   Select item",
 		"Q   Use item",
 	} do
 		local line = makeText(controlsCard, UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 34 + (index - 1) * 23), hint, if index == 4 then 12 else 14)

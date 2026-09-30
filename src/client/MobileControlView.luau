@@ -15,19 +15,25 @@ function View.layout(size: Vector2)
 	local padWidth = direction * 3 + 24
 	local compactPad = not portrait and size.Y < 300
 	local padHeight = if compactPad then forward + brake + 14 else forward + direction + brake + 12
+	local padBottom = if portrait then math.min(112, size.X * 0.18)*2/3+12 else margin
+	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
+		+ (if not portrait and size.Y >= 360 then 62 else 0)
+	if portrait and margin + slot*4 + 8*3 > size.X - margin - padWidth then
+		-- Lift only the four-slot group/progress above the narrow portrait driving pad.
+		loadoutBottom = math.max(loadoutBottom, padBottom + padHeight + 48)
+	end
 	return {
 		speedTop = math.clamp(size.Y*0.004, 2, 4), speedHeight = 56,
 		margin = margin, action = action, slot = slot, gap = 8,
 		joystick = diameter, wheel = math.min(112, size.X * 0.18),
 		padWidth = padWidth, padHeight = padHeight, direction = direction, forward = forward, brake = brake,
-		padBottom = if portrait then math.min(112, size.X * 0.18)*2/3+12 else margin,
+		padBottom = padBottom,
 		padAutoRight = portrait,
 		padCompact = compactPad,
 		driftX = margin, driftBottom = margin + (if portrait then action+8 else 0),
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
 		-- Reserve a separate band for race-long Nitro progress and its award flash.
-		loadoutBottom = margin + (if portrait then action*2+36 else action+28)
-			+ (if not portrait and size.Y >= 360 then 62 else 0),
+		loadoutBottom = loadoutBottom,
 		gaugeHeight = 12,
 		driftGaugeGap = 8,
 	}
@@ -43,6 +49,25 @@ function View.speedTopbarPosition(fullSize: Vector2, topbar: Rect, panelWidth: n
 	end
 	local topY = math.max(topbar.Min.Y, (topbar.Min.Y + topbar.Max.Y - panelHeight) * 0.5)
 	return Vector2.new(centerX, topY)
+end
+
+-- Only the item group moves when a short safe viewport needs the LAP lane.
+function View.itemLayout(size: Vector2, slotCount: number)
+	local l = View.layout(size)
+	local width = l.slot * slotCount + l.gap * (slotCount - 1)
+	local x = l.margin
+	if size.X >= 600 and size.Y < 360 then x = 12 + math.min(170, size.X * 0.28) + 8 end
+	local bottom = l.loadoutBottom
+	local progressTop = size.Y - bottom + 6
+	local progressBottom = size.Y - math.max(l.driftBottom + l.action, l.useBottom + l.action) - 1
+	local wheelLeft, wheelTop = size.X * 0.5 - l.wheel * 0.5, size.Y - 3 - l.wheel * 2/3
+	if x + width > wheelLeft and x < wheelLeft + l.wheel then progressBottom = math.min(progressBottom, wheelTop - 3) end
+	if progressBottom - progressTop < 34 then
+		-- Keep both NITRO CHARGE / BONUS EARNED lines readable above the wheel.
+		bottom += 34 - (progressBottom - progressTop)
+		progressTop = progressBottom - 34
+	end
+	return { x = x, width = width, bottom = bottom, progressTop = progressTop, progressHeight = 34 }
 end
 
 -- The full wheel remains unchanged; only its upper two-thirds are visible.
@@ -149,6 +174,11 @@ function View.icon(parent: Instance, kind: string, zIndex: number?)
 			line(table.unpack(edge))
 		end
 		line(13,19,18,24); line(18,24,27,14)
+	elseif kind == "Missile" then
+		shape(21,20,27,10,0,true)
+		shape(33,20,10,10,0,true)
+		shape(10,13,12,4,-35,true); shape(10,27,12,4,35,true)
+		shape(4,20,5,4,0,true)
 	elseif kind == "Drift" then
 		local tyre = shape(25, 12, 14, 19, 28, true)
 		tyre.BackgroundTransparency = 1

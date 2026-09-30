@@ -89,7 +89,7 @@ function KartInputController.selectRaceItem(id: string)
 	if not raceItemRemote or UserInputService:GetFocusedTextBox() then return end
 	local state = Players.LocalPlayer:GetAttribute("RaceState")
 	if state ~= "RACING" and state ~= "COUNTDOWN" then return end
-	if id ~= "Nitro" and id ~= "Slick" and id ~= "Shield" then return end
+	if id ~= "Nitro" and id ~= "Slick" and id ~= "Shield" and id ~= "Missile" then return end
 	raceItemRemote:FireServer("Select", id)
 end
 
@@ -130,7 +130,8 @@ function KartInputController.start()
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		local selection = if input.KeyCode == Enum.KeyCode.One then "Nitro"
 			elseif input.KeyCode == Enum.KeyCode.Two then "Slick"
-			elseif input.KeyCode == Enum.KeyCode.Three then "Shield" else nil
+			elseif input.KeyCode == Enum.KeyCode.Three then "Shield"
+			elseif input.KeyCode == Enum.KeyCode.Four then "Missile" else nil
 		if selection then
 			if not gameProcessed then KartInputController.selectRaceItem(selection) end
 			return

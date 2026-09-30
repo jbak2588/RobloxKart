@@ -46,8 +46,10 @@ Every race starts with:
 - Nitro 1
 - Slick 1
 - Shield 1
+- Missile 1
+- Smoke 0 (deferred)
 
-PC controls: `1` / `2` / `3` = select; `Q` = use.
+PC controls: `1` Nitro / `2` Slick / `3` Shield / `4` Missile; `Q` = use.
 
 RaceLoadout is temporary. Inventory is reserved for future persistent Shop ownership.
 
@@ -58,6 +60,54 @@ Sprint V1
 Colors: Red, White, Blue, Yellow.
 
 ## Current Priority
+
+### M4-A0 Auto Homing Missile Prototype
+
+**M3 CLOSED. M3-A2-R2 PUBLISHED iOS VISUAL PASS / CLOSED.** The user confirmed
+Android/iOS local Lobby list parity. All proven M3 Room, queue, routing and
+population behavior remains closed.
+
+Missile is a temporary fourth race item for tactical chase/counterplay. The
+server acquires exactly the immediately preceding `RacePosition` in the same
+RaceSession, requiring both racers to be RACING with valid KartContexts. It
+never skips an invalid immediate rival to attack the leader. Leader and solo
+use return `NO TARGET AHEAD` without consuming a charge. Source feedback shows
+`MISSILE LOCKED: <player>`; the target sees `MISSILE INCOMING / SHIELD CAN BLOCK`.
+Incoming counts support multiple projectiles. The client supplies only Select
+and Use actions, never a target, position or hit report.
+
+`RaceItemController` owns target acquisition, loadout consumption and the shared
+valid target → immunity → Shield → effect path. `HomingMissileService` owns
+the 0.75-second warning, fixed target, Heartbeat flight and cleanup. It moves
+noncolliding native geometry at 165 stud/s, turning at up to 8 rad/sec, with a
+7-second flight lifetime and 5.5-stud relative swept hit radius. Up to 16 active
+records (including warnings) are allowed. Targets never change after acceptance;
+invalid racers, changed sessions/rounds, reset karts and owner departure expire
+the projectile safely. A small native impact flash lasts 0.2 seconds. Wall
+collision/path following and production combat VFX/audio are deferred to polish.
+
+The existing Shield blocks one Missile, consumes itself and applies no hit
+physics. An unshielded hit cancels Nitro, Mini Boost and the current Drift, then
+sets per-KartContext `KartMissileHitActive` for 1.25 seconds: planar speed cap 55
+and normal lateral grip ×0.70. Steering, throttle and Shield remain available;
+new Nitro/Mini Boost are rejected. No forced spin, flip, vertical launch, control
+lock or zero-speed restart occurs. Speed recovers with normal acceleration after
+expiry, and earned cumulative Bonus Nitro progress is preserved. Reset, seat
+change, Garage, Finish, DNF/Quit, destruction and owner release clear the effect.
+
+Mobile uses four 44–48px native-icon cells. Nitro Charge is centered across all
+four. Only the item group and debug text adapt around short/narrow safe bounds;
+driving controls retain their positions. Prototype tuning is in `RaceItemConfig`;
+the existing driving/boost invariants remain unchanged.
+
+**M4-A0 CODE COMPLETE — PUBLISHED 2–4 PLAYER RUNTIME VALIDATION REQUIRED.**
+Studio runtime NOT VERIFIED. Automated tests use deterministic mocks and do not
+establish published combat, device touch or visual PASS. Published checks must
+cover basic hit, warning-to-Shield defense, leader rejection, 3-player immediate
+targeting, boost cancellation, natural recovery, Rematch and four-cell mobile HUD.
+AUTO TEST PASS: all 32 `*_validation.luau` suites plus Joystick (33 runs),
+including focused Missile, production KartContext and mobile layout coverage.
+Rojo build and `git diff --check` PASS. This is not PUBLISHED RUNTIME PASS.
 
 ### M1-A Digital Driving Pad v1
 
@@ -78,12 +128,13 @@ ON maintains forward throttle without holding forward; down still brakes
 or reverses, and releasing resumes forward. Race transitions, seat loss, focus
 loss, driving-touch cancellation and hidden/destroyed controls switch the hold OFF.
 
-The left side has icon buttons for hold-to-drift, Nitro/Slick/Shield selection,
+The left side has icon buttons for hold-to-drift, Nitro/Slick/Shield/Missile selection,
 and using the selected item. Counts and a selection checkmark show loadout state.
 The cropped bottom-center steering wheel only displays steering; it accepts no input.
 
 Mobile HUD icons are built from native UI shapes: a lightning bolt for Nitro,
-a small car with winding skid marks for Slick, a shield for Shield, and a finger
+a small car with winding skid marks for Slick, a shield for Shield, a missile
+body/nose/fins for Missile, and a finger
 pressing a circular trigger for item activation. No external icon assets or packages
 are required. The mobile speed panel is 160 x 56 with 0.30 background transparency;
 it uses a separate full-screen overlay and `GuiService.TopbarInset` to align
@@ -514,8 +565,9 @@ with 1/2/3/4/5/10/50-player simulations, complete last rows, control separation,
 join/leave updates and scroll retention. Core Population / Room UX remains
 **PASS / CLOSED**: aggregation, Room Browser, Queue Next, queue promotion/order,
 Host migration and stale population expiry are confirmed published runtime.
-**M3-A2-R2 CODE COMPLETE — PUBLISHED iOS VISUAL VALIDATION REQUIRED.**
-Studio runtime NOT VERIFIED for R2; automated geometry does not verify device fonts.
+**M3-A2-R2 PUBLISHED iOS VISUAL PASS / CLOSED.** The user confirmed the local
+Lobby list now matches Android. **Android/iOS Lobby list parity PASS; M3 CLOSED.**
+The historical automated R2 run did not verify Studio runtime.
 R2 validation passed all 31 Luau suites plus the mobile Joystick variant (32
 runs), Rojo build and `git diff --check`.
 
@@ -616,15 +668,15 @@ C1-A baseline: `be66348e599631775ce8293ca2c3a893a91df7a1`.
 
 ### Equal starting resources
 
-Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Smoke 0 during COUNTDOWN, in Studio and production. Selection is permitted during COUNTDOWN; use is blocked until RACING. Garage, Finish, DNF, reset and occupant loss clear temporary resources/effects. Grid seating during COUNTDOWN preserves prepared counts. Rematch refills all three and clears old hazards, Shield, Nitro, immunity and preview.
+Every new race/Rematch prepares Nitro 1, Slick 1, Shield 1, Missile 1, Smoke 0 during COUNTDOWN, in Studio and production. Selection is permitted during COUNTDOWN; use is blocked until RACING. Garage, Finish, DNF, reset and occupant loss clear temporary resources/effects. Grid seating during COUNTDOWN preserves prepared counts. Rematch refills all four and clears old hazards, Shield, Nitro, Missile incoming/projectiles/effects, immunity and preview.
 
 RaceLoadout is server-authoritative temporary state, replacing RaceItemSlot. Inventory means future persistent Shop/ownership only. No persistent Inventory or DataStore is implemented.
 
-- Maximum charges: Nitro 2, Slick 1, Shield 1; Smoke deferred.
-- PC 1/2/3 selects Nitro/Slick/Shield; Q uses the server-selected item. HUD buttons call the same selection function; future mobile ITEM can call useRaceItem(). No touch driving added.
-- Accepted use consumes only that item; rejected use retains charges. Once empty, selection advances deterministically Nitro -> Slick -> Shield -> Nitro. Keys override the selection at any time if charges remain.
+- Maximum charges: Nitro 2, Slick 1, Shield 1, Missile 1; Smoke deferred.
+- PC 1/2/3/4 selects Nitro/Slick/Shield/Missile; Q uses the server-selected item. Mobile item cells call the same selection function; the Use button calls useRaceItem().
+- Accepted use consumes only that item; rejected use retains charges. Once empty, selection advances deterministically Nitro -> Slick -> Shield -> Missile -> Nitro. Keys override the selection at any time if charges remain.
 - RaceItemControl accepts Select with one validated item ID, or Use with no arguments. Clients cannot grant charges or choose position/target/hit/speed effects. KartControl payload is unchanged.
-- Left-lower HUD: three cells, desktop 272 x 48 (24 left/30 bottom), compact 218 x 40 (16 left/100 bottom, safe GUI area). Available selected cell highlighted; empty cells dimmed. Visible in COUNTDOWN and RACING.
+- Race item HUD: four cells, desktop 88 x 48 each, compact PC 70 x 40 each; mobile 44–48px square cells in the safe GUI area. Available selected cell highlighted; empty cells dimmed. Visible in COUNTDOWN and RACING.
 
 ### Slick / Shield
 

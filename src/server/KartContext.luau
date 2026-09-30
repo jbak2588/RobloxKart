@@ -28,6 +28,8 @@ function KartContext.new(owner, kart, chassis, seat, spawnCFrame, config, itemCo
 		boostDriver = nil,
 		nitro = NitroState.new(config),
 		slick = SlickMotion.new(itemConfig),
+		missileHitActive = false,
+		missileHitEndTime = 0,
 		raceControlsWereLocked = kart:GetAttribute("RaceControlsLocked") == true,
 		debugElapsed = 0,
 		cachedTrack = nil,
