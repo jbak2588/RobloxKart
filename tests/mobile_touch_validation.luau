@@ -91,7 +91,7 @@ local control=child(services.ReplicatedStorage,"RemoteEvent","KartControl"); con
 local item=child(services.ReplicatedStorage,"RemoteEvent","RaceItemControl"); item._p.calls={}
 local modulesFolder=object("Folder")
 local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true},
-	RaceItemConfig={DRIFT_BONUS_REQUIRED_BOOSTS=5}}
+	RaceItemConfig={DRIFT_BONUS_REQUIRED_BOOSTS=5,BLOCKED_FEEDBACK_DURATION=.8}}
 for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","DriftChargeController","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
 local ui=services.UserInputService
 ui.TouchEnabled=true; ui.PreferredInput=rb.Enum.PreferredInput.Touch
@@ -475,11 +475,14 @@ modules.SlickRearPreview={new=function(parent)
 		stop=function() visible=false end,show=function() visible=true end,panel=panel}
 end}
 child(modulesFolder,"ModuleScript","SlickRearPreview")
+child(modulesFolder,"ModuleScript","CombatFeedbackView")
 local itemModule=child(modulesFolder,"ModuleScript","RaceItemUiController")
 local delayed={}
 local itemEnv=table.clone(env)
 itemEnv.script=itemModule
-itemEnv.time=function() return 0 end
+local combatNow=0
+itemEnv.time=function() return combatNow end
+modules.CombatFeedbackView=luau.load(fs.readFile("src/client/CombatFeedbackView.luau"),{environment=itemEnv})()
 itemEnv.task={delay=function(_,callback) table.insert(delayed,callback) end}
 modules.RaceItemUiController=luau.load(fs.readFile("src/client/RaceItemUiController.luau"),
 	{environment=itemEnv})()
@@ -546,6 +549,7 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 	check(bonusLabel.Parent==nitroProgress and progressLabel.Parent==nitroProgress,
 		"award and earned text share the progress rectangle")
 	local combat=rect(itemHud.MissileFeedback)
+	local result=rect(itemHud.CombatResult)
 	local lap={12,8,12+math.min(170,size.X*.28),if size.X>=600 and size.Y<360 then 118 else 163}
 	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
@@ -553,7 +557,7 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 		l.driftX+l.action,size.Y-l.driftBottom-l.action-l.driftGaugeGap}
 	local wheelRect={size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3}
 	local padRect={size.X-l.margin-l.padWidth,size.Y-l.padBottom-l.padHeight,size.X-l.margin,size.Y-l.padBottom}
-	for _, hudRect in {first,second,third,fourth,display,combat} do
+	for _, hudRect in {first,second,third,fourth,display,combat,result} do
 		check(hudRect[1]>=0 and hudRect[2]>=0 and hudRect[3]<=size.X and hudRect[4]<=size.Y,"combat/item UI inside safe area")
 		for _, controlRect in {lap,driftRect,useRect,gaugeRect,wheelRect,padRect} do
 			check(not overlaps(hudRect,controlRect),"combat/item UI clears LAP, Drift, Use, gauge, wheel and pad "..tostring(size))
@@ -630,6 +634,49 @@ check(nitroProgress.Visible and progressLabel.Visible
 ui.PreferredInput=rb.Enum.PreferredInput.Touch
 ui:GetPropertyChangedSignal("PreferredInput"):Fire()
 player:SetAttribute("RaceState","RACING")
+-- Real presentation module driven by authoritative state, with deterministic time.
+kart.Parent=services.Workspace;kart:SetAttribute("PrototypeKart",true)
+humanoid.SeatPart=seat;player.Character=character
+tick()
+local result=itemHud.CombatResult
+local edge=itemHud.CombatEdge1
+kart:SetAttribute("KartMissileHitActive",true);tick()
+check(result.Visible and result.Text=="MISSILE HIT" and edge.Visible and edge.AbsoluteSize.X==3,
+	"authoritative Missile rising edge gives compact text and peripheral flash, no central overlay")
+combatNow+=.46;tick()
+check(not result.Visible and not edge.Visible,"victim feedback expires in .45 seconds while damage remains active")
+tick();check(not result.Visible,"continuous active state does not repeatedly retrigger a hit cue")
+kart:SetAttribute("KartMissileHitActive",false);kart:SetAttribute("KartSlickActive",true);tick()
+check(result.Text=="SLICK!" and result.Visible and edge.BackgroundColor3==rb.Color3.fromRGB(185,125,255),
+	"authoritative Slick rising edge shows the purple victim cue")
+player:SetAttribute("RaceItemBlockedSerial",1)
+check(result.Text=="BLOCKED!" and edge.BackgroundColor3==rb.Color3.fromRGB(65,225,255),"Shield block cue is cyan")
+for index, pair in {{"MISSILE_HIT","HIT: Rival"},{"MISSILE_BLOCKED","SHIELD BLOCKED"},
+	{"SLICK_HIT","SLICK HIT: Rival"},{"SLICK_BLOCKED","SLICK BLOCKED"}} do
+	player:SetAttribute("RaceCombatFeedbackTargetName","Rival")
+	player:SetAttribute("RaceCombatFeedbackCode",pair[1]);player:SetAttribute("RaceCombatFeedbackSerial",index)
+	check(result.Visible and result.Text==pair[2],"server result maps to compact presentation "..pair[1])
+end
+combatNow+=.81;tick();check(not result.Visible,"attacker confirmation expires in .8 seconds")
+for _, boundary in {"FINISHED","DNF","GARAGE","COUNTDOWN","session","reset","seat","destroy","character"} do
+	kart.Parent=services.Workspace;humanoid.SeatPart=seat;player.Character=character
+	player:SetAttribute("RaceState","RACING");tick()
+	player:SetAttribute("RaceCombatFeedbackCode","MISSILE_HIT")
+	player:SetAttribute("RaceCombatFeedbackSerial",(player:GetAttribute("RaceCombatFeedbackSerial") or 0)+1)
+	check(result.Visible,"cleanup fixture starts with actual pending feedback "..boundary)
+	if boundary=="session" then player:SetAttribute("RaceSessionId","next")
+	elseif boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+	elseif boundary=="seat" then humanoid.SeatPart=nil
+	elseif boundary=="destroy" then kart.Parent=nil
+	elseif boundary=="character" then player.CharacterRemoving:Fire();player.Character=nil
+	else player:SetAttribute("RaceState",boundary) end
+	tick();check(not result.Visible and not edge.Visible,"combat feedback clears at "..boundary)
+end
+kart.Parent=services.Workspace;humanoid.SeatPart=seat;player.Character=character
+player:SetAttribute("RaceState","RACING");tick()
+itemHud:Destroy();player:SetAttribute("RaceCombatFeedbackSerial",1000);tick()
+check(not result.Parent and not edge.Parent,"HUD destruction disconnects result and effect listeners")
+player.CharacterAdded:Fire(character)
 hold(); gui:Destroy(); sharedGui:Destroy(); neutral("destroyed GUI"); check(defaultGui.Enabled,"destroy restores stock controls")
 check(not gauge.Visible and not diagnostic.Visible,"GUI destruction clears charge display")
 print("PASS: "..count.." mobile input, lifecycle, transport and layout checks (mocked; no hardware multi-touch)")

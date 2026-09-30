@@ -85,7 +85,7 @@ local server=object("Folder","Server")
 local modules={}
 local now=0
 local environment={
-	Instance={new=object}, Vector3=V, CFrame=CF, Color3=rb.Color3, Enum=rb.Enum,
+	Instance={new=object}, Vector3=V, CFrame=CF, Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence, Enum=rb.Enum,
 	PhysicalProperties={new=function() return {} end},
 	game={GetService=function(_,name) return assert(services[name]) end},
 	time=function() return now end,
@@ -460,6 +460,10 @@ check(kart:GetAttribute("KartShieldActive") and player:GetAttribute("RaceChargeS
 local shell=kart:FindFirstChild("RaceItemShield")
 check(shell and shell.Parent==kart and not shell.CanCollide and shell.Massless and not shell.Anchored,"shield outside Visual, welded noncolliding")
 check(shell:FindFirstChildOfClass("WeldConstraint").Part0==chassis,"shield attached to chassis")
+local activationPulse=kart:FindFirstChild("ShieldPulse")
+check(activationPulse and not activationPulse.CanCollide and not activationPulse.CanTouch
+	and not activationPulse.CanQuery and activationPulse.Massless and not activationPulse.Anchored,
+	"Shield activation adds a safe cosmetic pulse, no extra defense")
 check(fixtureItem(player,"Shield"),"test fixture supplies Shield for active-rejection scenario")
 use()
 check(player:GetAttribute("SelectedRaceItemId")=="Shield","duplicate active Shield use rejected without consumption")
@@ -467,6 +471,10 @@ step(0,0.4)
 chassis.CFrame=CF.new(0,1.75,10); step(0)
 check(not kart:GetAttribute("KartShieldActive") and not kart:FindFirstChild("RaceItemShield"),"first contact consumes shield and visual")
 check(not kart:GetAttribute("KartSlickActive") and hazardCount()==0,"blocked Slick has no physics and is removed")
+local blockPulse=kart:FindFirstChild("ShieldPulse")
+check(blockPulse and blockPulse~=activationPulse,"Shield block reacts after defense shell is consumed")
+step(0,.31)
+check(not kart:FindFirstChild("ShieldPulse"),"activation/block pulses expire without extending Shield")
 check(player:GetAttribute("RaceItemBlockedSerial")==1,"BLOCKED feedback event")
 check(not kart:GetAttribute("RaceItemHitImmunity"),"blocking does not grant extra hit immunity")
 accepted,reason=items.tryApplyOffensiveItem(player,player,"Slick")
@@ -960,6 +968,16 @@ check(items.grantBonusNitro(fourthRacer)
 	and second:GetAttribute("RaceChargeNitro")==secondNitro,
 	"fourth racer Bonus Nitro remains independent and once per round")
 check(not items.grantBonusNitro(fourthRacer),"fourth racer cannot claim Bonus Nitro twice")
+local ownerBlocked, ownerBlockedReason=items.tryApplyOffensiveItem(fourthRacer,thirdRacer,"Slick")
+check(ownerBlocked and ownerBlockedReason=="blocked" and thirdRacer:GetAttribute("RaceCombatFeedbackCode")=="SLICK_BLOCKED"
+	and thirdRacer:GetAttribute("RaceCombatFeedbackTargetName")==fourthRacer.Name,
+	"actual Slick Shield resolution reports BLOCKED to the correct deployer, never HIT")
+local ownerHit, ownerHitReason=items.tryApplyOffensiveItem(fourthRacer,thirdRacer,"Slick")
+check(ownerHit and ownerHitReason=="hit" and thirdRacer:GetAttribute("RaceCombatFeedbackCode")=="SLICK_HIT"
+	and extraRacers[4].context.kart:GetAttribute("KartSlickActive"),"actual applied Slick hit reports owner confirmation")
+local ownerSerial=thirdRacer:GetAttribute("RaceCombatFeedbackSerial")
+items.tryApplyOffensiveItem(fourthRacer,thirdRacer,"Slick")
+check(thirdRacer:GetAttribute("RaceCombatFeedbackSerial")==ownerSerial,"immune Slick contact does not publish another hit")
 for id=3,4 do
 	local racer=extraRacers[id].player
 	session:remove(racer)

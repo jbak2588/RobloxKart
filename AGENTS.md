@@ -225,7 +225,7 @@ the four temporary items. Mobile has four native-icon tap cells; Nitro Charge
 spans the complete group. Inventory/persistence and other attacks remain deferred.
 Published 2-player mobile interim PASS, confirmed by the user: four-item loadout,
 Missile target/fire against the immediate racer ahead, incoming warning, Shield
-recommendation UI and physical slowing hit. M4-A0 remains open. R1 changes only
+recommendation UI and physical slowing hit. M4-A0 was open then. R1 changes only
 the hit duration from 1.25 to 2.50 seconds and mobile combat HUD placement: four
 44–48px cells stay in the left safe lane; Nitro Charge spans all four below the
 row and above Drift/Use. Short landscape uses compact LAP rows with both status
@@ -255,7 +255,7 @@ chase-camera readability or published counterplay. Full combat Studio runtime
 NOT VERIFIED. R2 published runtime PASS, confirmed by the user: Missile
 targeting/fire and 55 / 2.50-second slowdown, Slick visibility to the following
 racer and hit/effect, and mobile four-item HUD. Mobile Shield select -> USE
-remains too difficult within the 1.50-second warning. M4-A0 remains OPEN.
+remained too difficult within the 1.50-second warning at that milestone.
 R3 initially kept warning at 1.50 seconds with Missile/Slick/physics/M3 unchanged.
 Published mobile racing showed two-step selection/use is too slow for combat.
 R3 unifies every touch item slot: TAP ITEM -> USE ITEM while RACING, via one
@@ -276,15 +276,35 @@ works, and MISSILE INCOMING -> tap Shield -> BLOCKED is natural and reliable.
 The 1.50-second warning now makes defense too easy. Balance follow-up changes
 only pre-launch warning to 0.90 seconds; actual reaction time also includes
 flight time. Shield remains manual, five seconds/one attack; no auto-activation.
-All other Missile/Slick values and behavior remain unchanged. Studio runtime
-NOT VERIFIED for this balance follow-up. Published two-player mobile retest:
-leader A / attacker B, at least ten attacks across straight/corner/drifting/
-other-item-use situations and short/long distances. Record blocks, hits, warning
-readability and fairness; prioritize player feel without a fixed success rate.
-Freeze 0.90 only after fair published results; 0.75 (too easy) or 1.00 (too hard)
-are future candidates requiring a follow-up. Other unconfirmed edge cases and
-3/4-player combat checks remain. M4-A0 remains OPEN for balance/runtime checks.
-M4-A0-R3 BALANCE CODE COMPLETE — PUBLISHED 0.90-SECOND WARNING RETEST REQUIRED.
+All other Missile/Slick values and behavior remain unchanged.
+M4-A0 MVP CLOSED — MULTIPLAYER BALANCE SAMPLE DEFERRED.
+The user accepts the Missile catch-up effect for MVP. 0.90 seconds is a provisional
+freeze; repeated statistical two-device defense-rate testing is deferred because
+the user is a solo tester. Broader tuning belongs to future 3/4-player playtests.
+Keep mobile direct-use/Shield counterplay PASS and Slick published visibility /
+hit-effect PASS. Closure is not statistical balance verification.
+
+## M4-A1 Combat Feedback
+
+RaceItemController remains attack authority. Its RaceCombatFeedbackSerial / Code /
+TargetName result contract publishes MISSILE_HIT / MISSILE_BLOCKED / SLICK_HIT /
+SLICK_BLOCKED only after accepted resolution; rejects, immunity and self-Slick do
+not report owner success. Clients observe authoritative KartMissileHitActive /
+KartSlickActive rising edges, never infer hits from visual proximity.
+HomingMissileService owns native launch flash and attached Trail cleanup.
+Shield uses separate cosmetic cyan activation/block pulses: .30 seconds, max 32,
+updated by the existing server loop; never another defense or duration.
+CombatFeedbackView uses one compact result lane below incoming, .45-second victim
+text and 3px edge cues, .8-second owner confirmations. Preserve locked/incoming /
+TAP SHIELD / BLOCKED, the item row, Nitro Charge and driving control positions.
+No physics, camera shake/rotation, opaque central flashes or combat balance edits.
+Serials support repeated attacks; latest result replaces the cue, no stale queue.
+Finish/DNF/Quit/Garage/Rematch, seat/character loss, Kart destruction, reset and
+session boundaries clear transient feedback. No arbitrary audio IDs or reused
+Countdown/Boost sounds; no new audio hooks, combat SFX deferred pending assets.
+Studio runtime NOT VERIFIED. A short published two-player Missile hit / Shield
+block / Slick contact smoke test remains; no repeated full-race balance test.
+M4-A1 CODE COMPLETE — PUBLISHED COMBAT FEEDBACK SMOKE TEST REQUIRED.
 
 ## Production Kart
 
@@ -318,8 +338,8 @@ Driver seating issue is deferred.
 M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
 Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
 queue, invitation, routing, staging, timeout and Rematch behavior.
-Current next priority: M4-A0 Auto Homing Missile Prototype, followed by published
-2–4 player combat runtime checks and M4-A1 production combat VFX/audio polish.
+M4-A0 MVP CLOSED. Current next priority: M4-A1 published combat feedback smoke
+test, then approved combat audio assets. Broader 3–4 player balance is deferred.
 Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 

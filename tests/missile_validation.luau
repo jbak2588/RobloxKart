@@ -53,7 +53,7 @@ local server=object("Folder","Server")
 local prototype=child(services.Workspace,"Folder","Prototype")
 local now=0
 local modules={}
-local env={Vector3=V,CFrame=CF,Color3=rb.Color3,Enum=rb.Enum,Instance={new=object},
+local env={Vector3=V,CFrame=CF,Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence,Enum=rb.Enum,Instance={new=object},
 	time=function() return now end,game={GetService=function(_,name) return assert(services[name],name) end}}
 local function load(path,parent,name)
 	local script=child(parent,"ModuleScript",name)
@@ -153,6 +153,12 @@ tick(warningStart+config.MISSILE_WARNING_SECONDS-.001-now)
 check(projectileCount()==0 and contexts[target].kart:GetAttribute("KartShieldActive"),"Shield usable before full 0.90 pre-launch warning ends")
 tick(.0011)
 check(projectileCount()==1 and contexts[target].kart:GetAttribute("KartShieldActive"),"target can Shield during warning")
+local flightModel=prototype.RaceMissiles:GetChildren()[1]
+local trail=flightModel.Body:FindFirstChild("ExhaustTrail")
+check(flightModel:FindFirstChild("LaunchFlash") and trail and trail.Lifetime==.18
+	and trail.Attachment0.Parent==flightModel.Body and trail.Attachment1.Parent==flightModel.Body,
+	"bounded native launch flash and attached flight Trail without external assets")
+check(source:GetAttribute("RaceCombatFeedbackCode")~= "MISSILE_HIT","launch does not claim a hit")
 for _, part in prototype.RaceMissiles:GetChildren()[1]:GetChildren() do
 	check(part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery,"native projectile has no physics/touch authority")
 end
@@ -161,15 +167,23 @@ for _=1,30 do tick(1/60) end
 check(effectCount==0 and not contexts[target].kart:GetAttribute("KartShieldActive")
 	and target:GetAttribute("RaceItemBlockedSerial")==1 and target:GetAttribute("RaceMissileIncomingCount")==0,
 	"fixed target blocks after positions change, no effect")
+check(source:GetAttribute("RaceCombatFeedbackCode")=="MISSILE_BLOCKED"
+	and source:GetAttribute("RaceCombatFeedbackTargetName")==target.DisplayName,
+	"actual Shield resolution reports BLOCKED only to the correct attacker")
+check(not flightModel.Parent and not flightModel:FindFirstChild("LaunchFlash"),"projectile/trail owner and launch flash cleaned after block")
 tick(.21);check(projectileCount()==0,"blocked flash/projectile cleaned")
 reset();effectCount=0
 use(source,"Missile");tick(config.MISSILE_WARNING_SECONDS)
 for _=1,30 do tick(1/60) end
 check(effectCount==1 and contexts[target].kart:GetAttribute("KartMissileHitActive") and target:GetAttribute("RaceMissileIncomingCount")==0,"unshielded impact resolves effect once")
+check(source:GetAttribute("RaceCombatFeedbackCode")=="MISSILE_HIT"
+	and source:GetAttribute("RaceCombatFeedbackTargetName")==target.DisplayName,"attacker HIT follows authoritative successful impact")
+local combatSerial=source:GetAttribute("RaceCombatFeedbackSerial")
 local hit,reason=items.tryApplyOffensiveItem(target,source,"Missile")
 check(not hit and reason=="immune" and effectCount==1,"second Missile inside immunity cannot stack")
 hit,reason=items.tryApplyOffensiveItem(target,source,"Slick")
 check(not hit and reason=="immune" and effectCount==1,"shared offensive immunity blocks Slick too")
+check(source:GetAttribute("RaceCombatFeedbackSerial")==combatSerial,"immune/rejected contacts cannot publish successful combat feedback")
 tick(.21);check(projectileCount()==0,"hit flash cleanup")
 
 -- Direct Shield uses the normal defense against a real service-owned Missile.
@@ -260,6 +274,7 @@ for _, boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","o
 	else target:SetAttribute("RaceState",boundary) end
 	tick(.01)
 	check(projectileCount()==0 and target:GetAttribute("RaceMissileIncomingCount")==0,"projectile/incoming cleanup "..phase.." "..boundary)
+	if boundary=="owner_leave" then check(source:GetAttribute("RaceCombatFeedbackCode")=="", "departed attacker feedback cleared") end
 	-- Rebind removed fixtures; a real departed player never rejoins this controller instance.
 	if boundary=="leave" then services.Players.PlayerAdded:Fire(target) end
 	if boundary=="owner_leave" then services.Players.PlayerAdded:Fire(source) end

@@ -104,6 +104,7 @@ function Service:update(now)
 			p.visual = d.visuals.missile(d.parent, CFrame.lookAt(p.position, p.position + p.direction))
 		end
 		if now - p.flightBorn >= c.MISSILE_LIFETIME then self:remove(index); continue end
+		d.visuals.updateMissile(p.visual, now - p.flightBorn)
 		local dt = math.max(0, now - p.lastUpdate)
 		local from = p.position
 		local desired = targetPosition - from

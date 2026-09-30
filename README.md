@@ -73,8 +73,8 @@ RaceSession, requiring both racers to be RACING with valid KartContexts. It
 never skips an invalid immediate rival to attack the leader. Leader and solo
 use return `NO TARGET AHEAD` without consuming a charge. Source feedback shows
 `MISSILE LOCKED: <player>`; the target sees `MISSILE INCOMING / SHIELD CAN BLOCK`.
-Incoming counts support multiple projectiles. The client supplies only Select
-and Use actions, never a target, position or hit report.
+Incoming counts support multiple projectiles. The client supplies only Select,
+Use or direct UseItem actions, never a target, position or hit report.
 
 `RaceItemController` owns target acquisition, loadout consumption and the shared
 valid target → immunity → Shield → effect path. `HomingMissileService` owns
@@ -85,7 +85,7 @@ noncolliding native geometry at 165 stud/s, turning at up to 8 rad/sec, with a
 records (including warnings) are allowed. Targets never change after acceptance;
 invalid racers, changed sessions/rounds, reset karts and owner departure expire
 the projectile safely. A small native impact flash lasts 0.2 seconds. Wall
-collision/path following and production combat VFX/audio are deferred to polish.
+collision/path following and approved combat audio remain deferred.
 
 The existing Shield blocks one Missile, consumes itself and applies no hit
 physics. An unshielded hit cancels Nitro, Mini Boost and the current Drift, then
@@ -106,7 +106,7 @@ the existing driving/boost invariants remain unchanged.
 
 Published 2-player mobile interim PASS, confirmed by the user: four-item loadout,
 Missile selection/fire against the immediate racer ahead, incoming warning,
-Shield recommendation UI and a physical slowing hit. This does not close M4-A0.
+Shield recommendation UI and a physical slowing hit. That interim result did not close M4-A0.
 R1 extends slowdown from 1.25 to 2.50 seconds and moves the four-slot HUD away
 from the central Kart view. A forced lateral/outside push remains a future tuning
 candidate only; R1 adds no push or impulse.
@@ -115,12 +115,12 @@ R1 published mobile retest PASS, confirmed by the user: left-aligned four-item
 HUD and clearly felt Missile 55 / 2.50-second slowdown. The 0.75-second warning
 was too short for mobile Shield select -> USE, and Slick was not visible/effective
 to the trailing racer. R2 gives a 1.50-second reaction window and audits/widens
-Slick as described below. M4-A0 remains OPEN.
+Slick as described below. At that milestone M4-A0 remained OPEN.
 
 R2 published runtime PASS, confirmed by the user: Missile targeting/fire and
 55 / 2.50-second slowdown, Slick visible to the following racer and its hit/effect,
 and the mobile four-item HUD. Mobile Shield select -> USE remains too difficult
-even with the 1.50-second warning; M4-A0 remains OPEN.
+even with the 1.50-second warning at that milestone.
 
 **M4-A0-R3 mobile one-tap activation / Shield counterplay: PUBLISHED PASS.**
 The user confirmed direct one-tap item activation works and
@@ -144,23 +144,52 @@ follow-up changes only `MISSILE_WARNING_SECONDS` to **0.90 seconds**. This is
 the pre-launch warning; total reaction time also includes projectile flight.
 Shield is still a manual tap, five seconds or one offensive hit. Other Missile
 values, Slick 16x5 and behavior, physics and M3 are unchanged.
-**BALANCE CODE COMPLETE — PUBLISHED 0.90-SECOND WARNING RETEST REQUIRED.**
-Studio runtime NOT VERIFIED for this follow-up. Published two-player mobile test:
-A leads / B attacks, repeat at least ten attacks across straights, normal corners,
-leader drifting or using another item, and short/long racer distances. Record
-approximate Shield blocks, Missile hits, readability and perceived fairness;
-use player feel without a fixed statistical target. If fair, freeze 0.90; if too
-easy, next candidate 0.75; if clearly too hard, next candidate 1.00. Neither
-candidate is implemented. Unconfirmed edge cases (empty/active items, no-target,
-Countdown, PC preselection, duplicates/multiple incoming) and leader rejection /
-3–4-player combat validation remain. Automated tests do not establish published
-balance or device PASS. M4-A0 remains OPEN.
+**M4-A0 MVP CLOSED — MULTIPLAYER BALANCE SAMPLE DEFERRED.**
+The user accepts the Missile catch-up effect for MVP and freezes 0.90 seconds
+provisionally. Mobile direct use / Shield counterplay and Slick published
+visibility/effect remain PASS. As a solo tester, the user defers repeated
+statistical two-device defense-rate testing to a later 3–4-player sample.
+This closure does not claim a completed statistical balance sample.
+Do not reopen MVP combat values during M4-A1.
 Production KartContext tests enforce cap 55 every simulation
 step, with active samples at 0.25, 1.00, 1.50, 2.25 and 2.49 seconds, followed by
 normal acceleration after 2.50 seconds; braking/throttle and Shield are covered.
 AUTO TEST PASS: all 33 `*_validation.luau` suites plus Joystick (34 runs),
 including focused Missile, production KartContext and mobile layout coverage.
 Rojo build and `git diff --check` PASS. This is not PUBLISHED RUNTIME PASS.
+
+### M4-A1 Combat Feedback Polish v1
+
+**CODE COMPLETE — PUBLISHED COMBAT FEEDBACK SMOKE TEST REQUIRED.**
+RaceItemController publishes a small server-authored result contract:
+RaceCombatFeedbackSerial / Code / TargetName. MISSILE_HIT, MISSILE_BLOCKED,
+SLICK_HIT and SLICK_BLOCKED are emitted only after accepted attack resolution;
+immune/rejected contacts and self-Slick hits do not report owner success.
+Missile targeting, fixed flight and incoming counts remain unchanged.
+
+Native launch flash and a short Attachment/Trail exhaust make flight readable;
+the projectile owns and destroys these objects. Shield activation and block use
+short cyan expanding shells, separate from the five-second/one-hit defense.
+At most 32 cosmetic Shield pulses live for 0.30 seconds in the existing server
+loop. Slick's 16x5 pad/perimeter and all effects stay unchanged.
+CombatFeedbackView reuses one compact result lane below the existing warning.
+Victim Kart rising edges produce MISSILE HIT / SLICK! with two 3px peripheral
+flashes for .45 seconds; attackers see HIT: name / SHIELD BLOCKED / SLICK HIT:
+name / SLICK BLOCKED for .8 seconds. Existing MISSILE LOCKED, incoming/TAP
+SHIELD and BLOCKED! remain. No camera motion, central opaque flash or physics.
+No new audio assets or audio hooks were added; combat remains silent until
+approved owned/licensed assets are provided. Existing audio is unchanged.
+
+HUD feedback and server pulse/projectile visuals clear at race/session/reset,
+seat/character loss, destruction and exit boundaries. Repeated results use
+serials; newest result replaces the compact cue without queuing old messages.
+Automated checks cover resolution, native visuals, cleanup and safe GUI bounds
+including 932x430 / 844x390 and smaller notch-safe landscape parents. The item
+row, Nitro Charge, Drift, wheel and pad geometry are unchanged.
+Studio runtime NOT VERIFIED for M4-A1. Published short two-player smoke test:
+Missile hit (victim + attacker cues), Shield activation/block (both sides BLOCKED,
+no slowdown), and Slick contact (victim effect + owner confirmation). No long
+balance-rate test is required.
 
 ### M1-A Digital Driving Pad v1
 

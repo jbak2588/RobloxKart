@@ -20,6 +20,25 @@ local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
 local prototype, hazardFolder
 local missiles
+local shieldPulses = {}
+local function clearPulses(player)
+	for i = #shieldPulses, 1, -1 do
+		if shieldPulses[i].player == player then shieldPulses[i].visual:Destroy(); table.remove(shieldPulses, i) end
+	end
+end
+local function pulseShield(player, kart)
+	local _, chassis = PrototypeWorld.getRaceKart(player)
+	if not chassis then return end
+	if #shieldPulses >= 32 then shieldPulses[1].visual:Destroy(); table.remove(shieldPulses, 1) end
+	table.insert(shieldPulses, {player=player, kart=kart, session=RaceSession.forPlayer(player), born=time(),
+		visual=Visuals.shieldPulse(kart, chassis)})
+end
+local function combatFeedback(source, target, item, result)
+	if source == target or not loadouts[source] or source:GetAttribute("RaceState") ~= "RACING" then return end
+	source:SetAttribute("RaceCombatFeedbackTargetName", target.DisplayName or target.Name)
+	source:SetAttribute("RaceCombatFeedbackCode", string.upper(item) .. "_" .. string.upper(result))
+	source:SetAttribute("RaceCombatFeedbackSerial", (source:GetAttribute("RaceCombatFeedbackSerial") or 0) + 1)
+end
 
 local function publish(player)
 	local loadout = loadouts[player]
@@ -46,6 +65,9 @@ local function removeHazard(index, reason)
 	table.remove(hazards, index)
 end
 local function clearPlayer(player)
+	clearPulses(player)
+	player:SetAttribute("RaceCombatFeedbackCode", "")
+	player:SetAttribute("RaceCombatFeedbackTargetName", "")
 	if missiles then missiles:clearPlayer(player) end
 	player:SetAttribute("RaceMissileIncomingCount", 0)
 	player:SetAttribute("RaceMissileTargetName", "")
@@ -105,9 +127,11 @@ function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePl
 	local shield = shields[targetPlayer]
 	if shield and now >= shield.untilTime then removeShield(targetPlayer); shield = nil end
 	if shield then
+		pulseShield(targetPlayer, kart)
 		removeShield(targetPlayer)
 		local serial = targetPlayer:GetAttribute("RaceItemBlockedSerial") or 0
 		targetPlayer:SetAttribute("RaceItemBlockedSerial", serial + 1)
+		combatFeedback(sourcePlayer, targetPlayer, itemId, "blocked")
 		return true, "blocked"
 	end
 	local applied = if itemId == "Missile" then PrototypeWorld.applyMissileHit(targetPlayer)
@@ -115,6 +139,7 @@ function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePl
 	if not applied then return false, "effect_rejected" end
 	immunity[targetPlayer] = { untilTime = now + Config.RACE_ITEM_HIT_IMMUNITY, kart = kart }
 	kart:SetAttribute("RaceItemHitImmunity", true)
+	combatFeedback(sourcePlayer, targetPlayer, itemId, "hit")
 	return true, "hit"
 end
 
@@ -149,6 +174,7 @@ local function activate(player, id)
 		removeShield(player)
 		shields[player] = { untilTime = time() + Config.SHIELD_DURATION, kart = kart, visual = Visuals.shield(kart, chassis) }
 		kart:SetAttribute("KartShieldActive", true)
+		pulseShield(player, kart)
 		return true
 	elseif id == "Missile" then
 		local target = RaceItemController.missileTarget(player)
@@ -312,6 +338,17 @@ function RaceItemController.start()
 	-- One loop for every hazard's lifetime/contact and every defense's expiry.
 	RunService.Heartbeat:Connect(function()
 		local now = time()
+		for i = #shieldPulses, 1, -1 do
+			local p = shieldPulses[i]
+			local age = now - p.born
+			if age >= 0.3 or not p.visual.Parent or PrototypeWorld.getRaceKart(p.player) ~= p.kart
+				or RaceSession.forPlayer(p.player) ~= p.session then
+				p.visual:Destroy(); table.remove(shieldPulses, i)
+			else
+				p.visual.Size = Vector3.new(9, 6.5, 11) * (0.9 + age * 1.5)
+				p.visual.Transparency = 0.45 + age / 0.3 * 0.55
+			end
+		end
 		missiles:update(now)
 		for player, shield in shields do
 			if now >= shield.untilTime or not PrototypeWorld.getRaceKart(player) then removeShield(player) end

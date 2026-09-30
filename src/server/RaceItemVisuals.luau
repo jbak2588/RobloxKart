@@ -104,8 +104,42 @@ function Visuals.missile(parent, frame)
 	part(model, "FinRight", Vector3.new(1.4, 0.15, 0.8), frame * CFrame.new(0.45, 0, 0.9), Color3.fromRGB(255, 180, 65))
 	local exhaust = part(model, "Exhaust", Vector3.new(0.45, 0.45, 1.2), frame * CFrame.new(0, 0, 1.7), Color3.fromRGB(255, 225, 75))
 	exhaust.Material = Enum.Material.Neon
+	local a = Instance.new("Attachment")
+	a.Position = Vector3.new(-0.25, 0, 1.7); a.Parent = body
+	local b = Instance.new("Attachment")
+	b.Position = Vector3.new(0.25, 0, 1.7); b.Parent = body
+	local trail = Instance.new("Trail")
+	trail.Name = "ExhaustTrail"
+	trail.Attachment0, trail.Attachment1 = a, b
+	trail.Lifetime, trail.LightEmission = 0.18, 1
+	trail.Color = ColorSequence.new(Color3.fromRGB(255, 190, 65))
+	trail.Transparency = NumberSequence.new(0.25, 1)
+	trail.Parent = body
+	local launch = part(model, "LaunchFlash", Vector3.one * 1.2, frame, Color3.fromRGB(255, 205, 65))
+	launch.Shape, launch.Material, launch.Transparency = Enum.PartType.Ball, Enum.Material.Neon, 0.25
 	model.Parent = parent
 	return model
+end
+
+function Visuals.updateMissile(model, age)
+	local launch = model:FindFirstChild("LaunchFlash")
+	if launch then
+		if age >= 0.18 then launch:Destroy() else
+			launch.Size = Vector3.one * (1.2 + age * 10)
+			launch.Transparency = 0.25 + age / 0.18 * 0.75
+		end
+	end
+end
+
+-- A short cosmetic shell follows the Kart, separate from the defense shell.
+function Visuals.shieldPulse(kart, chassis)
+	local pulse = part(kart, "ShieldPulse", Vector3.new(9, 6.5, 11) * 0.9,
+		chassis.CFrame * CFrame.new(0, 1.3, 0), Color3.fromRGB(65, 225, 255))
+	pulse.Shape, pulse.Material, pulse.Transparency = Enum.PartType.Ball, Enum.Material.ForceField, 0.45
+	pulse.Anchored = false
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0, weld.Part1, weld.Parent = chassis, pulse, pulse
+	return pulse
 end
 
 function Visuals.missileImpact(parent, position, blocked)

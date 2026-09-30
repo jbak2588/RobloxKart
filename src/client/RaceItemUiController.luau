@@ -7,6 +7,7 @@ local Input = require(script.Parent:WaitForChild("KartInputController"))
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
 local SlickRearPreview = require(script.Parent:WaitForChild("SlickRearPreview"))
 local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
+local CombatFeedbackView = require(script.Parent:WaitForChild("CombatFeedbackView"))
 local RaceItemUiController = {}
 local started = false
 
@@ -187,6 +188,12 @@ function RaceItemUiController.start()
 		bonusLabel.Visible = bonusFlashVisible
 	end
 	preview = SlickRearPreview.new(gui, refresh)
+	local combatView = CombatFeedbackView.new(gui, player, function()
+		blockedUntil, deployedUntil, feedbackUntil = 0, 0, 0
+		feedbackText = ""
+		preview:stop()
+		refresh()
+	end)
 	local function layout()
 		local camera = Workspace.CurrentCamera
 		local size = if camera then camera.ViewportSize else Vector2.new(1280, 720)
@@ -234,6 +241,7 @@ function RaceItemUiController.start()
 			nitroProgress.Size = UDim2.fromOffset(width * #buttons + 4 * (#buttons-1), 32)
 			progressLabel.TextSize = 13
 		end
+		combatView:layout(combat.Position, combat.Size)
 		refresh()
 	end
 	local viewportConnection = nil
