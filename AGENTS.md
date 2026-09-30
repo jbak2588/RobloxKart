@@ -234,7 +234,9 @@ Driver seating issue is deferred.
 
 M3-A1-R2 moved Base Circuit CREATE into a persistent reserved Room server and is
 RUNTIME PASS / CLOSED on published real devices. M3-A2 hardens population UX,
-Room status and failure recovery; published M3-A2 validation is next.
+Room status and failure recovery. M3-A2 FUNCTIONAL RUNTIME: PASS / CLOSED.
+M3-A2-R1 mobile Population placement is implemented; published mobile visual
+validation is next.
 Combat/Missile, additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
 
@@ -575,7 +577,21 @@ one short-lived record per HUB or RACE job, with no per-player global writes.
 Base Rooms remain visible during racing. Current-round JOIN is forbidden after
 WAITING; QUEUE NEXT remains available. Host migration preserves logical Room
 identity and queue. Cross-server directory or population metadata failure must
-never abort an active race. M3-A2 code requires published client validation.
+never abort an active race.
+
+M3-A2 FUNCTIONAL RUNTIME: PASS / CLOSED. The user confirmed published PASS for:
+population updates (KDM ONLINE / LOBBY / IN RACE), RACING Room Browser visibility,
+QUEUE NEXT, queue auto-promotion, queue ordering/position, Host Migration with the
+same Room preserved, and stale-user population expiry within the TTL window.
+Do not reopen those confirmed runtime items. Mobile Population HUD placement
+was the remaining layout failure.
+
+M3-A2-R1 implements a centered 14px mobile Population status below the Garage
+step header, with two lines for narrow headers. Keep CoreUISafeInsets, separate
+local scrollable LOBBY names, and the existing desktop right-side panel.
+Automated geometry checks cover all four Garage steps at 1600×739, 1280×720,
+844×390 and 390×844 with safe insets and long counts (50 / 38 / 12).
+M3-A2-R1 published mobile visual validation still required.
 
 Public standard is four racers. Architecture may expand to six later; six-player
 implementation and GridSlots 5/6 are deferred. A future friend/private room may

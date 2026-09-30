@@ -179,6 +179,7 @@ function GarageUiController.start()
 	titleSize.MinTextSize = 28
 	titleSize.Parent = title
 	local stepLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.07), UDim2.fromScale(0.1, 0.17), "", 24)
+	stepLabel.Name = "GarageStep"
 	local choiceLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.08), UDim2.fromScale(0.1, 0.61), "", 34)
 	local detailLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.12), UDim2.fromScale(0.1, 0.70), "", 19)
 	detailLabel.TextWrapped = true
@@ -210,16 +211,28 @@ function GarageUiController.start()
 	populationLabel.TextXAlignment = Enum.TextXAlignment.Left
 	populationLabel.TextYAlignment = Enum.TextYAlignment.Top
 	populationLabel.TextWrapped = true
+	local populationSnapshot = nil
+	local populationTwoLines = true
+	local function updatePopulationText()
+		local snapshot = populationSnapshot
+		if not snapshot or snapshot.stale then
+			populationLabel.Text = "KDM STATUS UPDATING..."
+		else
+			local separator = if populationTwoLines then "\n" else " • "
+			populationLabel.Text = string.format("KDM ONLINE %d%sLOBBY %d • IN RACE %d",
+				snapshot.online, separator, snapshot.lobby, snapshot.inRace)
+		end
+	end
 	local populationRemote = ReplicatedStorage:WaitForChild("KDMPopulationStatus")
 	populationRemote.OnClientEvent:Connect(function(snapshot)
 		if type(snapshot) ~= "table" then return end
 		if snapshot.stale then
-			populationLabel.Text = "KDM STATUS UPDATING..."
+			populationSnapshot = { stale = true }
 		elseif type(snapshot.online) == "number" and type(snapshot.lobby) == "number"
 			and type(snapshot.inRace) == "number" then
-			populationLabel.Text = string.format("KDM ONLINE %d\nLOBBY %d • IN RACE %d",
-				snapshot.online, snapshot.lobby, snapshot.inRace)
+			populationSnapshot = snapshot
 		end
+		updatePopulationText()
 	end)
 	local presenceList = Instance.new("ScrollingFrame")
 	presenceList.Name = "OnlineList"
@@ -382,6 +395,9 @@ function GarageUiController.start()
 	inviteModal.ZIndex = 10
 	inviteModal.Visible = false
 	inviteModal.Parent = backdrop
+	inviteModal:GetPropertyChangedSignal("Visible"):Connect(function()
+		populationLabel.Visible = not (mobileCompact and inviteModal.Visible)
+	end)
 	local inviteCorner = Instance.new("UICorner")
 	inviteCorner.CornerRadius = UDim.new(0, 10)
 	inviteCorner.Parent = inviteModal
@@ -444,6 +460,7 @@ function GarageUiController.start()
 		if mobileCompact then gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 		else gui.IgnoreGuiInset = true end
 		controlsCard.Visible = not mobileCompact
+		populationLabel.Visible = not (mobileCompact and inviteModal.Visible)
 		if mobileCompact then
 			local safeSize = backdrop.AbsoluteSize
 			local layoutWidth = if safeSize.X > 0 then safeSize.X else viewportSizePixels.X - 32
@@ -463,15 +480,29 @@ function GarageUiController.start()
 			mapPanel.Size = previewSize
 			mapPanel.Position = viewport.Position
 			title.Position = UDim2.fromScale(0.1, 0.035)
-			title.Size = UDim2.fromScale(0.8, 0.10)
+			title.Size = UDim2.fromScale(0.8, 0.085)
 			titleSize.MinTextSize = 20
-			stepLabel.Position = UDim2.fromScale(0.1, 0.16)
+			-- Reserve a centered header lane, separate from the local Lobby list.
+			local presenceWidth = math.min(165, math.max(54, (layoutWidth - previewWidth) * 0.5 - 16))
+			local statusWidth = if layoutWidth < 500 then layoutWidth - 32
+				else math.min(560, layoutWidth - 2 * (presenceWidth + 20))
+			populationTwoLines = statusWidth < 400
+			stepLabel.Position = UDim2.new(0.5, -statusWidth * 0.5, 0.13, 0)
 			stepLabel.TextSize = 19
-			stepLabel.Size = UDim2.fromScale(0.60, 0.07)
-			presencePanel.Position = UDim2.new(1, -10, 0.155, 0)
-			presencePanel.Size = UDim2.fromOffset(math.min(165, layoutWidth * 0.34), 112)
+			stepLabel.Size = UDim2.fromOffset(statusWidth, 20)
+			presencePanel.Position = if populationTwoLines then UDim2.new(1, -10, 0.13, 64)
+				else UDim2.new(1, -10, 0.155, 0)
+			presencePanel.Size = UDim2.fromOffset(presenceWidth, 60)
 			presenceHeader.TextSize = 11
-			populationLabel.TextSize = 10
+			presenceList.Position = UDim2.fromOffset(6, 28)
+			presenceList.Size = UDim2.new(1, -12, 1, -34)
+			populationLabel.Parent = backdrop
+			populationLabel.AnchorPoint = Vector2.new(0.5, 0)
+			populationLabel.Position = UDim2.new(0.5, 0, 0.13, 22)
+			populationLabel.Size = UDim2.fromOffset(statusWidth, if populationTwoLines then 36 else 18)
+			populationLabel.TextSize = 14
+			populationLabel.TextXAlignment = Enum.TextXAlignment.Center
+			populationLabel.TextYAlignment = Enum.TextYAlignment.Center
 			presenceRowHeight = 16
 			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
 			choiceLabel.TextSize = 25
@@ -510,7 +541,16 @@ function GarageUiController.start()
 			presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
 			presencePanel.Size = UDim2.fromOffset(205, 155)
 			presenceHeader.TextSize = 14
+			presenceList.Position = UDim2.fromOffset(6, 68)
+			presenceList.Size = UDim2.new(1, -12, 1, -74)
+			populationTwoLines = true
+			populationLabel.Parent = presencePanel
+			populationLabel.AnchorPoint = Vector2.zero
+			populationLabel.Position = UDim2.fromOffset(6, 25)
+			populationLabel.Size = UDim2.new(1, -12, 0, 42)
 			populationLabel.TextSize = 12
+			populationLabel.TextXAlignment = Enum.TextXAlignment.Left
+			populationLabel.TextYAlignment = Enum.TextYAlignment.Top
 			presenceRowHeight = 20
 			choiceLabel.TextSize = 34
 			detailLabel.TextSize = 19
@@ -525,6 +565,7 @@ function GarageUiController.start()
 				button.TextSize = 19
 			end
 		end
+		updatePopulationText()
 		updatePresence()
 	end
 	local function showTrackPreview(trackId: string)

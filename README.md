@@ -453,8 +453,35 @@ status stay on track; results show next-round readiness. Directory list failure
 retains the last Room list and shows ROOM STATUS UPDATING. Room expiry, failed
 joining and failed teleport return players to a usable Browser with explicit
 errors; staged slots are released. Cross-server metadata outages do not stop
-local race gameplay. M3-A2 published client checks for cross-server population,
-teleport failure recovery and queue promotion remain required.
+local race gameplay.
+
+### M3-A2 runtime closure and M3-A2-R1 mobile polish
+
+**M3-A2 FUNCTIONAL RUNTIME: PASS / CLOSED.** The user confirmed published
+runtime PASS for population updates (KDM ONLINE / LOBBY / IN RACE), RACING Room
+Browser visibility, QUEUE NEXT, queue auto-promotion into the next round, queue
+ordering/position, Host Migration with the same Room preserved, and stale-user
+population expiry within the TTL window. These confirmed functional checks are
+closed; mobile Population placement was the remaining layout failure.
+
+M3-A2-R1 moves the mobile Population summary out of the right-side local player
+list into a centered 14px status line below each Garage step header:
+`KDM ONLINE 3 • LOBBY 2 • IN RACE 1`. Narrow headers use two lines, with
+`KDM ONLINE 3` above `LOBBY 2 • IN RACE 1`. CoreUISafeInsets remain authoritative.
+The local scrollable LOBBY player list stays separate, in a compact side gutter;
+the desktop right-side population panel keeps its existing layout. Mobile invite
+modals temporarily hide the summary; the Room modal retains its higher display
+order. Population storage, Room/queue/host/teleport logic and gameplay are unchanged.
+
+Automated Garage checks cover all four steps at 1600×739, 1280×720, 844×390 and
+390×844, including simulated safe insets, navigation arrows, preview bounds,
+action buttons, CONTROLS, BUILD PV, local LOBBY separation, modal precedence and
+long counts (`KDM ONLINE 50 • LOBBY 38 • IN RACE 12`). Text width checks use a
+conservative glyph budget and do not replace Roblox font/device rendering.
+Validation passed: all 31 Luau validation suites plus the Joystick variant
+(32 runs), including 412 Garage checks; Rojo build and `git diff --check` passed.
+Studio runtime NOT VERIFIED for this UI revision.
+**M3-A2-R1 published mobile visual validation is still required.**
 
 M2-A1-R2 adds a confirmed Quit Race action during RACING. The server treats an
 accepted quit as a forfeit, returns that racer to Garage and leaves the opponent
@@ -532,10 +559,9 @@ Do not:
 
 ## Next Development Order
 
-1. M3-A1-R1 published Active Room, queue and Base loadout validation
-2. M3-A2 no-blocking MVP gate and return/rematch/failure polish
-4. Combat expansion / Missile, then additional track and public capacity work
-5. Persistence, Shop and cosmetics as scheduled
+1. M3-A2-R1 published mobile Population HUD visual validation
+2. Combat expansion / Missile, then additional track and public capacity work
+3. Persistence, Shop and cosmetics as scheduled
 
 ## Driver appearance decision (2026-09-26)
 

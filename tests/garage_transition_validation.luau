@@ -118,9 +118,9 @@ local gui = playerGui.RobloxKartGarage
 local backdrop = gui:FindFirstChild("Frame")
 local presencePanel = backdrop.ServerPresence
 local list = presencePanel.OnlineList
-local populationLabel = presencePanel.KDMPopulation
+local populationLabel = backdrop.KDMPopulation
 populationRemote.OnClientEvent:Fire({ online = 7, lobby = 3, inRace = 4, stale = false })
-check(populationLabel.Text == "KDM ONLINE 7\nLOBBY 3 • IN RACE 4", "experience counts remain separate from local list")
+check(populationLabel.Text == "KDM ONLINE 7 • LOBBY 3 • IN RACE 4", "experience counts remain separate from local list")
 populationRemote.OnClientEvent:Fire({ stale = true })
 check(populationLabel.Text == "KDM STATUS UPDATING...", "failed population query never shows zero")
 local function rows()
@@ -129,7 +129,7 @@ local function rows()
 	return found
 end
 check(list.ClassName == "ScrollingFrame" and list.ScrollingDirection == rb.Enum.ScrollingDirection.Y
-	and presencePanel.Size.Y.Offset == 112, "mobile presence uses fixed-height vertical scrolling")
+	and presencePanel.Size.Y.Offset == 60, "mobile presence uses fixed-height vertical scrolling")
 local function addPlayer(index)
 	local other = object("Player", "Player" .. index)
 	other.UserId = index; other.DisplayName = "Racer " .. index
@@ -144,10 +144,10 @@ check(#rows() == 3 and presencePanel:FindFirstChild("TextLabel").Text == "LOBBY 
 	"three online names are represented and the third is reachable by scroll")
 for index = 4, 10 do addPlayer(index) end
 check(#rows() == 10 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(10, 16, 2)
-	and presencePanel.Size.Y.Offset == 112, "ten players fit fixed mobile panel with scroll canvas")
+	and presencePanel.Size.Y.Offset == 60, "ten players fit fixed mobile panel with scroll canvas")
 for index = 11, 50 do addPlayer(index) end
 check(#rows() == 50 and list.CanvasSize.Y.Offset == modules.GaragePresence.canvasHeight(50, 16, 2)
-	and presencePanel.Size.Y.Offset == 112, "50 players remain represented without expanding panel")
+	and presencePanel.Size.Y.Offset == 60, "50 players remain represented without expanding panel")
 list.CanvasPosition = rb.Vector2.new(0, 120)
 third:SetAttribute("RaceState", "RACING")
 check(#rows() == 50 and list.CanvasPosition.Y == 120,
@@ -166,11 +166,80 @@ safeSize = rb.Vector2.new(844, 390); input.TouchEnabled = true
 camera.ViewportSize = safeSize
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 local selectButton = backdrop:FindFirstChild("TextButton", true)
-for _ = 1, 3 do
+local function bounds(item)
+	local parentSize = item.Parent.AbsoluteSize
+	local size = item.AbsoluteSize
+	local anchor = item.AnchorPoint or rb.Vector2.zero
+	local x = parentSize.X * item.Position.X.Scale + item.Position.X.Offset - size.X * anchor.X
+	local y = parentSize.Y * item.Position.Y.Scale + item.Position.Y.Offset - size.Y * anchor.Y
+	return { x = x, y = y, w = size.X, h = size.Y }
+end
+local function intersects(a, b)
+	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+end
+local resolutions = { {1600,739}, {1280,720}, {844,390}, {390,844} }
+for step = 1, 4 do
+	for _, resolution in resolutions do
+		-- Model a 58px Core UI top inset and 16px side safe margins.
+		safeSize = rb.Vector2.new(resolution[1] - 32, resolution[2] - 58)
+		input.TouchEnabled = true
+		camera.ViewportSize = rb.Vector2.new(resolution[1], resolution[2])
+		camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+		local tag = string.format("%dx%d step %d", resolution[1], resolution[2], step)
+		local status = bounds(populationLabel)
+		check(gui.ScreenInsets == rb.Enum.ScreenInsets.CoreUISafeInsets and populationLabel.Parent == backdrop,
+			"safe-area mobile header " .. tag)
+		check(status.x >= 0 and status.y >= 0 and status.x + status.w <= safeSize.X
+			and status.y + status.h <= safeSize.Y, "status stays below Core UI and within safe bounds " .. tag)
+		check(math.abs(status.x + status.w * 0.5 - safeSize.X * 0.5) < 0.01,
+			"status centered " .. tag)
+		local heading = bounds(backdrop.GarageStep)
+		check(status.y >= heading.y + heading.h + 2, "status below step header " .. tag)
+		for _, item in backdrop:GetChildren() do
+			if item == backdrop.PreviousChoice or item == backdrop.NextChoice
+				or item == backdrop.SelectionPreview or item == backdrop.TrackPreview
+				or item == presencePanel
+				or item.ClassName == "TextButton" or item == backdrop.GarageStep
+				or (item.ClassName == "TextLabel" and string.sub(item.Text or "", 1, 8) == "BUILD PV") then
+				check(not intersects(status, bounds(item)), "status clears " .. item.Name .. " " .. tag)
+			end
+		end
+		for _, snapshot in { { online = 3, lobby = 2, inRace = 1 }, { online = 50, lobby = 38, inRace = 12 } } do
+			populationRemote.OnClientEvent:Fire(snapshot)
+			local expected = string.format("KDM ONLINE %d%sLOBBY %d • IN RACE %d", snapshot.online,
+				if resolution[1] == 390 then "\n" else " • ", snapshot.lobby, snapshot.inRace)
+			check(populationLabel.Text == expected and populationLabel.TextSize == 14
+				and populationLabel.TextScaled == false, "readable counts without shrinking " .. tag)
+			local lines = string.split(populationLabel.Text, "\n")
+			-- Conservative glyph budget, not a Roblox font-rendering claim.
+			for _, line in lines do
+				check(utf8.len(line) * populationLabel.TextSize * 0.75 <= status.w,
+					"long count text has width budget " .. tag)
+			end
+			check(#lines * 18 <= status.h, "all count lines have height budget " .. tag)
+		end
+		populationRemote.OnClientEvent:Fire({ stale = true })
+		check(populationLabel.Text == "KDM STATUS UPDATING...", "stale message retained " .. tag)
+		backdrop.RaceInvite.Visible = true
+		check(not populationLabel.Visible, "mobile invite modal hides status " .. tag)
+		backdrop.RaceInvite.Visible = false
+		check(populationLabel.Visible, "status restored after modal " .. tag)
+	end
+	-- Desktop restores the original right-side panel and the latest snapshot.
+	input.TouchEnabled = false; safeSize = rb.Vector2.new(1280, 720); camera.ViewportSize = safeSize
+	camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+	populationRemote.OnClientEvent:Fire({ online = 50, lobby = 38, inRace = 12 })
+	check(populationLabel.Parent == presencePanel and populationLabel.TextSize == 12
+		and populationLabel.Text == "KDM ONLINE 50\nLOBBY 38 • IN RACE 12", "desktop restored step " .. step)
 	-- SELECT is the only button whose text changes neither with the step nor the track.
 	for _, item in backdrop:GetChildren() do if item.Text == "SELECT" then selectButton = item end end
-	selectButton.Activated:Fire()
+	if step < 4 then selectButton.Activated:Fire() end
 end
+local roomUiSource = fs.readFile("src/client/MatchRoomUiController.luau")
+local roomDisplayOrder = tonumber(string.match(roomUiSource, "gui.DisplayOrder = (%d+)"))
+check(roomDisplayOrder and roomDisplayOrder > gui.DisplayOrder, "Room modal remains above Garage population GUI")
+safeSize = rb.Vector2.new(812, 332); input.TouchEnabled = true
+camera.ViewportSize = rb.Vector2.new(844, 390); camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 local ready
 for _, item in backdrop:GetChildren() do if item.Text == "READY" then ready = item end end
 check(ready and ready.Visible, "Garage reaches Solo READY step")
