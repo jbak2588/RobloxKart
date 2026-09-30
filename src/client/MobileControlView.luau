@@ -7,7 +7,7 @@ function View.layout(size: Vector2)
 	local portrait = size.X < 500 and size.Y > size.X
 	local margin = if size.X >= 700 then 20 else 12
 	local action = math.clamp(size.Y * 0.18, 52, 68)
-	local slot = if size.X >= 700 then 48 else 44
+	local slot = if size.X >= 700 and size.Y >= 360 then 48 else 44
 	local diameter = math.clamp(math.min(size.X * 0.22, size.Y * 0.42), 104, 156)
 	local direction = if portrait then 44 else math.clamp(size.Y * 0.15, 44, 56)
 	local forward = direction + 10
@@ -51,15 +51,18 @@ function View.speedTopbarPosition(fullSize: Vector2, topbar: Rect, panelWidth: n
 	return Vector2.new(centerX, topY)
 end
 
--- Only the item group moves when a short safe viewport needs the LAP lane.
+-- Keep the complete group in the left HUD lane, including short safe viewports.
 function View.itemLayout(size: Vector2, slotCount: number)
 	local l = View.layout(size)
 	local width = l.slot * slotCount + l.gap * (slotCount - 1)
 	local x = l.margin
-	if size.X >= 600 and size.Y < 360 then x = 12 + math.min(170, size.X * 0.28) + 8 end
 	local bottom = l.loadoutBottom
-	local progressTop = size.Y - bottom + 6
+	local progressGap = if size.X >= 600 and size.Y < 360 then 5 else 6
+	local progressTop = size.Y - bottom + progressGap
 	local progressBottom = size.Y - math.max(l.driftBottom + l.action, l.useBottom + l.action) - 1
+	if x < l.driftX + l.action and x + width > l.driftX then
+		progressBottom -= l.driftGaugeGap + l.gaugeHeight + 3
+	end
 	local wheelLeft, wheelTop = size.X * 0.5 - l.wheel * 0.5, size.Y - 3 - l.wheel * 2/3
 	if x + width > wheelLeft and x < wheelLeft + l.wheel then progressBottom = math.min(progressBottom, wheelTop - 3) end
 	if progressBottom - progressTop < 34 then

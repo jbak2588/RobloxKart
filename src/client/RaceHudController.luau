@@ -795,12 +795,22 @@ function RaceHudController.start()
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
 			local l = MobileView.layout(safeSize)
-			padding.PaddingBottom = UDim.new(0, if quitRow.Visible then 4 else 6)
+			-- Short notch-safe landscape needs a compact LAP lane above the left loadout.
+			-- Preserve every status and the full 40px Quit target.
+			local shortLap = safeSize.X >= 600 and safeSize.Y < 360
+			local titleHeight, lineHeight = if shortLap then 18 else 25, if shortLap then 12 else 20
+			padding.PaddingTop = UDim.new(0, if shortLap then 2 else 6)
+			padding.PaddingBottom = UDim.new(0, if shortLap then 2 elseif quitRow.Visible then 4 else 6)
+			lapLabel.Size = UDim2.new(1, -16, 0, titleHeight)
+			for _, line in { checkpointLabel, bestLabel, offTrackLabel, raceEndLabel } do
+				line.Size = UDim2.new(1, -16, 0, lineHeight)
+			end
 			local lapWidth = math.min(170, safeSize.X*0.28)
 			frame.Size = UDim2.fromOffset(lapWidth,
-				6 + 25 + 20 + 20 + (if offTrackLabel.Visible then 20 else 0)
-				+ (if raceEndLabel.Visible then 20 else 0)
-				+ (if quitRow.Visible then quitHeight else 0) + (if quitRow.Visible then 4 else 6))
+				padding.PaddingTop.Offset + titleHeight + lineHeight*2
+				+ (if offTrackLabel.Visible then lineHeight else 0)
+				+ (if raceEndLabel.Visible then lineHeight else 0)
+				+ (if quitRow.Visible then quitHeight else 0) + padding.PaddingBottom.Offset)
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
 			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,
@@ -809,11 +819,11 @@ function RaceHudController.start()
 			speedPanel.Size = UDim2.fromOffset(160, l.speedHeight)
 			speedTrack.Position = UDim2.fromOffset(10, 44)
 			-- Top HUD stays clear of both thumb zones; desktop geometry is unchanged.
-			lapLabel.TextSize = 18
-			checkpointLabel.TextSize = 12
-			bestLabel.TextSize = 12
-			offTrackLabel.TextSize = 11
-			raceEndLabel.TextSize = 11
+			lapLabel.TextSize = if shortLap then 16 else 18
+			checkpointLabel.TextSize = if shortLap then 10 else 12
+			bestLabel.TextSize = if shortLap then 10 else 12
+			offTrackLabel.TextSize = if shortLap then 10 else 11
+			raceEndLabel.TextSize = if shortLap then 10 else 11
 			miniMapPanel.AnchorPoint = Vector2.new(1, 0)
 			miniMapPanel.Position = UDim2.new(1, -12, 0, 8)
 			miniMapSize.MinSize = Vector2.zero

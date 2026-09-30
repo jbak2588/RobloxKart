@@ -88,23 +88,37 @@ collision/path following and production combat VFX/audio are deferred to polish.
 
 The existing Shield blocks one Missile, consumes itself and applies no hit
 physics. An unshielded hit cancels Nitro, Mini Boost and the current Drift, then
-sets per-KartContext `KartMissileHitActive` for 1.25 seconds: planar speed cap 55
+sets per-KartContext `KartMissileHitActive` for 2.50 seconds: planar speed cap 55
 and normal lateral grip ×0.70. Steering, throttle and Shield remain available;
 new Nitro/Mini Boost are rejected. No forced spin, flip, vertical launch, control
 lock or zero-speed restart occurs. Speed recovers with normal acceleration after
 expiry, and earned cumulative Bonus Nitro progress is preserved. Reset, seat
 change, Garage, Finish, DNF/Quit, destruction and owner release clear the effect.
 
-Mobile uses four 44–48px native-icon cells. Nitro Charge is centered across all
-four. Only the item group and debug text adapt around short/narrow safe bounds;
-driving controls retain their positions. Prototype tuning is in `RaceItemConfig`;
+Mobile uses four 44–48px native-icon cells in the left safe lane, without the
+former short-landscape horizontal offset into the Kart/view corridor. Nitro
+Charge is centered across all four cells, below them and above Drift/Use. Short
+landscape safe bounds use 44px cells and compact LAP rows while retaining both
+status warnings and the 40px Quit target. Driving controls retain their positions.
+Prototype tuning is in `RaceItemConfig`;
 the existing driving/boost invariants remain unchanged.
 
-**M4-A0 CODE COMPLETE — PUBLISHED 2–4 PLAYER RUNTIME VALIDATION REQUIRED.**
+Published 2-player mobile interim PASS, confirmed by the user: four-item loadout,
+Missile selection/fire against the immediate racer ahead, incoming warning,
+Shield recommendation UI and a physical slowing hit. This does not close M4-A0.
+R1 extends slowdown from 1.25 to 2.50 seconds and moves the four-slot HUD away
+from the central Kart view. A forced lateral/outside push remains a future tuning
+candidate only; R1 adds no push or impulse.
+
+**M4-A0-R1 CODE COMPLETE — PUBLISHED 2-PLAYER RETEST REQUIRED.**
 Studio runtime NOT VERIFIED. Automated tests use deterministic mocks and do not
-establish published combat, device touch or visual PASS. Published checks must
-cover basic hit, warning-to-Shield defense, leader rejection, 3-player immediate
-targeting, boost cancellation, natural recovery, Rematch and four-cell mobile HUD.
+establish published combat, device touch or visual PASS. R1 published checks must
+cover the stronger full-duration hit, warning-to-Shield defense, boost rejection
+and natural recovery, Rematch and four-cell mobile HUD placement/readability.
+Leader rejection and 3–4-player immediate targeting remain required after the
+2-player retest. Production KartContext tests enforce cap 55 every simulation
+step, with active samples at 0.25, 1.00, 1.50, 2.25 and 2.49 seconds, followed by
+normal acceleration after 2.50 seconds; braking/throttle and Shield are covered.
 AUTO TEST PASS: all 32 `*_validation.luau` suites plus Joystick (33 runs),
 including focused Missile, production KartContext and mobile layout coverage.
 Rojo build and `git diff --check` PASS. This is not PUBLISHED RUNTIME PASS.

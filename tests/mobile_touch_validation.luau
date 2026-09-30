@@ -517,7 +517,7 @@ player:SetAttribute("DriftBonusNitroAwarded",false)
 check(progressLabel.Text=="NITRO CHARGE  0/5" and not bonusLabel.Visible,
 	"new countdown clears previous reward presentation")
 for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
-	V2.new(812,351),V2.new(724,311),V2.new(801,334),V2.new(389,703)} do
+	V2.new(812,351),V2.new(724,311),V2.new(801,334),V2.new(749,303),V2.new(389,703)} do
 	safeSize=size;itemCamera.ViewportSize=size
 	itemHud:GetPropertyChangedSignal("AbsoluteSize"):Fire()
 	local first=rect(itemHud.Nitro)
@@ -527,6 +527,10 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 	local display=rect(nitroProgress)
 	local l=modules.MobileControlView.layout(itemHud.AbsoluteSize)
 	local items=modules.MobileControlView.itemLayout(itemHud.AbsoluteSize,4)
+	if size.X>=600 and size.X>size.Y then
+		check(first[1]==l.margin and fourth[3]<size.X/2-16,
+			"R1 landscape loadout stays left of the central Kart corridor "..tostring(size))
+	end
 	check(first[1]==items.x and fourth[3]-first[1]==l.slot*4+l.gap*3
 		and second[1]-first[3]==l.gap,"item group uses production slot and gap geometry")
 	check(display[1]==first[1] and display[3]==fourth[3]
@@ -536,11 +540,12 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 		"two-line BONUS EARNED remains readable without clipping")
 	check(display[2]>=first[4]+4 and display[4]<size.Y-l.driftBottom-l.action
 		and display[4]<size.Y-l.useBottom-l.action,
-		"Nitro progress stays below all item cells and above Drift/Use")
+		"Nitro progress stays below all item cells and above Drift/Use "..tostring(size)
+			.." display="..display[2]..","..display[4].." rowBottom="..first[4])
 	check(bonusLabel.Parent==nitroProgress and progressLabel.Parent==nitroProgress,
 		"award and earned text share the progress rectangle")
 	local combat=rect(itemHud.MissileFeedback)
-	local lap={12,8,12+math.min(170,size.X*.28),163}
+	local lap={12,8,12+math.min(170,size.X*.28),if size.X>=600 and size.Y<360 then 118 else 163}
 	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
 	local gaugeRect={l.driftX,size.Y-l.driftBottom-l.action-l.driftGaugeGap-l.gaugeHeight,

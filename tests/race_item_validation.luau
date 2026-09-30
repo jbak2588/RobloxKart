@@ -725,20 +725,36 @@ check(not world.activateNitro(player) and not world.applyMissileHit(player),"Nit
 remote.OnServerEvent:Fire(player,"Select","Nitro");remote.OnServerEvent:Fire(player,"Use")
 check(player:GetAttribute("RaceChargeNitro")==1,"rejected Nitro during Missile keeps charge")
 local missileEnd=missileContext.missileHitEndTime
-for _=1,70 do
-	now+=1/60; control.OnServerEvent:Fire(player,1,.6,true); services.RunService.Heartbeat:Fire(1/60)
-	local velocity=chassis.AssemblyLinearVelocity
-	check(V.new(velocity.X,0,velocity.Z).Magnitude<=55.00001 and not kart:GetAttribute("KartDrifting")
-		and not kart:GetAttribute("KartBoosting"),"Missile cap retains throttle without Drift/Boost")
+local missileStart=now
+check(itemConfig.MISSILE_EFFECT_DURATION==2.50 and math.abs(missileEnd-missileStart-2.50)<.00001,
+	"R1 config and actual hit deadline are 2.50 seconds")
+for _, sample in {.25,1.0,1.5,2.25,2.49} do
+	while now < missileStart+sample do
+		local dt=math.min(1/60,missileStart+sample-now)
+		now+=dt; control.OnServerEvent:Fire(player,1,.6,true); services.RunService.Heartbeat:Fire(dt)
+		local velocity=chassis.AssemblyLinearVelocity
+		check(V.new(velocity.X,0,velocity.Z).Magnitude<=55.00001 and not kart:GetAttribute("KartDrifting")
+			and not kart:GetAttribute("KartBoosting"),"Missile cap retains throttle without Drift/Boost")
+	end
+	check(kart:GetAttribute("KartMissileHitActive") and not world.activateNitro(player),
+		"Missile state and Nitro rejection at "..sample.." seconds")
 end
 check(kart:GetAttribute("KartMissileHitActive") and math.abs(chassis.AssemblyAngularVelocity.Y)>0
 	and chassis.AssemblyAngularVelocity.X==0 and chassis.AssemblyAngularVelocity.Z==0,
 	"steering works during Missile; no forced roll/pitch")
 now=missileEnd+.001;control.OnServerEvent:Fire(player,1,0,false);services.RunService.Heartbeat:Fire(.001)
 check(not kart:GetAttribute("KartMissileHitActive") and step(1)>55 and step(1)<70,
-	"1.25 second Missile expiry accelerates naturally from current speed")
+	"2.50 second Missile expiry accelerates naturally from current speed")
 for _=1,60 do step(1) end
 check(math.abs(step(1)-70)<.001 and player:GetAttribute("DriftBonusProgress")==earned,"normal recovery and earned charge preserved")
+fresh()
+for _=1,100 do step(1) end
+assert(world.applyMissileHit(player))
+local missileBrakeSpeed=step(-1,.1)
+check(missileBrakeSpeed<55 and missileBrakeSpeed>0 and kart:GetAttribute("KartMissileHitActive"),
+	"Brake remains active during Missile without a forced stop")
+check(step(1,.1)>missileBrakeSpeed and step(1,.1)<=55,
+	"throttle accelerates again during Missile up to the cap")
 fresh()
 successfulDrift()
 check(kart:GetAttribute("KartBoosting") and world.applyMissileHit(player)

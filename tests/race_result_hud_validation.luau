@@ -368,4 +368,18 @@ check(hud.RacingInviteToggle.Visible and hud.RoomQueueStatus.Visible,
  "racing host sees queue count and invite control")
 hud.RacingInviteToggle.Activated:Fire()
 check(availability.Visible,"racing host can open cross-server invite list")
+input.PreferredInput=rb.Enum.PreferredInput.Touch
+set("RaceOffTrackRemaining",10);set("RaceEndCountdownActive",true)
+set("RaceEndCountdownRemaining",42)
+for _,size in {rb.Vector2.new(812,351),rb.Vector2.new(801,334),rb.Vector2.new(749,303),rb.Vector2.new(724,311)} do
+ safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+ local l=modules.MobileControlView.layout(size)
+ local items=modules.MobileControlView.itemLayout(size,4)
+ check(hud.Panel.Size.Y.Offset==110 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
+  <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size))
+ check(hud.Panel.QuitRow.Size.Y.Offset==40 and hud.Panel.QuitRow.QuitRace.Size.Y.Offset==40,
+  "compact LAP retains full Quit touch target")
+ check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,
+  "compact LAP preserves both warnings")
+end
 print("PASS: "..count.." production race result HUD checks")

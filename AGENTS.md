@@ -216,14 +216,24 @@ Server Heartbeat homing uses relative swept proximity, noncolliding native
 geometry, speed 165, lifetime 7 seconds, radius 5.5, turn rate 8 rad/sec and a
 16-record active limit including warnings. Shared offensive immunity precedes
 Shield and effect. Unshielded hits cancel Nitro/Mini Boost/current Drift, then
-cap planar speed at 55 and multiply lateral grip by 0.70 for 1.25 seconds.
+cap planar speed at 55 and multiply lateral grip by 0.70 for 2.50 seconds.
 Steering/throttle remain active; no long stun, flip, forced yaw, vertical launch
 or zero-speed restart. Earned cumulative Bonus Nitro progress stays unchanged.
 New Nitro/Boost cannot start during the effect. Per-context `KartMissileHitActive`
 and all projectile/incoming state clear at lifecycle boundaries; Rematch refills
 the four temporary items. Mobile has four native-icon tap cells; Nitro Charge
 spans the complete group. Inventory/persistence and other attacks remain deferred.
-M4-A0 CODE COMPLETE — PUBLISHED 2–4 PLAYER RUNTIME VALIDATION REQUIRED.
+Published 2-player mobile interim PASS, confirmed by the user: four-item loadout,
+Missile target/fire against the immediate racer ahead, incoming warning, Shield
+recommendation UI and physical slowing hit. M4-A0 remains open. R1 changes only
+the hit duration from 1.25 to 2.50 seconds and mobile combat HUD placement: four
+44–48px cells stay in the left safe lane; Nitro Charge spans all four below the
+row and above Drift/Use. Short landscape uses compact LAP rows with both status
+warnings and a 40px Quit target. Production KartContext checks cover the cap on
+every simulation step through expiry, boost rejection, brake/throttle, natural
+recovery, preserved Bonus Nitro and Shield without physics. Forced lateral/outside
+push is a future tuning candidate only, not implemented. Preserve M3 behavior.
+M4-A0-R1 CODE COMPLETE — PUBLISHED 2-PLAYER RETEST REQUIRED.
 Studio runtime NOT VERIFIED for M4-A0.
 
 ## Production Kart
