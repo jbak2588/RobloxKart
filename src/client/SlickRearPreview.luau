@@ -1,6 +1,7 @@
 -- A short presentation replay, not a second live Workspace camera.
 -- Coordinates are supplied by the accepted server deployment only.
 local RunService = game:GetService("RunService")
+local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 local Preview = {}
 local DURATION = 0.9
 
@@ -63,10 +64,12 @@ function Preview.new(gui, onFinished)
 		-- Work in the authoritative pad's local coordinates to avoid large-world precision.
 		local start = frame:PointToObjectSpace(eject)
 		part(scene, "RoadContext", Vector3.new(24, 0.1, 40), CFrame.new(0, -0.17, 0), Color3.fromRGB(61, 64, 70))
-		local pad = part(scene, "OilPad", Vector3.new(7, 0.1, 5), CFrame.identity, Color3.fromRGB(30, 24, 43), true)
+		local pad = part(scene, "OilPad", Vector3.new(Config.SLICK_WIDTH, 0.16, Config.SLICK_LENGTH), CFrame.identity, Color3.fromRGB(30, 24, 43))
 		local edges = {}
-		for _, side in {-1, 1} do
-			table.insert(edges, part(scene, "OilEdge", Vector3.new(0.35, 0.12, 3.6), CFrame.new(side*3.35, 0.03, 0), Color3.fromRGB(180, 115, 245), true))
+		for i = 1, 4 do
+			local edge = part(scene, "OilEdge"..i, Vector3.one, CFrame.identity, Color3.fromRGB(180, 125, 255))
+			edge.Material = Enum.Material.Neon
+			table.insert(edges, edge)
 		end
 		-- Lightweight matching kart silhouette, copied only for this short preview.
 		local prototype = workspace:FindFirstChild("Prototype")
@@ -106,11 +109,17 @@ function Preview.new(gui, onFinished)
 			drop.Transparency = if flight >= 1 then 1 else 0
 			local reveal = math.clamp((age-0.2)/0.16, 0, 1)
 			local scale = 0.08 + 0.92*(1-(1-reveal)^3)
-			pad.Size = Vector3.new(7*scale, 0.1, 5*scale)
+			pad.Size = Vector3.new(Config.SLICK_WIDTH*scale, 0.16, Config.SLICK_LENGTH*scale)
 			pad.Transparency = 1-reveal
 			for i, edge in edges do
-				edge.Size = Vector3.new(0.35, 0.12, 3.6*scale)
-				edge.CFrame = CFrame.new((if i==1 then -1 else 1)*3.35*scale, 0.03, 0)
+				local side = if i%2==1 then -1 else 1
+				if i <= 2 then
+					edge.Size = Vector3.new(0.25*scale, 0.20, Config.SLICK_LENGTH*scale)
+					edge.CFrame = CFrame.new(side*(Config.SLICK_WIDTH*.5-.125)*scale, 0.04, 0)
+				else
+					edge.Size = Vector3.new(Config.SLICK_WIDTH*scale, 0.20, 0.25*scale)
+					edge.CFrame = CFrame.new(0, 0.04, side*(Config.SLICK_LENGTH*.5-.125)*scale)
+				end
 				edge.Transparency = 1-reveal
 			end
 			local splash = math.clamp((age-0.2)/0.22, 0, 1)

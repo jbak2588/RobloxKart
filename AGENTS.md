@@ -185,7 +185,7 @@ Q Use
 ## Slick
 
 ~10 studs behind Kart
-7 x 5 pad
+16 x 5 pad (M4-A0-R2 provisional lane-denial footprint)
 10 sec lifetime
 0.75 sec owner grace
 short controlled slip
@@ -210,7 +210,7 @@ valid target
 Server selects only the immediate RACING racer ahead (`RacePosition - 1`) in
 the same RaceSession with a valid KartContext. No target retains the charge and
 publishes NO TARGET AHEAD. Client target identity/position is never accepted.
-Target remains fixed; no mid-flight retarget. A 0.75-second incoming warning
+Target remains fixed; no mid-flight retarget. A 1.50-second incoming warning
 allows the existing 5-second/one-attack Shield to block with no physics effect.
 Server Heartbeat homing uses relative swept proximity, noncolliding native
 geometry, speed 165, lifetime 7 seconds, radius 5.5, turn rate 8 rad/sec and a
@@ -233,8 +233,27 @@ warnings and a 40px Quit target. Production KartContext checks cover the cap on
 every simulation step through expiry, boost rejection, brake/throttle, natural
 recovery, preserved Bonus Nitro and Shield without physics. Forced lateral/outside
 push is a future tuning candidate only, not implemented. Preserve M3 behavior.
-M4-A0-R1 CODE COMPLETE — PUBLISHED 2-PLAYER RETEST REQUIRED.
-Studio runtime NOT VERIFIED for M4-A0.
+M4-A0-R1 published mobile retest: HUD left alignment and Missile 55 / 2.50 sec
+PASS, confirmed by the user. The 0.75-second warning was too short for mobile
+Shield select -> USE, and Slick was not observable/effective in real two-player
+racing. R2 extends only the warning to 1.50 seconds; incoming feedback remains
+immediate and flight starts after that window. Slick grows from 7x5 to 16x5 on
+the 60-stud Base/Practice road: 26.7 percent width, still avoidable lane denial.
+The rectangular dark surface and four bright Neon edges match the trigger's
+planar footprint; rear preview uses the same dimensions. No homing placement or
+effect strengthening. Preserve .70-second effect, .55 speed retain, 60-degree
+yaw, 10-second lifetime, Shield and 1-second immunity. Compact server diagnostics
+record DEPLOY / HIT / BLOCKED / EXPIRE; repeated immune contact logs once per
+hazard/target, never every Heartbeat.
+R2 Studio 1 Server / 2 Clients targeted audit PASS: Player1 remote Select/Use
+consumed Slick 1->0 and incremented deployment serial; Player2 observed the real
+Workspace hazard, owner/session attributes, fully opaque 16x5 surface and four
+Neon edges at .55 and 9.5 seconds, gone at 10.5. A scripted swept Player2 crossing
+consumed the hazard and activated the real effect at speed 38.5. Test karts were
+anchored and positioned in Play only; this does not verify natural mobile driving,
+chase-camera readability or published counterplay. Full combat Studio runtime
+NOT VERIFIED. M4-A0 remains OPEN; published 2-player retest precedes 3/4 players.
+M4-A0-R2 CODE COMPLETE — PUBLISHED 2-PLAYER SLICK + MISSILE RETEST REQUIRED.
 
 ## Production Kart
 
@@ -674,6 +693,7 @@ tests/drift_telemetry_validation.luau
 tests/kart_visual_validation.luau
 tests/race_item_validation.luau
 tests/missile_validation.luau
+tests/slick_validation.luau
 tests/race_mode_validation.luau
 tests/race_route_validation.luau
 tests/race_audio_validation.luau

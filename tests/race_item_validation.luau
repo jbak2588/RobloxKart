@@ -390,21 +390,22 @@ kart:SetAttribute("KartOffTrack",false); use()
 check(hazardCount()==1 and player:GetAttribute("RaceChargeSlick")==0,"accepted Slick consumes charge")
 local hazard=services.Workspace.Prototype.RaceItemHazards:GetChildren()[1]
 check(math.abs(hazard.SlickSurface.Position.Z-10)<0.0001,"server drops 10 studs behind chassis")
-check(hazard.SlickTrigger.Size==V.new(7,4,5),"authoritative Slick dimensions unchanged during reveal")
+check(hazard.Parent==services.Workspace.Prototype.RaceItemHazards
+	and hazard.SlickTrigger.Size==V.new(16,4,5),"server Workspace hazard has R2 16x5 trigger during reveal")
 check(hazard:FindFirstChild("OilDrop") ~= nil and hazard.SlickSurface.Transparency==1,"accepted deployment starts with projectile and hidden pad")
 check(hazard.OilDrop.Position==V.new(0,6.75,3),"ejection starts above rear center for chase visibility")
 check(player:GetAttribute("SlickDeployedSerial")==1,"accepted Slick publishes deployment feedback")
 check(player:GetAttribute("SlickDeployFrame")==hazard.SlickSurface.CFrame,"rear preview uses authoritative landing frame")
 check(player:GetAttribute("SlickEjectPosition")==hazard.OilDrop.Position,"rear preview uses authoritative ejection position")
-check(hazard.SlickSurface.Shape==rb.Enum.PartType.Ball,"oil surface is rounded rather than rectangular")
+check(hazard.SlickSurface.Shape~=rb.Enum.PartType.Ball,"oil footprint covers rectangular trigger corners")
 step(0,0.1)
 check(hazard.OilDrop.Position.Z>4 and hazard.OilDrop.Position.Z<10,"projectile travels toward server drop position")
 step(0,0.11)
 check(not hazard:FindFirstChild("OilDrop") and hazard.OilSplash1.Transparency<1,"impact removes projectile and reveals splash")
 step(0,0.16)
-check(hazard.SlickSurface.Size==V.new(7,0.1,5) and hazard.SlickSurface.Transparency==0,"pad reaches full dimensions after reveal")
+check(hazard.SlickSurface.Size==V.new(16,0.16,5) and hazard.SlickSurface.Transparency==0,"pad reaches full trigger dimensions after reveal")
 step(0,0.06)
-check(not hazard:FindFirstChild("OilSplash1") and #hazard:GetChildren()==4,"temporary deployment geometry cleaned")
+check(not hazard:FindFirstChild("OilSplash1") and #hazard:GetChildren()==6,"temporary deployment geometry cleaned; surface and four perimeter edges survive")
 for _, p in hazard:GetChildren() do
 	check(p.Anchored and not p.CanCollide and not p.CanTouch and not p.CanQuery,"safe hazard visual "..p.Name)
 end
@@ -449,9 +450,10 @@ fresh("Shield"); use(); step(0,4.9)
 check(kart:GetAttribute("KartShieldActive"),"Shield lives before 5 seconds")
 step(0,0.11)
 check(not kart:GetAttribute("KartShieldActive") and not kart:FindFirstChild("RaceItemShield"),"Shield timeout removes visual")
-fresh("Slick"); use(); step(0,9.9)
-check(hazardCount()==1,"hazard before lifetime")
-step(0,0.11)
+fresh("Slick"); use(); step(0,9.5)
+check(hazardCount()==1 and services.Workspace.Prototype.RaceItemHazards:GetChildren()[1].SlickSurface.Transparency==0,
+	"visible Workspace hazard survives near 9.5 seconds")
+step(0,0.51)
 check(hazardCount()==0,"hazard expires at 10 seconds")
 fresh()
 for _=1,itemConfig.SLICK_MAX_HAZARDS do assert(fixtureItem(player,"Slick")); use() end
@@ -958,6 +960,7 @@ local function previewCheck(value, label)
 end
 services.RunService.RenderStepped = signal()
 local previewEnv = table.clone(environment)
+previewEnv.require=function(module) return assert(modules[module.Name]) end
 previewEnv.Vector2, previewEnv.UDim2 = rb.Vector2, rb.UDim2
 previewEnv.workspace = object("Workspace")
 local previewType = luau.load(fs.readFile("src/client/SlickRearPreview.luau"), {
@@ -975,6 +978,11 @@ preview:show(CF.identity, V.new(0, 5, -7))
 previewCheck(preview:isVisible() and #viewport:GetChildren()==2, "accepted deployment creates one temporary scene")
 now += 0.89; services.RunService.RenderStepped:Fire()
 previewCheck(preview:isVisible() and completed==0, "preview remains before 0.9 seconds")
+local previewScene=viewport:FindFirstChildOfClass("WorldModel")
+previewCheck(previewScene.OilPad.Size==V.new(16,.16,5) and previewScene.OilPad.Transparency==0,
+	"cosmetic rear replay matches R2 Workspace patch dimensions")
+for i=1,4 do previewCheck(previewScene["OilEdge"..i].Material==rb.Enum.Material.Neon,
+	"rear replay retains bright perimeter edge "..i) end
 now += 0.02; services.RunService.RenderStepped:Fire()
 previewCheck(not preview:isVisible() and #viewport:GetChildren()==1 and completed==1, "timeout destroys scene and restores HUD")
 services.RunService.RenderStepped:Fire()

@@ -36,8 +36,13 @@ local function removeShield(player)
 		shields[player] = nil
 	end
 end
-local function removeHazard(index)
-	hazards[index].model:Destroy()
+local function removeHazard(index, reason)
+	local hazard = hazards[index]
+	if reason then
+		print(string.format("[Slick] EXPIRE owner=%d session=%s age=%.2f reason=%s",
+			hazard.owner.UserId, tostring(hazard.model:GetAttribute("RaceSessionId")), time()-hazard.born, reason))
+	end
+	hazard.model:Destroy()
 	table.remove(hazards, index)
 end
 local function clearPlayer(player)
@@ -51,7 +56,7 @@ local function clearPlayer(player)
 	if state then state.kart:SetAttribute("RaceItemHitImmunity", false) end
 	immunity[player], previousPositions[player], lastUse[player] = nil, nil, nil
 	for index = #hazards, 1, -1 do
-		if hazards[index].owner == player then removeHazard(index) end
+		if hazards[index].owner == player then removeHazard(index, "owner_cleanup") end
 	end
 	publish(player)
 end
@@ -63,7 +68,7 @@ local function resetBonusProgress(player)
 end
 local function clearHazardsForSession(session)
 	for index = #hazards, 1, -1 do
-		if hazards[index].session == session then removeHazard(index) end
+		if hazards[index].session == session then removeHazard(index, "session_cleanup") end
 	end
 end
 -- Reserved for an explicit shared-session reset; individual lifecycle events use clearPlayer.
@@ -164,7 +169,10 @@ local function activate(player, id)
 		model:SetAttribute("SlickOwnerUserId", player.UserId)
 		model:SetAttribute("RaceSessionId", player:GetAttribute("RaceSessionId"))
 		table.insert(hazards, { model=model, trigger=trigger, deploy=deploy, owner=player,
-			session=RaceSession.forPlayer(player), born=time() })
+			session=RaceSession.forPlayer(player), born=time(), blocked={} })
+		print(string.format("[Slick] DEPLOY owner=%d session=%s size=%dx%d lifetime=%.1f position=%s",
+			player.UserId, tostring(model:GetAttribute("RaceSessionId")), Config.SLICK_WIDTH,
+			Config.SLICK_LENGTH, Config.SLICK_LIFETIME, tostring(frame.Position)))
 		player:SetAttribute("SlickDeployFrame", frame)
 		player:SetAttribute("SlickEjectPosition", (chassis.CFrame * CFrame.new(0, 5, 3)).Position)
 		player:SetAttribute("SlickDeployedSerial", (player:GetAttribute("SlickDeployedSerial") or 0) + 1)
@@ -315,18 +323,25 @@ function RaceItemController.start()
 		for index = #hazards, 1, -1 do
 			local hazard = hazards[index]
 			local remove = now-hazard.born >= Config.SLICK_LIFETIME or not hazard.model.Parent
+			local removalReason = if now-hazard.born >= Config.SLICK_LIFETIME then "lifetime"
+				elseif not hazard.model.Parent then "model_removed" else nil
 			if not remove then
 				if hazard.deploy and Visuals.updateSlick(hazard.deploy, now-hazard.born) then hazard.deploy = nil end
 				for _, target in targets do
 					if hazard.session ~= nil and hazard.session == RaceSession.forPlayer(target.player)
 						and (target.player ~= hazard.owner or now-hazard.born >= Config.SLICK_OWNER_GRACE)
 						and Geometry.crosses(hazard.trigger.CFrame, hazard.trigger.Size, target.previous, target.chassis) then
-						local accepted = RaceItemController.tryApplyOffensiveItem(target.player, hazard.owner, "Slick")
+						local accepted, reason = RaceItemController.tryApplyOffensiveItem(target.player, hazard.owner, "Slick")
+						if reason == "hit" or reason == "blocked" or reason == "immune" and not hazard.blocked[target.player] then
+							print(string.format("[Slick] %s owner=%d target=%d reason=%s",
+								if reason == "hit" then "HIT" else "BLOCKED", hazard.owner.UserId, target.player.UserId, reason))
+							if reason == "immune" then hazard.blocked[target.player] = true end
+						end
 						if accepted then remove = true; break end
 					end
 				end
 			end
-			if remove then removeHazard(index) end
+			if remove then removeHazard(index, removalReason) end
 		end
 	end)
 end

@@ -138,13 +138,16 @@ remote.OnServerEvent:Fire(source,"Select","Missile")
 for _, injected in {target,target.UserId,contexts[target].kart,V.new(0,0,0)} do remote.OnServerEvent:Fire(source,"Use",injected) end
 check(source:GetAttribute("RaceChargeMissile")==1 and (target:GetAttribute("RaceMissileIncomingCount") or 0)==0,"all client target injection rejected")
 use(source,"Missile")
+local warningStart=now
+check(config.MISSILE_WARNING_SECONDS==1.50,"R2 mobile reaction window is 1.50 seconds")
 check(source:GetAttribute("RaceChargeMissile")==0 and source:GetAttribute("RaceMissileTargetName")==target.DisplayName
 	and source:GetAttribute("RaceMissileLaunchSerial")==1 and target:GetAttribute("RaceMissileIncomingCount")==1,"acceptance consumes only Missile and publishes lock/incoming")
-tick(.50)
-check(projectileCount()==0 and effectCount==0,"full .75 warning before launch")
+tick(1.0)
+check(projectileCount()==0 and effectCount==0 and target:GetAttribute("RaceMissileIncomingCount")==1,
+	"immediate incoming warning remains active beyond old .75 launch time")
 use(target,"Shield")
-tick(.089)
-check(projectileCount()==0 and contexts[target].kart:GetAttribute("KartShieldActive"),"Shield accepted before .75 warning ends")
+tick(warningStart+1.499-now)
+check(projectileCount()==0 and contexts[target].kart:GetAttribute("KartShieldActive"),"Shield selected/used before full 1.50 warning ends")
 tick(.0011)
 check(projectileCount()==1 and contexts[target].kart:GetAttribute("KartShieldActive"),"target can Shield during warning")
 for _, part in prototype.RaceMissiles:GetChildren()[1]:GetChildren() do
@@ -157,7 +160,7 @@ check(effectCount==0 and not contexts[target].kart:GetAttribute("KartShieldActiv
 	"fixed target blocks after positions change, no effect")
 tick(.21);check(projectileCount()==0,"blocked flash/projectile cleaned")
 reset();effectCount=0
-use(source,"Missile");tick(.75)
+use(source,"Missile");tick(config.MISSILE_WARNING_SECONDS)
 for _=1,30 do tick(1/60) end
 check(effectCount==1 and contexts[target].kart:GetAttribute("KartMissileHitActive") and target:GetAttribute("RaceMissileIncomingCount")==0,"unshielded impact resolves effect once")
 local hit,reason=items.tryApplyOffensiveItem(target,source,"Missile")
@@ -168,7 +171,7 @@ tick(.21);check(projectileCount()==0,"hit flash cleanup")
 
 for _, phase in {"WARNING","FLYING"} do
 for _, boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant","lock","destroy","session","round","leave","owner_leave"} do
-	reset();use(source,"Missile");if phase=="FLYING" then tick(.75) end
+	reset();use(source,"Missile");if phase=="FLYING" then tick(config.MISSILE_WARNING_SECONDS) end
 	if boundary=="reset" then contexts[target].kart:SetAttribute("RaceResetSerial",(contexts[target].kart:GetAttribute("RaceResetSerial") or 0)+1)
 	elseif boundary=="occupant" then contexts[target].seat.Occupant=nil
 	elseif boundary=="lock" then contexts[target].kart:SetAttribute("RaceControlsLocked",true)
@@ -207,18 +210,20 @@ service:clearSession(session);check(players[2]:GetAttribute("RaceMissileIncoming
 for _=1,config.MISSILE_MAX_ACTIVE do assert(service:launch(source,target,session,now)) end
 check(not service:launch(source,target,session,now) and target:GetAttribute("RaceMissileIncomingCount")==config.MISSILE_MAX_ACTIVE,"bounded capacity includes warning records")
 service:clearSession(session)
-assert(service:launch(source,target,session,now));service:update(now+.75)
+assert(service:launch(source,target,session,now));service:update(now+config.MISSILE_WARNING_SECONDS)
 local p=service.projectiles[1]
 contexts[target].chassis.CFrame=CF.new(1000,0,1000)
 local oldDirection=p.direction
-service:update(now+.76)
+service:update(now+config.MISSILE_WARNING_SECONDS+.01)
 check(math.acos(math.clamp(oldDirection:Dot(p.direction),-1,1))<=config.MISSILE_TURN_RATE*.01+.0001,"turn rate capped in radians per second")
-service:update(now+.75+7)
+service:update(now+config.MISSILE_WARNING_SECONDS+6.999)
+check(#service.projectiles==1,"flight lifetime remains seven seconds after the longer warning")
+service:update(now+config.MISSILE_WARNING_SECONDS+7.001)
 check(#service.projectiles==0 and #folder:GetChildren()==0 and target:GetAttribute("RaceMissileIncomingCount")==0,"seven-second flight expiry cleans incoming/visual")
-reset();assert(service:launch(source,target,session,now));service:update(now+.75)
+reset();assert(service:launch(source,target,session,now));service:update(now+config.MISSILE_WARNING_SECONDS)
 -- Cross the target in one large frame, rather than reporting client contact.
 p=service.projectiles[1];p.position=contexts[target].chassis.Position+V.new(0,2,20);p.direction=V.new(0,0,-1)
-service:update(now+.75+.3)
+service:update(now+config.MISSILE_WARNING_SECONDS+.3)
 check(#hits==1 and hits[1][1]==target and #service.projectiles==0,"server swept impact resolves the fixed target")
 service:clearSession(session)
 check(#folder:GetChildren()==0,"session cleanup also removes impact flash")

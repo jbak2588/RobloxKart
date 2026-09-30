@@ -24,12 +24,17 @@ function Visuals.updateSlick(deploy, age)
 	end
 	local reveal = math.clamp((age - FLIGHT_TIME) / REVEAL_TIME, 0, 1)
 	local scale = 0.08 + 0.92 * (1 - (1 - reveal)^3)
-	deploy.surface.Size = Vector3.new(deploy.width * scale, 0.1, deploy.length * scale)
+	deploy.surface.Size = Vector3.new(deploy.width * scale, 0.16, deploy.length * scale)
 	deploy.surface.Transparency = 1 - reveal
 	for i, edge in deploy.edges do
-		local side = if i == 1 then -1 else 1
-		edge.Size = Vector3.new(0.35, 0.12, deploy.length * 0.72 * scale)
-		edge.CFrame = deploy.frame * CFrame.new(side * (deploy.width * 0.5 - 0.15) * scale, 0.03, 0)
+		local side = if i % 2 == 1 then -1 else 1
+		if i <= 2 then
+			edge.Size = Vector3.new(0.25 * scale, 0.20, deploy.length * scale)
+			edge.CFrame = deploy.frame * CFrame.new(side * (deploy.width * 0.5 - 0.125) * scale, 0.04, 0)
+		else
+			edge.Size = Vector3.new(deploy.width * scale, 0.20, 0.25 * scale)
+			edge.CFrame = deploy.frame * CFrame.new(0, 0.04, side * (deploy.length * 0.5 - 0.125) * scale)
+		end
 		edge.Transparency = 1 - reveal
 	end
 	local splash = math.clamp((age - FLIGHT_TIME) / SPLASH_TIME, 0, 1)
@@ -52,12 +57,13 @@ function Visuals.slick(parent, frame, config, chassisFrame)
 	local trigger = part(model, "SlickTrigger", Vector3.new(config.SLICK_WIDTH, config.SLICK_TRIGGER_HEIGHT, config.SLICK_LENGTH),
 		frame + Vector3.new(0, config.SLICK_TRIGGER_HEIGHT*0.5, 0), Color3.fromRGB(35, 30, 45))
 	trigger.Transparency = 1
-	local surface = part(model, "SlickSurface", Vector3.new(config.SLICK_WIDTH, 0.10, config.SLICK_LENGTH), frame, Color3.fromRGB(30, 24, 43))
-	surface.Shape = Enum.PartType.Ball
+	-- A complete rectangular patch/perimeter shows the exact swept trigger footprint.
+	local surface = part(model, "SlickSurface", Vector3.new(config.SLICK_WIDTH, 0.16, config.SLICK_LENGTH), frame, Color3.fromRGB(30, 24, 43))
 	local edges = {}
-	for _, side in { -1, 1 } do
-		table.insert(edges, part(model, "Edge"..side, Vector3.new(0.3, 0.12, config.SLICK_LENGTH),
-			frame * CFrame.new(side*(config.SLICK_WIDTH*0.5-0.15), 0.03, 0), Color3.fromRGB(180, 115, 245)))
+	for i = 1, 4 do
+		local edge = part(model, "Edge"..i, Vector3.one, frame, Color3.fromRGB(180, 125, 255))
+		edge.Material = Enum.Material.Neon
+		table.insert(edges, edge)
 	end
 	local start = (chassisFrame * CFrame.new(0, 5.0, 3)).Position
 	local drop = part(model, "OilDrop", Vector3.new(1.7, 2.0, 1.7), CFrame.new(start), Color3.fromRGB(115, 75, 150))
@@ -70,7 +76,6 @@ function Visuals.slick(parent, frame, config, chassisFrame)
 	end
 	local deploy = { drop=drop, droplets=droplets, surface=surface, edges=edges,
 		start=start, frame=frame, width=config.SLICK_WIDTH, length=config.SLICK_LENGTH }
-	for _, edge in edges do edge.Shape = Enum.PartType.Ball end
 	Visuals.updateSlick(deploy, 0)
 	model.Parent = parent
 	return model, trigger, deploy

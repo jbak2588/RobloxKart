@@ -78,7 +78,8 @@ and Use actions, never a target, position or hit report.
 
 `RaceItemController` owns target acquisition, loadout consumption and the shared
 valid target → immunity → Shield → effect path. `HomingMissileService` owns
-the 0.75-second warning, fixed target, Heartbeat flight and cleanup. It moves
+the 1.50-second warning, fixed target, Heartbeat flight and cleanup. Incoming
+feedback publishes immediately; projectile flight waits for the full window. It moves
 noncolliding native geometry at 165 stud/s, turning at up to 8 rad/sec, with a
 7-second flight lifetime and 5.5-stud relative swept hit radius. Up to 16 active
 records (including warnings) are allowed. Targets never change after acceptance;
@@ -110,16 +111,22 @@ R1 extends slowdown from 1.25 to 2.50 seconds and moves the four-slot HUD away
 from the central Kart view. A forced lateral/outside push remains a future tuning
 candidate only; R1 adds no push or impulse.
 
-**M4-A0-R1 CODE COMPLETE — PUBLISHED 2-PLAYER RETEST REQUIRED.**
-Studio runtime NOT VERIFIED. Automated tests use deterministic mocks and do not
-establish published combat, device touch or visual PASS. R1 published checks must
-cover the stronger full-duration hit, warning-to-Shield defense, boost rejection
-and natural recovery, Rematch and four-cell mobile HUD placement/readability.
+R1 published mobile retest PASS, confirmed by the user: left-aligned four-item
+HUD and clearly felt Missile 55 / 2.50-second slowdown. The 0.75-second warning
+was too short for mobile Shield select -> USE, and Slick was not visible/effective
+to the trailing racer. R2 gives a 1.50-second reaction window and audits/widens
+Slick as described below. M4-A0 remains OPEN.
+
+**M4-A0-R2 CODE COMPLETE — PUBLISHED 2-PLAYER SLICK + MISSILE RETEST REQUIRED.**
+Full combat Studio runtime NOT VERIFIED. Automated tests use deterministic mocks
+and do not establish published combat, device touch or visual PASS. Published R2
+checks must cover warning-to-Shield defense, Slick deployment/visibility from both
+lanes, avoidance and hits, unchanged effect recovery, immunity and Rematch.
 Leader rejection and 3–4-player immediate targeting remain required after the
 2-player retest. Production KartContext tests enforce cap 55 every simulation
 step, with active samples at 0.25, 1.00, 1.50, 2.25 and 2.49 seconds, followed by
 normal acceleration after 2.50 seconds; braking/throttle and Shield are covered.
-AUTO TEST PASS: all 32 `*_validation.luau` suites plus Joystick (33 runs),
+AUTO TEST PASS: all 33 `*_validation.luau` suites plus Joystick (34 runs),
 including focused Missile, production KartContext and mobile layout coverage.
 Rojo build and `git diff --check` PASS. This is not PUBLISHED RUNTIME PASS.
 
@@ -694,11 +701,34 @@ RaceLoadout is server-authoritative temporary state, replacing RaceItemSlot. Inv
 
 ### Slick / Shield
 
-Slick drops 10 studs behind chassis, 7 x 5 pad, 4-stud detection height, 10-second lifetime, 0.75-second owner grace. Server swept detection uses one controller loop, bounded to 16 hazards. Successful hit or block consumes the pad. Slick owns movement for 0.7 seconds, retains 55% speed and recovers toward legal road direction without vertical impulse. Barrier/off-track safety wins. It cancels Nitro, Mini Boost and Drift.
+Slick drops 10 studs behind chassis, provisional R2 16 x 5 pad, 4-stud detection height, 10-second lifetime, 0.75-second owner grace. Server swept detection uses one controller loop, bounded to 16 hazards. Successful hit or block consumes the pad. Slick owns movement for 0.7 seconds, retains 55% speed and recovers toward legal road direction without vertical impulse. Barrier/off-track safety wins. It cancels Nitro, Mini Boost and Drift.
+
+R2 audit found the old 7-stud width occupied only 11.7% of the 60-stud
+Base Circuit / PracticeCircuitV1 road, so opposite racing lines could avoid it.
+The old flattened oval and partial side accents also understated the rectangular
+trigger corners. The new 16-stud footprint occupies 26.7%: lane denial, still
+avoidable from the opposite side. A thicker dark rectangular oil surface and
+four bright purple Neon edges show the same 16x5 planar bounds as the trigger;
+there is no hidden larger footprint, auto-homing or placement under a rival.
+DEPLOY / HIT / BLOCKED / EXPIRE server diagnostics report lifecycle events;
+immune contact is logged once per hazard/target to avoid Heartbeat spam.
 
 Attack resolution: valid target -> 1-second item hit immunity -> Shield -> offensive effect. Shield lasts 5 seconds or one block. It adds no speed and may coexist with Nitro. Cyan pulsing shell/orbit animation and BLOCKED feedback are preserved. Lifecycle boundaries clear effects.
 
 World deploy: rear ejection -> 0.20-second travel -> splash -> 0.16-second pad reveal. Temporary splash parts clean at 0.42 seconds; trigger timing remains unchanged.
+
+R2 Studio 1 Server / 2 Clients targeted audit PASS: Player1 used the real
+Select/Use RemoteEvent, Slick charge 1->0 and deployment serial incremented.
+Player2 observed `Workspace.Prototype.RaceItemHazards.SlickHazard` with correct
+owner/session attributes, 16x5 surface at transparency 0, LocalTransparencyModifier
+0 and four opaque Neon edges at .55 and 9.5 seconds; the hazard was gone at 10.5.
+No persistent transparency or premature visual destruction was found. Initial
+child replication may arrive after ChildAdded; the bounded reveal finishes by
+approximately .36 seconds. A scripted Player2 swept crossing consumed the hazard
+and activated the production Slick effect at speed 38.5. Anchored karts and
+temporary Play-only staging were used for repeatability. Client projection placed
+the opaque patch in view from the opposite lane at about 47 studs; real mobile
+chase-camera readability and natural two-lane racing remain published checks.
 
 Rear Deploy Preview: accepted Slick use replaces loadout display for 0.9 seconds. Lightweight WorldModel contains at most 64 current kart visual parts, a simplified road, drop, splash and pad. It is a rear-facing deployment replay, not live Workspace rendering. No track/world clone or main camera change. It cleans its scene/render connection on timeout, race exit, replacement or GUI destruction. BLOCKED interrupts it. Item input remains active throughout. Desktop 248 x 152; compact 176 x 112 at the existing lower-left anchor.
 
