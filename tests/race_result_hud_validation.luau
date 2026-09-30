@@ -382,4 +382,25 @@ for _,size in {rb.Vector2.new(812,351),rb.Vector2.new(801,334),rb.Vector2.new(74
  check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,
   "compact LAP preserves both warnings")
 end
+for _,size in {rb.Vector2.new(1490,620),rb.Vector2.new(844,332),rb.Vector2.new(749,303)} do
+ safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+ local status,map=hud.RoomQueueStatus,hud.RaceMiniMap
+ local statusRight=status.AbsolutePosition.X+status.AbsoluteSize.X
+ local mapRight=map.AbsolutePosition.X+map.AbsoluteSize.X
+ check(status.Visible and map.Visible and math.abs(statusRight-mapRight)<1,
+  "mobile Room status aligns with minimap right edge "..tostring(size))
+ check(status.AbsolutePosition.Y+status.AbsoluteSize.Y+6<=map.AbsolutePosition.Y,
+  "mobile Room status stays above minimap with clear gap "..tostring(size))
+ check(status.AbsolutePosition.X>size.X*0.5 and statusRight<=size.X
+  and status.AbsolutePosition.Y>=hud.AbsolutePosition.Y,
+  "mobile Room status clears central driving view inside safe area "..tostring(size))
+end
+set("RaceState","FINISHED")
+check(hud.RoomQueueStatus.AnchorPoint.X==0.5 and hud.RoomQueueStatus.Size.X.Offset==300,
+ "result next-round status retains existing layout")
+set("RaceState","RACING")
+input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+check(hud.RoomQueueStatus.AnchorPoint.X==0.5 and hud.RoomQueueStatus.Position.X.Scale==0.5,
+ "desktop Room status retains existing layout")
 print("PASS: "..count.." production race result HUD checks")

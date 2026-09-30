@@ -644,6 +644,11 @@ function RaceHudController.start()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local mobile = Input.isTouchPreferred()
+		roomQueueLabel.AnchorPoint = Vector2.new(0.5, 0)
+		roomQueueLabel.Position = UDim2.new(0.5, 0, 0, 96)
+		roomQueueLabel.Size = UDim2.fromOffset(300, 26)
+		roomQueueLabel.TextXAlignment = Enum.TextXAlignment.Center
+		roomQueueLabel.TextSize = 15
 		local touchTarget = mobile or UserInputService.TouchEnabled
 		local speedParent = if mobile then mobileTopGui else screenGui
 		if speedPanel.Parent ~= speedParent then speedPanel.Parent = speedParent end
@@ -828,6 +833,15 @@ function RaceHudController.start()
 			miniMapPanel.Position = UDim2.new(1, -12, 0, 8)
 			miniMapSize.MinSize = Vector2.zero
 			miniMapPanel.Size = UDim2.fromOffset(100, 100)
+			if roomQueueLabel.Visible and player:GetAttribute("RaceState") == "RACING" then
+				-- Share the minimap's safe right edge, keeping Room status off the road.
+				roomQueueLabel.AnchorPoint = Vector2.new(1, 0)
+				roomQueueLabel.Position = UDim2.new(1, -12, 0, 8)
+				roomQueueLabel.Size = UDim2.fromOffset(180, 22)
+				roomQueueLabel.TextXAlignment = Enum.TextXAlignment.Right
+				roomQueueLabel.TextSize = 13
+				miniMapPanel.Position = UDim2.new(1, -12, 0, 36)
+			end
 			if safeSize.X < 450 then
 				miniMapPanel.Visible = false
 			end
