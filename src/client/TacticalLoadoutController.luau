@@ -90,12 +90,20 @@ function Controller.start()
 		local size=gui.AbsoluteSize
 		items.AnchorPoint=if size.X>=600 then Vector2.new(0,1) else Vector2.new(1,0)
 		items.Position=if size.X>=600 then UDim2.new(.5,134,.94,-10) else UDim2.new(1,-12,0,8)
-		card.Size=UDim2.fromOffset(math.min(456,size.X-24),204)
-		local width=(card.Size.X.Offset-36)/4
-		for index,id in Slots.TACTICAL do controls[id].Position=UDim2.fromOffset(12+(index-1)*(width+4),66);controls[id].Size=UDim2.fromOffset(width,44) end
-		reset.Position=UDim2.fromOffset(12,154);reset.Size=UDim2.fromOffset(card.Size.X.Offset*.38,44)
-		back.Position=UDim2.fromOffset(card.Size.X.Offset*.42,154);back.Size=UDim2.fromOffset(card.Size.X.Offset*.20,44)
-		confirm.Position=UDim2.fromOffset(card.Size.X.Offset*.65,154);confirm.Size=UDim2.fromOffset(card.Size.X.Offset*.32-12,44)
+		card.Size=UDim2.fromOffset(math.min(456,size.X-24),252)
+		local width=(card.Size.X.Offset-32)/3
+		for index,id in Slots.TACTICAL do
+			local row=math.floor((index-1)/3)
+			local col=(index-1)%3
+			local inset=if row==1 then (width+4)/2 else 0
+			controls[id].Position=UDim2.fromOffset(12+inset+col*(width+4),66+row*48)
+			controls[id].Size=UDim2.fromOffset(width,44)
+		end
+		timer.Position=UDim2.new(0,12,0,158)
+		status.Position=UDim2.new(0,12,0,176)
+		reset.Position=UDim2.fromOffset(12,202);reset.Size=UDim2.fromOffset(card.Size.X.Offset*.38,44)
+		back.Position=UDim2.fromOffset(card.Size.X.Offset*.42,202);back.Size=UDim2.fromOffset(card.Size.X.Offset*.20,44)
+		confirm.Position=UDim2.fromOffset(card.Size.X.Offset*.65,202);confirm.Size=UDim2.fromOffset(card.Size.X.Offset*.32-12,44)
 	end
 	local function lifecycle()
 		local waiting=player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING"

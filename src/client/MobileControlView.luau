@@ -202,6 +202,10 @@ function View.icon(parent: Instance, kind: string, zIndex: number?)
 		line(24,20,24,15,2); line(24,15,34,15,2)
 		lockShackle = line(34,15,34,20,2)
 		lockShackle.Name = "LockShackle"
+	elseif kind == "Thunder" then
+		-- Cloud plus downward zigzag: distinct from Nitro's solid bolt.
+		shape(11,12,14,10,0,true);shape(21,8,17,14,0,true);shape(30,13,12,10,0,true)
+		line(23,18,17,25,3);line(17,25,24,25,3);line(24,25,18,35,3)
 	elseif kind == "Smoke" then
 		shape(6,17,18,16,0,true);shape(15,10,19,21,0,true);shape(23,18,13,13,0,true)
 	elseif kind == "Use" then

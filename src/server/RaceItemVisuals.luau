@@ -171,4 +171,31 @@ function Visuals.smoke(parent, frame, config)
 	return model, trigger
 end
 
+-- Bounded native cosmetics; every Part is anchored and noninteractive.
+function Visuals.thunderWarning(parent, chassis)
+ local model=Instance.new("Model");model.Name="ThunderWarning";model.Parent=parent
+ for i=1,3 do
+  local puff=part(model,"Cloud"..i,Vector3.new(2.5,1.8,2.3),CFrame.new(),Color3.fromRGB(45,49,60))
+  puff.Shape=Enum.PartType.Ball
+ end
+ local glow=part(model,"ElectricGlow",Vector3.new(.25,1.4,.25),CFrame.new(),Color3.fromRGB(255,230,90))
+ glow.Material=Enum.Material.Neon
+ Visuals.updateThunderWarning(model,chassis)
+ return model
+end
+function Visuals.updateThunderWarning(model,chassis)
+ for i=1,3 do model:FindFirstChild("Cloud"..i).CFrame=CFrame.new(chassis.Position+Vector3.new((i-2)*1.5,6+ (if i==2 then .4 else 0),0)) end
+ model.ElectricGlow.CFrame=CFrame.new(chassis.Position+Vector3.new(0,4.8,0))
+end
+function Visuals.thunderStrike(parent,chassis)
+ local model=Instance.new("Model");model.Name="ThunderStrike";model.Parent=parent
+ for i=1,3 do
+  local bolt=part(model,"Bolt"..i,Vector3.new(.3,2.3,.3),CFrame.new(chassis.Position+Vector3.new(if i==2 then .4 else 0,7-i*2,0))*CFrame.Angles(0,0,if i==2 then .35 else -.18),Color3.fromRGB(255,245,150))
+  bolt.Material=Enum.Material.Neon
+ end
+ local flash=part(model,"Impact",Vector3.new(5,.25,5),CFrame.new(chassis.Position),Color3.fromRGB(255,235,100))
+ flash.Material=Enum.Material.Neon;flash.Transparency=.45
+ return model
+end
+
 return Visuals

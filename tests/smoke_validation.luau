@@ -72,6 +72,7 @@ local Loadout=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 local Geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
 local Visuals=load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 load("src/server/HomingMissileService.luau",server,"HomingMissileService")
+load("src/server/ThunderStrikeService.luau",server,"ThunderStrikeService")
 local Smoke=load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
 load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local contexts,sessions,players={},{},{}

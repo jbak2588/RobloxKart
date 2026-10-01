@@ -3,7 +3,7 @@ local Catalog = require(script.Parent:WaitForChild("RaceItemCatalog"))
 local Slots = {}
 Slots.RACE_ITEM_SLOT_COUNT = 4
 Slots.DEFAULT = table.freeze({ "Nitro", "Slick", "Shield", "Missile" })
-Slots.TACTICAL = table.freeze({ "Slick", "Shield", "Missile", "Smoke" })
+Slots.TACTICAL = table.freeze({ "Slick", "Shield", "Missile", "Smoke", "Thunder" })
 
 -- Only this bounded tactical pool is client-selectable, never arbitrary slots.
 function Slots.tactical(ids)

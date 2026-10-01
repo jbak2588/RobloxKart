@@ -149,7 +149,7 @@ check(examples.Visible and #examples.ChargingGauge:GetChildren()==6 and #example
 check(examples.ChargingGauge.Segment3.BackgroundColor3==rb.Color3.fromRGB(65,225,245)
 	and examples.ChargingGauge.Segment4.BackgroundColor3==rb.Color3.fromRGB(45,60,70),"charging example has three cyan segments")
 check(examples.ReadyGauge.Segment5.BackgroundColor3==rb.Color3.fromRGB(255,218,75),"ready example has five gold segments")
-check(not string.find(tutorialCard.Diagram.Text,"▰",1,true) and not string.find(tutorialCard.Diagram.Text,"▱",1,true),"tutorial gauge uses no Unicode blocks")
+check(not string.find(tutorialCard.Diagram.Text,"â–°",1,true) and not string.find(tutorialCard.Diagram.Text,"â–±",1,true),"tutorial gauge uses no Unicode blocks")
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="RACE ITEMS","tutorial advances to items")
 check(tutorialCard.DontShowAgain.Visible,"final tutorial page offers persistent dismissal")
@@ -226,7 +226,7 @@ for _,case in {{0,0},{.19,0},{.20,1},{.40,2},{.60,3},{.80,4},{1,5}} do
 	if case[1]==.19 then check(math.abs(gauge.Segment1.Fill.Size.X.Scale-.95)<1e-6,"partial first cell reacts below 20 percent") end
 end
 check(gauge:FindFirstChildOfClass("UIStroke").Thickness==3,"ready pulses once")
-check(string.find(diagnostic.Text,"DT ",1,true)~=nil and string.find(diagnostic.Text,"Δ",1,true)==nil,"server delta uses ASCII DT")
+check(string.find(diagnostic.Text,"DT ",1,true)~=nil and string.find(diagnostic.Text,"Î”",1,true)==nil,"server delta uses ASCII DT")
 for _=1,8 do tick() end
 check(gauge:FindFirstChildOfClass("UIStroke").Thickness==1,"ready pulse expires without repeating")
 kart:SetAttribute("KartDriftDiagEndSerial",0);tick()
@@ -762,10 +762,22 @@ for _,size in {V2.new(932,430),V2.new(844,390),V2.new(844,332),V2.new(748,303),V
 	check(ir[1]>=size.X*.5+126 and ir[3]<=size.X and ir[4]<=size.Y,"ITEMS clears staging start/leave and safe edges")
 	check(card.Timer.TextSize>=12 and tactical.Items.AbsoluteSize.Y>=44,"item timer readable and touch target preserved")
 	check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"tactical modal fits notch-safe landscape "..tostring(size))
-	for _,id in {"Slick","Shield","Missile","Smoke","Confirm","Reset","Back"} do
+	for _,id in {"Slick","Shield","Missile","Smoke","Thunder","Confirm","Reset","Back"} do
 		check(card[id].AbsoluteSize.X>=44 and card[id].AbsoluteSize.Y>=44,"tactical modal comfortable target "..id)
 	end
+	local names={"Core","Choose","Slick","Shield","Missile","Smoke","Thunder","Timer","Status","Confirm","Reset","Back"}
+	for i,name in names do
+	 local bounds=rect(card[name])
+	 check(bounds[1]>=r[1] and bounds[2]>=r[2] and bounds[3]<=r[3] and bounds[4]<=r[4],"wrapped modal element inside safe card "..name)
+	 for j=i+1,#names do check(not overlaps(bounds,rect(card[names[j]])),"modal candidates/readiness/actions do not overlap "..name.."/"..names[j]) end
+	end
 end
+for _,id in {"Slick","Shield","Missile","Smoke","Thunder","Timer","Status","Confirm","Reset","Back"} do
+ local r=rect(card[id]);local bounds=rect(card)
+ check(r[1]>=bounds[1] and r[2]>=bounds[2] and r[3]<=bounds[3] and r[4]<=bounds[4],"wrapped candidate/status stays inside card "..id)
+end
+check(card.Slick.Position.Y.Offset==card.Missile.Position.Y.Offset and card.Smoke.Position.Y.Offset>card.Missile.Position.Y.Offset
+ and card.Thunder.Position.Y.Offset==card.Smoke.Position.Y.Offset,"five candidates wrap 3+2")
 tactical.Items.Activated:Fire()
 check(tactical.Modal.Visible and card.Status.Text=="3 / 3 SELECTED","waiting ITEMS opens default three-tactical modal")
 card.Smoke.Activated:Fire();check(card.Status.Text=="3 / 3 SELECTED","fourth tactical selection cannot exceed three")
@@ -795,6 +807,21 @@ player:SetAttribute("RaceState","COUNTDOWN")
 check(not tactical.Modal.Visible and not tactical.Items.Visible,"Countdown immediately closes/locks selector")
 player:SetAttribute("RaceState","RACING")
 for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
+for index,id in {"Nitro","Shield","Smoke","Thunder"} do player:SetAttribute("RaceItemSlot"..index,id);player:SetAttribute("RaceCharge"..id,1) end
+player:SetAttribute("RaceMissileIncomingCount",0)
+player:SetAttribute("RaceThunderIncomingCount",1)
+check(itemHud.MissileFeedback.Text=="THUNDER INCOMING\nTAP SHIELD" and itemHud.Shield.SelectedMark.Visible,"Thunder warning highlights actual Shield slot")
+check(itemHud.Thunder:FindFirstChild("ThunderIcon") and #itemHud.Thunder.ThunderIcon:GetChildren()>4,"native Thunder cloud/bolt icon")
+itemHud.Thunder.Activated:Fire();check(item._p.calls[#item._p.calls][1]=="UseItem" and item._p.calls[#item._p.calls][2]=="Thunder","atomic direct Thunder tap")
+ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+ui.InputBegan:Fire({KeyCode=rb.Enum.KeyCode.Four},false);ui.InputBegan:Fire({KeyCode=rb.Enum.KeyCode.Q},false)
+check(item._p.calls[#item._p.calls-1][2]=="Thunder" and item._p.calls[#item._p.calls][1]=="Use","desktop 4 / Q uses active Thunder slot")
+player:SetAttribute("RaceThunderHitCount",2);player:SetAttribute("RaceThunderBlockedCount",1);player:SetAttribute("RaceThunderResultSerial",1)
+check(itemHud.CombatResult.Text=="THUNDER HIT 2 • BLOCK 1","authoritative aggregate result badge")
+player:SetAttribute("RaceThunderIncomingCount",0);kart:SetAttribute("KartThunderHitActive",true)
+check(itemHud.CombatResult.Text=="SHOCKED!","Thunder rising edge victim feedback")
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
 itemHud:Destroy();player:SetAttribute("RaceCombatFeedbackSerial",1000);tick()
 check(not result.Parent and not edge.Parent,"HUD destruction disconnects result and effect listeners")
 player.CharacterAdded:Fire(character)

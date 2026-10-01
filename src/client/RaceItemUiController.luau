@@ -142,14 +142,16 @@ function RaceItemUiController.start()
 			bonusFlashSerial += 1
 		end
 		if not racing then deployedUntil = 0; feedbackUntil = 0 end
-		local incoming = (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0
+		local missileIncoming = (player:GetAttribute("RaceMissileIncomingCount") or 0) > 0
+		local thunderIncoming = (player:GetAttribute("RaceThunderIncomingCount") or 0) > 0
+		local incoming = missileIncoming or thunderIncoming
 		combat.Visible = racing and (incoming or time() < feedbackUntil)
 		local mobile = Input.isTouchPreferred()
 		local shieldReady = Slots.contains(player, "Shield") and (player:GetAttribute("RaceChargeShield") or 0) > 0
 		local emergencyReady = mobile and racing and incoming and shieldReady
 		-- A cosmetic deploy replay/feedback must not hide the manual defense target.
 		if emergencyReady and preview then preview:stop() end
-		combat.Text = if incoming then "MISSILE INCOMING\n" .. (if mobile then "TAP SHIELD" else "SHIELD CAN BLOCK") else feedbackText
+		combat.Text = if incoming then (if missileIncoming and thunderIncoming then "MISSILE + THUNDER INCOMING\n" elseif thunderIncoming then "THUNDER INCOMING\n" else "MISSILE INCOMING\n") .. (if mobile then "TAP SHIELD" else "SHIELD CAN BLOCK") else feedbackText
 		if not racing and preview then preview:stop() end
 		local deployed = time() < deployedUntil
 		local showLoadout = (racing or player:GetAttribute("RaceState") == "COUNTDOWN")
@@ -274,7 +276,7 @@ function RaceItemUiController.start()
 	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(layout)
 	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(layout)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	for _, attribute in { "RaceState", "SelectedRaceItemId", "DriftBonusProgress", "RaceMissileIncomingCount" } do
+	for _, attribute in { "RaceState", "SelectedRaceItemId", "DriftBonusProgress", "RaceMissileIncomingCount", "RaceThunderIncomingCount" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end
 	for id in Catalog do player:GetAttributeChangedSignal("RaceCharge" .. id):Connect(refresh) end

@@ -161,6 +161,7 @@ local geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry"
 local slickMotion=load("src/server/SlickMotion.luau",server,"SlickMotion")
 load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 load("src/server/HomingMissileService.luau",server,"HomingMissileService")
+load("src/server/ThunderStrikeService.luau",server,"ThunderStrikeService")
 load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
 load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local overlap=Nitro.new(config)
@@ -887,6 +888,56 @@ end
 fresh()
 check(player:GetAttribute("RaceChargeMissile")==1 and player:GetAttribute("RaceChargeSmoke")==0,
 	"Rematch-style COUNTDOWN/RACING refills Missile and leaves Smoke zero")
+
+-- Thunder uses the actual KartContext simulation; weaker cap with unchanged grip.
+fresh()
+for _=1,100 do step(1) end
+local thunderContext=world.getKartContext(player)
+local thunderFrame=chassis.CFrame
+chassis.AssemblyLinearVelocity=V.new(10,3,-70)
+check(world.applyThunderHit(player) and kart:GetAttribute("KartThunderHitActive"),"real Thunder begins")
+check(chassis.CFrame==thunderFrame and chassis.AssemblyLinearVelocity.Y==3
+ and V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z).Magnitude<=60.00001,"immediate planar cap preserves pose/vertical velocity")
+check(not world.applyThunderHit(player) and not world.applyMissileHit(player) and not world.applySlickHit(player)
+ and not world.activateNitro(player),"Thunder prevents physical stacking and Nitro")
+local thunderStart=now;local thunderEnd=thunderContext.thunderHitEndTime
+check(math.abs(thunderEnd-thunderStart-1.25)<.00001,"Thunder exact 1.25-second deadline")
+while now<thunderEnd-.01 do
+ local dt=math.min(1/60,thunderEnd-.01-now)
+ now+=dt;control.OnServerEvent:Fire(player,1,.6,true);services.RunService.Heartbeat:Fire(dt)
+ local velocity=chassis.AssemblyLinearVelocity
+ check(V.new(velocity.X,0,velocity.Z).Magnitude<=60.00001 and not kart:GetAttribute("KartDrifting")
+  and not kart:GetAttribute("KartBoosting"),"Thunder cap each step / no new Drift Boost")
+end
+check(kart:GetAttribute("KartThunderHitActive") and math.abs(chassis.AssemblyAngularVelocity.Y)>0
+ and chassis.AssemblyAngularVelocity.X==0 and chassis.AssemblyAngularVelocity.Z==0,"steering remains active without roll/pitch")
+now=thunderEnd+.001;control.OnServerEvent:Fire(player,1,0,false);services.RunService.Heartbeat:Fire(.001)
+check(not kart:GetAttribute("KartThunderHitActive") and V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z).Magnitude<61,"natural recovery without jump to 70")
+fresh();step(1);chassis.AssemblyLinearVelocity=V.new(10,0,-50);assert(world.applyThunderHit(player));step(1,.01)
+check(math.abs(chassis.AssemblyLinearVelocity.X-10*math.exp(-config.LATERAL_GRIP*.01))<.001,"Thunder preserves normal lateral grip")
+fresh();for _=1,100 do step(1) end;assert(world.applyThunderHit(player))
+local thunderBrakeSpeed=step(-1,.1)
+check(thunderBrakeSpeed>0 and step(1,.1)>thunderBrakeSpeed,"Brake and throttle work through Thunder")
+fresh();successfulDrift()
+check(kart:GetAttribute("KartBoosting") and world.applyThunderHit(player) and not kart:GetAttribute("KartBoosting")
+ and player:GetAttribute("DriftBonusProgress")==1,"Thunder cancels Mini Boost preserving earned progress")
+fresh();for _=1,100 do driftFrame(true,15) end
+check(kart:GetAttribute("KartDrifting") and world.applyThunderHit(player) and not kart:GetAttribute("KartDrifting"),"Thunder cancels current Drift")
+fresh();remote.OnServerEvent:Fire(player,"Select","Nitro");remote.OnServerEvent:Fire(player,"Use")
+check(kart:GetAttribute("KartNitroActive") and world.applyThunderHit(player) and not kart:GetAttribute("KartNitroActive"),"Thunder cancels actual Nitro")
+fresh();assert(world.applyMissileHit(player));check(not world.applyThunderHit(player),"Missile rejects Thunder stacking")
+fresh();kart:SetAttribute("KartOffTrack",true);check(not world.applyThunderHit(player),"Thunder rejects off-track context")
+for _,boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant","lock","owner"} do
+ fresh();step(1);assert(world.applyThunderHit(player))
+ if boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
+ elseif boundary=="occupant" then seat.Occupant=nil
+ elseif boundary=="lock" then kart:SetAttribute("RaceControlsLocked",true)
+ elseif boundary=="owner" then thunderContext:clearOwner()
+ else player:SetAttribute("RaceState",boundary) end
+ check(not kart:GetAttribute("KartThunderHitActive") and thunderContext.thunderHitEndTime==0,"Thunder immediate cleanup "..boundary)
+ if boundary=="owner" then assert(thunderContext:assignOwner(player)) end
+end
+fresh()
 
 -- Two real production contexts and item controllers must keep ownership isolated.
 local second=child(services.Players,"Player","SecondDriver"); second.UserId=2

@@ -54,6 +54,11 @@ function PrototypeWorld.applySlickHit(player: Player): boolean
 	return context ~= nil and context:applySlickHit(player)
 end
 
+function PrototypeWorld.applyThunderHit(player: Player): boolean
+	local context = ownerContexts[player]
+	return context ~= nil and context:applyThunderHit(player)
+end
+
 function PrototypeWorld.applyMissileHit(player: Player): boolean
 	local context = ownerContexts[player]
 	return context ~= nil and context:applyMissileHit(player)
@@ -318,7 +323,12 @@ function PrototypeWorld.start(options)
 			context.missileHitActive, context.missileHitEndTime = false, 0
 			kart:SetAttribute("KartMissileHitActive", false)
 		end
+		local function stopThunderHit()
+			context.thunderHitActive, context.thunderHitEndTime = false, 0
+			kart:SetAttribute("KartThunderHitActive", false)
+		end
 		stopMissileHit()
+		stopThunderHit()
 		function context:getRaceKart(player: Player)
 			if context.owner ~= player or not kart.Parent or not chassis.Parent or not seat.Parent or context.crashActive then return nil end
 			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -340,7 +350,7 @@ function PrototypeWorld.start(options)
 			if kart:GetAttribute("RaceControlsLocked") ~= false or player:GetAttribute("RaceState") ~= "RACING" then
 				return false, "race_locked"
 			end
-			if context.crashActive or context.slick.active or context.missileHitActive
+			if context.crashActive or context.slick.active or context.missileHitActive or context.thunderHitActive
 				or kart:GetAttribute("KartOffTrack") == true then return false, "unsafe_state" end
 			local control = context.control
 			if not control or time() - control.lastUpdate > KartConfig.INPUT_TIMEOUT then return false, "input_timeout" end
@@ -349,13 +359,13 @@ function PrototypeWorld.start(options)
 			return accepted, reason
 		end
 		kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
-			if kart:GetAttribute("RaceControlsLocked") then stopNitro("locked"); stopSlick(); stopMissileHit() end
+			if kart:GetAttribute("RaceControlsLocked") then stopNitro("locked"); stopSlick(); stopMissileHit(); stopThunderHit() end
 		end)
 		kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function()
-			stopNitro("reset"); stopSlick(); stopMissileHit()
+			stopNitro("reset"); stopSlick(); stopMissileHit(); stopThunderHit()
 			emitDriftOutcome(context.owner, "RESET")
 		end)
-		seat:GetPropertyChangedSignal("Occupant"):Connect(function() stopNitro("occupant_changed"); stopSlick(); stopMissileHit() end)
+		seat:GetPropertyChangedSignal("Occupant"):Connect(function() stopNitro("occupant_changed"); stopSlick(); stopMissileHit(); stopThunderHit() end)
 
 
 		local function setDriftActive(active: boolean, reason: string)
@@ -429,7 +439,7 @@ function PrototypeWorld.start(options)
 			end
 		end
 		function context:applyMissileHit(player: Player): boolean
-			if not context:getRaceKart(player) or context.missileHitActive or context.slick.active
+			if not context:getRaceKart(player) or context.missileHitActive or context.thunderHitActive or context.slick.active
 				or kart:GetAttribute("KartOffTrack") == true then return false end
 			stopNitro("missile")
 			stopBoost("missile")
@@ -445,6 +455,25 @@ function PrototypeWorld.start(options)
 			-- No position, yaw, steering or vertical-velocity write.
 			chassis.AssemblyLinearVelocity = planar + Vector3.new(0, velocity.Y, 0)
 			kart:SetAttribute("KartMissileHitActive", true)
+			return true
+		end
+		function context:applyThunderHit(player: Player): boolean
+			if not context:getRaceKart(player) or context.thunderHitActive or context.missileHitActive or context.slick.active
+				or kart:GetAttribute("KartOffTrack") == true then return false end
+			stopNitro("thunder")
+			stopBoost("thunder")
+			setDriftActive(false, "thunder")
+			resetDriftCharge()
+			context.driftTelemetry:clear()
+			context.thunderHitActive = true
+			context.thunderHitEndTime = time() + RaceItemConfig.THUNDER_EFFECT_DURATION
+			context.commandedSpeed = math.min(context.commandedSpeed, RaceItemConfig.THUNDER_SPEED_CAP)
+			local velocity = chassis.AssemblyLinearVelocity
+			local planar = Vector3.new(velocity.X, 0, velocity.Z)
+			if planar.Magnitude > RaceItemConfig.THUNDER_SPEED_CAP then planar = planar.Unit * RaceItemConfig.THUNDER_SPEED_CAP end
+			-- No position, yaw, steering or vertical-velocity write.
+			chassis.AssemblyLinearVelocity = planar + Vector3.new(0, velocity.Y, 0)
+			kart:SetAttribute("KartThunderHitActive", true)
 			return true
 		end
 		kart:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
@@ -481,7 +510,7 @@ function PrototypeWorld.start(options)
 		end
 
 		function context:applySlickHit(player: Player): boolean
-			if not context:getRaceKart(player) or context.slick.active or context.missileHitActive
+			if not context:getRaceKart(player) or context.slick.active or context.missileHitActive or context.thunderHitActive
 				or kart:GetAttribute("KartOffTrack") == true then return false end
 			emitDriftOutcome(player, "RESET")
 			local road = RaceItemGeometry.roadAt(prototype, chassis.Position)
@@ -743,6 +772,7 @@ function PrototypeWorld.start(options)
 
 			local now = time()
 			if context.missileHitActive and now >= context.missileHitEndTime then stopMissileHit() end
+			if context.thunderHitActive and now >= context.thunderHitEndTime then stopThunderHit() end
 			local throttle = 0
 			local steering = 0
 			local driftRequested = false
@@ -874,7 +904,7 @@ function PrototypeWorld.start(options)
 				if endedDriftReason then
 					setDriftActive(false, endedDriftReason)
 				end
-			elseif not context.boostActive and not context.missileHitActive
+			elseif not context.boostActive and not context.missileHitActive and not context.thunderHitActive
 				and occupant
 				and hasValidInput
 				and driftRequested
@@ -901,7 +931,7 @@ function PrototypeWorld.start(options)
 					and kart:GetAttribute("KartOffTrack") ~= true
 					and not context.crashActive
 					and not context.slick.active
-					and not context.missileHitActive
+					and not context.missileHitActive and not context.thunderHitActive
 					and player:GetAttribute("RaceState") == "RACING"
 					and kart:GetAttribute("RaceControlsLocked") == false
 				context.pendingBoostEligible = canStartBoost
@@ -951,6 +981,7 @@ function PrototypeWorld.start(options)
 				elseif context.driftActive then KartConfig.DRIFT_MAX_SPEED
 				else KartConfig.MAX_FORWARD_SPEED
 			local offTrack = kart:GetAttribute("KartOffTrack") == true
+			if context.thunderHitActive then forwardTargetSpeed = math.min(forwardTargetSpeed, RaceItemConfig.THUNDER_SPEED_CAP) end
 			if context.missileHitActive then forwardTargetSpeed = math.min(forwardTargetSpeed, RaceItemConfig.MISSILE_SPEED_CAP) end
 			if offTrack then
 				forwardTargetSpeed = math.min(forwardTargetSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
@@ -1005,6 +1036,9 @@ function PrototypeWorld.start(options)
 			end
 			local verticalSpeed = assemblyVelocity.Y
 			local outputPlanar = forward * context.commandedSpeed + right * lateralSpeed
+			if context.thunderHitActive and outputPlanar.Magnitude > RaceItemConfig.THUNDER_SPEED_CAP then
+				outputPlanar = outputPlanar.Unit * RaceItemConfig.THUNDER_SPEED_CAP
+			end
 			if context.missileHitActive and outputPlanar.Magnitude > RaceItemConfig.MISSILE_SPEED_CAP then
 				outputPlanar = outputPlanar.Unit * RaceItemConfig.MISSILE_SPEED_CAP
 				context.commandedSpeed = outputPlanar:Dot(forward)
@@ -1075,7 +1109,7 @@ function PrototypeWorld.start(options)
 			bindDriverCollision(player)
 			self.ownerConnections = {
 				player.CharacterRemoving:Connect(function()
-					stopMissileHit()
+					stopMissileHit(); stopThunderHit()
 					restoreDriverCollision()
 					if self.nitro.driver == player then stopNitro("character_removed") end
 					if self.slick.driver == player then stopSlick() end
@@ -1083,7 +1117,7 @@ function PrototypeWorld.start(options)
 				player:GetAttributeChangedSignal("RaceState"):Connect(function()
 					if player:GetAttribute("RaceState") == "GARAGE" then restoreDriverCollision() end
 					if player:GetAttribute("RaceState") ~= "RACING" then
-						stopMissileHit()
+						stopMissileHit(); stopThunderHit()
 						if self.nitro.driver == player then stopNitro("race_state") end
 						if self.slick.driver == player then stopSlick() end
 					end
@@ -1102,7 +1136,7 @@ function PrototypeWorld.start(options)
 		end
 
 		function context:clearOwner()
-			stopMissileHit()
+			stopMissileHit(); stopThunderHit()
 			local player = self.owner
 			if not player then return end
 			for _, connection in self.ownerConnections or {} do connection:Disconnect() end
@@ -1118,7 +1152,7 @@ function PrototypeWorld.start(options)
 		end
 
 		kart.Destroying:Connect(function()
-			stopMissileHit()
+			stopMissileHit(); stopThunderHit()
 			context:clearOwner()
 			if context == defaultContext then defaultContext = nil end
 			stopNitro("destroyed")

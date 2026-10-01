@@ -132,11 +132,11 @@ Incoming priority and ROOM/NEXT above minimap remain unchanged.
 M4-A1 is MVP ACCEPTED FOR PROGRESSION, user-confirmed: Shield Missile defense
 BLOCKED and Slick victim feedback are visible. Minor style inconsistency is
 fixed here. Four slots, mobile direct use, Rematch default refill and ROOM/NEXT
-placement retain published PASS. This does not claim every combat path or Smoke
-impact published PASS. R1 published partial results and R2 impact retest are
-recorded below. Studio runtime NOT VERIFIED for M4-A3.
+placement retain published PASS. Subsequent Smoke impact and Shield counterplay
+published PASS are recorded in the closure below. Studio runtime NOT VERIFIED
+for M4-A3; broader combat paths remain deferred.
 
-**M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED**
+**M4-A3 MVP CLOSED / PUBLISHED PASS**
 
 ## M4-A3-R1 Item Preparation Gate
 
@@ -144,8 +144,9 @@ M4-A3-R1 2-PLAYER ITEM-PREP FLOW — PUBLISHED PASS, user-confirmed on mobile:
 10-second per-racer prep, tactical selection, CONFIRM & READY, RESET DEFAULT,
 ITEMS READY 2/2, Host START gating and actual chosen four-slot HUD all work.
 Nitro / Shield / Missile / Smoke is published visible. World Smoke visibility,
-contact detection and SMOKED! feedback also PASS. Gameplay obscuration is too
-weak (see R2); Shield-vs-Smoke device counterplay remains pending. M4-A3 is not CLOSED.
+contact detection and SMOKED! feedback also PASS. R1 obscuration was weak; R2
+strengthened it. Subsequent Smoke impact, Shield counterplay and fall-reset
+published PASS close M4-A3 below.
 
 Each PUBLIC_RACE WAITING entrant receives their own server-owned
 `RaceConfig.ITEM_PREP_SECONDS = 10` deadline. CONFIRM & READY stores a validated
@@ -203,7 +204,7 @@ active time. Haze remains translucent, non-interactive and below race HUD/contro
 Speed, steering/throttle, grip, Drift, Nitro and Mini Boost remain unchanged.
 Unified SMOKED! feedback and the published R1 item-prep flow are frozen.
 
-M4-A3-R2 CODE COMPLETE — PUBLISHED SMOKE IMPACT RETEST REQUIRED.
+M4-A3 MVP CLOSED / PUBLISHED PASS.
 
 ### M4-A3-R2 follow-up: fall recovery preserves race inventory
 
@@ -221,11 +222,55 @@ character/kart destruction and session teardown retain full inventory cleanup.
 Focused production-controller validation covers untouched/custom/partially consumed
 loadouts, repeated falls, 3/5 progress, already-awarded bonus and transient cleanup;
 real PrototypeWorld fall handling is also exercised with deterministic mocks.
-Studio runtime NOT VERIFIED. PUBLISHED FALL RESET + SMOKE IMPACT RETEST REQUIRED.
+M4-A3 user-confirmed published real-device PASS: 10-second Item Prep, tactical
+selection, CONFIRM & READY, RESET DEFAULT, readiness counts and Host Start gating;
+selected slots in the real race HUD; road-centered widened Smoke, disruptive haze,
+satisfactory duration and SMOKED! feedback with no intentional speed/steering penalty;
+Shield fully blocks Smoke with clean visibility; fall recovery preserves slots,
+consumed/unused charges and Bonus Nitro progress/state. Broader published four-player
+testing remains deferred. Historical Studio runtime was not verified. Freeze M4-A3
+values and behavior; do not reopen tuning as part of M4-A4.
 
-Studio runtime NOT VERIFIED. R2 strength/readability/avoidance and Shield-vs-Smoke
-need published device retesting; do not claim R2 published PASS. Four-player
-published testing stays deferred; automated ready-gate coverage remains mandatory.
+
+## M4-A4 Thunder Prototype
+
+Thunder is a weak ahead-pack comeback attack. RaceItemController snapshots every
+valid RACING KartContext in the same RaceSession with a lower authoritative
+RacePosition. Leader/solo/no-target use retains the charge and reports NO TARGET
+AHEAD. One accepted event consumes one charge for all fixed targets; never retarget
+when positions change. ThunderStrikeService owns bounded warning events (max 8),
+balanced RaceThunderIncomingCount, following native clouds, delayed logical strikes,
+short .25-second native flashes and lifecycle/round cleanup. No projectile/Touched.
+
+Warning: 1.00 sec. Unshielded hit: 60 planar speed cap for 1.25 sec, cancel current
+Nitro/Mini Boost/Drift, preserve earned Bonus Nitro progress/state. Steering/throttle
+and normal lateral grip remain active; recovery accelerates naturally. No hard stun,
+yaw/spin, vertical force or position write. Existing shared 1.0-second immunity
+precedes the normal 5-second/one-hit Shield, then the effect. Reject overlapping
+Thunder/Missile/Slick physical effects; each fixed target resolves independently.
+
+Catalog has six implemented items; tactical candidates are Slick/Shield/Missile/
+Smoke/Thunder in a mobile-safe 3+2 selector. Nitro remains locked slot 1; choose
+exactly three tactics. Active slots remain four, default Nitro/Slick/Shield/Missile.
+Thunder cloud/bolt native HUD icon follows item ID; mobile tap sends one validated
+UseItem, desktop active keys 1–4 then Q. No key 5 or new Shield automation. Incoming
+Thunder uses the existing warning/Shield emphasis; victim SHOCKED!/BLOCKED! and one
+server-authored attacker hit/block summary use CombatFeedbackView's unified badge.
+
+Rematch retains tactical choices, gives a new 10-sec edit window and refills active
+charges. Fall recovery clears Thunder transients while preserving exact inventory
+and bonus state. Existing Smoke/Slick/Missile/Shield values, Room/Queue/Host behavior,
+ROOM/NEXT placement and physics remain frozen. No audio asset IDs were added.
+
+Automated validation: 40 validation files PASS; Thunder suite 119 checks, actual
+KartContext integration 594 checks (including Thunder), mobile Touch 2071 / Joystick
+1645 checks. Wrapped selector safe bounds and nonoverlap cover 932x430, 844x390 and
+notch-safe landscape. Rojo build and git diff --check PASS.
+
+M4-A4 CODE COMPLETE — PUBLISHED 2-PLAYER THUNDER RETEST REQUIRED.
+Studio runtime NOT VERIFIED. Automated production-controller tests use deterministic
+transport/physics mocks and do not establish runtime visuals or device counterplay.
+Broader published 3/4-player targeting and mixed Shield checks remain follow-ups.
 
 ## Production Kart
 

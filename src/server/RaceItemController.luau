@@ -13,6 +13,7 @@ local RaceLoadout = require(script.Parent:WaitForChild("RaceLoadout"))
 local Geometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local Visuals = require(script.Parent:WaitForChild("RaceItemVisuals"))
 local HomingMissileService = require(script.Parent:WaitForChild("HomingMissileService"))
+local ThunderStrikeService = require(script.Parent:WaitForChild("ThunderStrikeService"))
 local SmokeHazardService = require(script.Parent:WaitForChild("SmokeHazardService"))
 local TacticalLoadoutService = require(script.Parent:WaitForChild("TacticalLoadoutService"))
 
@@ -26,6 +27,7 @@ local hazards = {}
 local prototype, hazardFolder
 local missiles
 local smoke
+local thunder
 local tactical = TacticalLoadoutService.new(RaceSession.forPlayer)
 local shieldPulses = {}
 local function clearPulses(player)
@@ -86,6 +88,10 @@ local function clearTransientCombatState(player)
 	player:SetAttribute("RaceCombatFeedbackCode", "")
 	player:SetAttribute("RaceCombatFeedbackTargetName", "")
 	if missiles then missiles:clearPlayer(player) end
+	if thunder then thunder:clearPlayer(player) end
+	player:SetAttribute("RaceThunderIncomingCount", 0)
+	player:SetAttribute("RaceThunderHitCount", 0)
+	player:SetAttribute("RaceThunderBlockedCount", 0)
 	if smoke then smoke:clearPlayer(player) end
 	player:SetAttribute("RaceMissileIncomingCount", 0)
 	player:SetAttribute("RaceMissileTargetName", "")
@@ -117,6 +123,7 @@ end
 -- Reserved for an explicit shared-session reset; individual lifecycle events use clearPlayer.
 local function clearSession(session)
 	if missiles then missiles:clearSession(session) end
+	if thunder then thunder:clearSession(session) end
 	if smoke then smoke:clearSession(session) end
 	for player in session.participants do clearPlayer(player) end
 	clearHazardsForSession(session)
@@ -133,12 +140,12 @@ end
 
 -- One offensive-item resolution path; source identity comes only from server hazards/projectiles.
 function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePlayer: Player, itemId: string): (boolean, string)
-	if itemId ~= "Slick" and itemId ~= "Missile" and itemId ~= "Smoke" then return false, "unsupported_item" end
+	if itemId ~= "Slick" and itemId ~= "Missile" and itemId ~= "Smoke" and itemId ~= "Thunder" then return false, "unsupported_item" end
 	local sourceSession = RaceSession.forPlayer(sourcePlayer)
 	local targetSession = RaceSession.forPlayer(targetPlayer)
 	if not sourceSession or sourceSession ~= targetSession then return false, "cross_session" end
 	if targetPlayer:GetAttribute("RaceState") ~= "RACING" then return false, "invalid_target" end
-	if itemId == "Missile" and (targetPlayer == sourcePlayer or sourcePlayer:GetAttribute("RaceState") ~= "RACING") then
+	if (itemId == "Missile" or itemId == "Thunder") and (targetPlayer == sourcePlayer or sourcePlayer:GetAttribute("RaceState") ~= "RACING") then
 		return false, "invalid_source"
 	end
 	local kart = PrototypeWorld.getRaceKart(targetPlayer)
@@ -153,16 +160,17 @@ function RaceItemController.tryApplyOffensiveItem(targetPlayer: Player, sourcePl
 		removeShield(targetPlayer)
 		local serial = targetPlayer:GetAttribute("RaceItemBlockedSerial") or 0
 		targetPlayer:SetAttribute("RaceItemBlockedSerial", serial + 1)
-		combatFeedback(sourcePlayer, targetPlayer, itemId, "blocked")
+		if itemId ~= "Thunder" then combatFeedback(sourcePlayer, targetPlayer, itemId, "blocked") end
 		return true, "blocked"
 	end
 	local applied = if itemId == "Missile" then PrototypeWorld.applyMissileHit(targetPlayer)
+		elseif itemId == "Thunder" then PrototypeWorld.applyThunderHit(targetPlayer)
 		elseif itemId == "Smoke" then smoke:apply(targetPlayer, now)
 		else PrototypeWorld.applySlickHit(targetPlayer)
 	if not applied then return false, "effect_rejected" end
 	immunity[targetPlayer] = { untilTime = now + Config.RACE_ITEM_HIT_IMMUNITY, kart = kart }
 	kart:SetAttribute("RaceItemHitImmunity", true)
-	combatFeedback(sourcePlayer, targetPlayer, itemId, "hit")
+	if itemId ~= "Thunder" then combatFeedback(sourcePlayer, targetPlayer, itemId, "hit") end
 	return true, "hit"
 end
 
@@ -180,6 +188,23 @@ function RaceItemController.missileTarget(player)
 		end
 	end
 	return nil
+end
+
+-- Snapshot all valid ahead racers once. RacePosition is server-authored.
+function RaceItemController.thunderTargets(player)
+	local session = RaceSession.forPlayer(player)
+	local position = player:GetAttribute("RacePosition")
+	local targets = {}
+	if not session or player:GetAttribute("RaceState") ~= "RACING" or not PrototypeWorld.getRaceKart(player)
+		or type(position) ~= "number" or position < 1 or position % 1 ~= 0 then return targets end
+	for target in session.participants do
+		local ahead = target:GetAttribute("RacePosition")
+		if target ~= player and RaceSession.forPlayer(target) == session and target:GetAttribute("RaceState") == "RACING"
+			and type(ahead) == "number" and ahead >= 1 and ahead % 1 == 0 and ahead < position
+			and PrototypeWorld.getRaceKart(target) then table.insert(targets, target) end
+	end
+	table.sort(targets, function(a,b) return a:GetAttribute("RacePosition") < b:GetAttribute("RacePosition") end)
+	return targets
 end
 
 local function feedback(player, code)
@@ -209,6 +234,11 @@ local function activate(player, id)
 			feedback(player, "MISSILE_LOCKED")
 		end
 		return accepted, reason
+	elseif id == "Thunder" then
+		if kart:GetAttribute("KartOffTrack") == true then return false,"off_track" end
+		local targets=RaceItemController.thunderTargets(player)
+		if #targets == 0 then feedback(player,"NO_TARGET_AHEAD");return false,"no_target_ahead" end
+		return thunder:launch(player,targets,RaceSession.forPlayer(player),time())
 	elseif id == "Smoke" then
 		return smoke:deploy(player, prototype, time())
 	elseif id == "Slick" then
@@ -255,6 +285,13 @@ function RaceItemController.start()
 		visuals = Visuals, parent = missileFolder })
 	smoke = SmokeHazardService.new(Config, {getKart=PrototypeWorld.getRaceKart, getSession=RaceSession.forPlayer,
 		resolve=RaceItemController.tryApplyOffensiveItem, geometry=Geometry, visuals=Visuals, parent=hazardFolder})
+	thunder = ThunderStrikeService.new(Config,{getKart=PrototypeWorld.getRaceKart,getSession=RaceSession.forPlayer,
+		resolve=RaceItemController.tryApplyOffensiveItem,visuals=Visuals,parent=missileFolder,
+		result=function(owner,hits,blocks)
+			owner:SetAttribute("RaceThunderHitCount",hits)
+			owner:SetAttribute("RaceThunderBlockedCount",blocks)
+			owner:SetAttribute("RaceThunderResultSerial",(owner:GetAttribute("RaceThunderResultSerial") or 0)+1)
+		end})
 	local function unbindKart(player)
 		for _, connection in kartConnections[player] or {} do connection:Disconnect() end
 		kartConnections[player] = nil
@@ -266,7 +303,7 @@ function RaceItemController.start()
 		local kart, seat = context.kart, context.seat
 		kartConnections[player] = {
 			kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
-				if kart:GetAttribute("RaceControlsLocked") == true then missiles:clearPlayer(player) end
+				if kart:GetAttribute("RaceControlsLocked") == true then missiles:clearPlayer(player); thunder:clearPlayer(player) end
 			end),
 			kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function()
 				if player:GetAttribute("RaceState") == "RACING" then
@@ -292,6 +329,10 @@ function RaceItemController.start()
 		player:SetAttribute("RaceItemBlockedSerial", 0)
 		player:SetAttribute("RaceMissileIncomingCount", 0)
 		player:SetAttribute("RaceMissileLaunchSerial", 0)
+		player:SetAttribute("RaceThunderIncomingCount",0)
+		player:SetAttribute("RaceThunderResultSerial",0)
+		player:SetAttribute("RaceThunderHitCount",0)
+		player:SetAttribute("RaceThunderBlockedCount",0)
 		player:SetAttribute("RaceMissileTargetName", "")
 		player:SetAttribute("RaceItemFeedbackSerial", 0)
 		player:SetAttribute("RaceItemFeedbackCode", "")
@@ -404,6 +445,7 @@ function RaceItemController.start()
 			end
 		end
 		missiles:update(now)
+		thunder:update(now)
 		for player, shield in shields do
 			if now >= shield.untilTime or not PrototypeWorld.getRaceKart(player) then removeShield(player) end
 		end

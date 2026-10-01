@@ -70,6 +70,7 @@ local originalLoadoutNew=Loadout.new
 Loadout.new=function() local l=originalLoadoutNew();table.insert(boundLoadouts,l);return l end
 local Visuals=load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 local Service=load("src/server/HomingMissileService.luau",server,"HomingMissileService")
+load("src/server/ThunderStrikeService.luau",server,"ThunderStrikeService")
 load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
 load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local sessions, contexts = {}, {}

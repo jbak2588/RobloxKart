@@ -196,7 +196,7 @@ Shield emphasis follows item identity, not slot 3. Keep published HUD geometry.
 Bonus Nitro requires an active Nitro slot; no hidden charge when absent.
 Race/Rematch defaults refill; GO preserves valid Countdown selection/order.
 Lifecycle/session cleanup clears active slots and charges. Smoke was deferred
-at M4-A2; M4-A3 implements it below. No Thunder/Rain, persistence, Shop or Garage
+at M4-A2; M4-A3 implements it below. M4-A4 implements Thunder below. No Rain, persistence, Shop or Garage
 selector is implemented.
 M4-A2 CODE COMPLETE — FOUR-SLOT ITEM EXPANSION FOUNDATION READY.
 Studio runtime NOT VERIFIED. M4-A2 basic published smoke: PUBLISHED PASS, confirmed
@@ -229,8 +229,8 @@ No persistence, Inventory, Shop, DataStore or external assets in M4-A3.
 CombatFeedbackView solely owns actual results with one cyan badge style;
 legacy BLOCKED presentation is removed, SLICK DEPLOYED remains owner-only.
 SMOKE_HIT/SMOKE_BLOCKED and victim SMOKED! use this same contract.
-M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED.
-Studio runtime NOT VERIFIED. Do not claim published Smoke impact PASS.
+M4-A3 MVP CLOSED / PUBLISHED PASS (user-confirmed; see closure below).
+Historical Studio runtime NOT VERIFIED; subsequent published closure is recorded below.
 
 ## M4-A3-R1 Item Preparation Gate
 
@@ -238,8 +238,9 @@ M4-A3-R1 2-PLAYER ITEM-PREP FLOW — PUBLISHED PASS, user-confirmed on mobile:
 10-second per-racer prep, tactical selection, CONFIRM & READY, RESET DEFAULT,
 ITEMS READY 2/2, Host START gating and actual chosen four-slot HUD all work.
 Nitro / Shield / Missile / Smoke is published visible. World Smoke visibility,
-contact detection and SMOKED! feedback also PASS. Gameplay obscuration is too
-weak (see R2); Shield-vs-Smoke device counterplay remains pending. M4-A3 is not CLOSED.
+contact detection and SMOKED! feedback also PASS. R1 obscuration was weak; R2
+strengthened it. Subsequent Smoke impact, Shield counterplay and fall-reset
+published PASS close M4-A3 below.
 
 Each PUBLIC_RACE WAITING entrant receives their own server-owned
 `RaceConfig.ITEM_PREP_SECONDS = 10` deadline. CONFIRM & READY stores a validated
@@ -297,7 +298,7 @@ active time. Haze remains translucent, non-interactive and below race HUD/contro
 Speed, steering/throttle, grip, Drift, Nitro and Mini Boost remain unchanged.
 Unified SMOKED! feedback and the published R1 item-prep flow are frozen.
 
-M4-A3-R2 CODE COMPLETE — PUBLISHED SMOKE IMPACT RETEST REQUIRED.
+M4-A3 MVP CLOSED / PUBLISHED PASS.
 
 ### M4-A3-R2 follow-up: fall recovery preserves race inventory
 
@@ -315,11 +316,55 @@ character/kart destruction and session teardown retain full inventory cleanup.
 Focused production-controller validation covers untouched/custom/partially consumed
 loadouts, repeated falls, 3/5 progress, already-awarded bonus and transient cleanup;
 real PrototypeWorld fall handling is also exercised with deterministic mocks.
-Studio runtime NOT VERIFIED. PUBLISHED FALL RESET + SMOKE IMPACT RETEST REQUIRED.
+M4-A3 user-confirmed published real-device PASS: 10-second Item Prep, tactical
+selection, CONFIRM & READY, RESET DEFAULT, readiness counts and Host Start gating;
+selected slots in the real race HUD; road-centered widened Smoke, disruptive haze,
+satisfactory duration and SMOKED! feedback with no intentional speed/steering penalty;
+Shield fully blocks Smoke with clean visibility; fall recovery preserves slots,
+consumed/unused charges and Bonus Nitro progress/state. Broader published four-player
+testing remains deferred. Historical Studio runtime was not verified. Freeze M4-A3
+values and behavior; do not reopen tuning as part of M4-A4.
 
-Studio runtime NOT VERIFIED. R2 strength/readability/avoidance and Shield-vs-Smoke
-need published device retesting; do not claim R2 published PASS. Four-player
-published testing stays deferred; automated ready-gate coverage remains mandatory.
+
+## M4-A4 Thunder Prototype
+
+Thunder is a weak ahead-pack comeback attack. RaceItemController snapshots every
+valid RACING KartContext in the same RaceSession with a lower authoritative
+RacePosition. Leader/solo/no-target use retains the charge and reports NO TARGET
+AHEAD. One accepted event consumes one charge for all fixed targets; never retarget
+when positions change. ThunderStrikeService owns bounded warning events (max 8),
+balanced RaceThunderIncomingCount, following native clouds, delayed logical strikes,
+short .25-second native flashes and lifecycle/round cleanup. No projectile/Touched.
+
+Warning: 1.00 sec. Unshielded hit: 60 planar speed cap for 1.25 sec, cancel current
+Nitro/Mini Boost/Drift, preserve earned Bonus Nitro progress/state. Steering/throttle
+and normal lateral grip remain active; recovery accelerates naturally. No hard stun,
+yaw/spin, vertical force or position write. Existing shared 1.0-second immunity
+precedes the normal 5-second/one-hit Shield, then the effect. Reject overlapping
+Thunder/Missile/Slick physical effects; each fixed target resolves independently.
+
+Catalog has six implemented items; tactical candidates are Slick/Shield/Missile/
+Smoke/Thunder in a mobile-safe 3+2 selector. Nitro remains locked slot 1; choose
+exactly three tactics. Active slots remain four, default Nitro/Slick/Shield/Missile.
+Thunder cloud/bolt native HUD icon follows item ID; mobile tap sends one validated
+UseItem, desktop active keys 1–4 then Q. No key 5 or new Shield automation. Incoming
+Thunder uses the existing warning/Shield emphasis; victim SHOCKED!/BLOCKED! and one
+server-authored attacker hit/block summary use CombatFeedbackView's unified badge.
+
+Rematch retains tactical choices, gives a new 10-sec edit window and refills active
+charges. Fall recovery clears Thunder transients while preserving exact inventory
+and bonus state. Existing Smoke/Slick/Missile/Shield values, Room/Queue/Host behavior,
+ROOM/NEXT placement and physics remain frozen. No audio asset IDs were added.
+
+Automated validation: 40 validation files PASS; Thunder suite 119 checks, actual
+KartContext integration 594 checks (including Thunder), mobile Touch 2071 / Joystick
+1645 checks. Wrapped selector safe bounds and nonoverlap cover 932x430, 844x390 and
+notch-safe landscape. Rojo build and git diff --check PASS.
+
+M4-A4 CODE COMPLETE — PUBLISHED 2-PLAYER THUNDER RETEST REQUIRED.
+Studio runtime NOT VERIFIED. Automated production-controller tests use deterministic
+transport/physics mocks and do not establish runtime visuals or device counterplay.
+Broader published 3/4-player targeting and mixed Shield checks remain follow-ups.
 
 ## Slick
 
@@ -489,7 +534,7 @@ M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
 Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
 queue, invitation, routing, staging, timeout and Rematch behavior.
 M4-A0 MVP CLOSED. M4-A1 MVP accepted for progression. Current next priority:
-M4-A3-R2 published Smoke impact retest, then approved combat audio assets.
+M4-A4 Thunder prototype, then approved combat audio assets.
 Broader 3–4 player balance is deferred.
 Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
