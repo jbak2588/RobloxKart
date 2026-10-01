@@ -138,6 +138,42 @@ Smoke cloud/haze, Shield/immunity, tactical selection and Rematch retest require
 
 **M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED**
 
+## M4-A3-R1 Item Preparation Gate
+
+M4-A3 PUBLISHED PARTIAL PASS, user-confirmed on mobile: ITEMS is visible in
+PRE_RACE/WAITING, modal opens, Nitro stays locked, tactical choices work and
+Nitro / Shield / Missile / Smoke appears in the actual four-slot racing HUD.
+Smoke cloud, haze and Shield-vs-Smoke published runtime remain pending;
+M4-A3 is not CLOSED.
+
+Each PUBLIC_RACE WAITING entrant receives their own server-owned
+`RaceConfig.ITEM_PREP_SECONDS = 10` deadline. CONFIRM & READY stores a validated
+trio and readies that racer. Timeout AUTO READY retains the last confirmed
+server-local choice or production default; an unconfirmed client draft is never
+applied. Ready and Auto Ready both lock editing for this round. RaceController
+owns deadlines, readiness counts, timeout notices and start gating;
+TacticalLoadoutService owns validated temporary choices and confirmation.
+
+`RaceItemsReady`, `RaceItemsAutoReady`, `RaceItemsPrepareRemaining`,
+`RaceItemsReadyCount` and `RaceItemsRequiredCount` are server-authored UI mirrors.
+A new entrant never resets another racer's prep. Departure immediately removes
+that racer from counts; Host migration preserves remaining choices/deadlines.
+Rematch returns to WAITING with previous choices and a fresh 10-second window.
+For 1–3 racers all ready enables Host START SOLO/START RACE; it never auto-starts.
+At 4/4, all four must be ready before the single shared Countdown starts
+automatically. Host early Start is independently rejected by the server.
+
+WAITING shows ITEMS READY count, ITEMS remaining seconds, CONFIRM & READY and
+AUTO READY IN remaining seconds. Ready clients cannot reopen editing. Host
+receives a compact 1.4-second `<DisplayName> AUTO READY` notice. Countdown closes
+editing. Existing preformed-match ARRIVAL/roster-timeout routing and immediate
+Practice/V2 Solo countdown stay unchanged because those paths expose no ITEMS
+window. Smoke/item/physics tuning, room identity, queue and routing are unchanged.
+
+M4-A3-R1 CODE COMPLETE — PUBLISHED ITEM-PREP FLOW + SMOKE RETEST REQUIRED.
+Studio runtime NOT VERIFIED. Published multi-device join/confirm/timeout,
+4/4 auto-start, Host migration and Rematch preparation checks remain required.
+
 ## Production Kart
 
 Sprint V1

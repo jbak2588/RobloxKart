@@ -31,12 +31,18 @@ function Controller.start()
 	local status=label(card,"Status","3 / 3 SELECTED",118,24)
 	local controls={}
 	local draft, pending={},false
-	local confirm=button(card,"Confirm","CONFIRM")
+	local confirm=button(card,"Confirm","CONFIRM & READY")
+	confirm.TextSize=11
+	local timer=label(card,"Timer","AUTO READY IN 10",110,18)
+	timer.TextSize=12
+	status.Position=UDim2.new(0,12,0,128);status.Size=UDim2.new(1,-24,0,18);status.TextSize=12
 	local reset=button(card,"Reset","RESET DEFAULT")
 	local back=button(card,"Back","BACK")
 	local function eligible()
 		return player:GetAttribute("RaceState")=="PRE_RACE"
 			and player:GetAttribute("RaceMatchStatus")=="WAITING"
+			and player:GetAttribute("RaceItemsReady")~=true
+			and (player:GetAttribute("RaceItemsPrepareRemaining") or 0)>0
 	end
 	local function refresh()
 		local count=#draft
@@ -92,10 +98,18 @@ function Controller.start()
 		confirm.Position=UDim2.fromOffset(card.Size.X.Offset*.65,154);confirm.Size=UDim2.fromOffset(card.Size.X.Offset*.32-12,44)
 	end
 	local function lifecycle()
-		items.Visible=eligible()
-		if not items.Visible then overlay.Visible=false;pending=false;requestSerial+=1 end
+		local waiting=player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING"
+		local remaining=player:GetAttribute("RaceItemsPrepareRemaining") or 0
+		items.Visible=waiting
+		items.Active=eligible();items.AutoButtonColor=items.Active
+		items.BackgroundTransparency=if items.Active then 0 else .55
+		items.Text=if player:GetAttribute("RaceItemsReady")==true then "ITEMS READY" else "ITEMS "..remaining
+		timer.Text="AUTO READY IN "..remaining
+		if not eligible() then
+			overlay.Visible=false;pending=false;requestSerial+=1;loadChoice()
+		end
 	end
-	for _,attr in {"RaceState","RaceMatchStatus"} do player:GetAttributeChangedSignal(attr):Connect(lifecycle) end
+	for _,attr in {"RaceState","RaceMatchStatus","RaceItemsReady","RaceItemsPrepareRemaining"} do player:GetAttributeChangedSignal(attr):Connect(lifecycle) end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	layout();lifecycle();refresh()
 end

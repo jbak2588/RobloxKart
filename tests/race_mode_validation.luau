@@ -198,6 +198,7 @@ local function start(trackId)
  if trackId=="Track01Race" then
   check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING",
    "circuit waits for host selection")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
   services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"StartSolo")
  end
  check(player:GetAttribute("RaceState")=="COUNTDOWN","countdown "..kind)
@@ -267,6 +268,7 @@ for _, id in {"Track01","Track01Race","Track02"} do
  if id=="Track01Race" then
   check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING"
    and player:GetAttribute("RaceMatchWaitReason")=="REMATCH", "solo circuit rematch returns to lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
   services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"StartSolo")
  end
  check(player:GetAttribute("RaceState")=="COUNTDOWN" and player:GetAttribute("RaceTotalLaps")==laps,"rematch target "..id)

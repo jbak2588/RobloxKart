@@ -752,11 +752,15 @@ player.Character=character;humanoid.SeatPart=seat;kart:SetAttribute("KartSmokeOb
 item.OnClientEvent=signal()
 local selector=luau.load(fs.readFile("src/client/TacticalLoadoutController.luau"),{environment=itemEnv})()
 player:SetAttribute("RaceState","PRE_RACE");player:SetAttribute("RaceMatchStatus","WAITING")
+player:SetAttribute("RaceItemsReady",false);player:SetAttribute("RaceItemsPrepareRemaining",10)
 selector.start()
 local tactical=pg.KDMTacticalLoadout;local card=tactical.Modal.Card
-for _,size in {V2.new(844,332),V2.new(748,303),V2.new(724,311)} do
+for _,size in {V2.new(932,430),V2.new(844,390),V2.new(844,332),V2.new(748,303),V2.new(724,311)} do
 	safeSize=size;tactical:GetPropertyChangedSignal("AbsoluteSize"):Fire()
 	local r=rect(card)
+	local ir=rect(tactical.Items)
+	check(ir[1]>=size.X*.5+126 and ir[3]<=size.X and ir[4]<=size.Y,"ITEMS clears staging start/leave and safe edges")
+	check(card.Timer.TextSize>=12 and tactical.Items.AbsoluteSize.Y>=44,"item timer readable and touch target preserved")
 	check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"tactical modal fits notch-safe landscape "..tostring(size))
 	for _,id in {"Slick","Shield","Missile","Smoke","Confirm","Reset","Back"} do
 		check(card[id].AbsoluteSize.X>=44 and card[id].AbsoluteSize.Y>=44,"tactical modal comfortable target "..id)
@@ -774,7 +778,20 @@ item.OnClientEvent:Fire("TacticalLoadoutResult",false,"CHOOSE 3 TACTICAL ITEMS")
 check(tactical.Modal.Visible and card.Confirm.Active,"server rejection restores usable modal")
 card.Confirm.Activated:Fire();item.OnClientEvent:Fire("TacticalLoadoutResult",true,"ITEMS CONFIRMED")
 check(not tactical.Modal.Visible,"server confirmation closes modal")
-tactical.Items.Activated:Fire();player:SetAttribute("RaceState","COUNTDOWN")
+player:SetAttribute("RaceItemsReady",true)
+check(not tactical.Items.Active and tactical.Items.Text=="ITEMS READY","confirmed ready dims and locks ITEMS")
+tactical.Items.Activated:Fire();check(not tactical.Modal.Visible,"ready player cannot reopen editing")
+player:SetAttribute("RaceItemsReady",false);player:SetAttribute("RaceItemsPrepareRemaining",10)
+tactical.Items.Activated:Fire();card.Shield.Activated:Fire()
+player:SetAttribute("RaceItemsPrepareRemaining",3)
+check(tactical.Items.Text=="ITEMS 3" and card.Timer.Text=="AUTO READY IN 3","server countdown is readable in button/modal")
+local beforeTimeout=#item._p.calls
+player:SetAttribute("RaceItemsAutoReady",true);player:SetAttribute("RaceItemsPrepareRemaining",0);player:SetAttribute("RaceItemsReady",true)
+check(not tactical.Modal.Visible and #item._p.calls==beforeTimeout,"timeout discards unconfirmed draft without sending it")
+player:SetAttribute("RaceItemsReady",false);player:SetAttribute("RaceItemsPrepareRemaining",10)
+tactical.Items.Activated:Fire()
+check(card.Status.Text=="3 / 3 SELECTED","next staging restores confirmed/default trio, not expired draft")
+player:SetAttribute("RaceState","COUNTDOWN")
 check(not tactical.Modal.Visible and not tactical.Items.Visible,"Countdown immediately closes/locks selector")
 player:SetAttribute("RaceState","RACING")
 for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end

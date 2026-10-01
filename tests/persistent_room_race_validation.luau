@@ -181,7 +181,13 @@ local phases={}
 local starts=0
 race.start({ trackId="Track01Race", persistentRoom=true,
  onRoomPhase=function(phase,count) table.insert(phases,{phase=phase,count=count}) end,
- onRoundStart=function() starts+=1; return true end,
+ onRoundStart=function()
+  starts+=1;local before=starts
+  -- Reentrant start during a directory operation must not begin another transition.
+  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
+  check(starts==before,"in-flight persistent round start rejects duplicate transition")
+  return true
+ end,
  onRoundReady=function(players) readyRoster=players; return true end })
 local session=sessionType.active()
 local function tick(dt) now+=dt;services.RunService.Heartbeat:Fire(dt) end
@@ -193,6 +199,7 @@ check(session.phase=="WAITING" and session:count()==1 and starts==0,
 ready(b)
 check(session.phase=="WAITING" and session:count()==2 and starts==0,
  "second racer does not auto-start")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 remote:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2 and starts==1,
  "host explicitly starts two-racer round")
@@ -215,6 +222,8 @@ ready(c);ready(d)
 check(session.phase=="WAITING" and session:count()==3 and starts==1,
  "three staged racers wait for host")
 ready(e)
+check(session.phase=="WAITING" and starts==1,"four seated racers wait for new player preparation")
+tick(raceConfig.ITEM_PREP_SECONDS)
 check(session.phase=="COUNTDOWN" and session:count()==4 and starts==2,
  "four seated racers auto-start next round")
 print(string.format("PASS: %d persistent room race checks",count))

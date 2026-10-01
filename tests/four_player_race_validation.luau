@@ -186,6 +186,7 @@ check(session.phase=="WAITING" and session:count()==3 and session.hostUserId==a.
  "one to three racers wait indefinitely with four-racer capacity")
 tick(60)
 check(session.phase=="WAITING" and session.countdownEndTime==0,"three-racer lobby has no timer")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 remote:Fire(b,"StartRace")
 check(session.phase=="WAITING","non-host cannot start lobby")
 remote:Fire(b,"CancelWait")
@@ -197,6 +198,7 @@ remote:Fire(a,"CancelWait")
 check(session.phase=="WAITING" and session:count()==2 and session.hostUserId==b.UserId
  and b:GetAttribute("RaceHostUserId")==b.UserId and c:GetAttribute("RaceHostUserId")==b.UserId,
  "host LEAVE transfers authority to earliest remaining ReadyOrder")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 remote:Fire(b,"StartRace")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2,
  "transferred host starts two-racer shared countdown")
@@ -205,6 +207,7 @@ check(session.phase=="EMPTY" and session:count()==0,"withdrawal clears first rou
 
 ready(a);ready(b);ready(c)
 check(session.phase=="WAITING" and session:count()==3,"third ready stays in lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 remote:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==3
  and a:GetAttribute("RaceSessionId")==b:GetAttribute("RaceSessionId")
@@ -226,6 +229,7 @@ remote:Fire(a,"Rematch");remote:Fire(b,"Rematch");remote:Fire(c,"Rematch")
 check(session.phase=="WAITING" and session:count()==3 and session.hostUserId==a.UserId
  and a:GetAttribute("RaceParticipantCount")==3 and c:GetAttribute("RaceState")=="PRE_RACE",
  "three-of-four rematch returns all voters to flexible lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 remote:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==3,
  "three-of-four rematch starts on host action")
@@ -236,6 +240,8 @@ check(session.phase=="EMPTY","three-racer cleanup leaves no session")
 ready(a);ready(b);ready(c)
 check(session.phase=="WAITING" and session:count()==3,"fourth racer has not joined yet")
 ready(d)
+check(session.phase=="WAITING" and not d:GetAttribute("RaceItemsReady"),"fourth admission waits for item preparation")
+tick(raceConfig.ITEM_PREP_SECONDS)
 check(session.phase=="COUNTDOWN" and session:count()==4 and session.startingParticipantCount==4,
  "fourth READY alone triggers full-lobby countdown")
 check(a:GetAttribute("RaceSessionId")==d:GetAttribute("RaceSessionId")
@@ -296,6 +302,8 @@ check(session.phase=="COMPLETE" and b:GetAttribute("RaceFinishPosition")==1
 remote:Fire(a,"Rematch");remote:Fire(b,"Rematch");remote:Fire(c,"Rematch")
 check(session.phase=="COMPLETE","three votes do not start a full four-racer rematch")
 remote:Fire(d,"Rematch")
+check(session.phase=="WAITING" and not d:GetAttribute("RaceItemsReady"),"full Rematch opens fresh item prep")
+tick(raceConfig.ITEM_PREP_SECONDS)
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==4,
  "four-of-four rematch automatically starts shared countdown")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
@@ -327,6 +335,8 @@ ready(a)
 check(session.phase=="WAITING" and session:count()==3,
  "Garage racer rejoins sub-full rematch without auto-start")
 ready(c)
+check(session.phase=="WAITING","rejoining fourth racer receives item prep")
+tick(raceConfig.ITEM_PREP_SECONDS)
 check(session.phase=="COUNTDOWN" and session:count()==4
  and session.startingParticipantCount==4,
  "fourth ready racer fills rematch lobby and auto-starts")

@@ -194,6 +194,7 @@ for _,elapsed in {8,12,40} do
  tick(elapsed)
  check(session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE","waiting stays open through 8/20/60 seconds")
 end
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"CancelWait")
 check(session.phase=="WAITING","non-host lobby actions rejected")
@@ -202,6 +203,7 @@ check(session.phase=="EMPTY" and session:count()==0 and a:GetAttribute("RaceStat
  and not a:GetAttribute("RaceMapActive") and released[a]>=1,"host cancel returns to Garage and releases kart")
 a:SetAttribute("RaceState","PRE_RACE");tick(0.1)
 check(session.phase=="WAITING","host can ready again")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartSolo")
 check(session.phase=="COUNTDOWN" and a:GetAttribute("RaceState")=="COUNTDOWN","host starts solo countdown")
 a:SetAttribute("RaceState","GARAGE");tick(0.1)
@@ -213,8 +215,10 @@ b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
 check(session.phase=="WAITING" and session:count()==2
  and a:GetAttribute("RaceParticipantCount")==2 and a:GetAttribute("RaceMaxPlayers")==4,
  "second ready remains in flexible two-of-four lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartRace")
 check(session.phase=="WAITING","non-host cannot start two-racer lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN" and session:count()==2,"host starts two-racer shared countdown")
 check(a:GetAttribute("RaceState")=="COUNTDOWN" and b:GetAttribute("RaceState")=="COUNTDOWN","both enter countdown")
@@ -275,6 +279,7 @@ check(b:GetAttribute("RaceRematchReady") and b:GetAttribute("RaceRematchReadyCou
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
 check(session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
  and b:GetAttribute("RaceState")=="PRE_RACE","two votes return to flexible lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN","host starts two-racer rematch")
 check(a:GetAttribute("RaceFinishPosition")==0 and b:GetAttribute("RaceFinishPosition")==0 and #session.finishOrder==0,"finish order reset")
@@ -302,6 +307,7 @@ check(session.phase=="WAITING","rematch rejoin remains waiting")
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
 check(session:count()==2 and session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
  and b:GetAttribute("RaceState")=="PRE_RACE", "Garage racer rejoins flexible lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN", "host starts after Garage rejoin")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
@@ -317,6 +323,7 @@ check(session.phase=="WAITING" and session.waitingReason=="REMATCH"
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
 check(session:count()==2 and session.phase=="WAITING" and a:GetAttribute("RaceState")=="PRE_RACE"
  and b:GetAttribute("RaceState")=="PRE_RACE","Garage-first order rejoins flexible lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"StartRace")
 check(session.phase=="COUNTDOWN","host starts after Garage-first rejoin")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
@@ -341,6 +348,7 @@ services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(session.phase=="WAITING" and session.waitingReason=="REMATCH", "forfeit round rematch waits")
 tick(60)
 check(session.phase=="WAITING", "solo rematch does not start automatically")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==1
  and b:GetAttribute("RaceRematchRequiredCount")==1, "host starts solo rematch")
@@ -374,6 +382,7 @@ check(cb.kart==soloKart and cb.chassis.CFrame==cb.kart:GetAttribute("RaceStartCF
 tick(60)
 check(session.phase=="WAITING" and b:GetAttribute("RaceState")=="PRE_RACE",
  "solo rematch waiting has no timeout")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==1
  and b:GetAttribute("RaceState")=="COUNTDOWN" and session.roundId==soloRound+1,
@@ -389,6 +398,7 @@ check(session.phase=="EMPTY" and session:count()==0 and b:GetAttribute("RaceStat
  and not b:GetAttribute("RaceMapActive") and (released[b] or 0)==releasedBeforeCancel+1,
  "solo rematch CANCEL releases participant, kart and grid reservation")
 b:SetAttribute("RaceState","PRE_RACE");tick(0.1)
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartSolo")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 cb.chassis.CFrame=CF.new(1600,0,1600);tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
@@ -400,6 +410,7 @@ check(session.phase=="WAITING" and session:count()==2
  and a:GetAttribute("RaceState")=="PRE_RACE" and b:GetAttribute("RaceState")=="PRE_RACE"
  and ca.kart:GetAttribute("RaceStartCFrame")~=cb.kart:GetAttribute("RaceStartCFrame"),
  "second READY joins solo rematch host in flexible lobby on separate grid slots")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"StartRace")
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==2
  and a:GetAttribute("RaceSessionId")==b:GetAttribute("RaceSessionId"),
@@ -413,6 +424,7 @@ check(session.phase=="COMPLETE" and a:GetAttribute("RaceRematchReady"), "first t
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(session.phase=="WAITING" and session:count()==2,
  "both two-racer rematch votes return to flexible lobby")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 check(session.raceEndDeadline==0 and not a:GetAttribute("RaceEndCountdownActive"),
@@ -440,6 +452,7 @@ services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(session.phase=="WAITING" and session.raceEndDeadline==0,
  "timeout result permits normal rematch and clears deadline")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(ca,gate) end end
@@ -454,6 +467,7 @@ check(b:GetAttribute("RaceState")=="DNF" and session.phase=="COMPLETE",
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
 check(session.phase=="WAITING" and session:count()==1,"timeout DNF can enter flexible rematch lobby")
 a:SetAttribute("RaceState","PRE_RACE");tick(0.1)
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(cb,gate) end
@@ -468,6 +482,7 @@ check(b:GetAttribute("RaceState")=="FINISHING" and b:GetAttribute("RaceFinishPos
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"Rematch")
+tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(if session.hostUserId==a.UserId then a else b,"StartRace")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(ca,gate) end end

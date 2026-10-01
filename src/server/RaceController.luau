@@ -51,6 +51,13 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceRematchReady", false)
 	player:SetAttribute("RaceRematchReadyCount", 0)
 	player:SetAttribute("RaceRematchRequiredCount", 1)
+	player:SetAttribute("RaceItemsReady", false)
+	player:SetAttribute("RaceItemsAutoReady", false)
+	player:SetAttribute("RaceItemsPrepareRemaining", 0)
+	player:SetAttribute("RaceItemsReadyCount", 0)
+	player:SetAttribute("RaceItemsRequiredCount", 0)
+	player:SetAttribute("RaceItemsAutoReadySerial", 0)
+	player:SetAttribute("RaceItemsAutoReadyName", "")
 	player:SetAttribute("RaceNextCheckpoint", 1)
 	player:SetAttribute("RaceLastLapTime", 0)
 	player:SetAttribute("RaceBestLapTime", 0)
@@ -653,6 +660,42 @@ function RaceController.start(options)
 		if player:GetAttribute(name) ~= value then player:SetAttribute(name, value) end
 	end
 
+	-- RaceController owns deadlines/readiness; replicated attributes are mirrors.
+	session.itemPrepareDeadlines = {}
+	session.itemsReady = {}
+	local countdownStarting = false
+	local function beginItemPrep(player, now)
+		session.itemPrepareDeadlines[player] = now + RaceConfig.ITEM_PREP_SECONDS
+		session.itemsReady[player] = nil
+		setChanged(player, "RaceItemsReady", false)
+		setChanged(player, "RaceItemsAutoReady", false)
+		setChanged(player, "RaceItemsPrepareRemaining", RaceConfig.ITEM_PREP_SECONDS)
+	end
+	local function allItemsReady()
+		if session:count() == 0 then return false end
+		for player in session.participants do
+			if not session.itemsReady[player] then return false end
+		end
+		return true
+	end
+	local function markItemsReady(player, automatic)
+		session.itemsReady[player] = true
+		session.itemPrepareDeadlines[player] = nil
+		setChanged(player, "RaceItemsAutoReady", automatic)
+		setChanged(player, "RaceItemsPrepareRemaining", 0)
+		setChanged(player, "RaceItemsReady", true)
+		if automatic then
+			local hostId = if persistentRoom and options.getRoomHostUserId
+				then options.getRoomHostUserId() else session.hostUserId
+			for host in session.participants do
+				if host.UserId == hostId then
+					setChanged(host, "RaceItemsAutoReadyName", player.DisplayName or player.Name)
+					host:SetAttribute("RaceItemsAutoReadySerial", (host:GetAttribute("RaceItemsAutoReadySerial") or 0) + 1)
+				end
+			end
+		end
+	end
+
 	local function publishSession(now: number)
 		if persistentRoom and options.getRoomHostUserId then
 			session.hostUserId = options.getRoomHostUserId()
@@ -660,10 +703,14 @@ function RaceController.start(options)
 		local count = session:count()
 		local required = math.max(count, 1)
 		local ready = 0
+		local itemsReady = 0
+		for player in session.participants do if session.itemsReady[player] then itemsReady += 1 end end
 		for player in session.rematchVotes do
 			if session:contains(player) then ready += 1 end
 		end
 		for player in session.participants do
+			setChanged(player, "RaceItemsReadyCount", itemsReady)
+			setChanged(player, "RaceItemsRequiredCount", count)
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
 			setChanged(player, "RaceMaxPlayers", if preformedMatch and session.phase == "ARRIVAL"
 				then expectedParticipantCount else session.maxPlayers)
@@ -682,19 +729,38 @@ function RaceController.start(options)
 		end
 	end
 
+	-- Invoked after validated choice storage, without yielding. Clients cannot declare ready.
+	session.confirmItems = function(player, now)
+		local deadline = session.itemPrepareDeadlines[player]
+		if session.phase ~= "WAITING" or not session:contains(player) or countdownStarting
+			or session.itemsReady[player] or not deadline or now >= deadline then return false end
+		markItemsReady(player, false)
+		publishSession(now)
+		return true
+	end
+
 	local function startSharedCountdown(now: number)
+		if countdownStarting or session:count() == 0 or (session.phase ~= "WAITING"
+			and session.phase ~= "ARRIVAL" and session.phase ~= "COMPLETE" and session.phase ~= "EMPTY") then return end
+		if session.phase == "WAITING" and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE"
+			and not allItemsReady() then return end
+		countdownStarting = true
 		if persistentRoom and options.getRoomHostUserId then
 			session.hostUserId = options.getRoomHostUserId()
 		end
 		if persistentRoom and options.onRoundStart then
 			for player in session.participants do
-				if player:GetAttribute("KDMRoutePending") == "HUB_RETURN" then return end
+				if player:GetAttribute("KDMRoutePending") == "HUB_RETURN" then countdownStarting = false; return end
 			end
 			local ok, accepted = pcall(options.onRoundStart, session.hostUserId, session:count())
 			if not ok or not accepted then
+				countdownStarting = false
 				warn("[KDMRoom] round start rejected")
 				return
 			end
+		end
+		if session:count() == 0 or (session.phase == "WAITING" and not allItemsReady()) then
+			countdownStarting = false; return
 		end
 		rosterLocked = true
 		session.roundId += 1
@@ -720,6 +786,7 @@ function RaceController.start(options)
 		end
 		publishSession(now)
 		publishRoomPhase("STARTING", session:count())
+		countdownStarting = false
 	end
 
 	local function startSharedRace()
@@ -802,6 +869,11 @@ function RaceController.start(options)
 				setChanged(player, "RaceMapActive", false)
 			end
 		end
+		for player in session.participants do
+			if reason ~= "INITIAL" or (not session.itemsReady[player] and not session.itemPrepareDeadlines[player]) then
+				beginItemPrep(player, now)
+			end
+		end
 		publishSession(now)
 	end
 
@@ -814,7 +886,7 @@ function RaceController.start(options)
 	end
 
 	local function beginVotedRound(now: number)
-		if preformedMatch or session:count() == session.maxPlayers then
+		if preformedMatch then
 			startSharedCountdown(now)
 		else
 			enterWaitingLobby(now, "REMATCH")
@@ -831,7 +903,6 @@ function RaceController.start(options)
 				enterWaitingLobby(time(), "REMATCH")
 				rosterLocked = false
 				publishRoomPhase("WAITING", session:count())
-				if session:count() == session.maxPlayers then startSharedCountdown(time()) end
 			else warn("[KDMRoom] next staging unavailable") end
 			nextRoundPending = false
 		end)
@@ -849,6 +920,12 @@ function RaceController.start(options)
 		setChanged(player, "RaceHostUserId", 0)
 		if racer.context.kart.Parent then racer:finish() end
 		session:remove(player)
+		session.itemPrepareDeadlines[player], session.itemsReady[player] = nil, nil
+		setChanged(player, "RaceItemsReady", false)
+		setChanged(player, "RaceItemsAutoReady", false)
+		setChanged(player, "RaceItemsPrepareRemaining", 0)
+		setChanged(player, "RaceItemsReadyCount", 0)
+		setChanged(player, "RaceItemsRequiredCount", 0)
 		racers[player] = nil
 		if PrototypeWorld.releaseKartContext then PrototypeWorld.releaseKartContext(player) end
 		if persistentRoom and options.onRoomLeave then task.spawn(options.onRoomLeave, player.UserId) end
@@ -928,9 +1005,6 @@ function RaceController.start(options)
 			racer:enterWaitingLobby()
 			publishSession(now)
 			if session:count() >= expectedParticipantCount then startSharedCountdown(now) end
-		elseif track.MatchType == "PUBLIC_RACE" and session:count() == session.maxPlayers then
-			enterWaitingLobby(now, "INITIAL")
-			startSharedCountdown(now)
 		elseif track.MatchType == "PUBLIC_RACE" then
 			enterWaitingLobby(now, "INITIAL")
 		else
@@ -1002,6 +1076,17 @@ function RaceController.start(options)
 		if preformedMatch and session.phase == "ARRIVAL" and arrivalDeadline > 0
 			and now >= arrivalDeadline and session:count() > 0 then
 			startSharedCountdown(now)
+		end
+		if session.phase == "WAITING" then
+			for player in session.participants do
+				local deadline = session.itemPrepareDeadlines[player]
+				if deadline then
+					if now >= deadline then markItemsReady(player, true)
+					else setChanged(player, "RaceItemsPrepareRemaining", math.ceil(deadline - now)) end
+				end
+			end
+			publishSession(now)
+			if session:count() == session.maxPlayers and allItemsReady() then startSharedCountdown(now) end
 		end
 		if session.phase == "COUNTDOWN" then
 			local remaining = math.max(math.ceil(session.countdownEndTime - now), 0)

@@ -1,4 +1,4 @@
--- Stable race pickup metadata. Smoke remains deferred.
+-- Stable race item metadata; five implemented items, four active slots.
 return table.freeze({
 	Nitro = table.freeze({ Id = "Nitro", DisplayName = "NITRO", Type = "Boost", TargetMode = "Self", Implemented = true, InitialCharges = 1, MaxCharges = 2 }),
 	Slick = table.freeze({ Id = "Slick", DisplayName = "SLICK", Type = "Attack", TargetMode = "DropBehind", Implemented = true, InitialCharges = 1, MaxCharges = 1 }),

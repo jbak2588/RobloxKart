@@ -395,7 +395,7 @@ function RaceHudController.start()
 	lobbyPanel.Name = "RaceLobbyHost"
 	lobbyPanel.AnchorPoint = Vector2.new(0.5, 1)
 	lobbyPanel.Position = UDim2.fromScale(0.5, 0.94)
-	lobbyPanel.Size = UDim2.fromOffset(252, 78)
+	lobbyPanel.Size = UDim2.fromOffset(252, 88)
 	lobbyPanel.BackgroundColor3 = Color3.fromRGB(16, 25, 37)
 	lobbyPanel.BackgroundTransparency = 0.12
 	lobbyPanel.Visible = false
@@ -403,15 +403,15 @@ function RaceHudController.start()
 	addCorner(lobbyPanel, 7)
 	local lobbyStatus = createLabel(lobbyPanel, "Status", 1)
 	lobbyStatus.Position = UDim2.fromOffset(8, 4)
-	lobbyStatus.Size = UDim2.new(1, -16, 0, 23)
+	lobbyStatus.Size = UDim2.new(1, -16, 0, 30)
 	lobbyStatus.Text = "RACERS  1 / 4"
-	lobbyStatus.TextSize = 15
+	lobbyStatus.TextSize = 12
 	lobbyStatus.TextColor3 = Color3.fromRGB(255, 225, 70)
 	local function lobbyButton(name, label, x, color)
 		local button = Instance.new("TextButton")
 		button.Name = name
 		button.Position = UDim2.fromOffset(x, 34)
-		button.Size = UDim2.fromOffset(112, 34)
+		button.Size = UDim2.fromOffset(112, 44)
 		button.BackgroundColor3 = color
 		button.TextColor3 = Color3.new(1, 1, 1)
 		button.Text = label
@@ -421,8 +421,16 @@ function RaceHudController.start()
 		addCorner(button, 5)
 		return button
 	end
+	local autoReadySerial = player:GetAttribute("RaceItemsAutoReadySerial") or 0
+	local autoReadyNoticeUntil = 0
+	local autoReadyNotice = createLabel(screenGui, "ItemsAutoReadyNotice", 1)
+	autoReadyNotice.Size = UDim2.fromOffset(180, 20)
+	autoReadyNotice.TextSize = 12
+	autoReadyNotice.TextColor3 = Color3.fromRGB(65, 225, 245)
+	autoReadyNotice.Visible = false
 	local lobbyStart = lobbyButton("StartRace", "START SOLO", 8, Color3.fromRGB(45, 130, 235))
 	lobbyStart.Activated:Connect(function()
+		if not lobbyStart.Active then return end
 		remoteEvent:FireServer("StartRace")
 	end)
 	local lobbyLeave = lobbyButton("Cancel", "CANCEL", 132, Color3.fromRGB(80, 60, 65))
@@ -432,7 +440,7 @@ function RaceHudController.start()
 	local availabilityPanel = Instance.new("Frame")
 	availabilityPanel.Name = "AvailableRacers"
 	availabilityPanel.AnchorPoint = Vector2.new(0.5, 1)
-	availabilityPanel.Position = UDim2.new(0.5, 0, 0.94, -86)
+	availabilityPanel.Position = UDim2.new(0.5, 0, 0.94, -96)
 	availabilityPanel.Size = UDim2.fromOffset(252, 80)
 	availabilityPanel.BackgroundColor3 = Color3.fromRGB(16, 25, 37)
 	availabilityPanel.BackgroundTransparency = 0.12
@@ -1031,8 +1039,27 @@ function RaceHudController.start()
 		end
 		lobbyStatus.Text = string.format("RACERS  %d / %d", participantCount,
 			getNumberAttribute(player, "RaceMaxPlayers", 4))
+		local itemsReady=getNumberAttribute(player,"RaceItemsReadyCount",0)
+		local itemsRequired=getNumberAttribute(player,"RaceItemsRequiredCount",0)
+		local allReady=itemsRequired>0 and itemsReady==itemsRequired
+		local nextSerial=getNumberAttribute(player,"RaceItemsAutoReadySerial",0)
+		if nextSerial~=autoReadySerial then autoReadySerial=nextSerial;autoReadyNoticeUntil=time()+1.4 end
+		if lobbyWaiting then
+			local prepText=if isHost and time()<autoReadyNoticeUntil then
+				string.sub(player:GetAttribute("RaceItemsAutoReadyName") or "RACER",1,24).." AUTO READY"
+				else string.format("ITEMS READY  %d / %d",itemsReady,itemsRequired)
+			lobbyStatus.Text..="\n"..prepText
+		elseif raceState~="COUNTDOWN" then autoReadyNoticeUntil=0 end
+		autoReadyNotice.Visible=isHost and raceState=="COUNTDOWN" and time()<autoReadyNoticeUntil
+		autoReadyNotice.Text=string.sub(player:GetAttribute("RaceItemsAutoReadyName") or "RACER",1,20).." AUTO READY"
+		autoReadyNotice.AnchorPoint=Vector2.new(1,0)
+		autoReadyNotice.Position=if screenGui.AbsoluteSize.X>=600 then UDim2.new(1,-12,0,8) else UDim2.new(1,-12,0,56)
+		lobbyStart.Active=lobbyWaiting and isHost and allReady
+		lobbyStart.AutoButtonColor=lobbyStart.Active
+		lobbyStart.BackgroundTransparency=if lobbyStart.Active then 0 else .55
 		lobbyStart.Visible = lobbyWaiting and isHost
-		lobbyStart.Text = if participantCount == 1 then "START SOLO" else "START RACE"
+		lobbyStart.Text = if not allReady then string.format("WAIT ITEMS %d/%d",itemsReady,itemsRequired)
+			else if participantCount == 1 then "START SOLO" else "START RACE"
 		lobbyLeave.Visible = lobbyWaiting
 		lobbyLeave.Text = if participantCount == 1 and isHost then "CANCEL" else "LEAVE"
 		lobbyLeave.Position = UDim2.fromOffset(if isHost then 132 else 70, 34)
@@ -1133,6 +1160,9 @@ function RaceHudController.start()
 		"RacePosition",
 		"RaceFinishPosition",
 		"RaceMatchStatus",
+		"RaceItemsReadyCount",
+		"RaceItemsRequiredCount",
+		"RaceItemsAutoReadySerial",
 		"RaceHostUserId",
 		"RaceMatchWaitReason",
 		"RaceMatchWaitRemaining",
@@ -1186,6 +1216,9 @@ function RaceHudController.start()
 	local displayedSteering = 0
 	local speedUpdateElapsed = 0
 	RunService.RenderStepped:Connect(function(deltaTime: number)
+		if autoReadyNoticeUntil > 0 and time() >= autoReadyNoticeUntil then
+			autoReadyNoticeUntil = 0; updateHud()
+		end
 		if miniMapPanel.Visible and mapRenderer then
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")

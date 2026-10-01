@@ -75,7 +75,11 @@ load("src/server/HomingMissileService.luau",server,"HomingMissileService")
 local Smoke=load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
 load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local contexts,sessions,players={},{},{}
-local session={participants={},phase="WAITING",roundId=1}
+local session={participants={},phase="WAITING",roundId=1,itemsReady={},itemPrepareDeadlines={}}
+session.confirmItems=function(p,t)
+ if session.itemsReady[p] or t>=session.itemPrepareDeadlines[p] then return false end
+ session.itemsReady[p]=true;p:SetAttribute("RaceItemsReady",true);return true
+end
 services.Workspace:SetAttribute("KDMServerRole","RACE")
 local road=child(child(child(prototype,"Model","TestTrack"),"Folder","Road"),"Part","Road")
 road.Size=V.new(60,1,1000);road.CFrame=CF.new(0,-.5,0)
@@ -97,7 +101,7 @@ for index=1,4 do
 	local chassis=child(kart,"Part","Chassis");chassis.Size=V.new(4,2,6);chassis.CFrame=CF.new(index*20,1,0)
 	chassis.AssemblyLinearVelocity=V.new(0,0,-70)
 	local seat=child(kart,"Seat","Seat");seat.Occupant=human;human.SeatPart=seat
-	contexts[p]={kart=kart,chassis=chassis,seat=seat};sessions[p]=session;session.participants[p]={}
+	contexts[p]={kart=kart,chassis=chassis,seat=seat};sessions[p]=session;session.participants[p]={};session.itemPrepareDeadlines[p]=now+10
 	p:SetAttribute("RaceState","PRE_RACE");p:SetAttribute("RaceMatchStatus","WAITING");p:SetAttribute("RaceSessionId",1)
 	table.insert(players,p)
 end
@@ -112,6 +116,7 @@ local function choose(p,ids)
 end
 check(choose(owner,{"Shield","Missile","Smoke"}),"valid server-local Smoke swap")
 check(owner:GetAttribute("RaceTacticalItem3")=="Smoke","approved choice published for modal")
+session.itemsReady[owner]=nil
 for _,ids in {{"Smoke","Smoke","Shield"},{"Nitro","Shield","Smoke"},{"Unknown","Shield","Smoke"},
 	{"Shield","Smoke"},{"Slick","Shield","Missile","Smoke"},{"Shield","Smoke","Missile",extra="Nitro"}} do
 	tick(.21);check(not choose(owner,ids),"reject invalid tactical membership/count/duplicate/payload")

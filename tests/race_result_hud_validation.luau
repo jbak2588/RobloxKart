@@ -10,6 +10,7 @@ local function signal()
 end
 local methods={}
 local safeSize=rb.Vector2.new(800,260)
+local now=0
 local function object(class,name)
  local p={ClassName=class,Name=name or class,Size=rb.UDim2.fromScale(1,1),Position=rb.UDim2.fromScale(0,0),
   AnchorPoint=rb.Vector2.zero,Visible=true,Enabled=true,Activated=signal(),Destroying=signal()}
@@ -109,7 +110,7 @@ local common={Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vecto
  Color3=rb.Color3,Enum=rb.Enum,TweenInfo={new=function() return {} end},
  game={GetService=function(_,name) return assert(services[name],name) end},
  require=function(module) return assert(modules[module.Name],module.Name) end,
- task={delay=function() end}}
+ task={delay=function() end},time=function() return now end}
 common.script={Parent=modulesFolder}
 modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment=common})()
 player:SetAttribute("RaceState","GARAGE")
@@ -216,11 +217,12 @@ check(results.Rematch.Active and results.Rematch.Text=="REMATCH",
  "completed race restores Rematch and hides waiting countdown")
 set("RaceSessionComplete",false)
 set("RaceHostUserId",player.UserId)
+set("RaceItemsReadyCount",2);set("RaceItemsRequiredCount",2)
 set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState","PRE_RACE")
 local lobby=hud:FindFirstChild("RaceLobbyHost")
 local availability=hud:FindFirstChild("AvailableRacers")
 check(not hud.Countdown.Visible and lobby.Visible and not results.Visible
- and lobby.Status.Text=="RACERS  2 / 4" and lobby.StartRace.Text=="START RACE"
+ and lobby.Status.Text=="RACERS  2 / 4\nITEMS READY  2 / 2" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE",
  "host lobby waits without timer or result overlay")
 check(availability.Visible and availability.WaitingTitle.Text=="WAITING FOR RACERS"
@@ -230,15 +232,37 @@ check(availability.Visible and availability.WaitingTitle.Text=="WAITING FOR RACE
 availability.Invite1.Activated:Fire()
 check(garageRemote.lastFire[1]=="Invite" and garageRemote.lastFire[2]==2,
  "invite control sends target user ID")
-set("RaceParticipantCount",1)
-check(lobby.Status.Text=="RACERS  1 / 4" and lobby.StartRace.Text=="START SOLO"
+set("RaceParticipantCount",1);set("RaceItemsRequiredCount",1);set("RaceItemsReadyCount",1)
+check(lobby.Status.Text=="RACERS  1 / 4\nITEMS READY  1 / 1" and lobby.StartRace.Text=="START SOLO"
  and lobby.Cancel.Text=="CANCEL","solo host sees one-of-four choice")
-set("RaceParticipantCount",3)
-check(lobby.Status.Text=="RACERS  3 / 4" and lobby.StartRace.Text=="START RACE"
+set("RaceParticipantCount",3);set("RaceItemsRequiredCount",3);set("RaceItemsReadyCount",3)
+check(lobby.Status.Text=="RACERS  3 / 4\nITEMS READY  3 / 3" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE","three-racer host may start or leave")
-set("RaceParticipantCount",2)
+set("RaceParticipantCount",2);set("RaceItemsRequiredCount",2);set("RaceItemsReadyCount",1)
+check(not lobby.StartRace.Active and lobby.StartRace.Text=="WAIT ITEMS 1/2","host button gated on replicated readiness")
+local oldAction=remote.lastFire
+lobby.StartRace.Activated:Fire();check(remote.lastFire==oldAction,"disabled start sends no duplicate action")
+set("RaceItemsReadyCount",2)
+set("RaceItemsAutoReadyName","Available Racer");set("RaceItemsAutoReadySerial",1)
+check(string.find(lobby.Status.Text,"Available Racer AUTO READY",1,true),"host sees compact authored auto-ready notice")
+set("RaceState","COUNTDOWN")
+check(hud.ItemsAutoReadyNotice.Visible and not lobby.Visible,"auto-ready notice survives automatic Countdown without staging panel")
+now=1.5;services.RunService.RenderStepped:Fire(.1)
+check(not hud.ItemsAutoReadyNotice.Visible,"Countdown notice expires after 1.4 seconds")
+set("RaceState","PRE_RACE")
+check(string.find(lobby.Status.Text,"ITEMS READY  2 / 2",1,true),"notice expires without new attributes")
 lobby.StartRace.Activated:Fire()
 check(remote.lastFire[1]=="StartRace","host START RACE sends server action")
+for _,size in {rb.Vector2.new(932,430),rb.Vector2.new(844,390),rb.Vector2.new(748,303),rb.Vector2.new(724,311)} do
+ safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+ local origin=lobby.AbsolutePosition-hud.AbsolutePosition
+ check(origin.X>=0 and origin.Y>=0 and origin.X+lobby.AbsoluteSize.X<=size.X
+  and origin.Y+lobby.AbsoluteSize.Y<=size.Y,"waiting panel inside mobile safe bounds "..tostring(size))
+ check(lobby.StartRace.AbsoluteSize.Y>=44 and lobby.Cancel.AbsoluteSize.Y>=44,"waiting start/leave 44px targets")
+ check(lobby.Status.Size.Y.Offset==30 and lobby.Status.TextSize>=12,"compact two-line ready count readable")
+ check(lobby.Status.Position.Y.Offset+lobby.Status.Size.Y.Offset<=lobby.StartRace.Position.Y.Offset,"ready count clears start buttons")
+ check(lobby.StartRace.Position.X.Offset+lobby.StartRace.Size.X.Offset<lobby.Cancel.Position.X.Offset,"start and leave separate")
+end
 lobby.Cancel.Activated:Fire()
 check(remote.lastFire[1]=="CancelWait","host LEAVE sends server action")
 set("RaceHostUserId",999)
