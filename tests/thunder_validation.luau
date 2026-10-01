@@ -155,6 +155,7 @@ local function reset()
  end
 end
 local function warnings() local n=0;for _,m in prototype.RaceMissiles:GetChildren() do if m.Name=="ThunderWarning" then n+=1 end end;return n end
+check(config.THUNDER_EFFECT_DURATION==2.00 and config.THUNDER_SPEED_CAP==60 and config.THUNDER_WARNING_SECONDS==1.00,"R1 duration 2.00; warning/cap frozen")
 check(modules.RaceItemCatalog.Thunder.TargetMode=="AllAhead" and modules.RaceItemCatalog.Thunder.MaxCharges==1,"implemented AllAhead catalog")
 check(#Slots.TACTICAL==5 and Slots.tactical({"Shield","Smoke","Thunder"})[4]=="Thunder","five candidates / exactly three tactical")
 local l=Loadout.new();l:prepare();check(l.counts.Thunder==0 and #l.slots==4,"default stays Nitro Slick Shield Missile")

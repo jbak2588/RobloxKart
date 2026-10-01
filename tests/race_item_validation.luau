@@ -900,31 +900,60 @@ check(chassis.CFrame==thunderFrame and chassis.AssemblyLinearVelocity.Y==3
  and V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z).Magnitude<=60.00001,"immediate planar cap preserves pose/vertical velocity")
 check(not world.applyThunderHit(player) and not world.applyMissileHit(player) and not world.applySlickHit(player)
  and not world.activateNitro(player),"Thunder prevents physical stacking and Nitro")
-local thunderStart=now;local thunderEnd=thunderContext.thunderHitEndTime
-check(math.abs(thunderEnd-thunderStart-1.25)<.00001,"Thunder exact 1.25-second deadline")
-while now<thunderEnd-.01 do
- local dt=math.min(1/60,thunderEnd-.01-now)
- now+=dt;control.OnServerEvent:Fire(player,1,.6,true);services.RunService.Heartbeat:Fire(dt)
- local velocity=chassis.AssemblyLinearVelocity
- check(V.new(velocity.X,0,velocity.Z).Magnitude<=60.00001 and not kart:GetAttribute("KartDrifting")
-  and not kart:GetAttribute("KartBoosting"),"Thunder cap each step / no new Drift Boost")
+local function sampleThunderDuration(label)
+ local thunderStart=now;local thunderEnd=thunderContext.thunderHitEndTime
+ local progress=player:GetAttribute("DriftBonusProgress")
+ local awarded=player:GetAttribute("DriftBonusNitroAwarded")
+ local nitroCount=player:GetAttribute("RaceChargeNitro")
+ check(itemConfig.THUNDER_EFFECT_DURATION==2.00 and math.abs(thunderEnd-thunderStart-2.00)<.00001,label.." exact 2.00-second deadline")
+ for _,sample in {.10,.50,1.00,1.50,1.90} do
+  while now<thunderStart+sample do
+   local dt=math.min(1/60,thunderStart+sample-now)
+   now+=dt;control.OnServerEvent:Fire(player,1,.6,true);services.RunService.Heartbeat:Fire(dt)
+   local velocity=chassis.AssemblyLinearVelocity
+   check(kart:GetAttribute("KartThunderHitActive") and V.new(velocity.X,0,velocity.Z).Magnitude<=60.00001
+    and not kart:GetAttribute("KartDrifting") and not kart:GetAttribute("KartBoosting")
+    and not kart:GetAttribute("KartNitroActive"),label.." full-duration cap each step")
+  end
+  check(kart:GetAttribute("KartThunderHitActive") and V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z).Magnitude<=60.00001,
+   label.." active / cap at "..sample.." seconds")
+ end
+ check(math.abs(chassis.AssemblyAngularVelocity.Y)>0 and chassis.AssemblyAngularVelocity.X==0
+  and chassis.AssemblyAngularVelocity.Z==0,label.." steering remains active without roll/pitch")
+ local beforeRecovery=thunderContext.commandedSpeed
+ now=thunderEnd+.001;control.OnServerEvent:Fire(player,1,0,false);services.RunService.Heartbeat:Fire(.001)
+ check(not kart:GetAttribute("KartThunderHitActive") and thunderContext.commandedSpeed>beforeRecovery
+  and thunderContext.commandedSpeed<61,label.." expiry naturally accelerates without jump to 70")
+ for _=1,100 do step(1) end
+ check(math.abs(step(1)-70)<.001,label.." normal 70 available after recovery")
+ check(player:GetAttribute("DriftBonusProgress")==progress and player:GetAttribute("DriftBonusNitroAwarded")==awarded
+  and player:GetAttribute("RaceChargeNitro")==nitroCount,label.." preserves Bonus progress/award and charge")
 end
-check(kart:GetAttribute("KartThunderHitActive") and math.abs(chassis.AssemblyAngularVelocity.Y)>0
- and chassis.AssemblyAngularVelocity.X==0 and chassis.AssemblyAngularVelocity.Z==0,"steering remains active without roll/pitch")
-now=thunderEnd+.001;control.OnServerEvent:Fire(player,1,0,false);services.RunService.Heartbeat:Fire(.001)
-check(not kart:GetAttribute("KartThunderHitActive") and V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z).Magnitude<61,"natural recovery without jump to 70")
+sampleThunderDuration("normal speed")
+-- Force lateral velocity to exercise the final total-planar clamp, not just forward target cap.
+fresh();for _=1,100 do step(1) end;assert(world.applyThunderHit(player))
+chassis.AssemblyLinearVelocity=V.new(30,3,-60);step(1,.01)
+local syncedPlanar=V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z)
+check(math.abs(syncedPlanar.Magnitude-60)<.001 and math.abs(thunderContext.commandedSpeed-syncedPlanar:Dot(chassis.CFrame.LookVector))<.001
+ and thunderContext.commandedSpeed<60,"Thunder final planar clamp synchronizes commanded forward speed")
 fresh();step(1);chassis.AssemblyLinearVelocity=V.new(10,0,-50);assert(world.applyThunderHit(player));step(1,.01)
 check(math.abs(chassis.AssemblyLinearVelocity.X-10*math.exp(-config.LATERAL_GRIP*.01))<.001,"Thunder preserves normal lateral grip")
 fresh();for _=1,100 do step(1) end;assert(world.applyThunderHit(player))
 local thunderBrakeSpeed=step(-1,.1)
 check(thunderBrakeSpeed>0 and step(1,.1)>thunderBrakeSpeed,"Brake and throttle work through Thunder")
-fresh();successfulDrift()
-check(kart:GetAttribute("KartBoosting") and world.applyThunderHit(player) and not kart:GetAttribute("KartBoosting")
+fresh();successfulDrift();for _=1,45 do step(1) end
+check(math.abs(step(1)-100)<.001 and kart:GetAttribute("KartBoosting") and world.applyThunderHit(player) and not kart:GetAttribute("KartBoosting")
  and player:GetAttribute("DriftBonusProgress")==1,"Thunder cancels Mini Boost preserving earned progress")
+sampleThunderDuration("Mini Boost")
 fresh();for _=1,100 do driftFrame(true,15) end
 check(kart:GetAttribute("KartDrifting") and world.applyThunderHit(player) and not kart:GetAttribute("KartDrifting"),"Thunder cancels current Drift")
-fresh();remote.OnServerEvent:Fire(player,"Select","Nitro");remote.OnServerEvent:Fire(player,"Use")
-check(kart:GetAttribute("KartNitroActive") and world.applyThunderHit(player) and not kart:GetAttribute("KartNitroActive"),"Thunder cancels actual Nitro")
+fresh();for _=1,5 do successfulDrift() end
+remote.OnServerEvent:Fire(player,"Select","Nitro");now+=.16;remote.OnServerEvent:Fire(player,"Use")
+for _=1,50 do step(1) end
+check(kart:GetAttribute("KartNitroActive") and math.abs(step(1)-100)<.001 and world.applyThunderHit(player)
+ and not kart:GetAttribute("KartNitroActive") and player:GetAttribute("DriftBonusNitroAwarded"),"Thunder cancels Nitro 100 with already-earned Bonus")
+check(V.new(chassis.AssemblyLinearVelocity.X,0,chassis.AssemblyLinearVelocity.Z).Magnitude<=60.00001,"Nitro immediate Thunder cap")
+sampleThunderDuration("Nitro")
 fresh();assert(world.applyMissileHit(player));check(not world.applyThunderHit(player),"Missile rejects Thunder stacking")
 fresh();kart:SetAttribute("KartOffTrack",true);check(not world.applyThunderHit(player),"Thunder rejects off-track context")
 for _,boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant","lock","owner"} do
@@ -984,6 +1013,15 @@ check(blockedMissile and blockedMissileReason=="blocked" and not secondContext.k
 	and not secondContext.kart:GetAttribute("KartMissileHitActive") and secondContext.chassis.CFrame==shieldFrame
 	and secondContext.chassis.AssemblyLinearVelocity==shieldVelocity,
 	"real Shield consumes Missile with no cap, traction effect, pose or velocity change")
+second:SetAttribute("RaceState","COUNTDOWN");second:SetAttribute("RaceState","RACING")
+now+=.16;remote.OnServerEvent:Fire(second,"UseItem","Shield")
+secondContext.chassis.AssemblyLinearVelocity=V.new(0,3,-70);secondContext.commandedSpeed=70
+local thunderShieldFrame=secondContext.chassis.CFrame
+local blockedThunder,blockedThunderReason=items.tryApplyOffensiveItem(second,player,"Thunder")
+check(blockedThunder and blockedThunderReason=="blocked" and not secondContext.kart:GetAttribute("KartShieldActive")
+ and not secondContext.kart:GetAttribute("KartThunderHitActive") and secondContext.thunderHitEndTime==0
+ and secondContext.commandedSpeed==70 and secondContext.chassis.AssemblyLinearVelocity==V.new(0,3,-70)
+ and secondContext.chassis.CFrame==thunderShieldFrame,"real Shield consumes Thunder with zero speed/pose/effect changes")
 local realMissile, realMissileReason=items.tryApplyOffensiveItem(second,player,"Missile")
 check(realMissile and realMissileReason=="hit" and secondContext.kart:GetAttribute("KartMissileHitActive"),"controller invokes real per-context Missile effect")
 local repeatMissile, repeatMissileReason=items.tryApplyOffensiveItem(second,player,"Missile")

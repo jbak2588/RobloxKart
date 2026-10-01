@@ -1038,6 +1038,7 @@ function PrototypeWorld.start(options)
 			local outputPlanar = forward * context.commandedSpeed + right * lateralSpeed
 			if context.thunderHitActive and outputPlanar.Magnitude > RaceItemConfig.THUNDER_SPEED_CAP then
 				outputPlanar = outputPlanar.Unit * RaceItemConfig.THUNDER_SPEED_CAP
+				context.commandedSpeed = outputPlanar:Dot(forward)
 			end
 			if context.missileHitActive and outputPlanar.Magnitude > RaceItemConfig.MISSILE_SPEED_CAP then
 				outputPlanar = outputPlanar.Unit * RaceItemConfig.MISSILE_SPEED_CAP

@@ -336,7 +336,7 @@ when positions change. ThunderStrikeService owns bounded warning events (max 8),
 balanced RaceThunderIncomingCount, following native clouds, delayed logical strikes,
 short .25-second native flashes and lifecycle/round cleanup. No projectile/Touched.
 
-Warning: 1.00 sec. Unshielded hit: 60 planar speed cap for 1.25 sec, cancel current
+Warning: 1.00 sec. Unshielded hit: 60 planar speed cap for 2.00 sec (R1 provisional), cancel current
 Nitro/Mini Boost/Drift, preserve earned Bonus Nitro progress/state. Steering/throttle
 and normal lateral grip remain active; recovery accelerates naturally. No hard stun,
 yaw/spin, vertical force or position write. Existing shared 1.0-second immunity
@@ -356,12 +356,37 @@ charges. Fall recovery clears Thunder transients while preserving exact inventor
 and bonus state. Existing Smoke/Slick/Missile/Shield values, Room/Queue/Host behavior,
 ROOM/NEXT placement and physics remain frozen. No audio asset IDs were added.
 
-Automated validation: 40 validation files PASS; Thunder suite 119 checks, actual
+M4-A4 baseline automated validation: 40 validation files PASS; Thunder suite 119 checks, actual
 KartContext integration 594 checks (including Thunder), mobile Touch 2071 / Joystick
 1645 checks. Wrapped selector safe bounds and nonoverlap cover 932x430, 844x390 and
 notch-safe landscape. Rojo build and git diff --check PASS.
 
-M4-A4 CODE COMPLETE — PUBLISHED 2-PLAYER THUNDER RETEST REQUIRED.
+### M4-A4-R1 Thunder Impact Duration / Cap Consistency
+
+User-confirmed published 2-player partial PASS: active four-slot Thunder HUD,
+activation, visible lightning strike, clear SHOCKED! feedback and the target/attack
+pipeline. The original 60 / 1.25-sec impact was too weak on real mobile and felt
+shorter than one second. This is partial PASS, not M4-A4 closure.
+
+R1 extends only THUNDER_EFFECT_DURATION from 1.25 to 2.00 seconds. Warning stays
+1.00 second, speed cap 60, targeting/Shield/immunity/grip unchanged. Final planar
+clamping also synchronizes commandedSpeed to outputPlanar:Dot(forward). Lightning
+remains a .25-second impact flash, with short SHOCKED! feedback.
+
+Production KartContext tests sample .10/.50/1.00/1.50/1.90 seconds in normal,
+Nitro-100 and Mini-Boost-100 cases: active state and <=60 maintained every step,
+boosts cancelled, Bonus progress/award/charges preserved, natural recovery after
+2.00 seconds. A forced lateral-speed case verifies commanded-speed synchronization;
+normal grip and actual Shield zero-slowdown are checked. Existing fixed targeting,
+fall cleanup, Rematch, item prep and four-slot mobile behavior remain protected.
+
+R1 automated validation: all 40 validation files PASS; Thunder 120 checks,
+production RaceItem/KartContext integration 891 checks, Joystick 1645 checks.
+Rojo build and git diff --check PASS.
+
+M4-A4-R1 CODE COMPLETE — PUBLISHED THUNDER IMPACT RETEST REQUIRED.
+Published short impact and Shield-vs-Thunder checks remain required. Do not mark
+M4-A4 CLOSED until the user confirms the retest.
 Studio runtime NOT VERIFIED. Automated production-controller tests use deterministic
 transport/physics mocks and do not establish runtime visuals or device counterplay.
 Broader published 3/4-player targeting and mixed Shield checks remain follow-ups.
