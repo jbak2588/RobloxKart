@@ -157,11 +157,15 @@ function Visuals.smoke(parent, frame, config)
 	local center = frame * CFrame.new(0, config.SMOKE_HEIGHT/2, 0)
 	local trigger = part(model, "SmokeTrigger", Vector3.new(config.SMOKE_WIDTH, config.SMOKE_HEIGHT, config.SMOKE_LENGTH), center, Color3.fromRGB(65, 65, 70))
 	trigger.Transparency = 1
-	-- Fixed seven-puff budget; bounds match the trigger without becoming a wall.
-	for index, offset in {Vector3.new(-5,0,0), Vector3.new(5,0,0), Vector3.new(0,0,-3),
-		Vector3.new(0,0,3), Vector3.new(-3,1,-2), Vector3.new(3,1,2), Vector3.zero} do
-		local puff = part(model, "Cloud"..index, Vector3.new(8,6,8), center * CFrame.new(offset), Color3.fromRGB(55, 58, 63))
-		puff.Shape, puff.Transparency = Enum.PartType.Ball, 0.62
+	-- Nine static overlapping puffs span the screen; including trigger, 120 parts at cap.
+	local puffSize = Vector3.new(config.SMOKE_WIDTH/3, config.SMOKE_HEIGHT*.8, config.SMOKE_LENGTH*2/3)
+	for index, unitOffset in {Vector3.new(-2,-1,-1), Vector3.new(-1,1,0), Vector3.new(0,-1,-1),
+		Vector3.new(1,1,0), Vector3.new(2,-1,-1), Vector3.new(-2,1,1), Vector3.new(0,1,1),
+		Vector3.new(2,1,1), Vector3.zero} do
+		local offset = Vector3.new(unitOffset.X*config.SMOKE_WIDTH/6, unitOffset.Y*config.SMOKE_HEIGHT/10,
+			unitOffset.Z*config.SMOKE_LENGTH/6)
+		local puff = part(model, "Cloud"..index, puffSize, center * CFrame.new(offset), Color3.fromRGB(55, 58, 63))
+		puff.Shape, puff.Transparency = Enum.PartType.Ball, 0.48
 	end
 	model.Parent = parent
 	return model, trigger

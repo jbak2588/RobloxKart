@@ -729,7 +729,7 @@ local smokeView=luau.load(fs.readFile("src/client/SmokeEffectView.luau"),{enviro
 kart:SetAttribute("KartSmokeSessionId",player:GetAttribute("RaceSessionId"));kart:SetAttribute("KartSmokeResetSerial",kart:GetAttribute("RaceResetSerial"))
 kart:SetAttribute("KartSmokeObscuredActive",true);tick();combatNow+=.13;tick()
 local hazeGui=pg.KDMSmokeHaze
-check(hazeGui.Haze.Visible and hazeGui.Haze.BackgroundTransparency>=.75 and not hazeGui.Haze.Active,
+check(hazeGui.Haze.Visible and math.abs(hazeGui.Haze.BackgroundTransparency-.55)<.001 and not hazeGui.Haze.Active,
 	"Smoke native haze is translucent and never captures input")
 check(hazeGui.DisplayOrder<gui.DisplayOrder and hazeGui.DisplayOrder<itemHud.DisplayOrder,
 	"Smoke is behind all driving/item HUD controls")

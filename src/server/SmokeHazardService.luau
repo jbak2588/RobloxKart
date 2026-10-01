@@ -22,7 +22,7 @@ function Smoke:deploy(player, prototype, now)
 	local session = self.deps.getSession(player)
 	if not kart or not session or kart:GetAttribute("KartOffTrack") == true then return false, "invalid_driver" end
 	if #self.hazards >= self.config.SMOKE_MAX_HAZARDS then return false, "hazard_limit" end
-	local frame = self.deps.geometry.dropFrame(prototype, chassis, self.config.SMOKE_DROP_DISTANCE)
+	local frame = self.deps.geometry.smokeDropFrame(prototype, chassis, self.config.SMOKE_DROP_DISTANCE)
 	if not frame then return false, "no_road_behind" end
 	local model, trigger = self.deps.visuals.smoke(self.deps.parent, frame, self.config)
 	model:SetAttribute("SmokeOwnerUserId", player.UserId)

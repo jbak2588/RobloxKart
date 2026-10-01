@@ -134,16 +134,24 @@ remote.OnServerEvent:Fire(owner,"UseItem","Smoke")
 check(owner:GetAttribute("RaceChargeSmoke")==0 and cloud()~=nil,"accepted deploy consumes charge and creates server cloud")
 local model=cloud();local trigger=model.SmokeTrigger
 check(model:GetAttribute("SmokeOwnerUserId")==owner.UserId and model:GetAttribute("RaceSessionId")==1,"server owner/session attributes")
-check(trigger.Size==V.new(18,8,14) and #model:GetChildren()==8,"volume tuning and bounded seven-puff native visual")
+check(trigger.Size==V.new(36,10,18) and #model:GetChildren()==10,"volume tuning and bounded nine-puff native visual")
 for _,part in model:GetChildren() do
 	check(part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery,"cloud never blocks physics/query/touch")
 	if part.Name~="SmokeTrigger" then
 		local center=trigger.CFrame:PointToObjectSpace(part.Position)
-		check(math.abs(center.X)+part.Size.X/2<=9 and math.abs(center.Y)+part.Size.Y/2<=4
-			and math.abs(center.Z)+part.Size.Z/2<=7,"visible puff fits hazard bounds")
+		check(math.abs(center.X)+part.Size.X/2<=18 and math.abs(center.Y)+part.Size.Y/2<=5
+			and math.abs(center.Z)+part.Size.Z/2<=9,"visible puff fits hazard bounds")
 	end
 end
+check(config.SMOKE_WIDTH==36 and config.SMOKE_LENGTH==18 and config.SMOKE_HEIGHT==10 and config.SMOKE_EFFECT_DURATION==3,"R2 provisional tuning")
+check(config.SMOKE_DROP_DISTANCE==10 and config.SMOKE_LIFETIME==6 and config.SMOKE_OWNER_GRACE==.75 and config.SMOKE_MAX_HAZARDS==12,"unchanged duration/grace/cap/drop contracts")
+for _,puff in model:GetChildren() do
+ if puff.Name~="SmokeTrigger" then check(puff.Transparency>=.45 and puff.Transparency<=.50,"denser world puffs remain translucent") end
+end
 local before=contexts[b].chassis.AssemblyLinearVelocity
+local control={steering=.6,throttle=1,driftRequested=true}
+contexts[b].control=control
+contexts[b].kart:SetAttribute("KartVisualSteering",.6)
 contexts[b].kart:SetAttribute("KartNitroActive",true);contexts[b].kart:SetAttribute("KartDrifting",true);contexts[b].kart:SetAttribute("KartBoosting",true)
 contexts[owner].chassis.CFrame=trigger.CFrame;tick()
 check(not contexts[owner].kart:GetAttribute("KartSmokeObscuredActive"),"owner grace protects deployer")
@@ -151,6 +159,8 @@ contexts[b].chassis.CFrame=trigger.CFrame;tick()
 check(contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and cloud()==model,"first racer obscured but cloud survives")
 check(contexts[b].chassis.AssemblyLinearVelocity==before and contexts[b].kart:GetAttribute("KartNitroActive")
 	and contexts[b].kart:GetAttribute("KartDrifting") and contexts[b].kart:GetAttribute("KartBoosting"),"Smoke never changes speed/Nitro/Drift/Boost")
+check(before.Magnitude==70 and contexts[b].control==control and control.steering==.6 and control.throttle==1
+ and control.driftRequested and contexts[b].kart:GetAttribute("KartVisualSteering")==.6,"normal-speed kart keeps steering/throttle command intact")
 check(owner:GetAttribute("RaceCombatFeedbackCode")=="SMOKE_HIT","deployer receives authoritative Smoke hit result")
 -- Shield consumes only this target's defense; the third target can still use the cloud.
 tick(.21);remote.OnServerEvent:Fire(c,"UseItem","Shield")
@@ -161,8 +171,10 @@ check(owner:GetAttribute("RaceCombatFeedbackCode")=="SMOKE_BLOCKED","deployer re
 local accepted,reason=Items.tryApplyOffensiveItem(d,owner,"Smoke")
 check(accepted and reason=="hit","fourth racer smoke resolution shares immunity")
 contexts[d].chassis.CFrame=trigger.CFrame;tick()
-tick(1.76)
-check(not contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and not contexts[d].kart:GetAttribute("KartSmokeObscuredActive"),"effect expires near 1.75 seconds")
+tick(2.7)
+check(contexts[b].kart:GetAttribute("KartSmokeObscuredActive"),"server effect remains active past old 1.75-second duration")
+tick(.31)
+check(not contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and not contexts[d].kart:GetAttribute("KartSmokeObscuredActive"),"effect expires near 3.00 seconds")
 tick(.1);check(not contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and not contexts[c].kart:GetAttribute("KartSmokeObscuredActive")
 	and not contexts[d].kart:GetAttribute("KartSmokeObscuredActive"),"hit/blocked/immune targets never retrigger from the same stationary cloud")
 owner:SetAttribute("RaceState","FINISHED")
@@ -178,8 +190,10 @@ sessions[d]={roundId=1,participants={[d]={}}};contexts[d].chassis.CFrame=CF.new(
 tick(.21);remote.OnServerEvent:Fire(owner,"UseItem","Smoke")
 local nextCloud=cloud()
 contexts[b].chassis.CFrame=nextCloud.SmokeTrigger.CFrame
-contexts[c].chassis.CFrame=nextCloud.SmokeTrigger.CFrame
 tick()
+check(contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and cloud()==nextCloud,"cloud survives first racer for a later independent contact")
+contexts[c].chassis.CFrame=nextCloud.SmokeTrigger.CFrame
+tick(.2)
 check(contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and contexts[c].kart:GetAttribute("KartSmokeObscuredActive")
 	and cloud()==nextCloud,"two independent racers enter one persistent cloud")
 check(not contexts[d].kart:GetAttribute("KartSmokeObscuredActive"),"another RaceSession never receives cloud effect")
@@ -191,10 +205,40 @@ check(owner:GetAttribute("RaceItemSlot4")=="Missile" and owner:GetAttribute("Rac
 -- Execute swept math at realistic speeds, including entire-volume fast crossings.
 for _,speed in {55,70,100} do
 	local ch=object("Part");ch.Size=V.new(4,2,6);ch.CFrame=CF.new(0,0,-speed*.25)
-	check(Geometry.crosses(CF.identity,V.new(18,8,14),V.new(0,0,speed*.25),ch),"swept crossing "..speed)
-	ch.CFrame=CF.new(20,0,-speed*.25)
-	check(not Geometry.crosses(CF.identity,V.new(18,8,14),V.new(20,0,speed*.25),ch),"clear swept miss "..speed)
+	check(Geometry.crosses(CF.identity,V.new(36,10,18),V.new(0,0,speed*.25),ch),"swept crossing "..speed)
+	ch.CFrame=CF.new(25,0,-speed*.25)
+	check(not Geometry.crosses(CF.identity,V.new(36,10,18),V.new(25,0,speed*.25),ch),"clear swept miss "..speed)
 end
+-- Smoke centers on Road-local X regardless of owner lane and follows rotated segments.
+for _,angle in {0,math.rad(45),math.rad(90),math.rad(-35)} do
+ road.CFrame=CF.new(40,-.5,80)*CF.Angles(0,angle,0)
+ for _,lane in {-22,0,22} do
+  local ch=object("Part");ch.Size=V.new(4,2,6);ch.CFrame=road.CFrame*CF.new(lane,1,-100)
+  local smokeFrame=Geometry.smokeDropFrame(prototype,ch,10)
+  local slickFrame=Geometry.dropFrame(prototype,ch,10)
+  local point=road.CFrame:PointToObjectSpace(smokeFrame.Position)
+  local slickPoint=road.CFrame:PointToObjectSpace(slickFrame.Position)
+  check(math.abs(point.X)<.0001 and math.abs(point.Z+90)<.0001,"all owner lanes share road center; longitudinal drop preserved")
+  check((smokeFrame.RightVector-road.CFrame.RightVector).Magnitude<.0001
+   and (smokeFrame.LookVector-road.CFrame.LookVector).Magnitude<.0001,"road-local frame follows rotated segment")
+  check(math.abs(slickPoint.X-lane)<.0001,"Slick retains precise owner lane")
+ end
+ local frame=road.CFrame*CF.new(0,5.58,10)
+ for _,case in {{0,true},{19,true},{25,false},{-25,false}} do
+  local ch=object("Part");ch.Size=V.new(4,2,6);ch.CFrame=frame*CF.new(case[1],0,-30)
+  check(Geometry.crosses(frame,V.new(36,10,18),(frame*CF.new(case[1],0,30)).Position,ch)==case[2],
+   "center and overlapping edge hit; deliberate outer line avoids Smoke")
+ end
+end
+road.CFrame=CF.new(0,-.5,0)
+local farKart=object("Part");farKart.CFrame=CF.new(100,1,0)
+check(not Geometry.smokeDropFrame(prototype,farKart,10),"Smoke cannot project an off-road drop into a valid free admission")
+-- A skewed owner heading still uses the Road's heading and its own drop's longitudinal point.
+local skewed=object("Part");skewed.CFrame=CF.new(22,1,-100)*CF.Angles(0,math.rad(20),0)
+local projected=Geometry.smokeDropFrame(prototype,skewed,10)
+local actualDrop=skewed.Position-skewed.CFrame.LookVector*10
+check(math.abs(projected.Position.Z-actualDrop.Z)<.0001 and math.abs(projected.Position.X)<.0001
+ and (projected.LookVector-road.CFrame.LookVector).Magnitude<.0001,"skewed heading preserves drop Z while aligning across Road")
 -- Isolated service lifecycle/cap test executes production apply/update, not string assertions.
 local service=Smoke.new(config,{getKart=getKart,getSession=modules.RaceSession.forPlayer,geometry=Geometry,visuals=Visuals,
 	parent=services.Workspace.Prototype.RaceItemHazards,resolve=Items.tryApplyOffensiveItem})

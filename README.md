@@ -106,8 +106,8 @@ departure or a different logical RaceSession restores safe defaults. No fifth
 HUD cell, key 5, persistence, Inventory, Shop or DataStore is added. Bonus Nitro's
 five-Boost reward is unchanged. Smoke icon follows its actual active slot.
 
-Smoke prototype: drop 10 studs behind; volume 18x14x8; lifetime 6 seconds;
-vision effect 1.75 seconds; owner grace .75 seconds; maximum 12 clouds. Seven
+R2 Smoke prototype: drop 10 studs behind at Road center; volume 36x18x10; lifetime 6 seconds;
+vision effect 3.00 seconds; owner grace .75 seconds; maximum 12 clouds. Nine
 charcoal translucent native puffs match the invisible volume. All parts are
 anchored, noncolliding, non-touching and non-querying; no external assets or
 particle spam. Server swept volume checks handle each cloud/target once. Clouds
@@ -117,7 +117,7 @@ precedes Shield. A block consumes that target's Shield, adds no obscuration,
 and preserves the cloud; immune contact is marked handled without repeated work.
 
 KartSmokeObscuredActive and session/reset markers drive a local translucent haze
-with partial central visibility and .12-second fades. Its GUI is below all
+with central haze coverage, .12-second fade-in and .28-second fade-out. Its GUI is below all
 driving/item HUDs, never captures input, and changes no camera/physics. Speed,
 steering, Drift, Nitro and Mini Boost remain active. Smoke lifecycle clears at
 terminal/exit, seat/character loss, reset/destruction and session/round changes.
@@ -133,18 +133,19 @@ M4-A1 is MVP ACCEPTED FOR PROGRESSION, user-confirmed: Shield Missile defense
 BLOCKED and Slick victim feedback are visible. Minor style inconsistency is
 fixed here. Four slots, mobile direct use, Rematch default refill and ROOM/NEXT
 placement retain published PASS. This does not claim every combat path or Smoke
-published PASS. Studio runtime NOT VERIFIED for M4-A3. Published 2–4-player
-Smoke cloud/haze, Shield/immunity, tactical selection and Rematch retest required.
+impact published PASS. R1 published partial results and R2 impact retest are
+recorded below. Studio runtime NOT VERIFIED for M4-A3.
 
 **M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED**
 
 ## M4-A3-R1 Item Preparation Gate
 
-M4-A3 PUBLISHED PARTIAL PASS, user-confirmed on mobile: ITEMS is visible in
-PRE_RACE/WAITING, modal opens, Nitro stays locked, tactical choices work and
-Nitro / Shield / Missile / Smoke appears in the actual four-slot racing HUD.
-Smoke cloud, haze and Shield-vs-Smoke published runtime remain pending;
-M4-A3 is not CLOSED.
+M4-A3-R1 2-PLAYER ITEM-PREP FLOW — PUBLISHED PASS, user-confirmed on mobile:
+10-second per-racer prep, tactical selection, CONFIRM & READY, RESET DEFAULT,
+ITEMS READY 2/2, Host START gating and actual chosen four-slot HUD all work.
+Nitro / Shield / Missile / Smoke is published visible. World Smoke visibility,
+contact detection and SMOKED! feedback also PASS. Gameplay obscuration is too
+weak (see R2); Shield-vs-Smoke device counterplay remains pending. M4-A3 is not CLOSED.
 
 Each PUBLIC_RACE WAITING entrant receives their own server-owned
 `RaceConfig.ITEM_PREP_SECONDS = 10` deadline. CONFIRM & READY stores a validated
@@ -170,9 +171,42 @@ editing. Existing preformed-match ARRIVAL/roster-timeout routing and immediate
 Practice/V2 Solo countdown stay unchanged because those paths expose no ITEMS
 window. Smoke/item/physics tuning, room identity, queue and routing are unchanged.
 
-M4-A3-R1 CODE COMPLETE — PUBLISHED ITEM-PREP FLOW + SMOKE RETEST REQUIRED.
-Studio runtime NOT VERIFIED. Published multi-device join/confirm/timeout,
-4/4 auto-start, Host migration and Rematch preparation checks remain required.
+M4-A3-R1 2-PLAYER ITEM-PREP FLOW — PUBLISHED PASS; Smoke impact remains open.
+Studio runtime NOT VERIFIED. Published 2-player prep above is PASS; broader
+4/4 real-device checks are deferred until multi-user testing is available.
+Retain automated all-ready full-room countdown-once coverage.
+
+## M4-A3-R2 Smoke Impact Rebalance
+
+Published Smoke pipeline PASS: world cloud visible, contact detected, SMOKED!
+feedback visible. SMOKE GAMEPLAY EFFECT — FAIL / TOO WEAK: the 18-stud lane-local
+cloud was too easy to avoid; 22-percent base haze / edge-biased puffs left the
+central racing line clear, and the 1.75-second effect ended too quickly.
+
+R2 provisional volume is 36x18x10 (width/length/height), approximately 60 percent
+of the 60-stud Base road. Smoke alone uses RaceItemGeometry.smokeDropFrame:
+normal 10-stud behind-Kart point, nearest active Road segment, lateral local X=0,
+original local Z and Road rotation. Slick remains on the owner's precise line.
+A centered screen leaves roughly 12 studs per side before Kart footprint;
+chassis overlap at the visible edge hits, deliberate extreme outer lines avoid.
+
+Nine static charcoal native puffs substantially fill the trigger bounds with
+.48 transparency; all parts remain anchored/noncolliding/non-touching/non-querying.
+At 12 clouds the budget is 120 Parts including invisible triggers. World lifetime
+6 seconds, owner grace .75, drop 10 and cap 12 are unchanged. Per-cloud handled
+sets, multi-target persistence, offensive immunity and one-hit Shield are unchanged.
+
+Server vision effect lasts 3.00 seconds (was 1.75). Local base opacity 45 percent
+(was 22), nine center/horizon/corridor puffs at 60 percent opacity (was 42).
+Fade-in .12 seconds, cosmetic fade-out .28 seconds; fade never extends server
+active time. Haze remains translucent, non-interactive and below race HUD/controls.
+Speed, steering/throttle, grip, Drift, Nitro and Mini Boost remain unchanged.
+Unified SMOKED! feedback and the published R1 item-prep flow are frozen.
+
+M4-A3-R2 CODE COMPLETE — PUBLISHED SMOKE IMPACT RETEST REQUIRED.
+Studio runtime NOT VERIFIED. R2 strength/readability/avoidance and Shield-vs-Smoke
+need published device retesting; do not claim R2 published PASS. Four-player
+published testing stays deferred; automated ready-gate coverage remains mandatory.
 
 ## Production Kart
 

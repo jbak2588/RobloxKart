@@ -216,13 +216,13 @@ departure/different logical session. Never add arbitrary client slot ownership,
 a fifth HUD cell or key 5. Keep five-Boost Bonus Nitro unchanged.
 
 Smoke is implemented Attack/DropBehind, charge 1/max 1 only when selected.
-Prototype drop 10, volume 18x14x8, lifetime 6, effect 1.75, grace .75, cap 12.
+R2 provisional drop 10, volume 36x18x10, lifetime 6, effect 3.00, grace .75, cap 12.
 SmokeHazardService owns bounded native clouds, per-target handled sets, swept
 contact and vision-only metadata. Shared immunity -> Shield -> Smoke effect;
 cloud remains after one hit/block. Same cloud affects each target at most once,
 including immune rejection; never cross RaceSession/rounds. Do not change velocity,
 steering, grip, Drift, Nitro or Mini Boost. Haze is local native UI below all HUDs,
-non-interactive, translucent with partial central visibility and .12 sec fades.
+non-interactive, translucent with central coverage and .12/.28 sec in/out fades.
 Session/reset markers reject stale haze. Clean hazards/effects on terminal/exit,
 Rematch/reset, seat/character loss, destruction, departure and session/round change.
 No persistence, Inventory, Shop, DataStore or external assets in M4-A3.
@@ -230,15 +230,16 @@ CombatFeedbackView solely owns actual results with one cyan badge style;
 legacy BLOCKED presentation is removed, SLICK DEPLOYED remains owner-only.
 SMOKE_HIT/SMOKE_BLOCKED and victim SMOKED! use this same contract.
 M4-A3 CODE COMPLETE — PUBLISHED SMOKE + TACTICAL LOADOUT RETEST REQUIRED.
-Studio runtime NOT VERIFIED. Do not claim published Smoke PASS.
+Studio runtime NOT VERIFIED. Do not claim published Smoke impact PASS.
 
 ## M4-A3-R1 Item Preparation Gate
 
-M4-A3 PUBLISHED PARTIAL PASS, user-confirmed on mobile: ITEMS is visible in
-PRE_RACE/WAITING, modal opens, Nitro stays locked, tactical choices work and
-Nitro / Shield / Missile / Smoke appears in the actual four-slot racing HUD.
-Smoke cloud, haze and Shield-vs-Smoke published runtime remain pending;
-M4-A3 is not CLOSED.
+M4-A3-R1 2-PLAYER ITEM-PREP FLOW — PUBLISHED PASS, user-confirmed on mobile:
+10-second per-racer prep, tactical selection, CONFIRM & READY, RESET DEFAULT,
+ITEMS READY 2/2, Host START gating and actual chosen four-slot HUD all work.
+Nitro / Shield / Missile / Smoke is published visible. World Smoke visibility,
+contact detection and SMOKED! feedback also PASS. Gameplay obscuration is too
+weak (see R2); Shield-vs-Smoke device counterplay remains pending. M4-A3 is not CLOSED.
 
 Each PUBLIC_RACE WAITING entrant receives their own server-owned
 `RaceConfig.ITEM_PREP_SECONDS = 10` deadline. CONFIRM & READY stores a validated
@@ -264,9 +265,42 @@ editing. Existing preformed-match ARRIVAL/roster-timeout routing and immediate
 Practice/V2 Solo countdown stay unchanged because those paths expose no ITEMS
 window. Smoke/item/physics tuning, room identity, queue and routing are unchanged.
 
-M4-A3-R1 CODE COMPLETE — PUBLISHED ITEM-PREP FLOW + SMOKE RETEST REQUIRED.
-Studio runtime NOT VERIFIED. Published multi-device join/confirm/timeout,
-4/4 auto-start, Host migration and Rematch preparation checks remain required.
+M4-A3-R1 2-PLAYER ITEM-PREP FLOW — PUBLISHED PASS; Smoke impact remains open.
+Studio runtime NOT VERIFIED. Published 2-player prep above is PASS; broader
+4/4 real-device checks are deferred until multi-user testing is available.
+Retain automated all-ready full-room countdown-once coverage.
+
+## M4-A3-R2 Smoke Impact Rebalance
+
+Published Smoke pipeline PASS: world cloud visible, contact detected, SMOKED!
+feedback visible. SMOKE GAMEPLAY EFFECT — FAIL / TOO WEAK: the 18-stud lane-local
+cloud was too easy to avoid; 22-percent base haze / edge-biased puffs left the
+central racing line clear, and the 1.75-second effect ended too quickly.
+
+R2 provisional volume is 36x18x10 (width/length/height), approximately 60 percent
+of the 60-stud Base road. Smoke alone uses RaceItemGeometry.smokeDropFrame:
+normal 10-stud behind-Kart point, nearest active Road segment, lateral local X=0,
+original local Z and Road rotation. Slick remains on the owner's precise line.
+A centered screen leaves roughly 12 studs per side before Kart footprint;
+chassis overlap at the visible edge hits, deliberate extreme outer lines avoid.
+
+Nine static charcoal native puffs substantially fill the trigger bounds with
+.48 transparency; all parts remain anchored/noncolliding/non-touching/non-querying.
+At 12 clouds the budget is 120 Parts including invisible triggers. World lifetime
+6 seconds, owner grace .75, drop 10 and cap 12 are unchanged. Per-cloud handled
+sets, multi-target persistence, offensive immunity and one-hit Shield are unchanged.
+
+Server vision effect lasts 3.00 seconds (was 1.75). Local base opacity 45 percent
+(was 22), nine center/horizon/corridor puffs at 60 percent opacity (was 42).
+Fade-in .12 seconds, cosmetic fade-out .28 seconds; fade never extends server
+active time. Haze remains translucent, non-interactive and below race HUD/controls.
+Speed, steering/throttle, grip, Drift, Nitro and Mini Boost remain unchanged.
+Unified SMOKED! feedback and the published R1 item-prep flow are frozen.
+
+M4-A3-R2 CODE COMPLETE — PUBLISHED SMOKE IMPACT RETEST REQUIRED.
+Studio runtime NOT VERIFIED. R2 strength/readability/avoidance and Shield-vs-Smoke
+need published device retesting; do not claim R2 published PASS. Four-player
+published testing stays deferred; automated ready-gate coverage remains mandatory.
 
 ## Slick
 
@@ -436,7 +470,7 @@ M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
 Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
 queue, invitation, routing, staging, timeout and Rematch behavior.
 M4-A0 MVP CLOSED. M4-A1 MVP accepted for progression. Current next priority:
-M4-A3-R1 published item-prep flow and Smoke retest, then approved combat audio assets.
+M4-A3-R2 published Smoke impact retest, then approved combat audio assets.
 Broader 3–4 player balance is deferred.
 Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.

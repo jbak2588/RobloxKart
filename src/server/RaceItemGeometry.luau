@@ -32,6 +32,19 @@ function Geometry.dropFrame(prototype, chassis, distance)
 	return CFrame.fromMatrix(position, right, Vector3.yAxis, -forward)
 end
 
+-- Smoke screens span the road, while Slick keeps dropFrame's exact owner lane.
+function Geometry.smokeDropFrame(prototype, chassis, distance)
+	local look = chassis.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	if flat.Magnitude < 0.001 then return nil end
+	local position = chassis.Position - flat.Unit * distance
+	local road, gap = Geometry.roadAt(prototype, position)
+	if not road or gap > 0.5 then return nil end
+	local localPoint = road.CFrame:PointToObjectSpace(position)
+	-- Road X is lateral width; preserve longitudinal Z and the segment's rotation.
+	return road.CFrame * CFrame.new(0, road.Size.Y * 0.5 + 0.08, localPoint.Z)
+end
+
 function Geometry.crosses(frame, size, fromPosition, chassis)
 	local first = frame:PointToObjectSpace(fromPosition)
 	local last = frame:PointToObjectSpace(chassis.Position)
