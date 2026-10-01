@@ -9,7 +9,7 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 	local bounds = course.Bounds
 	local centerX = (bounds.MinX + bounds.MaxX) * 0.5
 	local centerZ = (bounds.MinZ + bounds.MaxZ) * 0.5
-	local extent = math.max(bounds.MaxX - bounds.MinX, bounds.MaxZ - bounds.MinZ) * 1.14
+	local extent = math.max(bounds.MaxX - bounds.MinX, bounds.MaxZ - bounds.MinZ) * (if showKartMarker then 1.14 else 1.04)
 	local radians = math.rad(previewRotationDegrees or 0)
 	local cosine, sine = math.cos(radians), math.sin(radians)
 	local function mapPoint(point: Vector3): Vector2
@@ -21,8 +21,8 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 	local canvas = Instance.new("Frame")
 	canvas.Name = "CourseCanvas"
 	canvas.AnchorPoint = Vector2.new(0.5, 0.5)
-	canvas.Position = UDim2.fromScale(0.5, 0.5)
-	canvas.Size = UDim2.fromScale(0.92, 0.92)
+	canvas.Position = UDim2.fromScale(0.5, if showKartMarker then 0.5 else 0.48)
+	canvas.Size = UDim2.fromScale(if showKartMarker then 0.92 else 0.96, if showKartMarker then 0.92 else 0.96)
 	canvas.BackgroundTransparency = 1
 	canvas.ClipsDescendants = true
 	canvas.Parent = parent

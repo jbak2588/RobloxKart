@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
@@ -18,6 +20,8 @@ local GarageUiController = {}
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialView"))
 local started = false
+local GARAGE_LAYOUT_DEBUG = false
+local GARAGE_LAYOUT_REVISION = "GARAGE R2"
 
 local function makeText(parent: Instance, size: UDim2, position: UDim2, text: string, fontSize: number): TextLabel
 	local label = Instance.new("TextLabel")
@@ -107,6 +111,48 @@ local function cloneDriver(character: Model?, driver: { [string]: any }): Model
 	return clone
 end
 
+-- Fit the complete preview-only avatar, including hair, into a padded perspective frame.
+local function fitDriverPreview(model: Model, aspect: number, fieldOfView: number): (CFrame, Vector3)
+	local box, size = model:GetBoundingBox()
+	local center = box.Position
+	local points = {}
+	local low, high = Vector3.new(math.huge,math.huge,math.huge), Vector3.new(-math.huge,-math.huge,-math.huge)
+	for _,part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.Transparency<1 then
+			for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
+				local point=part.CFrame:PointToWorldSpace(part.Size*Vector3.new(x,y,z)*.5)
+				table.insert(points,point); low=low:Min(point); high=high:Max(point)
+			end end end
+		end
+	end
+	if #points>0 then center=(low+high)*.5
+	else
+		for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
+			table.insert(points,box:PointToWorldSpace(size*Vector3.new(x,y,z)*.5))
+		end end end
+	end
+	local tangent = math.tan(math.rad(fieldOfView * 0.5))
+	local pitch = 0.06
+	local distance = 1
+	-- Fit all yaw angles once at selection/resize, then retain that distance.
+	for degrees = 0, 355, 5 do
+		local yaw = math.rad(degrees)
+		local direction = Vector3.new(math.sin(yaw)*math.cos(pitch),math.sin(pitch),math.cos(yaw)*math.cos(pitch))
+		local right = Vector3.yAxis:Cross(direction).Unit
+		local orientation = CFrame.fromMatrix(center,right,direction:Cross(right),direction)
+		for _,worldPoint in points do
+			local point = orientation:PointToObjectSpace(worldPoint)
+			distance = math.max(distance,point.Z+math.max(math.abs(point.Y)/(tangent*.89),math.abs(point.X)/(tangent*math.max(aspect,.1)*.89)))
+		end
+	end
+	distance *= 1.002 -- cover angles between the sampled fits
+
+	local direction = Vector3.new(-math.sin(math.rad(15)) * math.cos(pitch), math.sin(pitch), -math.cos(math.rad(15)) * math.cos(pitch))
+	local right = Vector3.yAxis:Cross(direction).Unit
+	local up = direction:Cross(right)
+	return CFrame.fromMatrix(center + direction * distance, right, up, direction), center
+end
+
 function GarageUiController.start()
 	if started then
 		return
@@ -129,6 +175,17 @@ function GarageUiController.start()
 	backgroundGui.ScreenInsets = Enum.ScreenInsets.None
 	backgroundGui.DisplayOrder = 19
 	backgroundGui.Parent = player.PlayerGui
+	-- Only non-interactive header text may use the topbar's vacant band.
+	local headerGui = Instance.new("ScreenGui")
+	headerGui.Name = "GarageTopHeader"
+	headerGui.IgnoreGuiInset = true
+	headerGui.ScreenInsets = Enum.ScreenInsets.None
+	headerGui.ClipToDeviceSafeArea = false
+	headerGui.DisplayOrder = 20
+	headerGui.ResetOnSpawn = false
+	headerGui.Parent = player.PlayerGui
+	gui:GetPropertyChangedSignal("Enabled"):Connect(function() headerGui.Enabled = gui.Enabled end)
+	gui.Destroying:Connect(function() headerGui:Destroy() end)
 	local background = Instance.new("Frame")
 	background.Name = "FullScreenBackground"
 	background.Size = UDim2.fromScale(1, 1)
@@ -172,6 +229,10 @@ function GarageUiController.start()
 	routeCorner.Parent = routeCard
 
 	local title = makeText(backdrop, UDim2.fromScale(0.8, 0.09), UDim2.fromScale(0.1, 0.055), "KART DRIFT MASTERS", 40)
+	title.Name = "GarageTitle"
+	title.Active = false
+	title.Selectable = false
+	title.AnchorPoint = Vector2.new(.5, .5)
 	title.TextColor3 = Color3.fromRGB(255, 215, 75)
 	title.TextScaled = true
 	local titleSize = Instance.new("UITextSizeConstraint")
@@ -181,13 +242,19 @@ function GarageUiController.start()
 	local stepLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.07), UDim2.fromScale(0.1, 0.17), "", 24)
 	stepLabel.Name = "GarageStep"
 	local choiceLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.08), UDim2.fromScale(0.1, 0.61), "", 34)
+	choiceLabel.Name = "GarageChoice"
 	local detailLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.12), UDim2.fromScale(0.1, 0.70), "", 19)
+	detailLabel.Name = "GarageDetail"
 	detailLabel.TextWrapped = true
 	local errorLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.05), UDim2.fromScale(0.1, 0.77), "", 18)
 	errorLabel.TextColor3 = Color3.fromRGB(255, 110, 110)
 	local buildLabel = makeText(backdrop, UDim2.fromOffset(140, 16), UDim2.new(0, 10, 1, -20),
 		"BUILD PV " .. tostring(game.PlaceVersion), 11)
 	buildLabel.TextColor3 = Color3.fromRGB(135, 151, 169)
+	if GARAGE_LAYOUT_DEBUG then
+		buildLabel.Text ..= " • " .. GARAGE_LAYOUT_REVISION
+		buildLabel.Size = UDim2.fromOffset(260, 16)
+	end
 	buildLabel.TextXAlignment = Enum.TextXAlignment.Left
 	local mobileCompact = false
 	local presencePanel = Instance.new("Frame")
@@ -260,8 +327,9 @@ function GarageUiController.start()
 		local contentHeight = GaragePresence.canvasHeight(count, presenceRowHeight, 2)
 		local listHeight = presenceList.AbsoluteSize.Y
 		if mobileCompact and presenceGeometry then
+			presencePanel.AnchorPoint=Vector2.new(1,0)
 			local g = presenceGeometry
-			local layout = GaragePresence.mobileLayout(count, g.width, g.height, g.previewWidth, g.presenceWidth, g.twoLines)
+			local layout = GaragePresence.mobileLayout(count, g.width, g.height, g.previewWidth, g.presenceWidth, g.twoLines, g.previewTop, g.previewHeight)
 			presencePanel.Position = UDim2.new(1, -10, 0, layout.top)
 			presencePanel.Size = UDim2.fromOffset(layout.width, layout.panelHeight)
 			presenceList.Size = UDim2.new(1, -8, 0, layout.listHeight)
@@ -282,7 +350,7 @@ function GarageUiController.start()
 			end
 			row.LayoutOrder = index
 			row.Size = UDim2.new(1, if mobileCompact then (if scrolling then -6 else 0) else -8, 0, presenceRowHeight)
-			row.TextSize = if mobileCompact then 10 else 12
+			row.TextSize = if mobileCompact and presenceGeometry and presenceGeometry.previewTop then 12 elseif mobileCompact then 10 else 12
 			row.Text = if mobileCompact then entry.name else string.format("%s  %s", entry.name, entry.status)
 		end
 		for userId, row in presenceRows do
@@ -328,7 +396,7 @@ function GarageUiController.start()
 	viewport.Parent = backdrop
 	local viewportSize = Instance.new("UISizeConstraint")
 	viewportSize.MinSize = Vector2.new(360, 200)
-	viewportSize.MaxSize = Vector2.new(680, 340)
+	viewportSize.MaxSize = Vector2.new(800, 410)
 	viewportSize.Parent = viewport
 	local viewportCorner = Instance.new("UICorner")
 	viewportCorner.CornerRadius = UDim.new(0, 12)
@@ -357,7 +425,7 @@ function GarageUiController.start()
 	local mapCorner = Instance.new("UICorner")
 	mapCorner.CornerRadius = UDim.new(0, 12)
 	mapCorner.Parent = mapPanel
-	local startLegend = makeText(mapPanel, UDim2.fromOffset(155, 22), UDim2.new(0, 14, 1, -32), "● START / FINISH", 13)
+	local startLegend = makeText(mapPanel, UDim2.fromOffset(112, 18), UDim2.new(0, 8, 1, -22), "● START / FINISH", 10)
 	startLegend.TextColor3 = Color3.fromRGB(255, 205, 55)
 	startLegend.TextXAlignment = Enum.TextXAlignment.Left
 	local function makeArrow(text: string, xOffset: number): TextButton
@@ -396,7 +464,7 @@ function GarageUiController.start()
 		"1 / 2 / 3 / 4   Select item",
 		"Q   Use item",
 	} do
-		local line = makeText(controlsCard, UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 34 + (index - 1) * 23), hint, if index == 4 then 12 else 14)
+		local line = makeText(controlsCard, UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 34 + (index - 1) * 23), hint, if index == 4 then 10 else 12)
 		line.Font = Enum.Font.Gotham
 		line.TextXAlignment = Enum.TextXAlignment.Left
 	end
@@ -446,6 +514,8 @@ function GarageUiController.start()
 
 	local step = 1
 	local localRouteRequested = false
+	local stopPreviewRotation: (() -> ())? = nil
+	local startPreviewIdleRotation: (() -> ())? = nil
 	local driverIndex = 1
 	local kartIndex = 1
 	local trackIndex = 1
@@ -457,25 +527,252 @@ function GarageUiController.start()
 	local trackMap = nil
 	local trackMapKey: string? = nil
 	local previewKart: Model? = nil
+	local previewDriver: Model? = nil
 	local function updateRouteOverlay()
 		local pending = localRouteRequested or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"
 		routeOverlay.Visible = pending and player:GetAttribute("RaceState") == "GARAGE"
+		if pending and stopPreviewRotation then stopPreviewRotation()
+		elseif startPreviewIdleRotation then startPreviewIdleRotation() end
 		for _, button in { previousButton, cycleButton, nextButton, leftArrow, rightArrow } do
 			button.Active = not pending
 		end
 	end
-	local function fitKartPreview()
-		if previewKart and previewCamera and viewport.AbsoluteSize.Y > 0 then
-			local fitted = KartPreviewFraming.fit(previewKart, viewport.AbsoluteSize.X / viewport.AbsoluteSize.Y, previewCamera.FieldOfView)
-			if fitted then previewCamera.CFrame = fitted end
-		end
+	local previewRenderConnection: RBXScriptConnection? = nil
+	local previewYaw, previewPitch, previewDistance = 0, 0, 0
+	local previewCenter = Vector3.zero
+	local activePreviewInput: InputObject? = nil
+	local lastDragX = 0
+	local idleDelay = 0
+	local rotationConnections = {}
+	local function updatePreviewCamera()
+		if not previewCamera then return end
+		local direction = Vector3.new(math.sin(previewYaw) * math.cos(previewPitch), math.sin(previewPitch), math.cos(previewYaw) * math.cos(previewPitch))
+		local right = Vector3.yAxis:Cross(direction).Unit
+		previewCamera.CFrame = CFrame.fromMatrix(previewCenter + direction * previewDistance, right, direction:Cross(right), direction)
 	end
-	viewport:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitKartPreview)
+	stopPreviewRotation = function()
+		if previewRenderConnection then previewRenderConnection:Disconnect(); previewRenderConnection = nil end
+		activePreviewInput = nil
+		idleDelay = 0
+	end
+	startPreviewIdleRotation = function()
+		if previewRenderConnection or not previewCamera or routeOverlay.Visible or not gui.Enabled then return end
+		previewRenderConnection = RunService.RenderStepped:Connect(function(dt)
+			if activePreviewInput or inviteModal.Visible then return end
+			if idleDelay > 0 then idleDelay = math.max(0, idleDelay - dt); return end
+			previewYaw = (previewYaw + dt * math.pi * 2 / 7) % (math.pi * 2)
+			updatePreviewCamera()
+		end)
+	end
+	local function fitSelectionPreview()
+		if not previewCamera or viewport.AbsoluteSize.Y <= 0 then return end
+		local fitted, target
+		local aspect = viewport.AbsoluteSize.X / viewport.AbsoluteSize.Y
+		if previewKart then fitted, target = KartPreviewFraming.fit(previewKart, aspect, previewCamera.FieldOfView, true)
+		elseif previewDriver then fitted, target = fitDriverPreview(previewDriver, aspect, previewCamera.FieldOfView) end
+		if not fitted or not target then return end
+		previewCenter = target
+		local offset = fitted.Position - target
+		previewDistance = offset.Magnitude
+		previewPitch = math.asin(offset.Y / previewDistance)
+		-- Resize retains the current viewing angle; a rebuilt selection resets it below.
+		updatePreviewCamera()
+	end
+	viewport.Active = true
+	table.insert(rotationConnections, viewport.InputBegan:Connect(function(input)
+		if activePreviewInput or not gui.Enabled or not viewport.Visible or routeOverlay.Visible or inviteModal.Visible or not previewCamera then return end
+		if input.UserInputType ~= Enum.UserInputType.Touch and input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+		activePreviewInput = input
+		lastDragX = input.Position.X
+		idleDelay = 2.5
+	end))
+	table.insert(rotationConnections, UserInputService.InputChanged:Connect(function(input)
+		if not activePreviewInput then return end
+		local matching = input == activePreviewInput or (activePreviewInput.UserInputType == Enum.UserInputType.MouseButton1 and input.UserInputType == Enum.UserInputType.MouseMovement)
+		if not matching then return end
+		local delta = input.Position.X - lastDragX
+		lastDragX = input.Position.X
+		previewYaw = (previewYaw - math.rad(delta * 0.32)) % (math.pi * 2)
+		updatePreviewCamera()
+	end))
+	table.insert(rotationConnections, UserInputService.InputEnded:Connect(function(input)
+		if input == activePreviewInput then activePreviewInput = nil; idleDelay = 2.5 end
+	end))
+	table.insert(rotationConnections, UserInputService.WindowFocusReleased:Connect(function()
+		activePreviewInput = nil; idleDelay = 2.5
+	end))
+	table.insert(rotationConnections,gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if not gui.Enabled then stopPreviewRotation() else startPreviewIdleRotation() end
+	end))
+	table.insert(rotationConnections,inviteModal:GetPropertyChangedSignal("Visible"):Connect(function()
+		activePreviewInput=nil; idleDelay=2.5
+	end))
+	gui.Destroying:Connect(function()
+		stopPreviewRotation()
+		for _, connection in rotationConnections do connection:Disconnect() end
+	end)
+	viewport:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitSelectionPreview)
 
+	local function applyVisualStage(size: Vector2, screen: Vector2)
+		local width, height = size.X, size.Y
+		local topbar = GuiService.TopbarInset
+		-- None-inset label offsets are physical-screen coordinates. Roblox's raw
+		-- AbsolutePosition is relative to the device-safe/Core UI origin; it is
+		-- diagnostic data, never a vertical correction to TopbarInset.
+		local deviceOrigin = Vector2.new(
+			math.max(0, (headerGui.AbsoluteSize.X - screen.X) * .5),
+			math.max(0, (headerGui.AbsoluteSize.Y - screen.Y) * .5))
+		screen = headerGui.AbsoluteSize
+		local titleWidth = math.min(screen.X * 0.36, 450)
+		local titleHeight = math.clamp(screen.Y * 0.055, 24, 36)
+		-- TopbarInset is in the camera's device-safe viewport. Translate it once
+		-- into the physical header canvas, independently of the Garage safe root.
+		local centerY = (topbar.Min.Y + topbar.Max.Y) * .5 + deviceOrigin.Y
+		local topHeader = screen.X >= 700 and screen.X > screen.Y
+			and topbar.Height >= titleHeight and centerY - titleHeight * .5 >= 0
+			and centerY + titleHeight * .5 <= screen.Y
+			and screen.X * .5 - titleWidth * .5 >= topbar.Min.X + deviceOrigin.X + 8
+			and screen.X * .5 + titleWidth * .5 <= topbar.Max.X + deviceOrigin.X - 8
+		local headerBottom
+		if topHeader then
+			title.Parent = headerGui
+			stepLabel.Parent = backdrop
+			title.Position = UDim2.fromOffset(screen.X*.5, centerY)
+			title.Size = UDim2.fromOffset(titleWidth, titleHeight)
+			titleSize.MinTextSize, titleSize.MaxTextSize = 20, 32
+			-- Only the title occupies the Core UI band. Other lines stay in safe content.
+			local stepTop = if mobileCompact then (if controlsButton.Visible then 52 else 0) else topbar.Max.Y + 2
+			stepLabel.Position = UDim2.new(stepLabel.Position.X.Scale,stepLabel.Position.X.Offset,0,stepTop)
+			stepLabel.Size = UDim2.new(stepLabel.Size.X.Scale,stepLabel.Size.X.Offset,0,if mobileCompact then 20 else 24)
+			if mobileCompact then
+				populationLabel.Parent = backdrop
+				populationLabel.Position = UDim2.new(.5,0,0,stepTop+22)
+				headerBottom = stepTop+22+populationLabel.AbsoluteSize.Y
+			else headerBottom = stepTop+24 end
+		else
+			title.Parent, stepLabel.Parent = backdrop, backdrop
+			local safeTitleHeight = math.min(40,height*.075)
+			title.Position = UDim2.new(.5,0,0,height*.02+safeTitleHeight*.5)
+			title.Size = UDim2.new(.8,0,0,safeTitleHeight)
+			local stepTop = height*.02 + safeTitleHeight + 2
+			stepLabel.Position = UDim2.new(stepLabel.Position.X.Scale,stepLabel.Position.X.Offset,0,stepTop)
+			stepLabel.Size = UDim2.new(stepLabel.Size.X.Scale,stepLabel.Size.X.Offset,0,if mobileCompact then 20 else 24)
+			if mobileCompact then
+				populationLabel.Parent = backdrop
+				populationLabel.Position = UDim2.new(.5,0,0,stepTop+22)
+				headerBottom = stepTop+22+populationLabel.AbsoluteSize.Y
+			else headerBottom = stepTop+24 end
+		end
+		-- Keep the empty canvas enabled in SAFE_HEADER too: disabled ScreenGuis
+		-- can retain their previous AbsoluteSize during a device switch, locking
+		-- the fallback against a stale desktop width on the next mobile layout.
+		headerGui.Enabled = gui.Enabled
+		headerGui:SetAttribute("GarageHeaderMode", if topHeader then "TOPBAR" else "SAFE_HEADER")
+		headerGui:SetAttribute("GarageLayoutRevision", GARAGE_LAYOUT_REVISION)
+		local top = if mobileCompact then math.max(height*.06, headerBottom+6) else math.max(height*.10,headerBottom+24)
+		local buttonTop = if mobileCompact then height-48 else height*.84
+		local nameHeight = if mobileCompact then 28 else 36
+		local descriptionSpace = if step == 3 then (if mobileCompact then 26 else 32) else 0
+		local available = buttonTop - top - nameHeight - descriptionSpace - (if step==3 then 16 else 26)
+		local stageHeight = math.max(1, math.min(height*.51,360,available))
+		-- Retain Phase 1B widths independently from the expanded vertical budget.
+		local priorHeight = math.min(height*.44,310)
+		local stageWidth = math.min(width*(if width>height then .5 else .64),800,priorHeight*(if step==2 then 2.4 else 2.65),stageHeight*2.65)
+		local selectionCenter=width*.5
+		local desktopNameTop, desktopDetailTop
+		if mobileCompact and width>height and step<=3 then
+			if width*.5-stageWidth*.5-70<120 then stageWidth*=.94 end
+			presenceGeometry.previewTop, presenceGeometry.previewHeight = top, stageHeight
+			presenceGeometry.previewWidth = stageWidth
+		elseif not mobileCompact then
+			-- Scale only the desktop composition. Keep a bounded landscape preview
+			-- on short screens, while allowing taller desktops to reach 1100x500.
+			local sidebarWidth=math.clamp(width*.128,220,280)
+			local sidebarGap=76 -- Clears the existing 52px arrow and its 8px margin.
+			local availableTop, availableBottom=headerBottom+36,height-24
+			stageHeight=math.clamp(height*.42,330,math.clamp(height*.35,440,500))
+			stageHeight=math.min(stageHeight,math.max(1,availableBottom-availableTop-196))
+			stageWidth=math.min(1100,stageHeight*2.2,width-sidebarWidth-sidebarGap-152)
+			if stageWidth<stageHeight*2.2 then stageHeight=stageWidth/2.2 end
+			local groupWidth=stageWidth+sidebarGap+sidebarWidth
+			selectionCenter=(width-groupWidth)*.5+stageWidth*.5
+			nameHeight=math.clamp(height*.038,36,44)
+			choiceLabel.TextSize=math.clamp(height*.034,30,38)
+			local buttonWidth=math.clamp(width*.12,190,240)
+			local buttonHeight=math.clamp(height*.056,52,64)
+			local selectionHeight=stageHeight+10+nameHeight+descriptionSpace+24+buttonHeight
+			local contentHeight=math.max(selectionHeight,stageHeight+196)
+			-- Aim the actual preview/name/action block at 45% of the canvas;
+			-- the taller sidebar also has to fit inside the same available region.
+			top=math.max(availableTop,math.min(height*.45-selectionHeight*.5,availableBottom-contentHeight))
+			desktopNameTop=top+stageHeight+10
+			desktopDetailTop=top+stageHeight+nameHeight+14
+			if step==4 then
+				local readyHeight=nameHeight+14+26+24+buttonHeight
+				desktopNameTop=math.max(availableTop,math.min(height*.45-readyHeight*.5,availableBottom-readyHeight))
+				desktopDetailTop=desktopNameTop+nameHeight+14
+			end
+			local sidebarX=selectionCenter+stageWidth*.5+sidebarGap
+			presencePanel.Position=UDim2.fromOffset(sidebarX,top)
+			presencePanel.Size=UDim2.fromOffset(sidebarWidth,stageHeight)
+			presencePanel.AnchorPoint=Vector2.zero
+			presenceList.Size=UDim2.new(1,-12,1,-74)
+			controlsCard.Position=UDim2.fromOffset(sidebarX,top+stageHeight+12)
+			controlsCard.AnchorPoint=Vector2.zero
+			controlsCard.Size=UDim2.fromOffset(sidebarWidth,184)
+			local buttonY=if step<=3 then desktopNameTop+nameHeight+descriptionSpace+24 else desktopDetailTop+26+24
+			for _,button in {previousButton,cycleButton,nextButton} do
+				button.Size=UDim2.fromOffset(buttonWidth,buttonHeight)
+				button.TextSize=math.clamp(height*.021,20,24)
+				button.Position=UDim2.fromOffset(selectionCenter+(if button==previousButton then -buttonWidth-10 elseif button==cycleButton and not previousButton.Visible then -buttonWidth*.5 else 10),buttonY)
+			end
+		end
+		if step==3 and width<=height then stageHeight=math.min(stageHeight,stageWidth) end
+		for _, constraint in {viewportSize,loadingSize,mapSize} do
+			constraint.MinSize = Vector2.zero
+			constraint.MaxSize = if mobileCompact then Vector2.new(800,410) else Vector2.new(1100,500)
+		end
+		for _, panel in {viewport,previewLoading,mapPanel} do
+			panel.Position = UDim2.fromOffset(selectionCenter,top)
+			panel.Size = UDim2.fromOffset(stageWidth,stageHeight)
+		end
+		choiceLabel.Position = UDim2.new(.1,0,0,if step<=3 then top+stageHeight+10 else height*.39)
+		choiceLabel.Size = UDim2.new(.8,0,0,nameHeight)
+		if not mobileCompact then
+			choiceLabel.Position=UDim2.fromOffset(selectionCenter-stageWidth*.5,desktopNameTop)
+			choiceLabel.Size=UDim2.fromOffset(stageWidth,nameHeight)
+		end
+		detailLabel.Visible = step>=3
+		detailLabel.Position = UDim2.new(.1,0,0,if step==3 then top+stageHeight+nameHeight+14 else height*.55)
+		detailLabel.Size = UDim2.new(.8,0,0,if mobileCompact then 20 else 26)
+		if not mobileCompact then detailLabel.Position=UDim2.fromOffset(selectionCenter-stageWidth*.5,desktopDetailTop); detailLabel.Size=UDim2.fromOffset(stageWidth,26) end
+		local arrowWidth, arrowHeight = if mobileCompact then 44 else 52, if mobileCompact then 50 else 64
+		leftArrow.Size, rightArrow.Size = UDim2.fromOffset(arrowWidth,arrowHeight), UDim2.fromOffset(arrowWidth,arrowHeight)
+		local arrowTop = top+(stageHeight-arrowHeight)*.5
+		if mobileCompact and width<=height and presenceGeometry then
+			local g=presenceGeometry
+			local lobby=GaragePresence.mobileLayout(#Players:GetPlayers(),width,height,g.previewWidth,g.presenceWidth,g.twoLines)
+			arrowTop=math.max(arrowTop,lobby.top+lobby.panelHeight+8)
+		end
+		leftArrow.Position = UDim2.fromOffset(selectionCenter-stageWidth*.5-arrowWidth-8,arrowTop)
+		rightArrow.Position = UDim2.fromOffset(selectionCenter+stageWidth*.5+8,arrowTop)
+	end
+
+	local pendingLayoutMeasurements = true
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
 		local viewportSizePixels = if camera then camera.ViewportSize else backdrop.AbsoluteSize
-		mobileCompact = UserInputService.TouchEnabled or (viewportSizePixels.Y > 0 and viewportSizePixels.Y <= 650)
+		if viewportSizePixels.X <= 0 or viewportSizePixels.Y <= 0
+			or headerGui.AbsoluteSize.X <= 0 or headerGui.AbsoluteSize.Y <= 0
+			or backdrop.AbsoluteSize.X <= 0 or backdrop.AbsoluteSize.Y <= 0
+			or title.AbsoluteSize.X <= 0 or title.AbsoluteSize.Y <= 0 then
+			pendingLayoutMeasurements = true
+			return
+		end
+		pendingLayoutMeasurements = false
+		local portrait=viewportSizePixels.X<=viewportSizePixels.Y
+		mobileCompact = portrait or (UserInputService.TouchEnabled and viewportSizePixels.X<1800)
+		gui:SetAttribute("GarageLayoutClass",if portrait then "PORTRAIT" elseif mobileCompact then "TOUCH_LANDSCAPE" elseif viewportSizePixels.Y<=650 then "COMPACT_DESKTOP" else "DESKTOP")
 		if mobileCompact then gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 		else gui.IgnoreGuiInset = true end
 		controlsCard.Visible = not mobileCompact
@@ -524,6 +821,14 @@ function GarageUiController.start()
 			populationLabel.TextYAlignment = Enum.TextYAlignment.Center
 			presenceRowHeight = 16
 			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
+			if step == 1 then
+				local top = math.max(layoutHeight * 0.24, layoutHeight * 0.13 + 22 + (if populationTwoLines then 36 else 18) + 6)
+				local available = layoutHeight * 0.59 - top - 6
+				local height = math.min(layoutHeight * 0.36, 260, math.max(1, available))
+				viewport.Position = UDim2.fromOffset(previewCenter, top)
+				viewport.Size = UDim2.fromOffset(previewWidth, height)
+				previewLoading.Position, previewLoading.Size = viewport.Position, viewport.Size
+			end
 			choiceLabel.TextSize = 25
 			detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.68 else 0.55)
 			detailLabel.TextSize = 15
@@ -547,10 +852,14 @@ function GarageUiController.start()
 			mapSize.MinSize = viewportSize.MinSize
 			viewport.Size = UDim2.fromScale(0.52, 0.32)
 			viewport.Position = UDim2.fromScale(0.5, 0.265)
+			if step == 1 then
+				viewport.Position = UDim2.fromScale(0.5, 0.25)
+				viewport.Size = UDim2.fromOffset(math.min(backdrop.AbsoluteSize.X * 0.52, 584), math.min(backdrop.AbsoluteSize.Y * 0.34, 340))
+			end
 			previewLoading.Size = viewport.Size
 			previewLoading.Position = viewport.Position
-			mapPanel.Size = viewport.Size
-			mapPanel.Position = viewport.Position
+			mapPanel.Size = UDim2.fromScale(0.52, 0.32)
+			mapPanel.Position = UDim2.fromScale(0.5, 0.265)
 			title.Position = UDim2.fromScale(0.1, 0.055)
 			title.Size = UDim2.fromScale(0.8, 0.09)
 			titleSize.MinTextSize = 28
@@ -585,8 +894,24 @@ function GarageUiController.start()
 				button.TextSize = 19
 			end
 		end
+		applyVisualStage(backdrop.AbsoluteSize, viewportSizePixels)
+		if GARAGE_LAYOUT_DEBUG then
+			task.defer(function()
+				if not gui.Parent then return end
+				print("[GarageLayout]", GARAGE_LAYOUT_REVISION, "viewport", viewportSizePixels,
+					"topbarInset", GuiService.TopbarInset, "guiInset", GuiService:GetGuiInset(),
+					"headerMode", headerGui:GetAttribute("GarageHeaderMode"),
+					"headerOrigin", headerGui.AbsolutePosition, "headerSize", headerGui.AbsoluteSize,
+					"title.Position", title.Position, "title.AbsolutePosition", title.AbsolutePosition,
+					"title.AbsoluteSize", title.AbsoluteSize, "step.AbsolutePosition", stepLabel.AbsolutePosition,
+					"population.AbsolutePosition", populationLabel.AbsolutePosition,
+					"preview.AbsolutePosition", viewport.AbsolutePosition, "preview.AbsoluteSize", viewport.AbsoluteSize)
+			end)
+		end
 		updatePopulationText()
 		updatePresence()
+		fitSelectionPreview()
+		if previewDriver or previewKart then startPreviewIdleRotation() end
 	end
 	local function showTrackPreview(trackId: string)
 		local track = TrackCatalog.Entries[trackId]
@@ -605,7 +930,9 @@ function GarageUiController.start()
 	end
 
 	local function clearPreview()
+		stopPreviewRotation()
 		previewKart = nil
+		previewDriver = nil
 		viewport.CurrentCamera = nil
 		if previewWorld then
 			previewWorld:Destroy()
@@ -644,13 +971,15 @@ function GarageUiController.start()
 		else
 			local driver = cloneDriver(player.Character, DriverCatalog.Entries[selectedId])
 			driver.Parent = world
-			camera.CFrame = CFrame.new(Vector3.new(-5, 2.3, -9), Vector3.new(0, 0, 0))
+			previewDriver = driver
 		end
 		viewport.CurrentCamera = camera
 		previewWorld = world
 		previewCamera = camera
 		previewKey = key
-		fitKartPreview()
+		previewYaw = if kind == "Driver" then math.rad(-165) else math.rad(-135)
+		fitSelectionPreview()
+		startPreviewIdleRotation()
 	end
 
 	local function selectedIds(): (string, string, string)
@@ -740,8 +1069,7 @@ function GarageUiController.start()
 			local catalog = catalogs[step]
 			local selectedId = if step == 1 then driverId elseif step == 2 then kartId else trackId
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
-			detailLabel.Text = if step == 1 then (DriverCatalog.Entries[driverId].Description or "Choose your racing driver")
-				elseif step == 2 then "All MVP karts use the same physics"
+			detailLabel.Text = if step <= 2 then ""
 				else TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		else
 			choiceLabel.Text = string.format("%s / %s / %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
@@ -814,9 +1142,11 @@ function GarageUiController.start()
 	player:GetAttributeChangedSignal("ControlsTutorialPreferenceLoaded"):Connect(update)
 	player:GetAttributeChangedSignal("ControlsTutorialDismissed"):Connect(update)
 	local viewportConnection: RBXScriptConnection? = nil
+	local layoutConnections = {}
 	local function bindCamera()
 		if viewportConnection then
 			viewportConnection:Disconnect()
+			viewportConnection = nil
 		end
 		local camera = Workspace.CurrentCamera
 		if camera then
@@ -824,8 +1154,21 @@ function GarageUiController.start()
 		end
 		update()
 	end
-	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera)
-	backdrop:GetPropertyChangedSignal("AbsoluteSize"):Connect(update)
+	table.insert(layoutConnections, Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindCamera))
+	table.insert(layoutConnections, GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(update))
+	table.insert(layoutConnections, backdrop:GetPropertyChangedSignal("AbsoluteSize"):Connect(update))
+	table.insert(layoutConnections, headerGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(update))
+	table.insert(layoutConnections, headerGui:GetPropertyChangedSignal("AbsolutePosition"):Connect(update))
+	table.insert(layoutConnections, backdrop:GetPropertyChangedSignal("AbsolutePosition"):Connect(update))
+	table.insert(layoutConnections, title:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		-- Only a startup measurement may request layout. Resizing this label is
+		-- layout output, so observing every change would recursively re-layout it.
+		if pendingLayoutMeasurements then update() end
+	end))
+	gui.Destroying:Connect(function()
+		if viewportConnection then viewportConnection:Disconnect(); viewportConnection = nil end
+		for _, connection in layoutConnections do connection:Disconnect() end
+	end)
 	bindCamera()
 	local characterChildConnection: RBXScriptConnection? = nil
 	local function bindCharacter(character: Model)
@@ -851,6 +1194,7 @@ function GarageUiController.start()
 			end
 		end)
 	end
+	player.CharacterRemoving:Connect(function() clearPreview() end)
 	player.CharacterAdded:Connect(bindCharacter)
 	if player.Character then
 		bindCharacter(player.Character)

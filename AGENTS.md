@@ -61,25 +61,11 @@ After a scoped task passes validation, commit and push to
 HEADs. Main merge/push and Roblox Publish require explicit user approval.
 Keep unrelated `.vscode/settings.json` out of commits.
 
-## Current C2-A Warning
+## C2-A Status
 
-Nitro Reward Challenge is DEFERRED.
-
-It was not approved for commit.
-
-Possible local experimental files may include:
-
-RaceReward*
-Nitro Core / Entry / Exit
-Reward UI/tests
-
-Before new development:
-
-inspect git status/diff.
-
-Remove only C2-A-specific uncommitted changes.
-
-Do not remove unrelated changes.
+Nitro Reward Challenge is DEFERRED and was not approved for commit. The earlier
+local experimental files have been removed; no C2-A cleanup is currently required.
+Inspect git status/diff and preserve unrelated changes before development.
 
 ## Approved Current Flow
 
@@ -384,12 +370,56 @@ R1 automated validation: all 40 validation files PASS; Thunder 120 checks,
 production RaceItem/KartContext integration 891 checks, Joystick 1645 checks.
 Rojo build and git diff --check PASS.
 
-M4-A4-R1 CODE COMPLETE — PUBLISHED THUNDER IMPACT RETEST REQUIRED.
-Published short impact and Shield-vs-Thunder checks remain required. Do not mark
-M4-A4 CLOSED until the user confirms the retest.
-Studio runtime NOT VERIFIED. Automated production-controller tests use deterministic
-transport/physics mocks and do not establish runtime visuals or device counterplay.
-Broader published 3/4-player targeting and mixed Shield checks remain follow-ups.
+M4-A4-R1 MVP CLOSED / PUBLISHED 2-PLAYER PASS, confirmed by the user:
+Thunder activation, visible lightning / SHOCKED!, ahead-only targeting, approximately
+60 speed cap for 2 seconds and timely Shield blocking all passed. Shield activated
+after the hit may show its visual but does not retroactively cancel the resolved
+Thunder effect; this is intended. Freeze warning 1.00 sec / cap 60 / effect 2.00 sec.
+Published 3/4-player all-ahead targeting and mixed Shield sampling are deferred,
+not MVP closure blockers. Studio runtime NOT VERIFIED.
+
+### Garage UI Visual Polish Phase 1
+
+Historical implementation and validation notes below describe each revision at
+the time it was tested. Final user acceptance supersedes their pending statuses;
+see Garage Visual Polish Phase 1B Final Acceptance below.
+
+Direction: Simple for 7, Cool for 15 / Roblox Arcade Garage. Preserve responsive
+safe-area architecture and the existing dark/navy identity. Phase 1 enlarges only
+Driver Select: mobile height targets 36% of safe height, capped by header/name
+clearance; desktop height targets 34%. Camera fits full avatar bounding-box corners,
+including hair, to aspect ratio and FOV with 80% projected fill. Width may limit
+unusually wide avatars. Kart / Track / Ready, Population / LOBBY, arrows and bottom
+controls retain their established layout. No gameplay or seating changes.
+Automated layout/framing validation is separate from Studio and published mobile
+visual acceptance; both visual runtime checks remain required for this UI phase.
+Phase 1 automated validation: Garage 4905 checks across seven mobile/safe-area
+scenarios, two desktop resolutions and varied avatar bounds/aspect/FOV; all 40
+validation files, Joystick 1645 checks, Rojo build and git diff --check PASS.
+
+Phase 1 published captures showed the preview remained too wide/short; this was
+not accepted as a visual PASS. Phase 1B builds on that framing foundation: only
+non-interactive header text uses the vacant TopbarInset band when centered text
+fits; portrait, cutout and occupied-band cases fall back inside the safe Garage.
+Interactive UI stays in CoreUISafeInsets. Preview stages use 44% safe height
+within available space, narrower landscape proportions (Driver/Track up to
+2.65:1, Kart up to 2.4:1), with a square Track fallback in portrait. Driver fits
+visible body/hair bounds (85% fit envelope), Kart uses 72% width / 94% height
+safety. Both cache a full-yaw fit at selection/resize; mouse/touch horizontal
+orbit uses .32 degrees/pixel, idle uses 7 sec/turn and resumes 2.5 sec after
+release. Selection, step, route, character, hidden GUI and destruction clean up
+rotation ownership/connections. No per-frame model scan or layout work.
+Driver/Kart redundant descriptions are removed. Track retains mode/laps, its
+existing orientation and a compact START / FINISH legend. Garage-only map padding
+changes; race minimap and gameplay remain unchanged. Studio notch-emulator local
+visual/interaction checks were performed; this does not validate published
+Population or routing. Published Android/iPhone acceptance (Driver at least 1.5x
+larger, readable hair/face, natural swipe, safe Core UI) remains REQUIRED. No
+Phase 1B commit/push/Publish without explicit user approval.
+Phase 1B automated checks: Garage 18641, Kart orbit 69120 corner checks,
+all 40 validation files, mobile Touch 2071 / Joystick 1645, Thunder 120,
+Rojo build and git diff --check PASS. CODE COMPLETE / PUBLISHED VISUAL ACCEPTANCE REQUIRED.
+
 
 ## Slick
 
@@ -559,7 +589,8 @@ M3: CLOSED. M3-A2-R2: PUBLISHED iOS VISUAL PASS / CLOSED, confirmed by the user.
 Android/iOS Lobby list parity: PASS. Preserve all confirmed Population, Room,
 queue, invitation, routing, staging, timeout and Rematch behavior.
 M4-A0 MVP CLOSED. M4-A1 MVP accepted for progression. Current next priority:
-M4-A4 Thunder prototype, then approved combat audio assets.
+Phase 1C / Arcade Garage Visual Layer, then approved combat audio assets.
+Garage Visual Polish Phase 1B and M4-A4-R1 are CLOSED.
 Broader 3–4 player balance is deferred.
 Additional track capacity, persistence and Shop follow.
 TrackV2 geometry revision remains pending.
@@ -1043,3 +1074,142 @@ Automated tests do not replace device checks. R3 shared-race runtime was
 confirmed by the user on two real devices. The cumulative Bonus Nitro, 100
 stud/s Mini Boost, initial and solo Rematch lobbies, tutorial persistence,
 15-second DNF, Quit Race spacing, and R4.5 NITRO CHARGE placement passed on mobile.
+
+
+### Garage Visual Polish Phase 1B-R1
+
+Historical R1/R2/R3 reports below precede final acceptance and retain their
+original measurements and runtime limitations.
+
+Only the non-interactive title uses the free TopbarInset band; Step and mobile
+Population remain in CoreUISafeInsets below it. Portrait, notch-heavy and crowded
+Core UI use the safe header fallback. None-inset header size/origin changes also
+recalculate alignment after device switching. Phase 1B widths remain bounded;
+available vertical space grows the stage (mocked 1600x739: 784x347, 844x390:
+387x169 for Driver). Driver orbit envelope grows 85% -> 89%; Garage-only Kart
+width fit 72% -> 80%. Track canvas grows .94 -> .96 and padding 1.08 -> 1.04;
+racing minimaps and track orientation/geometry remain unchanged. Full-yaw safety,
+manual drag, seven-second idle turn and 2.5-second resume are preserved.
+Studio local Driver/Kart rotation, Practice/Base/V2, Ready/Back and title/Core UI
+alignment were inspected; notch fallback was inspected. Studio population remains
+UPDATING because presence publication fails with its empty JobId; gameplay/status
+logic was not changed. Published Android/iPhone size and clipping acceptance is
+still required. Existing Phase 1/1B changes remain unstaged. No commit, push or
+Roblox Publish for R1. PHASE 1B-R1 CODE COMPLETE / PUBLISHED VISUAL ACCEPTANCE REQUIRED.
+
+### Garage Visual Polish Phase 1B-R2
+
+R1 is NOT ACCEPTED: the user reported a disappearing PC title and unchanged
+published mobile header. R2 reproduced the PC failure (raw title Y=-105) and
+iPhone safe-header fallback before fixing them. R1 mixed Garage safe-root origin,
+None-inset header origin and GetGuiInset in title placement; its 8-percent lost-width
+condition rejected legitimate notches. Disabling the empty header during fallback
+also left AbsoluteSize stale after desktop-to-mobile switching.
+
+GarageTopHeader explicitly uses IgnoreGuiInset=true, ScreenInsets=None and
+ClipToDeviceSafeArea=false. The title is its direct child in TOPBAR with a (.5,.5)
+anchor and physical-screen-centered offsets. TopbarInset is translated once from
+the camera's device-safe viewport to that canvas; Garage safe-root offsets never
+enter the title calculation. Fallback depends on landscape, width, valid band and
+centered title clearance, not TouchEnabled or notch-width loss. The empty header
+stays enabled while Garage is visible so its runtime geometry remains live.
+Step/Population remain in the Garage root; Ready reserves the existing CONTROLS
+button clearance. Preview framing/rotation/width policies remain unchanged.
+
+Zero measurements wait for geometry signals; title-size observation is startup-only
+to avoid recursively observing layout output. Camera replacement and destruction
+disconnect the owned viewport/layout listeners. GARAGE_LAYOUT_DEBUG defaults OFF;
+only debug enables coordinate logs and the GARAGE R2 Build suffix. A hidden GUI
+attribute identifies the layout revision without adding production screen text.
+
+Actual Studio AbsolutePosition/AbsoluteSize and CoreGui icon bounds were queried.
+iPhone 17 Pro landscape: camera 749x361, physical header 873x401, TopbarInset
+(208,0)-(749,58), title raw (217,-41), size 314x24, physical top 37/center 49.
+PC: camera/header 1709.33x762, TopbarInset (208,0)-(1709.33,58), title raw
+(629,-47), size 450x36, physical top 11/center 29. Roblox raw AbsolutePosition
+uses an inset-relative origin; negative raw Y alone is not screen clipping.
+The actual title/icon center difference was 5px. Native Studio window captures
+including Core UI confirmed visible, unclipped alignment on Driver/Kart and PC.
+Mobile -> PC, >10-second wait, desktop resize (1919x1080 and 1599x739), then
+Mobile retained TOPBAR. Runtime previews: iPhone Driver 353x154, Kart 319x154,
+Track 353x139; desktop Driver 800x360 and Kart 744x360. Studio aggregate Population
+still reports UPDATING because its empty JobId cannot publish presence; this is
+not published Population validation. No new Garage layout errors in the final run.
+
+R2 automated validation: Garage 18861 checks using actual absolute-bound semantics,
+resize/late-topbar/zero-measurement/camera-replacement/stale-disabled-canvas cases;
+all 40 validation files, Kart orbit 69120, Touch 2071, Joystick 1645, Thunder 120,
+Rojo build and git diff --check PASS. Existing Phase 1/1B/R1 changes are preserved.
+No commit, push or Roblox Publish. PHASE 1B-R2 CODE COMPLETE / PUBLISHED VALIDATION
+REQUIRED, not CLOSED. After explicit Publish approval, fully close the Roblox app,
+join a new server, verify latest BUILD PV and (if debug enabled) GARAGE R2, then
+check Driver/Kart screenshots with Core UI, rotation, preview size, LOBBY and
+Population on real Android/iPhone. PV alone does not establish source revision;
+the exact source loaded by PV162 remains unverified.
+
+### Garage Visual Polish Phase 1B-R3
+
+User-confirmed PV166 closes R2's published header/preview/rotation/mobile visual
+acceptance. Preserve that accepted composition and Topbar coordinate ownership.
+R3 groups desktop preview/name/actions with a 36px name-to-button gap and a
+1240px maximum content envelope. The 220px Lobby matches preview height; Controls
+sits 12px below it. Mouse-only short windows use desktop composition. Mobile
+landscape Driver/Kart/Track Lobby panels match stage height, use 120-150px width
+and a fixed scrolling viewport; narrow stages shrink width by 6% only. Portrait
+and mobile Ready retain their previous panel policy. Framing/rotation and mobile
+preview-height calculation remain unchanged.
+
+The real host invite path is RaceHudController -> GarageControl ->
+RaceRoomCoordinator, rather than MatchRoomUiController's legacy Invite action.
+Each target has INVITE / SENDING... / WAITING / RETRY state. Only successful
+RoomSocialDirectory storage produces InviteSent with targetUserId, requestId,
+roomId and authoritative expiresAt. Duplicate sends retain the existing stored
+expiry. Independent RoomSnapshot pendingInvites mirrors restore missing ACK
+state and clear declined/admitted/expired targets. The existing 5-second snapshot
+poll supplies cross-server decline feedback; no new TTL is invented. Local legacy
+Garage invites retain their existing 30-second lifetime with matching ACKs.
+
+R3 automated validation: Garage 18872, production HUD 127, Room coordinator 18,
+Touch 2071 / Joystick 1645, all 40 validation files, Rojo build and diff check PASS.
+Actual Studio desktop probes covered requested 1920x1080, 1600x900, 1366x768,
+1280x720 and 2560x1080 (emulator reports slightly smaller rendered viewports).
+Stage sizes were 800x360, 800x360, 800x326, 769x290 and 800x360 respectively;
+name/action gap 36px, Lobby equal height and Controls gap 12px in every probe.
+The iPhone 17 Pro landscape probe measured safe canvas 749x302, preview 352x154,
+Lobby 128x154, zero top/height delta and 120px name width. Custom 844x390 and
+932x430 phone-emulator settings also retained matched panel/stage heights;
+these presets include device cutout reductions and fallback-header clearance.
+
+Actual local server with two, then three clients exercised cloned production
+Room modules using isolated real MemoryStore maps and a Play-only negative-ID
+adapter (Studio Player IDs -1/-2/-3; repository validation remains positive IDs).
+Real client RemoteEvents produced stored InviteSent ACKs, decline removal,
+accepted INVITED next-race queue membership, independent WAITING button states,
+per-target decline restoration and expiry restoration. This is controlled Studio
+runtime evidence, not cross-server/published acceptance. Tap-driven SENDING
+feedback and reserved-server teleport/arrival remain unverified; direct requests
+were used for the live storage tests. Studio's empty JobId still causes aggregate
+presence errors; a separate direct probe confirmed MemoryStore works. Published
+R3 remains NOT VERIFIED. No commit, push or Roblox Publish.
+At that checkpoint, Phase 1B-R3 was not complete under the requested runtime criteria.
+
+### Garage Visual Polish Phase 1B Final Acceptance
+
+Garage Visual Polish Phase 1B / R2 / R3 / R3-R1: CLOSED / ACCEPTED.
+The user completed Mobile and Desktop Visual Acceptance.
+
+- Mobile Topbar alignment: PASS.
+- Driver / Kart previews and horizontal rotation: PASS.
+- Track preview layout / scale: PASS.
+- Mobile Lobby responsive sidebar expansion and player list: PASS.
+- Invite INVITE -> SENDING... -> WAITING and real-device tap feedback: PASS.
+- Desktop responsive composition: preview scaling, content centering, Lobby /
+  Controls sidebars, button grouping and large-display composition: PASS.
+- Mobile regression after the desktop patch: PASS.
+
+R3-R1 changes only desktop scale and centering; desktop previews are bounded at
+1100x500, Lobby height matches the preview and Controls follows below it.
+Historical Studio reserved-server HTTP 403 is not a Phase 1B failure and does not
+establish reserved-server launch acceptance. No server logic change is requested.
+Next UI direction: Phase 1C / Arcade Garage Visual Layer.
+This finalization authorizes the Git checkpoint only; no Roblox Publish.

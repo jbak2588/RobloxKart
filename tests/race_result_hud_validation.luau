@@ -11,6 +11,7 @@ end
 local methods={}
 local safeSize=rb.Vector2.new(800,260)
 local now=0
+local delayed = {}
 local function object(class,name)
  local p={ClassName=class,Name=name or class,Size=rb.UDim2.fromScale(1,1),Position=rb.UDim2.fromScale(0,0),
   AnchorPoint=rb.Vector2.zero,Visible=true,Enabled=true,Activated=signal(),Destroying=signal()}
@@ -110,7 +111,7 @@ local common={Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vecto
  Color3=rb.Color3,Enum=rb.Enum,TweenInfo={new=function() return {} end},
  game={GetService=function(_,name) return assert(services[name],name) end},
  require=function(module) return assert(modules[module.Name],module.Name) end,
- task={delay=function() end},time=function() return now end}
+ task={delay=function(seconds, callback) table.insert(delayed,{seconds,callback}) end},time=function() return now end}
 common.script={Parent=modulesFolder}
 modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment=common})()
 player:SetAttribute("RaceState","GARAGE")
@@ -387,6 +388,47 @@ check(availability.WaitingTitle.Text=="WAITING NEXT  1"
 availability.Invite2.Activated:Fire()
 check(garageRemote.lastFire[1]=="Invite" and garageRemote.lastFire[2]==9,
  "track-side invite selects cross-server HUB user")
+local requestId = garageRemote.lastFire[3]
+check(availability.Invite2.Text=="SENDING..." and not availability.Invite2.Active,
+ "tap immediately disables only target while waiting for storage acknowledgement")
+availability.Invite2.Activated:Fire()
+check(garageRemote.lastFire[3]==requestId,"repeated tap cannot send another request")
+garageRemote.OnClientEvent:Fire("InviteSent",{targetUserId=9,requestId=requestId,expiresAt=os.time()+23})
+check(availability.Invite2.Text=="WAITING" and not availability.Invite2.Active
+ and delayed[#delayed][1]<=23 and delayed[#delayed][1]>21,
+ "storage acknowledgement uses server expiry rather than a client constant")
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+ maxPlayers=4,queuedCount=0,queued={},pendingInvites={["9"]=os.time()+23},
+ available={{userId=10,name="Second Friend"},{userId=9,name="Remote Friend"}}})
+check(availability.Invite1.Text=="INVITE" and availability.Invite1.Active
+ and availability.Invite2.Text=="WAITING","row reorder and other targets retain independent states")
+availability.Invite1.Activated:Fire()
+local secondRequest=garageRemote.lastFire[3]
+garageRemote.OnClientEvent:Fire("InviteFailed",{targetUserId=10,requestId=secondRequest})
+check(availability.Invite1.Text=="RETRY" and availability.Invite1.Active
+ and availability.Invite2.Text=="WAITING","failure restores only failed target")
+garageRemote.OnClientEvent:Fire("InviteDeclined",{targetUserId=9,requestId=requestId})
+check(availability.Invite2.Text=="INVITE" and availability.Invite2.Active,"decline restores available action")
+availability.Invite2.Activated:Fire()
+local retryRequest=garageRemote.lastFire[3]
+garageRemote.OnClientEvent:Fire("InviteSent",{targetUserId=9,requestId=requestId,expiresAt=os.time()+23})
+check(availability.Invite2.Text=="SENDING...","stale acknowledgement cannot resolve newer retry")
+garageRemote.OnClientEvent:Fire("InviteSent",{targetUserId=9,requestId=retryRequest,expiresAt=os.time()+9})
+delayed[#delayed][2]()
+check(availability.Invite2.Text=="INVITE" and availability.Invite2.Active,"expiry restores button")
+availability.Invite2.Activated:Fire()
+delayed[#delayed][2]()
+check(availability.Invite2.Text=="RETRY" and availability.Invite2.Active,"missing acknowledgement times out to retry")
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+ maxPlayers=4,queuedCount=0,queued={},pendingInvites={["9"]=os.time()+20},
+ available={{userId=10,name="Second Friend"},{userId=9,name="Remote Friend"}}})
+check(availability.Invite2.Text=="WAITING" and not availability.Invite2.Active,
+ "authoritative snapshot recovers pending state after missing acknowledgement")
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+ maxPlayers=4,queuedCount=0,queued={},pendingInvites={},
+ available={{userId=10,name="Second Friend"},{userId=9,name="Remote Friend"}}})
+check(availability.Invite2.Text=="INVITE" and availability.Invite2.Active,
+ "authoritative cleared snapshot restores declined target")
 set("RaceState","RACING")
 check(hud.RacingInviteToggle.Visible and hud.RoomQueueStatus.Visible,
  "racing host sees queue count and invite control")

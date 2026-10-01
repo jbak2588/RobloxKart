@@ -129,4 +129,30 @@ check(social:getInvite(9).roomId == roomId and social:getInvite(9).hostUserId ==
 	"on-track host invite reaches cross-server HUB record")
 remote.OnServerEvent:Fire(player, "Invite", 10)
 check(social:getInvite(10) == nil, "unavailable user cannot be invited")
+check(remote.messages[#remote.messages][1] == "InviteFailed", "unavailable target reports failure")
+local first = social:getInvite(9)
+remote.OnServerEvent:Fire(player, "Invite", 9, 17)
+local ack = remote.messages[#remote.messages]
+check(ack[1] == "InviteSent" and ack[2].targetUserId == 9 and ack[2].requestId == 17
+	and ack[2].expiresAt == first.expiresAt, "duplicate acknowledges original stored expiry")
+check(social:getInvite(9).expiresAt == first.expiresAt, "duplicate does not extend invitation")
+social:publish({UserId=10, DisplayName="Another Friend"}, "hub-job")
+remote.OnServerEvent:Fire(player, "Invite", 10, 18)
+check(social:getInvite(9) ~= nil and social:getInvite(10) ~= nil,
+	"targets have independent stored invitations")
+social:clearInvite(9)
+callbacks.onRoomPhase("WAITING", 3)
+local snapshot = remote.messages[#remote.messages][2]
+check(snapshot.pendingInvites["9"] == nil and snapshot.pendingInvites["10"] ~= nil,
+	"authoritative decline snapshot clears only declined target")
+local oldSet = inviteMap.SetAsync
+inviteMap.SetAsync = function() error("storage unavailable") end
+remote.OnServerEvent:Fire(player, "Invite", 9, 19)
+check(remote.messages[#remote.messages][1] == "InviteFailed"
+	and remote.messages[#remote.messages][2].requestId == 19 and social:getInvite(9) == nil,
+	"failed storage never acknowledges success")
+inviteMap.SetAsync = oldSet
+local messagesBefore = #remote.messages
+remote.OnServerEvent:Fire(player, "Invite", 9, {})
+check(#remote.messages == messagesBefore, "invalid request token is rejected")
 print(string.format("PASS: %d persistent room coordinator checks", count))

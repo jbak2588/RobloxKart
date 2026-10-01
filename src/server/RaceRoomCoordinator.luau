@@ -20,6 +20,7 @@ function RaceRoomCoordinator.start(payload)
 	local phase, racerCount = "WAITING", 0
 	local hostUserId = payload.participantUserIds[1]
 	local active = true
+	local pendingInvites, sendingInvites = {}, {}
 
 	local function snapshot()
 		local record = directory:get(roomId)
@@ -38,7 +39,15 @@ function RaceRoomCoordinator.start(payload)
 			table.insert(queued, { name = member.name,
 				kind = if member.priority == 1 then "INVITED" elseif member.priority == 2 then "RIVAL" else "PUBLIC" })
 		end
-		local safe = { hostUserId = record.hostUserId, hostName = record.hostName,
+		local pending = {}
+		for userId,cachedInvite in pendingInvites do
+			local ok,invite=pcall(function() return social:getInvite(userId) end)
+			if ok then
+				if invite and invite.hostUserId==record.hostUserId and invite.roomId==roomId and not excluded[userId] then pending[tostring(userId)]=invite.expiresAt
+				else pendingInvites[userId]=nil end
+			elseif cachedInvite.expiresAt>os.time() and cachedInvite.hostUserId==record.hostUserId and not excluded[userId] then pending[tostring(userId)]=cachedInvite.expiresAt end
+		end
+		local safe = { roomId=roomId, pendingInvites=pending, hostUserId = record.hostUserId, hostName = record.hostName,
 			state = record.state, count = record.currentRacers,
 			maxPlayers = record.maxPlayers, queuedCount = #record.queued,
 			queued = queued, available = available }
@@ -108,21 +117,34 @@ function RaceRoomCoordinator.start(payload)
 		pcall(snapshot)
 	end
 
-	remote.OnServerEvent:Connect(function(player, action, targetUserId)
-		if action ~= "Invite" or type(targetUserId) ~= "number" then return end
+	remote.OnServerEvent:Connect(function(player, action, targetUserId, requestId)
+		if action ~= "Invite" or type(targetUserId) ~= "number" or targetUserId%1~=0 or targetUserId<=0 then return end
+		if requestId ~= nil and (type(requestId) ~= "number" or requestId%1 ~= 0 or requestId <= 0) then return end
+		local function fail() remote:FireClient(player,"InviteFailed",{targetUserId=targetUserId,requestId=requestId}) end
 		local ok, record = pcall(function() return directory:get(roomId) end)
-		if not ok or not record or record.hostUserId ~= player.UserId then return end
+		if not ok or not record or record.matchId~=matchId or record.hostUserId ~= player.UserId then fail(); return end
 		for _, collection in { record.stagedMembers, record.currentRoundMembers, record.queued } do
-			for _, member in collection do if member.userId == targetUserId then return end end
+			for _, member in collection do if member.userId == targetUserId then fail(); return end end
 		end
 		local present, available = pcall(function() return social:list(player.UserId) end)
-		if not present then return end
+		if not present then fail(); return end
 		for _, entry in available do
 			if entry.userId == targetUserId then
-				pcall(function() social:sendInvite(targetUserId, record) end)
-				break
+				if sendingInvites[targetUserId] then return end
+				sendingInvites[targetUserId]=true
+				local sent,invite=pcall(function()
+					local previous=social:getInvite(targetUserId)
+					if previous and previous.hostUserId==player.UserId and previous.roomId==roomId then return previous end
+					return social:sendInvite(targetUserId, record)
+				end)
+				sendingInvites[targetUserId]=nil
+				if not sent or not invite then fail(); return end
+				pendingInvites[targetUserId]=invite
+				remote:FireClient(player,"InviteSent",{targetUserId=targetUserId,requestId=requestId,roomId=roomId,expiresAt=invite.expiresAt})
+				return
 			end
 		end
+		fail()
 	end)
 
 	task.spawn(function()

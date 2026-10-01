@@ -476,6 +476,29 @@ function RaceHudController.start()
 	availabilityTitle.TextSize = 13
 	availabilityTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
 	local availabilityRows = {}
+	local inviteStates = {}
+	local inviteSerial = 0
+	local function refreshInviteButtons()
+		for _,row in availabilityRows do
+			local state=inviteStates[row.userId]
+			local phase=state and state.phase or "AVAILABLE"
+			row.button.Text=if phase=="SENDING" then "SENDING..." elseif phase=="PENDING" then "WAITING" elseif phase=="FAILED" then "RETRY" else "INVITE"
+			row.button.Active=phase=="AVAILABLE" or phase=="FAILED"
+			row.button.AutoButtonColor=row.button.Active
+			row.button.BackgroundColor3=if row.button.Active then Color3.fromRGB(45,130,235) else Color3.fromRGB(65,78,94)
+		end
+	end
+	local function markInvitePending(userId, state, expiresAt)
+		state.phase = "PENDING"
+		state.expiresAt = expiresAt
+		inviteStates[userId] = state
+		task.delay(math.max(0, expiresAt-os.time()), function()
+			if inviteStates[userId] == state then
+				inviteStates[userId] = nil
+				refreshInviteButtons()
+			end
+		end)
+	end
 	for index = 1, 4 do
 		local row = createLabel(availabilityPanel, "AvailableRacer" .. index, index + 1)
 		row.Position = UDim2.fromOffset(8, 52 + (index - 1) * 28)
@@ -495,7 +518,16 @@ function RaceHudController.start()
 		availabilityRows[index] = {label = row, button = invite, userId = nil}
 		invite.Activated:Connect(function()
 			local userId = availabilityRows[index].userId
-			if userId then garageRemote:FireServer("Invite", userId) end
+			local state=inviteStates[userId]
+			if not userId or (state and (state.phase=="SENDING" or state.phase=="PENDING")) then return end
+			inviteSerial+=1
+			local sending={phase="SENDING",requestId=inviteSerial}
+			inviteStates[userId]=sending
+			refreshInviteButtons()
+			garageRemote:FireServer("Invite",userId,sending.requestId)
+			task.delay(15,function()
+				if inviteStates[userId]==sending and sending.phase=="SENDING" then sending.phase="FAILED"; refreshInviteButtons() end
+			end)
 		end)
 	end
 	local availableTotal = 0
@@ -1003,6 +1035,7 @@ function RaceHudController.start()
 		local arrivalWaiting = matchStatus == "ARRIVAL" and raceState == "PRE_RACE"
 		local lobbyWaiting = matchStatus == "WAITING" and raceState == "PRE_RACE"
 		local isHost = player:GetAttribute("RaceHostUserId") == player.UserId
+		if not isHost or raceState == "GARAGE" then table.clear(inviteStates) end
 		lobbyPanel.Visible = lobbyWaiting or arrivalWaiting
 		racingInviteToggle.Visible = roomSnapshot ~= nil and isHost and raceState == "RACING"
 		if not racingInviteToggle.Visible then racingInvitesOpen = false end
@@ -1036,6 +1069,8 @@ function RaceHudController.start()
 				row.label.Visible = queued ~= nil or entry ~= nil or (index == 1 and availableCount == 0)
 				row.button.Visible = entry ~= nil and isHost
 			end
+			if not isHost then table.clear(inviteStates) end
+			refreshInviteButtons()
 		end
 		lobbyStatus.Text = string.format("RACERS  %d / %d", participantCount,
 			getNumberAttribute(player, "RaceMaxPlayers", 4))
@@ -1135,7 +1170,32 @@ function RaceHudController.start()
 		applyResponsiveLayout()
 	end
 	garageRemote.OnClientEvent:Connect(function(action, data)
-		if action == "RoomSnapshot" then roomSnapshot = data; updateHud() end
+		if action == "RoomSnapshot" then
+			if roomSnapshot and (roomSnapshot.roomId~=data.roomId or roomSnapshot.hostUserId~=data.hostUserId) then table.clear(inviteStates) end
+			roomSnapshot = data
+			if data.pendingInvites then
+				for userId,state in inviteStates do
+					if state.phase=="PENDING" and not data.pendingInvites[tostring(userId)] then inviteStates[userId]=nil end
+				end
+				for key, expiresAt in data.pendingInvites do
+					local userId = tonumber(key)
+					local state = userId and inviteStates[userId]
+					if userId and type(expiresAt)=="number" and expiresAt>os.time()
+						and (not state or state.phase=="FAILED") then
+						markInvitePending(userId, {}, expiresAt)
+					end
+				end
+			end
+			updateHud()
+		elseif (action=="InviteSent" or action=="InviteFailed" or action=="InviteDeclined") and type(data)=="table" then
+			local state=inviteStates[data.targetUserId]
+			if not state or (data.requestId and state.requestId~=data.requestId) then return end
+			if action=="InviteSent" and type(data.expiresAt)=="number" then
+				markInvitePending(data.targetUserId, state, data.expiresAt)
+			elseif action=="InviteFailed" then state.phase="FAILED"
+			else inviteStates[data.targetUserId]=nil end
+			refreshInviteButtons()
+		end
 	end)
 
 	for _, attributeName in {

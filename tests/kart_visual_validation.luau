@@ -5,7 +5,7 @@ local luau = require("@lune/luau")
 local roblox = require("@lune/roblox")
 local Instance, Vector3, CFrame, Color3 = roblox.Instance, roblox.Vector3, roblox.CFrame, roblox.Color3
 local function loadModule(path)
-    return luau.load(fs.readFile(path), { debugName=path, environment={Instance=Instance, Vector3=Vector3, CFrame=CFrame, Color3=Color3, Enum=roblox.Enum} })()
+    return luau.load(fs.readFile(path), { debugName=path, environment={Instance=Instance, Vector2=roblox.Vector2, Vector3=Vector3, CFrame=CFrame, Color3=Color3, Enum=roblox.Enum} })()
 end
 local factory = loadModule("src/shared/KartVisualFactory.luau")
 local catalog = loadModule("src/shared/KartCatalog.luau")
@@ -149,6 +149,69 @@ for _, scale in { 0.4, 1, 3 } do
 end
 assert(framing.fit(sprint,0,40)==nil)
 print("PASS: "..frameCases.." framing cases across sizes/aspects; invisible helpers ignored")
+-- Garage orbit fit: wheels/bumper/rear stay in frame at a fixed distance for 360 degrees.
+local orbitChecks=0
+for _, aspect in {.9,1.5,2.4} do
+ local fitted,target=framing.fit(sprint,aspect,40,true)
+ local offset=fitted.Position-target
+ local distance,pitch=offset.Magnitude,math.asin(offset.Y/offset.Magnitude)
+ local maxWidth=0
+ for degrees=0,355,5 do
+  local yaw=math.rad(degrees)
+  local direction=Vector3.new(math.sin(yaw)*math.cos(pitch),math.sin(pitch),math.cos(yaw)*math.cos(pitch))
+  local right=Vector3.yAxis:Cross(direction).Unit
+  local camera=CFrame.fromMatrix(target+direction*distance,right,direction:Cross(right),direction)
+  for _,part in sprint:GetDescendants() do if part:IsA("BasePart") and part.Transparency<1 then
+   for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
+    local point=camera:PointToObjectSpace(part.CFrame:PointToWorldSpace(part.Size*Vector3.new(x,y,z)*.5))
+    assert(point.Z<0)
+    local nx,ny=math.abs(point.X)/(-point.Z*math.tan(math.rad(20))*aspect),math.abs(point.Y)/(-point.Z*math.tan(math.rad(20)))
+    assert(nx<=.801 and ny<=.941,"Kart orbit clips visible geometry")
+    maxWidth=math.max(maxWidth,nx); orbitChecks+=1
+   end end end
+  end end
+ end
+ assert(maxWidth>=.65,"Kart orbit width must use stage: " .. maxWidth)
+ print("KART ORBIT aspect=" .. aspect .. " width=" .. maxWidth)
+end
+print("PASS: "..orbitChecks.." production Kart full-orbit corner checks")
+local priorFraming=luau.load(fs.readFile("src/shared/KartPreviewFraming.luau"):gsub("aspect%*%.80","aspect*.72"),{environment={Vector3=Vector3,CFrame=CFrame}})()
+local oldFrame,target=priorFraming.fit(sprint,1.5,40,true)
+local newFrame=framing.fit(sprint,1.5,40,true)
+assert((newFrame.Position-target).Magnitude<(oldFrame.Position-target).Magnitude,"R1 expands actual kart beyond Phase 1B width fit")
+-- The Garage-only map padding enlarges all three previews; racing minimaps retain the original fit.
+local geometry=loadModule("src/shared/TrackGeometry.luau")
+local tracks=loadModule("src/shared/TrackCatalog.luau")
+local token={WaitForChild=function(self) return self end}
+local renderer=luau.load(fs.readFile("src/client/TrackMapRenderer.luau"), {environment={
+ Instance=Instance,Vector3=Vector3,Vector2=roblox.Vector2,UDim2=roblox.UDim2,UDim=roblox.UDim,
+ Color3=Color3,Enum=roblox.Enum,game={GetService=function() return token end},require=function() return geometry end}})()
+for _,id in tracks.Order do
+ local entry=tracks.Entries[id]
+ local definition=geometry.getDefinition(entry.GeometryId)
+ local panel=Instance.new("Frame")
+ local preview=renderer.create(panel,definition,false,entry.PreviewRotationDegrees)
+ local canvas=panel.CourseCanvas
+ assert(canvas.Size==roblox.UDim2.fromScale(.96,.96) and canvas.Position==roblox.UDim2.fromScale(.5,.48))
+ local course=geometry.getCourse(definition)
+ local point=course.Samples[1]
+ local b=course.Bounds
+ local extent=math.max(b.MaxX-b.MinX,b.MaxZ-b.MinZ)*1.04
+ local x,y=(point.X-(b.MinX+b.MaxX)*.5)/extent,-(point.Z-(b.MinZ+b.MaxZ)*.5)/extent
+ local angle=math.rad(entry.PreviewRotationDegrees or 0)
+ local mark=canvas.StartFinishMarker.Position
+ assert(math.abs(mark.X.Scale-(.5+x*math.cos(angle)-y*math.sin(angle)))<.0001)
+ assert(math.abs(mark.Y.Scale-(.5+x*math.sin(angle)+y*math.cos(angle)))<.0001)
+ for _,segment in canvas:GetChildren() do if segment.Name=="CourseSegment" then
+  assert(segment.Position.X.Scale>=.015 and segment.Position.X.Scale<=.985 and segment.Position.Y.Scale>=.015 and segment.Position.Y.Scale<=.985)
+ end end
+ preview:destroy(); panel:Destroy()
+ local racePanel=Instance.new("Frame"); local race=renderer.create(racePanel,definition,true,0)
+ assert(racePanel.CourseCanvas.Size==roblox.UDim2.fromScale(.92,.92),"gameplay minimap geometry unchanged")
+ race:destroy(); racePanel:Destroy()
+end
+assert(tracks.Entries.Track01Race.PreviewRotationDegrees==90)
+print("PASS: three enlarged track previews, Start/Finish orientation and unchanged racing minimap")
 -- Compile all current scripts: rojo packages source but does not parse Luau.
 local compiled=0
 local function compileTree(dir)

@@ -35,7 +35,13 @@ function GaragePresence.canvasHeight(count, rowHeight, spacing)
 end
 
 -- width/height are already CoreUISafeInsets content bounds. Do not inset again.
-function GaragePresence.mobileLayout(count, width, height, previewWidth, presenceWidth, twoLines)
+function GaragePresence.mobileLayout(count, width, height, previewWidth, presenceWidth, twoLines, previewTop, previewHeight)
+	if width > height and previewTop and previewHeight then
+		local panelWidth = math.min(150, math.max(0, width*.5-previewWidth*.5-70))
+		local listHeight = math.max(0, previewHeight-32)
+		return { width=panelWidth, top=previewTop, panelHeight=previewHeight,
+			listHeight=listHeight, visibleRows=math.floor((listHeight+2)/18) }
+	end
 	local top = if twoLines then height * 0.13 + 64 else height * 0.155
 	local availableHeight = height * 0.38 - top - 8
 	local panelWidth = presenceWidth

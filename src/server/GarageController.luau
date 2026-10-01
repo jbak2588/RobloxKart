@@ -63,7 +63,7 @@ function GarageController.start()
 	remote.Name = REMOTE_NAME
 	remote.Parent = ReplicatedStorage
 	local readyPending: { [Player]: boolean } = {}
-	local pendingInvites: { [Player]: { hostUserId: number, sessionId: number, roundId: number, trackId: string, sentAt: number } } = {}
+	local pendingInvites: { [Player]: { hostUserId: number, sessionId: number, roundId: number, trackId: string, sentAt: number, expiresAt: number } } = {}
 	local reservedSlots: { [Player]: number } = {}
 	local readyOrder = 0
 
@@ -268,18 +268,27 @@ function GarageController.start()
 		if action == "Ready" then
 			ready(player, first, second, third)
 		elseif action == "Invite" and type(first) == "number" and first > 0 and first % 1 == 0 then
+			if Workspace:GetAttribute("KDMServerRole")=="RACE" then return end
 			local target = Players:GetPlayerByUserId(first)
 			local session = RaceSession.active()
-			if not target or not session or not validInvite(player, target, session) then return end
+			if not target or not session or not validInvite(player, target, session) then
+				remote:FireClient(player,"InviteFailed",{targetUserId=first,requestId=second}); return
+			end
 			local previous = pendingInvites[target]
 			local now = os.clock()
 			if previous and previous.hostUserId == player.UserId and previous.sessionId == session.id
-				and previous.roundId == session.roundId and now - previous.sentAt < 5 then return end
+				and previous.roundId == session.roundId and now - previous.sentAt < 30 then
+				remote:FireClient(player,"InviteSent",{targetUserId=first,requestId=second,expiresAt=previous.expiresAt}); return
+			end
 			pendingInvites[target] = { hostUserId = player.UserId, sessionId = session.id,
-				roundId = session.roundId, trackId = session.trackId, sentAt = now }
+				roundId = session.roundId, trackId = session.trackId, sentAt = now, expiresAt=os.time()+30 }
 			remote:FireClient(target, "Invite", player.DisplayName, session.trackId,
 				session:count(), TrackCatalog.Entries[session.trackId].MaxPlayers)
+			remote:FireClient(player,"InviteSent",{targetUserId=first,requestId=second,expiresAt=pendingInvites[target].expiresAt})
 		elseif action == "DeclineInvite" then
+			local invitation=pendingInvites[player]
+			local host=invitation and Players:GetPlayerByUserId(invitation.hostUserId)
+			if host then remote:FireClient(host,"InviteDeclined",{targetUserId=player.UserId}) end
 			pendingInvites[player] = nil
 		elseif action == "JoinInvite" then
 			local invitation = pendingInvites[player]
