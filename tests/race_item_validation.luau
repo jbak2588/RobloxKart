@@ -293,8 +293,10 @@ check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("RaceCha
 	and player:GetAttribute("RaceChargeShield")==1,"reserved Base start restores authoritative 1/1/1")
 services.RunService.studio=true
 startRace(); remote.OnServerEvent:Fire(player,"Use")
+local selectedBeforeFall=player:GetAttribute("SelectedRaceItemId")
 kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
-check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"reset clears both")
+check(not kart:GetAttribute("KartNitroActive") and player:GetAttribute("SelectedRaceItemId")==selectedBeforeFall
+ and player:GetAttribute("RaceChargeNitro")==0,"reset clears active Nitro, preserves selected inventory and consumed charge")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 seat.Occupant=nil
 check(not kart:GetAttribute("KartNitroActive"),"unseat cancels")
@@ -305,8 +307,9 @@ startRace(); remote.OnServerEvent:Fire(player,"Use")
 now+=config.INPUT_TIMEOUT+0.1; services.RunService.Heartbeat:Fire(1/60)
 check(not kart:GetAttribute("KartNitroActive"),"input timeout cancels")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
+local selectedBeforePhysicalFall = player:GetAttribute("SelectedRaceItemId")
 chassis.CFrame=CF.new(0,-50,0); step(1)
-check(not kart:GetAttribute("KartNitroActive") and not (player:GetAttribute("SelectedRaceItemId")~=""),"fall reset cleanup")
+check(not kart:GetAttribute("KartNitroActive") and player:GetAttribute("SelectedRaceItemId")==selectedBeforePhysicalFall and player:GetAttribute("RaceChargeNitro")==0,"fall reset cancels Nitro while preserving selection and consumed charge")
 startRace(); remote.OnServerEvent:Fire(player,"Use")
 for _=1,90 do step(1) end
 for _=1,100 do
@@ -508,11 +511,12 @@ for _, boundary in {"FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant"} do
 	-- First hit blocks; second starts immunity and Slick. Then clear lifecycle.
 	items.tryApplyOffensiveItem(player,player,"Slick")
 	items.tryApplyOffensiveItem(player,player,"Slick")
+	local selectedBeforeLifecycle=player:GetAttribute("SelectedRaceItemId")
 	if boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
 	elseif boundary=="occupant" then seat.Occupant=nil
 	else player:SetAttribute("RaceState",boundary) end
 	check(not kart:GetAttribute("KartSlickActive") and not kart:GetAttribute("RaceItemHitImmunity") and hazardCount()==0
-		and (player:GetAttribute("SelectedRaceItemId")=="" or boundary=="COUNTDOWN"),"full offensive lifecycle cleanup "..boundary)
+		and (player:GetAttribute("SelectedRaceItemId")=="" or boundary=="COUNTDOWN" or boundary=="reset" and player:GetAttribute("SelectedRaceItemId")==selectedBeforeLifecycle),"offensive transient cleanup with reset-safe inventory "..boundary)
 	fresh("Shield"); use()
 	if boundary=="reset" then kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
 	elseif boundary=="occupant" then seat.Occupant=nil
@@ -761,8 +765,8 @@ kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+
 check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("DriftBonusNitroAwarded"),
 	"fall reset cannot reopen an earned race reward")
 successfulDrift()
-check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("RaceChargeNitro")==0,
-	"post-reset Boost does not issue a second Nitro")
+check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("RaceChargeNitro")==2,
+	"post-reset Boost preserves remaining Nitro without issuing a second award")
 startRace()
 check(player:GetAttribute("DriftBonusProgress")==0 and not player:GetAttribute("DriftBonusNitroAwarded")
 	and player:GetAttribute("RaceChargeNitro")==1,"new Countdown resets progress and base loadout")
@@ -1030,6 +1034,15 @@ check(blocked and blockReason=="blocked" and not secondContext.kart:GetAttribute
 local hit,hitReason=items.tryApplyOffensiveItem(second,player,"Slick")
 check(hit and hitReason=="hit" and secondContext.kart:GetAttribute("RaceItemHitImmunity"),
 	"second player receives independent hit immunity")
+startRace()
+local fallBefore={}
+for _,name in {"RaceChargeNitro","RaceChargeSlick","RaceChargeShield","RaceChargeMissile","RaceChargeSmoke",
+ "RaceItemSlot1","RaceItemSlot2","RaceItemSlot3","RaceItemSlot4","SelectedRaceItemId"} do fallBefore[name]=player:GetAttribute(name) end
+local previousReset=kart:GetAttribute("RaceResetSerial") or 0
+chassis.CFrame=CF.new(0,config.FALL_RESET_Y-10,0);step(0)
+check(kart:GetAttribute("RaceResetSerial")==previousReset+1 and player:GetAttribute("RaceState")=="RACING",
+ "real PrototypeWorld fall path resets kart while race remains active")
+for name,value in fallBefore do check(player:GetAttribute(name)==value,"real fall preserves inventory "..name) end
 services.Players.PlayerRemoving:Fire(player)
 check(second:GetAttribute("RaceChargeNitro")==1 and secondContext.kart:GetAttribute("RaceItemHitImmunity")
 	and hazardCount()==secondHazardCount,"first PlayerRemoving preserves second resources")

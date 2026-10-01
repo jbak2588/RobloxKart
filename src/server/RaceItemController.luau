@@ -80,7 +80,8 @@ local function removeHazard(index, reason)
 	hazard.model:Destroy()
 	table.remove(hazards, index)
 end
-local function clearPlayer(player)
+-- Same-round recovery clears effects/hazards without changing temporary inventory or bonus state.
+local function clearTransientCombatState(player)
 	clearPulses(player)
 	player:SetAttribute("RaceCombatFeedbackCode", "")
 	player:SetAttribute("RaceCombatFeedbackTargetName", "")
@@ -89,7 +90,6 @@ local function clearPlayer(player)
 	player:SetAttribute("RaceMissileIncomingCount", 0)
 	player:SetAttribute("RaceMissileTargetName", "")
 	player:SetAttribute("RaceItemFeedbackCode", "")
-	if loadouts[player] then loadouts[player]:clear() end
 	removeShield(player)
 	local state = immunity[player]
 	if state then state.kart:SetAttribute("RaceItemHitImmunity", false) end
@@ -97,6 +97,10 @@ local function clearPlayer(player)
 	for index = #hazards, 1, -1 do
 		if hazards[index].owner == player then removeHazard(index, "owner_cleanup") end
 	end
+end
+local function clearPlayer(player)
+	clearTransientCombatState(player)
+	if loadouts[player] then loadouts[player]:clear() end
 	publish(player)
 end
 local function resetBonusProgress(player)
@@ -264,7 +268,12 @@ function RaceItemController.start()
 			kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
 				if kart:GetAttribute("RaceControlsLocked") == true then missiles:clearPlayer(player) end
 			end),
-			kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() clearPlayer(player) end),
+			kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function()
+				if player:GetAttribute("RaceState") == "RACING" then
+					clearTransientCombatState(player)
+					publish(player) -- No clear/prepare/refill: consumed charges and bonusClaimed stay intact.
+				else clearPlayer(player) end
+			end),
 			seat:GetPropertyChangedSignal("Occupant"):Connect(function()
 				-- Grid seating during COUNTDOWN keeps the prepared loadout.
 				if player:GetAttribute("RaceState") ~= "COUNTDOWN" then

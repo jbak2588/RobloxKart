@@ -298,6 +298,25 @@ Speed, steering/throttle, grip, Drift, Nitro and Mini Boost remain unchanged.
 Unified SMOKED! feedback and the published R1 item-prep flow are frozen.
 
 M4-A3-R2 CODE COMPLETE — PUBLISHED SMOKE IMPACT RETEST REQUIRED.
+
+### M4-A3-R2 follow-up: fall recovery preserves race inventory
+
+A RACING fall reset previously called full item teardown through RaceResetSerial,
+emptying the still-active racer's HUD. Same-round recovery now clears only transient
+combat state: Shield, Smoke effect/clouds, owned Slick hazards, outgoing/incoming
+Missiles, feedback, immunity and contact history. PrototypeWorld continues to stop
+Nitro/Mini Boost/Slick/Missile hit effects and reset movement; fall routing and lap
+invalidation are unchanged.
+
+Preserve exact four-slot order, remaining charges, selected item, confirmed tactical
+choice, bonusClaimed, DriftBonusProgress and DriftBonusNitroAwarded. Never refill
+consumed charges or award another Bonus Nitro on recovery. Garage, departure,
+character/kart destruction and session teardown retain full inventory cleanup.
+Focused production-controller validation covers untouched/custom/partially consumed
+loadouts, repeated falls, 3/5 progress, already-awarded bonus and transient cleanup;
+real PrototypeWorld fall handling is also exercised with deterministic mocks.
+Studio runtime NOT VERIFIED. PUBLISHED FALL RESET + SMOKE IMPACT RETEST REQUIRED.
+
 Studio runtime NOT VERIFIED. R2 strength/readability/avoidance and Shield-vs-Smoke
 need published device retesting; do not claim R2 published PASS. Four-player
 published testing stays deferred; automated ready-gate coverage remains mandatory.
