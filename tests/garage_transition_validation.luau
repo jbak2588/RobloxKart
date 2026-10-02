@@ -146,8 +146,13 @@ local guiService = object("GuiService")
 guiService.TopbarInset = rb.Rect.new(208,0,770,48)
 function guiService:GetGuiInset() return rb.Vector2.new(0,coreInsetY), rb.Vector2.zero end
 local runService = {RenderStepped = signal()}
+local visualTweens={}
+local tweenService={Create=function(_,target,info,goal)
+ local tween={cancelled=false,Play=function() end,Cancel=function(self) self.cancelled=true end}
+ table.insert(visualTweens,tween); return tween
+end}
 local services = { Players = playersService, ReplicatedStorage = replicated, Workspace = workspace,
-	UserInputService = input, GuiService = guiService, RunService = runService }
+	UserInputService = input, GuiService = guiService, RunService = runService, TweenService=tweenService }
 local client = object("Folder", "Client")
 for _, name in { "TrackMapRenderer", "GaragePresence", "KartInputController", "MobileTutorialView" } do
 	child(client, "ModuleScript", name)
@@ -173,13 +178,36 @@ local modules = {
 }
 local environment = { script = { Parent = client }, Instance = { new = object }, UDim2 = rb.UDim2,
 	UDim = rb.UDim, Vector2 = rb.Vector2, Vector3 = rb.Vector3, Color3 = rb.Color3, CFrame = rb.CFrame,
+ ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,TweenInfo={new=function() return {} end},
 	Enum = rb.Enum, game = { PlaceVersion = 1, GetService = function(_, name) return assert(services[name], name) end },
 	require = function(module) return assert(modules[module.Name], module.Name) end,
 	task = { delay = function() end, defer = function(callback) callback() end, spawn = function() end } }
-local controller = luau.load(fs.readFile("src/client/GarageUiController.luau"), { environment = environment })()
+local geometrySnapshots = {}
+local function captureGeometry(tag)
+ local snapshot={tag=tag,objects={}}
+ for _,name in {"SelectionPreview","TrackPreview","ServerPresence","ControlsHint","PreviousChoice","NextChoice","GarageTitle","GarageStep","GarageChoice"} do
+  local item=playerGui:FindFirstChild(name,true)
+  snapshot.objects[name]={item.AbsolutePosition.X,item.AbsolutePosition.Y,item.AbsoluteSize.X,item.AbsoluteSize.Y}
+ end
+ for _,item in playerGui:FindFirstChild("RobloxKartGarage"):FindFirstChild("Frame"):GetChildren() do
+  if item.ClassName=="TextButton" then snapshot.objects["button:"..item.Text]={item.AbsolutePosition.X,item.AbsolutePosition.Y,item.AbsoluteSize.X,item.AbsoluteSize.Y} end
+ end
+ table.insert(geometrySnapshots,snapshot)
+end
+local controller = luau.load(fs.readFile(require("@lune/process").args[1] or "src/client/GarageUiController.luau"), { environment = environment })()
 controller.start()
 local gui = playerGui.RobloxKartGarage
 local backdrop = gui:FindFirstChild("Frame")
+local shell=backdrop.PreviewVisualShell
+local visualInstances=1+#shell:GetDescendants()+1+#backdrop.ReadySummaryCard:GetDescendants()
+for _,item in playerGui:GetDescendants() do
+ if (item.Name=="ArcadeStroke" or item.Name=="ArcadeDepth") and item.Parent~=shell and item.Parent~=backdrop.ReadySummaryCard then visualInstances+=1 end
+end
+check(visualInstances==30,"bounded visual layer: 30 native UI instances across Phase 1C-A/B")
+local backStyle,primaryStyle
+for _,item in backdrop:GetChildren() do if item.Text=="BACK" then backStyle=item elseif item.Text=="SELECT" then primaryStyle=item end end
+check(backStyle.BackgroundColor3~=primaryStyle.BackgroundColor3 and backStyle.AutoButtonColor and primaryStyle.AutoButtonColor,
+ "primary and secondary chrome differ with native hover/press feedback")
 local presencePanel = backdrop.ServerPresence
 local list = presencePanel.OnlineList
 local populationLabel = playerGui:FindFirstChild("KDMPopulation",true)
@@ -279,6 +307,40 @@ end
 local function intersects(a, b)
 	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 end
+local function verifyShowroom(step, tag)
+ local preview=backdrop.SelectionPreview
+ local world=preview:FindFirstChild("PreviewWorld")
+ check(backdrop.ReadySummaryCard.Visible==(step==4),"Ready card step visibility "..tag)
+ if step<=2 then
+  local podium=assert(world:FindFirstChild("ShowcasePodium"))
+  local model=assert(world:FindFirstChild(if step==1 then "PreviewDriver" else "PreviewKart"))
+  check(podium.Parent==world and not model:FindFirstChild("ShowcasePodium",true),"podium isolated from fitted model "..tag)
+  check(#podium:GetChildren()==2,"two bounded podium parts "..tag)
+  local box,size=model:GetBoundingBox()
+  for _,part in podium:GetChildren() do
+   check(part.Shape==rb.Enum.PartType.Cylinder and part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery and not part.CastShadow,"preview-only podium flags "..tag)
+   check(part.CFrame.Position.Y+part.Size.X*.5<box.Position.Y-size.Y*.5,"podium top below model "..tag)
+  end
+  local frame=preview.CurrentCamera.CFrame
+  podium.Parent=nil
+  preview:GetPropertyChangedSignal("AbsoluteSize"):Fire()
+  check((frame.Position-preview.CurrentCamera.CFrame.Position).Magnitude<.00001 and (frame.LookVector-preview.CurrentCamera.CFrame.LookVector).Magnitude<.00001,"camera fit equal without podium "..tag)
+  podium.Parent=world
+  preview:GetPropertyChangedSignal("AbsoluteSize"):Fire()
+  check((frame.Position-preview.CurrentCamera.CFrame.Position).Magnitude<.00001 and (frame.LookVector-preview.CurrentCamera.CFrame.LookVector).Magnitude<.00001,"camera fit equal with podium "..tag)
+ else
+  check(not world,"no podium world on Track/Ready "..tag)
+ end
+ if step==4 then
+  local card=bounds(backdrop.ReadySummaryCard)
+  for _,item in backdrop:GetChildren() do
+   if (item.ClassName=="TextButton" or item.Name=="ServerPresence" or item.Name=="ControlsHint") and item.Visible then
+    local rect=bounds(item)
+    check(not intersects(card,rect),"Ready card clears "..item.Name.." "..tag.." card="..card.x..","..card.y..","..card.w..","..card.h.." other="..rect.x..","..rect.y..","..rect.w..","..rect.h)
+   end
+  end
+ end
+end
 -- Screen width/height, approved aggregate width, local Lobby width, visible rows.
 local resolutions = { {1600,739,560,140,4}, {1280,720,560,108,4},
 	{844,390,511,65,4}, {932,430,511,65,4,120,79},
@@ -294,6 +356,14 @@ for step = 1, 4 do
 guiService.TopbarInset = rb.Rect.new(208,0,cameraScreenSize.X-74,48)
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 		local tag = string.format("%dx%d step %d", resolution[1], resolution[2], step)
+        captureGeometry(tag)
+        verifyShowroom(step,tag)
+        local shell=backdrop.PreviewVisualShell
+        local target=if step==3 then backdrop.TrackPreview else backdrop.SelectionPreview
+        check(shell.Position==target.Position and shell.Size==target.Size,"shell inherits exact preview bounds "..tag)
+        check(shell.Active==false and shell.Visible==(step<=3),"non-interactive stage shell follows step "..tag)
+        check(not shell.ShowcasePlatform.Visible and shell.ShowcaseHalo.Visible==(step<=2) and shell.ZIndex<backdrop.SelectionPreview.ZIndex,"3D podium replaces pill; halo behind model, Driver/Kart only "..tag)
+        check(#shell.CheckerAccent:GetChildren()==8,"one bounded reusable checker "..tag)
         local preview = backdrop.SelectionPreview
         verifyPreviewLimits(rb.Vector2.new(800,410),"mobile restores original limit "..tag)
         local rectangle = bounds(preview)
@@ -503,6 +573,11 @@ camera:GetPropertyChangedSignal("ViewportSize"):Fire()
  player:SetAttribute("RaceState", "GARAGE")
  for desktopStep=1,4 do
   local tag=string.format("%dx%d step %d",dimensions[1],dimensions[2],desktopStep)
+  captureGeometry(tag)
+  verifyShowroom(desktopStep,tag)
+  local shell=backdrop.PreviewVisualShell
+  local target=if desktopStep==3 then backdrop.TrackPreview else backdrop.SelectionPreview
+  check(shell.Position==target.Position and shell.Size==target.Size,"desktop shell inherits exact bounds "..tag)
   local rectangle=bounds(if desktopStep==3 then backdrop.TrackPreview else backdrop.SelectionPreview)
   verifyPreviewLimits(rb.Vector2.new(1100,500),"desktop enlarged limit "..tag)
   local name=bounds(backdrop.GarageChoice)
@@ -687,6 +762,10 @@ runService.RenderStepped:Fire(.6); runService.RenderStepped:Fire(.1)
 check(previewFrame()~=dragged,"idle resumes after 2.5 seconds")
 local oldCamera=preview.CurrentCamera
 backdrop.NextChoice.Activated:Fire()
+local firstPulse=visualTweens[#visualTweens]
+backdrop.NextChoice.Activated:Fire()
+check(firstPulse.cancelled,"rapid selection replaces prior visual tween without delay")
+backdrop.NextChoice.Activated:Fire()
 check(backdrop.GarageChoice.Text=="Driver Two" and preview.CurrentCamera~=oldCamera,
     "arrow changes Driver ID and rebuilds preview")
 local resetFrame=previewFrame()
@@ -773,3 +852,21 @@ for _, size in {rb.Vector3.new(4,6.5,2), rb.Vector3.new(3,9,3), rb.Vector3.new(9
  end
 end
 print("PASS: " .. count .. " Garage transition and scrolling presence checks")
+local serde=require("@lune/serde")
+if require("@lune/process").args[2] then
+ fs.writeFile(require("@lune/process").args[2],serde.encode("json",geometrySnapshots))
+else
+ local baseline=serde.decode("json",fs.readFile("tests/fixtures/garage_phase1b_geometry.json"))
+ assert(#baseline==#geometrySnapshots,"geometry scenario count")
+ for index,snapshot in geometrySnapshots do
+  assert(snapshot.tag==baseline[index].tag,"geometry scenario order")
+  for name,rectangle in snapshot.objects do
+   -- Vector2 is float32; compare the saved coordinates at that same precision
+   -- rather than the JSON decoder's double-precision round-trip.
+   local saved=baseline[index].objects[name]
+   local savedPosition,savedSize=rb.Vector2.new(saved[1],saved[2]),rb.Vector2.new(saved[3],saved[4])
+   assert(rb.Vector2.new(rectangle[1],rectangle[2])==savedPosition and rb.Vector2.new(rectangle[3],rectangle[4])==savedSize,"Phase 1B geometry changed: "..snapshot.tag.." "..name)
+  end
+ end
+ print("PASS: "..#geometrySnapshots.." Phase 1B exact absolute geometry snapshots")
+end

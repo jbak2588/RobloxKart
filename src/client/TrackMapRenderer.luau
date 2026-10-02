@@ -44,6 +44,13 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 		line.BackgroundColor3 = Color3.fromRGB(220, 228, 233)
 		line.BorderSizePixel = 0
 		line.Parent = canvas
+		if not showKartMarker then
+			-- A continuous road fill avoids per-sample end-border seams and extra UI.
+			line.Size = UDim2.new(delta.Magnitude, 2, 0, 7)
+			line.BackgroundColor3 = Color3.fromRGB(86, 142, 168)
+			line.Active = false
+			line:SetAttribute("GarageRoadRibbon", true)
+		end
 	end
 
 	local start = mapPoint(samples[1])

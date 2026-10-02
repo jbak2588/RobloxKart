@@ -4,6 +4,7 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
@@ -22,6 +23,37 @@ local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialVie
 local started = false
 local GARAGE_LAYOUT_DEBUG = false
 local GARAGE_LAYOUT_REVISION = "GARAGE R2"
+local GARAGE_COLORS = {
+	BackgroundTop = Color3.fromRGB(16, 28, 46),
+	BackgroundBottom = Color3.fromRGB(6, 12, 23),
+	Stage = Color3.fromRGB(20, 37, 57),
+	StageDeep = Color3.fromRGB(10, 20, 34),
+	Cyan = Color3.fromRGB(0, 205, 255),
+	CyanSoft = Color3.fromRGB(65, 165, 220),
+	Primary = Color3.fromRGB(20, 139, 222),
+	Gold = Color3.fromRGB(255, 210, 55),
+	White = Color3.fromRGB(245, 248, 252),
+	Muted = Color3.fromRGB(135, 151, 169),
+}
+
+local function visualStroke(parent: Instance, transparency: number): UIStroke
+	local stroke = Instance.new("UIStroke")
+	stroke.Name = "ArcadeStroke"
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = GARAGE_COLORS.CyanSoft
+	stroke.Thickness = 1.5
+	stroke.Transparency = transparency
+	stroke.Parent = parent
+	return stroke
+end
+
+local function visualGradient(parent: Instance, top: Color3, bottom: Color3)
+	local gradient = Instance.new("UIGradient")
+	gradient.Name = "ArcadeDepth"
+	gradient.Color = ColorSequence.new(top, bottom)
+	gradient.Rotation = 90
+	gradient.Parent = parent
+end
 
 local function makeText(parent: Instance, size: UDim2, position: UDim2, text: string, fontSize: number): TextLabel
 	local label = Instance.new("TextLabel")
@@ -189,9 +221,10 @@ function GarageUiController.start()
 	local background = Instance.new("Frame")
 	background.Name = "FullScreenBackground"
 	background.Size = UDim2.fromScale(1, 1)
-	background.BackgroundColor3 = Color3.fromRGB(12, 19, 31)
+	background.BackgroundColor3 = Color3.new(1, 1, 1)
 	background.BorderSizePixel = 0
 	background.Parent = backgroundGui
+	visualGradient(background, GARAGE_COLORS.BackgroundTop, GARAGE_COLORS.BackgroundBottom)
 	gui:GetPropertyChangedSignal("Enabled"):Connect(function() backgroundGui.Enabled = gui.Enabled end)
 	gui.Destroying:Connect(function() backgroundGui:Destroy() end)
 
@@ -388,12 +421,13 @@ function GarageUiController.start()
 	viewport.Position = UDim2.fromScale(0.5, 0.265)
 	viewport.Size = UDim2.fromScale(0.52, 0.32)
 	viewport.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
-	viewport.BackgroundTransparency = 0.1
+	viewport.BackgroundTransparency = 1
 	viewport.BorderSizePixel = 0
-	viewport.Ambient = Color3.fromRGB(145, 152, 165)
-	viewport.LightColor = Color3.fromRGB(235, 230, 220)
+	viewport.Ambient = Color3.fromRGB(182, 189, 200)
+	viewport.LightColor = Color3.fromRGB(250, 244, 233)
 	viewport.LightDirection = Vector3.new(-1, -1, -0.6)
 	viewport.Parent = backdrop
+	viewport.ZIndex = 2
 	local viewportSize = Instance.new("UISizeConstraint")
 	viewportSize.MinSize = Vector2.new(360, 200)
 	viewportSize.MaxSize = Vector2.new(800, 410)
@@ -418,6 +452,8 @@ function GarageUiController.start()
 	mapPanel.BorderSizePixel = 0
 	mapPanel.Visible = false
 	mapPanel.Parent = backdrop
+	mapPanel.BackgroundTransparency = 1
+	mapPanel.ZIndex = 2
 	local mapSize = Instance.new("UISizeConstraint")
 	mapSize.MinSize = viewportSize.MinSize
 	mapSize.MaxSize = viewportSize.MaxSize
@@ -513,6 +549,132 @@ function GarageUiController.start()
 	local tutorialSeenThisSession = false
 
 	local step = 1
+	-- One reusable, non-interactive shell behind both existing preview targets.
+	local shell = Instance.new("Frame")
+	shell.Name = "PreviewVisualShell"
+	shell.AnchorPoint = viewport.AnchorPoint
+	shell.BackgroundColor3 = Color3.new(1, 1, 1)
+	shell.BorderSizePixel = 0
+	shell.Active = false
+	shell.ZIndex = 0
+	shell.Parent = backdrop
+	local shellCorner = Instance.new("UICorner")
+	shellCorner.CornerRadius = UDim.new(0, 12)
+	shellCorner.Parent = shell
+	visualGradient(shell, GARAGE_COLORS.Stage, GARAGE_COLORS.StageDeep)
+	local shellStroke = visualStroke(shell, .55)
+	shellStroke.Color = GARAGE_COLORS.Cyan
+	local platform = Instance.new("Frame")
+	platform.Name = "ShowcasePlatform"
+	platform.AnchorPoint = Vector2.new(.5, .5)
+	platform.Position = UDim2.fromScale(.5, .86)
+	platform.Size = UDim2.fromScale(.48, .085)
+	platform.BackgroundColor3 = GARAGE_COLORS.CyanSoft
+	platform.BackgroundTransparency = .86
+	platform.BorderSizePixel = 0
+	platform.Active = false
+	platform.ZIndex = 0
+	platform.Parent = shell
+	local platformCorner = Instance.new("UICorner")
+	platformCorner.CornerRadius = UDim.new(1, 0)
+	platformCorner.Parent = platform
+	local halo = Instance.new("Frame")
+	halo.Name = "ShowcaseHalo"
+	halo.AnchorPoint = Vector2.new(.5, .5)
+	halo.Position = UDim2.fromScale(.5, .57)
+	halo.Size = UDim2.fromScale(.74, .68)
+	halo.BackgroundColor3 = GARAGE_COLORS.CyanSoft
+	halo.BackgroundTransparency = .96
+	halo.BorderSizePixel = 0
+	halo.Active = false
+	halo.ZIndex = 0
+	halo.Parent = shell
+	local haloCorner = Instance.new("UICorner")
+	haloCorner.CornerRadius = UDim.new(1, 0)
+	haloCorner.Parent = halo
+	local haloGradient = Instance.new("UIGradient")
+	haloGradient.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(.5, 0), NumberSequenceKeypoint.new(1, 1)})
+	haloGradient.Rotation = 90
+	haloGradient.Parent = halo
+	local checker = Instance.new("Frame")
+	checker.Name = "CheckerAccent"
+	checker.AnchorPoint = Vector2.new(1, 1)
+	checker.Position = UDim2.new(1, -12, 1, -10)
+	checker.Size = UDim2.fromOffset(32, 16)
+	checker.BackgroundTransparency = 1
+	checker.Active = false
+	checker.ZIndex = 0
+	checker.Parent = shell
+	for row = 0, 1 do for column = 0, 3 do
+		local square = Instance.new("Frame")
+		square.Name = "CheckerSquare"
+		square.Position = UDim2.fromOffset(column*8, row*8)
+		square.Size = UDim2.fromOffset(8, 8)
+		square.BackgroundColor3 = if (row+column)%2 == 0 then GARAGE_COLORS.White else GARAGE_COLORS.CyanSoft
+		square.BackgroundTransparency = if (row+column)%2 == 0 then .65 else .9
+		square.BorderSizePixel = 0
+		square.Active = false
+		square.ZIndex = 0
+		square.Parent = checker
+	end end
+	visualStroke(presencePanel, .7)
+	visualStroke(controlsCard, .85)
+	local readyCard = Instance.new("Frame")
+	readyCard.Name = "ReadySummaryCard"
+	readyCard.BackgroundColor3 = Color3.new(1, 1, 1)
+	readyCard.BorderSizePixel = 0
+	readyCard.Active = false
+	readyCard.ZIndex = 0
+	readyCard.Parent = backdrop
+	local readyCorner = Instance.new("UICorner")
+	readyCorner.CornerRadius = UDim.new(0, 12)
+	readyCorner.Parent = readyCard
+	visualGradient(readyCard, GARAGE_COLORS.Stage, GARAGE_COLORS.StageDeep)
+	visualStroke(readyCard, .75)
+	for _, button in {previousButton, cycleButton, nextButton, leftArrow, rightArrow} do
+		local primary = button == cycleButton or button == nextButton
+		button.BackgroundColor3 = if primary then GARAGE_COLORS.Primary else GARAGE_COLORS.StageDeep
+		button.TextColor3 = GARAGE_COLORS.White
+		button.AutoButtonColor = true -- Native hover/press feedback, without layout animation.
+		visualStroke(button, if primary then .3 else .65)
+	end
+	local selectionTween: Tween? = nil
+	local function clearSelectionPulse()
+		if selectionTween then selectionTween:Cancel(); selectionTween = nil end
+		shellStroke.Transparency = .55
+	end
+	gui.Destroying:Connect(clearSelectionPulse)
+	gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if not gui.Enabled then clearSelectionPulse() end
+	end)
+	local function syncVisualShell()
+		local target = if step == 3 then mapPanel else viewport
+		shell.Position, shell.Size = target.Position, target.Size
+		shell.Visible = step <= 3
+		platform.Visible = false -- Replaced by the preview-only native 3D podium.
+		halo.Visible = step <= 2
+		readyCard.Visible = step == 4
+		if step == 4 then
+			-- Existing text rectangles remain the source of truth; only their backdrop expands.
+			local origin = backdrop.AbsolutePosition
+			local first, second = choiceLabel.AbsolutePosition - origin, detailLabel.AbsolutePosition - origin
+			local left, top = math.min(first.X, second.X), math.min(first.Y, second.Y)
+			local right = math.max(first.X + choiceLabel.AbsoluteSize.X, second.X + detailLabel.AbsoluteSize.X)
+			local bottom = math.max(first.Y + choiceLabel.AbsoluteSize.Y, second.Y + detailLabel.AbsoluteSize.Y)
+			local padLeft, padTop, padRight, padBottom = 8, 8, 8, 8
+			for _, item in {presencePanel, controlsCard, controlsButton, previousButton, nextButton} do
+				if not item.Visible then continue end
+				local position, size = item.AbsolutePosition - origin, item.AbsoluteSize
+				if position.X >= right then padRight = math.max(0, math.min(padRight, position.X - right - 4)) end
+				if position.X + size.X <= left then padLeft = math.max(0, math.min(padLeft, left - position.X - size.X - 4)) end
+				if position.Y >= bottom then padBottom = math.max(0, math.min(padBottom, position.Y - bottom - 4)) end
+				if position.Y + size.Y <= top then padTop = math.max(0, math.min(padTop, top - position.Y - size.Y - 4)) end
+			end
+			readyCard.Position = UDim2.fromOffset(left - padLeft, top - padTop)
+			readyCard.Size = UDim2.fromOffset(right - left + padLeft + padRight, bottom - top + padTop + padBottom)
+		end
+		if step == 4 then clearSelectionPulse() end
+	end
 	local localRouteRequested = false
 	local stopPreviewRotation: (() -> ())? = nil
 	local startPreviewIdleRotation: (() -> ())? = nil
@@ -530,6 +692,7 @@ function GarageUiController.start()
 	local previewDriver: Model? = nil
 	local function updateRouteOverlay()
 		local pending = localRouteRequested or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"
+		if pending then clearSelectionPulse() end
 		routeOverlay.Visible = pending and player:GetAttribute("RaceState") == "GARAGE"
 		if pending and stopPreviewRotation then stopPreviewRotation()
 		elseif startPreviewIdleRotation then startPreviewIdleRotation() end
@@ -540,6 +703,25 @@ function GarageUiController.start()
 	local previewRenderConnection: RBXScriptConnection? = nil
 	local previewYaw, previewPitch, previewDistance = 0, 0, 0
 	local previewCenter = Vector3.zero
+	local podium: Folder? = nil
+	local podiumDiameter, podiumBottom = 0, 0
+	local podiumCenter = Vector3.zero
+	local function updateShowcasePodium()
+		if not podium or not previewCamera then return end
+		-- Bound only the decoration to the existing full-yaw camera envelope.
+		-- The circular podium is symmetric, so this conservative limit covers every yaw.
+		local tangent = math.tan(math.rad(previewCamera.FieldOfView) / 2)
+		local sine, cosine = math.sin(previewPitch), math.cos(previewPitch)
+		local height = previewCenter.Y - podiumBottom + .265
+		local offset = Vector3.new(podiumCenter.X - previewCenter.X, 0, podiumCenter.Z - previewCenter.Z).Magnitude
+		local vertical = .99 * tangent
+		local horizontal = .94 * tangent * viewport.AbsoluteSize.X / math.max(1, viewport.AbsoluteSize.Y)
+		local radiusY = (vertical * (previewDistance + height * sine) - height * cosine) / (math.abs(sine) + vertical * cosine)
+		local radiusX = horizontal * (previewDistance + height * sine) / (1 + horizontal * cosine)
+		local diameter = math.max(.1, math.min(podiumDiameter, 2 * (math.min(radiusY, radiusX) - offset)))
+		podium.GlowBase.Size = Vector3.new(.12, diameter, diameter)
+		podium.MainDisc.Size = Vector3.new(.12, diameter * .94, diameter * .94)
+	end
 	local activePreviewInput: InputObject? = nil
 	local lastDragX = 0
 	local idleDelay = 0
@@ -577,6 +759,7 @@ function GarageUiController.start()
 		previewPitch = math.asin(offset.Y / previewDistance)
 		-- Resize retains the current viewing angle; a rebuilt selection resets it below.
 		updatePreviewCamera()
+		updateShowcasePodium()
 	end
 	viewport.Active = true
 	table.insert(rotationConnections, viewport.InputBegan:Connect(function(input)
@@ -895,6 +1078,7 @@ function GarageUiController.start()
 			end
 		end
 		applyVisualStage(backdrop.AbsoluteSize, viewportSizePixels)
+		syncVisualShell()
 		if GARAGE_LAYOUT_DEBUG then
 			task.defer(function()
 				if not gui.Parent then return end
@@ -931,6 +1115,7 @@ function GarageUiController.start()
 
 	local function clearPreview()
 		stopPreviewRotation()
+		podium = nil
 		previewKart = nil
 		previewDriver = nil
 		viewport.CurrentCamera = nil
@@ -979,6 +1164,35 @@ function GarageUiController.start()
 		previewKey = key
 		previewYaw = if kind == "Driver" then math.rad(-165) else math.rad(-135)
 		fitSelectionPreview()
+		-- A sibling of the fitted model: podium geometry never enters either fit helper.
+		local model = previewKart or previewDriver
+		if model then
+			local box, bounds = model:GetBoundingBox()
+			local bottom = math.huge
+			for _, x in {-1, 1} do for _, y in {-1, 1} do for _, z in {-1, 1} do
+				bottom = math.min(bottom, (box * Vector3.new(x * bounds.X / 2, y * bounds.Y / 2, z * bounds.Z / 2)).Y)
+			end end end
+			local diameter = math.max(bounds.X, bounds.Z) * (if kind == "Driver" then 1.8 else 1.15)
+			podiumDiameter, podiumBottom, podiumCenter = diameter, bottom, box.Position
+			podium = Instance.new("Folder")
+			podium.Name = "ShowcasePodium"
+			podium.Parent = world
+			for _, disc in {{"GlowBase", .12, diameter, .32, GARAGE_COLORS.CyanSoft}, {"MainDisc", .12, diameter * .94, 0, GARAGE_COLORS.StageDeep}} do
+				local part = Instance.new("Part")
+				part.Name = disc[1]
+				part.Shape = Enum.PartType.Cylinder
+				part.Size = Vector3.new(disc[2], disc[3], disc[3])
+				local surface = bottom - .025 - (if disc[1] == "GlowBase" then .12 else 0)
+				part.CFrame = CFrame.new(box.Position.X, surface - disc[2] / 2, box.Position.Z) * CFrame.Angles(0, 0, math.pi / 2)
+				part.Color = disc[5]
+				part.Material = Enum.Material.SmoothPlastic
+				part.Transparency = disc[4]
+				part.Anchored = true
+				part.CanCollide, part.CanTouch, part.CanQuery, part.CastShadow = false, false, false, false
+				part.Parent = podium
+			end
+			updateShowcasePodium()
+		end
 		startPreviewIdleRotation()
 	end
 
@@ -1098,6 +1312,10 @@ function GarageUiController.start()
 			trackIndex = (trackIndex - 1 + direction + #TrackCatalog.Order) % #TrackCatalog.Order + 1
 		end
 		update()
+		clearSelectionPulse()
+		shellStroke.Transparency = .2
+		selectionTween = TweenService:Create(shellStroke, TweenInfo.new(.22), {Transparency = .55})
+		selectionTween:Play()
 	end
 	leftArrow.Activated:Connect(function()
 		changeChoice(-1)

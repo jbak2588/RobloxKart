@@ -204,10 +204,16 @@ for _,id in tracks.Order do
  assert(math.abs(mark.Y.Scale-(.5+x*math.sin(angle)+y*math.cos(angle)))<.0001)
  for _,segment in canvas:GetChildren() do if segment.Name=="CourseSegment" then
   assert(segment.Position.X.Scale>=.015 and segment.Position.X.Scale<=.985 and segment.Position.Y.Scale>=.015 and segment.Position.Y.Scale<=.985)
+  assert(segment.Size.Y.Offset==7 and segment.BorderSizePixel==0 and segment:GetAttribute("GarageRoadRibbon"))
+  assert(not segment.Active and #segment:GetChildren()==0,"Garage ribbon has zero additional segment instances")
  end end
  preview:destroy(); panel:Destroy()
  local racePanel=Instance.new("Frame"); local race=renderer.create(racePanel,definition,true,0)
  assert(racePanel.CourseCanvas.Size==roblox.UDim2.fromScale(.92,.92),"gameplay minimap geometry unchanged")
+ for _,segment in racePanel.CourseCanvas:GetChildren() do if segment.Name=="CourseSegment" then
+  assert(segment.Size.Y.Offset==3 and segment.BackgroundColor3==Color3.fromRGB(220,228,233)
+   and #segment:GetChildren()==0,"race minimap retains original thin-line style")
+ end end
  race:destroy(); racePanel:Destroy()
 end
 assert(tracks.Entries.Track01Race.PreviewRotationDegrees==90)
