@@ -159,7 +159,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if not humanoid or humanoid.Health <= 0 then reject(player, "HUMANOID_INVALID"); return end
 		local spawnCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[plan.gridSlot]
-		local context = PrototypeWorld.acquireKartContext(player, spawnCFrame)
+		local context = PrototypeWorld.acquireKartContext(player, spawnCFrame, plan.kartId)
 		if not context then reject(player, "KART_CONTEXT_FAILED"); return end
 		local seat, kart = context.seat, context.kart
 		if seat.Occupant then reject(player, "SEAT_OCCUPIED"); return end
@@ -174,7 +174,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		DriverAppearance.applyToCharacter(character, DriverCatalog.Entries[plan.driverId])
 		local visual = kart:FindFirstChild("Visual")
 		if visual and visual:IsA("Model") then
-			KartVisualFactory.applyColors(visual, KartCatalog.Entries[plan.kartId])
+			KartVisualFactory.applyAppearance(visual, KartCatalog.Entries[plan.kartId])
 		end
 		context:setSpawnCFrame(spawnCFrame)
 		kart:PivotTo(spawnCFrame)

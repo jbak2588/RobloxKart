@@ -174,8 +174,19 @@ check(overlap:forwardSpeed(95,true,1,1/60)>95,"active Mini Boost accelerates tow
 
 -- Minimal world dependencies; actual movement/controller modules run below.
 for name, result in {
-	KartCatalog={DefaultId="Kart01",Entries={Kart01={}}},
-	KartVisualFactory={createVisual=function() return object("Model","Visual") end},
+	KartCatalog={DefaultId="Kart01",Entries={
+		Kart01={Id="Kart01",VisualModelName="SprintV1"},
+		Kart05={Id="Kart05",VisualModelName="KDMV2",VisualVariant="CyanHero"},
+		Kart06={Id="Kart06",VisualModelName="KDMV2",VisualVariant="RedMetal"},
+	}},
+	KartVisualFactory={getDriverSeatLocalCFrame=function(definition)
+		return if definition.VisualModelName=="KDMV2" then CF.new(0,.06000018119812012,.5) else CF.new(0,1.5,.5)
+	end,createVisual=function(definition)
+		local visual=object("Model","Visual")
+		visual:SetAttribute("VisualModelName",definition.VisualModelName)
+		visual:SetAttribute("VisualVariant",definition.VisualVariant)
+		return visual
+	end},
 } do child(shared,"ModuleScript",name); modules[name]=result end
 child(server,"ModuleScript","TrackBuilder")
 modules.TrackBuilder={build=function(prototype)
@@ -194,6 +205,18 @@ load("src/server/KartUprightRecovery.luau",server,"KartUprightRecovery")
 local world=load("src/server/PrototypeWorld.luau",server,"PrototypeWorld")
 check(not world.activateNitro(player),"pre-start rejection")
 world.start()
+local selectedContext=world.acquireKartContext(player,CF.identity,"Kart05")
+check(selectedContext.kart.Visual:GetAttribute("VisualModelName")=="KDMV2"
+	and selectedContext.kart.Visual:GetAttribute("VisualVariant")=="CyanHero","prebuilt context adopts actual selected V2 definition")
+local originalChassis,originalSeat=selectedContext.chassis,selectedContext.seat
+check(world.acquireKartContext(player,CF.identity,"Kart06")==selectedContext
+	and selectedContext.kart.Visual:GetAttribute("VisualVariant")=="RedMetal","owned vacant context changes variant")
+selectedContext.seat.Occupant=human
+check(world.acquireKartContext(player,CF.identity,"Kart01")==nil,"occupied mismatched context rejects visual replacement")
+selectedContext.seat.Occupant=nil
+check(world.acquireKartContext(player,CF.identity,"Kart01")==selectedContext
+	and selectedContext.kart.Visual:GetAttribute("VisualModelName")=="SprintV1","owned vacant context restores actual Sprint geometry")
+check(selectedContext.chassis==originalChassis and selectedContext.seat==originalSeat,"selection preserves physics assembly identity")
 check(world.assignDefaultKart(player) ~= nil,"default kart assigned to driver")
 local items=load("src/server/RaceItemController.luau",server,"RaceItemController")
 items.start()

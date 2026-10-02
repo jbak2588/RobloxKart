@@ -1,5 +1,14 @@
 local KartVisualFactory = {}
 
+function KartVisualFactory.getDriverSeatLocalCFrame(definition): CFrame
+	if definition.VisualModelName == "SprintV1" then
+		return CFrame.new(0, 1.5, 0.5)
+	elseif definition.VisualModelName == "KDMV2" then
+		return require(script.Parent.KDMV2VisualDefinition).DriverSeatLocalCFrame
+	end
+	error("Unknown driver-seat visual model: " .. tostring(definition.VisualModelName))
+end
+
 local TRIM = Color3.fromRGB(32, 37, 45)
 local METAL = Color3.fromRGB(145, 153, 160)
 -- Color identity and surface finish are independent; geometry only tags roles.
@@ -230,7 +239,29 @@ function KartVisualFactory.applyMaterials(visual: Model)
 	end
 end
 
+function KartVisualFactory.applyAppearance(visual: Model, definition: { [string]: any })
+	if definition.VisualModelName == "KDMV2" then
+		assert(visual:GetAttribute("VisualModelName") == "KDMV2", "V2 appearance requires V2 geometry")
+		local body = visual.StaticRoot.CurvedBody
+		body.TextureID = definition.BodyTextureId
+		body.Material = definition.BodyMaterial
+		body.Color = Color3.new(1, 1, 1)
+		body.Reflectance = 0
+		visual:SetAttribute("VisualVariant", definition.VisualVariant)
+	else
+		KartVisualFactory.applyColors(visual, definition)
+	end
+end
+
 function KartVisualFactory.createVisual(definition: { [string]: any }): Model
+	if definition.VisualModelName == "KDMV2" then
+		local visual = require(script.Parent.KDMV2VisualDefinition).createVisual()
+		KartVisualFactory.applyAppearance(visual, definition)
+		local valid, errors = KartVisualFactory.validateVisual(visual)
+		assert(valid, table.concat(errors, "; "))
+		return visual
+	end
+	assert(definition.VisualModelName == "SprintV1", "Unknown kart visual model")
 	local visual = Instance.new("Model")
 	visual.Name = "Visual"
 	visual:SetAttribute("VisualModelName", definition.VisualModelName)

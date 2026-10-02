@@ -204,7 +204,7 @@ function GarageController.start()
 			warn("[Garage] Track build failed: " .. tostring(buildError))
 			return
 		end
-		local context = PrototypeWorld.acquireKartContext(player, gridCFrame)
+		local context = PrototypeWorld.acquireKartContext(player, gridCFrame, kartSelection.Id)
 		if not context then
 			readyPending[player] = nil
 			releaseSlot(player)
@@ -232,7 +232,7 @@ function GarageController.start()
 		DriverAppearance.applyToCharacter(character, driver)
 		local visual = kart:FindFirstChild("Visual")
 		if visual and visual:IsA("Model") then
-			KartVisualFactory.applyColors(visual, kartSelection)
+			KartVisualFactory.applyAppearance(visual, kartSelection)
 		end
 		context:setSpawnCFrame(gridCFrame)
 		kart:PivotTo(gridCFrame)

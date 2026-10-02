@@ -123,7 +123,47 @@ local function motorToChassis(chassis: BasePart, wheel: BasePart)
 	motor.Parent = wheel
 end
 
-local function createKart(prototype: Folder, spawnCFrame: CFrame, kartName: string): (Model, Part, Seat)
+local function bindVisual(kart: Model, chassis: BasePart, definition)
+	local visual = KartVisualFactory.createVisual(definition)
+	visual:PivotTo(chassis.CFrame)
+	local previous = kart:FindFirstChild("Visual")
+	if previous then previous:Destroy() end
+	visual.Parent = kart
+	for _, part in visual:GetChildren() do
+		if part:IsA("BasePart") then
+			if part.Name == "StaticRoot" then
+				weldToChassis(chassis, part)
+			elseif part:GetAttribute("VisualMotionRole") then
+				motorToChassis(chassis, part)
+			end
+		end
+	end
+	kart:SetAttribute("KartId", definition.Id)
+end
+
+local function selectVisual(context, definition): boolean
+	if context.kart:GetAttribute("KartId") == definition.Id then return true end
+	-- Rebind only a vacant assembly. Never replace joints under a seated driver.
+	if context.seat.Occupant then return false end
+	local seatFrame = KartVisualFactory.getDriverSeatLocalCFrame(definition)
+	bindVisual(context.kart, context.chassis, definition)
+	-- Disconnect the vacant Seat before moving it, so CFrame does not drag the
+	-- welded Chassis/visual assembly. Rebind at the model's driver-fit transform.
+	for _, joint in context.seat:GetChildren() do
+		if joint:IsA("WeldConstraint") and joint.Part0 == context.chassis and joint.Part1 == context.seat then
+			joint:Destroy()
+		end
+	end
+	context.seat.CFrame = context.chassis.CFrame * seatFrame
+	weldToChassis(context.chassis, context.seat)
+	return true
+end
+
+local function kartDefinition(kartId)
+	return KartCatalog.Entries[kartId or KartCatalog.DefaultId] or KartCatalog.Entries[KartCatalog.DefaultId]
+end
+
+local function createKart(prototype: Folder, spawnCFrame: CFrame, kartName: string, kartId: string?): (Model, Part, Seat)
 	local previousKart = prototype:FindFirstChild(kartName)
 	if previousKart then
 		previousKart:Destroy()
@@ -155,25 +195,13 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame, kartName: stri
 	chassis.RootPriority = 127
 	chassis.CustomPhysicalProperties = PhysicalProperties.new(1, 0.05, 0, 1, 1)
 
-	local visual = KartVisualFactory.createVisual(KartCatalog.Entries[KartCatalog.DefaultId])
-	-- PrimaryPart is StaticRoot at the factory's chassis-local origin. Move the
-	-- complete welded hierarchy together before binding its six assembly roots.
-	visual:PivotTo(spawnCFrame)
-	visual.Parent = kart
-	for _, part in visual:GetChildren() do
-		if part:IsA("BasePart") then
-			if part.Name == "StaticRoot" then
-				weldToChassis(chassis, part)
-			elseif part:GetAttribute("VisualMotionRole") then
-				motorToChassis(chassis, part)
-			end
-		end
-	end
+	local definition = kartDefinition(kartId)
+	bindVisual(kart, chassis, definition)
 
 	local seat = Instance.new("Seat")
 	seat.Name = "Seat"
 	seat.Size = Vector3.new(2.5, 1, 2.5)
-	seat.CFrame = spawnCFrame * CFrame.new(0, 1.5, 0.5)
+	seat.CFrame = spawnCFrame * KartVisualFactory.getDriverSeatLocalCFrame(definition)
 	seat.Color = Color3.fromRGB(35, 35, 40)
 	seat.TopSurface = Enum.SurfaceType.Smooth
 	seat.BottomSurface = Enum.SurfaceType.Smooth
@@ -1166,23 +1194,25 @@ function PrototypeWorld.start(options)
 
 	defaultContext = createContext(nil, kart, chassis, seat, spawnCFrame)
 	kart:SetAttribute("KartOwnerUserId", 0)
-	function PrototypeWorld.acquireKartContext(player: Player, startCFrame: CFrame)
+	function PrototypeWorld.acquireKartContext(player: Player, startCFrame: CFrame, kartId: string?)
+		local definition = kartDefinition(kartId)
 		local existing = ownerContexts[player]
 		if existing then
+			if not selectVisual(existing, definition) then return nil end
 			existing:setSpawnCFrame(startCFrame)
 			return existing
 		end
 		if defaultContext and defaultContext.kart.Parent and not defaultContext.seat.Occupant
-			and defaultContext:assignOwner(player) then
+			and selectVisual(defaultContext, definition) and defaultContext:assignOwner(player) then
 			defaultContext:setSpawnCFrame(startCFrame)
 			return defaultContext
 		end
 		if not defaultContext then
-			local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart")
+			local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart", definition.Id)
 			defaultContext = createContext(player, newKart, newChassis, newSeat, startCFrame)
 			return defaultContext
 		end
-		return PrototypeWorld.createKartContext(player, startCFrame)
+		return PrototypeWorld.createKartContext(player, startCFrame, definition.Id)
 	end
 	function PrototypeWorld.assignDefaultKart(player: Player)
 		if defaultContext and defaultContext.kart.Parent and defaultContext:assignOwner(player) then
@@ -1190,9 +1220,9 @@ function PrototypeWorld.start(options)
 		end
 		return nil
 	end
-	function PrototypeWorld.createKartContext(player: Player, startCFrame: CFrame)
+	function PrototypeWorld.createKartContext(player: Player, startCFrame: CFrame, kartId: string?)
 		if ownerContexts[player] then return nil end
-		local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart_" .. tostring(player.UserId))
+		local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart_" .. tostring(player.UserId), kartId)
 		return createContext(player, newKart, newChassis, newSeat, startCFrame)
 	end
 	function PrototypeWorld.destroyKartContext(player: Player)

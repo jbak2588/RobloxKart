@@ -303,14 +303,15 @@ local CF, V = rb.CFrame, rb.Vector3
 modules.TrackCatalog.Entries.Track01.GridSlots = { CF.new(10, 0, 20) }
 modules.TrackCatalog.Entries.Track02.GridSlots = { CF.new(30, 0, 40) }
 modules.DriverAppearance = { applyToCharacter = function(character, driver) character.appliedDriver = driver end }
-modules.KartVisualFactory = { applyColors = function(visual, kart) visual.appliedKart = kart end }
+modules.KartVisualFactory = { applyAppearance = function(visual, kart) visual.appliedKart = kart end }
 local appearance = {}
 modules.DriverCatalog.Entries.Driver02 = appearance
 local kartSelection = {}
 modules.KartCatalog.Entries.Kart02 = kartSelection
 local contextCount = 0
 local seats = {}
-modules.PrototypeWorld = { acquireKartContext = function(_, spawn)
+modules.PrototypeWorld = { acquireKartContext = function(_, spawn, kartId)
+	check(kartId=="Kart02", "arrival forwards validated selected kart to creation")
 	contextCount += 1
 	local visual = { IsA = function(_, class) return class == "Model" end }
 	local kart = { FindFirstChild = function(_, name) return if name == "Visual" then visual else nil end,
