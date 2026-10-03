@@ -152,7 +152,7 @@ local function stagePlayer(player, roomId)
 		local found, current = pcall(function() return directory:get(roomId) end)
 		errorTo(player, if found and not current then "ROOM CLOSED - CHOOSE ANOTHER ROOM"
 			elseif found and current and current.state ~= "WAITING" then "ROOM STARTED - QUEUE FOR NEXT RACE"
-			elseif found and current and #current.stagedMembers >= current.maxPlayers then "ROOM FULL"
+			elseif found and current and #current.stagedMembers + #(current.stagedBots or {}) >= current.maxPlayers then "ROOM FULL"
 			else "ROOM STATUS UPDATING...")
 		return false
 	end
@@ -268,7 +268,7 @@ function MatchRoomService.start()
 				errorTo(player, "INVITE EXPIRED"); return
 			end
 			pcall(function() social:clearInvite(player.UserId) end)
-			if record.state == "WAITING" and #record.stagedMembers < record.maxPlayers then
+			if record.state == "WAITING" and #record.stagedMembers + #(record.stagedBots or {}) < record.maxPlayers then
 				stagePlayer(player, record.roomId)
 			else queuePlayer(player, record.roomId, 1) end
 		elseif action == "DeclineInvite" then

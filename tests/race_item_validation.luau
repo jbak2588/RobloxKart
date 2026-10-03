@@ -1229,6 +1229,46 @@ check(world.getKartContext(botState)==nil and not botContext.kart.Parent and ses
 world.releaseKartContext(attacker)
 print("PASS: "..count.." total production checks including NPC targeting/debuff/recovery")
 
+-- Production source uses the same physical context with Studio test flag OFF.
+local productionChecks=0
+local function productionCheck(value,label) assert(value,label);productionChecks+=1 end
+services.RunService.studio=false
+services.Workspace:SetAttribute("KDMServerRole","HUB")
+local productionState=object("Folder","Bot01");productionState:SetAttribute("IsBot",true)
+productionState:SetAttribute("BotId","Bot01");productionState:SetAttribute("DisplayName","KDM Rookie [BOT]")
+local productionNpc=object("Model","KDM Rookie [BOT]")
+local productionHuman=child(productionNpc,"Humanoid","Humanoid");productionHuman.Health=100
+productionCheck(not pcall(function() world.createBotKartContext(productionState,productionNpc,CF.identity,"PRODUCTION_ROOM","room") end),"HUB cannot create production Bot")
+services.Workspace:SetAttribute("KDMServerRole","RACE")
+local productionContext=world.createBotKartContext(productionState,productionNpc,CF.identity,"PRODUCTION_ROOM","room")
+productionState:SetAttribute("RaceState","RACING");productionState:SetAttribute("RacePosition",1)
+productionContext.seat.Occupant=productionHuman;productionHuman.SeatPart=productionContext.seat
+productionContext.kart:SetAttribute("RaceControlsLocked",false)
+local productionSession=sessionType.new("Track01Race","RACE",2)
+attackerContext=world.acquireKartContext(attacker,CF.new(10,1.75,0))
+attackerContext.seat.Occupant=attackerHuman;attackerHuman.SeatPart=attackerContext.seat
+attackerContext.kart:SetAttribute("RaceControlsLocked",false)
+productionSession:add(attacker,{});productionSession:addBot(productionState,{})
+local function productionStep(dt) now+=dt;productionContext:setServerControl(0);productionContext:step(dt) end
+productionCheck(productionContext:setServerControl(0),"live RACE source accepts server input with test flag OFF")
+for _=1,150 do productionStep(1/60) end
+productionCheck(math.abs(productionContext.commandedSpeed-70)<.01,"production normal target 70")
+productionCheck(not world.activateNitro(productionState),"production Bot Nitro rejected")
+productionCheck(items.missileTarget(attacker)==productionState and items.thunderTargets(attacker)[1]==productionState,"production target selection includes Bot")
+for _,case in {{"Missile",itemConfig.MISSILE_EFFECT_DURATION,itemConfig.MISSILE_SPEED_CAP},{"Thunder",itemConfig.THUNDER_EFFECT_DURATION,itemConfig.THUNDER_SPEED_CAP}} do
+ local accepted,why=items.tryApplyOffensiveItem(productionState,attacker,case[1]);productionCheck(accepted and why=="hit","production Bot hit "..case[1])
+ for _=1,math.floor((case[2]-.05)*60) do
+  productionStep(1/60);local v=productionContext.chassis.AssemblyLinearVelocity
+  productionCheck(V.new(v.X,0,v.Z).Magnitude<=case[3]+.001,"production Bot active cap")
+ end
+ for _=1,180 do productionStep(1/60);services.RunService.Heartbeat:Fire(1/60) end
+ productionCheck(math.abs(productionContext.commandedSpeed-70)<.01,"production Bot natural recovery")
+end
+productionSession:remove(productionState);world.releaseBotKartContext(productionState);productionNpc:Destroy()
+world.releaseKartContext(attacker)
+services.RunService.studio=true;services.Workspace:SetAttribute("KDMServerRole",nil)
+print("PASS: "..productionChecks.." additional live-gated NPC physical integration checks")
+
 -- Real preview lifecycle with deterministic rendering clock, without a live world.
 local previewChecks = 0
 local function previewCheck(value, label)

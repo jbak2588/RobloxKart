@@ -726,8 +726,10 @@ function PrototypeWorld.start(options)
 
 		-- Server internal NPC input; no remote can choose a bot context.
 		function context:setServerControl(steering: number)
-			if not self.botParticipant or not RunService:IsStudio()
-				or Workspace:GetAttribute("KDMEnableRaceBot") ~= true then return false end
+			local permitted = if self.botSource == "PRODUCTION_ROOM"
+				then RaceConfig.INVITEABLE_BOT_ENABLED and Workspace:GetAttribute("KDMServerRole") == "RACE"
+				else RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot") == true
+			if not self.botParticipant or not permitted then return false end
 			local humanoid=self.botDriver:FindFirstChildOfClass("Humanoid")
 			if not humanoid or seat.Occupant~=humanoid or humanoid.SeatPart~=seat
 				or self.botParticipant:GetAttribute("RaceState")~="RACING" then self.control=nil;return false end
@@ -1261,12 +1263,16 @@ function PrototypeWorld.start(options)
 		local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart_" .. tostring(player.UserId), kartId)
 		return createContext(player, newKart, newChassis, newSeat, startCFrame)
 	end
-	function PrototypeWorld.createBotKartContext(state: Folder, driver: Model, startCFrame: CFrame)
-		assert(RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot")==true,"Bot test gate required")
+	function PrototypeWorld.createBotKartContext(state: Folder, driver: Model, startCFrame: CFrame, source: string?, roomId: string?)
+		local production = source == "PRODUCTION_ROOM" and type(roomId) == "string" and roomId ~= ""
+			and RaceConfig.INVITEABLE_BOT_ENABLED and Workspace:GetAttribute("KDMServerRole") == "RACE"
+		assert(production or (source ~= "PRODUCTION_ROOM" and RunService:IsStudio()
+			and Workspace:GetAttribute("KDMEnableRaceBot")==true),"Bot gate required")
 		assert(state:GetAttribute("IsBot")==true and not botContexts[state],"Unique explicit bot state required")
 		local model,body,botSeat=createKart(prototype,startCFrame,"KDM_Rookie_Bot","Kart01")
 		local context=createContext(nil,model,body,botSeat,startCFrame)
 		context.botParticipant=state;context.botDriver=driver;context.owner=state
+		context.botSource=if production then "PRODUCTION_ROOM" else "STUDIO_TEST"
 		botContexts[state]=context
 		body:SetNetworkOwner(nil)
 		context.botCollision=collisionIsolation:bindDriver(driver)

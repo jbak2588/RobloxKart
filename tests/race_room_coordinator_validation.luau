@@ -80,6 +80,10 @@ local services = { Players = players, ReplicatedStorage = replicated,
 	MemoryStoreService = { GetSortedMap = function(_, name) return maps[name] end,
 		GetHashMap = function() return inviteMap end } }
 local modules = { ActiveMatchDirectory = Directory, RoomSocialDirectory = Social,
+	RaceBotController = {removeProductionBot=function() end,hasProductionBot=function() return false end},
+	RaceController = {isRosterLocked=function() return false end},
+	RaceSession = {active=function() return nil end},
+	RaceConfig = {INVITEABLE_BOT_ENABLED=true,MAX_BOTS_PER_ROOM=1},
 	PrototypeWorld = { getKartContext = function() return context end },
 	TrackCatalog = { Entries = { Track01Race = { GridSlots = {
 		rb.CFrame.new(0, 0, 0), rb.CFrame.new(10, 0, 0),

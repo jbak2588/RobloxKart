@@ -707,7 +707,7 @@ function RaceController.start(options)
 			session.hostUserId = options.getRoomHostUserId()
 		end
 		local count = session:count()
-		local required = math.max(count, 1)
+		local required = math.max(session:humanCount(), 1)
 		local ready = 0
 		local itemsReady = 0
 		for player in session.participants do if session.itemsReady[player] then itemsReady += 1 end end
@@ -877,7 +877,9 @@ function RaceController.start(options)
 		end
 		for player in session.participants do
 			if reason ~= "INITIAL" or (not session.itemsReady[player] and not session.itemPrepareDeadlines[player]) then
-				if player:GetAttribute("IsBot")==true then session.itemsReady[player]=true else beginItemPrep(player, now) end
+				if player:GetAttribute("IsBot")==true then
+					session.itemsReady[player]=true;setChanged(player,"RaceItemsReady",true)
+				else beginItemPrep(player, now) end
 			end
 		end
 		publishSession(now)
@@ -934,7 +936,9 @@ function RaceController.start(options)
 		setChanged(player, "RaceItemsRequiredCount", 0)
 		racers[player] = nil
 		if player:GetAttribute("IsBot")~=true and PrototypeWorld.releaseKartContext then PrototypeWorld.releaseKartContext(player) end
-		if persistentRoom and options.onRoomLeave then task.spawn(options.onRoomLeave, player.UserId) end
+		if persistentRoom and options.onRoomLeave and player:GetAttribute("IsBot")~=true then
+			task.spawn(options.onRoomLeave, player.UserId)
+		end
 		if player:GetAttribute("IsBot")~=true and session.hostUserId == player.UserId then
 			local remaining = session:orderedParticipants()
 			session.hostUserId = if remaining[1] then remaining[1]:GetAttribute("IsBot")==true and 0 or remaining[1].UserId else 0
@@ -1065,15 +1069,24 @@ function RaceController.start(options)
 	Players.PlayerRemoving:Connect(removeRacer)
 
 	-- Explicit Studio harness admission only. Normal Player admission is unchanged.
-	function session:addTestBot(state,context)
-		if not RunService:IsStudio() or Workspace:GetAttribute("KDMEnableRaceBot")~=true
-			or state:GetAttribute("IsBot")~=true or self:count()~=1 or self:humanCount()~=1
+	function session:addServerBot(state,context,source)
+		local permitted = if source == "PRODUCTION_ROOM" then persistentRoom
+			and RaceConfig.INVITEABLE_BOT_ENABLED and Workspace:GetAttribute("KDMServerRole") == "RACE"
+			else source == "STUDIO_TEST" and RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot")==true
+		if not permitted or state:GetAttribute("IsBot")~=true or self:contains(state)
+			or self:count()>=self.maxPlayers or self:humanCount()==0 or rosterLocked
+			or not context or not context.kart.Parent or PrototypeWorld.getKartContext(state)~=context
 			or self.trackId~="Track01Race" or self.phase~="WAITING" then return false end
 		initializePlayerAttributes(state,checkpointCount,self.trackId)
 		state:SetAttribute("RaceSessionId",self.roundId+1)
 		local racer=createRacer(state,context);racer.targetLaps=self.targetLaps
 		racers[state]=racer;self:addBot(state,racer);self.itemsReady[state]=true
+		setChanged(state,"RaceItemsReady",true)
 		racer:enterWaitingLobby();publishSession(time());return true
+	end
+	function session:addTestBot(state,context)
+		if self:count()~=1 or self:humanCount()~=1 then return false end
+		return self:addServerBot(state,context,"STUDIO_TEST")
 	end
 	function session:startBotTest()
 		if RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot")==true then startSharedCountdown(time()) end
@@ -1081,6 +1094,7 @@ function RaceController.start(options)
 	function session:removeTestBot(state)
 		if state:GetAttribute("IsBot")==true then removeRacer(state) end
 	end
+	session.removeServerBot=session.removeTestBot
 	local rankElapsed = 0
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local now = time()

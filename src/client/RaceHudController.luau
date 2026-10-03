@@ -478,10 +478,19 @@ function RaceHudController.start()
 	availabilityTitle.TextSize = 13
 	availabilityTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
 	local availabilityRows = {}
+	local roomRacerRows = require(script.Parent:WaitForChild("RaceRoomRacerRows"))
+	local availableHasBot = false
 	local inviteStates = {}
 	local inviteSerial = 0
 	local function refreshInviteButtons()
 		for _,row in availabilityRows do
+			if row.botId then
+				row.button.Text = if row.botAction == "AddBot" then "ADD BOT" else "REMOVE"
+				row.button.Active = row.botAction ~= nil
+				row.button.AutoButtonColor = row.button.Active
+				row.button.BackgroundColor3 = Color3.fromRGB(45,130,235)
+				continue
+			end
 			local state=inviteStates[row.userId]
 			local phase=state and state.phase or "AVAILABLE"
 			row.button.Text=if phase=="SENDING" then "SENDING..." elseif phase=="PENDING" then "WAITING" elseif phase=="FAILED" then "RETRY" else "INVITE"
@@ -519,6 +528,11 @@ function RaceHudController.start()
 		addCorner(invite, 4)
 		availabilityRows[index] = {label = row, button = invite, userId = nil}
 		invite.Activated:Connect(function()
+			local botRow = availabilityRows[index]
+			if botRow.botId then
+				if botRow.botAction then garageRemote:FireServer(botRow.botAction,botRow.botId) end
+				return
+			end
 			local userId = availabilityRows[index].userId
 			local state=inviteStates[userId]
 			if not userId or (state and (state.phase=="SENDING" or state.phase=="PENDING")) then return end
@@ -969,15 +983,21 @@ function RaceHudController.start()
 		availabilityPanel.Position = if racingPanel then UDim2.fromOffset(inviteLayout.panelX, inviteLayout.panelY)
 			else UDim2.new(.5,0,.94,-96)
 		local shownRows = math.max(1, math.min(availableTotal, if racingPanel then inviteLayout.rows elseif shortLobby then 2 else 4))
-		availabilityPanel.Size = UDim2.fromOffset(252, 52 + shownRows * 28)
-		if racingPanel then availabilityPanel.Size = UDim2.fromOffset(inviteLayout.panelWidth,52+shownRows*28) end
+		local panelHeight = roomRacerRows.layout(1,shownRows,availableHasBot).panelHeight
+		availabilityPanel.Size = UDim2.fromOffset(252,panelHeight)
+		if racingPanel then availabilityPanel.Size = UDim2.fromOffset(inviteLayout.panelWidth,panelHeight) end
 		for index, row in availabilityRows do
+			local rowLayout = roomRacerRows.layout(index,shownRows,availableHasBot)
+			row.label.Position = UDim2.fromOffset(8,rowLayout.y)
+			row.label.Size = UDim2.new(1,if row.botId and not row.botAction then -16 else -88,0,rowLayout.height)
+			row.button.Position = UDim2.new(1,-76,0,rowLayout.y)
+			row.button.Size = UDim2.fromOffset(68,rowLayout.height)
 			if index > shownRows then
 				row.label.Visible = false
 				row.button.Visible = false
 			else
 				row.label.Visible = row.label.Text ~= ""
-				row.button.Visible = row.userId ~= nil
+				row.button.Visible = (row.userId ~= nil or row.botAction ~= nil)
 					and player:GetAttribute("RaceHostUserId") == player.UserId
 			end
 		end
@@ -1194,16 +1214,32 @@ function RaceHudController.start()
 				getNumberAttribute(player, "RaceRematchReadyCount", 0), roomSnapshot.queuedCount)
 		if availabilityPanel.Visible then
 			local availableCount, available
+			local entries
 			if roomSnapshot then
 				available = roomSnapshot.available or {}
 				availableCount = #available
+				entries = roomRacerRows.collect(roomSnapshot,isHost,lobbyWaiting and roomSnapshot.state=="WAITING")
 			else availableCount, available = GaragePresence.availableSnapshot(Players:GetPlayers(), player, #availabilityRows) end
-			availableTotal = availableCount + (if roomSnapshot then #roomSnapshot.queued else 0)
+			availableTotal = if entries then #entries else availableCount
+			availableHasBot = lobbyWaiting and entries ~= nil and entries[1] ~= nil and entries[1].botId ~= nil
 			availabilityHeading.Text = if roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount)
 				elseif isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
-			availabilityTitle.Text = if roomSnapshot then string.format("AVAILABLE RACERS  %d", availableCount)
+			local botRowCount = if entries and entries[1] and entries[1].botId then 1 else 0
+			availabilityTitle.Text = if roomSnapshot then string.format("AVAILABLE RACERS  %d", availableCount+botRowCount)
 				else string.format("AVAILABLE IN SERVER  %d", availableCount)
 			for index, row in availabilityRows do
+				if entries then
+					local entry = entries[index]
+					row.userId = entry and entry.userId
+					row.botId = entry and entry.botId
+					row.botAction = entry and entry.botAction
+					row.label.Text = if entry then entry.name..(if entry.botId and not entry.botAction then " · "..entry.status else "")
+						elseif index==1 then "No available racers." else ""
+					row.label.Visible = entry ~= nil or index==1
+					row.button.Visible = entry ~= nil and isHost and (row.userId ~= nil or row.botAction ~= nil)
+					continue
+				end
+				row.botId,row.botAction = nil,nil
 				local queued = roomSnapshot and roomSnapshot.queued[index]
 				local entry = if queued then nil else available[index - (if roomSnapshot then math.min(#roomSnapshot.queued, #availabilityRows) else 0)]
 				row.userId = if entry then entry.userId else nil

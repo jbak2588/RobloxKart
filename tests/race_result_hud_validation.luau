@@ -91,7 +91,7 @@ local services={Players={LocalPlayer=player,GetPlayers=function() return {player
  RunService={RenderStepped=signal()},TweenService={Create=function() return {Play=function() end} end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat"} do
  child(shared,"ModuleScript",name)
 end
@@ -103,6 +103,7 @@ local modules={
  RaceMinimapRivals={collect=function() return {} end},
  GaragePresence=luau.load(fs.readFile("src/client/GaragePresence.luau"))(),
  RaceResultsCache=luau.load(fs.readFile("src/client/RaceResultsCache.luau"))(),
+ RaceRoomRacerRows=luau.load(fs.readFile("src/client/RaceRoomRacerRows.luau"))(),
  RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=100,NITRO_MAX_SPEED=100},
  DriverCatalog={Entries={}},KartCatalog={Entries={}},
  TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice",MatchType="PUBLIC_RACE"}}},
@@ -548,4 +549,31 @@ set("RaceEndCountdownRemaining",0)
 check(board.Racer1.RacerName.Text=="Winner","finished departed racer remains cached")
 set("RaceSessionId",902)
 check(not board.Racer2.Visible,"new round drops previous result cache")
+-- Production room Bot rows use distinct actions, preserve Human invites and fit short phones.
+set("RaceState","PRE_RACE");set("RaceHostUserId",1);set("RaceParticipantCount",1)
+set("RaceItemsRequiredCount",1);set("RaceItemsReadyCount",1)
+safeSize=rb.Vector2.new(749,303);camera.ViewportSize=rb.Vector2.new(749,361)
+camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+local botSnapshot={roomId="BotRoom",state="WAITING",hostUserId=1,count=1,maxPlayers=4,queuedCount=0,
+ queued={},available={{userId=2,name="Available Racer"}},pendingInvites={},activeBots={},
+ botCandidates={{botId="Bot01",name="KDM Rookie [BOT]",available=true}}}
+garageRemote.OnClientEvent:Fire("RoomSnapshot",botSnapshot)
+check(availability.AvailableRacer1.Text=="KDM Rookie [BOT]" and availability.Invite1.Text=="ADD BOT","Bot row clearly labeled")
+check(availability.Invite1.AbsoluteSize.Y>=44 and availability.Invite1.AbsoluteSize.X>=44,"Bot 44px touch target")
+check(availability.Invite1.AbsolutePosition.Y+availability.Invite1.AbsoluteSize.Y<=availability.Invite2.AbsolutePosition.Y,
+ "Bot and Human invitation rows do not overlap")
+availability.Invite1.Activated:Fire()
+check(garageRemote.lastFire[1]=="AddBot" and garageRemote.lastFire[2]=="Bot01" and #garageRemote.lastFire==2,"Bot action sends no fake UserId or client config")
+botSnapshot.activeBots={{botId="Bot01",name="KDM Rookie [BOT]"}};botSnapshot.count=2
+set("RaceParticipantCount",2);set("RaceItemsRequiredCount",2);set("RaceItemsReadyCount",2)
+garageRemote.OnClientEvent:Fire("RoomSnapshot",botSnapshot)
+check(availability.Invite1.Text=="REMOVE" and lobby.StartRace.Text=="START RACE","Human+Bot starts multiplayer race")
+availability.Invite1.Activated:Fire()
+check(garageRemote.lastFire[1]=="RemoveBot" and garageRemote.lastFire[2]=="Bot01","distinct Bot removal")
+set("RaceHostUserId",2)
+check(not availability.Invite1.Visible and string.find(availability.AvailableRacer1.Text,"ACTIVE",1,true),"non-host has no Bot action")
+set("RaceHostUserId",1);set("RaceState","RACING");botSnapshot.state="RACING"
+garageRemote.OnClientEvent:Fire("RoomSnapshot",botSnapshot)
+hud.RacingInviteToggle.Activated:Fire()
+check(not availability.Invite1.Visible,"racing Bot removal disabled")
 print("PASS: "..count.." production race result HUD checks")
