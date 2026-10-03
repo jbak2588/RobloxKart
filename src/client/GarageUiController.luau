@@ -5,6 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
@@ -16,6 +17,7 @@ local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
 local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
+local GarageTexturePreload = require(script.Parent:WaitForChild("GarageTexturePreload"))
 
 local GarageUiController = {}
 local Input = require(script.Parent:WaitForChild("KartInputController"))
@@ -1235,7 +1237,12 @@ function GarageUiController.start()
 		remote:FireServer("JoinInvite", driverId, kartId)
 	end)
 
-	local function update()
+	local update
+	local texturePreload = GarageTexturePreload.create(KartCatalog, ContentProvider, task, function()
+		if gui.Parent and player:GetAttribute("RaceState") == "GARAGE" then update() end
+	end)
+	gui.Destroying:Connect(function() texturePreload.destroy() end)
+	update = function()
 		local raceState = player:GetAttribute("RaceState")
 		gui.Enabled = raceState == "GARAGE"
 		if not gui.Enabled then
@@ -1248,6 +1255,7 @@ function GarageUiController.start()
 			return
 		end
 		local driverId, kartId, trackId = selectedIds()
+		texturePreload.start()
 		controlsButton.Visible = Input.isTouchPreferred() and step == 4
 		if controlsButton.Visible and not tutorialSeenThisSession
 			and player:GetAttribute("ControlsTutorialPreferenceLoaded") == true
@@ -1261,6 +1269,7 @@ function GarageUiController.start()
 		choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.61 else 0.40)
 		detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.70 else 0.54)
 		if step == 1 then
+			previewLoading.Text = "Loading driver..."
 			local character = player.Character
 			local appearanceReady = character ~= nil and character:FindFirstChild("Head") ~= nil and player:HasAppearanceLoaded()
 			previewLoading.Visible = not appearanceReady
@@ -1270,8 +1279,10 @@ function GarageUiController.start()
 				clearPreview()
 			end
 		elseif step == 2 then
-			previewLoading.Visible = false
-			showPreview("Kart", kartId)
+			local waiting = texturePreload.shouldWait(KartCatalog.Entries[kartId])
+			previewLoading.Text = "Loading kart..."
+			previewLoading.Visible = waiting
+			if waiting then clearPreview() else showPreview("Kart", kartId) end
 		else
 			previewLoading.Visible = false
 			clearPreview()

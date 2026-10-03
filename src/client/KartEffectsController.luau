@@ -241,6 +241,7 @@ function KartEffectsController.start()
 			return
 		end
 
+		local allowCruiseFlame = visual:GetAttribute("VisualModelName") ~= "KDMV2"
 		for _, part in visual:GetDescendants() do
 			if part:IsA("BasePart") and part:GetAttribute("VisualMotionRole") == "RearWheel" then
 				local motor = part:FindFirstChild("VisualMotor")
@@ -322,7 +323,7 @@ function KartEffectsController.start()
 			end
 			local velocity = activeChassis.AssemblyLinearVelocity
 			local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
-			local cruising = kart:GetAttribute("RaceControlsLocked") ~= true
+			local cruising = allowCruiseFlame and kart:GetAttribute("RaceControlsLocked") ~= true
 				and kart:GetAttribute("KartOffTrack") ~= true
 				and not drifting
 				and not boosting

@@ -152,9 +152,9 @@ local tweenService={Create=function(_,target,info,goal)
  table.insert(visualTweens,tween); return tween
 end}
 local services = { Players = playersService, ReplicatedStorage = replicated, Workspace = workspace,
-	UserInputService = input, GuiService = guiService, RunService = runService, TweenService=tweenService }
+	UserInputService = input, GuiService = guiService, RunService = runService, TweenService=tweenService, ContentProvider={} }
 local client = object("Folder", "Client")
-for _, name in { "TrackMapRenderer", "GaragePresence", "KartInputController", "MobileTutorialView" } do
+for _, name in { "TrackMapRenderer", "GaragePresence", "KartInputController", "MobileTutorialView", "GarageTexturePreload" } do
 	child(client, "ModuleScript", name)
 end
 for _, name in { "DriverCatalog", "KartCatalog", "TrackCatalog", "TrackGeometry", "KartVisualFactory",
@@ -173,6 +173,7 @@ local modules = {
 	DriverAppearance = { applyHairStyle = function() end, applyToCharacter = function() end },
 	TrackMapRenderer = { create = function() return { destroy = function() end } end },
 	GaragePresence = luau.load(fs.readFile("src/client/GaragePresence.luau"))(),
+	GarageTexturePreload = luau.load(fs.readFile("src/client/GarageTexturePreload.luau"),{environment={Instance=rb.Instance}})(),
 	KartInputController = { isTouchPreferred = function() return true end },
 	MobileTutorialView = { create = function() return { open = function() end, close = function() end } end },
 }

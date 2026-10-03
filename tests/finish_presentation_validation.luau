@@ -14,12 +14,15 @@ local function signal()
 end
 local modules = {KartConfig = {CAMERA_DISTANCE = 18, CAMERA_HEIGHT = 8,
 	CAMERA_LOOK_AHEAD = 12, CAMERA_RESPONSE = 6, CAMERA_FOV = 75},
-	RaceConfig = {FINISH_CAMERA_TRANSITION_SECONDS = 0.9, FINISH_ROLL_SECONDS = 2.4,
-		FINISH_DRIFT_START_RATIO = 0.55, TARGET_FINISH_SCREEN_X = 0.70},
+	RaceConfig = luau.load(fs.readFile("src/shared/RaceConfig.luau"))(),
 	ChaseCameraMotion = luau.load(fs.readFile("src/shared/ChaseCameraMotion.luau"))()}
 modules.FinishCameraComposition = luau.load(fs.readFile("src/client/FinishCameraComposition.luau"),
 	{environment = {Vector3 = rb.Vector3}})()
 local touchPreferred = false
+check(modules.RaceConfig.TARGET_FINISH_SCREEN_X == 0.70,
+	"ROLL retains approved 70 percent target")
+check(modules.RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X == 0.64,
+	"mobile PRESENT owns separate approved 64 percent target")
 modules.KartInputController = {isTouchPreferred = function() return touchPreferred end}
 local client = {WaitForChild = function(_, name) return {Name = name} end}
 local shared = {WaitForChild = function(_, name) return {Name = name} end}
@@ -114,11 +117,26 @@ check(camera.CFrame.Position.Z> -11,"PRESENT transitions from shifted chase to f
 render(0.45)
 player.attrs.RaceState = "FINISHED"
 render(0.1)
-check(screenX()>0.67 and screenX()<0.73,"FINISHED holds mobile 70 percent composition")
+check(math.abs(screenX()-modules.RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X)<0.015,
+	"FINISHED holds mobile PRESENT target rather than ROLL target")
+check(camera.CFrame.Position.Y == 4.5 and camera.Focus.Position.Y == 2.25
+	and camera.FieldOfView == 75,"mobile PRESENT preserves vertical camera and FOV")
 camera.ViewportSize = rb.Vector2.new(932, 430)
 safeWidth = 932
 render(0.1)
-check(screenX()>0.67 and screenX()<0.73,"wide phone aspect keeps right composition")
+check(math.abs(screenX()-modules.RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X)<0.015,
+	"wide phone aspect keeps PRESENT composition")
+safeWidth = 720
+render(0.1)
+check(math.abs(screenX()-modules.RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X)<0.015,
+	"720 safe-width boundary uses mobile PRESENT target")
+safeWidth = 719
+render(0.1)
+check(math.abs(screenX()-0.5)<0.03,"below 720 safe-width remains centered")
+camera.ViewportSize = rb.Vector2.new(430,932)
+safeWidth = 932
+render(0.1)
+check(math.abs(screenX()-0.5)<0.03,"portrait touch keeps approved front fallback")
 camera.ViewportSize = rb.Vector2.new(640, 360)
 safeWidth = 640
 render(0.1)
@@ -132,6 +150,10 @@ safeWidth = 1280
 render(0.1)
 check((camera.CFrame.Position-desktopFront.Position).Magnitude<0.001,
 	"switching to desktop restores approved front position")
+check((camera.CFrame.LookVector-desktopFront.LookVector).Magnitude<0.001,
+	"switching to desktop restores approved front orientation")
+check(chassis.Position == rb.Vector3.zero and chassis.CFrame == rb.CFrame.identity,
+	"mobile composition never writes kart world transform")
 player.attrs.RaceState = "PRE_RACE"
 player.attrs.RaceFinishPhase = "NONE"
 render(0.1)

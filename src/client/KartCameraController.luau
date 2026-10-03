@@ -125,7 +125,7 @@ function KartCameraController.start()
 			local frontPosition = chassis.Position + lastPlanarForward * 11 + right * 2.5 + WORLD_UP * 4.5
 			if mobileFinish then
 				frontPosition, lookTarget = FinishComposition.offset(frontPosition, lookTarget, lookTarget,
-					camera.ViewportSize, KartConfig.CAMERA_FOV, RaceConfig.TARGET_FINISH_SCREEN_X)
+					camera.ViewportSize, KartConfig.CAMERA_FOV, RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X)
 			end
 			local frontCFrame = CFrame.lookAt(frontPosition, lookTarget, WORLD_UP)
 			camera.CameraType = Enum.CameraType.Scriptable

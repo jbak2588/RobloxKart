@@ -1,6 +1,6 @@
 local KartCatalog = {
 	DefaultId = "Kart01",
-	Order = { "Kart01", "Kart02", "Kart03", "Kart04", "Kart05", "Kart06", "Kart07", "Kart08" },
+	Order = { "Kart05", "Kart06", "Kart07", "Kart08", "Kart01", "Kart02", "Kart03", "Kart04" },
 	Entries = {
 		Kart05 = {
 			Id = "Kart05",
