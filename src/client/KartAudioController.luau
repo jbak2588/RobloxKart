@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AudioConfig = require(Shared:WaitForChild("AudioConfig"))
@@ -43,14 +42,12 @@ function KartAudioController.start()
 	local kartConnections: { RBXScriptConnection } = {}
 	local sounds: { Sound } = {}
 	local engine: Sound? = nil
-	local powertrainPrototype = nil
 	local engineDiagnostic = nil
 	local drift: Sound? = nil
 	local boostStart: Sound? = nil
 	local boostLoop: Sound? = nil
 
 	local function detach()
-		if powertrainPrototype then powertrainPrototype.reset() end
 		if engineDiagnostic then engineDiagnostic:destroy(); engineDiagnostic = nil end
 		if heartbeatConnection then
 			heartbeatConnection:Disconnect()
@@ -107,9 +104,7 @@ function KartAudioController.start()
 			end
 			return sound
 		end
-		local engineAsset = if Workspace and Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true
-			then "rbxassetid://290290922" else AudioConfig.ASSETS.ENGINE_LOOP
-		engine = addSound("EngineLoop", engineAsset, engineGroup, true, AudioConfig.ENGINE.IDLE_VOLUME)
+		engine = addSound("EngineLoop", AudioConfig.ASSETS.ENGINE_LOOP, engineGroup, true, AudioConfig.ENGINE.IDLE_VOLUME)
 		if engine then
 			engine.PlaybackSpeed = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
 		end
@@ -173,12 +168,7 @@ function KartAudioController.start()
 				end
 				local velocity = activeChassis.AssemblyLinearVelocity
 				local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
-				if engine and not powertrainPrototype and ((RunService.IsStudio and RunService:IsStudio()
-					and player:GetAttribute("KDMEnablePowertrainPrototype") == true)
-					or (Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true)) then
-					powertrainPrototype = require(script.Parent:WaitForChild("KartPowertrainPrototype"))
-				end
-				if engine and not (powertrainPrototype and powertrainPrototype.ownsEngine(engine)) then
+				if engine then
 					local normalized = math.clamp(math.abs(forwardSpeed) / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1)
 					local targetPitch = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
 						+ (AudioConfig.ENGINE.MAX_PLAYBACK_SPEED - AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED) * normalized
