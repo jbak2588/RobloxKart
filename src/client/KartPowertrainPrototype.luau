@@ -4,23 +4,31 @@ local Players=game:GetService("Players")
 local Workspace=game:GetService("Workspace")
 local Powertrain=require(script.Parent:WaitForChild("KartPowertrainPresentation"))
 local Gauge=require(script.Parent:WaitForChild("KartPowertrainGauge"))
+local Donor=require(script.Parent:WaitForChild("V2DonorExperiment"))
 local Prototype={}
 local model,gauge,activeKart,activeEngine,originalId,mode,state
 local candidateElapsed,candidateFailed=0,false
 function Prototype.enabled()
-	return (RunService:IsStudio() and Players.LocalPlayer:GetAttribute("KDMEnablePowertrainPrototype")==true)
+	return Donor.enabled() or (RunService:IsStudio() and Players.LocalPlayer:GetAttribute("KDMEnablePowertrainPrototype")==true)
 		or Workspace:GetAttribute("KDMPowertrainPublishedAcceptance")==true
 end
 function Prototype.ownsEngine(engine)
-	return Prototype.enabled() and activeEngine==engine and mode~="CURRENT"
+	return Donor.enabled() or (Prototype.enabled() and activeEngine==engine and mode~="CURRENT")
 end
 function Prototype.reset()
+	Donor.reset()
 	if activeEngine and activeEngine.Parent and originalId then activeEngine.SoundId=originalId end
 	if gauge then gauge:destroy() end
 	model,gauge,activeKart,activeEngine,originalId,mode,state=nil,nil,nil,nil,nil,nil,nil
 	candidateElapsed,candidateFailed=0,false
 end
 function Prototype.update(parent,kart,chassis,dt,speed,displayedSpeed,topText,mobile,blocked,throttle)
+	if Donor.enabled() then
+		if gauge then gauge:destroy();gauge=nil end
+		state=Donor.update(parent,kart,chassis,dt,speed,mobile,blocked,throttle)
+		return state
+	end
+	Donor.reset()
 	if not Prototype.enabled() or not kart or not chassis then Prototype.reset();return end
 	if activeKart~=kart then Prototype.reset();model=Powertrain.new();activeKart=kart;gauge=Gauge.new(parent) end
 	local velocity=chassis.AssemblyLinearVelocity

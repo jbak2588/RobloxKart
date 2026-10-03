@@ -74,7 +74,8 @@ local currentState
 local mockGauge={new=function()
 	return {update=function(_,state) currentState=state end,destroy=function() currentState=nil end}
 end}
-local modules={KartPowertrainPresentation=P,KartPowertrainGauge=mockGauge}
+local modules={KartPowertrainPresentation=P,KartPowertrainGauge=mockGauge,
+	V2DonorExperiment={enabled=function() return false end,reset=function() end}}
 local studio=true
 local acceptance=false
 local workspace={GetAttribute=function(_,name) return if name=="KDMPowertrainPublishedAcceptance" then acceptance else nil end}

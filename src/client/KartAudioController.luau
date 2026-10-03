@@ -107,7 +107,8 @@ function KartAudioController.start()
 			end
 			return sound
 		end
-		local engineAsset = if Workspace and Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true
+		local donorExperiment = Workspace and Workspace.GetAttribute and Workspace:GetAttribute("KDMV2DonorExperiment") == true
+		local engineAsset = if donorExperiment or (Workspace and Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true)
 			then "rbxassetid://290290922" else AudioConfig.ASSETS.ENGINE_LOOP
 		engine = addSound("EngineLoop", engineAsset, engineGroup, true, AudioConfig.ENGINE.IDLE_VOLUME)
 		if engine then
@@ -122,7 +123,10 @@ function KartAudioController.start()
 		boostStart = addSound("BoostStart", AudioConfig.ASSETS.BOOST_START, sfxGroup, false, AudioConfig.BOOST.START_VOLUME)
 		boostLoop = addSound("BoostLoop", AudioConfig.ASSETS.BOOST_LOOP, sfxGroup, true, AudioConfig.BOOST.LOOP_VOLUME)
 		AudioRuntime.preload({ Engine = engine, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
-		if engine then
+		if engine and donorExperiment then
+			engine.PlaybackRegionsEnabled = false
+			engine:Play() -- Exactly once at attach; donor owner only modulates thereafter.
+		elseif engine then
 			engineDiagnostic = EngineLoopDiagnostic.new(engine,
 				RunService:IsStudio() or KartConfig.DEBUG_TELEMETRY == true)
 			engineDiagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"))
@@ -175,7 +179,8 @@ function KartAudioController.start()
 				local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
 				if engine and not powertrainPrototype and ((RunService.IsStudio and RunService:IsStudio()
 					and player:GetAttribute("KDMEnablePowertrainPrototype") == true)
-					or (Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true)) then
+					or (Workspace.GetAttribute and (Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true
+						or Workspace:GetAttribute("KDMV2DonorExperiment") == true))) then
 					powertrainPrototype = require(script.Parent:WaitForChild("KartPowertrainPrototype"))
 				end
 				if engine and not (powertrainPrototype and powertrainPrototype.ownsEngine(engine)) then

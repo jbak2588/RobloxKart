@@ -765,7 +765,7 @@ function RaceHudController.start()
 		quitRow.Size = UDim2.new(1, -20, 0, quitHeight)
 		quitButton.Size = UDim2.fromOffset(if touchTarget then 120 else 72, if touchTarget then 40 else 23)
 		quitButton.TextSize = if touchTarget then 14 else 11
-		miniMapPanel.Visible = speedPanel.Visible or (player:GetAttribute("RaceState") == "FINISHED"
+		miniMapPanel.Visible = player:GetAttribute("RaceState") == "COUNTDOWN" or player:GetAttribute("RaceState") == "RACING" or (player:GetAttribute("RaceState") == "FINISHED"
 			and player:GetAttribute("RaceMatchStatus") == "RACING"
 			and getNumberAttribute(player, "RaceParticipantCount", 1) >= 2
 			and player:GetAttribute("RaceSessionComplete") ~= true)
@@ -1102,11 +1102,14 @@ function RaceHudController.start()
 		local track = TrackCatalog.Entries[player:GetAttribute("SelectedTrackId")]
 		showMapForTrack(track or TrackCatalog.Entries[TrackCatalog.DefaultId])
 		frame.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
-		speedPanel.Visible = raceState == "COUNTDOWN" or raceState == "RACING"
-		steeringDisplay.Visible = speedPanel.Visible
+		local donorExperiment = Workspace:GetAttribute("KDMV2DonorExperiment") == true
+		local drivingHud = raceState == "COUNTDOWN" or raceState == "RACING"
+		speedPanel.Visible = drivingHud and not (donorExperiment and Workspace:GetAttribute("KDMV2DonorHideTopSpeed") ~= false)
+		steeringDisplay.Visible = drivingHud and not donorExperiment
+		if donorExperiment then wheelClip.Visible = false end
 		positionLabel.Visible = speedPanel.Visible and participantCount >= 2
 		positionLabel.Text = string.format("POS %d/%d", position, participantCount)
-		miniMapPanel.Visible = speedPanel.Visible or (raceState == "FINISHED" and matchStatus == "RACING"
+		miniMapPanel.Visible = drivingHud or (raceState == "FINISHED" and matchStatus == "RACING"
 			and participantCount >= 2 and not sessionComplete)
 		selectionPanel.Visible = DEBUG_UI and (raceState == "PRE_RACE" or raceState == "COUNTDOWN")
 		driverLabel.Text = "DRIVER  " .. (if driver then driver.DisplayName else "--")
@@ -1422,6 +1425,9 @@ function RaceHudController.start()
 	} do
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end
+	for _, attributeName in { "KDMV2DonorExperiment", "KDMV2DonorHideTopSpeed" } do
+		Workspace:GetAttributeChangedSignal(attributeName):Connect(updateHud)
+	end
 	local presenceConnections = {}
 	local playerListConnections = {}
 	screenGui.Destroying:Connect(function()
@@ -1507,7 +1513,14 @@ function RaceHudController.start()
 			displayedRivalKeys = {}
 			displayedRivalPositions = {}
 		end
-		if not speedPanel.Visible then
+		local donorExperiment = Workspace:GetAttribute("KDMV2DonorExperiment") == true
+		if donorExperiment then
+			steeringDisplay.Visible = false;wheelClip.Visible = false
+			speedPanel.Visible = (player:GetAttribute("RaceState") == "COUNTDOWN" or player:GetAttribute("RaceState") == "RACING")
+				and Workspace:GetAttribute("KDMV2DonorHideTopSpeed") == false
+		end
+		local raceHudActive = player:GetAttribute("RaceState") == "COUNTDOWN" or player:GetAttribute("RaceState") == "RACING"
+		if not raceHudActive then
 			if powertrainPrototype then powertrainPrototype.reset() end
 			displayedSpeed = 0
 			displayedSteering = 0
@@ -1536,7 +1549,7 @@ function RaceHudController.start()
 		displayedSpeed += (targetSpeed - displayedSpeed) * alpha
 		displayedSteering += (targetSteering - displayedSteering) * alpha
 		if Input.isTouchPreferred() then displayedSteering = targetSteering end
-		steeringRing.Rotation = displayedSteering * 35
+		if not donorExperiment then steeringRing.Rotation = displayedSteering * 35 end
 		speedUpdateElapsed += deltaTime
 		if speedUpdateElapsed >= 0.08 then
 			speedUpdateElapsed = 0
@@ -1546,7 +1559,8 @@ function RaceHudController.start()
 		end
 		if not powertrainPrototype and ((RunService.IsStudio and RunService:IsStudio()
 			and player:GetAttribute("KDMEnablePowertrainPrototype") == true)
-			or (Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true)) then
+			or (Workspace.GetAttribute and (Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true
+				or Workspace:GetAttribute("KDMV2DonorExperiment") == true))) then
 			powertrainPrototype = require(script.Parent:WaitForChild("KartPowertrainPrototype"))
 		end
 		if powertrainPrototype then
