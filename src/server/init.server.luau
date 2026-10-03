@@ -108,12 +108,14 @@ elseif firstPlayer and game.PrivateServerId ~= "" and game.PrivateServerOwnerId 
 		end
 	end)
 else
-	PrototypeWorld.start()
+	local botTest=RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot")==true
+	PrototypeWorld.start(if botTest then {trackId="Track01Race"} else nil)
 	RaceItemController.start()
-	RaceController.start()
+	RaceController.start(if botTest then {trackId="Track01Race"} else nil)
 	MatchRoomService.start()
 	GarageController.start()
 	PlayerPreferences.start()
+	if botTest then require(script:WaitForChild("RaceBotController")).start() end
 end
 
 print("RobloxKart SERVER sync OK")

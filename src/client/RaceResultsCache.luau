@@ -6,7 +6,7 @@ Cache.ATTRIBUTES = {"RaceSessionId","RaceState","RacePosition","RaceFinishPositi
 function Cache.new()
 	return setmetatable({sessionId=nil, entries={}},Cache)
 end
-function Cache:collect(localPlayer, players)
+function Cache:collect(localPlayer, players, bots)
 	local sessionId = localPlayer:GetAttribute("RaceSessionId")
 	if self.sessionId ~= sessionId then self.sessionId=sessionId; table.clear(self.entries) end
 	if not sessionId or sessionId == 0 then return {} end
@@ -21,6 +21,19 @@ function Cache:collect(localPlayer, players)
 				bestLapNumber=number("RaceBestLapNumber"),dnfReason=p:GetAttribute("RaceDNFReason")}
 		end
 	end
+	for _,bot in bots or {} do
+		if bot:GetAttribute("IsBot")==true and bot:GetAttribute("RaceSessionId")==sessionId then
+			local key="bot:"..bot:GetAttribute("BotId")
+			local function number(name) return bot:GetAttribute(name) or 0 end
+			self.entries[key]={userId=key,isBot=true,sessionId=sessionId,
+				name=bot:GetAttribute("DisplayName"),displayName=bot:GetAttribute("DisplayName"),
+				finishPosition=number("RaceFinishPosition"),racePosition=number("RacePosition"),
+				state=bot:GetAttribute("RaceState"),finalTime=number("RaceFinalTime"),
+				laps={number("RaceLap1Time"),number("RaceLap2Time"),number("RaceLap3Time")},
+				completedLaps=number("RaceCompletedLaps"),bestLap=number("RaceBestLapTime"),
+				bestLapNumber=number("RaceBestLapNumber"),dnfReason=bot:GetAttribute("RaceDNFReason")}
+		end
+	end
 	local rows={}
 	for _,row in self.entries do table.insert(rows,row) end
 	local function priority(row)
@@ -33,7 +46,7 @@ function Cache:collect(localPlayer, players)
 		if pa~=pb then return pa<pb end
 		local ar,br=if pa==1 then a.finishPosition else a.racePosition,if pb==1 then b.finishPosition else b.racePosition
 		if ar~=br then return ar<br end
-		return a.userId<b.userId
+		return if type(a.userId)==type(b.userId) then a.userId<b.userId else tostring(a.userId)<tostring(b.userId)
 	end)
 	while #rows>4 do table.remove(rows) end
 	return rows

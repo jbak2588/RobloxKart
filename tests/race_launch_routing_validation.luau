@@ -504,8 +504,8 @@ check(delayedPlayer:GetAttribute("RaceState") == "PRE_RACE" and virtualNow >= 0.
 	and virtualNow < 2.5, "delayed seat confirms before PRE_RACE and within handshake window")
 modules.PrototypeWorld = normalWorld
 
-local function runServerInit(privateId, launchPayload, studio, failRace)
-	local calls = { logs = {}, warnings = {} }
+local function runServerInit(privateId, launchPayload, studio, failRace, botFlag)
+	local calls = { logs = {}, warnings = {}, KDMEnableRaceBot=botFlag }
 	local first = { UserId = 42, GetJoinData = function()
 		return { SourcePlaceId = 999, SourceGameId = 987654, TeleportData = launchPayload }
 	end }
@@ -513,6 +513,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 		return if privateId == "" or studio then {} else { first }
 	end }
 	local startupWorkspace = { SetAttribute = function(_, name, value) calls[name] = value end }
+	startupWorkspace.GetAttribute=function(_,name) return calls[name] end
 	local startupReplicated = {}
 	local startupServices = { Players = startupPlayers, Workspace = startupWorkspace,
 		ReplicatedStorage = startupReplicated,
@@ -520,6 +521,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace)
 		RunService = { IsStudio = function() return studio end } }
 	local startupModules = {
 		ServerRuntime = Runtime,
+		RaceBotController = {start=function() calls.bot=true end},
 		RaceLaunchService = { start = function() calls.launchService = true end,
 			returnToHub = function() calls.returnToHub = true; return true end },
 		PrototypeWorld = { start = function(options) calls.world = options or "default" end },
@@ -573,4 +575,10 @@ check(failedInit.KDMServerRole == "RACE" and failedInit.returnToHub and failedIn
 local studioInit = runServerInit("studio-private-id", nil, true)
 check(studioInit.KDMServerRole == "HUB" and studioInit.garage and studioInit.world == "default",
 	"Studio startup remains HUB")
+local botInit=runServerInit("",nil,true,false,true)
+check(botInit.bot and botInit.world.trackId=="Track01Race" and botInit.race.trackId=="Track01Race","Studio explicit flag enables only test course/bot")
+local liveFlag=runServerInit("",nil,false,false,true)
+check(not liveFlag.bot and liveFlag.world=="default","live server cannot spawn bot even with flag")
+local falseFlag=runServerInit("",nil,true,false,false)
+check(not falseFlag.bot and falseFlag.world=="default","explicit false flag retains Studio baseline")
 print(string.format("PASS race launch routing: %d checks", count))

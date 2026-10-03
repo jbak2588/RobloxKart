@@ -6,6 +6,7 @@ RaceSession.__index = RaceSession
 local activeSession = nil
 local nextId = 0
 local sessionsByPlayer = {}
+local sessionsByBot = {}
 
 function RaceSession.new(trackId, mode, targetLaps)
 	nextId += 1
@@ -39,7 +40,7 @@ function RaceSession.active()
 end
 
 function RaceSession.forPlayer(player)
-	return sessionsByPlayer[player]
+	return sessionsByBot[player] or sessionsByPlayer[player]
 end
 
 function RaceSession:add(player, racer)
@@ -49,8 +50,18 @@ function RaceSession:add(player, racer)
 	sessionsByPlayer[player] = self
 end
 
+function RaceSession:addBot(state, racer)
+	assert(state:GetAttribute("IsBot")==true,"Bot state required")
+	self.participants[state]=racer;sessionsByBot[state]=self
+end
+function RaceSession:humanCount()
+	local count=0;for participant in self.participants do
+		if participant:GetAttribute("IsBot")~=true then count+=1 end
+	end;return count
+end
 function RaceSession:remove(player)
 	self.participants[player] = nil
+	if sessionsByBot[player]==self then sessionsByBot[player]=nil end
 	self.rematchVotes[player] = nil
 	if sessionsByPlayer[player] == self then sessionsByPlayer[player] = nil end
 end
@@ -67,7 +78,7 @@ function RaceSession:orderedParticipants()
 	table.sort(players, function(a, b)
 		local orderA = a:GetAttribute("ReadyOrder") or 0
 		local orderB = b:GetAttribute("ReadyOrder") or 0
-		if orderA == orderB then return (a.UserId or 0) < (b.UserId or 0) end
+		if orderA == orderB then return (if a:GetAttribute("IsBot")==true then 0 else a.UserId or 0) < (if b:GetAttribute("IsBot")==true then 0 else b.UserId or 0) end
 		return orderA < orderB
 	end)
 	return players

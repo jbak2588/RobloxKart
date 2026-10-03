@@ -682,6 +682,10 @@ function RaceHudController.start()
 		remoteEvent:FireServer("ReturnGarage")
 	end)
 
+	local function botSnapshots()
+		local folder=ReplicatedStorage:FindFirstChild("KDMBotRacers")
+		return if folder then folder:GetChildren() else {}
+	end
 	local resultCache = RaceResultsCache.new()
 	local standingsRows = {}
 	local standings = Instance.new("Frame")
@@ -1036,7 +1040,7 @@ function RaceHudController.start()
 		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
 	updateHud = function()
-		local resultEntries=resultCache:collect(player,Players:GetPlayers())
+		local resultEntries=resultCache:collect(player,Players:GetPlayers(),botSnapshots())
 		local raceState = player:GetAttribute("RaceState")
 		local returningToHub = player:GetAttribute("KDMRoutePending") == "HUB_RETURN"
 		routeOverlay.Visible = returningToHub
@@ -1426,7 +1430,12 @@ function RaceHudController.start()
 	local displayedSpeed = 0
 	local displayedSteering = 0
 	local speedUpdateElapsed = 0
+	local botResultElapsed = 0
 	RunService.RenderStepped:Connect(function(deltaTime: number)
+		if ReplicatedStorage:FindFirstChild("KDMBotRacers") then
+			botResultElapsed+=deltaTime
+			if botResultElapsed>=.15 then botResultElapsed=0;updateHud() end
+		end
 		if autoReadyNoticeUntil > 0 and time() >= autoReadyNoticeUntil then
 			autoReadyNoticeUntil = 0; updateHud()
 		end
@@ -1439,7 +1448,7 @@ function RaceHudController.start()
 			mapRenderer:setRacerMarker("local:" .. tostring(player.UserId),
 				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL")
 			local rivals = RaceMinimapRivals.collect(player, Players:GetPlayers(),
-				getNumberAttribute(player, "RaceParticipantCount", 1))
+				getNumberAttribute(player, "RaceParticipantCount", 1),botSnapshots())
 			local activeKeys = {}
 			for userId, position in rivals do
 				local key = "rival:" .. tostring(userId)

@@ -1183,6 +1183,52 @@ kart:Destroy()
 check(not world.activateNitro(player),"destroyed kart disables activation bridge")
 print("PASS: "..count.." RaceItem/Nitro checks (production controllers under deterministic mocks)")
 
+-- Explicit NPC Folder through the actual production world and attack resolver.
+services.Workspace:SetAttribute("KDMEnableRaceBot",false)
+local botState=object("Folder","Bot01");botState:SetAttribute("IsBot",true);botState:SetAttribute("BotId","Bot01")
+botState:SetAttribute("DisplayName","KDM Rookie [BOT]")
+local npc=object("Model","KDM Rookie [BOT]")
+local npcHuman=child(npc,"Humanoid","Humanoid");npcHuman.Health=100
+check(not pcall(function() world.createBotKartContext(botState,npc,CF.identity) end),"flag OFF rejects NPC creation")
+services.Workspace:SetAttribute("KDMEnableRaceBot",true)
+local botContext=world.createBotKartContext(botState,npc,CF.new(0,1.75,0))
+botState:SetAttribute("RaceState","RACING");botState:SetAttribute("RacePosition",1)
+botContext.kart:SetAttribute("RaceControlsLocked",false)
+botContext.seat.Occupant=npcHuman;npcHuman.SeatPart=botContext.seat
+check(botState.UserId==nil and botState.ClassName=="Folder" and world.getKartContext(botState)==botContext,"NPC context is not a Player")
+check(not world.activateNitro(botState),"bot cannot activate Nitro")
+local attacker=child(services.Players,"Player","BotTester");attacker.UserId=4;attacker.DisplayName="BotTester"
+attacker.Character=object("Model","BotTesterCharacter");local attackerHuman=child(attacker.Character,"Humanoid","Humanoid");attackerHuman.Health=100
+local attackerContext=world.acquireKartContext(attacker,CF.new(10,1.75,0))
+attackerContext.seat.Occupant=attackerHuman;attackerHuman.SeatPart=attackerContext.seat
+attacker:SetAttribute("RaceState","RACING");attacker:SetAttribute("RacePosition",2);attackerContext.kart:SetAttribute("RaceControlsLocked",false)
+local botSession=sessionType.new("Track01Race","RACE",2);botSession:add(attacker,{});botSession:addBot(botState,{})
+check(botSession:humanCount()==1 and botSession:count()==2,"human/bot counts separate")
+check(items.missileTarget(attacker)==botState and items.thunderTargets(attacker)[1]==botState,"real Missile/Thunder target selection includes NPC")
+local function botStep(dt)
+ now+=dt;botContext:setServerControl(0);botContext:step(dt)
+end
+for _=1,150 do botStep(1/60) end
+check(math.abs(botContext.commandedSpeed-70)<.01 and not botContext.driftActive and not botContext.boostActive,"NPC reaches normal 70 through production acceleration")
+for _,case in {{"Missile",itemConfig.MISSILE_EFFECT_DURATION,itemConfig.MISSILE_SPEED_CAP},{"Thunder",itemConfig.THUNDER_EFFECT_DURATION,itemConfig.THUNDER_SPEED_CAP}} do
+ local accepted,why=items.tryApplyOffensiveItem(botState,attacker,case[1]);check(accepted and why=="hit","NPC offensive resolution "..case[1])
+ for _=1,math.floor((case[2]-.05)*60) do
+  botStep(1/60)
+  local velocity=botContext.chassis.AssemblyLinearVelocity
+  check(V.new(velocity.X,0,velocity.Z).Magnitude<=case[3]+.001,"NPC honors active cap "..case[1])
+ end
+ for _=1,180 do botStep(1/60);services.RunService.Heartbeat:Fire(1/60) end
+ check(math.abs(botContext.commandedSpeed-70)<.01,"NPC natural 70 recovery "..case[1])
+end
+local slickAccepted,slickReason=items.tryApplyOffensiveItem(botState,attacker,"Slick")
+check(slickAccepted and slickReason=="hit" and botContext.slick.active,"NPC uses unchanged Slick motion")
+services.Workspace:SetAttribute("KDMEnableRaceBot",false)
+check(not botContext:setServerControl(1),"disabled flag rejects server control")
+botSession:remove(botState);world.releaseBotKartContext(botState);npc:Destroy()
+check(world.getKartContext(botState)==nil and not botContext.kart.Parent and sessionType.forPlayer(botState)==nil,"NPC world/session cleanup")
+world.releaseKartContext(attacker)
+print("PASS: "..count.." total production checks including NPC targeting/debuff/recovery")
+
 -- Real preview lifecycle with deterministic rendering clock, without a live world.
 local previewChecks = 0
 local function previewCheck(value, label)

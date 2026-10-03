@@ -36,36 +36,41 @@ local function emitDriftOutcome(player, outcome)
 end
 local contexts = {}
 local ownerContexts = {}
+local botContexts = {}
+local function contextsFor(participant)
+	return if botContexts[participant] then botContexts else ownerContexts
+end
 local defaultContext = nil
 local collisionIsolation = RacerCollisionIsolation.new(if physicsAvailable then PhysicsService else nil)
 
 function PrototypeWorld.getKartContext(player: Player)
-	return ownerContexts[player]
+	return contextsFor(player)[player]
 end
 
 function PrototypeWorld.getRaceKart(player: Player)
-	local context = ownerContexts[player]
+	local context = contextsFor(player)[player]
 	if context then return context:getRaceKart(player) end
 	return nil
 end
 
 function PrototypeWorld.applySlickHit(player: Player): boolean
-	local context = ownerContexts[player]
+	local context = contextsFor(player)[player]
 	return context ~= nil and context:applySlickHit(player)
 end
 
 function PrototypeWorld.applyThunderHit(player: Player): boolean
-	local context = ownerContexts[player]
+	local context = contextsFor(player)[player]
 	return context ~= nil and context:applyThunderHit(player)
 end
 
 function PrototypeWorld.applyMissileHit(player: Player): boolean
-	local context = ownerContexts[player]
+	local context = contextsFor(player)[player]
 	return context ~= nil and context:applyMissileHit(player)
 end
 
 function PrototypeWorld.activateNitro(player: Player): (boolean, string?)
-	local context = ownerContexts[player]
+	if botContexts[player] then return false, "bot_items_disabled" end
+	local context = contextsFor(player)[player]
 	if not context then return false, "kart_missing" end
 	return context:activateNitro(player)
 end
@@ -359,7 +364,8 @@ function PrototypeWorld.start(options)
 		stopThunderHit()
 		function context:getRaceKart(player: Player)
 			if context.owner ~= player or not kart.Parent or not chassis.Parent or not seat.Parent or context.crashActive then return nil end
-			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			local character = if context.botParticipant == player then context.botDriver else player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			if not humanoid or humanoid.Health <= 0 or humanoid.SeatPart ~= seat or seat.Occupant ~= humanoid then return nil end
 			if player:GetAttribute("RaceState") ~= "RACING" or kart:GetAttribute("RaceControlsLocked") ~= false then return nil end
 			return kart, chassis
@@ -370,6 +376,7 @@ function PrototypeWorld.start(options)
 			kart:SetAttribute("KartNitroActive", false)
 		end
 		function context:activateNitro(player: Player)
+			if context.botParticipant then return false, "bot_items_disabled" end
 			if context.owner ~= player or not kart.Parent or not chassis.Parent or not seat.Parent then return false, "kart_missing" end
 			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 			if not humanoid or humanoid.Health <= 0 or seat.Occupant ~= humanoid or humanoid.SeatPart ~= seat then
@@ -688,6 +695,7 @@ function PrototypeWorld.start(options)
 		end
 
 		function context:receiveControl(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
+			if context.botParticipant then return end
 			if type(throttle) ~= "number" or type(steering) ~= "number" then
 				return
 			end
@@ -716,12 +724,29 @@ function PrototypeWorld.start(options)
 		end
 
 
+		-- Server internal NPC input; no remote can choose a bot context.
+		function context:setServerControl(steering: number)
+			if not self.botParticipant or not RunService:IsStudio()
+				or Workspace:GetAttribute("KDMEnableRaceBot") ~= true then return false end
+			local humanoid=self.botDriver:FindFirstChildOfClass("Humanoid")
+			if not humanoid or seat.Occupant~=humanoid or humanoid.SeatPart~=seat
+				or self.botParticipant:GetAttribute("RaceState")~="RACING" then self.control=nil;return false end
+			if type(steering)~="number" or steering~=steering or math.abs(steering)==math.huge then return false end
+			self.control={throttle=1,steering=math.clamp(steering,-1,1),driftRequested=false,lastUpdate=time()}
+			kart:SetAttribute("KartVisualSteering",if context.crashActive or context.slick.active then 0 else self.control.steering)
+			return true
+		end
+		local function occupantDriver(occupant)
+			if occupant and context.botParticipant and occupant.Parent==context.botDriver then return context.botParticipant end
+			return occupant and Players:GetPlayerFromCharacter(occupant.Parent)
+		end
 		function context:step(deltaTime: number)
+			if context.botControl then context:setServerControl(context.botControl().steering) end
 			-- Snapshot before early exits or collision responses alter motion. This is
 			-- diagnostic-only; input validation and simulation below are unchanged.
 			do
 				local occupant = seat.Occupant
-				local driver = occupant and Players:GetPlayerFromCharacter(occupant.Parent)
+				local driver = occupantDriver(occupant)
 				local control = if driver == context.owner then context.control else nil
 				local age = control and time()-control.lastUpdate
 				local valid = age ~= nil and age <= KartConfig.INPUT_TIMEOUT
@@ -738,6 +763,12 @@ function PrototypeWorld.start(options)
 			refreshBarrierTriggers()
 			local previousBarrierPosition = context.lastBarrierPosition
 			context.lastBarrierPosition = chassis.Position
+			if context.botParticipant and chassis.Position.Y < KartConfig.FALL_RESET_Y then
+				context.botParticipant:SetAttribute("RaceState","DNF")
+				context.botParticipant:SetAttribute("RaceDNFReason","FALL")
+				kart:SetAttribute("RaceControlsLocked",true)
+				return
+			end
 			if chassis.Position.Y < KartConfig.FALL_RESET_Y then
 				local fallPosition = chassis.Position
 				print(string.format(
@@ -805,12 +836,12 @@ function PrototypeWorld.start(options)
 			local steering = 0
 			local driftRequested = false
 			local occupant = seat.Occupant
-			local player = occupant and Players:GetPlayerFromCharacter(occupant.Parent)
+			local player = occupantDriver(occupant)
 			local resetSerial = kart:GetAttribute("RaceResetSerial")
 			if resetSerial ~= context.lastUprightResetSerial then
 				context.lastUprightResetSerial = resetSerial
 				context.tiltUnsafeElapsed = 0
-			elseif player == context.owner and player:GetAttribute("RaceState") == "RACING"
+			elseif not context.botParticipant and player == context.owner and player:GetAttribute("RaceState") == "RACING"
 				and not context.crashActive then
 				local upDot = chassis.CFrame.UpVector:Dot(Vector3.yAxis)
 				local elapsed, recover = KartUprightRecovery.advance(upDot, context.tiltUnsafeElapsed, deltaTime, KartConfig)
@@ -1181,6 +1212,11 @@ function PrototypeWorld.start(options)
 		end
 
 		kart.Destroying:Connect(function()
+			if context.botParticipant then
+				botContexts[context.botParticipant]=nil
+				if context.botCollision then context.botCollision:restore();context.botCollision=nil end
+				context.owner=nil
+			end
 			stopMissileHit(); stopThunderHit()
 			context:clearOwner()
 			if context == defaultContext then defaultContext = nil end
@@ -1224,6 +1260,24 @@ function PrototypeWorld.start(options)
 		if ownerContexts[player] then return nil end
 		local newKart, newChassis, newSeat = createKart(prototype, startCFrame, "Kart_" .. tostring(player.UserId), kartId)
 		return createContext(player, newKart, newChassis, newSeat, startCFrame)
+	end
+	function PrototypeWorld.createBotKartContext(state: Folder, driver: Model, startCFrame: CFrame)
+		assert(RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot")==true,"Bot test gate required")
+		assert(state:GetAttribute("IsBot")==true and not botContexts[state],"Unique explicit bot state required")
+		local model,body,botSeat=createKart(prototype,startCFrame,"KDM_Rookie_Bot","Kart01")
+		local context=createContext(nil,model,body,botSeat,startCFrame)
+		context.botParticipant=state;context.botDriver=driver;context.owner=state
+		botContexts[state]=context
+		body:SetNetworkOwner(nil)
+		context.botCollision=collisionIsolation:bindDriver(driver)
+		model:SetAttribute("RaceControlsLocked",true);model:SetAttribute("KartIsBot",true)
+		return context
+	end
+	function PrototypeWorld.releaseBotKartContext(state: Folder)
+		local context=botContexts[state];if not context then return end
+		botContexts[state]=nil
+		if context.botCollision then context.botCollision:restore();context.botCollision=nil end
+		context.owner=nil;context.botControl=nil;context.kart:Destroy()
 	end
 	function PrototypeWorld.destroyKartContext(player: Player)
 		PrototypeWorld.releaseKartContext(player)

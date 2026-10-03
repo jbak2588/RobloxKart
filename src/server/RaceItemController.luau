@@ -44,7 +44,7 @@ local function pulseShield(player, kart)
 end
 local function combatFeedback(source, target, item, result)
 	if source == target or not loadouts[source] or source:GetAttribute("RaceState") ~= "RACING" then return end
-	source:SetAttribute("RaceCombatFeedbackTargetName", target.DisplayName or target.Name)
+	source:SetAttribute("RaceCombatFeedbackTargetName", (if target:GetAttribute("IsBot")==true then target:GetAttribute("DisplayName") else target.DisplayName or target.Name))
 	source:SetAttribute("RaceCombatFeedbackCode", string.upper(item) .. "_" .. string.upper(result))
 	source:SetAttribute("RaceCombatFeedbackSerial", (source:GetAttribute("RaceCombatFeedbackSerial") or 0) + 1)
 	if KartConfig.DEBUG_TELEMETRY then
@@ -229,7 +229,7 @@ local function activate(player, id)
 		if not target then feedback(player, "NO_TARGET_AHEAD"); return false, "no_target_ahead" end
 		local accepted, reason = missiles:launch(player, target, RaceSession.forPlayer(player), time())
 		if accepted then
-			player:SetAttribute("RaceMissileTargetName", target.DisplayName or target.Name)
+			player:SetAttribute("RaceMissileTargetName", (if target:GetAttribute("IsBot")==true then target:GetAttribute("DisplayName") else target.DisplayName or target.Name))
 			player:SetAttribute("RaceMissileLaunchSerial", (player:GetAttribute("RaceMissileLaunchSerial") or 0) + 1)
 			feedback(player, "MISSILE_LOCKED")
 		end
@@ -460,6 +460,18 @@ function RaceItemController.start()
 				previousPositions[player] = chassis.Position
 			else previousPositions[player] = nil end
 		end
+		local botSession=RaceSession.active and RaceSession.active()
+		if botSession then
+			for participant in botSession.participants do
+				if participant:GetAttribute("IsBot")==true then
+					local activeKart,chassis=PrototypeWorld.getRaceKart(participant)
+					if activeKart then
+						table.insert(targets,{player=participant,chassis=chassis,previous=previousPositions[participant] or chassis.Position})
+						previousPositions[participant]=chassis.Position
+					else previousPositions[participant]=nil end
+				end
+			end
+		end
 		smoke:update(now, targets)
 		for index = #hazards, 1, -1 do
 			local hazard = hazards[index]
@@ -474,8 +486,8 @@ function RaceItemController.start()
 						and Geometry.crosses(hazard.trigger.CFrame, hazard.trigger.Size, target.previous, target.chassis) then
 						local accepted, reason = RaceItemController.tryApplyOffensiveItem(target.player, hazard.owner, "Slick")
 						if reason == "hit" or reason == "blocked" or reason == "immune" and not hazard.blocked[target.player] then
-							print(string.format("[Slick] %s owner=%d target=%d reason=%s",
-								if reason == "hit" then "HIT" else "BLOCKED", hazard.owner.UserId, target.player.UserId, reason))
+							print(string.format("[Slick] %s owner=%d target=%s reason=%s",
+								if reason == "hit" then "HIT" else "BLOCKED", hazard.owner.UserId, if target.player:GetAttribute("IsBot")==true then target.player:GetAttribute("BotId") else tostring(target.player.UserId), reason))
 							if reason == "immune" then hazard.blocked[target.player] = true end
 						end
 						if accepted then remove = true; break end
