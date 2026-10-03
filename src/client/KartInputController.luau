@@ -74,6 +74,12 @@ local function getInputAxes(): (number, number, boolean)
 	return throttle, steering, UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
 end
 
+-- Read-only audio input; uses the same mobile/keyboard axes as KartControl.
+function KartInputController.getEffectiveThrottle(): number
+	local throttle = getInputAxes()
+	return if isDrivingPrototypeKart() and Players.LocalPlayer:GetAttribute("RaceState") == "RACING" then throttle else 0
+end
+
 function KartInputController.getEffectiveSteering(): number
 	local _, steering = getInputAxes()
 	return if isDrivingPrototypeKart() then steering else 0

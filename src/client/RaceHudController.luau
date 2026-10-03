@@ -1465,6 +1465,7 @@ function RaceHudController.start()
 	updateHud()
 	local displayedSpeed = 0
 	local displayedSteering = 0
+	local powertrainPrototype = nil
 	local speedUpdateElapsed = 0
 	local botResultElapsed = 0
 	RunService.RenderStepped:Connect(function(deltaTime: number)
@@ -1507,6 +1508,7 @@ function RaceHudController.start()
 			displayedRivalPositions = {}
 		end
 		if not speedPanel.Visible then
+			if powertrainPrototype then powertrainPrototype.reset() end
 			displayedSpeed = 0
 			displayedSteering = 0
 			steeringRing.Rotation = 0
@@ -1541,6 +1543,15 @@ function RaceHudController.start()
 			local STUDS_PER_SECOND_TO_KMH = 1.008
 			speedValue.Text = tostring(math.floor(displayedSpeed * STUDS_PER_SECOND_TO_KMH + 0.5))
 			speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.NITRO_MAX_SPEED, 0, 1), 1)
+		end
+		if not powertrainPrototype and ((RunService.IsStudio and RunService:IsStudio()
+			and player:GetAttribute("KDMEnablePowertrainPrototype") == true)
+			or (Workspace.GetAttribute and Workspace:GetAttribute("KDMPowertrainPublishedAcceptance") == true)) then
+			powertrainPrototype = require(script.Parent:WaitForChild("KartPowertrainPrototype"))
+		end
+		if powertrainPrototype then
+			powertrainPrototype.update(screenGui,kart,chassis,deltaTime,targetSpeed,displayedSpeed,
+				speedValue.Text,Input.isTouchPreferred(),availabilityPanel.Visible,Input.getEffectiveThrottle())
 		end
 	end)
 	print("[RobloxKart] Race HUD ready")
