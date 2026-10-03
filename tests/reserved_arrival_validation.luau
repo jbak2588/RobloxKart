@@ -71,6 +71,7 @@ end
 function methods:Destroy() self.Destroying:Fire(); self.Parent=nil end
 function methods:SetNetworkOwner() end
 function methods:PivotTo(cf) if self.PrimaryPart then self.PrimaryPart.CFrame=cf end end
+function methods:GetPivot() return if self.PrimaryPart then self.PrimaryPart.CFrame else rb.CFrame.identity end
 function methods:GetPlayers() return self._children end
 function methods:GetPlayerFromCharacter(character)
 	for _, player in self._children do if player.Character==character then return player end end

@@ -1,0 +1,60 @@
+local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox')
+local V=luau.load(fs.readFile('src/client/MobileControlView.luau'),{environment={Color3=rb.Color3,Vector2=rb.Vector2}})()
+local count=0
+local function check(v,label) assert(v,label); count+=1 end
+local function overlaps(a,b) return a[1]<b[3] and b[1]<a[3] and a[2]<b[4] and b[2]<a[4] end
+for _,pair in {{749,361},{844,390},{932,430},{749,303},{724,311},{640,360}} do
+ local s=rb.Vector2.new(pair[1],pair[2]); local l=V.layout(s)
+ local top=s.Y-l.padBottom-l.padHeight; local left=s.X-l.margin-l.padWidth
+ local m=V.minimapLayout(s,-58)
+ local map={m.x,m.y,m.x+m.side,m.y+m.side}
+ local i=V.inviteLayout(s,m.x,m.y,m.side,m.side,true); local invite={i.x,i.y,i.x+i.width,i.y+i.height}
+ local pad={left,top,s.X-l.margin,s.Y-l.padBottom}
+ check(not overlaps(invite,pad),'invite clears entire pad '..tostring(s))
+ check(invite[4]<=top-8,'8px pad separation')
+ check(not overlaps(invite,map),'invite clears minimap')
+ check(not overlaps(pad,map),'pad clears minimap')
+ local auto={left,top,left+44,top+44}
+ check(not overlaps(invite,auto),'invite clears AutoForward')
+ check(i.x>=0 and i.x+i.width<=s.X and i.y>=0,'invite inside safe area')
+ local panel={i.panelX,i.panelY,i.panelX+i.panelWidth,i.panelY+52+i.rows*28}
+ check(not overlaps(panel,pad) and not overlaps(panel,map),'open panel clears pad/map')
+ local wheel={s.X*.5-l.wheel*.5,s.Y-3-l.wheel*2/3,s.X*.5+l.wheel*.5,s.Y-3}
+ check(not overlaps(map,wheel),'minimap clears Steering')
+ check(m.x>=0 and m.y>=-58 and map[3]<=s.X-12 and map[4]<=s.Y-l.margin,'minimap topbar/safe containment')
+ check(m.side>=92,'minimap readable minimum')
+ check(m.y==-58,'map matches topbar speed baseline')
+ local room={s.X-12-118,m.y+m.side+6,s.X-12,m.y+m.side+28}
+ check(not overlaps(room,map) and not overlaps(room,invite),'map room invite stack')
+ check(invite[2]==room[4]+6,'6px room/invite gap')
+ local directionTop=s.Y-l.padBottom-l.brake-l.padGap-l.direction
+ local forwardX=left+(l.padWidth-l.forward)*.5
+ local brakeX=left+(l.padWidth-l.brake)*.5
+ local buttons={
+  Forward={forwardX,top,forwardX+l.forward,top+l.forward},
+  Left={left,directionTop,left+l.direction,directionTop+l.direction},
+  Right={s.X-l.margin-l.direction,directionTop,s.X-l.margin,directionTop+l.direction},
+  Brake={brakeX,s.Y-l.padBottom-l.brake,brakeX+l.brake,s.Y-l.padBottom},
+  AutoForward=auto}
+ for name,rect in buttons do check(not overlaps(map,rect),'minimap clears actual '..name) end
+ local speed={s.X*.5-80,-58,s.X*.5+80,-2}
+ check(not overlaps(map,speed) and not overlaps(invite,speed),'map/invite clear speed')
+ check(not overlaps(panel,speed),'open panel clears speed')
+ check(not overlaps(panel,wheel),'open panel clears wheel')
+ local items=V.itemLayout(s,4); local row={items.x,s.Y-items.bottom-l.slot,items.x+items.width,s.Y-items.bottom}
+ check(not overlaps(panel,row),'open panel clears items')
+ check(not overlaps(map,row),'minimap clears item row')
+ local drift={l.driftX,s.Y-l.driftBottom-l.action,l.driftX+l.action,s.Y-l.driftBottom}
+ local progress={items.x,items.progressTop,items.x+items.width,items.progressTop+items.progressHeight}
+ check(not overlaps(map,drift) and not overlaps(map,progress),'minimap clears Drift/Nitro progress')
+ check(l.direction>=44 and l.forward>=l.direction and l.brake>=44,'minimum control targets')
+ check(l.padGap==8,'symmetric vertical gap')
+end
+check(V.minimapLayout(rb.Vector2.new(749,303)).side==96,'short-phone 96px map')
+check(V.minimapLayout(rb.Vector2.new(844,390)).side==112,'844x390 112px map')
+check(V.minimapLayout(rb.Vector2.new(932,430)).side==112,'932x430 112px map')
+local colors={}
+for _,id in {'Nitro','Shield','Slick','Missile','Thunder','Smoke'} do
+ local color=V.itemAccent(id); check(not colors[tostring(color)],'distinct accent '..id); colors[tostring(color)]=true
+end
+print('PASS: '..count..' mobile HUD safe layout and accent checks')

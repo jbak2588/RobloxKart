@@ -71,6 +71,7 @@ end
 function methods:Destroy() self.Destroying:Fire(); self.Parent=nil end
 function methods:SetNetworkOwner() end
 function methods:PivotTo(cf) if self.PrimaryPart then self.PrimaryPart.CFrame=cf end end
+function methods:GetPivot() return if self.PrimaryPart then self.PrimaryPart.CFrame else rb.CFrame.identity end
 function methods:GetPlayers() return self._children end
 function methods:GetPlayerFromCharacter(character)
 	for _, player in self._children do if player.Character==character then return player end end
@@ -239,7 +240,16 @@ check(player:GetAttribute("RaceState")=="FINISHING" and kart:GetAttribute("KartF
 check(player:GetAttribute("RaceCompletedLaps")==1,"one lap only")
 check(player:GetAttribute("RaceLap1Time")>0 and player:GetAttribute("RaceBestLapNumber")==1,"practice lap history includes standing start")
 local officialTime=player:GetAttribute("RaceFinalTime")
+local presentationPosition=chassis.Position
+chassis.CFrame=chassis.CFrame*rb.CFrame.Angles(.12,.30,-.08)
+chassis.AssemblyLinearVelocity=rb.Vector3.new(3,1,2)
+chassis.AssemblyAngularVelocity=rb.Vector3.new(1,2,3)
 tick(raceConfig.FINISH_ROLL_SECONDS+0.01)
+check((chassis.Position-presentationPosition).Magnitude<=.001,"PRESENT alignment retains chassis center")
+check(chassis.CFrame.LookVector:Dot(finish.CFrame.LookVector)>=.999
+ and chassis.CFrame.UpVector:Dot(finish.CFrame.UpVector)>=.999,"PRESENT aligns both gate axes")
+check(chassis.AssemblyLinearVelocity.Magnitude==0 and chassis.AssemblyAngularVelocity.Magnitude==0,
+ "PRESENT stops linear/angular motion")
 check(player:GetAttribute("RaceState")=="FINISHING" and player:GetAttribute("RaceFinishPhase")=="PRESENT"
  and not kart:GetAttribute("KartFinishRollActive") and player:GetAttribute("RaceFinalTime")==officialTime,"presentation follows roll without changing official time")
 tick(raceConfig.FINISH_CAMERA_TRANSITION_SECONDS)

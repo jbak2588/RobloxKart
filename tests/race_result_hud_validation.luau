@@ -91,7 +91,7 @@ local services={Players={LocalPlayer=player,GetPlayers=function() return {player
  RunService={RenderStepped=signal()},TweenService={Create=function() return {Play=function() end} end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat"} do
  child(shared,"ModuleScript",name)
 end
@@ -102,6 +102,7 @@ local modules={
   removeRacerMarker=function() end,clearRacerMarkers=function() end} end},
  RaceMinimapRivals={collect=function() return {} end},
  GaragePresence=luau.load(fs.readFile("src/client/GaragePresence.luau"))(),
+ RaceResultsCache=luau.load(fs.readFile("src/client/RaceResultsCache.luau"))(),
  RaceConfig={TOTAL_LAPS=3,CONTROL_REMOTE_EVENT_NAME="RaceControl"},KartConfig={MINI_BOOST_MAX_SPEED=100,NITRO_MAX_SPEED=100},
  DriverCatalog={Entries={}},KartCatalog={Entries={}},
  TrackCatalog={DefaultId="Track01",Entries={Track01={GeometryId="PracticeCircuitV1",DisplayName="Practice",MatchType="PUBLIC_RACE"}}},
@@ -111,7 +112,7 @@ local common={Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vecto
  Color3=rb.Color3,Enum=rb.Enum,TweenInfo={new=function() return {} end},
  game={GetService=function(_,name) return assert(services[name],name) end},
  require=function(module) return assert(modules[module.Name],module.Name) end,
- task={delay=function(seconds, callback) table.insert(delayed,{seconds,callback}) end},time=function() return now end}
+ task={delay=function(seconds, callback) table.insert(delayed,{seconds,callback}) end,defer=function(callback) callback() end},time=function() return now end}
 common.script={Parent=modulesFolder}
 modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment=common})()
 player:SetAttribute("RaceState","GARAGE")
@@ -119,6 +120,7 @@ player:SetAttribute("SelectedTrackId","Track01")
 local controller=luau.load(fs.readFile("src/client/RaceHudController.luau"),{environment=common})()
 controller.start()
 local hud=playerGui.RobloxKartRaceHud
+local function raceMap() return playerGui.RobloxKartMobileTopHud:FindFirstChild("RaceMiniMap") or hud:FindFirstChild("RaceMiniMap") end
 local results=hud.Results
 local function contentFits()
  local content=results:FindFirstChildOfClass("UIPadding")
@@ -150,7 +152,7 @@ check(not hud.Panel.Visible and results.AnchorPoint.X==0 and results.Position.X.
  and results.Size.X.Offset<=285 and results.Size.X.Offset<=safeSize.X*0.39,
  "mobile result anchors to safe left edge with capped width")
 check(results.Position.X.Offset+results.Size.X.Offset<=safeSize.X*0.44
- and results.Rematch.Size.X.Offset>=150 and results.ReturnGarage.Size.X.Offset>=150,
+ and results:FindFirstChild("Rematch",true).Size.X.Offset>=150 and results:FindFirstChild("ReturnGarage",true).Size.X.Offset>=150,
  "mobile result leaves scene clearance with tappable buttons")
 check(results.Total.Text=="TOTAL TIME  4:01.13","result shows official total time")
 check(results.Lap1Row.LapTime.Text=="1:23.20" and results.Lap1Row.LapDelta.Text=="+4.30","lap one and delta")
@@ -195,8 +197,8 @@ set("RaceDNFReason","RACE_TIMEOUT")
 check(results.Total.Text=="RACE TIMEOUT" and results.Finish.Text=="DNF",
  "race deadline DNF is distinct from off-track DNF")
 set("RaceDNFReason","FORFEIT")
-check(results.Total.Text=="FORFEIT" and not results.Rematch.Active
- and results.ReturnGarage.Visible,"reserved forfeit keeps Garage retry and disables Rematch")
+check(results.Total.Text=="FORFEIT" and not results:FindFirstChild("Rematch",true).Active
+ and results:FindFirstChild("ReturnGarage",true).Visible,"reserved forfeit keeps Garage retry and disables Rematch")
 set("RaceDNFReason","")
 check(results.Position.X.Scale==0.5 and results.AnchorPoint.X==0.5,"DNF remains centered")
 input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
@@ -209,12 +211,12 @@ set("RaceParticipantCount",2);set("RacePosition",2)
 set("RaceMatchStatus","RACING")
 set("RaceSessionComplete",false)
 set("RaceEndCountdownRemaining",45);set("RaceEndCountdownActive",true)
-check(not results.Rematch.Active and results.Rematch.Text=="WAITING FOR RACERS\n0:45"
- and results.ReturnGarage.Visible,"finished racer sees deadline with disabled Rematch and available Garage")
+check(not results:FindFirstChild("Rematch",true).Active and results:FindFirstChild("Rematch",true).Text=="WAITING FOR RACERS\n0:45"
+ and results:FindFirstChild("ReturnGarage",true).Visible,"finished racer sees deadline with disabled Rematch and available Garage")
 set("RaceEndCountdownRemaining",44)
-check(results.Rematch.Text=="WAITING FOR RACERS\n0:44","finished waiting time follows replicated seconds")
+check(results:FindFirstChild("Rematch",true).Text=="WAITING FOR RACERS\n0:44","finished waiting time follows replicated seconds")
 set("RaceSessionComplete",true);set("RaceEndCountdownActive",false)
-check(results.Rematch.Active and results.Rematch.Text=="REMATCH",
+check(results:FindFirstChild("Rematch",true).Active and results:FindFirstChild("Rematch",true).Text=="REMATCH",
  "completed race restores Rematch and hides waiting countdown")
 set("RaceSessionComplete",false)
 set("RaceHostUserId",player.UserId)
@@ -366,14 +368,14 @@ local positionLabel=hud.Speedometer:FindFirstChild("Position")
 check(positionLabel.Visible and positionLabel.Text=="POS 2/2","race position display")
 set("RaceFinishPosition",1);set("RaceState","FINISHED")
 check(not hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit action hides after racing")
-check(results.Finish.Text=="PLACE 1/2" and not results.Rematch.Active
- and results.Rematch.Text=="WAITING FOR RACERS","first finisher sees fixed place and waits")
-check(hud.RaceMiniMap.Visible,"first finisher keeps multiplayer minimap while rival races")
+check(results.Finish.Text=="RACE RESULTS" and not results:FindFirstChild("Rematch",true).Active
+ and results:FindFirstChild("Rematch",true).Text=="WAITING FOR RACERS","first finisher sees fixed place and waits")
+check(raceMap().Visible,"first finisher keeps multiplayer minimap while rival races")
 set("RaceSessionComplete",true)
-check(results.Rematch.Active and results.Rematch.Text=="REMATCH","all terminal unlocks rematch")
-check(not hud.RaceMiniMap.Visible,"completed result hides spectator minimap")
+check(results:FindFirstChild("Rematch",true).Active and results:FindFirstChild("Rematch",true).Text=="REMATCH","all terminal unlocks rematch")
+check(not raceMap().Visible,"completed result hides spectator minimap")
 set("RaceRematchReadyCount",1);set("RaceRematchRequiredCount",2);set("RaceRematchReady",true)
-check(not results.Rematch.Active and results.Rematch.Text=="READY 1/2","voter waits for opponent")
+check(not results:FindFirstChild("Rematch",true).Active and results:FindFirstChild("Rematch",true).Text=="READY 1/2","voter waits for opponent")
 set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH");set("RaceMatchWaitRemaining",0)
 set("RaceMatchStatus","WAITING");set("RaceState","PRE_RACE")
 check(lobby.Visible and not results.Visible and hud.Countdown.Text=="WAITING FOR RACERS",
@@ -450,23 +452,100 @@ for _,size in {rb.Vector2.new(812,351),rb.Vector2.new(801,334),rb.Vector2.new(74
 end
 for _,size in {rb.Vector2.new(1490,620),rb.Vector2.new(844,332),rb.Vector2.new(749,303)} do
  safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
- local status,map=hud.RoomQueueStatus,hud.RaceMiniMap
+ local status,map=hud.RoomQueueStatus,raceMap()
  local statusRight=status.AbsolutePosition.X+status.AbsoluteSize.X
  local mapRight=map.AbsolutePosition.X+map.AbsoluteSize.X
  check(status.Visible and map.Visible and math.abs(statusRight-mapRight)<1,
   "mobile Room status aligns with minimap right edge "..tostring(size))
- check(status.AbsolutePosition.Y+status.AbsoluteSize.Y+6<=map.AbsolutePosition.Y,
-  "mobile Room status stays above minimap with clear gap "..tostring(size))
+ check(if size.Y<500 then map.AbsolutePosition.Y+map.AbsoluteSize.Y+6<=status.AbsolutePosition.Y
+  else status.AbsolutePosition.Y+status.AbsoluteSize.Y+6<=map.AbsolutePosition.Y,
+  "mobile Room status follows minimap hierarchy "..tostring(size))
  check(status.AbsolutePosition.X>size.X*0.5 and statusRight<=size.X
   and status.AbsolutePosition.Y>=hud.AbsolutePosition.Y,
   "mobile Room status clears central driving view inside safe area "..tostring(size))
 end
+for _,size in {rb.Vector2.new(749,303),rb.Vector2.new(749,361),rb.Vector2.new(724,311),
+ rb.Vector2.new(844,390),rb.Vector2.new(932,430),rb.Vector2.new(640,360)} do
+ safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+ local expected=modules.MobileControlView.minimapLayout(size,playerGui.RobloxKartMobileTopHud.Speedometer.AbsolutePosition.Y-hud.AbsolutePosition.Y)
+ local map=raceMap()
+ check(map.Size.X.Offset==expected.side and map.Size.Y.Offset==expected.side,
+  "production responsive minimap size "..tostring(size))
+ check(math.abs(map.AbsolutePosition.X-hud.AbsolutePosition.X-expected.x)<1
+  and math.abs(map.AbsolutePosition.Y-playerGui.RobloxKartMobileTopHud.Speedometer.AbsolutePosition.Y)<=4,
+  "production minimap uses top-right speed baseline "..tostring(size))
+end
 set("RaceState","FINISHED")
-check(hud.RoomQueueStatus.AnchorPoint.X==0.5 and hud.RoomQueueStatus.Size.X.Offset==300,
- "result next-round status retains existing layout")
+check(hud.RoomQueueStatus.AnchorPoint.X==1 and hud.RoomQueueStatus.Position.X.Offset==-12,
+ "mobile result next-round status clears standings")
 set("RaceState","RACING")
 input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
+safeSize=rb.Vector2.new(1280,720);camera.ViewportSize=safeSize
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 check(hud.RoomQueueStatus.AnchorPoint.X==0.5 and hud.RoomQueueStatus.Position.X.Scale==0.5,
  "desktop Room status retains existing layout")
+check(raceMap().Position.X.Scale==1 and raceMap().Position.X.Offset==-24
+ and raceMap().Position.Y.Scale==.5 and raceMap().Size.X.Offset==194,
+ "desktop minimap geometry unchanged")
+check(hud.RacingInviteToggle.Position.X.Offset==-12 and hud.RacingInviteToggle.Position.Y.Offset==132
+ and hud.RacingInviteToggle.Size.X.Offset==118,"desktop invite geometry unchanged")
+for _,state in {"COUNTDOWN","FINISHING","FINISHED","DNF","GARAGE"} do
+ set("RaceState",state); check(not hud.RacingInviteToggle.Visible,"invite hidden in "..state)
+end
+set("RaceState","RACING"); set("RaceHostUserId",2)
+check(not hud.RacingInviteToggle.Visible,"nonhost racing invite hidden")
+set("RaceHostUserId",1)
+check(hud.RacingInviteToggle.Visible,"host racing invite restored")
+for _,entry in {{0,0},{25,25},{70,71},{100,101}} do
+ raceChassis.AssemblyLinearVelocity=rb.Vector3.new(entry[1],50,0)
+ for _=1,40 do services.RunService.RenderStepped:Fire(.1) end
+ check(hud.Speedometer.SpeedValue.Text==tostring(entry[2]),"horizontal km/h conversion "..entry[1])
+ check(hud.Speedometer.SpeedUnit.Text=="km/h","display unit km/h")
+ check(math.abs(speedFill.Size.X.Scale-entry[1]/100)<.001,"speed bar retains studs/sec ratio")
+end
+-- Exercise the real view and current-round cache with all four racers.
+local racers={player,otherPlayer}
+for id=3,4 do
+ local p=object("Player","Racer"..id);p.UserId=id;p.DisplayName="Racer "..id
+ table.insert(racers,p)
+ services.Players.PlayerAdded:Fire(p)
+end
+services.Players.GetPlayers=function() return racers end
+player.DisplayName="Local Racer";otherPlayer.DisplayName="Winner"
+set("RaceSessionId",901);set("RaceTotalLaps",3);set("RaceParticipantCount",4)
+for index,p in racers do
+ p:SetAttribute("RaceSessionId",901)
+ p:SetAttribute("RacePosition",index);p:SetAttribute("RaceFinishPosition",if index==1 then 2 elseif index==2 then 1 else index)
+ p:SetAttribute("RaceFinalTime",120+index);p:SetAttribute("RaceLap1Time",40+index)
+ p:SetAttribute("RaceLap2Time",41+index);p:SetAttribute("RaceLap3Time",42+index)
+ p:SetAttribute("RaceCompletedLaps",3);p:SetAttribute("RaceState","FINISHED")
+end
+set("RaceSessionComplete",true)
+input.PreferredInput=rb.Enum.PreferredInput.Touch;safeSize=rb.Vector2.new(749,303)
+camera.ViewportSize=safeSize;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+local board=results.Standings
+check(board.Racer1.RacerName.Text=="Winner" and board.Racer2.RacerName.Text=="Local Racer",
+ "local second place still shows winner first")
+check(board.Racer1.TotalTime.Text=="2:02.00" and board.Racer2.TotalTime.Text=="2:01.00",
+ "totals use replicated values rather than sorting by time")
+check(board.Racer1.Laps.Text=="L1 42.00 · L2 43.00 · L3 44.00","each racer three lap values")
+check(board.Racer4.Visible and contentFits(),"four rows fit 749x303 result")
+check(results.ResultActions.Rematch.AbsoluteSize.Y>=44 and results.ResultActions.ReturnGarage.AbsoluteSize.Y>=44,
+ "multiplayer buttons retain 44px targets")
+check(board.Racer2.BackgroundColor3~=board.Racer1.BackgroundColor3,"local row highlighted")
+racers[3]:SetAttribute("RaceFinishPosition",0);racers[3]:SetAttribute("RaceState","DNF")
+check(board.Racer3.RacerName.Text=="Racer 4" and board.Racer4.TotalTime.Text=="DNF","DNF after valid finishers")
+racers[4]:SetAttribute("RaceFinishPosition",0);racers[4]:SetAttribute("RaceFinalTime",0)
+racers[4]:SetAttribute("RaceState","RACING");set("RaceSessionComplete",false)
+check(board.Racer3.TotalTime.Text=="RACING" and results.StandingsStatus.Text=="WAITING FOR RACERS"
+ and not results.ResultActions.Rematch.Active,"live rival and Rematch wait preserved")
+racers[4]:SetAttribute("RaceFinishPosition",3);racers[4]:SetAttribute("RaceFinalTime",144)
+racers[4]:SetAttribute("RaceState","FINISHED");set("RaceSessionComplete",true)
+check(board.Racer3.TotalTime.Text=="2:24.00" and results.StandingsStatus.Text=="FINAL STANDINGS",
+ "late racer attributes update results automatically")
+local leaving=table.remove(racers,2);services.Players.PlayerRemoving:Fire(leaving)
+set("RaceEndCountdownRemaining",0)
+check(board.Racer1.RacerName.Text=="Winner","finished departed racer remains cached")
+set("RaceSessionId",902)
+check(not board.Racer2.Visible,"new round drops previous result cache")
 print("PASS: "..count.." production race result HUD checks")

@@ -58,9 +58,9 @@ function RaceItemUiController.start()
 		buttons[index] = button
 		local icon = MobileView.icon(button, id)
 		local scale = Instance.new("UIScale")
-		scale.Scale = 0.8
+		scale.Scale = 0.90
 		scale.Parent = icon.root
-		icon.root.Position = UDim2.fromScale(0.45, 0.43)
+		icon.root.Position = UDim2.fromScale(0.40, 0.40)
 		local border = MobileView.stroke(button, 1)
 		local count = Instance.new("TextLabel")
 		count.Name = "Charges"
@@ -164,9 +164,9 @@ function RaceItemUiController.start()
 				symbols.icon.root:Destroy()
 				symbols.icon = MobileView.icon(button, id)
 				local scale = Instance.new("UIScale")
-				scale.Scale = 0.8
+				scale.Scale = 0.90
 				scale.Parent = symbols.icon.root
-				symbols.icon.root.Position = UDim2.fromScale(0.45, 0.43)
+				symbols.icon.root.Position = UDim2.fromScale(0.40, 0.40)
 				symbols.id = id
 			end
 			button.Name = if id ~= "" then id else "ItemSlot" .. index
@@ -187,7 +187,8 @@ function RaceItemUiController.start()
 			symbols.mark.Text = if emergency then "!" else "✓"
 			symbols.mark.Visible = mobile and (chosen or emergency)
 			symbols.border.Enabled = mobile
-			symbols.border.Color = if emergency then Color3.fromRGB(65, 225, 255) else symbols.borderColor
+			symbols.border.Color = if emergency then Color3.fromRGB(65, 225, 255)
+				elseif charges > 0 then MobileView.itemAccent(id) else symbols.borderColor
 			symbols.border.Thickness = if chosen or emergency then 3 else 1
 			symbols.border.Transparency = if charges == 0 then 0.7 elseif chosen or emergency then 0 else 0.5
 		end

@@ -14,7 +14,7 @@ function View.layout(size: Vector2)
 	local brake = direction
 	local padWidth = direction * 3 + 24
 	local compactPad = not portrait and size.Y < 300
-	local padHeight = if compactPad then forward + brake + 14 else forward + direction + brake + 12
+	local padHeight = if compactPad then forward + brake + 14 else forward + direction + brake + 16
 	local padBottom = if portrait then math.min(112, size.X * 0.18)*2/3+12 else margin
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
@@ -30,6 +30,7 @@ function View.layout(size: Vector2)
 		padBottom = padBottom,
 		padAutoRight = portrait,
 		padCompact = compactPad,
+		padGap = 8,
 		driftX = margin, driftBottom = margin + (if portrait then action+8 else 0),
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
 		-- Reserve a separate band for race-long Nitro progress and its award flash.
@@ -37,6 +38,46 @@ function View.layout(size: Vector2)
 		gaugeHeight = 12,
 		driftGaugeGap = 8,
 	}
+end
+
+-- Align the phone minimap with the speed HUD in the top-right band.
+function View.minimapLayout(size: Vector2, speedTop: number?)
+	local side = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
+	return {x=size.X-12-side, y=speedTop or 0, side=side}
+end
+
+-- Keep the driving rail fixed. Short phones use an adjacent lane when the
+-- vertical space between the map and pad cannot contain the invite button.
+function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: number, mapHeight: number, roomVisible: boolean?)
+	local l = View.layout(size)
+	local width, height = if size.Y < 360 then 108 else 118, if size.Y < 360 then 30 else 32
+	local padTop = size.Y - l.padBottom - l.padHeight
+	local x = size.X - 12 - width
+	local y = mapY + mapHeight + (if roomVisible then 34 else 8)
+	if y+height > padTop-8 then
+		-- A shorter topbar band cannot contain the stack above the thumb rail.
+		x = size.X-l.margin-l.padWidth-width-8
+	end
+	local panelWidth = math.min(252, math.max(220, size.X - l.padWidth - l.margin - 240))
+	local panelX = math.clamp((240 + size.X - l.margin - l.padWidth - panelWidth) * .5,
+		l.margin, size.X - l.margin - l.padWidth - panelWidth - 8)
+	local bottomMap = mapY >= size.Y*.5
+	local panelTop = if not bottomMap and panelX < mapX+mapWidth+6 and panelX+panelWidth > mapX-6
+		then math.max(68,mapY+mapHeight+6) else 68
+	local panelBottom = size.Y - l.wheel*2/3 - 11
+	if bottomMap and panelX < mapX+mapWidth+6 and panelX+panelWidth > mapX-6 then
+		panelBottom = math.min(panelBottom,mapY-6)
+	end
+	local rows = math.clamp(math.floor((panelBottom - panelTop - 52)/28), 1, 4)
+	return {x=x, y=math.max(8,y), width=width, height=height,
+		panelX=panelX, panelY=panelTop, panelWidth=panelWidth, rows=rows}
+end
+
+function View.itemAccent(id: string): Color3
+	local accents = {Nitro=Color3.fromRGB(255,215,75), Shield=Color3.fromRGB(65,225,245),
+		Slick=Color3.fromRGB(180,125,235), Missile=Color3.fromRGB(255,140,95),
+		Thunder=Color3.fromRGB(205,155,255), Smoke=Color3.fromRGB(175,185,195)}
+	return accents[id] or ink
 end
 
 function View.speedTopbarPosition(fullSize: Vector2, topbar: Rect, panelWidth: number, panelHeight: number): Vector2

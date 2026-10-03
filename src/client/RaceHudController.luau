@@ -20,6 +20,7 @@ local RaceResultFormat = requireModule(ReplicatedStorage:WaitForChild("Shared"):
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 local RaceMinimapRivals = require(script.Parent:WaitForChild("RaceMinimapRivals"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
+local RaceResultsCache = require(script.Parent:WaitForChild("RaceResultsCache"))
 
 local RaceHudController = {}
 
@@ -242,7 +243,7 @@ function RaceHudController.start()
 	local speedUnit = createLabel(speedPanel, "SpeedUnit", 2)
 	speedUnit.Position = UDim2.fromOffset(130, 24)
 	speedUnit.Size = UDim2.fromOffset(72, 20)
-	speedUnit.Text = "stud/s"
+	speedUnit.Text = "km/h"
 	speedUnit.TextSize = 14
 	speedUnit.TextColor3 = Color3.fromRGB(180, 194, 211)
 	local positionLabel = createLabel(speedPanel, "Position", 0)
@@ -448,6 +449,7 @@ function RaceHudController.start()
 	availabilityPanel.Parent = screenGui
 	addCorner(availabilityPanel, 7)
 	local racingInvitesOpen = false
+	local updateHud
 	local racingInviteToggle = Instance.new("TextButton")
 	racingInviteToggle.Name = "RacingInviteToggle"
 	racingInviteToggle.AnchorPoint = Vector2.new(1, 0)
@@ -463,7 +465,7 @@ function RaceHudController.start()
 	addCorner(racingInviteToggle, 5)
 	racingInviteToggle.Activated:Connect(function()
 		racingInvitesOpen = not racingInvitesOpen
-		availabilityPanel.Visible = racingInvitesOpen
+		updateHud()
 	end)
 	local availabilityHeading = createLabel(availabilityPanel, "WaitingTitle", 1)
 	availabilityHeading.Position = UDim2.fromOffset(8, 4)
@@ -680,10 +682,53 @@ function RaceHudController.start()
 		remoteEvent:FireServer("ReturnGarage")
 	end)
 
+	local resultCache = RaceResultsCache.new()
+	local standingsRows = {}
+	local standings = Instance.new("Frame")
+	standings.Name = "Standings"
+	standings.LayoutOrder = 3
+	standings.BackgroundTransparency = 1
+	standings.Visible = false
+	standings.Parent = resultsPanel
+	for index=1,4 do
+		local row=Instance.new("Frame")
+		row.Name="Racer"..index
+		row.BorderSizePixel=0
+		row.BackgroundTransparency=.35
+		row.Parent=standings
+		addCorner(row,4)
+		local place=createLabel(row,"Place",0)
+		local name=createLabel(row,"RacerName",0)
+		local total=createLabel(row,"TotalTime",0)
+		local laps=createLabel(row,"Laps",0)
+		place.Position=UDim2.fromOffset(4,0); place.Size=UDim2.fromOffset(22,20)
+		name.Position=UDim2.fromOffset(28,0); name.Size=UDim2.new(1,-112,0,20)
+		name.TextTruncate=Enum.TextTruncate.AtEnd; name.TextWrapped=false
+		total.Position=UDim2.new(1,-86,0,0); total.Size=UDim2.fromOffset(82,20)
+		total.TextXAlignment=Enum.TextXAlignment.Right
+		laps.Position=UDim2.fromOffset(28,20); laps.Size=UDim2.new(1,-32,0,18)
+		standingsRows[index]={frame=row,place=place,name=name,total=total,laps=laps}
+	end
+	local resultStatus=createLabel(resultsPanel,"StandingsStatus",2)
+	resultStatus.Size=UDim2.new(1,0,0,16)
+	resultStatus.TextSize=11
+	resultStatus.TextXAlignment=Enum.TextXAlignment.Center
+	resultStatus.Visible=false
+	local resultActions=Instance.new("Frame")
+	resultActions.Name="ResultActions"
+	resultActions.LayoutOrder=8
+	resultActions.BackgroundTransparency=1
+	resultActions.Visible=false
+	resultActions.Parent=resultsPanel
+
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local mobile = Input.isTouchPreferred()
+		local phoneMap = mobile and screenGui.AbsoluteSize.X > screenGui.AbsoluteSize.Y
+			and screenGui.AbsoluteSize.Y < 500 and player:GetAttribute("RaceState") == "RACING"
+		miniMapPanel.Parent = if phoneMap then mobileTopGui else screenGui
+		miniMapPanel.BackgroundTransparency = if phoneMap then .40 else .10
 		roomQueueLabel.AnchorPoint = Vector2.new(0.5, 0)
 		roomQueueLabel.Position = UDim2.new(0.5, 0, 0, 96)
 		roomQueueLabel.Size = UDim2.fromOffset(300, 26)
@@ -885,16 +930,50 @@ function RaceHudController.start()
 			if safeSize.X < 450 then
 				miniMapPanel.Visible = false
 			end
+			if safeSize.X > safeSize.Y and safeSize.Y < 500
+				and player:GetAttribute("RaceState") == "RACING" then
+				local top = speedPanel.AbsolutePosition.Y-screenGui.AbsolutePosition.Y
+				local map = MobileView.minimapLayout(safeSize,top)
+				local origin = screenGui.AbsolutePosition-mobileTopGui.AbsolutePosition
+				miniMapPanel.Position = UDim2.fromOffset(origin.X+map.x+map.side,origin.Y+map.y)
+				miniMapPanel.Size = UDim2.fromOffset(map.side,map.side)
+				if roomQueueLabel.Visible and player:GetAttribute("RaceState") == "RACING" then
+					roomQueueLabel.Position = UDim2.fromOffset(map.x+map.side,map.y+map.side+6)
+					roomQueueLabel.Size = UDim2.fromOffset(118,22)
+					roomQueueLabel.TextSize = 11
+				end
+			end
 		end
 		local waitingLobby = player:GetAttribute("RaceState") == "PRE_RACE"
 			and player:GetAttribute("RaceMatchStatus") == "WAITING"
 		local shortLobby = viewportSize.Y < 320
-		local shownRows = math.max(1, math.min(availableTotal, if shortLobby then 2 else 4))
+		local inviteLayout = nil
+		if mobile and screenGui.AbsoluteSize.X > screenGui.AbsoluteSize.Y then
+			local safeSize = screenGui.AbsoluteSize
+			local mapWidth, mapHeight = miniMapPanel.Size.X.Offset, miniMapPanel.Size.Y.Offset
+			local mapOrigin = miniMapPanel.AbsolutePosition-screenGui.AbsolutePosition
+			inviteLayout = MobileView.inviteLayout(safeSize,mapOrigin.X,mapOrigin.Y,
+				mapWidth,mapHeight,roomQueueLabel.Visible)
+			racingInviteToggle.Position = UDim2.fromOffset(inviteLayout.x + inviteLayout.width, inviteLayout.y)
+			racingInviteToggle.Size = UDim2.fromOffset(inviteLayout.width, inviteLayout.height)
+		else
+			racingInviteToggle.Position = UDim2.new(1, -12, 0, 132)
+			racingInviteToggle.Size = UDim2.fromOffset(118, 32)
+		end
+		local racingPanel = inviteLayout and player:GetAttribute("RaceState") == "RACING"
+		availabilityPanel.AnchorPoint = if racingPanel then Vector2.zero else Vector2.new(.5,1)
+		availabilityPanel.Position = if racingPanel then UDim2.fromOffset(inviteLayout.panelX, inviteLayout.panelY)
+			else UDim2.new(.5,0,.94,-96)
+		local shownRows = math.max(1, math.min(availableTotal, if racingPanel then inviteLayout.rows elseif shortLobby then 2 else 4))
 		availabilityPanel.Size = UDim2.fromOffset(252, 52 + shownRows * 28)
+		if racingPanel then availabilityPanel.Size = UDim2.fromOffset(inviteLayout.panelWidth,52+shownRows*28) end
 		for index, row in availabilityRows do
-			if index > 2 then
-				row.label.Visible = not shortLobby and row.userId ~= nil
-				row.button.Visible = not shortLobby and row.userId ~= nil
+			if index > shownRows then
+				row.label.Visible = false
+				row.button.Visible = false
+			else
+				row.label.Visible = row.label.Text ~= ""
+				row.button.Visible = row.userId ~= nil
 					and player:GetAttribute("RaceHostUserId") == player.UserId
 			end
 		end
@@ -904,6 +983,41 @@ function RaceHudController.start()
 			and player:GetAttribute("RaceSessionComplete") ~= true then rematchButton.TextSize = 14 end
 		MobileView.layoutSteeringWheel(wheelClip, steeringDisplay, steeringRingScale,
 			if mobile then screenGui.AbsoluteSize else viewportSize, mobile)
+		local multiplayer = getNumberAttribute(player,"RaceParticipantCount",1)>=2
+			and (player:GetAttribute("RaceState")=="FINISHED" or player:GetAttribute("RaceState")=="DNF")
+		resultActions.Visible=multiplayer
+		local actionParent=if multiplayer then resultActions else resultsPanel
+		rematchButton.Parent=actionParent; garageButton.Parent=actionParent
+		if multiplayer then
+			local safe=screenGui.AbsoluteSize
+			local width=if mobile then math.min(330,safe.X*.45) else 390
+			local rowHeight=if mobile then 40 else 48
+			resultsPanel.Size=UDim2.fromOffset(width,if mobile then 272 else 304)
+			resultsPanel.AnchorPoint=Vector2.new(0,.5)
+			resultsPanel.Position=if mobile then UDim2.new(0,14,.5,0) else UDim2.new(.08,0,.5,0)
+			resultsLayout.Padding=UDim.new(0,4)
+			resultsPadding.PaddingTop=UDim.new(0,8);resultsPadding.PaddingBottom=UDim.new(0,8)
+			resultsPadding.PaddingLeft=UDim.new(0,10);resultsPadding.PaddingRight=UDim.new(0,10)
+			finishLabel.Size=UDim2.new(1,0,0,24);finishLabel.TextSize=if mobile then 20 else 24
+			standings.Size=UDim2.new(1,0,0,rowHeight*4)
+			for index,row in standingsRows do
+				row.frame.Position=UDim2.fromOffset(0,(index-1)*rowHeight)
+				row.frame.Size=UDim2.new(1,0,0,rowHeight-2)
+				for _,label in {row.place,row.name,row.total} do label.TextSize=if mobile then 12 else 15 end
+				row.laps.TextSize=if mobile then 10 else 12
+			end
+			resultActions.Size=UDim2.new(1,0,0,44)
+			rematchButton.AnchorPoint=Vector2.zero;garageButton.AnchorPoint=Vector2.zero
+			rematchButton.Position=UDim2.fromOffset(0,0);garageButton.Position=UDim2.new(.5,4,0,0)
+			rematchButton.Size=UDim2.new(.5,-4,0,44);garageButton.Size=rematchButton.Size
+			rematchButton.TextSize=if mobile then 12 else 16;garageButton.TextSize=rematchButton.TextSize
+			if mobile and roomQueueLabel.Visible then
+				roomQueueLabel.AnchorPoint=Vector2.new(1,0)
+				roomQueueLabel.Position=UDim2.new(1,-12,0,8)
+				roomQueueLabel.Size=UDim2.fromOffset(math.min(280,safe.X-width-40),22)
+				roomQueueLabel.TextSize=11
+			end
+		end
 	end
 
 	local goDisplaySerial = 0
@@ -921,7 +1035,8 @@ function RaceHudController.start()
 		label.TextStrokeTransparency = 0.3
 		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
-	local function updateHud()
+	updateHud = function()
+		local resultEntries=resultCache:collect(player,Players:GetPlayers())
 		local raceState = player:GetAttribute("RaceState")
 		local returningToHub = player:GetAttribute("KDMRoutePending") == "HUB_RETURN"
 		routeOverlay.Visible = returningToHub
@@ -1018,6 +1133,31 @@ function RaceHudController.start()
 				then RaceResultFormat.delta(lapTime, bestLap, lap == bestLapNumber) else ""
 			row.delta.TextColor3 = if lap == bestLapNumber then Color3.fromRGB(255, 218, 75) else Color3.fromRGB(225, 238, 245)
 		end
+		local multiplayerResults=participantCount>=2 and (raceState=="FINISHED" or raceState=="DNF")
+		standings.Visible=multiplayerResults
+		resultStatus.Visible=multiplayerResults
+		resultStatus.Text=if sessionComplete then "FINAL STANDINGS" else "WAITING FOR RACERS"
+		if multiplayerResults then
+			finishLabel.Text="RACE RESULTS"
+			totalLabel.Visible=false;resultsBestLabel.Visible=false
+			for _,row in lapRows do row.frame.Visible=false end
+			for index,row in standingsRows do
+				local entry=resultEntries[index]
+				row.frame.Visible=entry~=nil
+				if entry then
+					row.frame.BackgroundColor3=if entry.userId==player.UserId then Color3.fromRGB(20,75,88) else Color3.fromRGB(24,31,42)
+					row.place.Text=if entry.state=="DNF" then "-" else tostring(if entry.finishPosition>0 then entry.finishPosition else entry.racePosition)
+					row.place.TextColor3=if entry.finishPosition==1 and entry.state~="DNF" then Color3.fromRGB(255,218,75) else Color3.fromRGB(225,238,245)
+					row.name.Text=entry.displayName
+					row.total.Text=if entry.state=="DNF" then "DNF" elseif entry.finalTime>0 then RaceResultFormat.time(entry.finalTime) else "RACING"
+					local parts={}
+					for lap=1,math.clamp(totalLaps,1,3) do
+						table.insert(parts,"L"..lap.." "..(if entry.laps[lap]>0 then RaceResultFormat.time(entry.laps[lap]) else "--"))
+					end
+					row.laps.Text=table.concat(parts," · ")
+				end
+			end
+		else totalLabel.Visible=true end
 
 		if raceState == "FINISHING" and previousRaceState ~= "FINISHING" then
 			finishBannerSerial += 1
@@ -1199,6 +1339,7 @@ function RaceHudController.start()
 	end)
 
 	for _, attributeName in {
+		"RaceSessionId",
 		"RaceState",
 		"RaceCountdown",
 		"RaceCurrentLap",
@@ -1242,18 +1383,28 @@ function RaceHudController.start()
 		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
 	end
 	local presenceConnections = {}
+	local playerListConnections = {}
+	screenGui.Destroying:Connect(function()
+		for _,connections in presenceConnections do for _,binding in connections do binding:Disconnect() end end
+		for _,binding in playerListConnections do binding:Disconnect() end
+		table.clear(presenceConnections)
+	end)
 	local function bindAvailablePlayer(other)
 		if other == player or presenceConnections[other] then return end
-		presenceConnections[other] = other:GetAttributeChangedSignal("RaceState"):Connect(updateHud)
+		local connections={}
+		for _,attribute in RaceResultsCache.ATTRIBUTES do
+			table.insert(connections,other:GetAttributeChangedSignal(attribute):Connect(updateHud))
+		end
+		presenceConnections[other]=connections
 		updateHud()
 	end
 	for _, other in Players:GetPlayers() do bindAvailablePlayer(other) end
-	Players.PlayerAdded:Connect(bindAvailablePlayer)
-	Players.PlayerRemoving:Connect(function(other)
+	table.insert(playerListConnections,Players.PlayerAdded:Connect(bindAvailablePlayer))
+	table.insert(playerListConnections,Players.PlayerRemoving:Connect(function(other)
 		local connection = presenceConnections[other]
-		if connection then connection:Disconnect(); presenceConnections[other] = nil end
+		if connection then for _,binding in connection do binding:Disconnect() end; presenceConnections[other] = nil end
 		task.defer(updateHud)
-	end)
+	end))
 
 	local viewportConnection: RBXScriptConnection? = nil
 	local function bindCamera()
@@ -1342,7 +1493,8 @@ function RaceHudController.start()
 		speedUpdateElapsed += deltaTime
 		if speedUpdateElapsed >= 0.08 then
 			speedUpdateElapsed = 0
-			speedValue.Text = tostring(math.floor(displayedSpeed + 0.5))
+			local STUDS_PER_SECOND_TO_KMH = 1.008
+			speedValue.Text = tostring(math.floor(displayedSpeed * STUDS_PER_SECOND_TO_KMH + 0.5))
 			speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.NITRO_MAX_SPEED, 0, 1), 1)
 		end
 	end)

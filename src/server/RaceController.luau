@@ -460,6 +460,12 @@ function RaceController.start(options)
 
 		local function beginFinishPresentation(player: Player)
 			kart:SetAttribute("KartFinishRollActive", false)
+			-- Official result and ROLL are already complete. Rotate the entire
+			-- model around the chassis center; retain every local visual/seat offset.
+			local gateFrame = (startFinishGate :: BasePart).CFrame
+			local before = chassis.CFrame
+			local desired = CFrame.fromMatrix(before.Position, gateFrame.RightVector, gateFrame.UpVector, -gateFrame.LookVector)
+			kart:PivotTo(desired * before:Inverse() * kart:GetPivot())
 			chassis.AssemblyLinearVelocity = Vector3.zero
 			chassis.AssemblyAngularVelocity = Vector3.zero
 			player:SetAttribute("RaceFinishPhase", "PRESENT")
