@@ -301,7 +301,8 @@ raceChassis.AssemblyLinearVelocity=rb.Vector3.new(100,0,0)
 for _=1,12 do services.RunService.RenderStepped:Fire(0.1) end
 check(speedFill.Size.X.Scale>0.99 and speedFill.Size.X.Scale<=1,
  "100 Nitro fills the speed bar")
-check(hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit Race appears only while racing")
+local function activeQuitRow() return hud.QuitRow or hud.Panel.QuitRow end
+check(activeQuitRow().Visible and not hud.QuitConfirmation.Visible,"Quit Race appears only while racing")
 set("RaceEndCountdownRemaining",42);set("RaceEndCountdownActive",true)
 check(hud.Panel.RaceEndWarning.Visible and hud.Panel.RaceEndWarning.Text=="RACE ENDS IN 42",
  "driving racer sees compact race-end warning in lap HUD")
@@ -312,7 +313,7 @@ camera.ViewportSize=rb.Vector2.new(844,390)
 input:GetPropertyChangedSignal("PreferredInput"):Fire()
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 local quitPanel=hud.Panel
-local quitButton=quitPanel.QuitRow.QuitRace
+local quitButton=(hud.QuitRow or quitPanel.QuitRow).QuitRace
 local panelPadding=quitPanel:FindFirstChildOfClass("UIPadding")
 local function quitBottomSpace()
 	return quitPanel.Size.Y.Offset-panelPadding.PaddingTop.Offset-quitPanel.Lap.Size.Y.Offset
@@ -359,17 +360,17 @@ input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 camera.ViewportSize=rb.Vector2.new(1280,720)
 input:GetPropertyChangedSignal("PreferredInput"):Fire()
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
-hud.Panel.QuitRow.QuitRace.Activated:Fire()
+activeQuitRow().QuitRace.Activated:Fire()
 check(hud.QuitConfirmation.Visible and remote.lastFire==nil,"first Quit click opens confirmation without server action")
 hud.QuitConfirmation.Frame.Cancel.Activated:Fire()
 check(not hud.QuitConfirmation.Visible and remote.lastFire==nil,"Cancel closes Quit confirmation")
-hud.Panel.QuitRow.QuitRace.Activated:Fire()
+activeQuitRow().QuitRace.Activated:Fire()
 hud.QuitConfirmation.Frame.ConfirmQuit.Activated:Fire()
 check(not hud.QuitConfirmation.Visible and remote.lastFire[1]=="QuitRace","confirmed Quit sends server action")
 local positionLabel=hud.Speedometer:FindFirstChild("Position")
 check(positionLabel.Visible and positionLabel.Text=="POS 2/2","race position display")
 set("RaceFinishPosition",1);set("RaceState","FINISHED")
-check(not hud.Panel.QuitRow.Visible and not hud.QuitConfirmation.Visible,"Quit action hides after racing")
+check(not activeQuitRow().Visible and not hud.QuitConfirmation.Visible,"Quit action hides after racing")
 check(results.Finish.Text=="RACE RESULTS" and not results:FindFirstChild("Rematch",true).Active
  and results:FindFirstChild("Rematch",true).Text=="WAITING FOR RACERS","first finisher sees fixed place and waits")
 check(raceMap().Visible,"first finisher keeps multiplayer minimap while rival races")
@@ -441,13 +442,17 @@ check(availability.Visible,"racing host can open cross-server invite list")
 input.PreferredInput=rb.Enum.PreferredInput.Touch
 set("RaceOffTrackRemaining",10);set("RaceEndCountdownActive",true)
 set("RaceEndCountdownRemaining",42)
-for _,size in {rb.Vector2.new(812,351),rb.Vector2.new(801,334),rb.Vector2.new(749,303),rb.Vector2.new(724,311)} do
+for _,size in {rb.Vector2.new(750,282),rb.Vector2.new(812,351),rb.Vector2.new(801,334),rb.Vector2.new(749,303),rb.Vector2.new(724,311)} do
  safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
  local l=modules.MobileControlView.layout(size)
  local items=modules.MobileControlView.itemLayout(size,4)
- check(hud.Panel.Size.Y.Offset==110 and (hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
-  <=size.Y-items.bottom-l.slot-3 or items.x>=hud.Panel.Position.X.Offset+hud.Panel.Size.X.Offset+8),"short safe LAP with both warnings clears left loadout "..tostring(size))
- check(hud.Panel.QuitRow.Size.Y.Offset==40 and hud.Panel.QuitRow.QuitRace.Size.Y.Offset==40,
+ check(items.x==hud.Panel.Position.X.Offset and math.abs(l.driftX+(l.driftHitWidth-l.driftWidth)/2-items.x)<.001,
+  "Item and visible Drift artwork align with LAP left edge")
+ check(hud.Panel.Size.Y.Offset==70 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
+  <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size))
+ check(activeQuitRow().Parent==hud and activeQuitRow().Position.X.Offset>=hud.Panel.Position.X.Offset+hud.Panel.Size.X.Offset+8,
+  "short-screen Quit occupies the lane beside LAP")
+ check(activeQuitRow().Size.Y.Offset==40 and activeQuitRow().QuitRace.Size.Y.Offset==40,
   "compact LAP retains full Quit touch target")
  check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,
   "compact LAP preserves both warnings")

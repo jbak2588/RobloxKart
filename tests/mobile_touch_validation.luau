@@ -576,7 +576,7 @@ for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430)
 	local l=modules.MobileControlView.layout(itemHud.AbsoluteSize)
 	local items=modules.MobileControlView.itemLayout(itemHud.AbsoluteSize,4)
 	if size.X>=600 and size.X>size.Y then
-		check((items.x==l.margin and fourth[3]<size.X/2-16) or (items.x>l.margin and first[1]>=12+math.min(170,size.X*.28)+8 and fourth[3]<size.X-l.margin-l.padWidth-l.padInset),
+		check(items.x==12 and fourth[3]<size.X/2-16,
 			"R1 landscape loadout stays left of the central Kart corridor "..tostring(size))
 	end
 	check(first[1]==items.x and fourth[3]-first[1]==l.slot*4+l.gap*3
@@ -594,7 +594,7 @@ for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430)
 		"award and earned text share the progress rectangle")
 	local combat=rect(itemHud.MissileFeedback)
 	local result=rect(itemHud.CombatResult)
-	local lap={12,8,12+math.min(170,size.X*.28),if size.X>=600 and size.Y<360 then 118 else 163}
+	local lap={12,8,12+math.min(170,size.X*.28),if size.X>=600 and size.Y<360 then 78 else 163}
 	local driftRect={l.driftX,size.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
 	local gaugeRect={l.driftX,size.Y-l.driftBottom-l.driftHitHeight-l.driftGaugeGap-l.gaugeHeight,

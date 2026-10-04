@@ -50,7 +50,8 @@ function View.layout(size: Vector2)
 		driveVisualSize=visual, driveHitSize=direction,
 		driftWidth=driftWidth,driftHeight=driftHeight,
 		driftHitWidth=driftHitWidth,driftHitHeight=driftHitHeight,
-		driftX = margin, driftBottom = driftBottom,
+		-- Align visible Drift artwork with the LAP panel's 12px left edge.
+		driftX = 12-(driftHitWidth-driftWidth)/2, driftBottom = driftBottom,
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
 		-- Reserve a separate band for race-long Nitro progress and its award flash.
 		loadoutBottom = loadoutBottom,
@@ -79,8 +80,8 @@ function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: 
 		x = padLeft-width-8
 	end
 	local panelWidth = 220
-	local panelX = 12+math.min(170,size.X*.28)+8
-	local panelTop = 0
+	local panelX = if size.X>=600 and size.Y<360 then math.max(12+math.min(170,size.X*.28)+8,12+l.slot*4+l.gap*3+8) else 12+math.min(170,size.X*.28)+8
+	local panelTop = if size.X>=600 and size.Y<360 then 58 else 0
 	local items=View.itemLayout(size,4)
 	if x+width > items.x and x < items.x+items.width
 		and y+height > size.Y-items.bottom-l.slot then
@@ -116,7 +117,7 @@ end
 function View.itemLayout(size: Vector2, slotCount: number)
 	local l = View.layout(size)
 	local width = l.slot * slotCount + l.gap * (slotCount - 1)
-	local x = l.margin
+	local x = 12
 	local bottom = l.loadoutBottom
 	local progressGap = if size.X >= 600 and size.Y < 360 then 5 else 6
 	local progressHeight=if size.Y<320 and size.X>=600 then 32 else 34
@@ -132,12 +133,7 @@ function View.itemLayout(size: Vector2, slotCount: number)
 		bottom += progressHeight - (progressBottom - progressTop)
 		progressTop = progressBottom - progressHeight
 	end
-	-- A full-width Drift raises the item lane on very short phones. Preserve
-	-- slot sizes; shift the row/progress beside the LAP card only when necessary.
-	local lapBottom = if size.X >= 600 and size.Y < 360 then 118 else 163
-	if size.X >= 600 and size.Y-bottom-l.slot < lapBottom then
-		x = 12+math.min(170,size.X*.28)+8
-	end
+	-- The short LAP layout places Quit beside its text, leaving this lane free.
 	return { x = x, width = width, bottom = bottom, progressTop = progressTop, progressHeight = progressHeight }
 end
 
