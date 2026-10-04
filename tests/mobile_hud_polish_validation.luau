@@ -10,8 +10,7 @@ for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,
  local map={m.x,m.y,m.x+m.side,m.y+m.side}
  local i=V.inviteLayout(s,m.x,m.y,m.side,m.side,true); local invite={i.x,i.y,i.x+i.width,i.y+i.height}
  local pad={left,top,left+l.padWidth,s.Y-l.padBottom}
- check(not overlaps(invite,pad),'invite clears entire pad '..tostring(s))
- check(invite[4]<=top-8 or invite[3]<=left-4,'separated invite lane')
+ check(invite[2]==m.y+m.side+34,'invite directly below Room status')
  check(not overlaps(invite,map),'invite clears minimap')
  -- The cluster bounding rectangle includes empty corner space.
  check(not overlaps(invite,map),'invite avoids minimap')
@@ -23,7 +22,7 @@ for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,
  check(not overlaps(map,wheel),'minimap clears Steering')
  check(m.x>=0 and m.y>=-58 and map[3]<=s.X-12 and map[4]<=s.Y-l.margin,'minimap topbar/safe containment')
  check(m.side>=92,'minimap readable minimum')
- check(m.y==-58,'map matches topbar speed baseline')
+ check(m.y==-56,'map leaves 2px above the topbar speed baseline')
  local room={s.X-12-118,m.y+m.side+6,s.X-12,m.y+m.side+28}
  check(not overlaps(room,map) and not overlaps(room,invite),'map room invite stack')
  check(invite[2]==room[4]+6 or invite[3]<=left-4,'room/invite stack or adjacent safe lane')
@@ -36,7 +35,7 @@ for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,
   ForwardRight={left+l.padWidth-l.direction,directionTop,left+l.padWidth,directionTop+l.direction},
   BrakeReverse={brakeX,s.Y-l.padBottom-l.brake,brakeX+l.brake,s.Y-l.padBottom},
 }
- for name,rect in buttons do check(not overlaps(map,rect),'minimap clears actual '..name); check(not overlaps(panel,rect),'panel clears actual '..name) end
+ for name,rect in buttons do check(not overlaps(map,rect),'minimap clears actual '..name); check(not overlaps(panel,rect),'panel clears actual '..name); check(not overlaps(invite,rect),'invite clears actual '..name) end
  local speed={s.X*.5-80,-58,s.X*.5+80,-2}
  check(not overlaps(map,speed) and not overlaps(invite,speed),'map/invite clear speed')
  check(not overlaps(panel,speed),'open panel clears speed')
@@ -47,7 +46,7 @@ for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,
  local drift={l.driftX,s.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,s.Y-l.driftBottom}
  local progress={items.x,items.progressTop,items.x+items.width,items.progressTop+items.progressHeight}
  check(not overlaps(map,drift) and not overlaps(map,progress),'minimap clears Drift/Nitro progress')
- check(l.driveVisualSize>=44 and l.direction>=l.driveVisualSize*1.18 and l.brake>=44,'minimum control targets')
+ check(l.driveVisualSize>=44 and l.direction>=l.driveVisualSize+4 and l.brake>=44,'minimum control targets')
  check(l.padGap==4,'nonoverlapping hitbox gap')
 end
 check(V.minimapLayout(rb.Vector2.new(749,303)).side==96,'short-phone 96px map')

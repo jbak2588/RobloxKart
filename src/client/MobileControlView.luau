@@ -12,25 +12,24 @@ function View.layout(size: Vector2)
 	local short = size.Y < 340
 	local tiny = not portrait and size.X<500 and size.Y<260
 	local visual = if tiny then 58 elseif portrait or short then 62 else 68
-	local direction = if tiny then 70 elseif portrait or short then 74 else 82
+	local direction = if portrait then 74 else visual+4
 	local forward, brake = direction, direction
 	local autoVisual = if portrait or short then 52 else 58
-	local autoHit = if tiny then 54 elseif portrait or short then 58 else 64
+	local autoHit = if portrait then 58 else autoVisual+4
 	local padSpacing = direction+4
 	local padWidth = direction+padSpacing*2
-	local verticalSpacing = if size.Y < 260 and not portrait then 67 else (direction+autoHit)/2+4
+	local verticalSpacing = (direction+autoHit)/2+4
 	local padHeight, padGap = direction+verticalSpacing*2, 4
 	local compactPad = false
-	-- Raise the turn row above the passive gauges and move Forward just left of
-	-- the minimap. The four targets remain symmetric around the Auto target.
-	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else (if size.Y < 260 then 29 elseif short then 24 else 28)
+	-- Build upward from Brake's artwork, 10px above the safe bottom edge.
+	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else 10-(direction-visual)/2
 	local mapSide = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
-	local padInset = if portrait then 0 else math.max(12,math.max(100,mapSide)+16-margin-padSpacing)
+	local padInset = if portrait then 0 elseif tiny then 42 else math.max(12,math.max(100,mapSide)+28-margin-padSpacing)
 	local driftWidth = slot*4+8*3
 	local driftHeight = driftWidth/2.4
 	local driftHitWidth = math.ceil(driftWidth*1.10)
 	local driftHitHeight = if size.Y<260 and not portrait then math.ceil(driftHeight)+2 else math.ceil(driftHeight*1.14)
-	local driftBottom = if portrait then padBottom+padHeight+8 else 8
+	local driftBottom = if portrait then padBottom+padHeight+8 else 10-(driftHitHeight-driftHeight)/2
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
 	if portrait and margin + slot*4 + 8*3 > size.X - margin - padWidth then
@@ -63,7 +62,7 @@ end
 -- Align the phone minimap with the speed HUD in the top-right band.
 function View.minimapLayout(size: Vector2, speedTop: number?)
 	local side = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
-	return {x=size.X-12-side, y=speedTop or 0, side=side}
+	return {x=size.X-12-side, y=(speedTop or 0)+2, side=side}
 end
 
 -- Keep the driving rail fixed. Short phones use an adjacent lane when the
@@ -75,7 +74,7 @@ function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: 
 	local padLeft=size.X-l.margin-l.padWidth-l.padInset
 	local x = size.X - 12 - width
 	local y = mapY + mapHeight + (if roomVisible then 34 else 8)
-	if y+height > padTop-8 then
+	if size.X<600 and y+height > padTop-8 then
 		-- A shorter topbar band cannot contain the stack above the thumb rail.
 		x = padLeft-width-8
 	end
