@@ -66,7 +66,12 @@ function Gauge.new(parent)
 	root.Size=UDim2.fromOffset(640,200)
 	root.AnchorPoint=Vector2.new(.5,1)
 	root.Parent=parent
-	root.Gear.Visible=false;root.TMode.Visible=false
+	root.Gear.Visible=false;root.TMode.Visible=true
+	root.TMode.Text="A/T"
+	root.TMode.AnchorPoint=Vector2.new(.5,.5)
+	root.TMode.Position=UDim2.fromOffset(137,173)
+	root.TMode.Size=UDim2.fromOffset(60,20)
+	root.TMode.TextSize=18
 	local scale=Instance.new("UIScale");scale.Parent=root
 	-- Preserve the outer left/right edges and lower edge while shrinking each dial.
 	root.Tach.Position=UDim2.new(.5,-183,1,-67)

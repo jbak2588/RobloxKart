@@ -119,6 +119,7 @@ modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.lu
 player:SetAttribute("RaceState","GARAGE")
 player:SetAttribute("SelectedTrackId","Track01")
 local controller=luau.load(fs.readFile("src/client/RaceHudController.luau"),{environment=common})()
+workspace:SetAttribute("KDMEnableV2Gauge",false) -- legacy HUD assertions use explicit rollback
 controller.start()
 local hud=playerGui.RobloxKartRaceHud
 local function raceMap() return playerGui.RobloxKartMobileTopHud:FindFirstChild("RaceMiniMap") or hud:FindFirstChild("RaceMiniMap") end
@@ -590,9 +591,9 @@ local kart=object('Model','Kart');local chassis=child(kart,'Part','Chassis')
 chassis.AssemblyLinearVelocity=rb.Vector3.new(42,9,56)
 local seat=child(kart,'VehicleSeat','Seat');seat:SetAttribute('PrototypeKartSeat',true);humanoid.SeatPart=seat
 set('RaceState','COUNTDOWN');set('RaceParticipantCount',2);set('RacePosition',1)
-workspace:SetAttribute('KDMEnableV2Gauge',true)
+workspace:SetAttribute('KDMEnableV2Gauge',nil)
 services.RunService.RenderStepped:Fire(1/60)
-check(gaugeInput.speed==70 and gaugeInput.active,'gauge receives planar actual speed during Countdown')
+check(gaugeInput.speed==70 and gaugeInput.active,'absent flag defaults gauge ON with planar speed during Countdown')
 check(not playerGui.RobloxKartMobileTopHud.Speedometer.Visible and hud:FindFirstChild('Position').Visible
  and hud:FindFirstChild('Position').Text=='POS 1/2','standalone POS survives hidden top speed')
 check(not hud.MobileWheelIndicator.Visible,'gauge hides steering sync')

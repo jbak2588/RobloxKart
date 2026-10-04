@@ -1513,7 +1513,7 @@ function RaceHudController.start()
 		end
 		local state = player:GetAttribute("RaceState")
 		local drivingHud = state == "COUNTDOWN" or state == "RACING"
-		local gaugeEnabled = Workspace:GetAttribute("KDMEnableV2Gauge") == true
+		local gaugeEnabled = Workspace:GetAttribute("KDMEnableV2Gauge") ~= false
 		if not drivingHud then
 			if gaugeController then gaugeController:update(nil,0,deltaTime,Input.isTouchPreferred(),false) end
 			displayedSpeed = 0

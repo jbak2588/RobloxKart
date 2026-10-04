@@ -72,5 +72,7 @@ for _,file in {'V2GaugeController','V2GaugePresentation','V2DonorGauge'} do
  end
 end
 local source=fs.readFile('src/client/V2DonorGauge.luau')
-check(source:find('root.Gear.Visible=false;root.TMode.Visible=false',1,true)~=nil,'no gear or A/T display')
+check(source:find('root.Gear.Visible=false;root.TMode.Visible=true',1,true)~=nil,'gear hidden and A/T restored')
+check(source:find('root.TMode.Text="A/T"',1,true)~=nil,'A/T text explicit')
+check(source:find('root.TMode.Position=UDim2.fromOffset(137,173)',1,true)~=nil,'A/T inside Tach footprint')
 print('PASS: '..checks..' V1 exact audio / gauge independence / painted bounds checks')
