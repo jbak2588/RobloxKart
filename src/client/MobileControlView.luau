@@ -1,6 +1,14 @@
 -- Shared safe-area layout and resolution-independent, code-drawn HUD symbols.
 -- No uploaded assets, external packages or input handlers.
 local View = {}
+local screenBottomInset=0
+-- Alpha >=128 bounds measured from the supplied PNGs. Ignore transparent
+-- padding when aligning visible edges; keep the entire artwork with Fit.
+View.artwork={driveWidth=1093/1254,driveHeight=1078/1254,driveBottom=96/1254,
+	driveRight=81/1254,autoWidth=1108/1254,driftHeight=549/809,driftBottom=123/809}
+function View.setViewportBottomInset(fullHeight, deviceHeight)
+	screenBottomInset=math.clamp(fullHeight-deviceHeight,0,40)
+end
 local ink = Color3.fromRGB(225, 246, 255)
 
 function View.layout(size: Vector2)
@@ -12,24 +20,24 @@ function View.layout(size: Vector2)
 	local short = size.Y < 340
 	local tiny = not portrait and size.X<500 and size.Y<260
 	local visual = if tiny then 58 elseif portrait or short then 62 else 68
-	local direction = if portrait then 74 else visual+4
+	local direction = if portrait then 74 else math.ceil(visual*View.artwork.driveWidth)+4
 	local forward, brake = direction, direction
 	local autoVisual = if portrait or short then 52 else 58
-	local autoHit = if portrait then 58 else autoVisual+4
-	local padSpacing = direction+4
+	local autoHit = if portrait then 58 else math.ceil(autoVisual*View.artwork.autoWidth)+4
+	local padSpacing = if portrait then direction+4 else (visual*View.artwork.driveWidth+autoVisual*View.artwork.autoWidth)/2+10
 	local padWidth = direction+padSpacing*2
-	local verticalSpacing = (direction+autoHit)/2+4
+	local verticalSpacing = if portrait then (direction+autoHit)/2+4 else padSpacing
 	local padHeight, padGap = direction+verticalSpacing*2, 4
 	local compactPad = false
 	-- Build upward from Brake's artwork, 10px above the safe bottom edge.
-	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else 10-(direction-visual)/2
+	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else 10-(direction-visual)/2-visual*View.artwork.driveBottom-screenBottomInset
 	local mapSide = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
-	local padInset = if portrait then 0 elseif tiny then 42 else math.max(12,math.max(100,mapSide)+28-margin-padSpacing)
+	local padInset = if portrait then 0 else 12-margin-(direction-visual)/2-visual*View.artwork.driveRight
 	local driftWidth = slot*4+8*3
 	local driftHeight = driftWidth/2.4
 	local driftHitWidth = math.ceil(driftWidth*1.10)
-	local driftHitHeight = if size.Y<260 and not portrait then math.ceil(driftHeight)+2 else math.ceil(driftHeight*1.14)
-	local driftBottom = if portrait then padBottom+padHeight+8 else 10-(driftHitHeight-driftHeight)/2
+	local driftHitHeight = if portrait then math.ceil(driftHeight*1.14) else math.ceil(driftHeight*View.artwork.driftHeight)+6
+	local driftBottom = if portrait then padBottom+padHeight+8 else 10-(driftHitHeight-driftHeight)/2-driftHeight*View.artwork.driftBottom-screenBottomInset
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
 	if portrait and margin + slot*4 + 8*3 > size.X - margin - padWidth then
@@ -55,7 +63,7 @@ function View.layout(size: Vector2)
 		-- Reserve a separate band for race-long Nitro progress and its award flash.
 		loadoutBottom = loadoutBottom,
 		gaugeHeight = if size.Y < 320 and not portrait then 8 else 12,
-		driftGaugeGap = if size.Y < 320 and not portrait then 4 else 8,
+		driftGaugeGap = if size.Y < 320 and not portrait then 0 else 8,
 	}
 end
 
@@ -74,7 +82,8 @@ function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: 
 	local padLeft=size.X-l.margin-l.padWidth-l.padInset
 	local x = size.X - 12 - width
 	local y = mapY + mapHeight + (if roomVisible then 34 else 8)
-	if size.X<600 and y+height > padTop-8 then
+	-- Exceptionally short safe viewports cannot fit the full stack above Forward.
+	if y+height > padTop-4 and x < padLeft+(l.padWidth+l.forward)/2 then
 		-- A shorter topbar band cannot contain the stack above the thumb rail.
 		x = padLeft-width-8
 	end

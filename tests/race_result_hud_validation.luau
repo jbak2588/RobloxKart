@@ -448,10 +448,10 @@ for _,size in {rb.Vector2.new(750,282),rb.Vector2.new(812,351),rb.Vector2.new(80
  local items=modules.MobileControlView.itemLayout(size,4)
  check(items.x==hud.Panel.Position.X.Offset and math.abs(l.driftX+(l.driftHitWidth-l.driftWidth)/2-items.x)<.001,
   "Item and visible Drift artwork align with LAP left edge")
- check(hud.Panel.Size.Y.Offset==70 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
+ check(hud.Panel.Size.Y.Offset==(if activeQuitRow().Parent==hud then 70 else 110) and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
   <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size))
- check(activeQuitRow().Parent==hud and activeQuitRow().Position.X.Offset>=hud.Panel.Position.X.Offset+hud.Panel.Size.X.Offset+8,
-  "short-screen Quit occupies the lane beside LAP")
+ check(activeQuitRow().Parent==hud.Panel or activeQuitRow().Position.X.Offset>=hud.Panel.Position.X.Offset+hud.Panel.Size.X.Offset+8,
+  "Quit stays under LAP when the left lane fits, with a safe overflow fallback")
  check(activeQuitRow().Size.Y.Offset==40 and activeQuitRow().QuitRace.Size.Y.Offset==40,
   "compact LAP retains full Quit touch target")
  check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,

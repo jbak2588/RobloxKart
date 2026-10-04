@@ -90,7 +90,7 @@ child(shared,"ModuleScript","RaceItemConfig")
 local control=child(services.ReplicatedStorage,"RemoteEvent","KartControl"); control._p.calls={}
 local item=child(services.ReplicatedStorage,"RemoteEvent","RaceItemControl"); item._p.calls={}
 local modulesFolder=object("Folder")
-local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true},
+local modules={KartConfig={REMOTE_EVENT_NAME="KartControl",INPUT_SEND_INTERVAL=0.05,DEBUG_TELEMETRY=true,DEBUG_DRIFT_HUD=true},
 	RaceItemConfig={DRIFT_BONUS_REQUIRED_BOOSTS=5,BLOCKED_FEEDBACK_DURATION=.8}}
 for _, name in {"KartInputController","TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","DriftChargeController","TouchDrivingController"} do child(modulesFolder,"ModuleScript",name) end
 local ui=services.UserInputService

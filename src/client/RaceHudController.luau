@@ -908,12 +908,16 @@ function RaceHudController.start()
 			else UDim2.fromScale(0.5, 0.5)
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
+			MobileView.setViewportBottomInset(mobileTopGui.AbsoluteSize.Y,viewportSize.Y)
 			local l = MobileView.layout(safeSize)
 			-- Short notch-safe landscape needs a compact LAP lane above the left loadout.
 			-- Preserve every status and the full 40px Quit target.
 			local shortLap = safeSize.X >= 600 and safeSize.Y < 360
-			quitRow.Parent = if shortLap then screenGui else frame
-			if shortLap then
+			local itemTop=safeSize.Y-MobileView.itemLayout(safeSize,4).bottom-l.slot
+			local stackedHeight=86+(if offTrackLabel.Visible then 12 else 0)+(if raceEndLabel.Visible then 12 else 0)
+			local quitBeside=shortLap and itemTop<8+stackedHeight+2
+			quitRow.Parent = if quitBeside then screenGui else frame
+			if quitBeside then
 				quitRow.Position=UDim2.fromOffset(12+math.min(170,safeSize.X*.28)+8,8)
 				quitRow.Size=UDim2.fromOffset(120,40)
 			end
@@ -929,7 +933,7 @@ function RaceHudController.start()
 				padding.PaddingTop.Offset + titleHeight + lineHeight*2
 				+ (if offTrackLabel.Visible then lineHeight else 0)
 				+ (if raceEndLabel.Visible then lineHeight else 0)
-				+ (if quitRow.Visible and not shortLap then quitHeight else 0) + padding.PaddingBottom.Offset)
+				+ (if quitRow.Visible and not quitBeside then quitHeight else 0) + padding.PaddingBottom.Offset)
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
 			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,

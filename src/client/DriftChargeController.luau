@@ -17,6 +17,7 @@ function Controller.start()
 	gui.Name="RobloxKartDriftCharge"
 	gui.ResetOnSpawn=false
 	gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets
+	gui.ClipToDeviceSafeArea=false
 	gui.DisplayOrder=11
 	gui.Parent=player:WaitForChild("PlayerGui")
 	local root=Instance.new("Frame")
@@ -26,7 +27,7 @@ function Controller.start()
 	root.Active=false
 	root.Selectable=false
 	root.Parent=gui
-	local view=View.create(root,Config.DEBUG_TELEMETRY)
+	local view=View.create(root,Config.DEBUG_DRIFT_HUD==true)
 	local connections={}
 	local focused,removing=true,false
 	local previousKart,previousSerial,previousRace=nil,nil,nil

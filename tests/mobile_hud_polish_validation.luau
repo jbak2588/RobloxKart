@@ -46,7 +46,7 @@ for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,
  local drift={l.driftX,s.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,s.Y-l.driftBottom}
  local progress={items.x,items.progressTop,items.x+items.width,items.progressTop+items.progressHeight}
  check(not overlaps(map,drift) and not overlaps(map,progress),'minimap clears Drift/Nitro progress')
- check(l.driveVisualSize>=44 and l.direction>=l.driveVisualSize+4 and l.brake>=44,'minimum control targets')
+ check(l.driveVisualSize>=44 and l.direction>=l.driveVisualSize*V.artwork.driveWidth+4 and l.brake>=44,'minimum control targets')
  check(l.padGap==4,'nonoverlapping hitbox gap')
 end
 check(V.minimapLayout(rb.Vector2.new(749,303)).side==96,'short-phone 96px map')

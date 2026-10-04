@@ -1,6 +1,8 @@
 local fs, luau, rb = require("@lune/fs"), require("@lune/luau"), require("@lune/roblox")
 local checks = 0
 local function check(value, message) assert(value, message); checks += 1 end
+check(luau.load(fs.readFile("src/shared/KartConfig.luau"))().DEBUG_DRIFT_HUD==false,
+	"production never creates the Drift diagnostic HUD by default")
 local rawCatalog = luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
 local catalog = {Items={AutoStart=rawCatalog.Actions.AutoStart,Forward=rawCatalog.Drive.Forward,ForwardLeft=rawCatalog.Drive.ForwardLeft,
 	ForwardRight=rawCatalog.Drive.ForwardRight,BrakeReverse=rawCatalog.Drive.BrakeReverse,
@@ -101,26 +103,34 @@ for _,pair in {{750,283},{750,341},{750,361},{844,390},{932,430},{749,303},{640,
 	{left,turnTop,left+l.direction,turnTop+l.direction},
 	{left+l.padWidth-l.direction,turnTop,left+l.padWidth,turnTop+l.direction},
 	{fx,h-l.padBottom-l.brake,fx+l.brake,h-l.padBottom}}
-	check(l.direction>=l.driveVisualSize+4 and l.forward>=l.driveVisualSize+4,"artwork retains touch tolerance")
-	check(l.driftHitWidth>=l.driftWidth*1.10 and l.driftHitHeight+1e-6>=l.driftHeight+(if h<260 then 2 else l.driftHeight*.14),"wide Drift enlarged touch area "..w.."x"..h.." "..l.driftHitWidth.."/"..l.driftWidth.." "..l.driftHitHeight.."/"..l.driftHeight)
+	check(l.direction>=l.driveVisualSize*layout.artwork.driveWidth+4,"visible artwork retains touch tolerance")
+	check(l.driftHitWidth>=l.driftWidth*1.10 and l.driftHitHeight>=l.driftHeight*layout.artwork.driftHeight+6,"Drift target encloses the opaque artwork")
 	check(math.abs(l.driftWidth/l.driftHeight-2.4)<.001,"wide art aspect")
 	local g=gauge.layout(w,h,true)
 	local passive={g.x-g.width/2,g.y-g.height,g.x+g.width/2,g.y}
 	for i,r in targets do
 		check(r[1]>=0 and r[2]>=0 and r[3]<=w and r[4]<=h,"hitbox inside safe region")
-		check(r[3]-r[1]>=(if i==1 then l.autoVisualSize else l.driveVisualSize) and r[4]-r[2]>=(if i==1 then l.autoVisualSize else l.driveVisualSize),"visual inside hitbox")
+		check(r[3]-r[1]>=(if i==1 then l.autoVisualSize*layout.artwork.autoWidth else l.driveVisualSize*layout.artwork.driveWidth),"opaque artwork inside hitbox")
 		for j=i+1,#targets do check(not overlaps(r,targets[j]),"drive hitboxes never overlap") end
 		if g.visible then check(not overlaps(r,passive),"drive avoids RPM/Speed gauge "..w.."x"..h.." target "..i) end
 	end
 	check(l.driveVisualSize>=(if w<500 and h<260 then 58 else 62),"enlarged drive art minimum")
 	check(l.driftWidth==layout.itemLayout({X=w,Y=h},4).width,"Drift matches four item group width")
 	if w>=600 and w>h then
-		check(math.abs(l.padBottom+(l.brake-l.driveVisualSize)/2-10)<.001,"Brake artwork bottom is 10px")
-		check(math.abs(l.driftBottom+(l.driftHitHeight-l.driftHeight)/2-10)<.001,"Drift artwork bottom is 10px")
-		check(l.padVerticalSpacing-(l.driveVisualSize+l.autoVisualSize)/2==8,"Auto vertical artwork gap matches item gap")
+		check(math.abs(l.padBottom+(l.brake-l.driveVisualSize)/2+l.driveVisualSize*layout.artwork.driveBottom-10)<.001,"visible Brake bottom is 10px")
+		check(math.abs(l.driftBottom+(l.driftHitHeight-l.driftHeight)/2+l.driftHeight*layout.artwork.driftBottom-10)<.001,"visible Drift bottom is 10px")
+		check(math.abs(l.padVerticalSpacing-(l.driveVisualSize*layout.artwork.driveWidth+l.autoVisualSize*layout.artwork.autoWidth)/2-10)<.001,"visible Auto artwork gap is 10px")
+		check(math.abs(l.margin+l.padInset+(l.direction-l.driveVisualSize)/2+l.driveVisualSize*layout.artwork.driveRight-12)<.001,"Pad shares minimap's right edge")
 	end
 	local d={l.driftX,h-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,h-l.driftBottom}
 	if g.visible then check(not overlaps(d,passive),"wide Drift avoids RPM/Speed gauge") end
 	for _,r in targets do check(not overlaps(d,r),"wide Drift avoids drive hitboxes") end
 end
+layout.setViewportBottomInset(360,338)
+local insetLayout=layout.layout({X=685,Y=280})
+local insetItems=layout.itemLayout({X=685,Y=280},4)
+check(280-insetItems.bottom-insetLayout.slot>=120,"device bottom compensation leaves room for LAP, Quit and both warnings")
+check(math.abs(insetLayout.padBottom+(insetLayout.brake-insetLayout.driveVisualSize)/2
+	+insetLayout.driveVisualSize*layout.artwork.driveBottom+22-10)<.001,"device inset compensated Brake shares physical gauge bottom")
+layout.setViewportBottomInset(338,338)
 print("PASS: "..checks.." four-button ownership, asset lifecycle, feedback and hitbox geometry checks")

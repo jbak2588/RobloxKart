@@ -6,11 +6,12 @@ function Gauge.layout(width, height, mobile)
 	local driftWidth=slot*4+24
 	local driftRight=12+driftWidth+(math.ceil(driftWidth*1.10)-driftWidth)/2
 	local visual=if width<500 and height<260 then 58 elseif height<340 then 62 else 68
-	local spacing=visual+8
+	local autoVisual=if height<340 then 52 else 58
+	local spacing=(visual+autoVisual)/2+10
 	local padWidth=visual+4+spacing*2
 	local margin=if width>=700 then 20 else 12
 	local mapSide=if height<330 then 96 elseif height<390 then 104 else 112
-	local inset=if width<500 and height<260 then 42 else math.max(12,math.max(100,mapSide)+28-margin-spacing)
+	local inset=10-margin
 	local padLeft=width-margin-padWidth-inset
 	local left,right=driftRight+8,padLeft-4
 	local available = if mobile then right-left else 320

@@ -20,6 +20,7 @@ function Controller.start()
 	gui.Name = "RobloxKartTouchDriving"
 	gui.ResetOnSpawn = false
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	gui.ClipToDeviceSafeArea=false
 	gui.DisplayOrder = 20
 	-- Input tuning, not physics. Safe to adjust locally during M1-C.
 	gui:SetAttribute("JoystickDeadZone", Model.DEAD_ZONE)
