@@ -88,12 +88,16 @@ for _, id in v2Ids do
     check(part.MeshContent.Uri==row.mesh,'approved original mesh')
     check(part.InitialSize:FuzzyEq(rb.Vector3.new(table.unpack(row.meshSize)),.00002),'native serialized mesh size is preserved')
    end
-   if part.Name=='Engine' or part.Name=='Link' or part.Name=='Frame' then
+   if part.Name=='Engine' or part.Name=='Link' or part.Name=='Frame' or part.Name=='Routers' or part.Name=='AluminumHubCover' then
     local blackEngine=id=='Kart06' or id=='Kart07' or id=='Kart08' or id=='Kart10'
-    local blackPart=if part.Name=='Engine' then blackEngine else id=='Kart06'
-    local expectedColor=if blackPart then rb.Color3.fromRGB(18,20,24) else rb.Color3.fromRGB(205,211,218)
+    local blackPart=if part.Name=='Engine' then blackEngine else id=='Kart06' and (part.Name=='Frame' or part.Name=='Link')
+    local expectedColor=if blackPart then rb.Color3.fromRGB(18,20,24) else rb.Color3.fromRGB(148,156,164)
     check(part.Material==rb.Enum.Material.Metal and part.Color==expectedColor,'explicit mechanical palette')
-    check(part.TextureContent.Uri==atPath(template,row.path).TextureContent.Uri,'mechanical source texture preserved')
+    local expectedReflectance=if blackPart then (if part.Name=='Engine' then .06 else 0) else .18
+    check(math.abs(part.Reflectance-expectedReflectance)<.000001,'aluminum highlights and unchanged black finish')
+    if part:IsA('MeshPart') then
+     check(part.TextureContent.Uri==atPath(template,row.path).TextureContent.Uri,'mechanical source texture preserved')
+    end
    elseif part.Name~='CurvedBody' then
     check(part.Material==rb.Enum.Material[row.material]
      and part.Color==rb.Color3.new(table.unpack(row.color)),'mechanical materials preserved')
@@ -111,7 +115,7 @@ factory.applyAppearance(cyan,catalog.Entries.Kart06)
 check(cyan.StaticRoot.CurvedBody.TextureID==red.StaticRoot.CurvedBody.TextureID,'appearance switches texture')
 check(cyan.StaticRoot.Engine.Color==rb.Color3.fromRGB(18,20,24),'Red keeps red body with black engine')
 factory.applyAppearance(cyan,catalog.Entries.Kart05)
-check(cyan.StaticRoot.Engine.Color==engineBefore and cyan.StaticRoot.Link.Color==rb.Color3.fromRGB(205,211,218),'switching back restores silver engine without changing frame/link')
+check(cyan.StaticRoot.Engine.Color==engineBefore and cyan.StaticRoot.Link.Color==rb.Color3.fromRGB(148,156,164),'switching back restores silver engine without changing frame/link')
 for index=1,4 do
  local entry=catalog.Entries['Kart0'..index]
  check(entry.VisualModelName=='SprintV1' and factory.validateVisual(factory.createVisual(entry)),'Sprint fallback remains valid')

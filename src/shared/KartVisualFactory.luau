@@ -1,5 +1,14 @@
 local KartVisualFactory = {}
 
+-- Darker aluminum base leaves room for bright metallic highlights.
+local ALUMINUM_COLOR = Color3.fromRGB(148, 156, 164)
+local ALUMINUM_REFLECTANCE = 0.18
+local function applyAluminum(part)
+	part.Material = Enum.Material.Metal
+	part.Color = ALUMINUM_COLOR
+	part.Reflectance = ALUMINUM_REFLECTANCE
+end
+
 function KartVisualFactory.getDriverSeatLocalCFrame(definition): CFrame
 	if definition.VisualModelName == "SprintV1" then
 		return CFrame.new(0, 1.5, 0.5)
@@ -252,13 +261,32 @@ function KartVisualFactory.applyAppearance(visual: Model, definition: { [string]
 		local black = definition.MechanicalPalette == "Black"
 		local engine = visual.StaticRoot.Engine
 		engine.Material = Enum.Material.Metal
-		engine.Color = if definition.EnginePalette == "Black" then Color3.fromRGB(18, 20, 24) else Color3.fromRGB(205, 211, 218)
+		if definition.EnginePalette == "Black" then
+			engine.Color = Color3.fromRGB(18, 20, 24)
+			engine.Reflectance = 0.06
+		else
+			applyAluminum(engine)
+		end
 		local frame = visual.StaticRoot.Frame
 		frame.Material = Enum.Material.Metal
-		frame.Color = if black then Color3.fromRGB(18, 20, 24) else Color3.fromRGB(205, 211, 218)
+		if black then
+			frame.Color = Color3.fromRGB(18, 20, 24)
+			frame.Reflectance = 0
+		else
+			applyAluminum(frame)
+		end
 		local link = visual.StaticRoot.Link
 		link.Material = Enum.Material.Metal
-		link.Color = if black then Color3.fromRGB(18, 20, 24) else Color3.fromRGB(205, 211, 218)
+		if black then
+			link.Color = Color3.fromRGB(18, 20, 24)
+			link.Reflectance = 0
+		else
+			applyAluminum(link)
+		end
+		applyAluminum(visual.StaticRoot.Routers)
+		for _, name in { "WheelFLPivot", "WheelFRPivot", "WheelRLPivot", "WheelRRPivot" } do
+			applyAluminum(visual[name].AluminumHubCover)
+		end
 		visual:SetAttribute("VisualVariant", definition.VisualVariant)
 	else
 		KartVisualFactory.applyColors(visual, definition)
