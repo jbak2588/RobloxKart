@@ -31,7 +31,7 @@ end
 local methods = {}
 local safeSize = V2.new(801,334)
 local function object(class, name)
-	local p = {ClassName=class,Name=name or class,Enabled=true,Visible=true,Health=100,
+	local p = {ClassName=class,Name=name or class,ZIndex=1,Enabled=true,Visible=true,Health=100,
 		Size=rb.UDim2.fromScale(1,1),Position=rb.UDim2.fromScale(0,0),AnchorPoint=V2.zero}
 	for _, event in {"InputBegan","InputChanged","InputEnded","Activated","Destroying","ChildAdded",
 		"CharacterAdded","CharacterRemoving","WindowFocusReleased","WindowFocused","TextBoxFocused",
@@ -489,7 +489,17 @@ itemEnv.script=itemModule
 local combatNow=0
 itemEnv.time=function() return combatNow end
 modules.CombatFeedbackView=luau.load(fs.readFile("src/client/CombatFeedbackView.luau"),{environment=itemEnv})()
-itemEnv.task={delay=function(_,callback) table.insert(delayed,callback) end}
+local iconWorker
+itemEnv.task={delay=function(seconds,callback) if seconds ~= 12 then table.insert(delayed,callback) end end,
+ spawn=function(callback) iconWorker=callback end}
+services.ContentProvider={PreloadAsync=function(_,images,callback)
+ for _,image in images do callback(image.Image,rb.Enum.AssetFetchStatus.Success) end
+end}
+child(modulesFolder,"ModuleScript","KDMIconCatalog")
+local iconModule=child(modulesFolder,"ModuleScript","KDMItemIconView")
+modules.KDMIconCatalog=luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
+local iconEnv=table.clone(itemEnv);iconEnv.script=iconModule
+modules.KDMItemIconView=luau.load(fs.readFile("src/client/KDMItemIconView.luau"),{environment=iconEnv})()
 modules.RaceItemUiController=luau.load(fs.readFile("src/client/RaceItemUiController.luau"),
 	{environment=itemEnv})()
 safeSize=V2.new(1600,739);itemCamera.ViewportSize=safeSize
@@ -822,6 +832,29 @@ check(itemHud.CombatResult.Text=="THUNDER HIT 2 • BLOCK 1","authoritative aggr
 player:SetAttribute("RaceThunderIncomingCount",0);kart:SetAttribute("KartThunderHitActive",true)
 check(itemHud.CombatResult.Text=="SHOCKED!","Thunder rising edge victim feedback")
 ui.PreferredInput=rb.Enum.PreferredInput.Touch
+-- Exercise actual image-backed HUD after all legacy fallback/input paths.
+iconWorker()
+ui.PreferredInput=rb.Enum.PreferredInput.Touch
+ui.KeyboardEnabled=false
+ui:GetPropertyChangedSignal("PreferredInput"):Fire()
+player:SetAttribute("RaceState","RACING")
+player:SetAttribute("RaceThunderIncomingCount",0)
+for index,id in {"Nitro","Shield","Thunder","Smoke"} do
+ player:SetAttribute("RaceItemSlot"..index,id)
+ player:SetAttribute("RaceCharge"..id,({0,1,2,9})[index])
+end
+for _,id in {"Nitro","Shield","Thunder","Smoke"} do
+ local button=itemHud[id];local image=button.KDMItemImage
+ check(image.Visible and not button:FindFirstChild(id.."Icon").Visible,"loaded image hides native fallback "..id)
+ check(button.Charges.ZIndex>image.ZIndex and button.Charges.TextStrokeTransparency==.2,"quantity above loaded icon "..id)
+ check(not image.Active and not image.Selectable,"image cannot consume touch "..id)
+ check(not button:FindFirstChildOfClass("UIStroke").Enabled,"no duplicate base border "..id)
+end
+check(itemHud.Nitro.KDMItemImage.ImageTransparency==.55 and itemHud.Nitro.Charges.Text=="0","spent image dims with readable zero")
+player:SetAttribute("RaceMissileIncomingCount",1)
+check(itemHud.Shield:FindFirstChildOfClass("UIStroke").Enabled and itemHud.Shield:FindFirstChildOfClass("UIStroke").Thickness==3,"loaded Shield retains emergency stroke")
+beforeTap=#item._p.calls;itemHud.Smoke.Activated:Fire()
+check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="UseItem" and item._p.calls[#item._p.calls][2]=="Smoke","loaded image preserves atomic direct-use")
 itemHud:Destroy();player:SetAttribute("RaceCombatFeedbackSerial",1000);tick()
 check(not result.Parent and not edge.Parent,"HUD destruction disconnects result and effect listeners")
 player.CharacterAdded:Fire(character)

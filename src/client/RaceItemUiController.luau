@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ContentProvider = game:GetService("ContentProvider")
+local ItemIconView = require(script.Parent:WaitForChild("KDMItemIconView"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local Config = require(Shared:WaitForChild("RaceItemConfig"))
@@ -17,6 +19,8 @@ function RaceItemUiController.start()
 	if started then return end
 	started = true
 	local player = Players.LocalPlayer
+	local iconCache = ItemIconView.cache(ContentProvider, task)
+	local alive = true
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "RobloxKartRaceItemHud"
 	gui.ResetOnSpawn = false
@@ -56,11 +60,7 @@ function RaceItemUiController.start()
 			else Input.selectRaceItem(activeId) end
 		end)
 		buttons[index] = button
-		local icon = MobileView.icon(button, id)
-		local scale = Instance.new("UIScale")
-		scale.Scale = 0.90
-		scale.Parent = icon.root
-		icon.root.Position = UDim2.fromScale(0.40, 0.40)
+		local icon = ItemIconView.new(button, id, iconCache, MobileView)
 		local border = MobileView.stroke(button, 1)
 		local count = Instance.new("TextLabel")
 		count.Name = "Charges"
@@ -71,6 +71,9 @@ function RaceItemUiController.start()
 		count.TextColor3 = Color3.new(1, 1, 1)
 		count.Font = Enum.Font.GothamBold
 		count.TextSize = 14
+		count.TextStrokeColor3 = Color3.fromRGB(9, 20, 30)
+		count.TextStrokeTransparency = 0.2
+		count.ZIndex = button.ZIndex + 2
 		count.BorderSizePixel = 0
 		count.Parent = button
 		MobileView.round(count)
@@ -82,6 +85,7 @@ function RaceItemUiController.start()
 		chosenMark.Text = "✓"
 		chosenMark.TextColor3 = Color3.new(1, 1, 1)
 		chosenMark.TextSize = 14
+		chosenMark.ZIndex = button.ZIndex + 2
 		chosenMark.Parent = button
 		mobileIcons[index] = {id=id, icon=icon, border=border, borderColor=border.Color, count=count, mark=chosenMark}
 	end
@@ -136,6 +140,7 @@ function RaceItemUiController.start()
 	local bonusFlashVisible = false
 	local preview
 	local function refresh()
+		if not alive then return end
 		local racing = player:GetAttribute("RaceState") == "RACING"
 		if not racing and bonusFlashVisible then
 			bonusFlashVisible = false
@@ -161,12 +166,7 @@ function RaceItemUiController.start()
 			local id = Slots.get(player, index) or ""
 			local symbols = mobileIcons[index]
 			if symbols.id ~= id then
-				symbols.icon.root:Destroy()
-				symbols.icon = MobileView.icon(button, id)
-				local scale = Instance.new("UIScale")
-				scale.Scale = 0.90
-				scale.Parent = symbols.icon.root
-				symbols.icon.root.Position = UDim2.fromScale(0.40, 0.40)
+				symbols.icon:setItem(id)
 				symbols.id = id
 			end
 			button.Name = if id ~= "" then id else "ItemSlot" .. index
@@ -180,13 +180,12 @@ function RaceItemUiController.start()
 			button.TextColor3 = if charges == 0 then Color3.fromRGB(110, 118, 128) else Color3.fromRGB(220, 240, 250)
 			button.Text = if mobile or id == "" then "" else Catalog[id].DisplayName .. " " .. charges .. (if UserInputService.KeyboardEnabled then
 				"\n" .. (if chosen then "Q USE" else tostring(index)) else "")
-			symbols.icon.root.Visible = mobile
-			symbols.icon:setEnabled(charges > 0)
+			local borderEnabled = symbols.icon:update(mobile, charges, chosen or emergency)
 			symbols.count.Visible = mobile
 			symbols.count.Text = tostring(charges)
 			symbols.mark.Text = if emergency then "!" else "✓"
 			symbols.mark.Visible = mobile and (chosen or emergency)
-			symbols.border.Enabled = mobile
+			symbols.border.Enabled = borderEnabled
 			symbols.border.Color = if emergency then Color3.fromRGB(65, 225, 255)
 				elseif charges > 0 then MobileView.itemAccent(id) else symbols.borderColor
 			symbols.border.Thickness = if chosen or emergency then 3 else 1
@@ -321,8 +320,10 @@ function RaceItemUiController.start()
 		refresh()
 		task.delay(0.75, refresh)
 	end)
+	gui.Destroying:Connect(function() alive = false; iconCache:destroy() end)
 	bindCamera()
 	refresh()
+	iconCache:start(refresh)
 end
 
 return RaceItemUiController
