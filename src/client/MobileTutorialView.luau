@@ -1,5 +1,7 @@
 local MobileView = require(script.Parent:WaitForChild("MobileControlView"))
 
+local ControlIcons = require(script.Parent:WaitForChild("KDMControlIconView"))
+local ContentProvider = game:GetService("ContentProvider")
 local Tutorial = {}
 
 function Tutorial.create(parent: Instance, onDismiss)
@@ -50,6 +52,8 @@ function Tutorial.create(parent: Instance, onDismiss)
 	iconRow.ZIndex = 32
 	iconRow.Parent = card
 	local icons = {}
+	local controlViews={}
+	local cache=ControlIcons.cache(ContentProvider,task)
 	for index = 1, 4 do
 		local holder = Instance.new("Frame")
 		holder.Name = "IconSlot" .. index
@@ -151,8 +155,8 @@ function Tutorial.create(parent: Instance, onDismiss)
 	dismissButton.Visible = false
 	local page = 1
 	local pages = {
-		{ "DRIVE", "↑       ←   →       ↓", "↑ Accelerate    ← → Steer    ↓ Brake / Reverse\nTap Auto Drive to keep accelerating. Brake overrides it.", { "Forward", "Left", "Right", "Brake" } },
-		{ "DRIFT & BOOST", "HOLD DRIFT + STEER", "Exit a READY Drift for MINI BOOST.\nLand 5 boosts in one race for +1 NITRO.", { "Drift", "Left", "Right" } },
+		{ "DRIVE", "↑       ←   →       ↓", "Forward: accelerate straight. Forward+Left/Right: accelerate and steer.\nBrake while moving; reverse after slowing/stopping.", { "Forward", "ForwardLeft", "ForwardRight", "BrakeReverse" } },
+		{ "DRIFT & BOOST", "HOLD DRIFT + FORWARD+LEFT/RIGHT", "Exit a READY Drift for MINI BOOST.\nLand 5 boosts in one race for +1 NITRO.", { "DriftSquare", "ForwardLeft", "ForwardRight" } },
 		{ "RACE ITEMS", "", "Tap an item once to use it while racing.\nWhen a Missile is incoming, tap Shield to defend.", { "Nitro", "Slick", "Shield", "Missile" } },
 	}
 	local function layoutContent()
@@ -185,12 +189,19 @@ function Tutorial.create(parent: Instance, onDismiss)
 		description.Text = data[3]
 		itemCaptions.Visible = page == 3
 		gaugeExamples.Visible = page == 2
+		table.clear(controlViews)
 		for index, holder in icons do
 			holder.Visible = data[4][index] ~= nil
 			for _, child in holder:GetChildren() do
-				if child.Name:sub(-4) == "Icon" then child:Destroy() end
+				if child.Name:sub(-4) == "Icon" or child.Name=="KDMControlImage" then child:Destroy() end
 			end
-			if holder.Visible then MobileView.icon(holder, data[4][index], holder.ZIndex + 1) end
+			if holder.Visible then
+				local key=data[4][index]
+				if page<=2 then
+					local view=ControlIcons.new(holder,key,cache,MobileView);view:layout(44,44)
+					table.insert(controlViews,view)
+				else MobileView.icon(holder,key,holder.ZIndex+1) end
+			end
 		end
 		back.Visible = page > 1
 		nextButton.Text = if page == #pages then "GOT IT" else "NEXT"
@@ -221,6 +232,8 @@ function Tutorial.create(parent: Instance, onDismiss)
 	end)
 	resize()
 	render()
+	cache:start(function() for _,view in controlViews do view:update(true,false) end end)
+	overlay.Destroying:Connect(function()cache:destroy()end)
 	return {
 		open = function()
 			page = 1

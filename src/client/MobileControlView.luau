@@ -9,13 +9,20 @@ function View.layout(size: Vector2)
 	local action = math.clamp(size.Y * 0.18, 52, 68)
 	local slot = if size.X >= 700 and size.Y >= 360 then 48 else 44
 	local diameter = math.clamp(math.min(size.X * 0.22, size.Y * 0.42), 104, 156)
-	local direction = if portrait then 44 else math.clamp(size.Y * 0.15, 44, 56)
-	local forward = direction + 10
-	local brake = direction
-	local padWidth = direction * 3 + 24
-	local compactPad = not portrait and size.Y < 300
-	local padHeight = if compactPad then forward + brake + 14 else forward + direction + brake + 16
-	local padBottom = if portrait then math.min(112, size.X * 0.18)*2/3+12 else margin
+	local visual = if portrait then 46 elseif size.Y<260 then 44 elseif size.Y<390 then 52 else 58
+	local direction = math.ceil(visual * 1.25)
+	local forward = math.ceil(visual * 1.18)
+	local brake = forward
+	local padWidth = direction*2 + forward + 8
+	local padGap = 4
+	local padHeight = forward*2 + padGap
+	local compactPad = false
+	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else margin
+	local driftWidth = math.clamp(size.X*.155,108,124)
+	local driftHeight = driftWidth/2.4
+	local driftHitWidth = math.ceil(driftWidth*1.20)
+	local driftHitHeight = math.ceil(driftHeight*1.30)
+	local driftBottom = if portrait then padBottom+padHeight+8 else (if size.Y<360 then math.max(8,margin-8) else margin)
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
 	if portrait and margin + slot*4 + 8*3 > size.X - margin - padWidth then
@@ -30,8 +37,11 @@ function View.layout(size: Vector2)
 		padBottom = padBottom,
 		padAutoRight = portrait,
 		padCompact = compactPad,
-		padGap = 8,
-		driftX = margin, driftBottom = margin + (if portrait then action+8 else 0),
+		padGap = padGap,
+		driveVisualSize=visual, driveHitSize=direction,
+		driftWidth=driftWidth,driftHeight=driftHeight,
+		driftHitWidth=driftHitWidth,driftHitHeight=driftHitHeight,
+		driftX = margin, driftBottom = driftBottom,
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
 		-- Reserve a separate band for race-long Nitro progress and its award flash.
 		loadoutBottom = loadoutBottom,
@@ -61,10 +71,14 @@ function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: 
 	local panelWidth = math.min(252, math.max(220, size.X - l.padWidth - l.margin - 240))
 	local panelX = math.clamp((240 + size.X - l.margin - l.padWidth - panelWidth) * .5,
 		l.margin, size.X - l.margin - l.padWidth - panelWidth - 8)
+	-- Enlarged turn targets narrow the adjacent lane. Keep the open invite list
+	-- beside the item row and above any driving target it crosses horizontally.
+	panelX = math.min(math.max(panelX, l.margin+l.slot*4+l.gap*3+8), size.X-panelWidth-12)
 	local bottomMap = mapY >= size.Y*.5
 	local panelTop = if not bottomMap and panelX < mapX+mapWidth+6 and panelX+panelWidth > mapX-6
 		then math.max(68,mapY+mapHeight+6) else 68
 	local panelBottom = size.Y - l.wheel*2/3 - 11
+	if panelX+panelWidth > size.X-l.margin-l.padWidth then panelBottom=math.min(panelBottom,padTop-8) end
 	if bottomMap and panelX < mapX+mapWidth+6 and panelX+panelWidth > mapX-6 then
 		panelBottom = math.min(panelBottom,mapY-6)
 	end
@@ -100,8 +114,8 @@ function View.itemLayout(size: Vector2, slotCount: number)
 	local bottom = l.loadoutBottom
 	local progressGap = if size.X >= 600 and size.Y < 360 then 5 else 6
 	local progressTop = size.Y - bottom + progressGap
-	local progressBottom = size.Y - math.max(l.driftBottom + l.action, l.useBottom + l.action) - 1
-	if x < l.driftX + l.action and x + width > l.driftX then
+	local progressBottom = size.Y - l.driftBottom - l.driftHitHeight - 1
+	if x < l.driftX + l.driftHitWidth and x + width > l.driftX then
 		progressBottom -= l.driftGaugeGap + l.gaugeHeight + 3
 	end
 	local wheelLeft, wheelTop = size.X * 0.5 - l.wheel * 0.5, size.Y - 3 - l.wheel * 2/3
@@ -178,9 +192,9 @@ function View.icon(parent: Instance, kind: string, zIndex: number?)
 		return shape((x1+x2)/2, (y1+y2)/2, math.sqrt((x2-x1)^2+(y2-y1)^2)+cap, width or 3,
 			math.deg(math.atan2(y2-y1, x2-x1)), true)
 	end
-	if kind == "Forward" or kind == "Left" or kind == "Right" or kind == "Brake" then
+	if kind == "Forward" or kind == "ForwardLeft" or kind == "ForwardRight" or kind == "BrakeReverse" or kind == "Left" or kind == "Right" or kind == "Brake" then
 		line(20,32,20,8,4); line(20,8,9,19,4); line(20,8,31,19,4)
-		root.Rotation = if kind == "Left" then -90 elseif kind == "Right" then 90 elseif kind == "Brake" then 180 else 0
+		root.Rotation = if kind == "Left" then -90 elseif kind == "Right" then 90 elseif kind == "Brake" or kind == "BrakeReverse" then 180 elseif kind == "ForwardLeft" then -45 elseif kind == "ForwardRight" then 45 else 0
 	elseif kind == "Nitro" then
 		-- Original solid lightning silhouette, filled with short native UI strips.
 		local points = {{25,2},{8,23},{18,23},{14,38},{33,16},{22,16}}

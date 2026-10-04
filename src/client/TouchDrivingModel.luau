@@ -27,7 +27,7 @@ end
 
 function Model:pressButton(id, action: string)
 	if self.mode ~= "Buttons" or self.owner == id or self.driftOwners[id] or self.buttons[id] then return false end
-	if action ~= "Forward" and action ~= "Left" and action ~= "Right" and action ~= "Brake" then return false end
+	if action ~= "Forward" and action ~= "ForwardLeft" and action ~= "ForwardRight" and action ~= "BrakeReverse" then return false end
 	self.pressSerial += 1
 	self.buttons[id] = { action = action, serial = self.pressSerial }
 	return true
@@ -39,7 +39,7 @@ function Model:isPressed(action: string): boolean
 end
 
 function Model:toggleAutoForward()
-	self.autoForward = not self.autoForward
+	if self.mode == "Joystick" then self.autoForward = not self.autoForward end
 end
 
 function Model:move(id, dx: number, dy: number, radius: number, deadZone: number?)
@@ -82,16 +82,16 @@ function Model:actions(): (number, number, boolean)
 	if self.mode == "Buttons" then
 		local steering, last = 0, 0
 		for _, held in self.buttons do
-			if (held.action == "Left" or held.action == "Right") and held.serial > last then
+			if (held.action == "ForwardLeft" or held.action == "ForwardRight") and held.serial > last then
 				last = held.serial
-				steering = if held.action == "Left" then -1 else 1
+				steering = if held.action == "ForwardLeft" then -1 else 1
 			end
 		end
 		-- Negative throttle is the existing shared brake/reverse action.
 		local drifting = next(self.driftOwners) ~= nil
 		if drifting then steering *= Model.DIGITAL_DRIFT_STEERING end
-		local throttle = if self:isPressed("Brake") then -1
-			elseif self:isPressed("Forward") or self.autoForward then 1 else 0
+		local throttle = if self:isPressed("BrakeReverse") then -1
+			elseif self:isPressed("Forward") or self:isPressed("ForwardLeft") or self:isPressed("ForwardRight") then 1 else 0
 		return throttle, steering, drifting
 	end
 	local throttle = if self.owner then self.throttle elseif self.autoForward then 1 else 0

@@ -99,7 +99,8 @@ local keys, focused = {}, nil
 ui.GetFocusedTextBox=function() return focused end
 ui.IsKeyDown=function(_,k) return keys[tostring(k)] or false end
 services.GuiService.MenuIsOpen=false
-local env={game={GetService=function(_,name) return assert(services[name],name) end},
+services.ContentProvider={PreloadAsync=function() end}
+local env={task={spawn=function() end,delay=function() end},game={GetService=function(_,name) return assert(services[name],name) end},
 	script={Parent=modulesFolder},require=function(m) return assert(modules[m.Name],m.Name) end,
 	Instance={new=object},Vector2=V2,Vector3=V3,UDim2=rb.UDim2,UDim=rb.UDim,Color3=rb.Color3,Enum=rb.Enum}
 for _, name in {"RaceItemCatalog", "RaceItemSlots"} do
@@ -108,6 +109,10 @@ for _, name in {"RaceItemCatalog", "RaceItemSlots"} do
 	modules[name]=luau.load(fs.readFile("src/shared/"..name..".luau"),{environment=sharedEnv})()
 end
 for index,id in modules.RaceItemSlots.DEFAULT do player:SetAttribute("RaceItemSlot"..index,id) end
+child(modulesFolder,"ModuleScript","KDMIconCatalog")
+modules.KDMIconCatalog=luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
+child(modulesFolder,"ModuleScript","KDMControlIconView")
+modules.KDMControlIconView=luau.load(fs.readFile("src/client/KDMControlIconView.luau"),{environment=env})()
 for _, name in {"TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
 end
@@ -136,14 +141,14 @@ check(not tutorial.isOpen(),"tutorial starts closed")
 tutorial.open()
 check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","tutorial opens on DRIVE")
 check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","DRIVE has no duplicate arrow row")
-assertTutorialIcons({"Forward","Left","Right","Brake"})
+assertTutorialIcons({"Forward","ForwardLeft","ForwardRight","BrakeReverse"})
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
 check(string.find(tutorialCard.Description.Text,"5 boosts in one race",1,true)~=nil
 	and not string.find(tutorialCard.Description.Text,"in a row",1,true),
 	"tutorial explains cumulative five-Boost reward")
 check(tutorialCard.Diagram.Visible,"DRIFT diagram remains visible")
-assertTutorialIcons({"Drift","Left","Right"})
+assertTutorialIcons({"Drift","ForwardLeft","ForwardRight"})
 local examples=tutorialCard.GaugeExamples
 check(examples.Visible and #examples.ChargingGauge:GetChildren()==6 and #examples.ReadyGauge:GetChildren()==6,"tutorial has two native five-segment gauges")
 check(examples.ChargingGauge.Segment3.BackgroundColor3==rb.Color3.fromRGB(65,225,245)
@@ -314,18 +319,24 @@ else
 	check(not joy.Visible and root.Forward.Visible and gui:GetAttribute("MobileDriveControlMode")=="Buttons","digital default hides legacy joystick")
 	local ignored=touch(joy); neutral("legacy stick cannot activate in Buttons mode")
 	local f=touch(root.Forward); check(latest()[1]==1,"forward press")
-	local b=touch(root.Brake); check(latest()[1]==-1,"brake overrides held forward")
+	local b=touch(root.BrakeReverse); check(latest()[1]==-1,"brake overrides held forward")
 	b.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1,"forward resumes after brake")
 	f.UserInputState=rb.Enum.UserInputState.End; neutral("forward release auto OFF")
-	auto.Activated:Fire(); f=touch(root.Forward)
-	f.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1,"forward release keeps auto ON")
-	auto.Activated:Fire(); neutral("digital auto OFF coasts")
-	f=touch(root.Left); local extra=touch(root.Left)
+ check(auto==nil and gui:GetAttribute("AutoForwardEnabled")==nil,"production Auto Drive button and state absent")
+ local bareLeft=touch(root.ForwardLeft);check(latest()[1]==1 and latest()[2]==-1,"standalone ForwardLeft accelerates and steers")
+ bareLeft.UserInputState=rb.Enum.UserInputState.End;neutral("standalone turn release coasts")
+ local bareBrake=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==0,"standalone BrakeReverse neutral steering")
+ bareBrake.UserInputState=rb.Enum.UserInputState.End;neutral("brake release")
+ local straight=touch(root.Forward);local turn=touch(root.ForwardLeft)
+ check(latest()[1]==1 and latest()[2]==-1,"Forward held plus combined left")
+ turn.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1 and latest()[2]==0,"combined left release falls back to straight")
+ straight.UserInputState=rb.Enum.UserInputState.End;neutral("straight release")
+	f=touch(root.ForwardLeft); local extra=touch(root.ForwardLeft)
 	f.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==-1,"same-direction second owner survives first release")
 	extra.UserInputState=rb.Enum.UserInputState.End; neutral("last same-direction owner released")
 	for _, direction in {-1,1} do
-		local button=if direction==-1 then root.Left else root.Right
-		local other=if direction==-1 then root.Right else root.Left
+		local button=if direction==-1 then root.ForwardLeft else root.ForwardRight
+		local other=if direction==-1 then root.ForwardRight else root.ForwardLeft
 		f=touch(root.Forward); local steer=touch(button)
 		check(latest()[2]==direction and not latest()[3],"normal digital steering remains full")
 		local d=touch(drift)
@@ -347,21 +358,21 @@ else
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"drift release preserves throttle/steer for existing boost condition")
 		check(input.getEffectiveSteering()==direction,"steering HUD action sync")
 		steer.UserInputState=rb.Enum.UserInputState.End; f.UserInputState=rb.Enum.UserInputState.End; neutral("all buttons released")
-		auto.Activated:Fire(); steer=touch(button); d=touch(drift)
-		for _=1,30 do tick(); check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"auto stable drift") end
-		b=touch(root.Brake); check(latest()[1]==-1 and latest()[2]==direction*0.60,"auto brake and reverse steer use shared actions")
-		b.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1,"auto resumes after brake")
-		d.UserInputState=rb.Enum.UserInputState.End; tick()
-		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"auto drift release restores full steering")
-		steer.UserInputState=rb.Enum.UserInputState.Cancel; neutral("cancel disables auto")
+  steer=touch(button);check(latest()[1]==1 and latest()[2]==direction,"standalone combined turn")
+  b=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==direction,"brake priority preserves independently held turn")
+  d=touch(drift);check(latest()[1]==-1 and latest()[2]==direction*.60 and latest()[3],"brake turn Drift contract")
+  b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1,"combined turn resumes after brake")
+  d.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[2]==direction and not latest()[3],"normal steering restored")
+  steer.UserInputState=rb.Enum.UserInputState.Cancel;neutral("combined turn cancel neutral")
+
 	end
 	check(#item._p.calls==8,"all four digital item direct-use requests delivered once per tap")
 end
 local function hold()
 	tick(); touch(if legacy then joy else root.Forward,20,-40)
-	if not legacy then touch(root.Left); touch(root.Right); touch(root.Brake) end
+	if not legacy then touch(root.ForwardLeft); touch(root.ForwardRight); touch(root.BrakeReverse) end
 	touch(drift)
-	if not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
+	if legacy and not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
 	check(latest()[1]==(if legacy then 1 else -1) and latest()[3],"hold established")
 	kart:SetAttribute("KartDriftChargeProgress",1);kart:SetAttribute("KartDriftChargeReady",true);tick()
 	check(gauge.Visible and gauge:GetAttribute("LitSegments")==5,"lifecycle fixture starts READY")
@@ -409,10 +420,10 @@ for _, size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390)} do
 	local items=modules.MobileControlView.itemLayout(size,4)
 	local row={items.x,size.Y-items.bottom-l.slot,
 		items.x+items.width,size.Y-items.bottom}
-	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
+	local driftRect={l.driftX,size.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
 	local gaugeRect=rect(productionGauge.frame)
-	check(not overlaps(row,driftRect) and not overlaps(row,useRect)
+	check(not overlaps(row,driftRect)
 		and not overlaps(row,gaugeRect),"item row remains separate from driving controls")
 end
 for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),V2.new(320,568),V2.new(929,688)} do
@@ -430,7 +441,7 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y-3,"mobile clip leaves a three-pixel bottom margin")
 	mobileWheel:Destroy();mobileClip:Destroy()
 	local rects={}
-	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.Forward,root.Left,root.Right,root.Brake,drift,auto,gauge,diagnostic}
+	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.Forward,root.ForwardLeft,root.ForwardRight,root.BrakeReverse,drift,gauge,diagnostic}
 	for _, button in buttons do
 		local p,z=button.AbsolutePosition,button.AbsoluteSize
 		table.insert(rects,{p.X,p.Y,p.X+z.X,p.Y+z.Y})
@@ -558,7 +569,7 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 		"Nitro progress uses exactly the item group width")
 	check(nitroProgress.AbsoluteSize.Y>=32 and progressLabel.TextSize>=13,
 		"two-line BONUS EARNED remains readable without clipping")
-	check(display[2]>=first[4]+4 and display[4]<size.Y-l.driftBottom-l.action
+	check(display[2]>=first[4]+4 and display[4]<size.Y-l.driftBottom-l.driftHitHeight
 		and display[4]<size.Y-l.useBottom-l.action,
 		"Nitro progress stays below all item cells and above Drift/Use "..tostring(size)
 			.." display="..display[2]..","..display[4].." rowBottom="..first[4])
@@ -567,10 +578,10 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 	local combat=rect(itemHud.MissileFeedback)
 	local result=rect(itemHud.CombatResult)
 	local lap={12,8,12+math.min(170,size.X*.28),if size.X>=600 and size.Y<360 then 118 else 163}
-	local driftRect={l.driftX,size.Y-l.driftBottom-l.action,l.driftX+l.action,size.Y-l.driftBottom}
+	local driftRect={l.driftX,size.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,size.Y-l.driftBottom}
 	local useRect={l.useX,size.Y-l.useBottom-l.action,l.useX+l.action,size.Y-l.useBottom}
-	local gaugeRect={l.driftX,size.Y-l.driftBottom-l.action-l.driftGaugeGap-l.gaugeHeight,
-		l.driftX+l.action,size.Y-l.driftBottom-l.action-l.driftGaugeGap}
+	local gaugeRect={l.driftX,size.Y-l.driftBottom-l.driftHitHeight-l.driftGaugeGap-l.gaugeHeight,
+		l.driftX+l.driftHitWidth,size.Y-l.driftBottom-l.driftHitHeight-l.driftGaugeGap}
 	local wheelRect={size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3}
 	local padRect={size.X-l.margin-l.padWidth,size.Y-l.padBottom-l.padHeight,size.X-l.margin,size.Y-l.padBottom}
 	for _, hudRect in {first,second,third,fourth,display,combat,result} do

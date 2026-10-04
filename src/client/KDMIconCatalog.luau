@@ -9,8 +9,8 @@ return table.freeze({
 		Smoke = "rbxassetid://117693178629090",
 	}),
 	Actions = table.freeze({
-		DriftWide = "rbxassetid://124990672172496",
-		DriftSquare = "rbxassetid://117761162868097",
+		DriftWide = "rbxassetid://117761162868097",
+		DriftSquare = "rbxassetid://124990672172496",
 	}),
 	Drive = table.freeze({
 		Forward = "rbxassetid://100127572127049",

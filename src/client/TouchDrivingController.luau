@@ -4,6 +4,8 @@ local GuiService = game:GetService("GuiService")
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local Model = require(script.Parent:WaitForChild("TouchDrivingModel"))
 local View = require(script.Parent:WaitForChild("MobileControlView"))
+local IconView = require(script.Parent:WaitForChild("KDMControlIconView"))
+local ContentProvider = game:GetService("ContentProvider")
 local Controller = {}
 local started = false
 
@@ -11,6 +13,9 @@ function Controller.start()
 	if started then return end
 	started = true
 	local player = Players.LocalPlayer
+	local state = Model.new()
+	local cache = IconView.cache(ContentProvider,task)
+	local controlsEnabled = false
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "RobloxKartTouchDriving"
 	gui.ResetOnSpawn = false
@@ -66,27 +71,26 @@ function Controller.start()
 	end
 	local drift, driftStroke = button("Drift")
 	drift.AnchorPoint = Vector2.new(0, 1)
-	local driftIcon = View.icon(drift, "Drift")
+	local driftIcon = IconView.new(drift,"DriftWide",cache,View)
 	local use = button("UseItem")
 	use.Visible = false -- Item-only control superseded by direct item-slot actions.
 	use.AnchorPoint = Vector2.new(0, 1)
 	local useIcon = View.icon(use, "Use")
-	local auto, autoStroke = button("AutoForward")
-	auto.AnchorPoint = Vector2.new(1, 1)
-	local autoIcon = View.icon(auto, "AutoForward")
-	autoIcon.root.Position = UDim2.fromScale(0.5, 0.5)
-	local autoScale = Instance.new("UIScale")
-	autoScale.Scale = 0.85
-	autoScale.Parent = autoIcon.root
-	local state = Model.new()
+	local auto,autoStroke,autoIcon
+	if state.mode == "Joystick" then
+		auto,autoStroke=button("AutoForward")
+		auto.AnchorPoint=Vector2.new(1,1)
+		autoIcon=View.icon(auto,"AutoForward")
+		local scale=Instance.new("UIScale");scale.Scale=.85;scale.Parent=autoIcon.root
+	end
 	gui:SetAttribute("MobileDriveControlMode", state.mode)
 	joystick.Visible = state.mode == "Joystick"
 	local drivingButtons = {}
-	for _, action in {"Forward", "Left", "Right", "Brake"} do
+	for _, action in {"Forward", "ForwardLeft", "ForwardRight", "BrakeReverse"} do
 		local b, outline = button(action)
 		b.AnchorPoint = Vector2.new(0, 1)
 		b.Visible = state.mode == "Buttons"
-		drivingButtons[action] = {button = b, outline = outline, icon = View.icon(b, action)}
+		drivingButtons[action] = {button = b, outline = outline, icon = IconView.new(b,action,cache,View)}
 	end
 	local touches, connections, kartConnections = {}, {}, {}
 	local focused, removing = true, false
@@ -98,20 +102,28 @@ function Controller.start()
 	end
 	local function publish()
 		Input.setTouchActions(state:actions())
-		for action, control in drivingButtons do
-			local held = state:isPressed(action)
-			control.outline.Thickness = if held then 4 else 2
-			control.button.BackgroundColor3 = if held then Color3.fromRGB(36, 107, 137) else Color3.fromRGB(19, 39, 54)
+		for action,control in drivingButtons do
+			local held=state:isPressed(action)
+			local loaded=control.icon:update(controlsEnabled,held)
+			control.outline.Enabled=not loaded
+			control.outline.Thickness=if held then 4 else 2
+			control.button.BackgroundTransparency=if loaded then 1 else .18
+			control.button.BackgroundColor3=if held then Color3.fromRGB(36,107,137) else Color3.fromRGB(19,39,54)
 		end
-		autoIcon:setLatched(state.autoForward)
-		auto.BackgroundTransparency = if state.autoForward then 0.08 else 0.65
-		autoStroke.Thickness = if state.autoForward then 4 else 1
-		auto.BackgroundColor3 = if state.autoForward then Color3.fromRGB(32, 102, 145) else Color3.fromRGB(19, 39, 54)
-		gui:SetAttribute("AutoForwardEnabled", state.autoForward)
+		if auto then
+			autoIcon:setLatched(state.autoForward)
+			auto.BackgroundTransparency=if state.autoForward then .08 else .65
+			autoStroke.Thickness=if state.autoForward then 4 else 1
+			auto.BackgroundColor3=if state.autoForward then Color3.fromRGB(32,102,145) else Color3.fromRGB(19,39,54)
+			gui:SetAttribute("AutoForwardEnabled",state.autoForward)
+		end
 		-- The visual thumb follows the clamped raw displacement; actions have a dead band.
 		local travel = math.max(1, (joystick.AbsoluteSize.X-thumb.AbsoluteSize.X)/2-4)
 		thumb.Position = UDim2.new(0.5, state.knobX*travel, 0.5, state.knobY*travel)
 		joystickStroke.Transparency = if state.owner then 0 else 0.35
+		local loaded=driftIcon:update(controlsEnabled,next(state.driftOwners)~=nil)
+		driftStroke.Enabled=not loaded
+		drift.BackgroundTransparency=if loaded then 1 else .18
 		driftStroke.Thickness = if next(state.driftOwners) then 4 else 2
 		drift.BackgroundColor3 = if next(state.driftOwners) then Color3.fromRGB(36, 107, 137) else Color3.fromRGB(19, 39, 54)
 	end
@@ -141,6 +153,7 @@ function Controller.start()
 			and activeKart ~= nil and activeKart:GetAttribute("RaceControlsLocked") ~= true
 	end
 	local function release(input)
+		if input.UserInputState ~= Enum.UserInputState.End and input.UserInputState ~= Enum.UserInputState.Cancel then return end
 		-- A cancelled joystick is not an intentional release of cruise control.
 		if (input == state.owner or state.buttons[input]) and input.UserInputState == Enum.UserInputState.Cancel then state.autoForward = false end
 		if touches[input] then touches[input]:Disconnect(); touches[input] = nil end
@@ -181,16 +194,16 @@ function Controller.start()
 	connect(UserInputService.InputChanged, function(input)
 		if input == state.owner and canDrive() then state:move(input, displacement(input)); publish() end
 	end)
-	connect(auto.Activated, function()
+	if auto then connect(auto.Activated, function()
 		if canDrive() then state:toggleAutoForward(); publish() end
-	end)
+	end) end
 	local function layout()
 		reset()
 		local l = View.layout(root.AbsoluteSize)
 		joystick.Size = UDim2.fromOffset(l.joystick, l.joystick)
 		joystick.Position = UDim2.new(1, -l.margin, 1, -l.margin)
-		auto.Size = UDim2.fromOffset(48, 48)
-		auto.Position = UDim2.new(1, -l.margin-l.joystick-8, 1, -math.max(l.margin+(l.joystick-48)/2,l.wheel*2/3+8))
+		if auto then auto.Size = UDim2.fromOffset(48, 48)
+		auto.Position = UDim2.new(1, -l.margin-l.joystick-8, 1, -math.max(l.margin+(l.joystick-48)/2,l.wheel*2/3+8)) end
 		if state.mode == "Buttons" then
 			local left = root.AbsoluteSize.X - l.margin - l.padWidth
 			local top = l.padBottom + l.padHeight
@@ -200,14 +213,15 @@ function Controller.start()
 				b.Position = UDim2.new(0, left+x, 1, -bottom)
 			end
 			place("Forward", (l.padWidth-l.forward)/2, top-l.forward, l.forward)
-			local directionBottom = l.padBottom + (if l.padCompact then (l.padHeight-l.direction)/2 else l.brake+l.padGap)
-			place("Left", 0, directionBottom, l.direction)
-			place("Right", l.padWidth-l.direction, directionBottom, l.direction)
-			place("Brake", (l.padWidth-l.brake)/2, l.padBottom, l.brake)
-			auto.Size = UDim2.fromOffset(44,44)
-			auto.Position = UDim2.new(0,left+(if l.padAutoRight then l.padWidth else 44),1,-(if l.padCompact then top+8 else top-44))
+			local directionBottom = l.padBottom + (l.padHeight-l.direction)/2
+			place("ForwardLeft", 0, directionBottom, l.direction)
+			place("ForwardRight", l.padWidth-l.direction, directionBottom, l.direction)
+			place("BrakeReverse", (l.padWidth-l.brake)/2, l.padBottom, l.brake)
+
 		end
-		drift.Size, use.Size = UDim2.fromOffset(l.action,l.action), UDim2.fromOffset(l.action,l.action)
+		drift.Size, use.Size = UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight), UDim2.fromOffset(l.action,l.action)
+		driftIcon:layout(l.driftWidth,l.driftHeight)
+		for _,control in drivingButtons do control.icon:layout(l.driveVisualSize,l.driveVisualSize) end
 		drift.Position = UDim2.new(0,l.driftX,1,-l.driftBottom)
 		use.Position = UDim2.new(0,l.useX,1,-l.useBottom)
 	end
@@ -268,17 +282,18 @@ function Controller.start()
 		root.Visible = show
 		defaultControls(show)
 		local enabled = canDrive()
+		controlsEnabled=enabled
 		if not enabled then reset() end
 		Input.setTouchEnabled(enabled)
 		local selected = player:GetAttribute("SelectedRaceItemId")
 		local charges = if type(selected) == "string" then player:GetAttribute("RaceCharge"..selected) else 0
 		useIcon:setEnabled(enabled and type(charges) == "number" and charges > 0)
-		driftIcon:setEnabled(enabled)
-		autoIcon:setEnabled(enabled)
-		for _, control in drivingButtons do control.icon:setEnabled(enabled) end
+		if autoIcon then autoIcon:setEnabled(enabled) end
+		publish()
 		thumb.BackgroundTransparency = if enabled then 0 else 0.6
 	end)
 	connect(gui.Destroying, function()
+		cache:destroy()
 		reset()
 		Input.setTouchUpdater(nil)
 		defaultControls(false)
@@ -288,6 +303,7 @@ function Controller.start()
 		if characterConnection then characterConnection:Disconnect() end
 		started = false
 	end)
+	cache:start(publish)
 end
 
 return Controller

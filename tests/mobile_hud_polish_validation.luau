@@ -14,8 +14,7 @@ for _,pair in {{749,361},{844,390},{932,430},{749,303},{724,311},{640,360}} do
  check(invite[4]<=top-8,'8px pad separation')
  check(not overlaps(invite,map),'invite clears minimap')
  check(not overlaps(pad,map),'pad clears minimap')
- local auto={left,top,left+44,top+44}
- check(not overlaps(invite,auto),'invite clears AutoForward')
+
  check(i.x>=0 and i.x+i.width<=s.X and i.y>=0,'invite inside safe area')
  local panel={i.panelX,i.panelY,i.panelX+i.panelWidth,i.panelY+52+i.rows*28}
  check(not overlaps(panel,pad) and not overlaps(panel,map),'open panel clears pad/map')
@@ -27,28 +26,28 @@ for _,pair in {{749,361},{844,390},{932,430},{749,303},{724,311},{640,360}} do
  local room={s.X-12-118,m.y+m.side+6,s.X-12,m.y+m.side+28}
  check(not overlaps(room,map) and not overlaps(room,invite),'map room invite stack')
  check(invite[2]==room[4]+6,'6px room/invite gap')
- local directionTop=s.Y-l.padBottom-l.brake-l.padGap-l.direction
+ local directionTop=s.Y-l.padBottom-(l.padHeight+l.direction)/2
  local forwardX=left+(l.padWidth-l.forward)*.5
  local brakeX=left+(l.padWidth-l.brake)*.5
  local buttons={
   Forward={forwardX,top,forwardX+l.forward,top+l.forward},
-  Left={left,directionTop,left+l.direction,directionTop+l.direction},
-  Right={s.X-l.margin-l.direction,directionTop,s.X-l.margin,directionTop+l.direction},
-  Brake={brakeX,s.Y-l.padBottom-l.brake,brakeX+l.brake,s.Y-l.padBottom},
-  AutoForward=auto}
+  ForwardLeft={left,directionTop,left+l.direction,directionTop+l.direction},
+  ForwardRight={s.X-l.margin-l.direction,directionTop,s.X-l.margin,directionTop+l.direction},
+  BrakeReverse={brakeX,s.Y-l.padBottom-l.brake,brakeX+l.brake,s.Y-l.padBottom},
+}
  for name,rect in buttons do check(not overlaps(map,rect),'minimap clears actual '..name) end
  local speed={s.X*.5-80,-58,s.X*.5+80,-2}
  check(not overlaps(map,speed) and not overlaps(invite,speed),'map/invite clear speed')
  check(not overlaps(panel,speed),'open panel clears speed')
  check(not overlaps(panel,wheel),'open panel clears wheel')
  local items=V.itemLayout(s,4); local row={items.x,s.Y-items.bottom-l.slot,items.x+items.width,s.Y-items.bottom}
- check(not overlaps(panel,row),'open panel clears items')
+ check(not overlaps(panel,row),'open panel clears items '..tostring(s)..' panel='..table.concat(panel,',')..' row='..table.concat(row,','))
  check(not overlaps(map,row),'minimap clears item row')
- local drift={l.driftX,s.Y-l.driftBottom-l.action,l.driftX+l.action,s.Y-l.driftBottom}
+ local drift={l.driftX,s.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,s.Y-l.driftBottom}
  local progress={items.x,items.progressTop,items.x+items.width,items.progressTop+items.progressHeight}
  check(not overlaps(map,drift) and not overlaps(map,progress),'minimap clears Drift/Nitro progress')
- check(l.direction>=44 and l.forward>=l.direction and l.brake>=44,'minimum control targets')
- check(l.padGap==8,'symmetric vertical gap')
+ check(l.driveVisualSize>=44 and l.direction>=l.driveVisualSize*1.20 and l.brake>=44,'minimum control targets')
+ check(l.padGap==4,'nonoverlapping hitbox gap')
 end
 check(V.minimapLayout(rb.Vector2.new(749,303)).side==96,'short-phone 96px map')
 check(V.minimapLayout(rb.Vector2.new(844,390)).side==112,'844x390 112px map')

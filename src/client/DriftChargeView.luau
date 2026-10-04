@@ -67,9 +67,9 @@ function Gauge.create(root, debugEnabled)
 	function self:layout(size,mobile,wheel,origin)
 		local l=View.layout(size)
 		if mobile then
-			frame.Size=UDim2.fromOffset(l.action,l.gaugeHeight)
+			frame.Size=UDim2.fromOffset(math.min(120,l.driftWidth),l.gaugeHeight)
 			-- Leave room for the three-pixel READY border pulse on real displays.
-			frame.Position=UDim2.new(0,l.driftX+l.action/2,1,-l.driftBottom-l.action-l.driftGaugeGap)
+			frame.Position=UDim2.new(0,l.driftX+l.driftHitWidth/2,1,-l.driftBottom-l.driftHitHeight-l.driftGaugeGap)
 		else
 			frame.Size=UDim2.fromOffset(math.clamp(size.X*0.12,140,160),if size.Y<=650 then 18 else 20)
 			if wheel then
