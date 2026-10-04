@@ -14,6 +14,7 @@ user-provided uploads and acceptance evidence; it does not select gameplay items
 | Thunder | 105188481205755 | Item | v1 | ACTIVE / Studio load PASS |
 | Smoke | 117693178629090 | Item | v1 | ACTIVE / Studio load PASS |
 | DriftWide | 117761162868097 | Action | v1 | ACTIVE / MOBILE WIRED / Studio load PASS |
+| AutoStart | 132977729157200 | Action | v1 | ACTIVE / BUTTONS WIRED / Studio load PASS |
 | DriftSquare | 124990672172496 | Action | v1 | TUTORIAL / FALLBACK / Studio load PASS |
 | Forward | 100127572127049 | Drive | v1 | ACTIVE / MOBILE WIRED / Studio load PASS |
 | ForwardLeft | 124319636929371 | Drive | v1 | ACTIVE / MOBILE WIRED / Studio load PASS |
@@ -122,3 +123,65 @@ Fresh regression: 49 validation files, Buttons Touch 1976, legacy Joystick 1664,
 control icon/lifecycle/hitbox 298 checks; geometry fixture 52/52 unchanged.
 Item/HUD/Drift/Bot/Audio/Gauge/Garage/Orbit/V2/Grip suites, Rojo and diff check PASS.
 Real-device acceptance is still required. No Roblox Publish performed.
+
+## R6-B1 mobile control UX candidate (2026-10-05)
+
+R6-B code passed but user real-device UX acceptance FAILED. This revision
+supersedes R6-B's Auto removal, small controls and shrinking pressed animation.
+Starting feature HEAD: `c8d5d60b4ed8cde9e0b064aa1c8d6e0fa7f79046`.
+Continue `feature/kdm-four-button-drive`; no production merge or Publish.
+
+AutoStart 132977729157200 loaded successfully. Buttons restore continuous Auto
+throttle 1, toggle OFF/ON, turn acceleration, Brake -1 priority and release resume.
+Focus/seat/menu/race teardown/locks clear Auto through the existing reset path.
+The four manual outputs and +/-0.60 Drift remain unchanged. Joystick math is unchanged.
+
+Normal safe height >=340: drive 68x68, target 82x82, Auto 58x58 / 64x64.
+Short layout: drive 62x62 / 74x74, Auto 52x52 / 58x58. The existing 750x361
+emulator reported 751x282 CoreUISafe, so it uses this short configuration.
+The Auto target is exactly at the four primary target centers' midpoint.
+Horizontal center spacing is 86 normal / 78 short, necessary to prevent square
+hitbox corner overlap with a 4px gap; cluster width is 254 normal / 230 short.
+Vertical spacing is 77 / 70, cluster height 236 / 214. On the exceptional
+473x240 landscape only, 58px art / 70px target fits the physical bounds; it does
+not fall back to 52px. Portrait has its own safe arrangement.
+
+Wide Drift matches the four Item slot widths: 200x83.33 short, 216x90 normal.
+Targets are 221x95 and 238x103 respectively; the exceptionally tiny 473x240
+viewport uses a tighter vertical target. Artwork remains Fit, no stretching.
+Gauge width is 65 percent of artwork width; charging/READY/fade behavior unchanged.
+Idle and pressed UIScale are always 1.00. Held artwork brightens slightly; Auto ON
+adds a small green state light. Loaded art has no additional circular frame.
+
+Necessary collision adjustments: on very short landscape safe areas the unchanged
+44px Item slots and Nitro row move beside LAP rather than overlap it. Incoming item
+warning moves to the top of that safe region. Item assets, slot sizes, selection,
+quantity, direct-use, emergency Shield and fallback are unchanged. Passive V2
+RPM/speed gauge scales to the space beside the enlarged Drift, preserving its
+aspect, typography, speed/RPM mapping and bottom alignment. The already optional
+legacy steering display is hidden only on landscape widths below 600 where it
+cannot fit beside the wide Drift. Development diagnostic bounds adapt separately.
+Invite button/list use free space between LAP, items, minimap and individual pad
+hitboxes. Empty corners of the plus cluster are not touch targets.
+
+Actual emulator touch verified manual controls, Auto ON, Auto+turn, Brake/Reverse
+-24 and Brake release Auto resume (throttle 1, observed approximately 63 during
+acceleration). Play-only synthetic independent owner tests drove the actual
+server to gold READY in both directions and real Mini Boost on release (observed
+approximately 90 and 100 planar/total speed during acceleration). Synthetic-owner
+screenshots are not physical two-finger tests. No force cap, forced braking,
+server/controller/physics/audio/Seat/kart geometry changes were made.
+
+Fresh captures are excluded under `artifacts/r6b1_controls/`: idle, Auto_OFF,
+Auto_ON, Forward, ForwardLeft, ForwardRight, BrakeReverse, Drift,
+Auto_ForwardLeft, Auto_ForwardRight, ForwardLeft_Drift_harness,
+ForwardRight_Drift_harness (.jpg). HUD diagnostic overlay was removed only in
+Play for clean screenshots. Stopping Play removed all admission/controller helpers;
+Edit helper inventory returned zero. No second Studio was launched.
+
+Validation: full 49/49; Touch 2319; legacy Joystick 1932; control icon 432;
+geometry 52/52 unchanged; Item/Drift/Mini Boost/Bot/HUD/Results/Finish/Garage/
+Orbit/V2/Grip/Audio/Gauge suites, Rojo and diff check PASS.
+User real-device UX acceptance remains required, particularly thumb travel,
+Auto readability and the short-screen Item lane adjustment. Production PV345
+and accepted R6-A branch remain frozen. Roblox Publish: NO.

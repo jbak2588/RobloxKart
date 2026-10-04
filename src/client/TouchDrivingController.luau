@@ -77,11 +77,11 @@ function Controller.start()
 	use.AnchorPoint = Vector2.new(0, 1)
 	local useIcon = View.icon(use, "Use")
 	local auto,autoStroke,autoIcon
-	if state.mode == "Joystick" then
+	do
 		auto,autoStroke=button("AutoForward")
 		auto.AnchorPoint=Vector2.new(1,1)
-		autoIcon=View.icon(auto,"AutoForward")
-		local scale=Instance.new("UIScale");scale.Scale=.85;scale.Parent=autoIcon.root
+		autoIcon=if state.mode == "Buttons" then IconView.new(auto,"AutoStart",cache,View) else View.icon(auto,"AutoForward")
+		if state.mode == "Joystick" then local scale=Instance.new("UIScale");scale.Scale=.85;scale.Parent=autoIcon.root end
 	end
 	gui:SetAttribute("MobileDriveControlMode", state.mode)
 	joystick.Visible = state.mode == "Joystick"
@@ -93,6 +93,7 @@ function Controller.start()
 		drivingButtons[action] = {button = b, outline = outline, icon = IconView.new(b,action,cache,View)}
 	end
 	local touches, connections, kartConnections = {}, {}, {}
+	local autoTouch=nil
 	local focused, removing = true, false
 	local currentKart, humanoidConnection, characterConnection = nil, nil, nil
 	local function connect(event, callback)
@@ -111,8 +112,11 @@ function Controller.start()
 			control.button.BackgroundColor3=if held then Color3.fromRGB(36,107,137) else Color3.fromRGB(19,39,54)
 		end
 		if auto then
-			autoIcon:setLatched(state.autoForward)
-			auto.BackgroundTransparency=if state.autoForward then .08 else .65
+			if state.mode == "Buttons" then
+				local loaded=autoIcon:update(controlsEnabled,state.autoForward)
+				autoStroke.Enabled=not loaded
+			else autoIcon:setLatched(state.autoForward) end
+			auto.BackgroundTransparency=if state.mode == "Buttons" and autoIcon.image.Visible then 1 elseif state.autoForward then .08 else .65
 			autoStroke.Thickness=if state.autoForward then 4 else 1
 			auto.BackgroundColor3=if state.autoForward then Color3.fromRGB(32,102,145) else Color3.fromRGB(19,39,54)
 			gui:SetAttribute("AutoForwardEnabled",state.autoForward)
@@ -128,6 +132,7 @@ function Controller.start()
 		drift.BackgroundColor3 = if next(state.driftOwners) then Color3.fromRGB(36, 107, 137) else Color3.fromRGB(19, 39, 54)
 	end
 	local function reset()
+		autoTouch=nil
 		for _, c in touches do c:Disconnect() end
 		table.clear(touches)
 		state:reset()
@@ -194,9 +199,18 @@ function Controller.start()
 	connect(UserInputService.InputChanged, function(input)
 		if input == state.owner and canDrive() then state:move(input, displacement(input)); publish() end
 	end)
-	if auto then connect(auto.Activated, function()
-		if canDrive() then state:toggleAutoForward(); publish() end
-	end) end
+	if auto then
+		connect(auto.InputBegan,function(input)
+			if input.UserInputType==Enum.UserInputType.Touch and not touches[input] then autoTouch=input end
+		end)
+		connect(auto.Activated, function(input)
+			-- Only a touch that began on Auto may toggle it; an existing held
+			-- steering/Drift finger cannot arm Auto by slipping onto its target.
+			if input and input~=autoTouch then return end
+			autoTouch=nil
+			if canDrive() then state:toggleAutoForward(); publish() end
+		end)
+	end
 	local function layout()
 		reset()
 		local l = View.layout(root.AbsoluteSize)
@@ -205,8 +219,11 @@ function Controller.start()
 		if auto then auto.Size = UDim2.fromOffset(48, 48)
 		auto.Position = UDim2.new(1, -l.margin-l.joystick-8, 1, -math.max(l.margin+(l.joystick-48)/2,l.wheel*2/3+8)) end
 		if state.mode == "Buttons" then
-			local left = root.AbsoluteSize.X - l.margin - l.padWidth
+			local left = root.AbsoluteSize.X - l.margin - l.padWidth - l.padInset
 			local top = l.padBottom + l.padHeight
+			auto.Size=UDim2.fromOffset(l.autoHitSize,l.autoHitSize)
+			auto.Position=UDim2.new(0,left+(l.padWidth+l.autoHitSize)/2,1,-l.padBottom-(l.padHeight-l.autoHitSize)/2)
+			autoIcon:layout(l.autoVisualSize,l.autoVisualSize)
 			local function place(action, x, bottom, size)
 				local b = drivingButtons[action].button
 				b.Size = UDim2.fromOffset(size, size)
@@ -288,7 +305,7 @@ function Controller.start()
 		local selected = player:GetAttribute("SelectedRaceItemId")
 		local charges = if type(selected) == "string" then player:GetAttribute("RaceCharge"..selected) else 0
 		useIcon:setEnabled(enabled and type(charges) == "number" and charges > 0)
-		if autoIcon then autoIcon:setEnabled(enabled) end
+		if autoIcon and state.mode == "Joystick" then autoIcon:setEnabled(enabled) end
 		publish()
 		thumb.BackgroundTransparency = if enabled then 0 else 0.6
 	end)

@@ -9,20 +9,28 @@ function View.layout(size: Vector2)
 	local action = math.clamp(size.Y * 0.18, 52, 68)
 	local slot = if size.X >= 700 and size.Y >= 360 then 48 else 44
 	local diameter = math.clamp(math.min(size.X * 0.22, size.Y * 0.42), 104, 156)
-	local visual = if portrait then 46 elseif size.Y<260 then 44 elseif size.Y<390 then 52 else 58
-	local direction = math.ceil(visual * 1.25)
-	local forward = math.ceil(visual * 1.18)
-	local brake = forward
-	local padWidth = direction*2 + forward + 8
-	local padGap = 4
-	local padHeight = forward*2 + padGap
+	local short = size.Y < 340
+	local tiny = not portrait and size.X<500 and size.Y<260
+	local visual = if tiny then 58 elseif portrait or short then 62 else 68
+	local direction = if tiny then 70 elseif portrait or short then 74 else 82
+	local forward, brake = direction, direction
+	local autoVisual = if portrait or short then 52 else 58
+	local autoHit = if tiny then 54 elseif portrait or short then 58 else 64
+	local padSpacing = direction+4
+	local padWidth = direction+padSpacing*2
+	local verticalSpacing = if size.Y < 260 and not portrait then 67 else (direction+autoHit)/2+4
+	local padHeight, padGap = direction+verticalSpacing*2, 4
 	local compactPad = false
-	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else margin
-	local driftWidth = math.clamp(size.X*.155,108,124)
+	-- Raise the turn row above the passive gauges and move Forward just left of
+	-- the minimap. The four targets remain symmetric around the Auto target.
+	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else (if size.Y < 260 then 29 elseif short then 24 else 28)
+	local mapSide = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
+	local padInset = if portrait then 0 else math.max(12,math.max(100,mapSide)+16-margin-padSpacing)
+	local driftWidth = slot*4+8*3
 	local driftHeight = driftWidth/2.4
-	local driftHitWidth = math.ceil(driftWidth*1.20)
-	local driftHitHeight = math.ceil(driftHeight*1.30)
-	local driftBottom = if portrait then padBottom+padHeight+8 else (if size.Y<360 then math.max(8,margin-8) else margin)
+	local driftHitWidth = math.ceil(driftWidth*1.10)
+	local driftHitHeight = if size.Y<260 and not portrait then math.ceil(driftHeight)+2 else math.ceil(driftHeight*1.14)
+	local driftBottom = if portrait then padBottom+padHeight+8 else 8
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
 	if portrait and margin + slot*4 + 8*3 > size.X - margin - padWidth then
@@ -34,7 +42,8 @@ function View.layout(size: Vector2)
 		margin = margin, action = action, slot = slot, gap = 8,
 		joystick = diameter, wheel = math.min(112, size.X * 0.18),
 		padWidth = padWidth, padHeight = padHeight, direction = direction, forward = forward, brake = brake,
-		padBottom = padBottom,
+		padBottom = padBottom, padInset=padInset, padSpacing=padSpacing, padVerticalSpacing=verticalSpacing,
+		autoVisualSize=autoVisual, autoHitSize=autoHit,
 		padAutoRight = portrait,
 		padCompact = compactPad,
 		padGap = padGap,
@@ -45,8 +54,8 @@ function View.layout(size: Vector2)
 		useX = margin + (if portrait then 0 else action+8), useBottom = margin,
 		-- Reserve a separate band for race-long Nitro progress and its award flash.
 		loadoutBottom = loadoutBottom,
-		gaugeHeight = 12,
-		driftGaugeGap = 8,
+		gaugeHeight = if size.Y < 320 and not portrait then 8 else 12,
+		driftGaugeGap = if size.Y < 320 and not portrait then 4 else 8,
 	}
 end
 
@@ -62,29 +71,26 @@ function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: 
 	local l = View.layout(size)
 	local width, height = if size.Y < 360 then 108 else 118, if size.Y < 360 then 30 else 32
 	local padTop = size.Y - l.padBottom - l.padHeight
+	local padLeft=size.X-l.margin-l.padWidth-l.padInset
 	local x = size.X - 12 - width
 	local y = mapY + mapHeight + (if roomVisible then 34 else 8)
 	if y+height > padTop-8 then
 		-- A shorter topbar band cannot contain the stack above the thumb rail.
-		x = size.X-l.margin-l.padWidth-width-8
+		x = padLeft-width-8
 	end
-	local panelWidth = math.min(252, math.max(220, size.X - l.padWidth - l.margin - 240))
-	local panelX = math.clamp((240 + size.X - l.margin - l.padWidth - panelWidth) * .5,
-		l.margin, size.X - l.margin - l.padWidth - panelWidth - 8)
-	-- Enlarged turn targets narrow the adjacent lane. Keep the open invite list
-	-- beside the item row and above any driving target it crosses horizontally.
-	panelX = math.min(math.max(panelX, l.margin+l.slot*4+l.gap*3+8), size.X-panelWidth-12)
-	local bottomMap = mapY >= size.Y*.5
-	local panelTop = if not bottomMap and panelX < mapX+mapWidth+6 and panelX+panelWidth > mapX-6
-		then math.max(68,mapY+mapHeight+6) else 68
-	local panelBottom = size.Y - l.wheel*2/3 - 11
-	if panelX+panelWidth > size.X-l.margin-l.padWidth then panelBottom=math.min(panelBottom,padTop-8) end
-	if bottomMap and panelX < mapX+mapWidth+6 and panelX+panelWidth > mapX-6 then
-		panelBottom = math.min(panelBottom,mapY-6)
+	local panelWidth = 220
+	local panelX = 12+math.min(170,size.X*.28)+8
+	local panelTop = 0
+	local items=View.itemLayout(size,4)
+	if x+width > items.x and x < items.x+items.width
+		and y+height > size.Y-items.bottom-l.slot then
+		x=panelX; y=size.Y-items.bottom-l.slot-height-4
 	end
-	local rows = math.clamp(math.floor((panelBottom - panelTop - 52)/28), 1, 4)
-	return {x=x, y=math.max(8,y), width=width, height=height,
-		panelX=panelX, panelY=panelTop, panelWidth=panelWidth, rows=rows}
+	local panelBottom = size.Y-items.bottom-l.slot-4
+	local rows = math.clamp(math.floor((panelBottom-panelTop-52)/28),1,4)
+	return {x=x,y=math.max(8,y),width=width,height=height,
+		panelX=panelX,panelY=panelTop,panelWidth=panelWidth,rows=rows}
+
 end
 
 function View.itemAccent(id: string): Color3
@@ -113,6 +119,7 @@ function View.itemLayout(size: Vector2, slotCount: number)
 	local x = l.margin
 	local bottom = l.loadoutBottom
 	local progressGap = if size.X >= 600 and size.Y < 360 then 5 else 6
+	local progressHeight=if size.Y<320 and size.X>=600 then 32 else 34
 	local progressTop = size.Y - bottom + progressGap
 	local progressBottom = size.Y - l.driftBottom - l.driftHitHeight - 1
 	if x < l.driftX + l.driftHitWidth and x + width > l.driftX then
@@ -120,12 +127,18 @@ function View.itemLayout(size: Vector2, slotCount: number)
 	end
 	local wheelLeft, wheelTop = size.X * 0.5 - l.wheel * 0.5, size.Y - 3 - l.wheel * 2/3
 	if x + width > wheelLeft and x < wheelLeft + l.wheel then progressBottom = math.min(progressBottom, wheelTop - 3) end
-	if progressBottom - progressTop < 34 then
+	if progressBottom - progressTop < progressHeight then
 		-- Keep both NITRO CHARGE / BONUS EARNED lines readable above the wheel.
-		bottom += 34 - (progressBottom - progressTop)
-		progressTop = progressBottom - 34
+		bottom += progressHeight - (progressBottom - progressTop)
+		progressTop = progressBottom - progressHeight
 	end
-	return { x = x, width = width, bottom = bottom, progressTop = progressTop, progressHeight = 34 }
+	-- A full-width Drift raises the item lane on very short phones. Preserve
+	-- slot sizes; shift the row/progress beside the LAP card only when necessary.
+	local lapBottom = if size.X >= 600 and size.Y < 360 then 118 else 163
+	if size.X >= 600 and size.Y-bottom-l.slot < lapBottom then
+		x = 12+math.min(170,size.X*.28)+8
+	end
+	return { x = x, width = width, bottom = bottom, progressTop = progressTop, progressHeight = progressHeight }
 end
 
 -- The full wheel remains unchanged; only its upper two-thirds are visible.
@@ -137,7 +150,7 @@ function View.layoutSteeringWheel(clip, wheel, ringScale, size: Vector2, mobile:
 	clip.Size = UDim2.fromOffset(diameter, diameter*2/3)
 	clip.ClipsDescendants = true
 	clip.Active = false
-	clip.Visible = wheel.Visible
+	clip.Visible = wheel.Visible and not (mobile and size.X<600 and size.X>size.Y)
 	wheel.Parent = clip
 	wheel.AnchorPoint = Vector2.new(0.5, 0)
 	wheel.Position = UDim2.fromScale(0.5, 0)

@@ -47,14 +47,14 @@ function Tutorial.create(parent: Instance, onDismiss)
 	iconRow.Name = "ActualControlIcons"
 	iconRow.AnchorPoint = Vector2.new(0.5, 0)
 	iconRow.Position = UDim2.new(0.5, 0, 0, 91)
-	iconRow.Size = UDim2.fromOffset(220, 44)
+	iconRow.Size = UDim2.fromOffset(268, 44)
 	iconRow.BackgroundTransparency = 1
 	iconRow.ZIndex = 32
 	iconRow.Parent = card
 	local icons = {}
 	local controlViews={}
 	local cache=ControlIcons.cache(ContentProvider,task)
-	for index = 1, 4 do
+	for index = 1, 5 do
 		local holder = Instance.new("Frame")
 		holder.Name = "IconSlot" .. index
 		holder.Position = UDim2.fromOffset((index - 1) * 56, 0)
@@ -155,11 +155,12 @@ function Tutorial.create(parent: Instance, onDismiss)
 	dismissButton.Visible = false
 	local page = 1
 	local pages = {
-		{ "DRIVE", "↑       ←   →       ↓", "Forward: accelerate straight. Forward+Left/Right: accelerate and steer.\nBrake while moving; reverse after slowing/stopping.", { "Forward", "ForwardLeft", "ForwardRight", "BrakeReverse" } },
+		{ "DRIVE", "↑       ←   →       ↓", "Forward: accelerate straight. Forward+Left/Right: accelerate and steer.\nAUTO START: continuous acceleration. Brake overrides Auto; reverse after stopping.", { "Forward", "ForwardLeft", "ForwardRight", "BrakeReverse", "AutoStart" } },
 		{ "DRIFT & BOOST", "HOLD DRIFT + FORWARD+LEFT/RIGHT", "Exit a READY Drift for MINI BOOST.\nLand 5 boosts in one race for +1 NITRO.", { "DriftSquare", "ForwardLeft", "ForwardRight" } },
 		{ "RACE ITEMS", "", "Tap an item once to use it while racing.\nWhen a Missile is incoming, tap Shield to defend.", { "Nitro", "Slick", "Shield", "Missile" } },
 	}
 	local function layoutContent()
+		iconRow.Size=UDim2.fromOffset(if page==1 then 268 else 220,44)
 		local compact = card.Size.Y.Offset < 280
 		diagram.Position = UDim2.new(0, 18, 0, if compact then 43 else 54)
 		diagram.Size = UDim2.new(1, -36, 0, if compact then 30 else 35)

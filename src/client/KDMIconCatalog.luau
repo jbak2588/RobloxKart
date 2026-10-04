@@ -9,6 +9,7 @@ return table.freeze({
 		Smoke = "rbxassetid://117693178629090",
 	}),
 	Actions = table.freeze({
+		AutoStart = "rbxassetid://132977729157200",
 		DriftWide = "rbxassetid://117761162868097",
 		DriftSquare = "rbxassetid://124990672172496",
 	}),

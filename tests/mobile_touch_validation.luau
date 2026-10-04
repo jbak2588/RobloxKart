@@ -141,7 +141,7 @@ check(not tutorial.isOpen(),"tutorial starts closed")
 tutorial.open()
 check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","tutorial opens on DRIVE")
 check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","DRIVE has no duplicate arrow row")
-assertTutorialIcons({"Forward","ForwardLeft","ForwardRight","BrakeReverse"})
+assertTutorialIcons({"Forward","ForwardLeft","ForwardRight","BrakeReverse","AutoForward"})
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
 check(string.find(tutorialCard.Description.Text,"5 boosts in one race",1,true)~=nil
@@ -322,7 +322,23 @@ else
 	local b=touch(root.BrakeReverse); check(latest()[1]==-1,"brake overrides held forward")
 	b.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1,"forward resumes after brake")
 	f.UserInputState=rb.Enum.UserInputState.End; neutral("forward release auto OFF")
- check(auto==nil and gui:GetAttribute("AutoForwardEnabled")==nil,"production Auto Drive button and state absent")
+ check(auto.Visible and gui:GetAttribute("AutoForwardEnabled")==false,"Auto Start defaults OFF")
+ local owned=touch(root.ForwardLeft);auto.InputBegan:Fire(owned);auto.Activated:Fire(owned)
+ check(not gui:GetAttribute("AutoForwardEnabled"),"held drive owner cannot arm Auto by slipping onto it")
+ owned.UserInputState=rb.Enum.UserInputState.End;neutral("Auto ownership probe cleanup")
+
+ auto.Activated:Fire();tick();check(latest()[1]==1 and latest()[2]==0 and gui:GetAttribute("AutoForwardEnabled"),"Auto ON continuous throttle")
+ for _,direction in {-1,1} do
+  local steer=touch(if direction==-1 then root.ForwardLeft else root.ForwardRight)
+  check(latest()[1]==1 and latest()[2]==direction,"Auto plus turn")
+  local d=touch(drift);check(latest()[1]==1 and latest()[2]==direction*.60 and latest()[3],"Auto turn Drift")
+  local brake=touch(root.BrakeReverse);check(latest()[1]==-1,"Brake overrides Auto")
+  brake.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1,"Brake release resumes Auto")
+  d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End;tick()
+  check(latest()[1]==1 and latest()[2]==0 and not latest()[3],"turn release retains Auto")
+ end
+ auto.Activated:Fire();neutral("Auto OFF coasts")
+
  local bareLeft=touch(root.ForwardLeft);check(latest()[1]==1 and latest()[2]==-1,"standalone ForwardLeft accelerates and steers")
  bareLeft.UserInputState=rb.Enum.UserInputState.End;neutral("standalone turn release coasts")
  local bareBrake=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==0,"standalone BrakeReverse neutral steering")
@@ -372,7 +388,7 @@ local function hold()
 	tick(); touch(if legacy then joy else root.Forward,20,-40)
 	if not legacy then touch(root.ForwardLeft); touch(root.ForwardRight); touch(root.BrakeReverse) end
 	touch(drift)
-	if legacy and not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
+	if not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
 	check(latest()[1]==(if legacy then 1 else -1) and latest()[3],"hold established")
 	kart:SetAttribute("KartDriftChargeProgress",1);kart:SetAttribute("KartDriftChargeReady",true);tick()
 	check(gauge.Visible and gauge:GetAttribute("LitSegments")==5,"lifecycle fixture starts READY")
@@ -441,20 +457,21 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y-3,"mobile clip leaves a three-pixel bottom margin")
 	mobileWheel:Destroy();mobileClip:Destroy()
 	local rects={}
-	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.Forward,root.ForwardLeft,root.ForwardRight,root.BrakeReverse,drift,gauge,diagnostic}
+	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.Forward,root.ForwardLeft,root.ForwardRight,root.BrakeReverse,auto,drift,gauge,diagnostic}
 	for _, button in buttons do
 		local p,z=button.AbsolutePosition,button.AbsoluteSize
 		table.insert(rects,{p.X,p.Y,p.X+z.X,p.Y+z.Y})
 	end
 	if size.X>=500 or size.Y<=size.X then
-		local minimap={size.X-112,8,size.X-12,108}
-		for _, r in rects do check(not overlaps(r,minimap),"driving buttons avoid minimap") end
+		local map=modules.MobileControlView.minimapLayout(size,-58)
+		local minimap={map.x,map.y,map.x+map.side,map.y+map.side}
+		for i, r in rects do check(not overlaps(r,minimap),"driving buttons avoid minimap "..tostring(size).." index="..i) end
 	end
 	local speedX=if size.X<450 then size.X-172 else size.X/2-80
 	check(not overlaps(rects[#rects],{speedX,l.speedTop,speedX+160,l.speedTop+l.speedHeight}),"debug avoids speed HUD including inset phone width")
 	local items=modules.MobileControlView.itemLayout(size,4)
 	table.insert(rects,{items.x,size.Y-items.bottom-l.slot,items.x+items.width,size.Y-items.bottom})
-	table.insert(rects,{size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3})
+	if size.X>=600 or size.Y>size.X then table.insert(rects,{size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3}) end
 	for i,r in rects do
 		check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"inside safe area")
 		for j=i+1,#rects do check(not overlaps(r,rects[j]),"thumb zones / display never overlap "..tostring(size).." rects "..i.."/"..j) end
@@ -547,7 +564,7 @@ player:SetAttribute("DriftBonusProgress",0)
 player:SetAttribute("DriftBonusNitroAwarded",false)
 check(progressLabel.Text=="NITRO CHARGE  0/5" and not bonusLabel.Visible,
 	"new countdown clears previous reward presentation")
-for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
+for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
 	V2.new(812,351),V2.new(724,311),V2.new(801,334),V2.new(749,303),V2.new(389,703)} do
 	safeSize=size;itemCamera.ViewportSize=size
 	itemHud:GetPropertyChangedSignal("AbsoluteSize"):Fire()
@@ -559,7 +576,7 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 	local l=modules.MobileControlView.layout(itemHud.AbsoluteSize)
 	local items=modules.MobileControlView.itemLayout(itemHud.AbsoluteSize,4)
 	if size.X>=600 and size.X>size.Y then
-		check(first[1]==l.margin and fourth[3]<size.X/2-16,
+		check((items.x==l.margin and fourth[3]<size.X/2-16) or (items.x>l.margin and first[1]>=12+math.min(170,size.X*.28)+8 and fourth[3]<size.X-l.margin-l.padWidth-l.padInset),
 			"R1 landscape loadout stays left of the central Kart corridor "..tostring(size))
 	end
 	check(first[1]==items.x and fourth[3]-first[1]==l.slot*4+l.gap*3
@@ -584,10 +601,19 @@ for _,size in {V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390)
 		l.driftX+l.driftHitWidth,size.Y-l.driftBottom-l.driftHitHeight-l.driftGaugeGap}
 	local wheelRect={size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3}
 	local padRect={size.X-l.margin-l.padWidth,size.Y-l.padBottom-l.padHeight,size.X-l.margin,size.Y-l.padBottom}
-	for _, hudRect in {first,second,third,fourth,display,combat,result} do
+	for hi, hudRect in {first,second,third,fourth,display,combat,result} do
 		check(hudRect[1]>=0 and hudRect[2]>=0 and hudRect[3]<=size.X and hudRect[4]<=size.Y,"combat/item UI inside safe area")
-		for _, controlRect in {lap,driftRect,useRect,gaugeRect,wheelRect,padRect} do
-			check(not overlaps(hudRect,controlRect),"combat/item UI clears LAP, Drift, Use, gauge, wheel and pad "..tostring(size))
+		local pl=size.X-l.margin-l.padWidth-l.padInset
+		local pt=size.Y-l.padBottom-l.padHeight
+		local px=pl+(l.padWidth-l.forward)/2
+		local ty=size.Y-l.padBottom-(l.padHeight+l.direction)/2
+		local controls={lap,driftRect,useRect,gaugeRect,wheelRect,
+			{px,pt,px+l.forward,pt+l.forward},
+			{pl,ty,pl+l.direction,ty+l.direction},
+			{pl+l.padWidth-l.direction,ty,pl+l.padWidth,ty+l.direction},
+			{px,size.Y-l.padBottom-l.brake,px+l.brake,size.Y-l.padBottom}}
+		for ci, controlRect in controls do
+			check(not overlaps(hudRect,controlRect),"combat/item UI clears LAP, Drift, Use, gauge, wheel and pad "..tostring(size).." HUD="..hi.." control="..ci.." "..table.concat(hudRect,",").." / "..table.concat(controlRect,","))
 		end
 	end
 	check(l.slot>=44 and not overlaps(combat,display) and not overlaps(combat,first)

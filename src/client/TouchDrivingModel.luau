@@ -39,7 +39,7 @@ function Model:isPressed(action: string): boolean
 end
 
 function Model:toggleAutoForward()
-	if self.mode == "Joystick" then self.autoForward = not self.autoForward end
+	self.autoForward = not self.autoForward
 end
 
 function Model:move(id, dx: number, dy: number, radius: number, deadZone: number?)
@@ -91,7 +91,7 @@ function Model:actions(): (number, number, boolean)
 		local drifting = next(self.driftOwners) ~= nil
 		if drifting then steering *= Model.DIGITAL_DRIFT_STEERING end
 		local throttle = if self:isPressed("BrakeReverse") then -1
-			elseif self:isPressed("Forward") or self:isPressed("ForwardLeft") or self:isPressed("ForwardRight") then 1 else 0
+			elseif self.autoForward or self:isPressed("Forward") or self:isPressed("ForwardLeft") or self:isPressed("ForwardRight") then 1 else 0
 		return throttle, steering, drifting
 	end
 	local throttle = if self.owner then self.throttle elseif self.autoForward then 1 else 0

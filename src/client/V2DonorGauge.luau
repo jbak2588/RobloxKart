@@ -1,8 +1,10 @@
 -- AC6 stock gauge artwork only. Gear and transmission labels intentionally hidden.
 local Gauge = {}
 function Gauge.layout(width, height, mobile)
-	local available = if mobile then math.min(width-176-(math.clamp(height*.15,44,56)*3+24)-28,
-		2*(width/2-20-(math.clamp(height*.15,44,56)*3+24)-8)) else 320
+	-- Leave the full four-item-width Drift hitbox clear in the left thumb lane.
+	local slot=if width>=700 and height>=360 then 48 else 44
+	local driftRight=(if width>=700 then 20 else 12)+math.ceil((slot*4+24)*1.10)
+	local available = if mobile then 2*(width/2-driftRight-8) else 320
 	local w = math.min(300, available)
 	return {width=math.max(1,w), height=math.max(1,w)*200/640,
 		x=width/2, y=height-10, scale=math.max(1,w)/640, visible=w>=190 and width>height}

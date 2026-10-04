@@ -234,6 +234,9 @@ function RaceItemUiController.start()
 		if mobile then
 			local l = MobileView.layout(gui.AbsoluteSize)
 			local items = MobileView.itemLayout(gui.AbsoluteSize, #buttons)
+			if gui.AbsoluteSize.X>=600 and gui.AbsoluteSize.Y<320 then
+				combat.Position=UDim2.new(.5,0,0,0)
+			end
 			local groupWidth = items.width
 			local progressHeight = items.progressHeight
 			for index, button in buttons do

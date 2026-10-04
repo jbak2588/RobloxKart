@@ -67,7 +67,7 @@ function Gauge.create(root, debugEnabled)
 	function self:layout(size,mobile,wheel,origin)
 		local l=View.layout(size)
 		if mobile then
-			frame.Size=UDim2.fromOffset(math.min(120,l.driftWidth),l.gaugeHeight)
+			frame.Size=UDim2.fromOffset(l.driftWidth*.65,l.gaugeHeight)
 			-- Leave room for the three-pixel READY border pulse on real displays.
 			frame.Position=UDim2.new(0,l.driftX+l.driftHitWidth/2,1,-l.driftBottom-l.driftHitHeight-l.driftGaugeGap)
 		else
@@ -85,18 +85,23 @@ function Gauge.create(root, debugEnabled)
 			local x,y=size.X-width-12,size.Y-116
 			if mobile then
 				if size.X<500 and size.Y>size.X then
-					x,y=12,116
-				elseif size.X<700 then
-					local itemRight=l.margin+l.slot*4+l.gap*3+8
-					width=math.min(144,size.X-l.margin-l.padWidth-8-itemRight)
-					x,y=itemRight,64
+					x,y=l.margin+l.slot*4+l.gap*3+8,116
+					width=math.max(1,math.min(width,size.X-x-12))
 				else
-					-- Fit between the 160px speed panel and minimap, including phone safe insets.
-					width=math.min(width,size.X-112-8-(size.X/2+80+8))
-					x,y=size.X-112-width-8,8
+					x,y=12+math.min(170,size.X*.28)+8,8
+					local speedLeft=if size.X<450 then size.X-172 else size.X/2-80
+					width=math.max(1,math.min(184,speedLeft-x-8))
+
 				end
 			end
-			diagnostic.Size=UDim2.fromOffset(width,104)
+			local height=104
+			if mobile and size.X>size.Y then
+				height=math.max(1,math.min(height,size.Y-View.itemLayout(size,4).bottom-l.slot-y-4))
+			end
+			if mobile and x < l.driftX+l.driftHitWidth then
+				height=math.max(1,math.min(height,size.Y-l.driftBottom-l.driftHitHeight-y-4))
+			end
+			diagnostic.Size=UDim2.fromOffset(width,height)
 			diagnostic.Position=UDim2.fromOffset(x,y)
 			diagnostic.TextSize=if width<160 then 10 else 11
 		end

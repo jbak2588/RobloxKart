@@ -445,8 +445,8 @@ for _,size in {rb.Vector2.new(812,351),rb.Vector2.new(801,334),rb.Vector2.new(74
  safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
  local l=modules.MobileControlView.layout(size)
  local items=modules.MobileControlView.itemLayout(size,4)
- check(hud.Panel.Size.Y.Offset==110 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
-  <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size))
+ check(hud.Panel.Size.Y.Offset==110 and (hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
+  <=size.Y-items.bottom-l.slot-3 or items.x>=hud.Panel.Position.X.Offset+hud.Panel.Size.X.Offset+8),"short safe LAP with both warnings clears left loadout "..tostring(size))
  check(hud.Panel.QuitRow.Size.Y.Offset==40 and hud.Panel.QuitRow.QuitRace.Size.Y.Offset==40,
   "compact LAP retains full Quit touch target")
  check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,

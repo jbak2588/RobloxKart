@@ -60,7 +60,7 @@ check(math.abs(rotated.minX-202)<1e-8 and math.abs(rotated.maxY-302)<1e-8,'rotat
 root.Visible=false;check(G.visualBounds(root,{painted})==nil,'hidden root paints nothing')
 for _,s in {{750,361},{749,361},{749,303},{844,390},{932,430},{1920,1080}} do
  local l=G.layout(s[1],s[2],s[1]<1000)
- check(l.width==300 and l.height==93.75 and l.visible,'donor footprint preserved')
+ check(l.width<=300 and l.width>=190 and l.height==l.width*200/640 and l.visible,'donor aspect preserved in the space beside enlarged Drift')
  local visibleBottomOffset=-17
  local rootBottom=l.y-visibleBottomOffset
  check(s[2]-(rootBottom+visibleBottomOffset)==10,'visible-content alignment, not root padding')

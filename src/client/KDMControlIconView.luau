@@ -1,5 +1,6 @@
 local Catalog = require(script.Parent:WaitForChild("KDMIconCatalog"))
 local Assets = table.freeze({
+	AutoStart=Catalog.Actions.AutoStart,
 	Forward=Catalog.Drive.Forward, ForwardLeft=Catalog.Drive.ForwardLeft,
 	ForwardRight=Catalog.Drive.ForwardRight, BrakeReverse=Catalog.Drive.BrakeReverse,
 	DriftWide=Catalog.Actions.DriftWide, DriftSquare=Catalog.Actions.DriftSquare,
@@ -58,7 +59,7 @@ function View.cache(provider, scheduler)
 end
 
 function View.new(button, key, cache, mobileView)
-	local fallbackKey = if key == "DriftWide" or key == "DriftSquare" then "Drift" else key
+	local fallbackKey = if key == "DriftWide" or key == "DriftSquare" then "Drift" elseif key == "AutoStart" then "AutoForward" else key
 	local fallback = mobileView.icon(button, fallbackKey, button.ZIndex + 1)
 	local image = Instance.new("ImageLabel")
 	image.Name = "KDMControlImage"
@@ -75,13 +76,27 @@ function View.new(button, key, cache, mobileView)
 	image.Visible = false
 	image.Parent = button
 	local scale = Instance.new("UIScale");scale.Parent = image
-	local self = {image=image, fallback=fallback, scale=scale}
+	local indicator=Instance.new("Frame")
+	indicator.Name="AutoStateLight"
+	indicator.Size=UDim2.fromOffset(8,8)
+	indicator.Position=UDim2.fromScale(.80,.10)
+	indicator.BackgroundColor3=Color3.fromRGB(70,255,170)
+	indicator.BorderSizePixel=0
+	indicator.Active=false
+	indicator.ZIndex=image.ZIndex+1
+	indicator.Visible=false
+	indicator.Parent=image
+	mobileView.round(indicator)
+	local self = {image=image, fallback=fallback, scale=scale, indicator=indicator}
 	function self:layout(width, height) image.Size=UDim2.fromOffset(width,height) end
 	function self:update(enabled, held)
 		local loaded = Assets[key] ~= nil and cache:ready(key)
 		image.Visible=loaded;fallback.root.Visible=not loaded
 		image.ImageTransparency=if enabled then 0 else .55
-		scale.Scale=if held and enabled then (if key=="DriftWide" then .97 else .95) else 1
+		scale.Scale=1
+		image.ImageColor3=if held and enabled then Color3.fromRGB(255,255,255) else Color3.fromRGB(225,235,245)
+		indicator.Visible=enabled and key=="AutoStart" and held == true
+		fallback:setLatched(key == "AutoStart" and held == true)
 		fallback:setEnabled(enabled)
 		return loaded
 	end
