@@ -5,19 +5,19 @@ local checks = 0
 local function check(value, label) assert(value, label); checks += 1 end
 local catalog = luau.load(fs.readFile('src/shared/KartCatalog.luau'), {environment={Enum=rb.Enum,Color3=rb.Color3}})()
 local preload = luau.load(fs.readFile('src/client/GarageTexturePreload.luau'),{environment={Instance=rb.Instance}})()
-local expected = {'Kart05','Kart06','Kart07','Kart08','Kart01','Kart02','Kart03','Kart04'}
+local expected = {'Kart05','Kart06','Kart07','Kart08','Kart09','Kart10','Kart11','Kart01','Kart02','Kart03','Kart04'}
 for index,id in expected do check(catalog.Order[index]==id,'exact Garage order '..index) end
 check(catalog.DefaultId=='Kart01','Sprint fallback independent of presentation')
 local index=1
-for _=1,8 do index=(index-1+1+#catalog.Order)%#catalog.Order+1 end
-check(catalog.Order[index]=='Kart05','eight right choices return Cyan')
-for _,id in {'Kart04','Kart03','Kart02','Kart01','Kart08','Kart07','Kart06','Kart05'} do
+for _=1,11 do index=(index-1+1+#catalog.Order)%#catalog.Order+1 end
+check(catalog.Order[index]=='Kart05','eleven right choices return Cyan')
+for _,id in {'Kart04','Kart03','Kart02','Kart01','Kart11','Kart10','Kart09','Kart08','Kart07','Kart06','Kart05'} do
  index=(index-1-1+#catalog.Order)%#catalog.Order+1
  check(catalog.Order[index]==id,'left reverse cycle')
 end
 local assets=preload.collect(catalog)
-check(#assets==4,'exact four V2 dependencies')
-for i=1,4 do check(assets[i]==catalog.Entries[expected[i]].BodyTextureId,'catalog-derived texture') end
+check(#assets==7,'exact seven V2 dependencies')
+for i=1,7 do check(assets[i]==catalog.Entries[expected[i]].BodyTextureId,'catalog-derived texture') end
 local function harness(provider)
  local worker, timeout, cancelled, calls = nil,nil,0,0
  local scheduler={spawn=function(fn) worker=fn end,delay=function(seconds,fn)
@@ -32,7 +32,7 @@ local function harness(provider)
  return gate,function() worker() end,function() timeout() end,function() return calls,cancelled end
 end
 local success={PreloadAsync=function(_,ids,callback)
- check(#ids==4,'request four texture IDs')
+ check(#ids==7,'request seven texture IDs')
  for i,mesh in ids do
   check(mesh:IsA('MeshPart') and mesh.TextureID==assets[i] and mesh.Parent==nil,'unparented exact texture dependency')
   callback(mesh.TextureID,{Name='Success'})

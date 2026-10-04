@@ -247,6 +247,18 @@ function KartVisualFactory.applyAppearance(visual: Model, definition: { [string]
 		body.Material = definition.BodyMaterial
 		body.Color = Color3.new(1, 1, 1)
 		body.Reflectance = 0
+		-- Source Engine includes the exposed engine/exhaust and right-seat intake.
+		-- VisualSeat also contains the fuel tank: never tint that combined mesh.
+		local black = definition.MechanicalPalette == "Black"
+		local engine = visual.StaticRoot.Engine
+		engine.Material = Enum.Material.Metal
+		engine.Color = if black then Color3.fromRGB(18, 20, 24) else Color3.fromRGB(215, 28, 38)
+		local frame = visual.StaticRoot.Frame
+		frame.Material = Enum.Material.Metal
+		frame.Color = if black then Color3.fromRGB(18, 20, 24) else Color3.fromRGB(205, 211, 218)
+		local link = visual.StaticRoot.Link
+		link.Material = Enum.Material.Metal
+		link.Color = if black then Color3.fromRGB(18, 20, 24) else Color3.fromRGB(205, 211, 218)
 		visual:SetAttribute("VisualVariant", definition.VisualVariant)
 	else
 		KartVisualFactory.applyColors(visual, definition)

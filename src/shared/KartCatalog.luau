@@ -1,6 +1,6 @@
 local KartCatalog = {
 	DefaultId = "Kart01",
-	Order = { "Kart05", "Kart06", "Kart07", "Kart08", "Kart01", "Kart02", "Kart03", "Kart04" },
+	Order = { "Kart05", "Kart06", "Kart07", "Kart08", "Kart09", "Kart10", "Kart11", "Kart01", "Kart02", "Kart03", "Kart04" },
 	Entries = {
 		Kart05 = {
 			Id = "Kart05",
@@ -34,7 +34,35 @@ local KartCatalog = {
 			DisplayName = "KDM V2 Red",
 			VisualModelName = "KDMV2",
 			VisualVariant = "RedMetal",
+			MechanicalPalette = "Black",
 			BodyTextureId = "rbxassetid://72401332261563",
+			BodyMaterial = Enum.Material.Metal,
+			BodyColor = Color3.new(1, 1, 1),
+		},
+		Kart09 = {
+			Id = "Kart09",
+			DisplayName = "KDM V2 Metal Blue",
+			VisualModelName = "KDMV2",
+			VisualVariant = "MetalBlue",
+			BodyTextureId = "rbxassetid://93538186999394",
+			BodyMaterial = Enum.Material.Metal,
+			BodyColor = Color3.new(1, 1, 1),
+		},
+		Kart10 = {
+			Id = "Kart10",
+			DisplayName = "KDM V2 Metal Pink",
+			VisualModelName = "KDMV2",
+			VisualVariant = "MetalPink",
+			BodyTextureId = "rbxassetid://71205439249164",
+			BodyMaterial = Enum.Material.Metal,
+			BodyColor = Color3.new(1, 1, 1),
+		},
+		Kart11 = {
+			Id = "Kart11",
+			DisplayName = "KDM V2 Black",
+			VisualModelName = "KDMV2",
+			VisualVariant = "BlackMetal",
+			BodyTextureId = "rbxassetid://79376379465815",
 			BodyMaterial = Enum.Material.Metal,
 			BodyColor = Color3.new(1, 1, 1),
 		},

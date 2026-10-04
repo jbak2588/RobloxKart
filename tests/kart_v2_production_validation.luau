@@ -25,7 +25,7 @@ local builder = luau.load(fs.readFile('src/shared/KDMV2VisualDefinition.luau'),{
 env.require = function(module) assert(module == definitionScript); return builder end
 local factory = luau.load(fs.readFile('src/shared/KartVisualFactory.luau'),{environment=env})()
 local catalog = luau.load(fs.readFile('src/shared/KartCatalog.luau'),{environment=env})()
-check(catalog.DefaultId=='Kart01' and #catalog.Order==8,'fallback and eight selections')
+check(catalog.DefaultId=='Kart01' and #catalog.Order==11,'fallback and eleven selections')
 local sprintSeat=rb.CFrame.new(0,1.5,.5)
 local v2Seat=builder.DriverSeatLocalCFrame
 check(v2Seat:FuzzyEq(rb.CFrame.new(0,.06000018119812012,.5),.000001),'measured source-to-bucket Seat contract')
@@ -46,9 +46,12 @@ local function atPath(model, path)
 end
 local cyan = factory.createVisual(catalog.Entries.Kart05)
 local red = factory.createVisual(catalog.Entries.Kart06)
-local expectedTextures={Kart05='rbxassetid://125161174512041',Kart06='rbxassetid://72401332261563',Kart07='rbxassetid://78740378285144',Kart08='rbxassetid://89811969782185'}
+local v2Ids={'Kart05','Kart06','Kart07','Kart08','Kart09','Kart10','Kart11'}
+local expectedTextures={Kart05='rbxassetid://125161174512041',Kart06='rbxassetid://72401332261563',Kart07='rbxassetid://78740378285144',Kart08='rbxassetid://89811969782185',Kart09='rbxassetid://93538186999394',Kart10='rbxassetid://71205439249164',Kart11='rbxassetid://79376379465815'}
 local builtVisuals={Kart05=cyan,Kart06=red,Kart07=factory.createVisual(catalog.Entries.Kart07),Kart08=factory.createVisual(catalog.Entries.Kart08)}
-for _, id in {'Kart05','Kart06','Kart07','Kart08'} do
+for _,id in {'Kart09','Kart10','Kart11'} do builtVisuals[id]=factory.createVisual(catalog.Entries[id]) end
+for _, id in v2Ids do
+ check(factory.getDriverSeatLocalCFrame(catalog.Entries[id])==v2Seat,'seven variants preserve Seat contract')
  local entry = catalog.Entries[id]
  local visual = builtVisuals[id]
  check(entry.VisualModelName=='KDMV2','shared geometry identity')
@@ -56,7 +59,7 @@ for _, id in {'Kart05','Kart06','Kart07','Kart08'} do
  check(visual:GetAttribute('VisualVariant')==entry.VisualVariant,'variant identity')
  local body=visual.StaticRoot.CurvedBody
  check(body.TextureID==expectedTextures[id],'exact uploaded R2F texture')
- check(body.Material==(if id=='Kart06' then rb.Enum.Material.Metal else rb.Enum.Material.SmoothPlastic),'exact variant material')
+ check(body.Material==(if id=='Kart06' or id=='Kart09' or id=='Kart10' or id=='Kart11' then rb.Enum.Material.Metal else rb.Enum.Material.SmoothPlastic),'exact variant material')
  check(body.Color==rb.Color3.new(1,1,1) and body.Reflectance==0,'no multiplied tint')
  local parts, meshes, exhaust = 0,0,{ExhaustLeft=0,ExhaustRight=0}
  for _, instance in visual:GetDescendants() do
@@ -85,7 +88,11 @@ for _, id in {'Kart05','Kart06','Kart07','Kart08'} do
     check(part.MeshContent.Uri==row.mesh,'approved original mesh')
     check(part.InitialSize:FuzzyEq(rb.Vector3.new(table.unpack(row.meshSize)),.00002),'native serialized mesh size is preserved')
    end
-   if part.Name~='CurvedBody' then
+   if part.Name=='Engine' or part.Name=='Link' or part.Name=='Frame' then
+    local expectedColor=if id=='Kart06' then rb.Color3.fromRGB(18,20,24) elseif part.Name=='Engine' then rb.Color3.fromRGB(215,28,38) else rb.Color3.fromRGB(205,211,218)
+    check(part.Material==rb.Enum.Material.Metal and part.Color==expectedColor,'explicit mechanical palette')
+    check(part.TextureContent.Uri==atPath(template,row.path).TextureContent.Uri,'mechanical source texture preserved')
+   elseif part.Name~='CurvedBody' then
     check(part.Material==rb.Enum.Material[row.material]
      and part.Color==rb.Color3.new(table.unpack(row.color)),'mechanical materials preserved')
    end
@@ -100,7 +107,9 @@ end
 local engineBefore=cyan.StaticRoot.Engine.Color
 factory.applyAppearance(cyan,catalog.Entries.Kart06)
 check(cyan.StaticRoot.CurvedBody.TextureID==red.StaticRoot.CurvedBody.TextureID,'appearance switches texture')
-check(cyan.StaticRoot.Engine.Color==engineBefore,'appearance leaves mechanical parts alone')
+check(cyan.StaticRoot.Engine.Color==rb.Color3.fromRGB(18,20,24),'Red keeps red body with black engine')
+factory.applyAppearance(cyan,catalog.Entries.Kart05)
+check(cyan.StaticRoot.Engine.Color==engineBefore and cyan.StaticRoot.Link.Color==rb.Color3.fromRGB(205,211,218),'switching back restores red/silver palette')
 for index=1,4 do
  local entry=catalog.Entries['Kart0'..index]
  check(entry.VisualModelName=='SprintV1' and factory.validateVisual(factory.createVisual(entry)),'Sprint fallback remains valid')
@@ -121,7 +130,7 @@ local seat=rb.Instance.new('Seat'); seat.Parent=kart
 seat.CFrame=chassis.CFrame*rb.CFrame.new(0,1.5,.5)
 local context={kart=kart,chassis=chassis,seat=seat}
 binding.bind(kart,chassis,catalog.Entries.Kart01)
-for _,id in {'Kart05','Kart06','Kart01','Kart05'} do
+for _,id in {'Kart05','Kart06','Kart07','Kart08','Kart09','Kart10','Kart11','Kart01','Kart05'} do
  check(binding.select(context,binding.definition(id)),'vacant context accepts selected kart')
  local visual=kart.Visual
  check(visual:GetAttribute('VisualModelName')==catalog.Entries[id].VisualModelName,'selected geometry is actually rebound')
