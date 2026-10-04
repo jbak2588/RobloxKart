@@ -11,7 +11,7 @@ for _,name in {'Tach','Speedo','Gear','TMode','Speed','ln'} do check(template:Fi
 check(template.Tach.Needle.Frame.Size.Y.Offset==110 and template.TMode.Text=='A/T','original needle/mode retained')
 for _,size in {{750,361},{749,361},{749,302},{844,332},{932,372},{1920,1080},{1366,768}} do
 	local mobile=size[1]<1000;local l=G.layout(size[1],size[2],mobile)
-	check(l.visible and l.y==size[2]-14,'bottom 14px')
+	check(l.visible and l.y==size[2]-10,'bottom 10px')
 	check(l.x-l.width/2>=0 and l.x+l.width/2<=size[1] and l.y-l.height>=0,'safe root bounds')
 	if mobile then
 		local right=size[1]-20-(math.clamp(size[2]*.15,44,56)*3+24)

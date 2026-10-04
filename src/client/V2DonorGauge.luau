@@ -5,7 +5,7 @@ function Gauge.layout(width,height,mobile)
 		2*(width/2-20-(math.clamp(height*.15,44,56)*3+24)-8)) else 320
 	local widthUsed=math.min(300,available)
 	return {width=math.max(1,widthUsed),height=math.max(1,widthUsed)*200/640,
-		x=width/2,y=height-14,scale=math.max(1,widthUsed)/640,visible=widthUsed>=190 and width>height}
+		x=width/2,y=height-10,scale=math.max(1,widthUsed)/640,visible=widthUsed>=190 and width>height}
 end
 function Gauge.new(parent)
 	local root=script.Parent:WaitForChild("V2DonorGaugeTemplate"):Clone()
@@ -33,9 +33,10 @@ function Gauge.new(parent)
 	function self:update(state,size,mobile,blocked)
 		local l=Gauge.layout(size.X,size.Y,mobile)
 		scale.Scale=l.scale;root.Position=UDim2.fromOffset(l.x,l.y);root.Visible=l.visible and not blocked
-		root.Tach.Needle.Rotation=45+225*math.min(1,state.RPM/10000)
+		root.Tach.Needle.Rotation=45+225*math.min(1,(state.rpm or state.RPM)/10000)
 		root.Speedo.Needle.Rotation=45+225*math.min(1,state.speedKmh/370)
-		root.Gear.Text=if state.Gear==0 then "N" elseif state.Gear==-1 then "R" else tostring(state.Gear)
+		local gear=state.gear or state.Gear
+		root.Gear.Text=if gear==0 then "N" elseif gear==-1 then "R" else tostring(gear)
 		root.Speed.Text=tostring(math.floor(state.speedKmh)).." KM/H"
 	end
 	function self:destroy() root:Destroy() end

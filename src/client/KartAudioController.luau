@@ -45,11 +45,15 @@ function KartAudioController.start()
 	local engine: Sound? = nil
 	local powertrainPrototype = nil
 	local engineDiagnostic = nil
+	local multiRpmMixer = nil
+	local donorOwner = nil
 	local drift: Sound? = nil
 	local boostStart: Sound? = nil
 	local boostLoop: Sound? = nil
 
 	local function detach()
+		if donorOwner then donorOwner.bindMixer(nil);donorOwner=nil end
+		if multiRpmMixer then multiRpmMixer:destroy();multiRpmMixer=nil end
 		if powertrainPrototype then powertrainPrototype.reset() end
 		if engineDiagnostic then engineDiagnostic:destroy(); engineDiagnostic = nil end
 		if heartbeatConnection then
@@ -125,7 +129,15 @@ function KartAudioController.start()
 		AudioRuntime.preload({ Engine = engine, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
 		if engine and donorExperiment then
 			engine.PlaybackRegionsEnabled = false
-			engine:Play() -- Exactly once at attach; donor owner only modulates thereafter.
+			if Workspace:GetAttribute("KDMEngineExperimentMode")~=nil then
+				local Mixer=require(script.Parent:WaitForChild("KDMMultiRpmEngineAudio"))
+				multiRpmMixer=Mixer.new(engine)
+				donorOwner=require(script.Parent:WaitForChild("V2DonorExperiment"))
+				donorOwner.bindMixer(multiRpmMixer)
+				AudioRuntime.preload(multiRpmMixer.voices)
+			else
+				engine:Play() -- Exactly once at attach; donor owner only modulates thereafter.
+			end
 		elseif engine then
 			engineDiagnostic = EngineLoopDiagnostic.new(engine,
 				RunService:IsStudio() or KartConfig.DEBUG_TELEMETRY == true)
@@ -171,6 +183,7 @@ function KartAudioController.start()
 
 		if engine or drift then
 			heartbeatConnection = RunService.Heartbeat:Connect(function(deltaTime: number)
+				if multiRpmMixer then multiRpmMixer:tryStart() end
 				if not activeChassis or not activeChassis.Parent then
 					detach()
 					return
