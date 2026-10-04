@@ -17,9 +17,21 @@ for _,speed in {0,10,30,50,70,100,70,0} do
  local state
  for _=1,240 do state=model:update(speed,1/60) end
  check(math.abs(state.speedKmh-speed*1.008)<1e-8,'actual speed conversion')
- check(state.rpm>=700 and state.rpm<=10100 and state.rpm==state.rpm,'finite donor visual RPM')
+ check(state.rpm>=700 and state.rpm<=7000 and state.rpm==state.rpm,'finite donor visual RPM')
  check(state.gear==nil and state.Gear==nil,'no displayed gear state')
- if speed==70 then check(math.abs(state.rpm-7808.38578)<1,'original two-ratio visual baseline') end
+ if speed==70 then check(math.abs(state.rpm-2500)<1,'normal 70 visual RPM') end
+end
+for _,mode in {{true,false,5000},{false,true,7000}} do
+ local m=P.new();local state
+ for _=1,240 do state=m:update(100,1/60,mode[1],mode[2]) end
+ check(math.abs(state.rpm-mode[3])<1,'boost/nitro peak')
+ local previous=state.rpm
+ for speed=99,70,-1 do
+  state=m:update(speed,.1,false,false)
+  check(state.rpm<=previous,'deceleration synchronized down');previous=state.rpm
+ end
+ for _=1,120 do state=m:update(70,1/60,false,false) end
+ check(math.abs(state.rpm-2500)<1,'returns to normal after boost')
 end
 local template=rb.deserializeModel(fs.readFile('src/client/V2DonorGaugeTemplate.rbxmx'))[1]
 for _,v in {template,table.unpack(template:GetDescendants())} do

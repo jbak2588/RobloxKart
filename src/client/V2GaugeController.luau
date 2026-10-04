@@ -17,7 +17,9 @@ function Controller.new(playerGui)
 	local self={gui=gui,gauge=gauge}
 	function self:update(chassis,speed,dt,mobile,active)
 		if chassis~=owner or not active then model=Presentation.new();owner=chassis end
-		return gauge:update(model:update(speed,dt),gui.AbsoluteSize,mobile,not active or chassis==nil)
+		local kart=chassis and chassis.Parent
+		return gauge:update(model:update(speed,dt,kart and kart:GetAttribute("KartBoosting")==true,
+			kart and kart:GetAttribute("KartNitroActive")==true),gui.AbsoluteSize,mobile,not active or chassis==nil)
 	end
 	function self:destroy() gui:Destroy() end
 	return self

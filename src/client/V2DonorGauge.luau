@@ -34,7 +34,7 @@ function Gauge.visualBounds(root, objects)
 		if object.BackgroundTransparency < 1 and size.X > 0 and size.Y > 0 then
 			table.insert(rectangles, {position, size})
 		end
-		if object:IsA("TextLabel") and object.Text ~= "" and object.TextTransparency < 1 then
+		if (object:IsA("TextLabel") or object:IsA("TextButton")) and object.Text ~= "" and object.TextTransparency < 1 then
 			local text = object.TextBounds
 			if text.X > 0 and text.Y > 0 then
 				local x = if object.TextXAlignment == Enum.TextXAlignment.Left then 0
@@ -68,6 +68,17 @@ function Gauge.new(parent)
 	root.Parent=parent
 	root.Gear.Visible=false;root.TMode.Visible=false
 	local scale=Instance.new("UIScale");scale.Parent=root
+	-- Preserve the outer left/right edges and lower edge while shrinking each dial.
+	root.Tach.Position=UDim2.new(.5,-183,1,-67)
+	root.Speedo.Position=UDim2.new(.5,183,1,-67)
+	for _,dial in {root.Tach,root.Speedo} do
+		local dialScale=Instance.new("UIScale");dialScale.Scale=.7;dialScale.Parent=dial
+	end
+	root.Speed.AnchorPoint=Vector2.new(.5,1)
+	root.Speed.Size=UDim2.fromOffset(200,28)
+	root.Speed.TextSize=28
+	root.Speed.TextXAlignment=Enum.TextXAlignment.Center
+	root.Speed.TextYAlignment=Enum.TextYAlignment.Bottom
 	local function tick(dial,angle,label,major,red)
 		local line=root.ln:Clone();line.Parent=dial;line.Rotation=angle;line.Visible=true
 		if label~=nil then line.Num.Text=tostring(label);line.Num.Rotation=-angle;line.Num.Visible=true
@@ -76,19 +87,17 @@ function Gauge.new(parent)
 		if major then line.Frame.Size=UDim2.fromOffset(3,10);line.Frame.Position=UDim2.fromOffset(-1,100) end
 		return line
 	end
-	for i=0,20 do
-		tick(root.Tach,45+i*225/20,if i%2==0 then i/2 else nil,i%2==0,i>=18)
-		if i>=18 and i<20 then tick(root.Tach,45+(i+.5)*225/20,nil,false,true) end
+	for i=0,28 do
+		local rpm=i*250
+		tick(root.Tach,45+225*rpm/7000,if i%4==0 then rpm/1000 else nil,i%4==0,rpm>=5000)
 	end
-	for i=1,90 do
-		local line=tick(root.Speedo,45+225*i/90,nil,false,false)
-		if i%2==0 then line.Frame.Size=UDim2.fromOffset(2,10);line.Frame.Position=UDim2.fromOffset(-1,100) end
-	end
-	for i=0,370,40 do
-		local line=tick(root.Speedo,45+225*i/370,i,false,false)
-		line.Num.TextSize=14;line.Frame:Destroy()
+	for speed=0,150,5 do
+		local line=tick(root.Speedo,45+225*speed/150,if speed%20==0 or speed==150 then speed else nil,speed%10==0,speed>=80)
+		if line:FindFirstChild("Num") then line.Num.TextSize=18 end
 	end
 	local objects=root:GetDescendants()
+	local dialObjects={}
+	for _,object in objects do if object~=root.Speed then table.insert(dialObjects,object) end end
 	for _, object in {root,table.unpack(objects)} do
 		if object:IsA("GuiObject") then object.Active=false;object.Selectable=false end
 	end
@@ -97,9 +106,13 @@ function Gauge.new(parent)
 		local l=Gauge.layout(size.X,size.Y,mobile)
 		scale.Scale=l.scale
 		root.Visible=l.visible and not blocked
-		root.Tach.Needle.Rotation=45+225*math.clamp(state.rpm/10000,0,1)
-		root.Speedo.Needle.Rotation=45+225*math.clamp(state.speedKmh/370,0,1)
+		root.Tach.Needle.Rotation=45+225*math.clamp(state.rpm/7000,0,1)
+		root.Speedo.Needle.Rotation=45+225*math.clamp(state.speedKmh/150,0,1)
 		root.Speed.Text=tostring(math.floor(state.speedKmh+.5)).." KM/H"
+		local dialBounds=Gauge.visualBounds(root,dialObjects)
+		if dialBounds then
+			root.Speed.Position=UDim2.fromOffset(320,(dialBounds.maxY-root.AbsolutePosition.Y)/l.scale)
+		end
 		local bounds=Gauge.visualBounds(root,objects)
 		local offset=if bounds then bounds.maxY-(root.AbsolutePosition.Y+root.AbsoluteSize.Y) else 0
 		root.Position=UDim2.fromOffset(l.x,l.y-offset)
