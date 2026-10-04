@@ -265,7 +265,8 @@ function KartVisualFactory.applyAppearance(visual: Model, definition: { [string]
 			engine.Color = Color3.fromRGB(18, 20, 24)
 			engine.Reflectance = 0.06
 		else
-			applyAluminum(engine)
+			engine.Color = Color3.fromRGB(255, 200, 0)
+			engine.Reflectance = 0
 		end
 		local frame = visual.StaticRoot.Frame
 		frame.Material = Enum.Material.Metal
