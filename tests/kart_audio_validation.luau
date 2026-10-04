@@ -135,3 +135,41 @@ for _,fn in delayed do fn() end
 assert(not timed.PlaybackRegionsEnabled and diagnosticWarnings==2,"load timeout remains full and warns once")
 mode:destroy();production:destroy();shortMode:destroy();loadingMode:destroy();timedMode:destroy()
 print("PASS: engine loop NORMAL/FIXED/DYNAMIC modes, runtime regions, delayed load, timeout and production guard")
+
+-- Execute the actual engine heartbeat with stale velocity in stopped PRESENT.
+local rb=require("@lune/roblox")
+local engineHeartbeat=signal()
+services.RunService={Heartbeat=engineHeartbeat,IsStudio=function()return false end}
+modules.KartConfig={MINI_BOOST_MAX_SPEED=100}
+local idleEngine
+runtime.createSound=function(name)
+ if name~="EngineLoop" then return nil end
+ idleEngine={Volume=config.ENGINE.IDLE_VOLUME,PlaybackSpeed=0,Stop=function()end,Destroy=function()end}
+ return idleEngine
+end
+modules.EngineLoopDiagnostic={new=function()return {setMode=function()end,isFixed=function()return false end,destroy=function()end}end}
+player.signals={};humanoid.SeatPart=seat;player:SetAttribute("RaceState","RACING")
+kart:SetAttribute("KartBoosting",false)
+kart.children.Chassis.CFrame=rb.CFrame.identity
+kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-70)
+local engineController=luau.load(fs.readFile("src/client/KartAudioController.luau"),{environment={
+ game={GetService=function(_,n)return services[n]end},script={Parent=shared},require=function(n)return modules[n]end,
+ time=function()return clock end,task={spawn=function(f,...)f(...)end,delay=function()error("unexpected retry")end},
+}})()
+engineController.start()
+for _=1,120 do engineHeartbeat:Fire(1/60) end
+assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED,"normal speed retains V1 pitch")
+player:SetAttribute("RaceState","FINISHING");player:SetAttribute("RaceFinishPhase","ROLL")
+for _=1,120 do engineHeartbeat:Fire(1/60) end
+assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED,"ROLL still uses real movement")
+for _,state in {"FINISHING","FINISHED"} do
+ player:SetAttribute("RaceState",state);player:SetAttribute("RaceFinishPhase","PRESENT")
+ kart:SetAttribute("KartBoosting",true)
+ for _=1,240 do engineHeartbeat:Fire(1/60) end
+ assert(math.abs(idleEngine.PlaybackSpeed-config.ENGINE.IDLE_PLAYBACK_SPEED)<1e-6,"stopped finish idle pitch")
+ assert(math.abs(idleEngine.Volume-config.ENGINE.IDLE_VOLUME)<1e-6,"stopped finish idle volume")
+end
+player:SetAttribute("RaceState","RACING");player:SetAttribute("RaceFinishPhase",nil);kart:SetAttribute("KartBoosting",false)
+for _=1,240 do engineHeartbeat:Fire(1/60) end
+assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED+.1,"rematch returns to normal dynamic V1 audio")
+print("PASS: stopped PRESENT idle pitch/volume, stale velocity, ROLL and Rematch audio")

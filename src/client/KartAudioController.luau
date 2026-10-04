@@ -169,10 +169,16 @@ function KartAudioController.start()
 				local velocity = activeChassis.AssemblyLinearVelocity
 				local forwardSpeed = velocity:Dot(activeChassis.CFrame.LookVector)
 				if engine then
-					local normalized = math.clamp(math.abs(forwardSpeed) / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1)
+					-- PRESENT is a stopped, anchored kart; replicated velocity may retain
+					-- its last ROLL sample. Use idle audio without changing that physics state.
+					local raceState = player:GetAttribute("RaceState")
+					local finishedStop = player:GetAttribute("RaceFinishPhase") == "PRESENT"
+						and (raceState == "FINISHING" or raceState == "FINISHED")
+					local audioSpeed = if finishedStop then 0 else forwardSpeed
+					local normalized = math.clamp(math.abs(audioSpeed) / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1)
 					local targetPitch = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
 						+ (AudioConfig.ENGINE.MAX_PLAYBACK_SPEED - AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED) * normalized
-					if kart:GetAttribute("KartBoosting") == true then
+					if not finishedStop and kart:GetAttribute("KartBoosting") == true then
 						targetPitch += AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS
 					end
 					targetPitch = math.clamp(targetPitch, 0.7, 1.55)

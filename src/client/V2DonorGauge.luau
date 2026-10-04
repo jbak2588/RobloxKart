@@ -79,11 +79,19 @@ function Gauge.new(parent)
 	for _,dial in {root.Tach,root.Speedo} do
 		local dialScale=Instance.new("UIScale");dialScale.Scale=.7;dialScale.Parent=dial
 	end
-	root.Speed.AnchorPoint=Vector2.new(.5,1)
-	root.Speed.Size=UDim2.fromOffset(200,28)
-	root.Speed.TextSize=28
-	root.Speed.TextXAlignment=Enum.TextXAlignment.Center
-	root.Speed.TextYAlignment=Enum.TextYAlignment.Bottom
+	root.Speed.Visible=false
+	local digital=Instance.new("Frame")
+	digital.Name="DigitalSpeedGroup";digital.AnchorPoint=Vector2.new(.5,1)
+	digital.BackgroundTransparency=1;digital.Size=UDim2.fromOffset(200,40);digital.Parent=root
+	local value=Instance.new("TextLabel");value.Name="SpeedValue"
+	value.Font=Enum.Font.GothamBlack;value.TextSize=40;value.Text="0";value.Parent=digital
+	local unit=Instance.new("TextLabel");unit.Name="SpeedUnit"
+	unit.Font=root.Speed.Font;unit.TextSize=28;unit.Text="KM/H";unit.Parent=digital
+	for _,label in {value,unit} do
+		label.BackgroundTransparency=1;label.TextColor3=root.Speed.TextColor3
+		label.TextYAlignment=Enum.TextYAlignment.Bottom;label.TextXAlignment=Enum.TextXAlignment.Center
+		label.AnchorPoint=Vector2.new(0,1)
+	end
 	local function tick(dial,angle,label,major,red)
 		local line=root.ln:Clone();line.Parent=dial;line.Rotation=angle;line.Visible=true
 		if label~=nil then line.Num.Text=tostring(label);line.Num.Rotation=-angle;line.Num.Visible=true
@@ -102,7 +110,7 @@ function Gauge.new(parent)
 	end
 	local objects=root:GetDescendants()
 	local dialObjects={}
-	for _,object in objects do if object~=root.Speed then table.insert(dialObjects,object) end end
+	for _,object in objects do if object~=digital and not object:IsDescendantOf(digital) then table.insert(dialObjects,object) end end
 	for _, object in {root,table.unpack(objects)} do
 		if object:IsA("GuiObject") then object.Active=false;object.Selectable=false end
 	end
@@ -113,10 +121,16 @@ function Gauge.new(parent)
 		root.Visible=l.visible and not blocked
 		root.Tach.Needle.Rotation=45+225*math.clamp(state.rpm/7000,0,1)
 		root.Speedo.Needle.Rotation=45+225*math.clamp(state.speedKmh/150,0,1)
-		root.Speed.Text=tostring(math.floor(state.speedKmh+.5)).." KM/H"
+		value.Text=tostring(math.floor(state.speedKmh+.5))
+		local numberWidth=value.TextBounds.X/l.scale
+		local unitWidth=unit.TextBounds.X/l.scale
+		local total=numberWidth+5+unitWidth
+		digital.Size=UDim2.fromOffset(total,40)
+		value.Size=UDim2.fromOffset(numberWidth,40);value.Position=UDim2.new(0,0,1,0)
+		unit.Size=UDim2.fromOffset(unitWidth,28);unit.Position=UDim2.new(0,numberWidth+5,1,0)
 		local dialBounds=Gauge.visualBounds(root,dialObjects)
 		if dialBounds then
-			root.Speed.Position=UDim2.fromOffset(320,(dialBounds.maxY-root.AbsolutePosition.Y)/l.scale)
+			digital.Position=UDim2.fromOffset(320,(dialBounds.maxY-root.AbsolutePosition.Y)/l.scale)
 		end
 		local bounds=Gauge.visualBounds(root,objects)
 		local offset=if bounds then bounds.maxY-(root.AbsolutePosition.Y+root.AbsoluteSize.Y) else 0

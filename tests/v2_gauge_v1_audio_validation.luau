@@ -2,7 +2,7 @@ local fs,luau,rb,process=require('@lune/fs'),require('@lune/luau'),require('@lun
 local checks=0
 local function check(ok,label) assert(ok,label);checks+=1 end
 local stable='6903d20737c5e63711f785b9b238f2c017b412e9'
-for _,path in {'src/client/KartAudioController.luau','src/shared/AudioConfig.luau','src/client/KartInputController.luau'} do
+for _,path in {'src/shared/AudioConfig.luau','src/client/KartInputController.luau'} do
  local result=process.exec('git',{'show',stable..':'..path})
  check(result.ok and fs.readFile(path):gsub('\r\n','\n')==result.stdout:gsub('\r\n','\n'),'stable exact equality '..path)
 end
@@ -75,4 +75,7 @@ local source=fs.readFile('src/client/V2DonorGauge.luau')
 check(source:find('root.Gear.Visible=false;root.TMode.Visible=true',1,true)~=nil,'gear hidden and A/T restored')
 check(source:find('root.TMode.Text="A/T"',1,true)~=nil,'A/T text explicit')
 check(source:find('root.TMode.Position=UDim2.fromOffset(137,173)',1,true)~=nil,'A/T inside Tach footprint')
+for _,contract in {'value.Font=Enum.Font.GothamBlack;value.TextSize=40','unit.TextSize=28','DigitalSpeedGroup','label.TextYAlignment=Enum.TextYAlignment.Bottom'} do
+ check(source:find(contract,1,true)~=nil,'D4 split typography '..contract)
+end
 print('PASS: '..checks..' V1 exact audio / gauge independence / painted bounds checks')
