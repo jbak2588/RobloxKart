@@ -91,7 +91,7 @@ local services={Players={LocalPlayer=player,GetPlayers=function() return {player
  RunService={RenderStepped=signal()},TweenService={Create=function() return {Play=function() end} end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat"} do
  child(shared,"ModuleScript",name)
 end
@@ -577,3 +577,32 @@ garageRemote.OnClientEvent:Fire("RoomSnapshot",botSnapshot)
 hud.RacingInviteToggle.Activated:Fire()
 check(not availability.Invite1.Visible,"racing Bot removal disabled")
 print("PASS: "..count.." production race result HUD checks")
+
+-- D2 opt-in executes the real HUD, retaining speed source, POS and OFF fallback.
+local gaugeInput
+modules.V2GaugeController={new=function() return {destroy=function() end,
+ update=function(_,chassis,speed,dt,mobile,active)
+  gaugeInput={chassis=chassis,speed=speed,active=active};return active and chassis~=nil
+ end} end}
+local character=object('Model','Character');player.Character=character
+local humanoid=child(character,'Humanoid','Humanoid')
+local kart=object('Model','Kart');local chassis=child(kart,'Part','Chassis')
+chassis.AssemblyLinearVelocity=rb.Vector3.new(42,9,56)
+local seat=child(kart,'VehicleSeat','Seat');seat:SetAttribute('PrototypeKartSeat',true);humanoid.SeatPart=seat
+set('RaceState','COUNTDOWN');set('RaceParticipantCount',2);set('RacePosition',1)
+workspace:SetAttribute('KDMEnableV2Gauge',true)
+services.RunService.RenderStepped:Fire(1/60)
+check(gaugeInput.speed==70 and gaugeInput.active,'gauge receives planar actual speed during Countdown')
+check(not playerGui.RobloxKartMobileTopHud.Speedometer.Visible and hud:FindFirstChild('Position').Visible
+ and hud:FindFirstChild('Position').Text=='POS 1/2','standalone POS survives hidden top speed')
+check(not hud.MobileWheelIndicator.Visible,'gauge hides steering sync')
+set('RaceState','RACING');camera:GetPropertyChangedSignal('ViewportSize'):Fire()
+check(raceMap().Visible,'minimap resize does not depend on hidden speed panel')
+services.RunService.RenderStepped:Fire(1/60)
+workspace:SetAttribute('KDMEnableV2Gauge',false)
+services.RunService.RenderStepped:Fire(1/60)
+check(playerGui.RobloxKartMobileTopHud.Speedometer.Visible
+ and playerGui.RobloxKartMobileTopHud.Speedometer:FindFirstChild('Position').Visible,'OFF restores old speed and POS')
+set('RaceState','FINISHED');services.RunService.RenderStepped:Fire(1/60)
+check(not gaugeInput.active,'result hides gauge')
+print('PASS: D2 HUD integration including speed/POS/fallback/lifecycle')

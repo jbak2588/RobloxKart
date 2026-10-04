@@ -69,6 +69,9 @@ function RaceHudController.start()
 	end
 	local previousTopHud = playerGui:FindFirstChild("RobloxKartMobileTopHud")
 	if previousTopHud then previousTopHud:Destroy() end
+	local previousGauge = playerGui:FindFirstChild("KDMV2GaugeHud")
+	if previousGauge then previousGauge:Destroy() end
+	local gaugeController = nil
 
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = HUD_NAME
@@ -765,7 +768,8 @@ function RaceHudController.start()
 		quitRow.Size = UDim2.new(1, -20, 0, quitHeight)
 		quitButton.Size = UDim2.fromOffset(if touchTarget then 120 else 72, if touchTarget then 40 else 23)
 		quitButton.TextSize = if touchTarget then 14 else 11
-		miniMapPanel.Visible = speedPanel.Visible or (player:GetAttribute("RaceState") == "FINISHED"
+		miniMapPanel.Visible = player:GetAttribute("RaceState") == "COUNTDOWN" or player:GetAttribute("RaceState") == "RACING"
+			or (player:GetAttribute("RaceState") == "FINISHED"
 			and player:GetAttribute("RaceMatchStatus") == "RACING"
 			and getNumberAttribute(player, "RaceParticipantCount", 1) >= 2
 			and player:GetAttribute("RaceSessionComplete") ~= true)
@@ -1425,6 +1429,7 @@ function RaceHudController.start()
 	local presenceConnections = {}
 	local playerListConnections = {}
 	screenGui.Destroying:Connect(function()
+		if gaugeController then gaugeController:destroy();gaugeController=nil end
 		for _,connections in presenceConnections do for _,binding in connections do binding:Disconnect() end end
 		for _,binding in playerListConnections do binding:Disconnect() end
 		table.clear(presenceConnections)
@@ -1506,7 +1511,11 @@ function RaceHudController.start()
 			displayedRivalKeys = {}
 			displayedRivalPositions = {}
 		end
-		if not speedPanel.Visible then
+		local state = player:GetAttribute("RaceState")
+		local drivingHud = state == "COUNTDOWN" or state == "RACING"
+		local gaugeEnabled = Workspace:GetAttribute("KDMEnableV2Gauge") == true
+		if not drivingHud then
+			if gaugeController then gaugeController:update(nil,0,deltaTime,Input.isTouchPreferred(),false) end
 			displayedSpeed = 0
 			displayedSteering = 0
 			steeringRing.Rotation = 0
@@ -1522,6 +1531,21 @@ function RaceHudController.start()
 			local velocity = chassis.AssemblyLinearVelocity
 			targetSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 		end
+		if gaugeEnabled and not gaugeController then
+			gaugeController = require(script.Parent:WaitForChild("V2GaugeController")).new(playerGui)
+		end
+		local gaugeActive = gaugeController and gaugeController:update(chassis,targetSpeed,deltaTime,
+			Input.isTouchPreferred(),gaugeEnabled and not quitOverlay.Visible and not routeOverlay.Visible
+				and not availabilityPanel.Visible) == true
+		speedPanel.Visible = not gaugeActive
+		steeringDisplay.Visible = not gaugeActive
+		wheelClip.Visible = Input.isTouchPreferred() and not gaugeActive
+		positionLabel.Parent = if gaugeActive then screenGui else speedPanel
+		positionLabel.AnchorPoint = if gaugeActive then Vector2.new(.5,0) else Vector2.zero
+		positionLabel.Position = if gaugeActive then UDim2.new(.5,0,0,8) else UDim2.new(1,-76,0,1)
+		positionLabel.Size = UDim2.fromOffset(if gaugeActive then 140 else 72,if gaugeActive then 24 else 17)
+		positionLabel.TextXAlignment = if gaugeActive then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
+		positionLabel.Visible = getNumberAttribute(player,"RaceParticipantCount",1)>=2
 		local steering = kart and kart:GetAttribute("KartVisualSteering")
 		local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"
 			then math.clamp(steering, -1, 1) else 0
