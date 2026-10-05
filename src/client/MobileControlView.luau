@@ -132,7 +132,19 @@ function View.itemLayout(size: Vector2, slotCount: number)
 	local progressTop = size.Y - bottom + progressGap
 	local progressBottom = size.Y - l.driftBottom - l.driftHitHeight - 1
 	if x < l.driftX + l.driftHitWidth and x + width > l.driftX then
-		progressBottom -= l.driftGaugeGap + l.gaugeHeight + 3
+		-- Reserve the gauge above the complete Fit image, not only its smaller
+		-- touch target. The 3px READY stroke also needs its own clear band.
+		local portrait=size.X<500 and size.Y>size.X
+		local artworkOverhang=math.max(0,(l.driftHeight-l.driftHitHeight)/2)
+		-- Separate ScreenGui insets can put the gauge above the 320px breakpoint
+		-- while controls remain below it. Reserve its existing maximum 12px height.
+		local reserve=if portrait then l.driftGaugeGap+l.gaugeHeight else artworkOverhang+10+12
+		if size.X>=600 and not portrait and progressBottom-reserve-3-progressHeight-progressGap-l.slot<8+110+3 then
+			-- Preserve the accepted short LAP/Item lane; the gauge uses a lateral
+			-- clearance fallback when this vertical stack cannot fit.
+			reserve=l.driftGaugeGap+l.gaugeHeight
+		end
+		progressBottom -= reserve+3
 	end
 	local wheelLeft, wheelTop = size.X * 0.5 - l.wheel * 0.5, size.Y - 3 - l.wheel * 2/3
 	if x + width > wheelLeft and x < wheelLeft + l.wheel then progressBottom = math.min(progressBottom, wheelTop - 3) end

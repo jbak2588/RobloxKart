@@ -33,6 +33,31 @@ function Controller.start()
 	local previousKart,previousSerial,previousRace=nil,nil,nil
 	local function connect(event,callback) table.insert(connections,event:Connect(callback)) end
 	local function reset() view:reset(previousKart) end
+	local driftButton,layoutWheel=nil,nil
+	local layoutMobile=Input.isTouchPreferred()
+	local controlConnections={}
+	local function refreshLayout()
+		view:layout(root.AbsoluteSize,layoutMobile,layoutWheel,root.AbsolutePosition,driftButton)
+	end
+	local function bindDriftButton(button)
+		for _,connection in controlConnections do connection:Disconnect() end
+		table.clear(controlConnections)
+		driftButton=button
+		if not button then refreshLayout();return end
+		local function observe(object)
+			for _,property in {"AbsolutePosition","AbsoluteSize"} do
+				table.insert(controlConnections,object:GetPropertyChangedSignal(property):Connect(refreshLayout))
+			end
+		end
+		observe(button)
+		local artwork=button:FindFirstChild("KDMControlImage")
+		if artwork then observe(artwork) end
+		table.insert(controlConnections,button.Destroying:Connect(function() bindDriftButton(nil) end))
+		refreshLayout()
+	end
+	connect(root:GetPropertyChangedSignal("AbsolutePosition"),refreshLayout)
+	connect(root:GetPropertyChangedSignal("AbsoluteSize"),refreshLayout)
+	refreshLayout()
 	connect(UserInputService.WindowFocusReleased,function() focused=false;reset() end)
 	connect(UserInputService.WindowFocused,function() focused=true end)
 	connect(player.CharacterRemoving,function() removing=true;reset() end)
@@ -51,7 +76,16 @@ function Controller.start()
 		if hud then gui.ScreenInsets=hud.ScreenInsets end
 		local mobile=Input.isTouchPreferred()
 		local wheel=not mobile and hud and hud:FindFirstChild("SteeringDisplay",true)
-		view:layout(root.AbsoluteSize,mobile,wheel,root.AbsolutePosition)
+		if not driftButton then
+			-- Startup-only discovery: TouchDrivingController may start after this HUD.
+			local touch=player.PlayerGui:FindFirstChild("RobloxKartTouchDriving")
+			local button=touch and touch:FindFirstChild("Drift",true)
+			if button and button:FindFirstChild("KDMControlImage") then bindDriftButton(button) end
+		end
+		if mobile~=layoutMobile or wheel~=layoutWheel then
+			layoutMobile,layoutWheel=mobile,wheel
+			refreshLayout()
+		end
 		local enabled=gui.Enabled and focused and not GuiService.MenuIsOpen
 			and UserInputService:GetFocusedTextBox()==nil and kart~=nil and race=="RACING"
 			and kart:GetAttribute("RaceControlsLocked")~=true
@@ -60,6 +94,7 @@ function Controller.start()
 	connect(gui.Destroying,function()
 		reset()
 		for _,connection in connections do connection:Disconnect() end
+		for _,connection in controlConnections do connection:Disconnect() end
 		started=false
 	end)
 end

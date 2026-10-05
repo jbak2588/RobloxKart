@@ -64,12 +64,31 @@ function Gauge.create(root, debugEnabled)
 	end
 	local self={frame=frame,diagnostic=diagnostic,pulse=0,feedback=0,endTime=0,opacity=0,
 		wasActive=false,wasReady=false,wasBoosting=false,lastProgress=0,lastSerial=nil,lastText="",success=false}
-	function self:layout(size,mobile,wheel,origin)
+	function self:layout(size,mobile,wheel,origin,driftButton)
 		local l=View.layout(size)
 		if mobile then
 			frame.Size=UDim2.fromOffset(l.driftWidth*.65,l.gaugeHeight)
-			-- Leave room for the three-pixel READY border pulse on real displays.
-			frame.Position=UDim2.new(0,l.driftX+l.driftHitWidth/2,1,-l.driftBottom-l.driftHitHeight-l.driftGaugeGap)
+			if driftButton and driftButton.AbsoluteSize.X>0 and size.X>0 and size.Y>0 then
+				-- Use complete rendered bounds, including the new image outer border.
+				-- across safe-area containers; 10px leaves 7px for the 3px READY stroke.
+				local top=driftButton.AbsolutePosition.Y
+				local artwork=driftButton:FindFirstChild("KDMControlImage")
+				if artwork then top=math.min(top,artwork.AbsolutePosition.Y) end
+				local gap=if size.X<500 and size.Y>size.X then 8 else 10
+				local center=driftButton.AbsolutePosition.X+driftButton.AbsoluteSize.X/2
+				local controls=driftButton.Parent
+				local items=View.itemLayout(controls.AbsoluteSize,4)
+				local nitroBottom=controls.AbsolutePosition.Y+items.progressTop+items.progressHeight
+				if nitroBottom>top-gap-l.gaugeHeight-3 then
+					-- A crowded short lane cannot move Nitro into LAP/Quit. Use the
+					-- nearest clear horizontal position while retaining button-relative Y.
+					center=controls.AbsolutePosition.X+items.x+items.width+6+l.driftWidth*.65/2
+				end
+				frame.Position=UDim2.fromScale((center-origin.X)/size.X,(top-origin.Y-gap)/size.Y)
+			else
+				-- Startup/standalone preview fallback before touch controls exist.
+				frame.Position=UDim2.new(0,l.driftX+l.driftHitWidth/2,1,-l.driftBottom-l.driftHitHeight-l.driftGaugeGap)
+			end
 		else
 			frame.Size=UDim2.fromOffset(math.clamp(size.X*0.12,140,160),if size.Y<=650 then 18 else 20)
 			if wheel then

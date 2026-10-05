@@ -443,11 +443,15 @@ for _, size in {V2.new(1600,739),V2.new(1280,720),V2.new(844,390)} do
 end
 for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),V2.new(320,568),V2.new(929,688)} do
 	safeSize=size; root:GetPropertyChangedSignal("AbsoluteSize"):Fire(); tick()
+	sharedGui.SharedDriftDisplay:GetPropertyChangedSignal("AbsoluteSize"):Fire()
+	drift:GetPropertyChangedSignal("AbsolutePosition"):Fire()
 	local l=modules.MobileControlView.layout(size)
 	check(l.speedTop>=2 and l.speedTop<8 and l.speedTop+l.speedHeight<size.Y,"speed HUD rises without leaving safe region")
 	check(l.speedHeight==56,"speed HUD keeps compact box height")
-	check(math.abs(gauge.AbsolutePosition.X+gauge.AbsoluteSize.X/2-drift.AbsolutePosition.X-drift.AbsoluteSize.X/2)<=.5,"gauge centered on DRIFT")
-	check(math.abs(drift.AbsolutePosition.Y-gauge.AbsolutePosition.Y-gauge.AbsoluteSize.Y-l.driftGaugeGap)<=.5,"mobile gauge keeps an eight-pixel pulse-safe gap")
+	local centered=math.abs(gauge.AbsolutePosition.X+gauge.AbsoluteSize.X/2-drift.AbsolutePosition.X-drift.AbsoluteSize.X/2)<=.5
+	check(centered or gauge.AbsolutePosition.X>=12+modules.MobileControlView.itemLayout(size,4).width+6,"gauge keeps centered baseline or clears crowded Nitro lane")
+	local artworkTop=math.min(drift.AbsolutePosition.Y,drift.KDMControlImage.AbsolutePosition.Y)
+	check(math.abs(artworkTop-gauge.AbsolutePosition.Y-gauge.AbsoluteSize.Y-(if size.X<500 and size.Y>size.X then 8 else 10))<=.5,"mobile gauge follows rendered Drift bounds with READY stroke clearance")
 	local mobileClip=child(root,"Frame","ClipPreview")
 	local mobileWheel=child(root,"Frame","WheelPreview")
 	modules.MobileControlView.layoutSteeringWheel(mobileClip,mobileWheel,{},size,true)
@@ -472,10 +476,64 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	table.insert(rects,{items.x,size.Y-items.bottom-l.slot,items.x+items.width,size.Y-items.bottom})
 	if size.X>=600 or size.Y>size.X then table.insert(rects,{size.X/2-l.wheel/2,size.Y-3-l.wheel*2/3,size.X/2+l.wheel/2,size.Y-3}) end
 	for i,r in rects do
-		check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"inside safe area")
+		check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"inside safe area "..tostring(size).." "..i.." "..table.concat(r,","))
 		for j=i+1,#rects do check(not overlaps(r,rects[j]),"thumb zones / display never overlap "..tostring(size).." rects "..i.."/"..j) end
 	end
 end
+-- R6-B3: actual rendered bounds across distinct safe-area / scaled containers.
+for _,case in {
+	{"iPhone-equivalent",V2.new(932,430),V2.new(844,352),V2.new(44,58)},
+	{"Galaxy-equivalent",V2.new(960,432),V2.new(960,374),V2.new(0,58)},
+	{"short viewport",V2.new(780,360),V2.new(685,280),V2.new(59,58)},
+	{"normal viewport",V2.new(1920,1080),V2.new(1920,1022),V2.new(0,58)},
+} do
+	local label,full,controlSize,offset=case[1],case[2],case[3],case[4]
+	safeSize=full
+	modules.MobileControlView.setViewportBottomInset(full.Y,offset.Y+controlSize.Y)
+	local host=object("ScreenGui")
+	local controls=child(host,"Frame","InsetControls")
+	controls.Size=rb.UDim2.fromOffset(controlSize.X,controlSize.Y)
+	controls.Position=rb.UDim2.fromOffset(offset.X,offset.Y)
+	local button=child(controls,"TextButton","Drift")
+	local l=modules.MobileControlView.layout(controlSize)
+	button.AnchorPoint=V2.new(0,1)
+	button.Size=rb.UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight)
+	button.Position=rb.UDim2.new(0,l.driftX,1,-l.driftBottom)
+	local artwork=child(button,"ImageLabel","KDMControlImage")
+	artwork.AnchorPoint=V2.new(.5,.5);artwork.Position=rb.UDim2.fromScale(.5,.5)
+	artwork.Size=rb.UDim2.fromOffset(l.driftWidth,l.driftHeight)
+	local displayRoot=child(host,"Frame","FullViewportGauge")
+	local view=modules.DriftChargeView.create(displayRoot,false)
+	local originalSize,originalPosition=button.Size,button.Position
+	view:layout(full,true,nil,displayRoot.AbsolutePosition,button)
+	local g=view.frame
+	local top=math.min(button.AbsolutePosition.Y,artwork.AbsolutePosition.Y)
+	local items=modules.MobileControlView.itemLayout(controlSize,4)
+	local row={offset.X+items.x,offset.Y+controlSize.Y-items.bottom-l.slot,
+		offset.X+items.x+items.width,offset.Y+controlSize.Y-items.bottom}
+	local nitro={offset.X+items.x,offset.Y+items.progressTop,
+		offset.X+items.x+items.width,offset.Y+items.progressTop+items.progressHeight}
+	local states={{0,false,false,false,false},{.2,false,true,true,false},
+		{.4,false,true,true,false},{.6,false,true,true,false},{.8,false,true,true,false},
+		{1,true,true,true,false},{0,false,false,false,false},
+		{0,false,false,false,true},{0,false,false,false,false}}
+	for _,state in states do
+		view:updateCharge(state[1],state[2],state[3],state[4],state[5],.12)
+		local bounds=rect(g)
+		local stroke=g:FindFirstChildOfClass("UIStroke").Thickness
+		check(top-bounds[4]-stroke>=6,label.." full gauge / READY pulse clears artwork")
+		check(bounds[1]>=0 and bounds[2]>=0 and bounds[3]<=full.X and bounds[4]<=full.Y,label.." gauge in viewport")
+		check(not overlaps(bounds,row) and not overlaps({bounds[1]-stroke,bounds[2]-stroke,bounds[3]+stroke,bounds[4]+stroke},nitro),label.." items and Nitro text clear gauge")
+		for index=1,5 do
+			local segment=rect(g["Segment"..index])
+			check(segment[1]>=bounds[1] and segment[3]<=bounds[3] and segment[2]>=bounds[2] and segment[4]<=bounds[4],label.." complete segment "..index)
+		end
+		check(button.Size==originalSize and button.Position==originalPosition,label.." approved Drift target preserved")
+	end
+	check(g.AbsoluteSize.Y==modules.MobileControlView.layout(full).gaugeHeight,label.." gauge not shrunk")
+	host:Destroy()
+end
+modules.MobileControlView.setViewportBottomInset(0,0)
 -- Desktop and compact PC placement uses the actual steering display geometry.
 for _,size in {V2.new(1920,1080),V2.new(1280,720),V2.new(801,334)} do
 	safeSize=size
@@ -617,7 +675,7 @@ for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430)
 	end
 	check(l.slot>=44 and not overlaps(combat,display) and not overlaps(combat,first)
 		and not overlaps(combat,fourth) and itemHud.MissileFeedback.TextSize>=14,
-		"four comfortable tap targets and readable warning in its own lane")
+		"four comfortable tap targets and readable warning in its own lane "..tostring(size).." combat="..table.concat(combat,",").." item="..table.concat(first,","))
 end
 player:SetAttribute("RaceChargeMissile",1);player:SetAttribute("RaceState","RACING")
 check(not use.Visible,"redundant item-only USE button is hidden on touch")
