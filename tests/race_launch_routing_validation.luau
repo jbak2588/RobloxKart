@@ -518,6 +518,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 	local startupServices = { Players = startupPlayers, Workspace = startupWorkspace,
 		ReplicatedStorage = startupReplicated,
 		MemoryStoreService = { GetSortedMap = function() return {} end },
+		HttpService = { GenerateGUID = function() error("real JobId must not generate a GUID") end },
 		RunService = { IsStudio = function() return studio end } }
 	local startupModules = {
 		ServerRuntime = Runtime,
@@ -536,6 +537,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 		end },
 		PlayerPreferences = { start = function() calls.preferences = true end },
 		KDMServerPresence = { MAP_NAME = "KDM_ServerPresence_v1", HEARTBEAT_SECONDS = 9,
+			resolveJobKey = luau.load(fs.readFile("src/server/KDMServerPresence.luau"))().resolveJobKey,
 			new = function() return { publish = function() end, remove = function() end,
 				aggregate = function() return { stale = true } end } end },
 	}

@@ -5,6 +5,13 @@ KDMServerPresence.MAP_NAME = "KDM_ServerPresence_v1"
 KDMServerPresence.TTL_SECONDS = 30
 KDMServerPresence.HEARTBEAT_SECONDS = 9
 
+-- Resolve once at boot; published jobs retain their real identity unchanged.
+function KDMServerPresence.resolveJobKey(jobId, isStudio, guidFactory)
+	if type(jobId) == "string" and jobId ~= "" then return jobId end
+	if jobId == "" and isStudio then return "studio-" .. guidFactory() end
+	return jobId
+end
+
 function KDMServerPresence.new(map, jobId, role, trackId, now)
 	return setmetatable({ map = map, jobId = jobId, role = role,
 		trackId = trackId, now = now or os.time, lastGood = nil }, KDMServerPresence)

@@ -15,6 +15,7 @@ local MatchRoomService = require(script:WaitForChild("MatchRoomService"))
 local RaceRoomCoordinator = require(script:WaitForChild("RaceRoomCoordinator"))
 local KDMServerPresence = require(script:WaitForChild("KDMServerPresence"))
 local MemoryStoreService = game:GetService("MemoryStoreService")
+local HttpService = game:GetService("HttpService")
 
 local firstPlayer
 local joinData
@@ -37,8 +38,10 @@ print(string.format("[KDMRoute] resolve role=%s reason=%s private=%s owner=%s so
 	tostring(game.JobId)))
 RaceLaunchService.start()
 
+local presenceJobKey = KDMServerPresence.resolveJobKey(game.JobId, RunService:IsStudio(),
+	function() return HttpService:GenerateGUID(false) end)
 local presence = KDMServerPresence.new(MemoryStoreService:GetSortedMap(KDMServerPresence.MAP_NAME),
-	game.JobId, role, if payload then payload.trackId else nil)
+	presenceJobKey, role, if payload then payload.trackId else nil)
 local presenceRemote = Instance.new("RemoteEvent")
 presenceRemote.Name = "KDMPopulationStatus"
 presenceRemote.Parent = ReplicatedStorage
