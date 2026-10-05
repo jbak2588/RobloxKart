@@ -9,7 +9,7 @@ for key,id in {Forward="133764403498700",ForwardLeft="107782001043228",
 	check(rawCatalog.Drive[key]=="rbxassetid://"..id,"v2 direction identity "..key)
 end
 check(rawCatalog.Actions.AutoStart=="rbxassetid://111620163887565","v2 Auto Start")
-check(rawCatalog.Actions.DriftWide=="rbxassetid://88284882958523","v2 horizontal Drift")
+check(rawCatalog.Actions.DriftWide=="rbxassetid://139581158872943","v2 horizontal Drift")
 for key,id in {Nitro="80904195199672",Shield="133670688245113",Slick="99710951340190",
 	Missile="122668047956907",Thunder="105188481205755",Smoke="117693178629090"} do
 	check(rawCatalog.Items[key]=="rbxassetid://"..id,"item asset unchanged "..key)

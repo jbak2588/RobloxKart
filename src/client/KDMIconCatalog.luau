@@ -10,7 +10,7 @@ return table.freeze({
 	}),
 	Actions = table.freeze({
 		AutoStart = "rbxassetid://111620163887565",
-		DriftWide = "rbxassetid://88284882958523",
+		DriftWide = "rbxassetid://139581158872943",
 		DriftSquare = "rbxassetid://124990672172496",
 	}),
 	Drive = table.freeze({

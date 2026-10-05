@@ -200,7 +200,12 @@ remains the existing compact tutorial/fallback asset. Item mappings are unchange
 | ForwardRight | 118487432534938 |
 | BrakeReverse | 94445847645477 |
 | AutoStart | 111620163887565 |
-| DriftWide | 88284882958523 |
+| DriftWide | 139581158872943 |
+
+User artwork replacement (2026-10-05): `kdm_action_drift_wide_v2.png`
+139581158872943 supersedes 88284882958523. Only the DriftWide mapping changes;
+button geometry, Fit, input behavior and all other icon IDs remain unchanged.
+The Studio evidence below describes the original R6-B2 asset set.
 
 Studio visual identity inspection found the uploaded left/right filenames reversed:
 118487432534938 points right; 107782001043228 points left. The user explicitly
