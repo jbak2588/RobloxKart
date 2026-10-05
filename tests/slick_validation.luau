@@ -30,6 +30,7 @@ function methods:FindFirstChild(name) for _,c in self.children do if c.Name==nam
 function methods:IsA(class) return self.ClassName==class or class=="BasePart" and self.ClassName=="Part" end
 function methods:Destroy() self.Parent=nil end
 local function load(path)
+	if path == "src/shared/KartConfig.luau" or path == "src/shared/RaceItemConfig.luau" then return require("./helpers/gameplay_config")(path) end
 	return luau.load(fs.readFile(path), {debugName=path, environment={
 		Vector3=V, CFrame=CF, Color3=rb.Color3, Enum=rb.Enum, Instance={new=instance},
 	}})()

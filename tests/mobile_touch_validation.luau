@@ -7,7 +7,6 @@ local count = 0
 local function check(value, label) assert(value, label); count += 1 end
 local chargeSource=fs.readFile("src/client/DriftChargeView.luau")
 local itemHudSource=fs.readFile("src/client/RaceItemUiController.luau")
-local rewardSource=fs.readFile("src/shared/RaceItemConfig.luau")
 check(string.find(chargeSource,"NitroCharge",1,true)==nil
 	and string.find(chargeSource,"NITRO CHARGE",1,true)==nil
 	and string.find(chargeSource,"BONUS EARNED",1,true)==nil,
@@ -16,7 +15,7 @@ check(string.find(itemHudSource,"NITRO CHARGE",1,true)~=nil
 	and string.find(itemHudSource,"DRIFT STREAK",1,true)==nil
 	and string.find(itemHudSource,"/4",1,true)==nil,
 	"RaceItemUiController owns five-count Nitro terminology")
-check(string.find(rewardSource,"DRIFT_BONUS_REQUIRED_BOOSTS = 5",1,true)~=nil,
+check(require("./helpers/gameplay_config")("src/shared/RaceItemConfig.luau").DRIFT_BONUS_REQUIRED_BOOSTS==5,
 	"production Bonus Nitro threshold remains five")
 local function signal()
 	local listeners = {}

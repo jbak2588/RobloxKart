@@ -1,6 +1,6 @@
 local fs,luau=require("@lune/fs"),require("@lune/luau")
 local T=luau.load(fs.readFile("src/server/DriftTelemetry.luau"))()
-local config=luau.load(fs.readFile("src/shared/KartConfig.luau"))()
+local config=require("./helpers/gameplay_config")("src/shared/KartConfig.luau")
 local function kart()
 	return {attrs={},writes=0,GetAttribute=function(self,k)return self.attrs[k]end,
 		SetAttribute=function(self,k,v)self.attrs[k]=v;self.writes+=1 end}

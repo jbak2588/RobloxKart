@@ -97,7 +97,7 @@ local function load(path, parent, name)
 	local env=table.clone(environment)
 	env.script=scriptObject
 	env.require=function(module) return assert(modules[module.Name],module.Name) end
-	local result=luau.load(fs.readFile(path),{debugName=path,environment=env})()
+	local result=if path == "src/shared/KartConfig.luau" or path == "src/shared/RaceItemConfig.luau" then require("./helpers/gameplay_config")(path) else luau.load(fs.readFile(path),{debugName=path,environment=env})()
 	modules[name]=result
 	return result
 end

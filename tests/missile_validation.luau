@@ -58,7 +58,7 @@ local env={Vector3=V,CFrame=CF,Color3=rb.Color3,ColorSequence=rb.ColorSequence,N
 local function load(path,parent,name)
 	local script=child(parent,"ModuleScript",name)
 	local e=table.clone(env);e.script=script;e.require=function(m) return assert(modules[m.Name],m.Name) end
-	local result=luau.load(fs.readFile(path),{environment=e,debugName=path})();modules[name]=result;return result
+	local result=if path == "src/shared/KartConfig.luau" or path == "src/shared/RaceItemConfig.luau" then require("./helpers/gameplay_config")(path) else luau.load(fs.readFile(path),{environment=e,debugName=path})();modules[name]=result;return result
 end
 local config=load("src/shared/RaceItemConfig.luau",shared,"RaceItemConfig")
 load("src/shared/KartConfig.luau",shared,"KartConfig")

@@ -9,6 +9,7 @@ local function check(value, label)
 	count += 1
 end
 local function load(path)
+	if path == "src/shared/KartConfig.luau" or path == "src/shared/RaceItemConfig.luau" then return require("./helpers/gameplay_config")(path) end
 	return luau.load(fs.readFile(path), { environment = { Vector3 = V, CFrame = CF } })()
 end
 local config = load("src/shared/KartConfig.luau")

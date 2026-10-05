@@ -1,7 +1,7 @@
 local fs, luau, rb = require("@lune/fs"), require("@lune/luau"), require("@lune/roblox")
 local checks = 0
 local function check(value, message) assert(value, message); checks += 1 end
-check(luau.load(fs.readFile("src/shared/KartConfig.luau"))().DEBUG_DRIFT_HUD==false,
+check(require("./helpers/gameplay_config")("src/shared/KartConfig.luau").DEBUG_DRIFT_HUD==false,
 	"production never creates the Drift diagnostic HUD by default")
 local rawCatalog = luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
 for key,id in {Forward="133764403498700",ForwardLeft="107782001043228",
