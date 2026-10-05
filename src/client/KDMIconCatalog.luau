@@ -9,14 +9,14 @@ return table.freeze({
 		Smoke = "rbxassetid://117693178629090",
 	}),
 	Actions = table.freeze({
-		AutoStart = "rbxassetid://132977729157200",
-		DriftWide = "rbxassetid://117761162868097",
+		AutoStart = "rbxassetid://111620163887565",
+		DriftWide = "rbxassetid://88284882958523",
 		DriftSquare = "rbxassetid://124990672172496",
 	}),
 	Drive = table.freeze({
-		Forward = "rbxassetid://100127572127049",
-		ForwardLeft = "rbxassetid://124319636929371",
-		ForwardRight = "rbxassetid://88988885513779",
-		BrakeReverse = "rbxassetid://139789194418831",
+		Forward = "rbxassetid://133764403498700",
+		ForwardLeft = "rbxassetid://107782001043228",
+		ForwardRight = "rbxassetid://118487432534938",
+		BrakeReverse = "rbxassetid://94445847645477",
 	}),
 })

@@ -185,3 +185,50 @@ Orbit/V2/Grip/Audio/Gauge suites, Rojo and diff check PASS.
 User real-device UX acceptance remains required, particularly thumb travel,
 Auto readability and the short-screen Item lane adjustment. Production PV345
 and accepted R6-A branch remain frozen. Roblox Publish: NO.
+
+## KDM CONTROL ICON SYSTEM v2 — ACTIVE (R6-B2, 2026-10-05)
+
+Continues feature/kdm-four-button-drive from b42d45c; production remains
+3b4ddfd81871cc0c3900cf09feb81ef00dc91c30. The v1 table above is historical for
+Drive, AutoStart and DriftWide; those six mappings are now LEGACY. DriftSquare
+remains the existing compact tutorial/fallback asset. Item mappings are unchanged.
+
+| Semantic key | Active v2 Asset ID |
+|---|---|
+| Forward | 133764403498700 |
+| ForwardLeft | 107782001043228 |
+| ForwardRight | 118487432534938 |
+| BrakeReverse | 94445847645477 |
+| AutoStart | 111620163887565 |
+| DriftWide | 88284882958523 |
+
+Studio visual identity inspection found the uploaded left/right filenames reversed:
+118487432534938 points right; 107782001043228 points left. The user explicitly
+approved mapping by the actual artwork. All six returned AssetFetchStatus.Success.
+Drift retains Fit and horizontal presentation; no procedural rotation or new assets.
+The Auto PNG includes a baked green dot at (512,212)/1024. A single colocated
+runtime lamp covers it: graphite OFF, green ON. The Auto state machine is unchanged.
+
+Touch dimensions and center spacing remain R6-B1 (short Drive 59x59, Auto 50x50,
+Drift 221x63), with unchanged image frame sizes and no pressed shrink. The user
+approved a minimum bottom correction after v2 clipping was observed: v2 alpha
+padding replaces only the old bottom padding; GUI bounds replace the unsettled
+Camera viewport when calculating bottom inset. No physics/input changes.
+
+One existing Studio emulator session verified the actual HUD, Auto OFF/ON and
+control imagery. Capture attempts for manual buttons are recorded locally; focus
+changes in automation can release held input before observation. Drift held was
+observed brightened. Physical two-finger Drift+steering is not claimed verified.
+Automated Touch/Joystick ownership and Drift/Mini Boost regression cover behavior.
+Evidence (excluded from Git): artifacts/r6b2/asset_identity.jpg, idle_Auto_OFF_Drift_idle.jpg,
+Auto_ON.jpg, Forward.jpg, ForwardLeft.jpg, ForwardRight.jpg, BrakeReverse.jpg, Drift.jpg.
+
+Studio raw JobId was empty. The Presence resolver now generates studio-<GUID>
+once at boot using local HttpService:GenerateGUID(false). Native MemoryStore showed
+one live HUB row with playerCount=1. Publish/remove stability and GUID calls are
+validated with captured map keys. Map name, TTL 30 and heartbeat 9 are unchanged.
+No repeated empty-key/publish failure appeared after the fix across multiple heartbeats.
+Shutdown cleanup remains the existing same-instance remove path.
+EXPECTED — Studio DataStore API access intentionally remains disabled.
+PlayerPreferences and Teleport/routing source are unchanged. No Publish or production merge.
+REAL DEVICE UX — NOT VERIFIED.

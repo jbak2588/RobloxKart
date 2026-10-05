@@ -4,8 +4,8 @@ local function check(value, message) assert(value, message); checks += 1 end
 local catalog = luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
 local expected = {
 	Items={Nitro="80904195199672",Shield="133670688245113",Slick="99710951340190",Missile="122668047956907",Thunder="105188481205755",Smoke="117693178629090"},
-	Actions={AutoStart="132977729157200",DriftWide="117761162868097",DriftSquare="124990672172496"},
-	Drive={Forward="100127572127049",ForwardLeft="124319636929371",ForwardRight="88988885513779",BrakeReverse="139789194418831"},
+	Actions={AutoStart="111620163887565",DriftWide="88284882958523",DriftSquare="124990672172496"},
+	Drive={Forward="133764403498700",ForwardLeft="107782001043228",ForwardRight="118487432534938",BrakeReverse="94445847645477"},
 }
 for group, entries in expected do
 	check(table.isfrozen(catalog[group]), "immutable catalog "..group)

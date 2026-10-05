@@ -2,10 +2,10 @@
 -- No uploaded assets, external packages or input handlers.
 local View = {}
 local screenBottomInset=0
--- Alpha >=128 bounds measured from the supplied PNGs. Ignore transparent
--- padding when aligning visible edges; keep the entire artwork with Fit.
-View.artwork={driveWidth=1093/1254,driveHeight=1078/1254,driveBottom=96/1254,
-	driveRight=81/1254,autoWidth=1108/1254,driftHeight=549/809,driftBottom=123/809}
+-- Retain R6-B1 touch dimensions/spacing; only v2 bottom padding changes.
+-- Alpha >=128 bounds measured from the supplied PNGs, with artwork kept Fit.
+View.artwork={driveWidth=1093/1254,driveHeight=1078/1254,driveBottom=55/1024,
+	driveRight=81/1254,autoWidth=1108/1254,driftHeight=549/809,driftBottom=92/809}
 function View.setViewportBottomInset(fullHeight, deviceHeight)
 	screenBottomInset=math.clamp(fullHeight-deviceHeight,0,40)
 end

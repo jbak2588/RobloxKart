@@ -4,6 +4,16 @@ local function check(value, message) assert(value, message); checks += 1 end
 check(luau.load(fs.readFile("src/shared/KartConfig.luau"))().DEBUG_DRIFT_HUD==false,
 	"production never creates the Drift diagnostic HUD by default")
 local rawCatalog = luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
+for key,id in {Forward="133764403498700",ForwardLeft="107782001043228",
+	ForwardRight="118487432534938",BrakeReverse="94445847645477"} do
+	check(rawCatalog.Drive[key]=="rbxassetid://"..id,"v2 direction identity "..key)
+end
+check(rawCatalog.Actions.AutoStart=="rbxassetid://111620163887565","v2 Auto Start")
+check(rawCatalog.Actions.DriftWide=="rbxassetid://88284882958523","v2 horizontal Drift")
+for key,id in {Nitro="80904195199672",Shield="133670688245113",Slick="99710951340190",
+	Missile="122668047956907",Thunder="105188481205755",Smoke="117693178629090"} do
+	check(rawCatalog.Items[key]=="rbxassetid://"..id,"item asset unchanged "..key)
+end
 local catalog = {Items={AutoStart=rawCatalog.Actions.AutoStart,Forward=rawCatalog.Drive.Forward,ForwardLeft=rawCatalog.Drive.ForwardLeft,
 	ForwardRight=rawCatalog.Drive.ForwardRight,BrakeReverse=rawCatalog.Drive.BrakeReverse,
 	DriftWide=rawCatalog.Actions.DriftWide,DriftSquare=rawCatalog.Actions.DriftSquare}}
@@ -51,7 +61,12 @@ for id in catalog.Items do
 	check(slot:update(true,false) and slot.image.Visible and not slot.fallback.root.Visible,"loaded control artwork replaces fallback")
 	check(slot:update(true,true) and slot.scale.Scale==1 and slot.image.ImageColor3==rb.Color3.fromRGB(255,255,255),"pressed feedback")
 	if id=="AutoStart" then check(slot.indicator.Visible,"Auto ON state light")end
-	slot:update(true,false);check(not slot.indicator.Visible and slot.scale.Scale==1,"release restores scale")
+	slot:update(true,false);check(slot.indicator.Visible==(id=="AutoStart") and slot.scale.Scale==1,"release retains one Auto state lamp")
+	if id=="AutoStart" then
+		check(slot.indicator.BackgroundColor3==rb.Color3.fromRGB(35,50,60),"Auto OFF covers baked green dot")
+		slot:update(true,true)
+		check(slot.indicator.BackgroundColor3==rb.Color3.fromRGB(70,255,170),"Auto ON lamp follows state")
+	end
 	slot:update(false,false);check(slot.image.ImageTransparency==.55,"disabled image")
 end
 slot=view.new(object("TextButton"),"Unknown",ready,mobileView)
@@ -129,6 +144,8 @@ end
 layout.setViewportBottomInset(360,338)
 local insetLayout=layout.layout({X=685,Y=280})
 local insetItems=layout.itemLayout({X=685,Y=280},4)
+check(insetLayout.direction==59 and insetLayout.autoHitSize==50 and insetLayout.driftHitWidth==221
+	and insetLayout.driftHitHeight==63,"R6-B1 short touch dimensions remain exact")
 check(280-insetItems.bottom-insetLayout.slot>=120,"device bottom compensation leaves room for LAP, Quit and both warnings")
 check(math.abs(insetLayout.padBottom+(insetLayout.brake-insetLayout.driveVisualSize)/2
 	+insetLayout.driveVisualSize*layout.artwork.driveBottom+22-10)<.001,"device inset compensated Brake shares physical gauge bottom")

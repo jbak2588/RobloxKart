@@ -78,8 +78,10 @@ function View.new(button, key, cache, mobileView)
 	local scale = Instance.new("UIScale");scale.Parent = image
 	local indicator=Instance.new("Frame")
 	indicator.Name="AutoStateLight"
-	indicator.Size=UDim2.fromOffset(8,8)
-	indicator.Position=UDim2.fromScale(.80,.10)
+	-- Cover the v2 PNG's baked green lamp with one authoritative OFF/ON lamp.
+	indicator.AnchorPoint=Vector2.new(.5,.5)
+	indicator.Size=UDim2.fromScale(.086,.086)
+	indicator.Position=UDim2.fromScale(.5,212/1024)
 	indicator.BackgroundColor3=Color3.fromRGB(70,255,170)
 	indicator.BorderSizePixel=0
 	indicator.Active=false
@@ -95,7 +97,8 @@ function View.new(button, key, cache, mobileView)
 		image.ImageTransparency=if enabled then 0 else .55
 		scale.Scale=1
 		image.ImageColor3=if held and enabled then Color3.fromRGB(255,255,255) else Color3.fromRGB(225,235,245)
-		indicator.Visible=enabled and key=="AutoStart" and held == true
+		indicator.Visible=loaded and key=="AutoStart"
+		indicator.BackgroundColor3=if enabled and held then Color3.fromRGB(70,255,170) else Color3.fromRGB(35,50,60)
 		fallback:setLatched(key == "AutoStart" and held == true)
 		fallback:setEnabled(enabled)
 		return loaded

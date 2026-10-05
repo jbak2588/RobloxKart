@@ -908,7 +908,9 @@ function RaceHudController.start()
 			else UDim2.fromScale(0.5, 0.5)
 		if mobile then
 			local safeSize = screenGui.AbsoluteSize
-			MobileView.setViewportBottomInset(mobileTopGui.AbsoluteSize.Y,viewportSize.Y)
+			-- GUI bounds are stable even while emulator Camera.ViewportSize is settling.
+			MobileView.setViewportBottomInset(mobileTopGui.AbsoluteSize.Y,
+				safeSize.Y+screenGui.AbsolutePosition.Y-mobileTopGui.AbsolutePosition.Y)
 			local l = MobileView.layout(safeSize)
 			-- Short notch-safe landscape needs a compact LAP lane above the left loadout.
 			-- Preserve every status and the full 40px Quit target.
