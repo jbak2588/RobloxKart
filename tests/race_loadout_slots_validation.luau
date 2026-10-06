@@ -38,7 +38,8 @@ check(l:select("Missile") and l:prepare(l.slots,true) and l.selected=="Missile",
 check(l:useItem("Shield",function(id) return id=="Shield" end) and l.counts.Shield==0,
  "direct use uses exact active item")
 check(not l:useItem("Shield",function() error("duplicate") end), "duplicate use consumes no extra charge")
-check(l:grantBonusNitro() and l.counts.Nitro==2 and not l:grantBonusNitro(), "default Nitro bonus cap remains two, once")
+for _=1,5 do l:recordBoost(5) end
+check(l.bonusAwardCount==1 and l.counts.Nitro==2 and not l:grantBonusNitro(), "default Nitro bonus cap remains two, once")
 check(l:prepare({"Shield","TestItem","Missile","Slick"}) and not l:grantBonusNitro()
  and l.counts.Nitro==0, "future loadout without Nitro cannot create hidden charge")
 l:clear()

@@ -13,7 +13,10 @@ local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"
 local RaceLaunchService = require(script.Parent:WaitForChild("RaceLaunchService"))
 
 local MatchRoomService = {}
-local TRACK_ID = "Track01Race"
+local function publicTrack(trackId)
+	local track = if type(trackId) == "string" then TrackCatalog.Entries[trackId] else nil
+	return if track and track.MatchType == "PUBLIC_RACE" and track.MaxPlayers >= 1 then track else nil
+end
 local directory = ActiveMatchDirectory.new(MemoryStoreService:GetSortedMap(ActiveMatchDirectory.MAP_NAME))
 local social = RoomSocialDirectory.new(
 	MemoryStoreService:GetSortedMap(RoomSocialDirectory.PRESENCE_MAP),
@@ -26,10 +29,10 @@ local function eligible(player)
 		and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
 end
 
-local function choose(player, driverId, kartId)
+local function choose(player, driverId, kartId, trackId)
 	if type(driverId) ~= "string" or type(kartId) ~= "string"
-		or not DriverCatalog.Entries[driverId] or not KartCatalog.Entries[kartId] then return false end
-	selections[player.UserId] = { driverId = driverId, kartId = kartId }
+		or not publicTrack(trackId) or not DriverCatalog.Entries[driverId] or not KartCatalog.Entries[kartId] then return false end
+	selections[player.UserId] = { driverId = driverId, kartId = kartId, trackId = trackId }
 	return true
 end
 
@@ -48,7 +51,10 @@ end
 local function snapshotFor(player)
 	local own = membership[player.UserId]
 	local rooms = {}
-	for _, record in cachedRooms do table.insert(rooms, directory:display(record)) end
+	local selected = selections[player.UserId]
+	for _, record in cachedRooms do
+		if selected and record.trackId == selected.trackId then table.insert(rooms, directory:display(record)) end
+	end
 	local ownRoom
 	if own and own.kind == "QUEUED" then
 		local record = findCached(own.roomId)
@@ -67,7 +73,9 @@ local function snapshotFor(player)
 	end
 	return { visible = (browsing[player.UserId] == true or ownRoom ~= nil)
 		and not (own and own.kind == "STAGED"), rooms = rooms, room = ownRoom,
-		directoryStale = directoryStale }
+		directoryStale = directoryStale, trackId = if selected then selected.trackId else nil,
+		trackName = if selected then TrackCatalog.Entries[selected.trackId].DisplayName else nil,
+		maxPlayers = if selected then TrackCatalog.Entries[selected.trackId].MaxPlayers else nil }
 end
 
 local function broadcast()
@@ -117,7 +125,7 @@ local function launchStaged(player, record, member)
 			if staged.userId == player.UserId then member = staged; break end
 		end
 	end
-	local payload = RaceLaunchPayload.buildMatch(record.matchId, record.roomId, { member }, TRACK_ID)
+	local payload = RaceLaunchPayload.buildMatch(record.matchId, record.roomId, { member }, record.trackId)
 	if not payload then return end
 	payload.admissionToken = member.admissionToken
 	launched[player.UserId] = member.admissionToken
@@ -145,8 +153,12 @@ local function launchStaged(player, record, member)
 end
 
 local function stagePlayer(player, roomId)
+	local selected = selections[player.UserId]
+	local found, current = pcall(function() return directory:get(roomId) end)
+	if not selected or not found or not current or current.trackId ~= selected.trackId
+		or not publicTrack(current.trackId) then errorTo(player, "ROOM TRACK MISMATCH"); return false end
 	local member = memberFor(player)
-	local ok, record = pcall(function() return directory:stage(roomId, member, member.admissionToken) end)
+	local ok, record = pcall(function() return directory:stage(roomId, member, member.admissionToken, selected.trackId) end)
 	if not ok or not record then
 		if not ok then warn("[KDMRoom] staging failed: " .. tostring(record)) end
 		local found, current = pcall(function() return directory:get(roomId) end)
@@ -164,8 +176,12 @@ local function stagePlayer(player, roomId)
 end
 
 local function queuePlayer(player, roomId, priority)
+	local selected = selections[player.UserId]
+	local found, current = pcall(function() return directory:get(roomId) end)
+	if not selected or not found or not current or current.trackId ~= selected.trackId
+		or not publicTrack(current.trackId) then errorTo(player, "ROOM TRACK MISMATCH"); return false end
 	local member = memberFor(player, priority)
-	local ok, record = pcall(function() return directory:queue(roomId, member) end)
+	local ok, record = pcall(function() return directory:queue(roomId, member, selected.trackId) end)
 	if not ok or not record then
 		local found, current = pcall(function() return directory:get(roomId) end)
 		errorTo(player, if found and not current then "ROOM CLOSED - CHOOSE ANOTHER ROOM"
@@ -181,6 +197,8 @@ end
 local function createRoom(player)
 	if not eligible(player) or membership[player.UserId] or not selections[player.UserId]
 		or creating[player.UserId] then return end
+	local selectedTrackId = selections[player.UserId].trackId
+	if not publicTrack(selectedTrackId) then return end
 	creating[player.UserId] = true
 	local reserved, code, privateId = pcall(function()
 		return TeleportService:ReserveServerAsync(game.PlaceId)
@@ -189,15 +207,15 @@ local function createRoom(player)
 		creating[player.UserId] = nil
 		errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN"); return
 	end
-	if not eligible(player) or membership[player.UserId] then
+	if not eligible(player) or membership[player.UserId] or selections[player.UserId].trackId ~= selectedTrackId then
 		creating[player.UserId] = nil
 		return
 	end
 	local roomId = HttpService:GenerateGUID(false)
 	local created, createError = pcall(function()
 		directory:createPersistent({ id = roomId, matchId = HttpService:GenerateGUID(false),
-			trackId = TRACK_ID, hostUserId = player.UserId,
-			hostName = player.DisplayName, maxPlayers = TrackCatalog.Entries[TRACK_ID].MaxPlayers },
+			trackId = selectedTrackId, hostUserId = player.UserId,
+			hostName = player.DisplayName, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
 			code, privateId)
 	end)
 	if not created then
@@ -212,8 +230,8 @@ local function createRoom(player)
 	creating[player.UserId] = nil
 end
 
-function MatchRoomService.openBrowser(player, driverId, kartId)
-	if not eligible(player) or not choose(player, driverId, kartId) then return false end
+function MatchRoomService.openBrowser(player, driverId, kartId, trackId)
+	if not eligible(player) or membership[player.UserId] or creating[player.UserId] or not choose(player, driverId, kartId, trackId) then return false end
 	browsing[player.UserId] = true
 	refresh()
 	return true
@@ -225,10 +243,10 @@ function MatchRoomService.start()
 	remote = Instance.new("RemoteEvent")
 	remote.Name = "MatchRoomControl"
 	remote.Parent = ReplicatedStorage
-	remote.OnServerEvent:Connect(function(player, action, first, second)
+	remote.OnServerEvent:Connect(function(player, action, first, second, third)
 		local own = membership[player.UserId]
 		if action == "Browse" then
-			MatchRoomService.openBrowser(player, first, second)
+			MatchRoomService.openBrowser(player, first, second, third)
 		elseif action == "Back" then
 			if not own then browsing[player.UserId] = nil; broadcast() end
 		elseif action == "Create" then
@@ -259,14 +277,15 @@ function MatchRoomService.start()
 			launched[player.UserId] = nil
 			refresh()
 		elseif action == "AcceptInvite" then
-			if own or not eligible(player) or not choose(player, first, second) then return end
+			if own or creating[player.UserId] or not eligible(player) then return end
 			local ok, invite = pcall(function() return social:getInvite(player.UserId) end)
 			if not ok or not invite then errorTo(player, "INVITE EXPIRED"); return end
 			local found, record = pcall(function() return directory:get(invite.roomId) end)
 			if not found or not record or record.hostUserId ~= invite.hostUserId
-				or record.trackId ~= invite.trackId then
+				or record.trackId ~= invite.trackId or not publicTrack(invite.trackId) then
 				errorTo(player, "INVITE EXPIRED"); return
 			end
+			if not choose(player, first, second, invite.trackId) then return end
 			pcall(function() social:clearInvite(player.UserId) end)
 			if record.state == "WAITING" and #record.stagedMembers + #(record.stagedBots or {}) < record.maxPlayers then
 				stagePlayer(player, record.roomId)

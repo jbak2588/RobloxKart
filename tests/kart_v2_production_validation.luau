@@ -25,7 +25,7 @@ local builder = luau.load(fs.readFile('src/shared/KDMV2VisualDefinition.luau'),{
 env.require = function(module) assert(module == definitionScript); return builder end
 local factory = luau.load(fs.readFile('src/shared/KartVisualFactory.luau'),{environment=env})()
 local catalog = luau.load(fs.readFile('src/shared/KartCatalog.luau'),{environment=env})()
-check(catalog.DefaultId=='Kart01' and #catalog.Order==11,'fallback and eleven selections')
+check(catalog.DefaultId=='Kart05' and #catalog.Order==11,'Cyan default and eleven selections')
 local sprintSeat=rb.CFrame.new(0,1.5,.5)
 local v2Seat=builder.DriverSeatLocalCFrame
 check(v2Seat:FuzzyEq(rb.CFrame.new(0,.06000018119812012,.5),.000001),'measured source-to-bucket Seat contract')
@@ -159,7 +159,7 @@ end
 local proxy={kart=kart,chassis=chassis,seat={Occupant={}}}
 check(not binding.select(proxy,catalog.Entries.Kart06),'occupied mismatched context is rejected')
 check(kart:GetAttribute('KartId')=='Kart05','rejection preserves occupied visual')
-check(binding.definition('invalid')==catalog.Entries.Kart01,'invalid selection safely falls back')
+check(binding.definition('invalid')==catalog.Entries[catalog.DefaultId],'invalid selection safely falls back to Cyan default')
 check(source:find('local definition = kartDefinition(kartId)',1,true)~=nil
  and source:find('bindVisual(kart, chassis, definition)',1,true)~=nil,'createKart uses requested definition')
 check(source:find('seat.CFrame = spawnCFrame * KartVisualFactory.getDriverSeatLocalCFrame(definition)',1,true)~=nil,'actual new Seat uses centralized contract')

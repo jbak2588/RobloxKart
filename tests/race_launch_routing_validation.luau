@@ -38,6 +38,7 @@ local modules = {
 	TrackCatalog = { Entries = {
 		Track01 = { Id = "Track01", MatchType = "SOLO_PRACTICE", MinPlayers = 1, MaxPlayers = 1 },
 		Track02 = { Id = "Track02", MatchType = "SOLO_PROTOTYPE", MinPlayers = 1, MaxPlayers = 1 },
+		Track03 = { Id = "Track03", MatchType = "PUBLIC_RACE", MinPlayers = 1, MaxPlayers = 4 },
 		Track01Race = { Id = "Track01Race", MatchType = "PUBLIC_RACE", MinPlayers = 1, MaxPlayers = 4 },
 	} },
 	DriverCatalog = { Entries = { Driver01 = {}, Driver02 = {} } },
@@ -45,6 +46,7 @@ local modules = {
 	RaceMode = { resolve = function(trackId) return if trackId == "Track01" then "PRACTICE" else "RACE" end },
 	ActiveMatchDirectory = {},
 }
+for _,entry in modules.TrackCatalog.Entries do entry.GridSlots={rb.CFrame.identity,rb.CFrame.identity,rb.CFrame.identity,rb.CFrame.identity} end
 local delayed = {}
 local warnings = {}
 local logs = {}
@@ -302,6 +304,7 @@ player:SetAttribute("RaceState", "GARAGE")
 local CF, V = rb.CFrame, rb.Vector3
 modules.TrackCatalog.Entries.Track01.GridSlots = { CF.new(10, 0, 20) }
 modules.TrackCatalog.Entries.Track02.GridSlots = { CF.new(30, 0, 40) }
+modules.TrackCatalog.Entries.Track03.GridSlots = { CF.new(30, 0, 40) }
 modules.DriverAppearance = { applyToCharacter = function(character, driver) character.appliedDriver = driver end }
 modules.KartVisualFactory = { applyAppearance = function(visual, kart) visual.appliedKart = kart end }
 local appearance = {}
@@ -381,7 +384,7 @@ check(laterPlan == nil and laterReason == "JOIN_DATA_UNAVAILABLE", "later arriva
 local roomArrival = assert(Payload.buildMatch(matchPayload.matchId, matchPayload.roomId,
 	{ members[2] }, "Track01Race"))
 roomArrival.admissionToken = "admission-token-99"
-local roomRecord = { roomId = matchPayload.roomId, matchId = matchPayload.matchId,
+local roomRecord = { trackId="Track01Race", maxPlayers=4, roomId = matchPayload.roomId, matchId = matchPayload.matchId,
 	state = "WAITING", privateServerId = "room-private", raceJobId = "race-job",
 	currentRacers = 1, stagedMembers = {
 		{ userId = 42, driverId = "Driver02", kartId = "Kart02", arrived = true },
@@ -512,7 +515,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 	local startupPlayers = { PlayerRemoving = signal(), GetPlayers = function()
 		return if privateId == "" or studio then {} else { first }
 	end }
-	local startupWorkspace = { SetAttribute = function(_, name, value) calls[name] = value end }
+	local startupWorkspace = { Prototype = {PlayerSpawn={}}, SetAttribute = function(_, name, value) calls[name] = value end }
 	startupWorkspace.GetAttribute=function(_,name) return calls[name] end
 	local startupReplicated = {}
 	local startupServices = { Players = startupPlayers, Workspace = startupWorkspace,
@@ -522,6 +525,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 		RunService = { IsStudio = function() return studio end } }
 	local startupModules = {
 		ServerRuntime = Runtime,
+		CompactHubBuilder = {build=function() calls.hub=true end},
 		RaceBotController = {start=function() calls.bot=true end},
 		RaceLaunchService = { start = function() calls.launchService = true end,
 			returnToHub = function() calls.returnToHub = true; return true end },
@@ -584,3 +588,33 @@ check(not liveFlag.bot and liveFlag.world=="default","live server cannot spawn b
 local falseFlag=runServerInit("",nil,true,false,false)
 check(not falseFlag.bot and falseFlag.world=="default","explicit false flag retains Studio baseline")
 print(string.format("PASS race launch routing: %d checks", count))
+
+-- Track03 reserved payload, catalog capacity and cross-track late-arrival security.
+local hardMembers={}
+for id=1,4 do table.insert(hardMembers,{userId=id,driverId="Driver01",kartId="Kart01"}) end
+modules.TrackCatalog.Entries.Track03.GridSlots={CF.identity,CF.identity,CF.identity,CF.identity}
+local hardPayload=assert(Payload.buildMatch("hard-match-123456","hard-room-123456",hardMembers,"Track03"))
+check(Payload.validate(hardPayload,false) and not Payload.validate(hardPayload,true),"Hard four-player reserved payload validates exclusively as public")
+for index,member in hardMembers do
+ local plan=Arrival.forPlayer(hardPayload,member.userId)
+ check(plan and plan.trackId=="Track03" and plan.maxPlayers==4 and plan.gridSlot==index,"Hard arrival unique grid slot "..index)
+end
+local tooMany=table.clone(hardMembers);table.insert(tooMany,{userId=5,driverId="Driver01",kartId="Kart01"})
+check(Payload.buildMatch("hard-match-123456","hard-room-123456",tooMany,"Track03")==nil,"Hard rejects fifth racer")
+modules.TrackCatalog.Entries.Track03.MaxPlayers=6
+check(not Payload.validate(hardPayload,false),"capacity cannot exceed available grids")
+modules.TrackCatalog.Entries.Track03.MaxPlayers=4
+local hardArrival=assert(Payload.buildMatch(hardPayload.matchId,hardPayload.roomId,{hardMembers[2]},"Track03"))
+hardArrival.admissionToken="hard-admission-2"
+local hardRecord={trackId="Track03",maxPlayers=4,roomId=hardPayload.roomId,matchId=hardPayload.matchId,
+ state="WAITING",privateServerId="hard-private",raceJobId="hard-job",currentRacers=1,
+ stagedMembers={{userId=1},{userId=2,driverId="Driver01",kartId="Kart01",admissionToken=hardArrival.admissionToken,admissionExpiresAt=os.time()+60}}}
+local plan=Checker.roomPlan(hardPayload,hardArrival,hardRecord,2,"hard-private","hard-job")
+check(plan and plan.gridSlot==2 and plan.trackId=="Track03","Hard authoritative room admission")
+local badArrival=table.clone(hardArrival);badArrival.trackId="Track01Race"
+check(not Checker.roomPlan(hardPayload,badArrival,hardRecord,2,"hard-private","hard-job"),"cross-track payload rejects even with matching token")
+local badRecord=table.clone(hardRecord);badRecord.trackId="Track01Race"
+check(not Checker.roomPlan(hardPayload,hardArrival,badRecord,2,"hard-private","hard-job"),"cross-track directory record rejects")
+badRecord=table.clone(hardRecord);badRecord.maxPlayers=8
+check(not Checker.roomPlan(hardPayload,hardArrival,badRecord,2,"hard-private","hard-job"),"forged room capacity rejects")
+print("PASS: "..count.." routing checks including Hard public reserved admission")

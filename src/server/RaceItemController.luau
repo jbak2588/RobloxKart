@@ -20,8 +20,13 @@ local TacticalLoadoutService = require(script.Parent:WaitForChild("TacticalLoado
 local RaceItemController = {}
 local started = false
 local loadouts, connections, lastUse = {}, {}, {}
-local boostSuccessCounts, driftBonusAwarded = {}, {}
 local kartConnections = {}
+local lapRefillProgress = {}
+local lapRefillPolicy = table.freeze({
+	Enabled = Config.LAP_REFILL_ENABLED,
+	RefillTo = Config.LAP_REFILL_TO,
+	Eligible = Config.LAP_REFILL_ELIGIBLE,
+})
 local shields, immunity, previousPositions = {}, {}, {}
 local hazards = {}
 local prototype, hazardFolder
@@ -55,6 +60,10 @@ end
 
 local function publish(player)
 	local loadout = loadouts[player]
+	player:SetAttribute("DriftBonusProgress", if loadout then loadout.bonusProgress else 0)
+	player:SetAttribute("DriftBonusPending", loadout ~= nil and loadout.bonusPending)
+	player:SetAttribute("DriftBonusAwardCount", if loadout then loadout.bonusAwardCount else 0)
+	player:SetAttribute("DriftBonusNitroAwarded", loadout ~= nil and loadout.bonusEverAwarded)
 	for id in Catalog do
 		player:SetAttribute("RaceCharge" .. id, if loadout then loadout.counts[id] else 0)
 	end
@@ -64,6 +73,27 @@ local function publish(player)
 	player:SetAttribute("SelectedRaceItemId", if loadout then loadout.selected else "")
 	local choice = tactical:get(player)
 	for index=1,3 do player:SetAttribute("RaceTacticalItem"..index, choice[index+1]) end
+end
+-- RaceController alone advances this attribute after validated checkpoints/time.
+-- Keep a high-water mark even when no charge changed or same-round recovery clears effects.
+local function refillCompletedLap(player)
+	local progress = lapRefillProgress[player]
+	local completed = player:GetAttribute("RaceCompletedLaps")
+	local total = player:GetAttribute("RaceTotalLaps")
+	local session = RaceSession.forPlayer(player)
+	if not progress or player:GetAttribute("IsBot") == true or not session
+		or player:GetAttribute("RaceState") ~= "RACING"
+		or type(completed) ~= "number" or completed % 1 ~= 0 or completed <= progress.completed
+		or type(total) ~= "number" or completed <= 0 then return end
+	progress.completed = completed
+	if completed >= total or not Config.LAP_REFILL_ENABLED then return end
+	local ids, count = loadouts[player]:refillLapItems(lapRefillPolicy)
+	if count == 0 then return end
+	publish(player)
+	player:SetAttribute("RaceItemRefillLap", completed)
+	player:SetAttribute("RaceItemRefillCount", count)
+	player:SetAttribute("RaceItemRefillItems", table.concat(ids, ","))
+	player:SetAttribute("RaceItemRefillSerial", (player:GetAttribute("RaceItemRefillSerial") or 0) + 1)
 end
 local function removeShield(player)
 	local state = shields[player]
@@ -109,12 +139,6 @@ local function clearPlayer(player)
 	if loadouts[player] then loadouts[player]:clear() end
 	publish(player)
 end
-local function resetBonusProgress(player)
-	boostSuccessCounts[player] = 0
-	driftBonusAwarded[player] = false
-	player:SetAttribute("DriftBonusProgress", 0)
-	player:SetAttribute("DriftBonusNitroAwarded", false)
-end
 local function clearHazardsForSession(session)
 	for index = #hazards, 1, -1 do
 		if hazards[index].session == session then removeHazard(index, "session_cleanup") end
@@ -129,7 +153,7 @@ local function clearSession(session)
 	clearHazardsForSession(session)
 end
 
--- Only server systems call this; RaceLoadout enforces the one-bonus limit.
+-- Only server systems call this; RaceLoadout settles only a completed pending cycle.
 function RaceItemController.grantBonusNitro(player: Player): boolean
 	local loadout = loadouts[player]
 	if not loadout or player:GetAttribute("RaceState") ~= "RACING" then return false end
@@ -308,7 +332,7 @@ function RaceItemController.start()
 			kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function()
 				if player:GetAttribute("RaceState") == "RACING" then
 					clearTransientCombatState(player)
-					publish(player) -- No clear/prepare/refill: consumed charges and bonusClaimed stay intact.
+					publish(player) -- No clear/prepare/refill: consumed charges and bonus state stay intact.
 				else clearPlayer(player) end
 			end),
 			seat:GetPropertyChangedSignal("Occupant"):Connect(function()
@@ -323,8 +347,9 @@ function RaceItemController.start()
 	end
 	local function bind(player)
 		if loadouts[player] then return end
+		if player:GetAttribute("IsBot") == true then return end
 		loadouts[player] = RaceLoadout.new()
-		resetBonusProgress(player)
+		lapRefillProgress[player] = { completed = player:GetAttribute("RaceCompletedLaps") or 0 }
 		publish(player)
 		player:SetAttribute("RaceItemBlockedSerial", 0)
 		player:SetAttribute("RaceMissileIncomingCount", 0)
@@ -338,9 +363,10 @@ function RaceItemController.start()
 		player:SetAttribute("RaceItemFeedbackCode", "")
 		local previousState = player:GetAttribute("RaceState")
 		connections[player] = {
+			player:GetAttributeChangedSignal("RaceCompletedLaps"):Connect(function() refillCompletedLap(player) end),
 			player:GetAttributeChangedSignal("RaceSessionId"):Connect(function()
+				lapRefillProgress[player] = { completed = player:GetAttribute("RaceCompletedLaps") or 0 }
 				clearPlayer(player)
-				resetBonusProgress(player)
 				if player:GetAttribute("RaceState") == "COUNTDOWN" then
 					loadouts[player]:prepare(tactical:get(player))
 					publish(player)
@@ -352,7 +378,7 @@ function RaceItemController.start()
 				local oldState = previousState
 				previousState = state
 				if state == "COUNTDOWN" then
-					resetBonusProgress(player)
+					lapRefillProgress[player] = { completed = 0 }
 					clearPlayer(player)
 					bindKart(player)
 					loadouts[player]:prepare(tactical:get(player))
@@ -367,7 +393,6 @@ function RaceItemController.start()
 					clearPlayer(player)
 					if state == "GARAGE" then
 						tactical:clear(player)
-						resetBonusProgress(player)
 						publish(player)
 					elseif state == "PRE_RACE" then
 						publish(player)
@@ -384,20 +409,13 @@ function RaceItemController.start()
 		unbindKart(player)
 		for _, connection in connections[player] or {} do connection:Disconnect() end
 		connections[player], loadouts[player] = nil, nil
-		boostSuccessCounts[player], driftBonusAwarded[player] = nil, nil
+		lapRefillProgress[player] = nil
 	end)
 	for _, player in Players:GetPlayers() do bind(player) end
 	PrototypeWorld.onDriftOutcome(function(player, outcome)
-		if not loadouts[player] or outcome ~= "BOOST" or player:GetAttribute("RaceState") ~= "RACING"
-			or driftBonusAwarded[player] then return end
-		local progress = math.min((boostSuccessCounts[player] or 0) + 1, Config.DRIFT_BONUS_REQUIRED_BOOSTS)
-		if progress >= Config.DRIFT_BONUS_REQUIRED_BOOSTS then
-			local accepted = RaceItemController.grantBonusNitro(player)
-			driftBonusAwarded[player] = accepted or loadouts[player].bonusClaimed == true
-			player:SetAttribute("DriftBonusNitroAwarded", driftBonusAwarded[player])
-		end
-		boostSuccessCounts[player] = progress
-		player:SetAttribute("DriftBonusProgress", progress)
+		local loadout = loadouts[player]
+		if not loadout or outcome ~= "BOOST" or player:GetAttribute("RaceState") ~= "RACING" then return end
+		if loadout:recordBoost(Config.DRIFT_BONUS_REQUIRED_BOOSTS) then publish(player) end
 	end)
 	remote.OnServerEvent:Connect(function(player, action, ...)
 		local loadout = loadouts[player]

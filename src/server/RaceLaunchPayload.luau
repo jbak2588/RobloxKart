@@ -20,6 +20,7 @@ function RaceLaunchPayload.validate(payload, soloOnly)
 	if type(payload.trackId) ~= "string" then return false, "invalid_track" end
 	local track = TrackCatalog.Entries[payload.trackId]
 	if not track then return false, "invalid_track" end
+	if type(track.GridSlots) ~= "table" or track.MaxPlayers > #track.GridSlots then return false, "invalid_grid_capacity" end
 	if track.MatchType == "PUBLIC_RACE" then
 		if type(payload.roomId) ~= "string" or #payload.roomId < 8 or #payload.roomId > 64 then
 			return false, "invalid_room"

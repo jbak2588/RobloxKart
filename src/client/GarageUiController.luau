@@ -8,13 +8,13 @@ local TweenService = game:GetService("TweenService")
 local ContentProvider = game:GetService("ContentProvider")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Theme = require(Shared:WaitForChild("KDMUiTheme"))
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local TrackGeometry = require(Shared:WaitForChild("TrackGeometry"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
-local DriverAppearance = require(Shared:WaitForChild("DriverAppearance"))
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
 local GarageTexturePreload = require(script.Parent:WaitForChild("GarageTexturePreload"))
@@ -23,6 +23,16 @@ local GarageUiController = {}
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialView"))
 local started = false
+local STEP_KART, STEP_TRACK, STEP_READY = 1, 2, 3
+local openOverlay, closeOverlay
+
+function GarageUiController.open(action: string)
+ if openOverlay then openOverlay(action) end
+end
+
+function GarageUiController.close()
+ if closeOverlay then closeOverlay() end
+end
 local GARAGE_LAYOUT_DEBUG = false
 local GARAGE_LAYOUT_REVISION = "GARAGE R2"
 local GARAGE_COLORS = {
@@ -32,7 +42,7 @@ local GARAGE_COLORS = {
 	StageDeep = Color3.fromRGB(10, 20, 34),
 	Cyan = Color3.fromRGB(0, 205, 255),
 	CyanSoft = Color3.fromRGB(65, 165, 220),
-	Primary = Color3.fromRGB(20, 139, 222),
+	Primary = Theme.PrimaryAction,
 	Gold = Color3.fromRGB(255, 210, 55),
 	White = Color3.fromRGB(245, 248, 252),
 	Muted = Color3.fromRGB(135, 151, 169),
@@ -88,105 +98,6 @@ local function makeButton(parent: Instance, text: string, position: UDim2): Text
 	return button
 end
 
-local function makeFallbackDriver(driver: { [string]: any }): Model
-	local model = Instance.new("Model")
-	model.Name = "PreviewDriver"
-	local function piece(name: string, size: Vector3, position: Vector3, color: Color3, shape: Enum.PartType?)
-		local part = Instance.new("Part")
-		part.Name = name
-		part.Size = size
-		part.Position = position
-		part.Shape = shape or Enum.PartType.Block
-		part.Color = color
-		part.Anchored = true
-		part.CanCollide = false
-		part.CanTouch = false
-		part.CanQuery = false
-		part.Parent = model
-	end
-	local dark = Color3.fromRGB(38, 43, 51)
-	piece("Torso", Vector3.new(2, 2, 1), Vector3.new(0, 0.25, 0), driver.Theme)
-	piece("Head", Vector3.new(1.1, 1.1, 1.1), Vector3.new(0, 1.8, 0), Color3.fromRGB(225, 185, 145), Enum.PartType.Ball)
-	piece("LeftArm", Vector3.new(0.65, 1.8, 0.8), Vector3.new(-1.4, 0.3, 0), driver.Theme)
-	piece("RightArm", Vector3.new(0.65, 1.8, 0.8), Vector3.new(1.4, 0.3, 0), driver.Theme)
-	piece("LeftLeg", Vector3.new(0.8, 2, 0.85), Vector3.new(-0.55, -1.75, 0), dark)
-	piece("RightLeg", Vector3.new(0.8, 2, 0.85), Vector3.new(0.55, -1.75, 0), dark)
-	DriverAppearance.applyHairStyle(model)
-	return model
-end
-
-local function cloneDriver(character: Model?, driver: { [string]: any }): Model
-	if not character then
-		return makeFallbackDriver(driver)
-	end
-	local wasArchivable = character.Archivable
-	character.Archivable = true
-	local clone = character:Clone()
-	character.Archivable = wasArchivable
-	if not clone or not clone:FindFirstChild("Head") then
-		if clone then
-			clone:Destroy()
-		end
-		return makeFallbackDriver(driver)
-	end
-	clone.Name = "PreviewDriver"
-	for _, descendant in clone:GetDescendants() do
-		if descendant:IsA("Script") or descendant:IsA("LocalScript") then
-			descendant:Destroy()
-		elseif descendant:IsA("BasePart") then
-			descendant.Anchored = true
-			descendant.CanCollide = false
-			descendant.CanTouch = false
-			descendant.CanQuery = false
-		end
-	end
-	clone:PivotTo(CFrame.new(0, 0, 0))
-	DriverAppearance.applyToCharacter(clone, driver)
-	return clone
-end
-
--- Fit the complete preview-only avatar, including hair, into a padded perspective frame.
-local function fitDriverPreview(model: Model, aspect: number, fieldOfView: number): (CFrame, Vector3)
-	local box, size = model:GetBoundingBox()
-	local center = box.Position
-	local points = {}
-	local low, high = Vector3.new(math.huge,math.huge,math.huge), Vector3.new(-math.huge,-math.huge,-math.huge)
-	for _,part in model:GetDescendants() do
-		if part:IsA("BasePart") and part.Transparency<1 then
-			for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
-				local point=part.CFrame:PointToWorldSpace(part.Size*Vector3.new(x,y,z)*.5)
-				table.insert(points,point); low=low:Min(point); high=high:Max(point)
-			end end end
-		end
-	end
-	if #points>0 then center=(low+high)*.5
-	else
-		for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
-			table.insert(points,box:PointToWorldSpace(size*Vector3.new(x,y,z)*.5))
-		end end end
-	end
-	local tangent = math.tan(math.rad(fieldOfView * 0.5))
-	local pitch = 0.06
-	local distance = 1
-	-- Fit all yaw angles once at selection/resize, then retain that distance.
-	for degrees = 0, 355, 5 do
-		local yaw = math.rad(degrees)
-		local direction = Vector3.new(math.sin(yaw)*math.cos(pitch),math.sin(pitch),math.cos(yaw)*math.cos(pitch))
-		local right = Vector3.yAxis:Cross(direction).Unit
-		local orientation = CFrame.fromMatrix(center,right,direction:Cross(right),direction)
-		for _,worldPoint in points do
-			local point = orientation:PointToObjectSpace(worldPoint)
-			distance = math.max(distance,point.Z+math.max(math.abs(point.Y)/(tangent*.89),math.abs(point.X)/(tangent*math.max(aspect,.1)*.89)))
-		end
-	end
-	distance *= 1.002 -- cover angles between the sampled fits
-
-	local direction = Vector3.new(-math.sin(math.rad(15)) * math.cos(pitch), math.sin(pitch), -math.cos(math.rad(15)) * math.cos(pitch))
-	local right = Vector3.yAxis:Cross(direction).Unit
-	local up = direction:Cross(right)
-	return CFrame.fromMatrix(center + direction * distance, right, up, direction), center
-end
-
 function GarageUiController.start()
 	if started then
 		return
@@ -198,6 +109,7 @@ function GarageUiController.start()
 	local preferenceRemote = ReplicatedStorage:WaitForChild("ControlsTutorialPreference") :: RemoteEvent
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "RobloxKartGarage"
+	gui.Enabled = false
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 20
@@ -205,6 +117,7 @@ function GarageUiController.start()
 	-- Paint edge-to-edge independently of the safe-area content layout.
 	local backgroundGui = Instance.new("ScreenGui")
 	backgroundGui.Name = "RobloxKartGarageBackground"
+	backgroundGui.Enabled = false
 	backgroundGui.ResetOnSpawn = false
 	backgroundGui.ScreenInsets = Enum.ScreenInsets.None
 	backgroundGui.DisplayOrder = 19
@@ -212,6 +125,7 @@ function GarageUiController.start()
 	-- Only non-interactive header text may use the topbar's vacant band.
 	local headerGui = Instance.new("ScreenGui")
 	headerGui.Name = "GarageTopHeader"
+	headerGui.Enabled = false
 	headerGui.IgnoreGuiInset = true
 	headerGui.ScreenInsets = Enum.ScreenInsets.None
 	headerGui.ClipToDeviceSafeArea = false
@@ -423,7 +337,7 @@ function GarageUiController.start()
 	viewport.Position = UDim2.fromScale(0.5, 0.265)
 	viewport.Size = UDim2.fromScale(0.52, 0.32)
 	viewport.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
-	viewport.BackgroundTransparency = 1
+	viewport.BackgroundTransparency = .12
 	viewport.BorderSizePixel = 0
 	viewport.Ambient = Color3.fromRGB(182, 189, 200)
 	viewport.LightColor = Color3.fromRGB(250, 244, 233)
@@ -463,9 +377,39 @@ function GarageUiController.start()
 	local mapCorner = Instance.new("UICorner")
 	mapCorner.CornerRadius = UDim.new(0, 12)
 	mapCorner.Parent = mapPanel
-	local startLegend = makeText(mapPanel, UDim2.fromOffset(112, 18), UDim2.new(0, 8, 1, -22), "● START / FINISH", 10)
-	startLegend.TextColor3 = Color3.fromRGB(255, 205, 55)
-	startLegend.TextXAlignment = Enum.TextXAlignment.Left
+	local trackImageArea = Instance.new("Frame")
+	trackImageArea.Name = "ImageArea"
+	trackImageArea.BackgroundTransparency = 1
+	trackImageArea.BorderSizePixel = 0
+	trackImageArea.Size = UDim2.new(1,0,1,-54)
+	trackImageArea.ZIndex = 2
+	trackImageArea.Parent = mapPanel
+	local trackImage = Instance.new("ImageLabel")
+	trackImage.Name = "ApprovedTrackImage"
+	trackImage.Size = UDim2.fromScale(1,1)
+	trackImage.BackgroundTransparency = 1
+	trackImage.ScaleType = Enum.ScaleType.Fit
+	trackImage.Active = false
+	trackImage.ZIndex = 4
+	trackImage.Visible = false
+	trackImage.Parent = trackImageArea
+	local trackInfo = Instance.new("Frame")
+	trackInfo.Name = "TrackInformation"
+	trackInfo.Position = UDim2.new(0,0,1,-54)
+	trackInfo.Size = UDim2.new(1,0,0,54)
+	trackInfo.BackgroundColor3 = Theme.Background
+	trackInfo.BackgroundTransparency = .08
+	trackInfo.BorderSizePixel = 0
+	trackInfo.ZIndex = 4
+	trackInfo.Parent = mapPanel
+	local trackName = makeText(trackInfo,UDim2.new(1,-16,0,28),UDim2.fromOffset(8,2),"",24)
+	trackName.Name = "TrackName"
+	trackName.ZIndex = 5
+	trackName.TextWrapped = true
+	local trackMetadata = makeText(trackInfo,UDim2.new(1,-16,0,20),UDim2.fromOffset(8,31),"",14)
+	trackMetadata.Name = "TrackMetadata"
+	trackMetadata.ZIndex = 5
+	trackMetadata.TextWrapped = true
 	local function makeArrow(text: string, xOffset: number): TextButton
 		local arrow = makeButton(backdrop, text, UDim2.new(0.5, xOffset, 0.43, 0))
 		arrow.Name = if xOffset < 0 then "PreviousChoice" else "NextChoice"
@@ -510,6 +454,13 @@ function GarageUiController.start()
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
+	local inviteGui = Instance.new("ScreenGui")
+	inviteGui.Name = "HubRaceInvite"
+	inviteGui.ResetOnSpawn = false
+	inviteGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	inviteGui.DisplayOrder = 40
+	inviteGui.Parent = player.PlayerGui
+	gui.Destroying:Connect(function() inviteGui:Destroy() end)
 	local inviteModal = Instance.new("Frame")
 	inviteModal.Name = "RaceInvite"
 	inviteModal.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -519,7 +470,7 @@ function GarageUiController.start()
 	inviteModal.BorderSizePixel = 0
 	inviteModal.ZIndex = 10
 	inviteModal.Visible = false
-	inviteModal.Parent = backdrop
+	inviteModal.Parent = inviteGui
 	inviteModal:GetPropertyChangedSignal("Visible"):Connect(function()
 		populationLabel.Visible = not (mobileCompact and inviteModal.Visible)
 	end)
@@ -550,7 +501,8 @@ function GarageUiController.start()
 	controlsButton.Activated:Connect(function() tutorial.open() end)
 	local tutorialSeenThisSession = false
 
-	local step = 1
+	local step = STEP_KART
+	local overlayOpen = false
 	-- One reusable, non-interactive shell behind both existing preview targets.
 	local shell = Instance.new("Frame")
 	shell.Name = "PreviewVisualShell"
@@ -636,7 +588,7 @@ function GarageUiController.start()
 	for _, button in {previousButton, cycleButton, nextButton, leftArrow, rightArrow} do
 		local primary = button == cycleButton or button == nextButton
 		button.BackgroundColor3 = if primary then GARAGE_COLORS.Primary else GARAGE_COLORS.StageDeep
-		button.TextColor3 = GARAGE_COLORS.White
+		button.TextColor3 = if primary then Theme.Background else Theme.TextPrimary
 		button.AutoButtonColor = true -- Native hover/press feedback, without layout animation.
 		visualStroke(button, if primary then .3 else .65)
 	end
@@ -650,13 +602,13 @@ function GarageUiController.start()
 		if not gui.Enabled then clearSelectionPulse() end
 	end)
 	local function syncVisualShell()
-		local target = if step == 3 then mapPanel else viewport
+		local target = if step == STEP_TRACK then mapPanel else viewport
 		shell.Position, shell.Size = target.Position, target.Size
-		shell.Visible = step <= 3
+		shell.Visible = step <= STEP_TRACK
 		platform.Visible = false -- Replaced by the preview-only native 3D podium.
-		halo.Visible = step <= 2
-		readyCard.Visible = step == 4
-		if step == 4 then
+		halo.Visible = step <= STEP_KART
+		readyCard.Visible = step == STEP_READY
+		if step == STEP_READY then
 			-- Existing text rectangles remain the source of truth; only their backdrop expands.
 			local origin = backdrop.AbsolutePosition
 			local first, second = choiceLabel.AbsolutePosition - origin, detailLabel.AbsolutePosition - origin
@@ -675,23 +627,27 @@ function GarageUiController.start()
 			readyCard.Position = UDim2.fromOffset(left - padLeft, top - padTop)
 			readyCard.Size = UDim2.fromOffset(right - left + padLeft + padRight, bottom - top + padTop + padBottom)
 		end
-		if step == 4 then clearSelectionPulse() end
+		if step == STEP_READY then clearSelectionPulse() end
 	end
+	local selectionPending = nil
 	local localRouteRequested = false
 	local stopPreviewRotation: (() -> ())? = nil
 	local startPreviewIdleRotation: (() -> ())? = nil
-	local driverIndex = 1
-	local kartIndex = 1
+		local kartIndex = 1
 	local trackIndex = 1
-	local catalogs = { DriverCatalog, KartCatalog, TrackCatalog }
-	local headings = { "1 / 4   DRIVER SELECT", "2 / 4   KART SELECT", "3 / 4   TRACK SELECT", "4 / 4   READY" }
+	local trackOrder = {}
+	for _, id in TrackCatalog.Order do
+		local entry = TrackCatalog.Entries[id]
+		if entry and entry.Visible ~= false and entry.Selectable ~= false then table.insert(trackOrder, id) end
+	end
+	local catalogs = { [STEP_KART] = KartCatalog, [STEP_TRACK] = {Order=trackOrder, Entries=TrackCatalog.Entries} }
+	local headings = { [STEP_KART] = "KART GARAGE", [STEP_TRACK] = "STEP 1 / 2 · TRACK SELECT", [STEP_READY] = "2 / 2   READY" }
 	local previewKey: string? = nil
 	local previewWorld: WorldModel? = nil
 	local previewCamera: Camera? = nil
 	local trackMap = nil
 	local trackMapKey: string? = nil
 	local previewKart: Model? = nil
-	local previewDriver: Model? = nil
 	local function updateRouteOverlay()
 		local pending = localRouteRequested or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"
 		if pending then clearSelectionPulse() end
@@ -699,7 +655,7 @@ function GarageUiController.start()
 		if pending and stopPreviewRotation then stopPreviewRotation()
 		elseif startPreviewIdleRotation then startPreviewIdleRotation() end
 		for _, button in { previousButton, cycleButton, nextButton, leftArrow, rightArrow } do
-			button.Active = not pending
+			button.Active = not pending and selectionPending == nil
 		end
 	end
 	local previewRenderConnection: RBXScriptConnection? = nil
@@ -752,8 +708,7 @@ function GarageUiController.start()
 		if not previewCamera or viewport.AbsoluteSize.Y <= 0 then return end
 		local fitted, target
 		local aspect = viewport.AbsoluteSize.X / viewport.AbsoluteSize.Y
-		if previewKart then fitted, target = KartPreviewFraming.fit(previewKart, aspect, previewCamera.FieldOfView, true)
-		elseif previewDriver then fitted, target = fitDriverPreview(previewDriver, aspect, previewCamera.FieldOfView) end
+		if previewKart then fitted, target = KartPreviewFraming.fit(previewKart, aspect, previewCamera.FieldOfView, true) end
 		if not fitted or not target then return end
 		previewCenter = target
 		local offset = fitted.Position - target
@@ -826,7 +781,7 @@ function GarageUiController.start()
 			title.Size = UDim2.fromOffset(titleWidth, titleHeight)
 			titleSize.MinTextSize, titleSize.MaxTextSize = 20, 32
 			-- Only the title occupies the Core UI band. Other lines stay in safe content.
-			local stepTop = if mobileCompact then (if controlsButton.Visible then 52 else 0) else topbar.Max.Y + 2
+			local stepTop = if mobileCompact then (if controlsButton.Visible and step ~= STEP_TRACK then 52 else 0) else topbar.Max.Y + 2
 			stepLabel.Position = UDim2.new(stepLabel.Position.X.Scale,stepLabel.Position.X.Offset,0,stepTop)
 			stepLabel.Size = UDim2.new(stepLabel.Size.X.Scale,stepLabel.Size.X.Offset,0,if mobileCompact then 20 else 24)
 			if mobileCompact then
@@ -857,15 +812,15 @@ function GarageUiController.start()
 		local top = if mobileCompact then math.max(height*.06, headerBottom+6) else math.max(height*.10,headerBottom+24)
 		local buttonTop = if mobileCompact then height-48 else height*.84
 		local nameHeight = if mobileCompact then 28 else 36
-		local descriptionSpace = if step == 3 then (if mobileCompact then 26 else 32) else 0
-		local available = buttonTop - top - nameHeight - descriptionSpace - (if step==3 then 16 else 26)
+		local descriptionSpace = if step == STEP_TRACK then (if mobileCompact then 26 else 32) else 0
+		local available = buttonTop - top - nameHeight - descriptionSpace - (if step == STEP_TRACK then 16 else 26)
 		local stageHeight = math.max(1, math.min(height*.51,360,available))
 		-- Retain Phase 1B widths independently from the expanded vertical budget.
 		local priorHeight = math.min(height*.44,310)
-		local stageWidth = math.min(width*(if width>height then .5 else .64),800,priorHeight*(if step==2 then 2.4 else 2.65),stageHeight*2.65)
+		local stageWidth = math.min(width*(if width>height then .5 else .64),800,priorHeight*(if step == STEP_KART then 2.4 else 2.65),stageHeight*2.65)
 		local selectionCenter=width*.5
 		local desktopNameTop, desktopDetailTop
-		if mobileCompact and width>height and step<=3 then
+		if mobileCompact and width>height and step <= STEP_TRACK then
 			if width*.5-stageWidth*.5-70<120 then stageWidth*=.94 end
 			presenceGeometry.previewTop, presenceGeometry.previewHeight = top, stageHeight
 			presenceGeometry.previewWidth = stageWidth
@@ -892,7 +847,7 @@ function GarageUiController.start()
 			top=math.max(availableTop,math.min(height*.45-selectionHeight*.5,availableBottom-contentHeight))
 			desktopNameTop=top+stageHeight+10
 			desktopDetailTop=top+stageHeight+nameHeight+14
-			if step==4 then
+			if step == STEP_READY then
 				local readyHeight=nameHeight+14+26+24+buttonHeight
 				desktopNameTop=math.max(availableTop,math.min(height*.45-readyHeight*.5,availableBottom-readyHeight))
 				desktopDetailTop=desktopNameTop+nameHeight+14
@@ -905,14 +860,14 @@ function GarageUiController.start()
 			controlsCard.Position=UDim2.fromOffset(sidebarX,top+stageHeight+12)
 			controlsCard.AnchorPoint=Vector2.zero
 			controlsCard.Size=UDim2.fromOffset(sidebarWidth,184)
-			local buttonY=if step<=3 then desktopNameTop+nameHeight+descriptionSpace+24 else desktopDetailTop+26+24
+			local buttonY=if step <= STEP_TRACK then desktopNameTop+nameHeight+descriptionSpace+24 else desktopDetailTop+26+24
 			for _,button in {previousButton,cycleButton,nextButton} do
 				button.Size=UDim2.fromOffset(buttonWidth,buttonHeight)
 				button.TextSize=math.clamp(height*.021,20,24)
 				button.Position=UDim2.fromOffset(selectionCenter+(if button==previousButton then -buttonWidth-10 elseif button==cycleButton and not previousButton.Visible then -buttonWidth*.5 else 10),buttonY)
 			end
 		end
-		if step==3 and width<=height then stageHeight=math.min(stageHeight,stageWidth) end
+		if step == STEP_TRACK and width<=height then stageHeight=math.min(stageHeight,stageWidth) end
 		for _, constraint in {viewportSize,loadingSize,mapSize} do
 			constraint.MinSize = Vector2.zero
 			constraint.MaxSize = if mobileCompact then Vector2.new(800,410) else Vector2.new(1100,500)
@@ -921,14 +876,14 @@ function GarageUiController.start()
 			panel.Position = UDim2.fromOffset(selectionCenter,top)
 			panel.Size = UDim2.fromOffset(stageWidth,stageHeight)
 		end
-		choiceLabel.Position = UDim2.new(.1,0,0,if step<=3 then top+stageHeight+10 else height*.39)
+		choiceLabel.Position = UDim2.new(.1,0,0,if step <= STEP_TRACK then top+stageHeight+10 else height*.39)
 		choiceLabel.Size = UDim2.new(.8,0,0,nameHeight)
 		if not mobileCompact then
 			choiceLabel.Position=UDim2.fromOffset(selectionCenter-stageWidth*.5,desktopNameTop)
 			choiceLabel.Size=UDim2.fromOffset(stageWidth,nameHeight)
 		end
-		detailLabel.Visible = step>=3
-		detailLabel.Position = UDim2.new(.1,0,0,if step==3 then top+stageHeight+nameHeight+14 else height*.55)
+		detailLabel.Visible = step >= STEP_TRACK
+		detailLabel.Position = UDim2.new(.1,0,0,if step == STEP_TRACK then top+stageHeight+nameHeight+14 else height*.55)
 		detailLabel.Size = UDim2.new(.8,0,0,if mobileCompact then 20 else 26)
 		if not mobileCompact then detailLabel.Position=UDim2.fromOffset(selectionCenter-stageWidth*.5,desktopDetailTop); detailLabel.Size=UDim2.fromOffset(stageWidth,26) end
 		local arrowWidth, arrowHeight = if mobileCompact then 44 else 52, if mobileCompact then 50 else 64
@@ -941,6 +896,73 @@ function GarageUiController.start()
 		end
 		leftArrow.Position = UDim2.fromOffset(selectionCenter-stageWidth*.5-arrowWidth-8,arrowTop)
 		rightArrow.Position = UDim2.fromOffset(selectionCenter+stageWidth*.5+8,arrowTop)
+		if step == STEP_TRACK then
+			-- Track-only expansion: metadata shares the card, freeing the former
+			-- name/detail lanes. Fit preserves the whole approved 1672×941 image.
+			if mobileCompact and width>height then
+				-- Keep online/room information together in the preserved sidebar,
+				-- releasing an entire header row for the full-circuit image.
+				populationLabel.Parent = presencePanel
+				populationLabel.AnchorPoint = Vector2.zero
+				populationLabel.Position = UDim2.fromOffset(6,24)
+				populationLabel.Size = UDim2.new(1,-12,0,34)
+				populationLabel.TextSize = 10
+				populationLabel.TextXAlignment = Enum.TextXAlignment.Left
+				populationLabel.TextYAlignment = Enum.TextYAlignment.Top
+				headerBottom = stepLabel.Position.Y.Offset + stepLabel.AbsoluteSize.Y
+				presenceList.Position = UDim2.fromOffset(6,60)
+				presenceList.Size = UDim2.new(1,-12,1,-66)
+			end
+			local footer = if mobileCompact and width>height then 38 elseif mobileCompact then 42 else 64
+			local cardTop = math.max(headerBottom+6,if mobileCompact then 8 else 72)
+			local actionTop = if mobileCompact then height-48 else height-76
+			local cardHeight = math.max(80,actionTop-cardTop-10)
+			local side = math.clamp(width*.14,96,if mobileCompact then 124 else 220)
+			local left = arrowWidth+16
+			local right = width-side-arrowWidth-28
+			if width<=height then left=arrowWidth+12;right=width-arrowWidth-12 end
+			local cardWidth = math.max(100,math.min(right-left,(cardHeight-footer)*1672/941,1400))
+			local baselineWidth = if mobileCompact and width>height then math.max(100,math.min(right-left,(cardHeight-42)*1672/941,1400)) else cardWidth
+			if mobileCompact and width>height then
+				-- Grow within the actual header/CTA/sidebar budget, bounded at +10%.
+				cardTop=math.max(headerBottom,8)
+				actionTop=height-44
+				left=arrowWidth+8;right=width-side-arrowWidth-20
+				cardWidth=math.min(baselineWidth*1.10,right-left,(actionTop-cardTop-2-footer)*1672/941)
+			end
+			mapPanel:SetAttribute("H3BCardBaselineWidth",baselineWidth)
+			cardHeight = cardWidth*941/1672+footer
+			local center = (left+right)*.5
+			mapSize.MaxSize = Vector2.new(1600,1200)
+			mapPanel.Position = UDim2.fromOffset(center,cardTop)
+			mapPanel.Size = UDim2.fromOffset(cardWidth,cardHeight)
+			mapPanel.BackgroundTransparency = 0
+			trackImageArea.Size = UDim2.new(1,0,1,-footer)
+			trackInfo.Position = UDim2.new(0,0,1,-footer)
+			trackInfo.Size = UDim2.new(1,0,0,footer)
+			trackName.TextSize = if mobileCompact and width>height then 18 elseif mobileCompact then math.clamp(cardWidth*.05,18,25) else 30
+			trackMetadata.TextSize = if mobileCompact then math.clamp(cardWidth*.03,12,15) else 18
+			trackName.Size = UDim2.new(1,-16,0,if mobileCompact and width>height then 20 elseif mobileCompact then 22 else 34)
+			trackMetadata.Position = UDim2.fromOffset(8,if mobileCompact and width>height then 21 elseif mobileCompact then 23 else 38)
+			trackMetadata.Size = UDim2.new(1,-16,0,if mobileCompact and width>height then 16 elseif mobileCompact then 18 else 24)
+			leftArrow.Position = UDim2.fromOffset(center-cardWidth*.5-arrowWidth-8,cardTop+(cardHeight-arrowHeight)*.5)
+			rightArrow.Position = UDim2.fromOffset(center+cardWidth*.5+8,cardTop+(cardHeight-arrowHeight)*.5)
+			controlsCard.Visible = false
+			if width>height then
+				presencePanel.AnchorPoint = Vector2.new(1,0)
+				presencePanel.Position = UDim2.new(1,-10,0,cardTop)
+				presencePanel.Size = UDim2.fromOffset(side,cardHeight)
+				if mobileCompact then
+					presenceGeometry.previewWidth=cardWidth;presenceGeometry.presenceWidth=side
+					presenceGeometry.previewTop=cardTop;presenceGeometry.previewHeight=cardHeight
+				end
+			end
+			for _,button in {previousButton,cycleButton,nextButton} do
+				local ctaWidth=(cardWidth-16)*.5
+				button.Size=UDim2.fromOffset(ctaWidth,if mobileCompact then 40 else 52)
+				button.Position = UDim2.fromOffset(center-cardWidth*.5+(if button==previousButton then 0 else ctaWidth+16),actionTop)
+			end
+		end
 	end
 
 	local pendingLayoutMeasurements = true
@@ -1005,17 +1027,9 @@ function GarageUiController.start()
 			populationLabel.TextXAlignment = Enum.TextXAlignment.Center
 			populationLabel.TextYAlignment = Enum.TextYAlignment.Center
 			presenceRowHeight = 16
-			choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.59 else 0.39)
-			if step == 1 then
-				local top = math.max(layoutHeight * 0.24, layoutHeight * 0.13 + 22 + (if populationTwoLines then 36 else 18) + 6)
-				local available = layoutHeight * 0.59 - top - 6
-				local height = math.min(layoutHeight * 0.36, 260, math.max(1, available))
-				viewport.Position = UDim2.fromOffset(previewCenter, top)
-				viewport.Size = UDim2.fromOffset(previewWidth, height)
-				previewLoading.Position, previewLoading.Size = viewport.Position, viewport.Size
-			end
+			choiceLabel.Position = UDim2.fromScale(0.1, if step <= STEP_TRACK then 0.59 else 0.39)
 			choiceLabel.TextSize = 25
-			detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.68 else 0.55)
+			detailLabel.Position = UDim2.fromScale(0.1, if step <= STEP_TRACK then 0.68 else 0.55)
 			detailLabel.TextSize = 15
 			errorLabel.Position = UDim2.fromScale(0.1, 0.76)
 			errorLabel.TextSize = 14
@@ -1037,10 +1051,6 @@ function GarageUiController.start()
 			mapSize.MinSize = viewportSize.MinSize
 			viewport.Size = UDim2.fromScale(0.52, 0.32)
 			viewport.Position = UDim2.fromScale(0.5, 0.265)
-			if step == 1 then
-				viewport.Position = UDim2.fromScale(0.5, 0.25)
-				viewport.Size = UDim2.fromOffset(math.min(backdrop.AbsoluteSize.X * 0.52, 584), math.min(backdrop.AbsoluteSize.Y * 0.34, 340))
-			end
 			previewLoading.Size = viewport.Size
 			previewLoading.Position = viewport.Position
 			mapPanel.Size = UDim2.fromScale(0.52, 0.32)
@@ -1080,6 +1090,8 @@ function GarageUiController.start()
 			end
 		end
 		applyVisualStage(backdrop.AbsoluteSize, viewportSizePixels)
+		choiceLabel.Visible = step ~= STEP_TRACK
+		detailLabel.Visible = step == STEP_READY
 		syncVisualShell()
 		if GARAGE_LAYOUT_DEBUG then
 			task.defer(function()
@@ -1097,29 +1109,79 @@ function GarageUiController.start()
 		updatePopulationText()
 		updatePresence()
 		fitSelectionPreview()
-		if previewDriver or previewKart then startPreviewIdleRotation() end
+		if previewKart then startPreviewIdleRotation() end
 	end
+	local function clearTrackPreview()
+		if trackMap then trackMap:destroy(); trackMap = nil end
+		trackMapKey = nil
+		trackImage.Visible = false
+		trackImage.Image = ""
+	end
+	local trackImageRequests = {}
+	local function syncTrackImage(loadedChanged: boolean?)
+		if not trackMapKey then return end
+		-- An unloaded image paints nothing; the silhouette stays beneath it.
+		trackImage.Visible = true
+		trackImage.ImageTransparency = 0
+		if (loadedChanged and trackImage.IsLoaded) or trackImageRequests[trackImage.Image] == "SUCCESS" then
+			if trackMap then trackMap:destroy(); trackMap = nil end
+			mapPanel:SetAttribute("PreviewStatus","STATIC_IMAGE")
+		end
+	end
+	local trackImageConnection = trackImage:GetPropertyChangedSignal("IsLoaded"):Connect(function() syncTrackImage(true) end)
+	gui.Destroying:Connect(function() trackImageConnection:Disconnect(); clearTrackPreview() end)
 	local function showTrackPreview(trackId: string)
 		local track = TrackCatalog.Entries[trackId]
-		local geometryId = track.GeometryId
-		local key = TrackCatalog.previewKey(track)
-		if key == trackMapKey then
-			return
-		end
-		if trackMap then
-			trackMap:destroy()
-		end
-		local definition = TrackGeometry.getDefinition(geometryId)
-		assert(definition, "Selected track geometry is missing")
-		trackMap = TrackMapRenderer.create(mapPanel, definition, false, track.PreviewRotationDegrees)
+		local key = trackId .. ":" .. tostring(track.PreviewImageAssetId)
+		if key == trackMapKey then return end
+		clearTrackPreview()
 		trackMapKey = key
+		mapPanel:SetAttribute("TrackId",trackId)
+		trackName.Text = track.DisplayName
+		trackMetadata.Text = if track.MatchType == "PUBLIC_RACE" then
+			string.format("PUBLIC RACE • %d–%d PLAYERS • %d %s",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
+			else string.format("SOLO • 1 PLAYER • %d %s",track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
+		-- A nonblocking silhouette is present until the approved image is ready.
+		-- A missing/denied asset keeps this fallback; no launch/selection gate.
+		local ok,fallback = pcall(function()
+			local definition = TrackGeometry.getDefinition(track.GeometryId)
+			assert(definition,"Track preview geometry missing")
+			return TrackMapRenderer.create(trackImageArea,definition,false,track.PreviewRotationDegrees)
+		end)
+		if ok then
+			trackMap = fallback
+			for _,v in trackImageArea:GetDescendants() do
+				if v:IsA("GuiObject") and v ~= trackImage then v.ZIndex = 3 end
+			end
+		end
+		mapPanel:SetAttribute("PreviewStatus",if ok then "FALLBACK_2D" else "NEUTRAL")
+		trackImage.Image = track.PreviewImageAssetId or ""
+		syncTrackImage()
+		-- Some cached textures become loaded without an IsLoaded notification.
+		-- One delayed reconciliation per selection avoids a render/polling loop.
+		task.delay(1, function()
+			if gui.Parent and trackMapKey == key then syncTrackImage(true) end
+		end)
+		local asset = trackImage.Image
+		if asset ~= "" and not trackImageRequests[asset] and ContentProvider.PreloadAsync then
+			-- At most one nonblocking request per catalog image for this UI lifetime.
+			trackImageRequests[asset] = "PENDING"
+			task.spawn(function()
+				local loaded, loadError = pcall(function()
+					ContentProvider:PreloadAsync({asset}, function(_, status)
+						trackImageRequests[asset] = if status == Enum.AssetFetchStatus.Success then "SUCCESS" else "FAILED"
+						if gui.Parent and trackMapKey and trackImage.Image == asset then syncTrackImage() end
+					end)
+				end)
+				if not loaded then warn("[TrackPreview] image preload failed", asset, loadError) end
+			end)
+		end
 	end
 
 	local function clearPreview()
 		stopPreviewRotation()
 		podium = nil
 		previewKart = nil
-		previewDriver = nil
 		viewport.CurrentCamera = nil
 		if previewWorld then
 			previewWorld:Destroy()
@@ -1155,26 +1217,22 @@ function GarageUiController.start()
 			end
 			visual.Parent = world
 			previewKart = visual
-		else
-			local driver = cloneDriver(player.Character, DriverCatalog.Entries[selectedId])
-			driver.Parent = world
-			previewDriver = driver
 		end
 		viewport.CurrentCamera = camera
 		previewWorld = world
 		previewCamera = camera
 		previewKey = key
-		previewYaw = if kind == "Driver" then math.rad(-165) else math.rad(-135)
+		previewYaw = math.rad(-135)
 		fitSelectionPreview()
 		-- A sibling of the fitted model: podium geometry never enters either fit helper.
-		local model = previewKart or previewDriver
+		local model = previewKart
 		if model then
 			local box, bounds = model:GetBoundingBox()
 			local bottom = math.huge
 			for _, x in {-1, 1} do for _, y in {-1, 1} do for _, z in {-1, 1} do
 				bottom = math.min(bottom, (box * Vector3.new(x * bounds.X / 2, y * bounds.Y / 2, z * bounds.Z / 2)).Y)
 			end end end
-			local diameter = math.max(bounds.X, bounds.Z) * (if kind == "Driver" then 1.8 else 1.15)
+			local diameter = math.max(bounds.X, bounds.Z) * 1.15
 			podiumDiameter, podiumBottom, podiumCenter = diameter, bottom, box.Position
 			podium = Instance.new("Folder")
 			podium.Name = "ShowcasePodium"
@@ -1198,12 +1256,119 @@ function GarageUiController.start()
 		startPreviewIdleRotation()
 	end
 
+ local update
+ local colorTween = nil
+ local acknowledgedKartId = nil
+ local function committedKartId()
+  local id=acknowledgedKartId or player:GetAttribute("SelectedKartId")
+  return if KartCatalog.Entries[id] then id else KartCatalog.DefaultId
+ end
+ local kartControls=Instance.new("Frame")
+ kartControls.Name,kartControls.BackgroundTransparency,kartControls.Parent="KartControls",1,backdrop
+ local tabs, chips = {}, {}
+ local families, familyOrder = {}, {}
+ for _,id in KartCatalog.Order do
+  local family=KartCatalog.Entries[id].VisualModelName
+  if not families[family] then families[family]={};table.insert(familyOrder,family) end
+  table.insert(families[family],id)
+ end
+ local chipRow=Instance.new("ScrollingFrame")
+ chipRow.Name,chipRow.BackgroundTransparency,chipRow.BorderSizePixel="ColorChips",1,0
+ chipRow.Position,chipRow.Size=UDim2.fromOffset(0,50),UDim2.new(1,0,0,48)
+ chipRow.ScrollingDirection,chipRow.ScrollBarThickness=Enum.ScrollingDirection.X,3
+ chipRow.Parent=kartControls
+ local function chooseKart(id)
+  if selectionPending or routeOverlay.Visible then return end
+  kartIndex=table.find(KartCatalog.Order,id) or kartIndex
+  update()
+  if colorTween then colorTween:Cancel() end
+  colorTween=TweenService:Create(viewport,TweenInfo.new(.2),{BackgroundColor3=Theme.Panel:Lerp(KartCatalog.Entries[id].DisplayColor or Theme.Selection,.18)})
+  colorTween:Play()
+ end
+ for index,family in familyOrder do
+  local tab=Instance.new("TextButton")
+  tab.Name,tab.Text="Chassis_"..family,if family=="KDMV2" then "KDM V2" else "SPRINT V1"
+  tab.Position,tab.Size=UDim2.new((index-1)/#familyOrder,2,0,0),UDim2.new(1/#familyOrder,-4,0,44)
+  tab.Font,tab.TextSize,tab.BorderSizePixel=Enum.Font.GothamBold,16,0
+  tab.Parent=kartControls;tabs[family]=tab
+  tab.Activated:Connect(function() chooseKart(families[family][1]) end)
+ end
+ for _,id in KartCatalog.Order do
+  local entry=KartCatalog.Entries[id]
+  local chip=Instance.new("TextButton")
+  chip.Name,chip.Size="Color_"..id,UDim2.fromOffset(44,44)
+  chip.BackgroundColor3=entry.DisplayColor or entry.BodyColor or Theme.Panel
+  chip.TextColor3=Theme.Selection;chip.Font,chip.TextSize=Enum.Font.GothamBold,22
+  chip.BorderSizePixel=0;chip.Parent=chipRow
+  local ring=Instance.new("UIStroke");ring.Name="SelectionRing";ring.Color,ring.Thickness,ring.Parent=Theme.Selection,2,chip
+  chips[id]=chip
+  chip.Activated:Connect(function() chooseKart(id) end)
+ end
+ local function layoutKartControls()
+  kartControls.Visible=step==STEP_KART
+  if not kartControls.Visible then presencePanel.Visible=true; return end
+  local position=viewport.Position
+  local size=viewport.Size
+  local canvas=backdrop.AbsoluteSize
+  local sideControls=mobileCompact and canvas.X>canvas.Y
+  presencePanel.Visible=not sideControls
+  local reserved=102
+  kartControls.AnchorPoint=viewport.AnchorPoint
+  kartControls.Position=UDim2.new(position.X.Scale,position.X.Offset,position.Y.Scale,position.Y.Offset+size.Y.Offset-reserved)
+  kartControls.Size=UDim2.new(size.X.Scale,size.X.Offset,0,reserved)
+  viewport.Size=UDim2.new(size.X.Scale,size.X.Offset,size.Y.Scale,math.max(1,size.Y.Offset-reserved-4))
+  previewLoading.Size=viewport.Size
+  shell.Size=viewport.Size
+  local columns=nil
+  if sideControls then
+   -- Short phones retain the full Kart preview height; put controls beside it.
+   viewport.Position=UDim2.fromOffset(canvas.X*.28,position.Y.Offset)
+   viewport.Size=UDim2.fromOffset(canvas.X*.42,size.Y.Offset)
+   previewLoading.Position,previewLoading.Size=viewport.Position,viewport.Size
+   shell.Position,shell.Size=viewport.Position,viewport.Size
+   kartControls.AnchorPoint=Vector2.zero
+   kartControls.Position=UDim2.fromOffset(canvas.X*.58,position.Y.Offset)
+   kartControls.Size=UDim2.fromOffset(canvas.X*.34,size.Y.Offset)
+   chipRow.Size=UDim2.new(1,0,1,-50)
+   chipRow.ScrollingDirection=Enum.ScrollingDirection.Y
+   columns=math.max(1,math.floor(canvas.X*.34/50))
+   leftArrow.Position=UDim2.fromOffset(canvas.X*.07-leftArrow.Size.X.Offset-4,position.Y.Offset+(size.Y.Offset-leftArrow.Size.Y.Offset)*.5)
+   rightArrow.Position=UDim2.fromOffset(canvas.X*.49+4,leftArrow.Position.Y.Offset)
+  else
+   chipRow.Size=UDim2.new(1,0,0,48)
+   chipRow.ScrollingDirection=Enum.ScrollingDirection.X
+  end
+  local id=KartCatalog.Order[kartIndex]
+  local family=KartCatalog.Entries[id].VisualModelName
+  local index=0
+  for _,key in KartCatalog.Order do
+   local chip=chips[key];chip.Visible=KartCatalog.Entries[key].VisualModelName==family
+   if chip.Visible then chip.Position=UDim2.fromOffset(if columns then index%columns*50 else index*50,if columns then math.floor(index/columns)*50 else 0);index+=1 end
+   chip.Text=if key==id then "✓" else ""
+   chip.SelectionRing.Transparency=if key==id then 0 else 1
+   chip.Active=selectionPending==nil
+  end
+  chipRow.CanvasSize=if columns then UDim2.fromOffset(0,math.ceil(index/columns)*50) else UDim2.fromOffset(index*50,0)
+  for key,tab in tabs do
+   tab.BackgroundColor3=if key==family then Theme.Selection else Theme.Background
+   tab.TextColor3=if key==family then Theme.Background else Theme.TextPrimary
+  end
+  fitSelectionPreview()
+ end
+ gui.Destroying:Connect(function() if colorTween then colorTween:Cancel() end end)
 	local function selectedIds(): (string, string, string)
-		return DriverCatalog.Order[driverIndex], KartCatalog.Order[kartIndex], TrackCatalog.Order[trackIndex]
+		return DriverCatalog.DefaultId, if step == STEP_KART then KartCatalog.Order[kartIndex] else committedKartId(), trackOrder[trackIndex]
 	end
 	local inviteSerial = 0
 	remote.OnClientEvent:Connect(function(action, hostName, trackId, count, maxPlayers)
-		if action == "RouteLaunchFailed" then
+		if action == "KartSelected" or action == "KartSelectionRejected" then
+   if not selectionPending then return end
+   local accepted=action=="KartSelected" and hostName==selectionPending
+   selectionPending=nil
+   if accepted then acknowledgedKartId=hostName; GarageUiController.close() else update() end
+   return
+  end
+  if action == "RouteLaunchFailed" then
 			localRouteRequested = false
 			updateRouteOverlay()
 			return
@@ -1233,30 +1398,32 @@ function GarageUiController.start()
 		if not inviteModal.Visible then return end
 		inviteSerial += 1
 		inviteModal.Visible = false
-		local driverId, kartId = selectedIds()
-		remote:FireServer("JoinInvite", driverId, kartId)
+		local driverId = DriverCatalog.DefaultId
+		remote:FireServer("JoinInvite", driverId, committedKartId())
 	end)
 
-	local update
 	local texturePreload = GarageTexturePreload.create(KartCatalog, ContentProvider, task, function()
 		if gui.Parent and player:GetAttribute("RaceState") == "GARAGE" then update() end
 	end)
 	gui.Destroying:Connect(function() texturePreload.destroy() end)
 	update = function()
 		local raceState = player:GetAttribute("RaceState")
-		gui.Enabled = raceState == "GARAGE"
+		if raceState ~= "GARAGE" then overlayOpen = false; player:SetAttribute("HubOverlayOpen", false) end
+		gui.Enabled = raceState == "GARAGE" and overlayOpen
+		inviteGui.Enabled = raceState == "GARAGE"
 		if not gui.Enabled then
-			inviteModal.Visible = false
+			if raceState ~= "GARAGE" then inviteModal.Visible = false end
 			tutorial.close()
 			controlsButton.Visible = false
 			mapPanel.Visible = false
 			previewLoading.Visible = false
 			clearPreview()
+			clearTrackPreview()
 			return
 		end
 		local driverId, kartId, trackId = selectedIds()
 		texturePreload.start()
-		controlsButton.Visible = Input.isTouchPreferred() and step == 4
+		controlsButton.Visible = Input.isTouchPreferred() and step == STEP_READY
 		if controlsButton.Visible and not tutorialSeenThisSession
 			and player:GetAttribute("ControlsTutorialPreferenceLoaded") == true
 			and player:GetAttribute("ControlsTutorialDismissed") ~= true then
@@ -1264,21 +1431,12 @@ function GarageUiController.start()
 			tutorial.open()
 		end
 		stepLabel.Text = headings[step]
-		viewport.Visible = step <= 2
-		mapPanel.Visible = step == 3
-		choiceLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.61 else 0.40)
-		detailLabel.Position = UDim2.fromScale(0.1, if step <= 3 then 0.70 else 0.54)
-		if step == 1 then
-			previewLoading.Text = "Loading driver..."
-			local character = player.Character
-			local appearanceReady = character ~= nil and character:FindFirstChild("Head") ~= nil and player:HasAppearanceLoaded()
-			previewLoading.Visible = not appearanceReady
-			if appearanceReady then
-				showPreview("Driver", driverId)
-			else
-				clearPreview()
-			end
-		elseif step == 2 then
+		viewport.Visible = step <= STEP_KART
+		mapPanel.Visible = step == STEP_TRACK
+		choiceLabel.Position = UDim2.fromScale(0.1, if step <= STEP_TRACK then 0.61 else 0.40)
+		detailLabel.Position = UDim2.fromScale(0.1, if step <= STEP_TRACK then 0.70 else 0.54)
+		if step == STEP_KART then
+			clearTrackPreview()
 			local waiting = texturePreload.shouldWait(KartCatalog.Entries[kartId])
 			previewLoading.Text = "Loading kart..."
 			previewLoading.Visible = waiting
@@ -1286,24 +1444,27 @@ function GarageUiController.start()
 		else
 			previewLoading.Visible = false
 			clearPreview()
-			if step == 3 then
+			if step == STEP_TRACK then
 				showTrackPreview(trackId)
-			end
+			else clearTrackPreview() end
 		end
-		if step <= 3 then
+		if step <= STEP_TRACK then
 			local catalog = catalogs[step]
-			local selectedId = if step == 1 then driverId elseif step == 2 then kartId else trackId
+			local selectedId = if step == STEP_KART then kartId else trackId
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
-			detailLabel.Text = if step <= 2 then ""
-				else TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
+			detailLabel.Text = if step <= STEP_KART then ""
+				else (if TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
+				else string.format("SOLO • 1 PLAYER • %d %s", TrackCatalog.Entries[trackId].TargetLaps, if TrackCatalog.Entries[trackId].TargetLaps == 1 then "LAP" else "LAPS"))
 		else
-			choiceLabel.Text = string.format("%s / %s / %s", DriverCatalog.Entries[driverId].DisplayName, KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
+			choiceLabel.Text = string.format("%s / %s", KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
 			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
-		previousButton.Visible = step > 1
-		cycleButton.Visible = step <= 3
-		nextButton.Visible = step == 4
-		leftArrow.Visible = step <= 3 and #catalogs[step].Order > 1
+		previousButton.Visible = true
+		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "ROOMS" else "SELECT"
+		cycleButton.Active = selectionPending == nil
+		cycleButton.Visible = step <= STEP_TRACK
+		nextButton.Visible = step == STEP_READY
+		leftArrow.Visible = step <= STEP_TRACK and #catalogs[step].Order > 1
 		rightArrow.Visible = leftArrow.Visible
 		previousButton.Position = UDim2.new(0.5, -180, 0.84, 0)
 		cycleButton.Position = UDim2.new(0.5, if previousButton.Visible then 10 else -85, 0.84, 0)
@@ -1311,16 +1472,44 @@ function GarageUiController.start()
 		errorLabel.Text = tostring(player:GetAttribute("RaceEntryError") or "")
 		updateRouteOverlay()
 		applyResponsiveLayout()
+		choiceLabel.Visible = step ~= STEP_TRACK
+		detailLabel.Visible = step == STEP_READY
+  layoutKartControls()
 	end
 
+
+ openOverlay = function(action)
+  if player:GetAttribute("RaceState") ~= "GARAGE" or localRouteRequested
+   or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH" then return end
+  step = if action == "TRACK" or action == "TRACKS" or action == "RACE" then STEP_TRACK else STEP_KART
+  kartIndex = table.find(KartCatalog.Order, committedKartId()) or 1
+  -- Open the showroom on V2; browsing still requires USE KART to commit a choice.
+  if step == STEP_KART and KartCatalog.Entries[KartCatalog.Order[kartIndex]].VisualModelName ~= "KDMV2" then
+   for index, id in KartCatalog.Order do
+    if KartCatalog.Entries[id].VisualModelName == "KDMV2" then kartIndex = index; break end
+   end
+  end
+  selectionPending = nil
+  viewport.BackgroundColor3=Theme.Panel:Lerp(KartCatalog.Entries[KartCatalog.Order[kartIndex]].DisplayColor or Theme.Selection,.18)
+  chipRow.CanvasPosition = Vector2.zero
+  overlayOpen = true
+  player:SetAttribute("HubOverlayOpen", true)
+  update()
+ end
+ closeOverlay = function()
+  if localRouteRequested or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH" then return end
+  selectionPending = nil
+  overlayOpen = false
+  player:SetAttribute("HubOverlayOpen", false)
+  update()
+ end
+
 	local function changeChoice(direction: number)
-		if routeOverlay.Visible then return end
-		if step == 1 then
-			driverIndex = (driverIndex - 1 + direction + #DriverCatalog.Order) % #DriverCatalog.Order + 1
-		elseif step == 2 then
-			kartIndex = (kartIndex - 1 + direction + #KartCatalog.Order) % #KartCatalog.Order + 1
-		elseif step == 3 then
-			trackIndex = (trackIndex - 1 + direction + #TrackCatalog.Order) % #TrackCatalog.Order + 1
+		if routeOverlay.Visible or selectionPending then return end
+		if step == STEP_KART then
+			chooseKart(KartCatalog.Order[(kartIndex - 1 + direction + #KartCatalog.Order) % #KartCatalog.Order + 1]);return
+		elseif step == STEP_TRACK then
+			trackIndex = (trackIndex - 1 + direction + #trackOrder) % #trackOrder + 1
 		end
 		update()
 		clearSelectionPulse()
@@ -1337,17 +1526,25 @@ function GarageUiController.start()
 
 	previousButton.Activated:Connect(function()
 		if routeOverlay.Visible then return end
-		step = math.max(1, step - 1)
+		if step <= STEP_TRACK then GarageUiController.close(); return end
+		step = STEP_TRACK
 		update()
 	end)
 	cycleButton.Activated:Connect(function()
 		if routeOverlay.Visible then return end
-		step = math.min(4, step + 1)
-		update()
+  if step == STEP_KART then
+   if selectionPending then return end
+   selectionPending=KartCatalog.Order[kartIndex]
+   remote:FireServer("SelectKart",selectionPending)
+  elseif TrackCatalog.Entries[trackOrder[trackIndex]].MatchType == "PUBLIC_RACE" then
+   local driverId,kartId,trackId=selectedIds()
+   remote:FireServer("Ready",driverId,kartId,trackId)
+  else step=STEP_READY end
+  update()
 	end)
 	nextButton.Activated:Connect(function()
 		if routeOverlay.Visible then return end
-		if step == 4 then
+		if step == STEP_READY then
 			local driverId, kartId, trackId = selectedIds()
 			local track = TrackCatalog.Entries[trackId]
 			if track and (track.MatchType == "SOLO_PRACTICE" or track.MatchType == "SOLO_PROTOTYPE") then
@@ -1359,7 +1556,9 @@ function GarageUiController.start()
 	end)
 	player:GetAttributeChangedSignal("RaceState"):Connect(function()
 		if player:GetAttribute("RaceState") == "GARAGE" then
-			step = 1
+			step = STEP_KART
+			overlayOpen = false
+			player:SetAttribute("HubOverlayOpen", false)
 		end
 		update()
 	end)
@@ -1367,6 +1566,7 @@ function GarageUiController.start()
 		localRouteRequested = false
 		updateRouteOverlay()
 	end)
+	player:GetAttributeChangedSignal("SelectedKartId"):Connect(function() acknowledgedKartId=nil; update() end)
 	player:GetAttributeChangedSignal("RaceEntryError"):Connect(update)
 	player:GetAttributeChangedSignal("ControlsTutorialPreferenceLoaded"):Connect(update)
 	player:GetAttributeChangedSignal("ControlsTutorialDismissed"):Connect(update)
@@ -1406,22 +1606,13 @@ function GarageUiController.start()
 		end
 		-- Appearance parts can reach the client after HasAppearanceLoaded becomes true.
 		characterChildConnection = character.ChildAdded:Connect(function()
-			if player.Character == character and player:GetAttribute("RaceState") == "GARAGE" and step == 1 then
+			if player.Character == character and player:GetAttribute("RaceState") == "GARAGE" and overlayOpen then
 				clearPreview()
 				update()
 			end
 		end)
 		clearPreview()
 		update()
-		task.spawn(function()
-			while player.Character == character and (not character:FindFirstChild("Head") or not player:HasAppearanceLoaded()) do
-				task.wait(0.1)
-			end
-			if player.Character == character then
-				clearPreview()
-				update()
-			end
-		end)
 	end
 	player.CharacterRemoving:Connect(function() clearPreview() end)
 	player.CharacterAdded:Connect(bindCharacter)

@@ -120,9 +120,11 @@ check(not loadout:use("Use",1,function() error("must not activate") end) and loa
 check(not loadout:use("Use",0,function() return false,"locked" end) and loadout.counts.Nitro==1,"rejected retains charge")
 check(loadout:use("Use",0,function() return true end) and loadout.counts.Nitro==0 and loadout.counts.Slick==1 and loadout.selected=="Slick","accepted consumes only selected and auto-selects")
 check(not loadout:select("Nitro"),"empty selection cannot grant")
-check(loadout:grantBonusNitro() and loadout.counts.Nitro==1 and not loadout:grantBonusNitro(),"bonus after use once per race")
+for _=1,5 do loadout:recordBoost(5) end
+check(loadout.counts.Nitro==1 and loadout.bonusAwardCount==1 and not loadout:grantBonusNitro(),"completed cycle awards once")
 loadout:prepare()
-check(loadout:grantBonusNitro() and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"Nitro maximum two")
+for _=1,5 do loadout:recordBoost(5) end
+check(loadout.bonusAwardCount==1 and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"Nitro maximum two")
 loadout:clear()
 check(loadout.selected=="" and loadout.counts.Nitro==0 and loadout.counts.Slick==0 and loadout.counts.Shield==0,"clear temporary resources")
 for _,id in {"Nitro","Slick","Shield","Missile"} do
@@ -139,7 +141,7 @@ for _,id in {"Smoke","unknown",1,{}} do
 	check(not loadout:useItem(id,function() error("invalid item reached activation") end),"direct API rejects invalid item")
 end
 loadout:prepare();loadout:select("Shield");loadout:prepare(nil,true)
-check(loadout.selected=="Shield" and loadout.counts.Shield==1 and not loadout.bonusClaimed,
+check(loadout.selected=="Shield" and loadout.counts.Shield==1 and loadout.bonusAwardCount==0,
 	"authoritative refill preserves valid selection while resetting resources")
 loadout:clear();loadout:prepare(nil,true)
 check(loadout.selected=="Nitro" and loadout.counts.Nitro==1,"cleared Countdown still refills safely with default selection")
@@ -601,7 +603,8 @@ check(kart:GetAttribute("KartNitroActive"),"chosen Nitro active")
 remote.OnServerEvent:Fire(player,"Select","Shield")
 use()
 check(kart:GetAttribute("KartShieldActive") and kart:GetAttribute("KartNitroActive"),"Shield and Nitro coexist")
-check(items.grantBonusNitro(player) and not items.grantBonusNitro(player),"server reward once per race")
+for _=1,5 do state:recordBoost(5) end
+check(state.bonusAwardCount==1 and not items.grantBonusNitro(player),"server grant cannot bypass cycle")
 player:SetAttribute("RaceState","COUNTDOWN")
 check(state.counts.Nitro==1 and state.counts.Slick==1 and state.counts.Shield==1,"new countdown resets all counts")
 remote.OnServerEvent:Fire(player,"Use")
@@ -610,7 +613,8 @@ seat.Occupant=nil; seat.Occupant=human
 check(state.counts.Nitro==1,"grid seating preserves prepared loadout")
 check(not items.grantBonusNitro(player),"reward forbidden outside race")
 player:SetAttribute("RaceState","RACING")
-check(items.grantBonusNitro(player) and state.counts.Nitro==2,"new race renews bonus eligibility")
+for _=1,5 do state:recordBoost(5) end
+check(state.bonusAwardCount==1 and state.counts.Nitro==2,"new race renews cycle")
 player:SetAttribute("RaceState","GARAGE")
 check(state.counts.Nitro==0 and state.counts.Slick==0 and state.counts.Shield==0,"Garage clears all")
 for index=1,4 do check(player:GetAttribute("RaceItemSlot"..index)=="","Garage clears published slot "..index) end
@@ -780,13 +784,13 @@ check(player:GetAttribute("DriftBonusProgress")==4,"failed fifth Drift preserves
 check(world.applySlickHit(player) and player:GetAttribute("DriftBonusProgress")==4,
 	"Slick victim preserves 4/5 progress")
 successfulDrift()
-check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("DriftBonusNitroAwarded")
-	and player:GetAttribute("RaceChargeNitro")==2,"fifth Boost grants Nitro 1 to 2 and holds 5/5")
+check(player:GetAttribute("DriftBonusProgress")==0 and player:GetAttribute("DriftBonusNitroAwarded")
+	and player:GetAttribute("DriftBonusAwardCount")==1 and player:GetAttribute("RaceChargeNitro")==2,"fifth Boost grants Nitro and resets cycle")
 for _=1,5 do successfulDrift() end
 check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("RaceChargeNitro")==2,
-	"five further Boosts cannot start a second reward cycle")
+	"five further Boosts store one pending reward")
 kart:SetAttribute("RaceResetSerial",(kart:GetAttribute("RaceResetSerial") or 0)+1)
-check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("DriftBonusNitroAwarded"),
+check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("DriftBonusPending"),
 	"fall reset cannot reopen an earned race reward")
 successfulDrift()
 check(player:GetAttribute("DriftBonusProgress")==5 and player:GetAttribute("RaceChargeNitro")==2,
@@ -800,7 +804,7 @@ check(player:GetAttribute("RaceChargeNitro")==0 and player:GetAttribute("DriftBo
 	"Nitro use preserves first success")
 for _=1,4 do successfulDrift() end
 check(player:GetAttribute("RaceChargeNitro")==1 and player:GetAttribute("DriftBonusNitroAwarded")
-	and player:GetAttribute("DriftBonusProgress")==5,"fifth Boost replenishes one spent Nitro")
+	and player:GetAttribute("DriftBonusProgress")==0,"fifth Boost replenishes one spent Nitro")
 startRace()
 successfulDrift()
 kart:SetAttribute("KartOffTrack",true)
@@ -1099,7 +1103,9 @@ check(thirdRacer:GetAttribute("RaceChargeNitro")==0
 	and second:GetAttribute("RaceChargeNitro")==secondNitro
 	and fourthRacer:GetAttribute("RaceChargeNitro")==fourthNitro,
 	"third racer Nitro use changes only its own charge")
-check(items.grantBonusNitro(fourthRacer)
+for _=1,5 do instances[#instances]:recordBoost(5) end
+remote.OnServerEvent:Fire(fourthRacer,"Select","Nitro")
+check(instances[#instances].bonusAwardCount==1 and items.grantBonusNitro(fourthRacer)==false
 	and fourthRacer:GetAttribute("RaceChargeNitro")==fourthNitro+1
 	and thirdRacer:GetAttribute("RaceChargeNitro")==0
 	and player:GetAttribute("RaceChargeNitro")==firstNitro

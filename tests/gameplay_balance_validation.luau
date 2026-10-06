@@ -145,7 +145,9 @@ local actualRaceItemConfig = loadConfig("src/shared/RaceItemConfig.luau")
 for key, value in expectedRaceItemConfig do
 	check(actualRaceItemConfig[key] == value and type(actualRaceItemConfig[key]) == type(value), "baseline RaceItemConfig "..key)
 end
-for key in actualRaceItemConfig do check(expectedRaceItemConfig[key] ~= nil, "no extra public key "..key) end
+local lapKeys = { LAP_REFILL_ENABLED=true, LAP_REFILL_TO=true, LAP_REFILL_EMPTY_ONLY=true,
+	LAP_REFILL_NON_FINAL_ONLY=true, LAP_REFILL_ELIGIBLE=true, LAP_REFILL_EXCLUDE_NITRO=true }
+for key in actualRaceItemConfig do check(expectedRaceItemConfig[key] ~= nil or lapKeys[key], "no unexpected public key "..key) end
 check(type(balance.DRIFT.BonusRequiredBoosts) == "number" and actualRaceItemConfig.DRIFT_BONUS_REQUIRED_BOOSTS == balance.DRIFT.BonusRequiredBoosts, "adapter DRIFT_BONUS_REQUIRED_BOOSTS")
 check(type(balance.ITEMS.Slick.Lifetime) == "number" and actualRaceItemConfig.SLICK_LIFETIME == balance.ITEMS.Slick.Lifetime, "adapter SLICK_LIFETIME")
 check(type(balance.ITEMS.Slick.OwnerGrace) == "number" and actualRaceItemConfig.SLICK_OWNER_GRACE == balance.ITEMS.Slick.OwnerGrace, "adapter SLICK_OWNER_GRACE")

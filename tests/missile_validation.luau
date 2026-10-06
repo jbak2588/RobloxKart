@@ -291,7 +291,8 @@ check(source:GetAttribute("RaceChargeMissile")==1 and target:GetAttribute("RaceM
 local loadout=Loadout.new();loadout:prepare()
 check(loadout.counts.Nitro==1 and loadout.counts.Slick==1 and loadout.counts.Shield==1
 	and loadout.counts.Missile==1 and loadout.counts.Smoke==0,"four equal temporary base resources")
-check(loadout:grantBonusNitro() and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"bonus remains capped at two once per race")
+for _=1,5 do loadout:recordBoost(5) end
+check(loadout.bonusAwardCount==1 and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"bonus remains capped at two once per race")
 
 -- Service-level simultaneous launch, capacity, turning and relative sweep probes.
 local hits={}

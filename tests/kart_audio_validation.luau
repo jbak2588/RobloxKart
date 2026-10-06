@@ -140,7 +140,7 @@ print("PASS: engine loop NORMAL/FIXED/DYNAMIC modes, runtime regions, delayed lo
 local rb=require("@lune/roblox")
 local engineHeartbeat=signal()
 services.RunService={Heartbeat=engineHeartbeat,IsStudio=function()return false end}
-modules.KartConfig={MINI_BOOST_MAX_SPEED=100}
+modules.KartConfig={MAX_FORWARD_SPEED=70,MINI_BOOST_MAX_SPEED=100}
 local idleEngine
 runtime.createSound=function(name)
  if name~="EngineLoop" then return nil end
@@ -158,7 +158,16 @@ local engineController=luau.load(fs.readFile("src/client/KartAudioController.lua
 }})()
 engineController.start()
 for _=1,120 do engineHeartbeat:Fire(1/60) end
-assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED,"normal speed retains V1 pitch")
+assert(math.abs(idleEngine.PlaybackSpeed-1.30)<1e-6 and math.abs(idleEngine.Volume-.60)<1e-6,"normal 70 high-rev target")
+kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-100)
+for _=1,240 do engineHeartbeat:Fire(1/60) end
+assert(math.abs(idleEngine.PlaybackSpeed-1.38)<1e-6 and math.abs(idleEngine.Volume-.62)<1e-6,"Nitro 100 target preserved above normal")
+kart:SetAttribute("KartBoosting",true)
+for _=1,240 do engineHeartbeat:Fire(1/60) end
+assert(math.abs(idleEngine.PlaybackSpeed-1.48)<1e-6,"Mini Boost pitch emphasis preserved")
+kart:SetAttribute("KartBoosting",false)
+kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-70)
+for _=1,240 do engineHeartbeat:Fire(1/60) end
 player:SetAttribute("RaceState","FINISHING");player:SetAttribute("RaceFinishPhase","ROLL")
 for _=1,120 do engineHeartbeat:Fire(1/60) end
 assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED,"ROLL still uses real movement")

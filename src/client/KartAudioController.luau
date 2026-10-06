@@ -175,15 +175,20 @@ function KartAudioController.start()
 					local finishedStop = player:GetAttribute("RaceFinishPhase") == "PRESENT"
 						and (raceState == "FINISHING" or raceState == "FINISHED")
 					local audioSpeed = if finishedStop then 0 else forwardSpeed
-					local normalized = math.clamp(math.abs(audioSpeed) / KartConfig.MINI_BOOST_MAX_SPEED, 0, 1)
+					local speed = math.abs(audioSpeed)
+					local normalRatio = math.clamp(speed / KartConfig.MAX_FORWARD_SPEED, 0, 1)
+					local boostRatio = math.clamp((speed - KartConfig.MAX_FORWARD_SPEED)
+						/ (KartConfig.MINI_BOOST_MAX_SPEED - KartConfig.MAX_FORWARD_SPEED), 0, 1)
 					local targetPitch = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
-						+ (AudioConfig.ENGINE.MAX_PLAYBACK_SPEED - AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED) * normalized
+						+ (AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED - AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED) * normalRatio
+						+ (AudioConfig.ENGINE.MAX_PLAYBACK_SPEED - AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED) * boostRatio
 					if not finishedStop and kart:GetAttribute("KartBoosting") == true then
 						targetPitch += AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS
 					end
 					targetPitch = math.clamp(targetPitch, 0.7, 1.55)
 					local targetVolume = AudioConfig.ENGINE.IDLE_VOLUME
-						+ (AudioConfig.ENGINE.MAX_VOLUME - AudioConfig.ENGINE.IDLE_VOLUME) * normalized
+						+ (AudioConfig.ENGINE.NORMAL_VOLUME - AudioConfig.ENGINE.IDLE_VOLUME) * normalRatio
+						+ (AudioConfig.ENGINE.MAX_VOLUME - AudioConfig.ENGINE.NORMAL_VOLUME) * boostRatio
 					local alpha = 1 - math.exp(-AudioConfig.ENGINE.RESPONSE * deltaTime)
 					if not engineDiagnostic or not engineDiagnostic:isFixed() then
 						engine.PlaybackSpeed += (targetPitch - engine.PlaybackSpeed) * alpha

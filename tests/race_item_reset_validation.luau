@@ -129,6 +129,8 @@ local function snapshot(p)
  result.SelectedRaceItemId=p:GetAttribute("SelectedRaceItemId")
  result.DriftBonusProgress=p:GetAttribute("DriftBonusProgress")
  result.DriftBonusNitroAwarded=p:GetAttribute("DriftBonusNitroAwarded")
+ result.DriftBonusPending=p:GetAttribute("DriftBonusPending")
+ result.DriftBonusAwardCount=p:GetAttribute("DriftBonusAwardCount")
  for index=1,3 do result["RaceTacticalItem"..index]=p:GetAttribute("RaceTacticalItem"..index) end
  return result
 end
@@ -169,10 +171,39 @@ for _=1,2 do boostOutcome(owner,"BOOST") end
 check(owner:GetAttribute("RaceChargeNitro")==2 and owner:GetAttribute("DriftBonusNitroAwarded"),"fifth boost grants exactly one bonus")
 use(owner,"Nitro");use(owner,"Nitro")
 before=snapshot(owner);fall(owner);same(owner,before,"earned bonus fall")
-check(not Items.grantBonusNitro(owner),"bonusClaimed remains locked even with empty Nitro after fall")
+check(not Items.grantBonusNitro(owner),"direct grant without a completed cycle rejects after fall")
 for _=1,5 do boostOutcome(owner,"BOOST") end
-check(owner:GetAttribute("RaceChargeNitro")==0 and owner:GetAttribute("DriftBonusProgress")==5
- and owner:GetAttribute("DriftBonusNitroAwarded"),"earned race reward cannot repeat after reset")
+check(owner:GetAttribute("RaceChargeNitro")==1 and owner:GetAttribute("DriftBonusProgress")==0
+ and owner:GetAttribute("DriftBonusNitroAwarded"),"next completed cycle awards after reset")
+-- Pending state, accepted/rejected use and repeated cycles through the production controller.
+prepare(owner)
+for cycle=1,3 do
+ for _=1,5 do boostOutcome(owner,"BOOST") end
+ check(owner:GetAttribute("DriftBonusAwardCount")==cycle and owner:GetAttribute("DriftBonusProgress")==0,"controller repeated cycle "..cycle)
+ if cycle<3 then use(owner,"Nitro") end
+end
+for _=1,5 do boostOutcome(owner,"BOOST") end
+check(owner:GetAttribute("DriftBonusPending") and owner:GetAttribute("DriftBonusProgress")==5,"full controller inventory stores pending")
+before=snapshot(owner);fall(owner);same(owner,before,"pending fall")
+for _=1,20 do boostOutcome(owner,"BOOST") end
+same(owner,before,"pending extra BOOST freeze")
+local originalActivation=modules.PrototypeWorld.activateNitro
+modules.PrototypeWorld.activateNitro=function() return false,"unsafe_state" end
+use(owner,"Nitro");same(owner,before,"rejected pending activation")
+modules.PrototypeWorld.activateNitro=originalActivation
+use(owner,"Nitro")
+check(owner:GetAttribute("RaceChargeNitro")==2 and not owner:GetAttribute("DriftBonusPending")
+ and owner:GetAttribute("DriftBonusProgress")==0 and owner:GetAttribute("DriftBonusAwardCount")==4,"controller accepted use atomically settles pending")
+-- Four distinct progress states and combat do not share reward ownership.
+for _,p in players do prepare(p,{"Shield","Missile","Smoke"}) end
+for _=1,4 do boostOutcome(owner,"BOOST") end
+for _=1,10 do boostOutcome(b,"BOOST") end
+for _=1,2 do boostOutcome(d,"BOOST") end
+local bBefore,cBefore,dBefore=snapshot(b),snapshot(c),snapshot(d)
+boostOutcome(owner,"BOOST")
+same(b,bBefore,"P1 award isolates P2 pending");same(c,cBefore,"P1 award isolates P3 zero");same(d,dBefore,"P1 award isolates P4 two")
+for _,outcome in {"READY","FAIL","START","RESET"} do boostOutcome(c,outcome) end
+same(c,cBefore,"only actual BOOST counts")
 -- F: both owned/targeted warnings, Shield, Smoke victim/hazard, immunity and feedback clear.
 prepare(owner,{"Shield","Missile","Smoke"});prepare(b);prepare(c)
 contexts[owner].chassis.CFrame=CF.new(0,1,0)

@@ -9,7 +9,8 @@ local function loadModule(path)
 end
 local factory = loadModule("src/shared/KartVisualFactory.luau")
 local catalog = loadModule("src/shared/KartCatalog.luau")
-local definition = catalog.Entries[catalog.DefaultId]
+-- This suite audits the native Sprint structure; V2/default is audited separately.
+local definition = catalog.Entries.Kart01
 local valid = factory.createVisual(definition)
 local ok, diagnostics = factory.validateVisual(valid)
 assert(ok, table.concat(diagnostics, "\n"))

@@ -129,8 +129,9 @@ function ActiveMatchDirectory:clearBots(roomId, raceJobId)
 	end)
 end
 
-function ActiveMatchDirectory:stage(roomId, member, token)
+function ActiveMatchDirectory:stage(roomId, member, token, expectedTrackId)
 	return self:update(roomId, function(record)
+		if expectedTrackId and record.trackId ~= expectedTrackId then return nil end
 		if record.state ~= "WAITING" or waitingCapacity(record) >= record.maxPlayers
 			or contains(record.stagedMembers, member.userId)
 			or contains(record.queued, member.userId) then return nil end
@@ -456,8 +457,9 @@ function ActiveMatchDirectory:raceState(roomId, matchId, state, racerCount, priv
 	end)
 end
 
-function ActiveMatchDirectory:queue(roomId, member)
+function ActiveMatchDirectory:queue(roomId, member, expectedTrackId)
 	return self:update(roomId, function(record)
+		if expectedTrackId and record.trackId ~= expectedTrackId then return nil end
 		if (record.state == "WAITING" and (not record.stagedMembers
 			or waitingCapacity(record) < record.maxPlayers)) or record.state == "CLOSING"
 			or #record.queued >= self.MAX_QUEUED then return nil end

@@ -1,6 +1,7 @@
 local Catalog = require(script.Parent:WaitForChild("KDMIconCatalog"))
 local Assets = table.freeze({
 	AutoStart=Catalog.Actions.AutoStart,
+	AutoStartOn=Catalog.Actions.AutoStartOn,
 	Forward=Catalog.Drive.Forward, ForwardLeft=Catalog.Drive.ForwardLeft,
 	ForwardRight=Catalog.Drive.ForwardRight, BrakeReverse=Catalog.Drive.BrakeReverse,
 	DriftWide=Catalog.Actions.DriftWide, DriftSquare=Catalog.Actions.DriftSquare,
@@ -59,7 +60,8 @@ function View.cache(provider, scheduler)
 end
 
 function View.new(button, key, cache, mobileView)
-	local fallbackKey = if key == "DriftWide" or key == "DriftSquare" then "Drift" elseif key == "AutoStart" then "AutoForward" else key
+	local fallbackKey = if key == "DriftWide" or key == "DriftSquare" then "Drift" elseif key == "AutoStart" then "AutoForward"
+		elseif key == "ForwardLeft" then "Left" elseif key == "ForwardRight" then "Right" else key
 	local fallback = mobileView.icon(button, fallbackKey, button.ZIndex + 1)
 	local image = Instance.new("ImageLabel")
 	image.Name = "KDMControlImage"
@@ -76,29 +78,16 @@ function View.new(button, key, cache, mobileView)
 	image.Visible = false
 	image.Parent = button
 	local scale = Instance.new("UIScale");scale.Parent = image
-	local indicator=Instance.new("Frame")
-	indicator.Name="AutoStateLight"
-	-- Cover the v2 PNG's baked green lamp with one authoritative OFF/ON lamp.
-	indicator.AnchorPoint=Vector2.new(.5,.5)
-	indicator.Size=UDim2.fromScale(.086,.086)
-	indicator.Position=UDim2.fromScale(.5,212/1024)
-	indicator.BackgroundColor3=Color3.fromRGB(70,255,170)
-	indicator.BorderSizePixel=0
-	indicator.Active=false
-	indicator.ZIndex=image.ZIndex+1
-	indicator.Visible=false
-	indicator.Parent=image
-	mobileView.round(indicator)
-	local self = {image=image, fallback=fallback, scale=scale, indicator=indicator}
+	local self = {image=image, fallback=fallback, scale=scale}
 	function self:layout(width, height) image.Size=UDim2.fromOffset(width,height) end
 	function self:update(enabled, held)
-		local loaded = Assets[key] ~= nil and cache:ready(key)
+		local assetKey = if key == "AutoStart" and enabled and held then "AutoStartOn" else key
+		local loaded = Assets[assetKey] ~= nil and cache:ready(assetKey)
+		image.Image = Assets[assetKey] or ""
 		image.Visible=loaded;fallback.root.Visible=not loaded
 		image.ImageTransparency=if enabled then 0 else .55
 		scale.Scale=1
 		image.ImageColor3=if held and enabled then Color3.fromRGB(255,255,255) else Color3.fromRGB(225,235,245)
-		indicator.Visible=loaded and key=="AutoStart"
-		indicator.BackgroundColor3=if enabled and held then Color3.fromRGB(70,255,170) else Color3.fromRGB(35,50,60)
 		fallback:setLatched(key == "AutoStart" and held == true)
 		fallback:setEnabled(enabled)
 		return loaded

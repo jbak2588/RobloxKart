@@ -60,7 +60,7 @@ function MatchRoomUiController.start()
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MaxSize = Vector2.new(650, 650)
 	constraint.Parent = panel
-	local title = label(panel, "Title", UDim2.new(1, -32, 0, 48), UDim2.fromOffset(16, 10), "BASE CIRCUIT ROOMS", 26)
+	local title = label(panel, "Title", UDim2.new(1, -32, 0, 48), UDim2.fromOffset(16, 10), "RACE ROOMS", 26)
 	title.TextColor3 = Color3.fromRGB(255, 218, 73)
 	local status = label(panel, "Status", UDim2.new(1, -32, 0, 38), UDim2.fromOffset(16, 55), "", 17)
 	local list = Instance.new("ScrollingFrame")
@@ -140,8 +140,8 @@ function MatchRoomUiController.start()
 		back.Active = true
 		if invitation and (not snapshot or not snapshot.room) then
 			title.Text = "RACE INVITE"
-			status.Text = string.format("%s invited you to Base Circuit  •  %d / %d",
-				invitation.hostName, invitation.count, invitation.maxPlayers)
+			status.Text = string.format("%s invited you to %s  •  %d / %d",
+				invitation.hostName, invitation.trackId or "Race", invitation.count, invitation.maxPlayers)
 			bindButtons(if invitation.state == "WAITING" and invitation.count < invitation.maxPlayers
 				then "JOIN" else "QUEUE NEXT", function()
 				send("AcceptInvite", player:GetAttribute("SelectedDriverId"), player:GetAttribute("SelectedKartId"))
@@ -163,7 +163,7 @@ function MatchRoomUiController.start()
 				function() send("CancelQueue") end)
 		elseif snapshot and snapshot.room then
 			local room = snapshot.room
-			title.Text = "BASE CIRCUIT ROOM"
+			title.Text = (snapshot.trackName or "RACE") .. " ROOM"
 			status.Text = string.format("HOST: %s   RACERS %d / %d  •  %s",
 				room.hostName, #room.members, room.maxPlayers,
 				if room.hostUserId ~= player.UserId and room.state == "WAITING" then "WAITING FOR HOST" else RoomDisplay.state(room.state))
@@ -179,8 +179,8 @@ function MatchRoomUiController.start()
 			bindButtons(if #room.members == 1 then "START SOLO" else "START RACE",
 				function() remote:FireServer("Start") end, "LEAVE", function() remote:FireServer("Leave") end)
 		else
-			title.Text = "BASE CIRCUIT ROOMS"
-			status.Text = if snapshot.directoryStale then "ROOM STATUS UPDATING..." else "CREATE OR JOIN A 1–4 RACER ROOM"
+			title.Text = (snapshot.trackName or "RACE") .. " ROOMS"
+			status.Text = if snapshot.directoryStale then "ROOM STATUS UPDATING..." else string.format("CREATE OR JOIN A 1–%d RACER ROOM", snapshot.maxPlayers or 1)
 			for _, room in snapshot.rooms do
 				local waiting = RoomDisplay.canJoin(room)
 				row(string.format("%s  •  %s  %d / %d  •  NEXT %d",

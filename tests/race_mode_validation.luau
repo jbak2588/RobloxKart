@@ -108,8 +108,8 @@ load("src/shared/RaceRouteProgress.luau",shared,"RaceRouteProgress")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
 local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
-check(#catalog.Order==3 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Practice first/default")
-check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02","two races follow Practice")
+check(#catalog.Order==4 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Practice first/default")
+check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02" and catalog.Order[4]=="Track03","two races follow Practice")
 check(catalog.Entries.Track01.GeometryId==catalog.Entries.Track01Race.GeometryId,"Practice and V1 race share geometry")
 check(catalog.Entries.Track01.MaxPlayers==1 and catalog.Entries.Track01.TargetLaps==1
  and catalog.Entries.Track01.MatchType=="SOLO_PRACTICE","Practice stays solo")
@@ -128,7 +128,7 @@ end
 for _, id in catalog.Order do
  local kind=mode.resolve(id)
  check(kind==(if id=="Track01" then "PRACTICE" else "RACE"),"mode "..id)
- local expected=if id=="Track01" then 1 elseif id=="Track01Race" then 2 else 3
+ local expected=if id=="Track01" then 1 elseif id=="Track02" then 3 else 2
  check(catalog.Entries[id].TargetLaps==expected and mode.targetLaps(kind,id)==expected,"laps "..id)
  check(mode.label(kind,id)==(if id=="Track01" then "PRACTICE / 1 LAP" else "RACE / "..expected.." LAPS"),"label "..id)
 end
@@ -155,7 +155,7 @@ for i=1,2 do
  checkpoints[i]=cp
 end
 child(shared,"ModuleScript","TrackCatalog")
-modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="SOLO_PRACTICE",MaxPlayers=1},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
+modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="SOLO_PRACTICE",MaxPlayers=1},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track03={Id="Track03",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
 local player=child(services.Players,"Player","Driver")
 player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100; human.SeatPart=seat
@@ -259,7 +259,7 @@ check(player:GetAttribute("RaceFinishMissedSerial")==1,"valid finish gives no ad
 check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no license state created")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
 check(player:GetAttribute("RaceTotalLaps")==1 and player:GetAttribute("RaceMode")=="PRACTICE","practice rematch stays practice")
-for _, id in {"Track01","Track01Race","Track02"} do
+for _, id in {"Track01","Track01Race","Track02","Track03"} do
  start(id)
  local laps=catalog.Entries[id].TargetLaps
  check(player:GetAttribute("RaceTotalLaps")==laps,"published target "..id)
@@ -303,7 +303,7 @@ check(player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("RaceFi
  and not kart:GetAttribute("KartFinishRollActive"),"Garage clears finish presentation")
 print("PASS: "..count.." Practice/race mode/checkpoint/loadout integration checks")
 
--- Drive the real V2 geometry through the production controller, including
+-- Drive the real Hard geometry through the production controller, including
 -- excursions around CP4/CP5 (the two checkpoints left pending in the report).
 -- Explicit basis avoids this Lune version's lookAt Z-axis reflection.
 local function lookAt(position, target)
@@ -311,29 +311,30 @@ local function lookAt(position, target)
  return CF.fromMatrix(position,forward:Cross(V.yAxis),V.yAxis,-forward)
 end
 local geometry=modules.TrackGeometry
-local definition=geometry.getDefinition("PrototypeCircuitV2")
+local definition=geometry.getDefinition("HardCircuitV1")
 local course=geometry.getCourse(definition)
-modules.TrackCatalog.Entries.Track02.GeometryId="PrototypeCircuitV2"
-track:SetAttribute("GeometryId","PrototypeCircuitV2")
-track:SetAttribute("CheckpointCount",#course.CheckpointSamples)
-road:Destroy()
-for i,point in course.Samples do
- local following=course.Samples[i % #course.Samples+1]
- local strip=child(roads,"Part","Road"..i)
- strip.Size=V.new(definition.RoadWidth,1,(following-point).Magnitude+2)
- strip.CFrame=lookAt((point+following)/2,following)
+modules.TrackCatalog.Entries.Track03.GeometryId="HardCircuitV1"
+local builderEnv=table.clone(environment)
+builderEnv.CFrame=table.clone(CF);builderEnv.CFrame.lookAt=lookAt
+builderEnv.UDim2=rb.UDim2;builderEnv.UDim=rb.UDim
+builderEnv.require=function(module)return assert(modules[module.Name],module.Name)end
+local realBuilder=luau.load(fs.readFile("src/server/TrackBuilder.luau"),{environment=builderEnv})()
+track=realBuilder.build(prototype,catalog.Entries.Track03,0)
+roads=track:FindFirstChild("Road")
+gates=track:FindFirstChild("RaceTriggers")
+finish=gates:FindFirstChild("StartFinish")
+checkpoints={}
+for i=1,#course.CheckpointSamples do checkpoints[i]=gates:FindFirstChild("Checkpoint"..i) end
+local support=track:FindFirstChild("SafetyGround")
+local outer=course.Samples[1]
+for _,point in course.Samples do if point.X>outer.X then outer=point end end
+local function supported(position)
+ return support.Anchored and support.CanCollide and math.abs(position.X-support.Position.X)<support.Size.X/2
+  and math.abs(position.Z-support.Position.Z)<support.Size.Z/2 and support.Parent~=roads
 end
-finish.CFrame=lookAt(course.StartPosition,course.StartPosition+course.StartTangent)
-finish.Size=V.new(definition.RoadWidth+16,16,12)
-for i,cp in course.CheckpointSamples do
- local gate=checkpoints[i] or child(gates,"Part","CP"..i)
- gate.Size=V.new(definition.RoadWidth+16,16,12)
- gate.CFrame=lookAt(cp.Position,cp.Position+cp.Tangent)
- gate:SetAttribute("RaceGate",true); gate:SetAttribute("GateType","Checkpoint"); gate:SetAttribute("CheckpointIndex",i)
- checkpoints[i]=gate
-end
+check(supported(outer+V.xAxis*124),"generated support contains outer road edge plus 100 studs")
 kart:SetAttribute("RaceStartCFrame",lookAt(course.StartPosition-course.StartTangent*25,course.StartPosition))
-start("Track02")
+start("Track03")
 for lap=1,2 do
  for step=0,2000 do
   local fraction=step/2000
@@ -347,15 +348,35 @@ for lap=1,2 do
   chassis.CFrame=lookAt(position,position+tangent)
   chassis.AssemblyLinearVelocity=tangent*70
   tick(0.05)
+  if lap==1 and step==560 then
+   local nextCheckpoint=player:GetAttribute("RaceNextCheckpoint")
+   local reset=kart:GetAttribute("RaceResetSerial")
+   for _,distance in {40,80,100} do
+    local offroad=outer+V.xAxis*(definition.RoadWidth/2+distance)
+    check(supported(offroad),"real SafetyGround recovery point collidable and covered")
+    chassis.CFrame=lookAt(offroad,offroad+tangent);tick(1)
+    check(kart:GetAttribute("KartOffTrack")==true and player:GetAttribute("RaceState")=="RACING","support does not count as road")
+   end
+   chassis.CFrame=lookAt(position,position+tangent);tick(.3)
+   check(kart:GetAttribute("KartOffTrack")==false,"return before 15 seconds clears offtrack")
+   check(player:GetAttribute("RaceNextCheckpoint")==nextCheckpoint and player:GetAttribute("RaceCompletedLaps")==0
+    and kart:GetAttribute("RaceResetSerial")==reset,"recovery preserves checkpoint/lap/reset state")
+  end
  end
- check(player:GetAttribute("RaceCompletedLaps")==lap,"V2 excursion/return finish counts lap "..lap)
+ check(player:GetAttribute("RaceCompletedLaps")==lap,"Hard excursion/return finish counts lap "..lap)
 end
+check(player:GetAttribute("RaceState")=="FINISHING" or player:GetAttribute("RaceState")=="FINISHED","Hard finishes after second real geometry lap")
+check(player:GetAttribute("RaceLap1Time")>0 and player:GetAttribute("RaceLap2Time")>0 and player:GetAttribute("RaceLap3Time")==0,"Hard two-lap history only")
+tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.01)
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
+tick(raceConfig.COUNTDOWN_SECONDS+0.1)
+check(player:GetAttribute("RaceState")=="RACING","Hard offroad test starts a fresh round")
 -- Provisional recovery must not bypass the existing off-road timeout.
-chassis.CFrame=CF.new(1500,0,1500); tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
+chassis.CFrame=CF.new(outer+V.xAxis*124); tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+0.1)
 check(player:GetAttribute("RaceState")=="DNF","offroad timeout still wins")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
-check(player:GetAttribute("RaceState")=="RACING","reserved quit setup reaches active V2 race")
+check(player:GetAttribute("RaceState")=="RACING","reserved quit setup reaches active Hard race")
 routeOptions.returnToHub=function()
  hubReturns+=1
  player:SetAttribute("RaceEntryError","RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN")
@@ -382,4 +403,4 @@ check(hubReturns==3 and session:contains(player) and releasedKartContexts==relea
 services.Players.PlayerRemoving:Fire(player)
 check(releasedKartContexts==releaseCountBeforeReserved+1 and not session:contains(player),
  "successful departure releases reserved kart through PlayerRemoving")
-print("PASS: "..count.." total race integration checks including real V2 recovery")
+print("PASS: "..count.." total race integration checks including real Hard recovery")

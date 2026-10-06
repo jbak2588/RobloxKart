@@ -2,10 +2,10 @@
 -- No uploaded assets, external packages or input handlers.
 local View = {}
 local screenBottomInset=0
--- Retain R6-B1 touch dimensions/spacing; only v2 bottom padding changes.
--- Alpha >=128 bounds measured from the supplied PNGs, with artwork kept Fit.
+-- Retain Forward/Reverse and AUTO visual sizes; V3 steering fills the center gap.
+-- Forward/Reverse alpha bounds and the new full-size artwork remain Fit.
 View.artwork={driveWidth=1093/1254,driveHeight=1078/1254,driveBottom=55/1024,
-	driveRight=81/1254,autoWidth=1108/1254,driftHeight=549/809,driftBottom=92/809}
+	driveRight=81/1254,autoWidth=1,driftHeight=1,driftBottom=0}
 function View.setViewportBottomInset(fullHeight, deviceHeight)
 	screenBottomInset=math.clamp(fullHeight-deviceHeight,0,40)
 end
@@ -23,18 +23,20 @@ function View.layout(size: Vector2)
 	local direction = if portrait then 74 else math.ceil(visual*View.artwork.driveWidth)+4
 	local forward, brake = direction, direction
 	local autoVisual = if portrait or short then 52 else 58
-	local autoHit = if portrait then 58 else math.ceil(autoVisual*View.artwork.autoWidth)+4
+	local autoHit = autoVisual+4
+	local sideVisualWidth = visual*1.5
+	local sideWidth, sideHeight = math.ceil(sideVisualWidth)+4, visual+4
 	local padSpacing = if portrait then direction+4 else (visual*View.artwork.driveWidth+autoVisual*View.artwork.autoWidth)/2+10
-	local padWidth = direction+padSpacing*2
-	local verticalSpacing = if portrait then (direction+autoHit)/2+4 else padSpacing
+	local padWidth = sideWidth*2+8
+	local verticalSpacing = (direction+sideHeight)/2+(if short then 2 else 4)
 	local padHeight, padGap = direction+verticalSpacing*2, 4
 	local compactPad = false
 	-- Build upward from Brake's artwork, 10px above the safe bottom edge.
 	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else 10-(direction-visual)/2-visual*View.artwork.driveBottom-screenBottomInset
 	local mapSide = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
-	local padInset = if portrait then 0 else 12-margin-(direction-visual)/2-visual*View.artwork.driveRight
+	local padInset = if portrait then 0 else 12-margin-(sideWidth-sideVisualWidth)/2
 	local driftWidth = slot*4+8*3
-	local driftHeight = driftWidth/2.4
+	local driftHeight = driftWidth*518/1536
 	local driftHitWidth = math.ceil(driftWidth*1.10)
 	local driftHitHeight = if portrait then math.ceil(driftHeight*1.14) else math.ceil(driftHeight*View.artwork.driftHeight)+6
 	local driftBottom = if portrait then padBottom+padHeight+8 else 10-(driftHitHeight-driftHeight)/2-driftHeight*View.artwork.driftBottom-screenBottomInset
@@ -51,6 +53,10 @@ function View.layout(size: Vector2)
 		padWidth = padWidth, padHeight = padHeight, direction = direction, forward = forward, brake = brake,
 		padBottom = padBottom, padInset=padInset, padSpacing=padSpacing, padVerticalSpacing=verticalSpacing,
 		autoVisualSize=autoVisual, autoHitSize=autoHit,
+		sideWidth=sideWidth,sideHeight=sideHeight,sideVisualWidth=sideVisualWidth,
+		-- AUTO shares Forward's visible top and the steering row's visible right.
+		autoRight=padWidth-(sideWidth-sideVisualWidth)/2+(autoHit-autoVisual)/2,
+		autoTop=(direction-visual)/2+visual*(1-View.artwork.driveHeight)/2-(autoHit-autoVisual)/2,
 		padAutoRight = portrait,
 		padCompact = compactPad,
 		padGap = padGap,

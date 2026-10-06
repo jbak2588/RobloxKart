@@ -1,9 +1,11 @@
 local KartCatalog = {
-	DefaultId = "Kart01",
+	DefaultId = "Kart05",
 	Order = { "Kart05", "Kart06", "Kart07", "Kart08", "Kart09", "Kart10", "Kart11", "Kart01", "Kart02", "Kart03", "Kart04" },
 	Entries = {
 		Kart05 = {
 			Id = "Kart05",
+			DisplayColorName = "Cyan",
+			DisplayColor = Color3.fromRGB(0, 205, 225),
 			DisplayName = "KDM V2 Cyan",
 			VisualModelName = "KDMV2",
 			VisualVariant = "CyanHero",
@@ -14,6 +16,8 @@ local KartCatalog = {
 		},
 		Kart07 = {
 			Id = "Kart07",
+			DisplayColorName = "White",
+			DisplayColor = Color3.fromRGB(240, 240, 240),
 			DisplayName = "KDM V2 White",
 			VisualModelName = "KDMV2",
 			VisualVariant = "WhitePearl",
@@ -24,6 +28,8 @@ local KartCatalog = {
 		},
 		Kart08 = {
 			Id = "Kart08",
+			DisplayColorName = "Yellow",
+			DisplayColor = Color3.fromRGB(250, 200, 45),
 			DisplayName = "KDM V2 Yellow",
 			VisualModelName = "KDMV2",
 			VisualVariant = "YellowSun",
@@ -34,6 +40,8 @@ local KartCatalog = {
 		},
 		Kart06 = {
 			Id = "Kart06",
+			DisplayColorName = "Red",
+			DisplayColor = Color3.fromRGB(220, 45, 45),
 			DisplayName = "KDM V2 Red",
 			VisualModelName = "KDMV2",
 			VisualVariant = "RedMetal",
@@ -45,6 +53,8 @@ local KartCatalog = {
 		},
 		Kart09 = {
 			Id = "Kart09",
+			DisplayColorName = "Metal Blue",
+			DisplayColor = Color3.fromRGB(25, 72, 220),
 			DisplayName = "KDM V2 Metal Blue",
 			VisualModelName = "KDMV2",
 			VisualVariant = "MetalBlue",
@@ -55,6 +65,8 @@ local KartCatalog = {
 		},
 		Kart10 = {
 			Id = "Kart10",
+			DisplayColorName = "Metal Pink",
+			DisplayColor = Color3.fromRGB(232, 75, 166),
 			DisplayName = "KDM V2 Metal Pink",
 			VisualModelName = "KDMV2",
 			VisualVariant = "MetalPink",
@@ -65,6 +77,8 @@ local KartCatalog = {
 		},
 		Kart11 = {
 			Id = "Kart11",
+			DisplayColorName = "Black",
+			DisplayColor = Color3.fromRGB(18, 20, 24),
 			DisplayName = "KDM V2 Black",
 			VisualModelName = "KDMV2",
 			VisualVariant = "BlackMetal",
@@ -75,6 +89,8 @@ local KartCatalog = {
 		},
 		Kart01 = {
 			Id = "Kart01",
+			DisplayColorName = "Red",
+			DisplayColor = Color3.fromRGB(220, 45, 45),
 			DisplayName = "Sprint V1",
 			VisualModelName = "SprintV1",
 			BodyColor = Color3.fromRGB(220, 45, 45),
@@ -82,6 +98,8 @@ local KartCatalog = {
 		},
 		Kart02 = {
 			Id = "Kart02",
+			DisplayColorName = "White",
+			DisplayColor = Color3.fromRGB(240, 240, 240),
 			DisplayName = "Sprint V1 White",
 			VisualModelName = "SprintV1",
 			BodyColor = Color3.fromRGB(240, 240, 240),
@@ -89,6 +107,8 @@ local KartCatalog = {
 		},
 		Kart03 = {
 			Id = "Kart03",
+			DisplayColorName = "Blue",
+			DisplayColor = Color3.fromRGB(45, 115, 230),
 			DisplayName = "Sprint V1 Blue",
 			VisualModelName = "SprintV1",
 			BodyColor = Color3.fromRGB(45, 115, 230),
@@ -96,6 +116,8 @@ local KartCatalog = {
 		},
 		Kart04 = {
 			Id = "Kart04",
+			DisplayColorName = "Yellow",
+			DisplayColor = Color3.fromRGB(250, 200, 45),
 			DisplayName = "Sprint V1 Yellow",
 			VisualModelName = "SprintV1",
 			BodyColor = Color3.fromRGB(250, 200, 45),

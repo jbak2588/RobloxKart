@@ -43,8 +43,10 @@ local function stageCharacter(player: Player, spawnLocation: SpawnLocation)
 		warn("[Garage] Driver could not leave seat")
 		return
 	end
-	root.Anchored = true
+	root.Anchored = false
 	character:PivotTo(spawnLocation.CFrame * CFrame.new(0, 3, 0))
+	-- Signal the client only after this arrival/respawn has actually been staged.
+	player:SetAttribute("HubArrivalSerial", (player:GetAttribute("HubArrivalSerial") or 0) + 1)
 end
 
 function GarageController.start()
@@ -54,7 +56,8 @@ function GarageController.start()
 	started = true
 
 	local prototype = Workspace:WaitForChild("Prototype")
-	local spawnLocation = prototype:WaitForChild("PlayerSpawn") :: SpawnLocation
+	local hub = Workspace:WaitForChild("KDMHub")
+	local spawnLocation = hub:WaitForChild("HubSpawn") :: SpawnLocation
 	prototype:WaitForChild("TestTrack")
 	local ground = Workspace:FindFirstChild("Baseplate") or prototype:FindFirstChild("Ground")
 	local groundTop = if ground and ground:IsA("BasePart") then ground.Position.Y + ground.Size.Y * 0.5 else 0
@@ -94,7 +97,8 @@ function GarageController.start()
 
 	local function bindPlayer(player: Player)
 		player:SetAttribute("RaceMode", RaceMode.RACE)
-		player:SetAttribute("SelectedDriverId", DriverCatalog.DefaultId)
+		player:SetAttribute("SelectedDriverId", DriverCatalog.DefaultId) -- legacy compatibility only
+		player.RespawnLocation = spawnLocation
 		player:SetAttribute("SelectedKartId", KartCatalog.DefaultId)
 		player:SetAttribute("SelectedTrackId", TrackCatalog.DefaultId)
 		player:SetAttribute("RaceEntryError", "")
@@ -142,7 +146,7 @@ function GarageController.start()
 		end
 		if track.MatchType == "PUBLIC_RACE" then
 			local matchRooms = require(script.Parent:WaitForChild("MatchRoomService"))
-			matchRooms.openBrowser(player, driverId, kartId)
+			matchRooms.openBrowser(player, driverId, kartId, trackId)
 			return
 		end
 		local character = player.Character
@@ -265,8 +269,18 @@ function GarageController.start()
 	end
 
 	remote.OnServerEvent:Connect(function(player: Player, action: unknown, first: unknown, second: unknown, third: unknown)
-		if action == "Ready" then
-			ready(player, first, second, third)
+		if action == "SelectKart" then
+			if Workspace:GetAttribute("KDMServerRole") ~= "HUB" or player.Parent ~= Players
+				or player:GetAttribute("RaceState") ~= "GARAGE" or readyPending[player]
+				or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"
+				or type(first) ~= "string" or not KartCatalog.Entries[first] then
+				remote:FireClient(player, "KartSelectionRejected")
+				return
+			end
+			player:SetAttribute("SelectedKartId", first)
+			remote:FireClient(player, "KartSelected", first)
+		elseif action == "Ready" then
+			ready(player, first, player:GetAttribute("SelectedKartId") or KartCatalog.DefaultId, third)
 		elseif action == "Invite" and type(first) == "number" and first > 0 and first % 1 == 0 then
 			if Workspace:GetAttribute("KDMServerRole")=="RACE" then return end
 			local target = Players:GetPlayerByUserId(first)
@@ -302,7 +316,7 @@ function GarageController.start()
 				remote:FireClient(player, "InviteExpired")
 				return
 			end
-			ready(player, first, second, invitation.trackId)
+			ready(player, first, player:GetAttribute("SelectedKartId") or KartCatalog.DefaultId, invitation.trackId)
 		end
 	end)
 

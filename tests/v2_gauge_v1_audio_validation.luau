@@ -4,7 +4,14 @@ local function check(ok,label) assert(ok,label);checks+=1 end
 local stable='6903d20737c5e63711f785b9b238f2c017b412e9'
 for _,path in {'src/shared/AudioConfig.luau','src/client/KartInputController.luau'} do
  local result=process.exec('git',{'show',stable..':'..path})
- check(result.ok and fs.readFile(path):gsub('\r\n','\n')==result.stdout:gsub('\r\n','\n'),'stable exact equality '..path)
+ local current=fs.readFile(path):gsub('\r\n','\n')
+ if path=='src/shared/AudioConfig.luau' then
+  -- R3B explicitly approves normal-70 pitch/volume presentation; all original assets and other tuning remain frozen.
+  current=current:gsub('\t\tNORMAL_PLAYBACK_SPEED = 1%.30,\n',''):gsub('\t\tNORMAL_VOLUME = 0%.60,\n','')
+  local audio=luau.load(fs.readFile(path))()
+  check(audio.ENGINE.NORMAL_PLAYBACK_SPEED==1.30 and audio.ENGINE.NORMAL_VOLUME==.60,'approved normal-70 presentation target')
+ end
+ check(result.ok and current==result.stdout:gsub('\r\n','\n'),'stable assets/input plus approved audio exception '..path)
 end
 for _,name in {'V2DonorAudio','KDMMultiRpmEngineAudio','KDMEnginePowertrainPresentation','V2DonorExperiment'} do
  check(not fs.isFile('src/client/'..name..'.luau'),'failed audio experiment absent '..name)
@@ -78,4 +85,4 @@ check(source:find('root.TMode.Position=UDim2.fromOffset(137,173)',1,true)~=nil,'
 for _,contract in {'value.Font=Enum.Font.GothamBlack;value.TextSize=40','unit.TextSize=28','DigitalSpeedGroup','label.TextYAlignment=Enum.TextYAlignment.Bottom'} do
  check(source:find(contract,1,true)~=nil,'D4 split typography '..contract)
 end
-print('PASS: '..checks..' V1 exact audio / gauge independence / painted bounds checks')
+print('PASS: '..checks..' V1 assets / approved normal audio / gauge independence / painted bounds checks')

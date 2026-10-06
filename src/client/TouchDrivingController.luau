@@ -223,23 +223,25 @@ function Controller.start()
 			local left = root.AbsoluteSize.X - l.margin - l.padWidth - l.padInset
 			local top = l.padBottom + l.padHeight
 			auto.Size=UDim2.fromOffset(l.autoHitSize,l.autoHitSize)
-			auto.Position=UDim2.new(0,left+(l.padWidth+l.autoHitSize)/2,1,-l.padBottom-(l.padHeight-l.autoHitSize)/2)
+			auto.Position=UDim2.new(0,left+l.autoRight,1,-top+l.autoTop+l.autoHitSize)
 			autoIcon:layout(l.autoVisualSize,l.autoVisualSize)
-			local function place(action, x, bottom, size)
+			local function place(action, x, bottom, width, height)
 				local b = drivingButtons[action].button
-				b.Size = UDim2.fromOffset(size, size)
+				b.Size = UDim2.fromOffset(width, height or width)
 				b.Position = UDim2.new(0, left+x, 1, -bottom)
 			end
 			place("Forward", (l.padWidth-l.forward)/2, top-l.forward, l.forward)
-			local directionBottom = l.padBottom + (l.padHeight-l.direction)/2
-			place("ForwardLeft", 0, directionBottom, l.direction)
-			place("ForwardRight", l.padWidth-l.direction, directionBottom, l.direction)
+			local directionBottom = l.padBottom + (l.padHeight-l.sideHeight)/2
+			place("ForwardLeft", 0, directionBottom, l.sideWidth,l.sideHeight)
+			place("ForwardRight", l.padWidth-l.sideWidth, directionBottom, l.sideWidth,l.sideHeight)
 			place("BrakeReverse", (l.padWidth-l.brake)/2, l.padBottom, l.brake)
 
 		end
 		drift.Size, use.Size = UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight), UDim2.fromOffset(l.action,l.action)
 		driftIcon:layout(l.driftWidth,l.driftHeight)
-		for _,control in drivingButtons do control.icon:layout(l.driveVisualSize,l.driveVisualSize) end
+		for action,control in drivingButtons do
+			control.icon:layout(if action=="ForwardLeft" or action=="ForwardRight" then l.sideVisualWidth else l.driveVisualSize,l.driveVisualSize)
+		end
 		drift.Position = UDim2.new(0,l.driftX,1,-l.driftBottom)
 		use.Position = UDim2.new(0,l.useX,1,-l.useBottom)
 	end

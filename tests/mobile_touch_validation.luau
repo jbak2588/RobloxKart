@@ -112,6 +112,8 @@ child(modulesFolder,"ModuleScript","KDMIconCatalog")
 modules.KDMIconCatalog=luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
 child(modulesFolder,"ModuleScript","KDMControlIconView")
 modules.KDMControlIconView=luau.load(fs.readFile("src/client/KDMControlIconView.luau"),{environment=env})()
+child(modulesFolder,"ModuleScript","KDMItemIconView")
+modules.KDMItemIconView=luau.load(fs.readFile("src/client/KDMItemIconView.luau"),{environment=env})()
 for _, name in {"TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
 end
@@ -140,14 +142,14 @@ check(not tutorial.isOpen(),"tutorial starts closed")
 tutorial.open()
 check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","tutorial opens on DRIVE")
 check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","DRIVE has no duplicate arrow row")
-assertTutorialIcons({"Forward","ForwardLeft","ForwardRight","BrakeReverse","AutoForward"})
+assertTutorialIcons({"Forward","Left","Right","BrakeReverse","AutoForward"})
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
 check(string.find(tutorialCard.Description.Text,"5 boosts in one race",1,true)~=nil
 	and not string.find(tutorialCard.Description.Text,"in a row",1,true),
 	"tutorial explains cumulative five-Boost reward")
 check(tutorialCard.Diagram.Visible,"DRIFT diagram remains visible")
-assertTutorialIcons({"Drift","ForwardLeft","ForwardRight"})
+assertTutorialIcons({"Drift","Left","Right"})
 local examples=tutorialCard.GaugeExamples
 check(examples.Visible and #examples.ChargingGauge:GetChildren()==6 and #examples.ReadyGauge:GetChildren()==6,"tutorial has two native five-segment gauges")
 check(examples.ChargingGauge.Segment3.BackgroundColor3==rb.Color3.fromRGB(65,225,245)
@@ -168,9 +170,17 @@ for index,name in {"NITRO","SLICK","SHIELD","MISSILE"} do
   "item caption centers on its icon column: "..name)
 end
 assertTutorialIcons({"Nitro","Slick","Shield","Missile"})
+for index,id in {"Nitro","Slick","Shield","Missile"} do
+ local holder=iconSlots["IconSlot"..index]
+ local image=holder.KDMItemImage
+ check(image and image.Image==modules.KDMIconCatalog.Items[id]
+  and image.ScaleType==rb.Enum.ScaleType.Fit and image.ZIndex>holder.ZIndex,
+  "tutorial uses uploaded item artwork with safe layering: "..id)
+end
 check(not string.find(fs.readFile("src/client/GarageUiController.luau"),"CONTROLS ?",1,true),"Garage control replay label has no question mark")
 tutorialCard.Back.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial back works")
+for _,holder in iconSlots:GetChildren() do check(not holder:FindFirstChild("KDMItemImage"),"leaving items releases artwork") end
 tutorialCard.Next.Activated:Fire(); tutorialCard.Next.Activated:Fire()
 check(not tutorial.isOpen(),"GOT IT closes tutorial")
 check(dismissCount==0,"GOT IT does not persist dismissal")
@@ -338,7 +348,7 @@ else
  end
  auto.Activated:Fire();neutral("Auto OFF coasts")
 
- local bareLeft=touch(root.ForwardLeft);check(latest()[1]==1 and latest()[2]==-1,"standalone ForwardLeft accelerates and steers")
+ local bareLeft=touch(root.ForwardLeft);check(latest()[1]==0 and latest()[2]==-1,"standalone left only steers")
  bareLeft.UserInputState=rb.Enum.UserInputState.End;neutral("standalone turn release coasts")
  local bareBrake=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==0,"standalone BrakeReverse neutral steering")
  bareBrake.UserInputState=rb.Enum.UserInputState.End;neutral("brake release")
@@ -373,10 +383,10 @@ else
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"drift release preserves throttle/steer for existing boost condition")
 		check(input.getEffectiveSteering()==direction,"steering HUD action sync")
 		steer.UserInputState=rb.Enum.UserInputState.End; f.UserInputState=rb.Enum.UserInputState.End; neutral("all buttons released")
-  steer=touch(button);check(latest()[1]==1 and latest()[2]==direction,"standalone combined turn")
+  steer=touch(button);check(latest()[1]==0 and latest()[2]==direction,"standalone steering has neutral throttle")
   b=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==direction,"brake priority preserves independently held turn")
   d=touch(drift);check(latest()[1]==-1 and latest()[2]==direction*.60 and latest()[3],"brake turn Drift contract")
-  b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1,"combined turn resumes after brake")
+  b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==0 and latest()[2]==direction*.60,"brake release retains Drift steering without acceleration")
   d.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[2]==direction and not latest()[3],"normal steering restored")
   steer.UserInputState=rb.Enum.UserInputState.Cancel;neutral("combined turn cancel neutral")
 
@@ -607,18 +617,32 @@ for progress=1,4 do
 end
 player:SetAttribute("DriftBonusProgress",5)
 player:SetAttribute("DriftBonusNitroAwarded",true)
+player:SetAttribute("DriftBonusProgress",0)
+player:SetAttribute("DriftBonusAwardCount",1)
 check(bonusLabel.Visible and bonusLabel.Text=="NITRO +1" and not progressLabel.Visible,
 	"fifth Boost flashes Nitro award once inside item group")
 check(#delayed==1,"award transition schedules one flash end")
 delayed[1]()
 check(not bonusLabel.Visible and progressLabel.Visible
-	and progressLabel.Text=="NITRO CHARGE  5/5\nBONUS EARNED",
-	"flash ends with persistent five of five and earned state")
+	and progressLabel.Text=="NITRO CHARGE  0/5",
+	"flash ends with fresh cycle progress")
 player:SetAttribute("DriftBonusNitroAwarded",true)
 check(#delayed==1 and not bonusLabel.Visible,"steady awarded state never repeats flash")
+player:SetAttribute("DriftBonusProgress",4)
+check(progressLabel.Text=="NITRO CHARGE  4/5","ever-awarded compatibility mirror does not hide the next cycle")
+player:SetAttribute("DriftBonusProgress",5)
+player:SetAttribute("DriftBonusPending",true)
+check(progressLabel.Text=="NITRO CHARGE  5/5\nBONUS PENDING" and not bonusLabel.Visible,"pending reward uses the existing text group")
+player:SetAttribute("DriftBonusPending",false)
+player:SetAttribute("DriftBonusProgress",0)
+player:SetAttribute("DriftBonusAwardCount",2)
+check(bonusLabel.Visible and #delayed==2,"second actual award flashes independently of ever-awarded latch")
+delayed[2]()
+check(progressLabel.Visible and progressLabel.Text=="NITRO CHARGE  0/5","repeated flash returns to current progress")
 player:SetAttribute("RaceState","COUNTDOWN")
 player:SetAttribute("DriftBonusProgress",0)
 player:SetAttribute("DriftBonusNitroAwarded",false)
+player:SetAttribute("DriftBonusAwardCount",0)
 check(progressLabel.Text=="NITRO CHARGE  0/5" and not bonusLabel.Visible,
 	"new countdown clears previous reward presentation")
 for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
@@ -663,11 +687,12 @@ for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430)
 		local pl=size.X-l.margin-l.padWidth-l.padInset
 		local pt=size.Y-l.padBottom-l.padHeight
 		local px=pl+(l.padWidth-l.forward)/2
-		local ty=size.Y-l.padBottom-(l.padHeight+l.direction)/2
+		local ty=size.Y-l.padBottom-(l.padHeight+l.sideHeight)/2
 		local controls={lap,driftRect,useRect,gaugeRect,wheelRect,
 			{px,pt,px+l.forward,pt+l.forward},
-			{pl,ty,pl+l.direction,ty+l.direction},
-			{pl+l.padWidth-l.direction,ty,pl+l.padWidth,ty+l.direction},
+			{pl,ty,pl+l.sideWidth,ty+l.sideHeight},
+			{pl+l.padWidth-l.sideWidth,ty,pl+l.padWidth,ty+l.sideHeight},
+			{pl+l.autoRight-l.autoHitSize,pt+l.autoTop,pl+l.autoRight,pt+l.autoTop+l.autoHitSize},
 			{px,size.Y-l.padBottom-l.brake,px+l.brake,size.Y-l.padBottom}}
 		for ci, controlRect in controls do
 			check(not overlaps(hudRect,controlRect),"combat/item UI clears LAP, Drift, Use, gauge, wheel and pad "..tostring(size).." HUD="..hi.." control="..ci.." "..table.concat(hudRect,",").." / "..table.concat(controlRect,","))
@@ -854,11 +879,20 @@ end
 smokeView:destroy()
 player.Character=character;humanoid.SeatPart=seat;kart:SetAttribute("KartSmokeObscuredActive",false)
 item.OnClientEvent=signal()
-local selector=luau.load(fs.readFile("src/client/TacticalLoadoutController.luau"),{environment=itemEnv})()
+local hudIconWorker=iconWorker
+local selectorSource=fs.readFile("src/client/TacticalLoadoutController.luau")
+for _,asset in modules.KDMIconCatalog.Items do check(not selectorSource:find(asset:match("%d+"),1,true),"Loadout has no duplicate asset ID") end
+local selector=luau.load(selectorSource,{environment=itemEnv})()
 player:SetAttribute("RaceState","PRE_RACE");player:SetAttribute("RaceMatchStatus","WAITING")
 player:SetAttribute("RaceItemsReady",false);player:SetAttribute("RaceItemsPrepareRemaining",10)
 selector.start()
 local tactical=pg.KDMTacticalLoadout;local card=tactical.Modal.Card
+for _,id in modules.RaceItemSlots.TACTICAL do
+ check(card[id].ItemIcon.KDMItemImage.Image==modules.KDMIconCatalog.Items[id],"Loadout canonical image "..id)
+ check(not card[id].ItemIcon.KDMItemImage.Visible,"Loadout fallback while loading "..id)
+end
+iconWorker();iconWorker=hudIconWorker
+for _,id in modules.RaceItemSlots.TACTICAL do check(card[id].ItemIcon.KDMItemImage.Visible,"Loadout loaded image "..id) end
 for _,size in {V2.new(932,430),V2.new(844,390),V2.new(844,332),V2.new(748,303),V2.new(724,311)} do
 	safeSize=size;tactical:GetPropertyChangedSignal("AbsoluteSize"):Fire()
 	local r=rect(card)
@@ -868,6 +902,11 @@ for _,size in {V2.new(932,430),V2.new(844,390),V2.new(844,332),V2.new(748,303),V
 	check(r[1]>=0 and r[2]>=0 and r[3]<=size.X and r[4]<=size.Y,"tactical modal fits notch-safe landscape "..tostring(size))
 	for _,id in {"Slick","Shield","Missile","Smoke","Thunder","Confirm","Reset","Back"} do
 		check(card[id].AbsoluteSize.X>=44 and card[id].AbsoluteSize.Y>=44,"tactical modal comfortable target "..id)
+	end
+	for _,id in modules.RaceItemSlots.TACTICAL do
+	 local icon,text=rect(card[id].ItemIcon),rect(card[id].ItemName)
+	 check(not overlaps(icon,text) and card[id].ItemIcon.AbsoluteSize.X==36,"Loadout icon/name separate lanes "..id)
+	 check(text[3]<=rect(card[id])[3] and card[id].ItemName.Text==card[id].Text,"Loadout label preserves selection/localization "..id)
 	end
 	local names={"Core","Choose","Slick","Shield","Missile","Smoke","Thunder","Timer","Status","Confirm","Reset","Back"}
 	for i,name in names do

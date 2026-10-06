@@ -1,9 +1,10 @@
 local TrackCatalog = {
 	DefaultId = "Track01",
-	Order = { "Track01", "Track01Race", "Track02" },
+	Order = { "Track01", "Track01Race", "Track02", "Track03" },
 	Entries = {
 		Track01 = {
 			Id = "Track01",
+			PreviewImageAssetId = "rbxassetid://132968191916633",
 			DisplayName = "Practice Circuit",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeCircuitV1",
@@ -22,6 +23,7 @@ local TrackCatalog = {
 		},
 		Track01Race = {
 			Id = "Track01Race",
+			PreviewImageAssetId = "rbxassetid://129972226920253",
 			DisplayName = "Base Circuit",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeCircuitV1",
@@ -40,6 +42,7 @@ local TrackCatalog = {
 		},
 		Track02 = {
 			Id = "Track02",
+			PreviewImageAssetId = "rbxassetid://104449535838897",
 			DisplayName = "Prototype Circuit V2",
 			ModelName = "TestTrack",
 			GeometryId = "PrototypeCircuitV2",
@@ -53,6 +56,24 @@ local TrackCatalog = {
 				CFrame.new(-355, 0, 465),
 				CFrame.new(-365, 0, 480),
 				CFrame.new(-355, 0, 480),
+			},
+		},
+		Track03 = {
+			Id = "Track03",
+			PreviewImageAssetId = "rbxassetid://104244063916395",
+			DisplayName = "KDM Hard Circuit",
+			ModelName = "TestTrack",
+			GeometryId = "HardCircuitV1",
+			MatchType = "PUBLIC_RACE",
+			MinPlayers = 1,
+			MaxPlayers = 4,
+			PreviewRotationDegrees = 180.011251,
+			TargetLaps = 2,
+			GridSlots = {
+				CFrame.new(-370, 0, 465),
+				CFrame.new(-350, 0, 473),
+				CFrame.new(-370, 0, 489),
+				CFrame.new(-350, 0, 497),
 			},
 		},
 	},

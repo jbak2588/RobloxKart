@@ -7,6 +7,16 @@
 -- and yaw/turn rates radians/sec. SlipDegrees uses degrees; ratios are unitless.
 local Balance = {
 	VERSION = "R6-C0",
+	ITEM_ECONOMY = {
+		LapRefill = {
+			Enabled = true,
+			RefillTo = 1,
+			EmptyOnly = true,
+			NonFinalLapsOnly = true,
+			Eligible = { Shield = true, Slick = true, Missile = true, Thunder = true, Smoke = true },
+			ExcludeNitro = true,
+		},
+	},
 	ITEMS = {
 		Nitro = {
 			MaxSpeed = 100,

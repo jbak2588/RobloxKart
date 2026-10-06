@@ -23,13 +23,181 @@ Initial commercial target: **USD 500/month**.
 
 ## Game Flow
 
-Driver → Kart → Track → Ready → Race → Result
+**CURRENT IMPLEMENTED FLOW (R7-H1 local candidate):** Compact Hub →
+Kart / Track transitional overlay → Ready / Room →
+Item Prep (public waiting room) / Countdown → RACING → FINISHING (ROLL → PRESENT)
+→ FINISHED / Results → Rematch or return to Garage. Off-track DNF is separate.
+Driver Select UI is removed in the H1 candidate. Roblox Avatar appearance is
+preserved; legacy driverId / DriverCatalog remain protocol compatibility only.
+Hub uses RaceState=GARAGE, native movement/respawn and initially closed overlay.
+Studio and mobile Hub acceptance remain NOT VERIFIED; no H1 Publish.
+Do not re-add a Driving License flow.
 
-Current track selections:
+**APPROVED NEXT PRODUCT FLOW (not implemented):** Hub → Kart Garage / Track Board /
+Quick Race → Room or Solo Entry → Item Prep / Race → Results → Rematch or Return Hub.
 
-1. Practice Circuit — Solo Practice — 1 Lap
-2. Base Circuit — Public Race — 1–4 Racers — 2 Laps
-3. Prototype Circuit V2 — Solo Prototype — 3 Laps
+### Current Tracks
+
+| Catalog ID | Name | Race mode | Racers | Laps |
+| --- | --- | --- | --- | --- |
+| Track01 | Practice Circuit | SOLO_PRACTICE | 1 | 1 |
+| Track01Race | Base Circuit | PUBLIC_RACE | 1–4 | 2 |
+| Track02 | Prototype Circuit V2 — Legacy V2 | SOLO_PROTOTYPE | 1 | 3 |
+| Track03 | KDM Hard Circuit | PUBLIC_RACE | 1–4 | 2 |
+
+Track03 itself is the public track; do not create a separate Track03Race.
+Legacy V2 remains preserved as Track02. Room / Invite / Queue / Launch are
+track-aware; retain selected-track identity throughout routing and Rematch.
+
+## Current R7-A1-R4 Contract and Acceptance
+
+These current rules take precedence over historical milestone descriptions below.
+At the R7-H0 documentation checkpoint, R3B / R3C / R4 production changes are
+local and uncommitted; H0 records
+accepted working-tree behavior, not a new Git or Publish checkpoint.
+
+- Automated checkpoint: **53/53 PASS**; Touch, Joystick, Track03 4P controller
+  simulation, Room/Reserved routing, Repeatable Nitro, Rojo and diff checks PASS.
+  These are recorded R4 results; H0 documentation editing does not rerun the suite.
+- User mobile acceptance supplied in R7-H0: **Repeatable Nitro PASS**, repeated
+  five-BOOST cycles PASS, held 2 PASS, pending 1 PASS, accepted Nitro consume →
+  pending automatic refill PASS, and Track03 solo/mobile driving PASS.
+- **ACTUAL 4 HUMAN RACERS: NOT YET VERIFIED.** Controller simulation and solo
+  mobile acceptance do not establish published four-human acceptance. This newer
+  user acceptance supersedes the earlier R4 report's pending Nitro/solo status.
+
+**H1 local candidate:** Compact Hub Foundation + Roblox Avatar = Driver stage 1.
+After Studio/mobile Hub acceptance: H2 Garage, H3 Track Board and H4 runtime
+acceptance. H0 architectural decisions remain preserved; no capacity expansion.
+
+### Repeatable Nitro — single owner: RaceLoadout
+
+Count five actual successful Mini Boost outcomes (`BOOST`), not charged/failed
+Drifts, for each Nitro +1 cycle. Awards per race are unlimited; held Nitro max is
+2 and pending bonus max is 1. Nitro must be an active loadout slot.
+
+At held 2 plus 5/5, latch pending=true and keep progress=5. Additional BOOSTs
+freeze progress while pending; no second pending award or hidden charge. Accepted
+Nitro activation consumes 2→1, then settles pending 1→2 atomically and resets
+progress to 0/5. Rejected activation neither consumes nor settles pending.
+
+RaceLoadout alone owns `bonusProgress`, `bonusPending`, `bonusAwardCount` and
+`bonusEverAwarded`; the old bonusClaimed latch and duplicate controller counters
+are removed. `DriftBonusNitroAwarded` is an ever-awarded compatibility mirror only,
+never a gameplay gate. Same-race fall recovery and combat interruption preserve
+accumulated reward state. Recovery itself neither refills nor grants a reward.
+New race / Countdown / Rematch / Garage / new session / clear / teardown reset
+reward state through existing lifecycle and refill policy.
+
+## KDM Track Visual & Safety Standard v1
+
+Mandatory for **ALL NEW / REWORKED KDM TRACKS**; other existing tracks receive a
+retrofit only in a separately approved task. Preserve accepted Track03 geometry,
+kerbs, barriers, SafetyGround and minimap in H0.
+
+- Continuous kerbs on BOTH road edges. Standard sections use single kerbs;
+  sharp sustained corners use outward double kerbs without RoadWidth incursion.
+- Kerb/marking visuals: Anchored=true, CanCollide=false, CanTouch=false,
+  CanQuery=false, CastShadow=false.
+- Order: ROAD → KERB → DRIFT SAFETY SHOULDER → BARRIER/TRIGGER. Barriers are
+  never road boundaries. Both visible barriers and collision triggers respect
+  minimum shoulder clearance: normal ≥12 studs; major Drift ≥16; Drift exit
+  ≥18 or omit the trigger.
+- Arrows mean RACE FORWARD, following the actual course centerline tangent:
+  arrow-forward dot tangent ≥0.95, zero reverse/lateral arrows. Remove a marker
+  when its direction cannot be guaranteed.
+- Each two-lane station has one cue at each lane center, never over the center
+  divider. Accepted Track03 example: **47 stations / 94 lane-centered clusters**.
+
+See [the detailed standard](docs/audits/kdm_track_visual_safety_standard_v1.md).
+
+## Planned Roblox Compact Racing Hub
+
+Approved next architecture; **not implemented by R7-H0**. Direction:
+**COMPACT / FAST / SOCIAL / RACE-FIRST**. Use a small racing plaza, paddock or
+stadium-entry hub. Driving Empire supplies product lessons only: Roblox Avatar
+presence, visible other players, physical Garage/race access, world interaction
+plus UI shortcuts, social presence and separate reserved races. Do not copy its
+assets, style, branding or layout. No large Open World, long traversal, vehicle
+RP city or large-world exploration.
+
+Hub areas: SPAWN PLAZA, GARAGE, TRACK / RACE BOARD, QUICK RACE, PODIUM / TROPHY,
+EVENT BOARD; future SHOP / COSMETICS. Target core access within approximately
+5–10 seconds of walking, without forcing walking. Keep QUICK RACE / GARAGE /
+TRACK UI shortcuts. Social goals are seeing avatars, showing karts and entering
+races, with future podium/event/cosmetic access.
+
+Conceptual layout only:
+
+```text
+                  PODIUM
+GARAGE         KDM PLAZA         TRACK BOARD
+                QUICK RACE
+          EVENT BOARD / FUTURE SHOP
+```
+
+Exact Hub dimensions, building models and Spawn coordinates are R7-H1 design
+work, not approved final geometry.
+
+### Roblox Avatar = Driver — staged migration
+
+H1 local candidate removes Driver Select UI; the player's Roblox Avatar becomes the
+driver. Do not build a separate Character Creator or prioritize identity-override
+KDM Driver sales. Migration order:
+
+1. Remove Driver Select UI first; keep SelectedDriverId or equivalent internal
+   payload with a safe default for compatibility.
+2. Stop DriverAppearance body recolor, hat hiding and other forced themes;
+   preserve the user's Roblox Avatar.
+3. After runtime, payload and tests stabilize, gradually remove DriverCatalog
+   dependencies. Data/protocol cleanup follows UI removal.
+
+Prioritize Kart, skin, wheel, Drift trail, victory animation, Garage cosmetic and
+emote options. A future racing helmet may be additive, subject to separate review.
+
+### Kart Garage and Track Board
+
+Retain Kart Select: **2 chassis families / 11 color choices**. Sprint V1 has
+Red / White / Blue / Yellow (4); KDM V2 has Cyan / Red / White / Yellow /
+Metal Blue / Metal Pink / Black (7). Move selection into the Lobby Garage with
+actual 3D karts, turntable, left/right selection and existing validated
+horizontal touch/mouse orbit behavior reused where possible.
+
+**Current preview:** 2D top-down course map.
+**Future primary 3D Track Preview:** miniature TRACK MODEL / DIORAMA with
+oblique/side perspective. Horizontal swipe/drag and/or LEFT / RIGHT buttons
+rotate the track around its vertical axis. Show name, race mode, racer capacity,
+lap count, difficulty/category when available and Start / Finish. Keep 2D maps
+as optional secondary selection maps or race minimaps. The future primary
+selection visual must be the 3D diorama. Derive simplified Hard Circuit previews
+from actual production geometry; do not redesign Track03 for a preview.
+
+Retain the track-aware Room Browser: Track Board → Public Track → Room Browser
+overlay → Room / Queue / Invite; Solo Track → Start Solo. Preserve room, queue,
+invite, reserved race server, RaceSession and Rematch architecture. Migration
+changes pre-race presentation/navigation. Fullscreen 4/4 Ready summary is a
+future compact/removal candidate; Kart + Track confirmation or direct RACE /
+JOIN ROOM entry remains an implementation decision.
+
+Quick Race must reach a race path in 1–2 actions. Automatic track/match policy
+is undecided; do not invent or hardcode it. Shop layout, Podium rewards, XP and
+persistent Inventory remain undecided/deferred.
+
+### Multiplayer roadmap: 4P → 6P → 8P
+
+Stabilize 4P and obtain actual four-human runtime acceptance before 6P, then 8P.
+Keep capacity expansion separate from Lobby implementation.
+
+| R4 audit category | Capacity extension work |
+| --- | --- |
+| READY foundation | Room directory, Invite, Queue, reserved arrival, RaceSession, Ranking |
+| NEEDS CHANGE | GridSlots, TrackCatalog MaxPlayers, HUD rows, Result UI, Bot fill policy |
+| RUNTIME TEST | Thunder target load, Smoke/Slick hazard load, network ownership, mobile performance |
+
+Use catalog MaxPlayers and available GridSlots as capacity sources of truth;
+do not add another hardcoded four-racer limit. Current explicit invited Bot is
+Base-only; no automatic Bot fill on Base or Track03. Decide future fill policy
+separately before capacity extension.
 
 ## Driving
 
@@ -70,11 +238,12 @@ the displayed active item directly; desktop `1/2/3/4` select slot positions and
 `Q` uses the selection. Both selection and use require membership in that
 player's server loadout. Existing icons, HUD geometry and combat feedback stay
 unchanged; incoming emphasis finds Shield by item identity, wherever its slot is.
-Bonus Nitro still awards once after five Mini Boosts, up to two charges, and
-requires Nitro in the active loadout. No hidden Nitro charge is created.
+Bonus Nitro now follows R7-A1-R4 repeatable five-BOOST cycles, held max 2 and
+pending max 1, and requires Nitro in the active loadout. No hidden charge is created.
 
-New Race/Rematch prepares the default; terminal/exit, seat/character/reset and
-session boundaries clear slots and charges. GO refills valid Countdown slots
+Historical M4-A2 lifecycle description: New Race/Rematch prepared the default;
+terminal/exit and session teardown cleared slots and charges. Same-race fall
+recovery now preserves inventory and repeatable reward state as specified above. GO refills valid Countdown slots
 and preserves desktop preselection; a cleared loadout safely uses the default.
 The M4-A2 foundation added no persistence, inventory, Shop or selector. M4-A3
 adds server-local pre-race tactical choices and Smoke below; a Garage item selector
@@ -105,7 +274,8 @@ constructs Nitro + three choices, and stores them only for the current server
 stay/session. Rematch keeps choices and refills each active item to one. Garage,
 departure or a different logical RaceSession restores safe defaults. No fifth
 HUD cell, key 5, persistence, Inventory, Shop or DataStore is added. Bonus Nitro's
-five-Boost reward is unchanged. Smoke icon follows its actual active slot.
+five-BOOST threshold is retained; repeatable awards use the R7-A1-R4 contract.
+Smoke icon follows its actual active slot.
 
 R2 Smoke prototype: drop 10 studs behind at Road center; volume 36x18x10; lifetime 6 seconds;
 vision effect 3.00 seconds; owner grace .75 seconds; maximum 12 clouds. Nine
@@ -217,8 +387,11 @@ Nitro/Mini Boost/Slick/Missile hit effects and reset movement; fall routing and 
 invalidation are unchanged.
 
 Preserve exact four-slot order, remaining charges, selected item, confirmed tactical
-choice, bonusClaimed, DriftBonusProgress and DriftBonusNitroAwarded. Never refill
-consumed charges or award another Bonus Nitro on recovery. Garage, departure,
+choice, bonusProgress, bonusPending, bonusAwardCount and bonusEverAwarded, with
+DriftBonusProgress / DriftBonusNitroAwarded compatibility mirrors. Do not refill
+consumed charges or award/settle a bonus merely because recovery occurred.
+Subsequent valid BOOST cycles follow the current repeatable Nitro contract.
+Garage, departure,
 character/kart destruction and session teardown retain full inventory cleanup.
 Focused production-controller validation covers untouched/custom/partially consumed
 loadouts, repeated falls, 3/5 progress, already-awarded bonus and transient cleanup;
@@ -344,11 +517,14 @@ Rojo build and git diff --check PASS. CODE COMPLETE / PUBLISHED VISUAL ACCEPTANC
 
 ## Production Kart
 
-Sprint V1
+2 chassis families / 11 color choices: Sprint V1 (Red, White, Blue, Yellow)
+and KDM V2 (Cyan, Red, White, Yellow, Metal Blue, Metal Pink, Black).
 
-Colors: Red, White, Blue, Yellow.
+## Historical Development Notes
 
-## Current Priority
+Milestone descriptions and validation counts below describe their original checkpoints.
+The current R7-A1-R4 contract and R7-H0 roadmap above take precedence; old one-shot
+Nitro, three-track catalog and Phase 1C priorities are historical only.
 
 ### M4-A0 Auto Homing Missile Prototype
 
@@ -548,7 +724,9 @@ intentional left/right Drift-to-Mini-Boost success. The user has confirmed
 READY, release and Mini Boost on a real device, with acceptable boost frequency.
 Drift charge thresholds and all kart physics are unchanged.
 
-### TrackV2 Revision Required
+### TrackV2 Revision Required — Historical Gate
+
+Superseded by R3B/R3C: Track02 Legacy V2 is preserved; refined Hard Circuit is Track03.
 
 User device testing reports insufficient sustained drift arcs and arc length
 for the current charge requirements, plus abrupt S-turns approaching Finish
@@ -674,7 +852,9 @@ reaches 100 stud/s. The user also confirmed initial WAITING, START SOLO, Solo
 Finish to REMATCH to WAITING, tutorial dismissal across a full rejoin, Quit Race
 spacing, and the 15-second off-track DNF. The R4.5 item HUD placement also
 passed on a real device at 3/5 and 5/5 with BONUS EARNED below the item cells.
-TrackV2 geometry revision and production-off debug telemetry remain pending.
+Historical pending gates at M1: TrackV2 geometry revision and production-off telemetry.
+Current track state is preserved Legacy V2 (Track02) plus accepted Hard Circuit (Track03);
+public production telemetry must remain disabled.
 
 ### Engine loop asset decision
 
@@ -720,6 +900,9 @@ steady-RPM texture over a startup, throttle-blip or rev-up/release clip.
 
 ## M2-A0 Multiplayer Foundation
 
+**Historical behavior before R7-A1-R4.** Old one-shot Nitro, capacity/catalog lists
+and milestone status here do not override the current contract above.
+
 The server maps each Player to a `KartContext` holding that kart's chassis,
 seat, controls, speed, Drift, Mini Boost, Nitro, Slick victim motion, barrier
 response and Finish Roll state. `PrototypeWorld` runs one Heartbeat over the
@@ -738,6 +921,9 @@ M2-A0 preserved the solo flow. The user validated Drift/Mini Boost, Nitro,
 Slick, Shield, barrier recovery and Finish/Result/Rematch by driving in Studio.
 
 ## M2-A1 Validation and M2-B0 Public Race
+
+**Historical behavior before R7-A1-R4.** Old one-shot Nitro, capacity/catalog lists
+and milestone status here do not override the current contract above.
 
 The Garage displays **KART DRIFT MASTERS** and the current Roblox PlaceVersion
 as a small build label. Each actual Mini Boost start adds one cumulative point
@@ -1034,11 +1220,23 @@ Do not:
 
 ## Next Development Order
 
-1. Phase 1C / Arcade Garage Visual Layer (Garage Visual Polish Phase 1B CLOSED)
-2. Approved combat audio assets and broader 3/4-player balance sampling
-3. Additional tracks, persistence and cosmetics / Shop as separately scheduled
+Current: R7-A1-R4 Track03 4P + Repeatable Nitro code/automated PASS;
+Repeatable Nitro and Track03 solo user mobile PASS; actual human 4P runtime
+acceptance pending. R7-H0 records the documentation / Lobby architecture freeze.
+
+1. **R7-H1:** Compact Hub Foundation + Roblox Avatar = Driver migration stage 1.
+2. **R7-H2:** Garage / Kart interaction integration + Quick UI shortcuts.
+3. **R7-H3:** Track Board + 3D rotating Track Preview + Room Browser integration.
+4. **R7-H4:** Lobby → Reserved Race → Return Hub mobile/multiplayer acceptance.
+5. After 4P stabilization: 6P → 8P in separate capacity tasks.
+
+Phase 1C is a historical priority, superseded by this order. Do not implement
+XP / Shop / persistent reward systems ahead of these approved steps.
 
 ## Driver appearance decision (2026-09-26)
+
+Historical implemented appearance policy; superseded as a target by Roblox Avatar = Driver.
+Stop forced recolor/hat hiding only during the approved staged migration.
 
 - All drivers are shown without hats or helmets in Garage and races for now, so their faces and hairstyles remain visible.
 - Current roster: Crimson, Azure, Sunburst. Nova and its procedural hairstyle were removed at the user's request.
@@ -1050,6 +1248,9 @@ Do not:
 - PV1-B designs around the existing Physics Seat; do not change Seat CFrame, humanoid seating, rig proportions, or hip height.
 
 ## Strategic RaceLoadout (C1-B)
+
+**Historical behavior before R7-A1-R4.** Old one-shot Nitro, capacity/catalog lists
+and milestone status here do not override the current contract above.
 
 C1-A baseline: `be66348e599631775ce8293ca2c3a893a91df7a1`.
 
@@ -1098,7 +1299,10 @@ chase-camera readability and natural two-lane racing remain published checks.
 
 Rear Deploy Preview: accepted Slick use replaces loadout display for 0.9 seconds. Lightweight WorldModel contains at most 64 current kart visual parts, a simplified road, drop, splash and pad. It is a rear-facing deployment replay, not live Workspace rendering. No track/world clone or main camera change. It cleans its scene/render connection on timeout, race exit, replacement or GUI destruction. BLOCKED interrupts it. Item input remains active throughout. Desktop 248 x 152; compact 176 x 112 at the existing lower-left anchor.
 
-### Nitro / extra reward policy
+### Nitro / extra reward policy — historical C1-B
+
+The one-shot grant API and optional gate/token below are historical/deferred;
+R4 implements repeatable Drift rewards through RaceLoadout instead.
 
 Current speeds: normal 70, Mini Boost 100 for 2.0 seconds, Nitro 100 for 3 seconds. Mini Boost acceleration is 65; Nitro acceleration 75 and smooth exit 15 stud/s per second remain. Brake priority, off-track cancellation and barrier cancellation remain.
 
@@ -1123,6 +1327,9 @@ Results at that baseline: 157 RaceItem/Nitro checks; 8 rear preview lifecycle ch
 Studio 896 x 414 basic smoke passed: 1/1/1 during countdown/start, 2/Q Slick world deployment and temporary matching-kart preview, HUD restoration with Slick=0, 3/Q Shield globe and Shield=0, Nitro activation/exhaust and Nitro=0, then fresh 1/1/1 on the actual Rematch button. A server command set DNF in the test session to reach Rematch without a full race. No full held-key speed run was performed by automation; the then-current 70/82/100 speeds, Nitro duration/exit and cancellation were covered by deterministic controller tests. Preview duration/cleanup is checked with a controlled clock at 0.89 and 0.91 seconds.
 
 ## C1-C - Permanent Practice and race selections
+
+**Historical behavior before R7-A1-R4.** Old one-shot Nitro, capacity/catalog lists
+and milestone status here do not override the current contract above.
 
 Latest user decision replaces Driving License with always-available Practice. Garage remains Driver -> Kart -> Track -> Ready. No License tutorial, session completion flag, unlock gate, dedicated button or special completion result remains.
 
@@ -1296,5 +1503,6 @@ R3-R1 changes only desktop scale and centering; desktop previews are bounded at
 1100x500, Lobby height matches the preview and Controls follows below it.
 Historical Studio reserved-server HTTP 403 is not a Phase 1B failure and does not
 establish reserved-server launch acceptance. No server logic change is requested.
-Next UI direction: Phase 1C / Arcade Garage Visual Layer.
+Historical next UI direction at that checkpoint: Phase 1C / Arcade Garage Visual Layer.
+Superseded by the R7-H0 Compact Lobby roadmap above.
 This finalization authorizes the Git checkpoint only; no Roblox Publish.

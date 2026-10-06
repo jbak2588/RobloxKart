@@ -70,7 +70,7 @@ local services = {
 }
 local launches, failLaunch = {}, false
 local modules = {
-	TrackCatalog = { Entries = { Track01Race = { MaxPlayers = 4 } } },
+	TrackCatalog = { Entries = { Track01Race = { MatchType="PUBLIC_RACE", MaxPlayers = 4 }, Track03={MatchType="PUBLIC_RACE",MaxPlayers=4}, Track02={MatchType="SOLO_PROTOTYPE",MaxPlayers=1} } },
 	DriverCatalog = { Entries = { Driver01 = {} } },
 	KartCatalog = { Entries = { Kart01 = {} } },
 	ActiveMatchDirectory = Directory,
@@ -114,8 +114,8 @@ local Service = luau.load(fs.readFile("src/server/MatchRoomService.luau"),
 Service.start()
 local count = 0
 local function check(value, message) assert(value, message); count += 1 end
-local function action(player, name, first, second)
-	remote.OnServerEvent:Fire(player, name, first, second)
+local function action(player, name, first, second, third)
+	remote.OnServerEvent:Fire(player, name, first, second, third)
 end
 local function latest(player, name)
 	for index = #(remote.messages[player] or {}), 1, -1 do
@@ -123,7 +123,7 @@ local function latest(player, name)
 		if message.action == name then return message.data end
 	end
 end
-local function browse(player) action(player, "Browse", "Driver01", "Kart01") end
+local function browse(player, trackId) action(player, "Browse", "Driver01", "Kart01", trackId or "Track01Race") end
 
 browse(a); action(a, "Create")
 local roomA = launches[1].payload.roomId
@@ -136,7 +136,7 @@ check(directory:get(roomA).state == "WAITING"
 check(directory:display(directory:get(roomA)).reservedServerAccessCode == nil,
 	"browser never exposes reservation code")
 
-browse(f); action(f, "Create")
+browse(c); browse(f); action(f, "Create")
 local roomB = launches[2].payload.roomId
 check(roomA ~= roomB and reservations == 2 and #latest(c, "Snapshot").rooms == 2,
 	"independent rooms remain discoverable")
@@ -217,4 +217,41 @@ browse(e)
 check(latest(c, "Error") == "ROOM CLOSED - CHOOSE ANOTHER ROOM"
 	and latest(c, "Snapshot").visible,
 	"expired queued Room returns player to Browser")
+-- Additional selected-track, malicious cross-track, invite and launch cases.
+failLaunch=false
+local h,i,j,k=racer(7),racer(8),racer(9),racer(10)
+browse(h,"Track03");action(h,"Create")
+local hardRoom=launches[#launches].payload.roomId
+check(directory:get(hardRoom).trackId=="Track03" and directory:get(hardRoom).maxPlayers==4
+ and launches[#launches].payload.trackId=="Track03","Track03 creation and launch use selected track")
+browse(i,"Track01Race")
+for _,record in latest(i,"Snapshot").rooms do check(record.trackId=="Track01Race","Base browser filters Hard rooms") end
+local before=#launches
+action(i,"Join",hardRoom);action(i,"Queue",hardRoom)
+check(#launches==before and #directory:get(hardRoom).stagedMembers==1 and #directory:get(hardRoom).queued==0,"cross-track join and queue reject")
+browse(j,"Track03")
+for _,record in latest(j,"Snapshot").rooms do check(record.trackId=="Track03","Hard browser filters Base rooms") end
+action(j,"Join",roomB);action(j,"Queue",roomB)
+check(#launches==before,"reverse cross-track join and queue reject")
+check(not Service.openBrowser(j,"Driver01","Kart01","Track02")
+ and not Service.openBrowser(j,"Driver01","Kart01","Unknown"),"solo and unknown tracks cannot open public browser")
+social:publish(i,"hub-job");social:sendInvite(i.UserId,directory:get(hardRoom))
+action(i,"AcceptInvite","Driver01","Kart01")
+check(launches[#launches].payload.trackId=="Track03" and #directory:get(hardRoom).stagedMembers==2,"invite moves Base selection to authoritative Hard track")
+local current=directory:get(hardRoom)
+check(directory:stage(hardRoom,{userId=100},"token-100","Track01Race")==nil
+ and directory:queue(hardRoom,{userId=100},"Track01Race")==nil,"atomic directory admission rejects cross-track expected identity")
+directory:confirmArrival(hardRoom,h.UserId,current.stagedMembers[1].admissionToken,"hard-job")
+directory:confirmArrival(hardRoom,i.UserId,current.stagedMembers[2].admissionToken,"hard-job")
+directory:startRound(hardRoom,h.UserId)
+browse(k,"Track03");action(k,"Queue",hardRoom)
+check(#directory:get(hardRoom).queued==1,"Track03 racing room accepts same-track next-round queue")
+social:publish(j,"hub-job");social:sendInvite(j.UserId,directory:get(hardRoom));action(j,"AcceptInvite","Driver01","Kart01")
+check(#directory:get(hardRoom).queued==2 and directory:get(hardRoom).queued[2].priority==1,"Hard racing invite queues with invited priority")
+directory:raceState(hardRoom,current.matchId,"ROUND_COMPLETE",2)
+local nextHard=directory:nextStaging(hardRoom,{{userId=h.UserId,name=h.DisplayName,driverId="Driver01",kartId="Kart01"}})
+check(nextHard.trackId=="Track03" and nextHard.roomId==hardRoom and nextHard.stagedMembers[2].userId==j.UserId
+ and nextHard.stagedMembers[3].userId==k.UserId,"Hard rematch preserves room and invited/public queue ordering")
+waits=0;pcall(background[1])
+check(launches[#launches].payload.trackId=="Track03","promoted Hard queue retains authoritative track at launch")
 print(string.format("PASS: %d persistent MatchRoom service checks", count))

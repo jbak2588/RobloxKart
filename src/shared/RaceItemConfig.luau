@@ -2,6 +2,12 @@
 local Balance = require(script.Parent:WaitForChild("KDMGameplayBalance"))
 
 return table.freeze({
+	LAP_REFILL_ENABLED = Balance.ITEM_ECONOMY.LapRefill.Enabled,
+	LAP_REFILL_TO = Balance.ITEM_ECONOMY.LapRefill.RefillTo,
+	LAP_REFILL_EMPTY_ONLY = Balance.ITEM_ECONOMY.LapRefill.EmptyOnly,
+	LAP_REFILL_NON_FINAL_ONLY = Balance.ITEM_ECONOMY.LapRefill.NonFinalLapsOnly,
+	LAP_REFILL_ELIGIBLE = Balance.ITEM_ECONOMY.LapRefill.Eligible,
+	LAP_REFILL_EXCLUDE_NITRO = Balance.ITEM_ECONOMY.LapRefill.ExcludeNitro,
 	DRIFT_BONUS_REQUIRED_BOOSTS = Balance.DRIFT.BonusRequiredBoosts,
 	SLICK_LIFETIME = Balance.ITEMS.Slick.Lifetime,
 	SLICK_OWNER_GRACE = Balance.ITEMS.Slick.OwnerGrace,

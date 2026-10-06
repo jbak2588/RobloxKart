@@ -359,7 +359,8 @@ function RaceHudController.start()
 		displayedRivalPositions = {}
 		local definition = TrackGeometry.getDefinition(geometryId)
 		assert(definition, "Selected race track geometry is missing")
-		mapRenderer = TrackMapRenderer.create(miniMapPanel, definition, true)
+		mapRenderer = TrackMapRenderer.create(miniMapPanel, definition, true,
+			if trackEntry.Id == "Track03" then trackEntry.PreviewRotationDegrees else 0)
 		mapGeometryId = geometryId
 	end
 

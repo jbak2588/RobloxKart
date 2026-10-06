@@ -135,7 +135,7 @@ function RaceItemUiController.start()
 	local feedbackUntil = 0
 	local feedbackText = ""
 	local deployedUntil = 0
-	local lastAwarded = player:GetAttribute("DriftBonusNitroAwarded") == true
+	local lastAwardCount = player:GetAttribute("DriftBonusAwardCount") or 0
 	local bonusFlashSerial = 0
 	local bonusFlashVisible = false
 	local preview
@@ -193,14 +193,14 @@ function RaceItemUiController.start()
 		end
 		label.Visible = racing and deployed and not emergencyReady and not (preview and preview:isVisible())
 		label.Text = "SLICK DEPLOYED"
-		local awarded = player:GetAttribute("DriftBonusNitroAwarded") == true
+		local pending = player:GetAttribute("DriftBonusPending") == true
 		local progress = player:GetAttribute("DriftBonusProgress")
 		local threshold = Config.DRIFT_BONUS_REQUIRED_BOOSTS
-		local count = if awarded then threshold elseif type(progress) == "number"
+		local count = if type(progress) == "number"
 			then math.clamp(progress, 0, threshold) else 0
 		nitroProgress.Visible = racing or player:GetAttribute("RaceState") == "COUNTDOWN"
 		progressLabel.Visible = not bonusFlashVisible
-		progressLabel.Text = if awarded then string.format("NITRO CHARGE  %d/%d\nBONUS EARNED", threshold, threshold)
+		progressLabel.Text = if pending then string.format("NITRO CHARGE  %d/%d\nBONUS PENDING", threshold, threshold)
 			else string.format("NITRO CHARGE  %d/%d", count, threshold)
 		bonusLabel.Visible = bonusFlashVisible
 	end
@@ -279,7 +279,7 @@ function RaceItemUiController.start()
 	UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(layout)
 	UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(layout)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	for _, attribute in { "RaceState", "SelectedRaceItemId", "DriftBonusProgress", "RaceMissileIncomingCount", "RaceThunderIncomingCount" } do
+	for _, attribute in { "RaceState", "SelectedRaceItemId", "DriftBonusProgress", "DriftBonusPending", "RaceMissileIncomingCount", "RaceThunderIncomingCount" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end
 	for id in Catalog do player:GetAttributeChangedSignal("RaceCharge" .. id):Connect(refresh) end
@@ -295,12 +295,12 @@ function RaceItemUiController.start()
 		refresh()
 		task.delay(1.75, refresh)
 	end)
-	player:GetAttributeChangedSignal("DriftBonusNitroAwarded"):Connect(function()
-		local awarded = player:GetAttribute("DriftBonusNitroAwarded") == true
+	player:GetAttributeChangedSignal("DriftBonusAwardCount"):Connect(function()
+		local awardCount = player:GetAttribute("DriftBonusAwardCount") or 0
 		bonusFlashSerial += 1
 		local serial = bonusFlashSerial
-		bonusFlashVisible = awarded and not lastAwarded and player:GetAttribute("RaceState") == "RACING"
-		lastAwarded = awarded
+		bonusFlashVisible = awardCount > lastAwardCount and player:GetAttribute("RaceState") == "RACING"
+		lastAwardCount = awardCount
 		refresh()
 		if bonusFlashVisible then
 			task.delay(1, function()

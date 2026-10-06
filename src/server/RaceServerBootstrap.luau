@@ -41,6 +41,7 @@ function RaceServerBootstrap.checkArrival(payload, player, initialPlayer, gameId
 	if joinData.SourceGameId ~= gameId then return nil, "WRONG_SOURCE_GAME" end
 	local arrivalPayload = joinData.TeleportData
 	if type(arrivalPayload) ~= "table" or arrivalPayload.matchId ~= payload.matchId
+		or arrivalPayload.trackId ~= payload.trackId
 		or arrivalPayload.roomId ~= payload.roomId then
 		return nil, "MATCH_ID_MISMATCH"
 	end
@@ -54,10 +55,14 @@ end
 
 function RaceServerBootstrap.roomPlan(payload, arrivalPayload, record, userId, privateServerId, raceJobId)
 	if not RaceLaunchPayload.validate(arrivalPayload, false)
+		or arrivalPayload.trackId ~= payload.trackId
 		or arrivalPayload.roomId ~= payload.roomId or arrivalPayload.matchId ~= payload.matchId
 		or #arrivalPayload.participantUserIds ~= 1
 		or arrivalPayload.participantUserIds[1] ~= userId
 		or type(record) ~= "table" or record.state ~= "WAITING"
+		or record.trackId ~= payload.trackId
+		or record.maxPlayers ~= TrackCatalog.Entries[payload.trackId].MaxPlayers
+		or #(record.stagedMembers or {}) + #(record.stagedBots or {}) > TrackCatalog.Entries[payload.trackId].MaxPlayers
 		or record.roomId ~= payload.roomId or record.matchId ~= payload.matchId
 		or record.privateServerId ~= privateServerId
 		or (record.raceJobId ~= "" and record.raceJobId ~= raceJobId

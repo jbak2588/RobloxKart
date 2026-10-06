@@ -2,6 +2,7 @@ local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Slots=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemSlots"))
 local View=require(script.Parent:WaitForChild("MobileControlView"))
+local ItemIconView=require(script.Parent:WaitForChild("KDMItemIconView"))
 local Controller={}
 function Controller.start()
 	local player=Players.LocalPlayer
@@ -30,6 +31,8 @@ function Controller.start()
 	label(card,"Choose","CHOOSE 3",36,22)
 	local status=label(card,"Status","3 / 3 SELECTED",118,24)
 	local controls={}
+	local itemIcons,itemLabels={},{}
+	local iconCache=ItemIconView.cache(game:GetService("ContentProvider"),task)
 	local draft, pending={},false
 	local confirm=button(card,"Confirm","CONFIRM & READY")
 	confirm.TextSize=11
@@ -53,12 +56,26 @@ function Controller.start()
 		for _,id in Slots.TACTICAL do
 			local chosen=table.find(draft,id)~=nil
 			controls[id].Text=string.upper(id)..(if chosen then " ✓" else "")
+			itemLabels[id].Text=controls[id].Text
+			itemLabels[id].TextTransparency=if pending then .55 else 0
+			itemIcons[id]:update(true,if pending then 0 else 1,false)
 			controls[id].BackgroundColor3=if chosen then Color3.fromRGB(35,125,155) else Color3.fromRGB(35,50,65)
 			controls[id].Active=not pending
 		end
 	end
 	for index,id in Slots.TACTICAL do
 		local b=button(card,id,string.upper(id));b.Position=UDim2.fromOffset(12+(index-1)*108,66);controls[id]=b
+		-- Preserve the native button label/selection semantics; a separate label
+		-- reserves the icon lane and remains eligible for Roblox localization.
+		b.TextTransparency=1
+		local icon=Instance.new("Frame");icon.Name="ItemIcon";icon.BackgroundTransparency=1
+		icon.Position=UDim2.fromOffset(4,4);icon.Size=UDim2.fromOffset(36,36)
+		icon.Active=false;icon.Parent=b
+		itemIcons[id]=ItemIconView.new(icon,id,iconCache,View)
+		local text=label(b,"ItemName",b.Text,0,44)
+		text.Position=UDim2.fromOffset(46,0);text.Size=UDim2.new(1,-50,1,0)
+		text.TextSize=12;text.TextXAlignment=Enum.TextXAlignment.Left
+		itemLabels[id]=text
 		b.Activated:Connect(function()
 			if pending then return end
 			local found=table.find(draft,id)
@@ -119,6 +136,8 @@ function Controller.start()
 	end
 	for _,attr in {"RaceState","RaceMatchStatus","RaceItemsReady","RaceItemsPrepareRemaining"} do player:GetAttributeChangedSignal(attr):Connect(lifecycle) end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+	gui.Destroying:Connect(function() iconCache:destroy() end)
 	layout();lifecycle();refresh()
+	iconCache:start(refresh)
 end
 return Controller

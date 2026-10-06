@@ -7,7 +7,7 @@ local catalog = luau.load(fs.readFile('src/shared/KartCatalog.luau'), {environme
 local preload = luau.load(fs.readFile('src/client/GarageTexturePreload.luau'),{environment={Instance=rb.Instance}})()
 local expected = {'Kart05','Kart06','Kart07','Kart08','Kart09','Kart10','Kart11','Kart01','Kart02','Kart03','Kart04'}
 for index,id in expected do check(catalog.Order[index]==id,'exact Garage order '..index) end
-check(catalog.DefaultId=='Kart01','Sprint fallback independent of presentation')
+check(catalog.DefaultId=='Kart05','accepted Cyan default independent of browsing')
 local index=1
 for _=1,11 do index=(index-1+1+#catalog.Order)%#catalog.Order+1 end
 check(catalog.Order[index]=='Kart05','eleven right choices return Cyan')
