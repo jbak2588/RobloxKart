@@ -817,12 +817,19 @@ function GarageUiController.start()
 		headerGui.Enabled = gui.Enabled
 		headerGui:SetAttribute("GarageHeaderMode", if topHeader then "TOPBAR" else "SAFE_HEADER")
 		headerGui:SetAttribute("GarageLayoutRevision", GARAGE_LAYOUT_REVISION)
+		if mobileCompact and width>height and step == STEP_KART then
+			headerBottom = stepLabel.Position.Y.Offset+stepLabel.Size.Y.Offset
+		end
 		local top = if mobileCompact then math.max(height*.06, headerBottom+6) else math.max(height*.10,headerBottom+24)
 		local buttonTop = if mobileCompact then height-48 else height*.84
 		local nameHeight = if mobileCompact then 28 else 36
 		local descriptionSpace = if step == STEP_TRACK then (if mobileCompact then 26 else 32) else 0
 		local available = buttonTop - top - nameHeight - descriptionSpace - (if step == STEP_TRACK then 16 else 26)
 		local stageHeight = math.max(1, math.min(height*.51,360,available))
+		if mobileCompact and width>height and step == STEP_KART then
+			-- Give the kart the full safe lane between the header, name and actions.
+			stageHeight = math.max(1, available+14)
+		end
 		-- Retain Phase 1B widths independently from the expanded vertical budget.
 		local priorHeight = math.min(height*.44,310)
 		local stageWidth = math.min(width*(if width>height then .5 else .64),800,priorHeight*(if step == STEP_KART then 2.4 else 2.65),stageHeight*2.65)
@@ -1308,6 +1315,11 @@ function GarageUiController.start()
   chip.BackgroundColor3=entry.DisplayColor or entry.BodyColor or Theme.Panel
   chip.TextColor3=Theme.Selection;chip.Font,chip.TextSize=Enum.Font.GothamBold,22
   chip.BorderSizePixel=0;chip.Parent=chipRow
+  local swatch=Instance.new("TextLabel")
+  swatch.Name,swatch.Size,swatch.Position="Swatch",UDim2.fromOffset(32,32),UDim2.fromOffset(6,6)
+  swatch.BackgroundColor3,swatch.BorderSizePixel=chip.BackgroundColor3,0
+  swatch.Font,swatch.TextSize,swatch.TextColor3=chip.Font,18,chip.TextColor3
+  swatch.Visible,swatch.Parent=false,chip
   local ring=Instance.new("UIStroke");ring.Name="SelectionRing";ring.Color,ring.Thickness,ring.Parent=Theme.Selection,2,chip
   chips[id]=chip
   chip.Activated:Connect(function() chooseKart(id) end)
@@ -1329,35 +1341,46 @@ function GarageUiController.start()
   shell.Size=viewport.Size
   local columns=nil
   if sideControls then
-   -- Short phones retain the full Kart preview height; put controls beside it.
-   viewport.Position=UDim2.fromOffset(canvas.X*.28,position.Y.Offset)
-   viewport.Size=UDim2.fromOffset(canvas.X*.42,size.Y.Offset)
+   -- Compact selectors release width to the kart, with 44px touch targets.
+   local controlsWidth=math.clamp(canvas.X*.23,192,208)
+   local previewWidth=math.max(1,canvas.X-controlsWidth-136)
+   viewport.Position=UDim2.fromOffset(64+previewWidth*.5,position.Y.Offset)
+   viewport.Size=UDim2.fromOffset(previewWidth,size.Y.Offset)
    previewLoading.Position,previewLoading.Size=viewport.Position,viewport.Size
    shell.Position,shell.Size=viewport.Position,viewport.Size
    kartControls.AnchorPoint=Vector2.zero
-   kartControls.Position=UDim2.fromOffset(canvas.X*.58,position.Y.Offset)
-   kartControls.Size=UDim2.fromOffset(canvas.X*.34,size.Y.Offset)
-   chipRow.Size=UDim2.new(1,0,1,-50)
+   kartControls.Position=UDim2.fromOffset(canvas.X-controlsWidth-12,position.Y.Offset)
+   kartControls.Size=UDim2.fromOffset(controlsWidth,size.Y.Offset+32)
+   populationLabel.Parent,populationLabel.AnchorPoint=kartControls,Vector2.zero
+   populationLabel.Position,populationLabel.Size=UDim2.fromOffset(0,0),UDim2.new(1,0,0,20)
+   populationLabel.TextSize=10
+   chipRow.Position,chipRow.Size=UDim2.fromOffset(0,74),UDim2.new(1,0,1,-74)
    chipRow.ScrollingDirection=Enum.ScrollingDirection.Y
-   columns=math.max(1,math.floor(canvas.X*.34/50))
-   leftArrow.Position=UDim2.fromOffset(canvas.X*.07-leftArrow.Size.X.Offset-4,position.Y.Offset+(size.Y.Offset-leftArrow.Size.Y.Offset)*.5)
-   rightArrow.Position=UDim2.fromOffset(canvas.X*.49+4,leftArrow.Position.Y.Offset)
+   columns=math.max(1,math.floor(controlsWidth/48))
+   leftArrow.Position=UDim2.fromOffset(12,position.Y.Offset+(size.Y.Offset-leftArrow.Size.Y.Offset)*.5)
+   rightArrow.Position=UDim2.fromOffset(64+previewWidth+8,leftArrow.Position.Y.Offset)
   else
+   chipRow.Position=UDim2.fromOffset(0,50)
    chipRow.Size=UDim2.new(1,0,0,48)
    chipRow.ScrollingDirection=Enum.ScrollingDirection.X
   end
   local id=KartCatalog.Order[kartIndex]
   local family=KartCatalog.Entries[id].VisualModelName
+  local chipPitch=if sideControls then 48 else 50
   local index=0
   for _,key in KartCatalog.Order do
    local chip=chips[key];chip.Visible=KartCatalog.Entries[key].VisualModelName==family
-   if chip.Visible then chip.Position=UDim2.fromOffset(if columns then index%columns*50 else index*50,if columns then math.floor(index/columns)*50 else 0);index+=1 end
+   if chip.Visible then chip.Position=UDim2.fromOffset(if columns then index%columns*chipPitch else index*chipPitch,if columns then math.floor(index/columns)*chipPitch else 0);index+=1 end
    chip.Text=if key==id then "✓" else ""
+   chip.BackgroundTransparency,chip.TextTransparency=if sideControls then 1 else 0,if sideControls then 1 else 0
+   chip.Swatch.Visible,chip.Swatch.Text=sideControls,chip.Text
    chip.SelectionRing.Transparency=if key==id then 0 else 1
    chip.Active=selectionPending==nil
   end
-  chipRow.CanvasSize=if columns then UDim2.fromOffset(0,math.ceil(index/columns)*50) else UDim2.fromOffset(index*50,0)
+  chipRow.CanvasSize=if columns then UDim2.fromOffset(0,math.ceil(index/columns)*chipPitch) else UDim2.fromOffset(index*chipPitch,0)
   for key,tab in tabs do
+   tab.Position=UDim2.new(tab.Position.X.Scale,tab.Position.X.Offset,0,if sideControls then 24 else 0)
+   tab.TextSize=if sideControls then 12 else 16
    tab.BackgroundColor3=if key==family then Theme.Selection else Theme.Background
    tab.TextColor3=if key==family then Theme.Background else Theme.TextPrimary
   end

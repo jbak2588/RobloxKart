@@ -269,7 +269,7 @@ remote.OnClientEvent:Fire("RouteLaunchFailed"); check(not gui.RouteTransition.Vi
 player:SetAttribute("RaceState","PRE_RACE"); player:SetAttribute("RaceState","GARAGE")
 check(not gui.Enabled and not player:GetAttribute("HubOverlayOpen"), "Return Hub defaults closed")
 -- Retain responsive layout and full-yaw Kart framing checks across phone/notch/desktop.
-local resolutions={{751,361},{844,390},{812,332},{932,430},{760,390},{390,844},{1280,720},{1366,768},{1600,900},{1920,1080},{2048,1035},{2560,1080},{2560,1440}}
+local resolutions={{705,280},{831,348},{751,361},{844,390},{812,332},{932,430},{760,390},{390,844},{1280,720},{1366,768},{1600,900},{1920,1080},{2048,1035},{2560,1080},{2560,1440}}
 for _,resolution in resolutions do
  safeSize=rb.Vector2.new(resolution[1],resolution[2]); cameraScreenSize=safeSize; camera.ViewportSize=safeSize
  input.TouchEnabled=resolution[1]<1000
@@ -288,6 +288,19 @@ for _,resolution in resolutions do
   end
   check(backButton.AbsoluteSize.Y>=40 and action.AbsoluteSize.Y>=40,"touch target size "..tag)
   if step==1 then
+   if input.TouchEnabled and safeSize.X>safeSize.Y then
+    local vp,vs=preview.AbsolutePosition,preview.AbsoluteSize
+    local cp,cs=kartControls.AbsolutePosition,kartControls.AbsoluteSize
+    check(vp.X>=0 and vp.Y>=0 and vp.X+vs.X<=safeSize.X and vp.Y+vs.Y<=backdrop.GarageChoice.AbsolutePosition.Y,"expanded mobile kart safe and above name "..tag)
+    check(vs.X>safeSize.X*.42 and cs.X<=208,"compact sidebar releases preview width "..tag)
+    check(cp.X>=vp.X+vs.X+52 and cp.X+cs.X<=safeSize.X,"sidebar clears preview arrow and safe edge "..tag)
+    check(cp.Y+cs.Y<=safeSize.Y,"sidebar within safe height "..tag)
+    for _,chip in kartControls.ColorChips:GetChildren() do
+     if chip:IsA("TextButton") and chip.Visible then
+      check(chip.AbsoluteSize.X>=44 and chip.AbsoluteSize.Y>=44 and chip.Swatch.AbsoluteSize.X==32,"small swatch keeps touch target "..tag)
+     end
+    end
+   end
    local model=preview.PreviewWorld.PreviewKart
    local box,size=model:GetBoundingBox()
    local fitted=preview.CurrentCamera.CFrame
