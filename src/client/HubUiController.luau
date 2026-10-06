@@ -4,6 +4,8 @@ local Workspace = game:GetService("Workspace")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Garage = require(script.Parent:WaitForChild("GarageUiController"))
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
+local GuidanceState = require(script.Parent:WaitForChild("HubGuidanceState"))
+local GuidanceView = require(script.Parent:WaitForChild("HubGuidanceView"))
 local HubUiController = {}
 local started = false
 
@@ -45,6 +47,20 @@ function HubUiController.start()
  gui.Name, gui.ResetOnSpawn, gui.DisplayOrder = "KDMHubNavigation", false, 18
  gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
  gui.Parent = player:WaitForChild("PlayerGui")
+ local connections = {}
+ local state = GuidanceState.new()
+ local lastAction, roomOwned = nil, false
+ local previousOverlay = player:GetAttribute("HubOverlayOpen") == true
+ local previousRaceState = player:GetAttribute("RaceState")
+ local function open(action)
+  if roomOwned then return end
+  lastAction = action
+  Garage.open(action)
+ end
+ local canvas = Instance.new("Frame")
+ canvas.Name, canvas.Size, canvas.BackgroundTransparency = "SafeCanvas", UDim2.fromScale(1,1), 1
+ canvas.Active, canvas.Parent = false, gui
+ local guidance = GuidanceView.create(canvas, Theme, function() open("TRACKS") end)
  local panel = Instance.new("Frame")
  panel.Name = "Shortcuts"
  panel.AnchorPoint, panel.Position = Vector2.new(1,1), UDim2.new(1,-12,1,-12)
@@ -60,14 +76,35 @@ function HubUiController.start()
   button.Parent = panel
   local stroke = Instance.new("UIStroke")
   stroke.Color, stroke.ApplyStrokeMode, stroke.Parent = Theme.Selection, Enum.ApplyStrokeMode.Border, button
-  button.Activated:Connect(function() Garage.open(action) end)
+  table.insert(connections, button.Activated:Connect(function() open(action) end))
  end
  local function update()
+  local overlay = player:GetAttribute("HubOverlayOpen") == true
+  local raceState = player:GetAttribute("RaceState")
+  if previousOverlay and not overlay and lastAction then GuidanceState.returned(state, lastAction) end
+  if previousRaceState ~= "GARAGE" and raceState == "GARAGE" then GuidanceState.returned(state, "RACE_RETURN") end
+  previousOverlay, previousRaceState = overlay, raceState
   gui.Enabled = player:GetAttribute("RaceState") == "GARAGE"
    and player:GetAttribute("HubOverlayOpen") ~= true
    and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
+  local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
+  guidance.update(GuidanceState.presentation(state, canvas.AbsoluteSize, raceState, overlay,
+   player:GetAttribute("KDMRoutePending"), roomOwned or (rooms ~= nil and rooms.Enabled)))
  end
- local connections = {}
+ table.insert(connections, canvas:GetPropertyChangedSignal("AbsoluteSize"):Connect(update))
+ local roomRemote = ReplicatedStorage:WaitForChild("MatchRoomControl")
+ table.insert(connections, roomRemote.OnClientEvent:Connect(function(action, snapshot)
+  if action == "Snapshot" then roomOwned = snapshot.room ~= nil end
+  update()
+ end))
+ local function watchRooms(child)
+  if child.Name == "KDMMatchRooms" then
+   table.insert(connections, child:GetPropertyChangedSignal("Enabled"):Connect(update))
+   update()
+  end
+ end
+ for _, child in gui.Parent:GetChildren() do watchRooms(child) end
+ table.insert(connections, gui.Parent.ChildAdded:Connect(watchRooms))
  local display = nil
  local catalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
  local factory = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartVisualFactory"))
@@ -93,9 +130,14 @@ function HubUiController.start()
   if not prompt:IsDescendantOf(hub.Stations) then return end
   local station = prompt.Parent
   local action = station:GetAttribute("HubAction")
-  if action == "GARAGE" or action == "TRACKS" or action == "RACE" then Garage.open(action) end
+  if action == "GARAGE" or action == "TRACKS" or action == "RACE" then open(action) end
  end))
- gui.Destroying:Connect(function() for _, connection in connections do connection:Disconnect() end; if display then display:Destroy();display=nil end end)
+ gui.Destroying:Connect(function()
+  for _, connection in connections do connection:Disconnect() end
+  guidance.destroy()
+  if display then display:Destroy();display=nil end
+  started = false
+ end)
  update()
 end
 

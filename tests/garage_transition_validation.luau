@@ -338,6 +338,11 @@ end
 -- Theme already registered above.
 child(client,"ModuleScript","GarageUiController")
 modules.GarageUiController=controller
+for _, name in {"HubGuidanceState", "HubGuidanceView"} do
+ child(client,"ModuleScript",name)
+ modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=environment})()
+end
+child(replicated,"RemoteEvent","MatchRoomControl")
 modules.KDMUiTheme=luau.load(fs.readFile("src/shared/KDMUiTheme.luau"),{environment={Color3=rb.Color3}})()
 services.ProximityPromptService={PromptTriggered=signal()}
 local hub=child(workspace,"Model","KDMHub")
