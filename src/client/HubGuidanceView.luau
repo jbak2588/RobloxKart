@@ -20,7 +20,7 @@ function HubGuidanceView.create(parent, theme, onTrack)
  title.Font = Enum.Font.GothamBold
  local message = label("Message", 28, 36, 16, theme.TextPrimary)
  local helper = label("Helper", 116, 28, 14, theme.TextSecondary)
- helper.Text = "Kart changes are optional"
+ helper.Text = "You can use the default kart"
  local button = Instance.new("TextButton")
  button.Name, button.Text, button.AutoLocalize = "SelectTrack", "SELECT TRACK", true
  button.Size, button.BackgroundColor3 = UDim2.new(1, -24, 0, 44), theme.PrimaryAction
@@ -33,6 +33,7 @@ function HubGuidanceView.create(parent, theme, onTrack)
   card.Position = UDim2.new(1, -12, 1, -presentation.bottom)
   card.Size = UDim2.fromOffset(presentation.width, presentation.height)
   title.Text, message.Text = presentation.heading, presentation.message
+  button.Text = presentation.button
   message.Visible, helper.Visible = not presentation.compact, not presentation.compact
   button.Position = UDim2.fromOffset(12, if presentation.compact then 26 else 68)
  end

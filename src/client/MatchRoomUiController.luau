@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RoomDisplay = require(script.Parent:WaitForChild("RoomDisplay"))
+local GuidanceState = require(script.Parent:WaitForChild("HubGuidanceState"))
+local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
 local MatchRoomUiController = {}
 local started = false
 
@@ -63,10 +65,12 @@ function MatchRoomUiController.start()
 	local title = label(panel, "Title", UDim2.new(1, -32, 0, 48), UDim2.fromOffset(16, 10), "RACE ROOMS", 26)
 	title.TextColor3 = Color3.fromRGB(255, 218, 73)
 	local status = label(panel, "Status", UDim2.new(1, -32, 0, 38), UDim2.fromOffset(16, 55), "", 17)
+ local guidance = label(panel, "NextAction", UDim2.new(1,-32,0,28), UDim2.fromOffset(16,94), "", 13)
+ guidance.AutoLocalize, guidance.TextWrapped, guidance.TextColor3 = true, true, Theme.Selection
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "RoomList"
-	list.Position = UDim2.new(0, 16, 0, 100)
-	list.Size = UDim2.new(1, -32, 1, -182)
+	list.Position = UDim2.new(0, 16, 0, 128)
+	list.Size = UDim2.new(1, -32, 1, -210)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 6
@@ -125,8 +129,11 @@ function MatchRoomUiController.start()
 	end
 	render = function()
 		clearRows()
+  guidance.Text = GuidanceState.roomHelper(snapshot, player.UserId)
+  guidance.Visible = pendingAction == nil and invitation == nil and player:GetAttribute("RaceState") == "GARAGE"
 		gui.Enabled = ((snapshot and snapshot.visible == true) or invitation ~= nil)
 			and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
+   and player:GetAttribute("RaceState") == "GARAGE"
 		if not gui.Enabled then return end
 		if pendingAction then
 			status.Text = ({ Create = "CREATING ROOM...", Join = "JOINING ROOM...",
@@ -196,7 +203,7 @@ function MatchRoomUiController.start()
 		end
 		if errorMessage then status.Text = errorMessage end
 	end
-	remote.OnClientEvent:Connect(function(action, data)
+ local remoteConnection = remote.OnClientEvent:Connect(function(action, data)
 		if action == "Snapshot" then
 			snapshot = data
 			local completed = (pendingAction == "Queue" and data.room ~= nil)
@@ -214,10 +221,16 @@ function MatchRoomUiController.start()
 			render()
 		end
 	end)
-	player:GetAttributeChangedSignal("RaceState"):Connect(function()
+ local raceConnection = player:GetAttributeChangedSignal("RaceState"):Connect(function()
 		if player:GetAttribute("RaceState") ~= "GARAGE" then gui.Enabled = false end
 	end)
-	player:GetAttributeChangedSignal("KDMRoutePending"):Connect(render)
+ local routeConnection = player:GetAttributeChangedSignal("KDMRoutePending"):Connect(render)
+ gui.Destroying:Connect(function()
+  remoteConnection:Disconnect(); raceConnection:Disconnect(); routeConnection:Disconnect()
+  if primaryConnection then primaryConnection:Disconnect() end
+  if backConnection then backConnection:Disconnect() end
+  pendingAction=nil; pendingSerial+=1; started=false
+ end)
 end
 
 return MatchRoomUiController

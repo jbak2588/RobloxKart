@@ -881,6 +881,8 @@ player.Character=character;humanoid.SeatPart=seat;kart:SetAttribute("KartSmokeOb
 item.OnClientEvent=signal()
 local hudIconWorker=iconWorker
 local selectorSource=fs.readFile("src/client/TacticalLoadoutController.luau")
+child(modulesFolder,"ModuleScript","HubGuidanceState")
+modules.HubGuidanceState=luau.load(fs.readFile("src/client/HubGuidanceState.luau"))()
 for _,asset in modules.KDMIconCatalog.Items do check(not selectorSource:find(asset:match("%d+"),1,true),"Loadout has no duplicate asset ID") end
 local selector=luau.load(selectorSource,{environment=itemEnv})()
 player:SetAttribute("RaceState","PRE_RACE");player:SetAttribute("RaceMatchStatus","WAITING")

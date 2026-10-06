@@ -338,7 +338,7 @@ end
 -- Theme already registered above.
 child(client,"ModuleScript","GarageUiController")
 modules.GarageUiController=controller
-for _, name in {"HubGuidanceState", "HubGuidanceView"} do
+for _, name in {"HubGuidanceState", "HubGuidanceView", "HubWorldGuidanceView"} do
  child(client,"ModuleScript",name)
  modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=environment})()
 end
@@ -348,6 +348,10 @@ services.ProximityPromptService={PromptTriggered=signal()}
 local hub=child(workspace,"Model","KDMHub")
 local anchors=child(hub,"Folder","Anchors")
 local displayAnchor=child(anchors,"Part","MyKartDisplayAnchor");displayAnchor.CFrame=rb.CFrame.new(4,.08,900)
+local spawnAnchor=child(hub,"Part","HubSpawn");spawnAnchor.CFrame=rb.CFrame.new(-12,.5,900)*rb.CFrame.Angles(0,-math.pi/2,0)
+for _,d in {{"GaragePromptAnchor",9,-17},{"RacePromptAnchor",25,0},{"TracksPromptAnchor",9,17}} do
+ child(anchors,"Part",d[1]).CFrame=rb.CFrame.new(d[2],2,900+d[3])
+end
 local stations=child(hub,"Folder","Stations")
 local station=child(stations,"Part","GarageStation");station:SetAttribute("HubAction","GARAGE")
 local prompt=child(station,"ProximityPrompt","HubPrompt")
@@ -362,7 +366,7 @@ local firstDisplay=hub.KDMClientMyKartDisplay
 player:SetAttribute("SelectedKartId","Kart01")
 check(firstDisplay.Parent==nil and hub.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart01","attribute refresh destroys prior display")
 player.CharacterAdded:Fire(player.Character)
-check(#hub:GetChildren()==3,"respawn has exactly one local display")
+check(#hub:GetChildren()==5,"respawn has exactly one local display and world guidance")
 player:SetAttribute("RaceState","RACING")
 check(not hub:FindFirstChild("KDMClientMyKartDisplay"),"race transition removes Hub display")
 player:SetAttribute("RaceState","GARAGE")

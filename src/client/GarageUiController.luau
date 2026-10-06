@@ -25,9 +25,17 @@ local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialVie
 local started = false
 local STEP_KART, STEP_TRACK, STEP_READY = 1, 2, 3
 local openOverlay, closeOverlay
+local navigationObservers = {}
+local function notifyNavigation(event, action)
+ for callback in navigationObservers do callback(event, action) end
+end
+function GarageUiController.observeNavigation(callback)
+ navigationObservers[callback] = true
+ return function() navigationObservers[callback] = nil end
+end
 
-function GarageUiController.open(action: string)
- if openOverlay then openOverlay(action) end
+function GarageUiController.open(action: string, confirmedTrackId: string?)
+ if openOverlay then openOverlay(action, confirmedTrackId) end
 end
 
 function GarageUiController.close()
@@ -1478,10 +1486,17 @@ function GarageUiController.start()
 	end
 
 
- openOverlay = function(action)
+ openOverlay = function(action, confirmedTrackId)
   if player:GetAttribute("RaceState") ~= "GARAGE" or localRouteRequested
    or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH" then return end
-  step = if action == "TRACK" or action == "TRACKS" or action == "RACE" then STEP_TRACK else STEP_KART
+  -- A browser acknowledgement can come from an Invite as well as Track Select.
+  local roomsTrackId = confirmedTrackId or trackOrder[trackIndex]
+  local roomsTrack = TrackCatalog.Entries[roomsTrackId]
+  if action == "ROOMS" and roomsTrack and roomsTrack.MatchType == "PUBLIC_RACE" then
+   remote:FireServer("Ready", DriverCatalog.DefaultId, committedKartId(), roomsTrackId)
+   return
+  end
+  step = if action == "TRACK" or action == "TRACKS" or action == "RACE" or action == "ROOMS" then STEP_TRACK else STEP_KART
   kartIndex = table.find(KartCatalog.Order, committedKartId()) or 1
   -- Open the showroom on V2; browsing still requires USE KART to commit a choice.
   if step == STEP_KART and KartCatalog.Entries[KartCatalog.Order[kartIndex]].VisualModelName ~= "KDMV2" then
@@ -1494,12 +1509,14 @@ function GarageUiController.start()
   chipRow.CanvasPosition = Vector2.zero
   overlayOpen = true
   player:SetAttribute("HubOverlayOpen", true)
+  notifyNavigation("Opened", if step == STEP_KART then "GARAGE" else "TRACKS")
   update()
  end
  closeOverlay = function()
   if localRouteRequested or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH" then return end
   selectionPending = nil
   overlayOpen = false
+  notifyNavigation("Returned", if step == STEP_KART then "GARAGE" else "TRACKS")
   player:SetAttribute("HubOverlayOpen", false)
   update()
  end
@@ -1539,7 +1556,7 @@ function GarageUiController.start()
   elseif TrackCatalog.Entries[trackOrder[trackIndex]].MatchType == "PUBLIC_RACE" then
    local driverId,kartId,trackId=selectedIds()
    remote:FireServer("Ready",driverId,kartId,trackId)
-  else step=STEP_READY end
+  else step=STEP_READY; notifyNavigation("TrackConfirmed", trackOrder[trackIndex]) end
   update()
 	end)
 	nextButton.Activated:Connect(function()

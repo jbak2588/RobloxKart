@@ -6,6 +6,7 @@ local Garage = require(script.Parent:WaitForChild("GarageUiController"))
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
 local GuidanceState = require(script.Parent:WaitForChild("HubGuidanceState"))
 local GuidanceView = require(script.Parent:WaitForChild("HubGuidanceView"))
+local WorldGuidance = require(script.Parent:WaitForChild("HubWorldGuidanceView"))
 local HubUiController = {}
 local started = false
 
@@ -49,18 +50,17 @@ function HubUiController.start()
  gui.Parent = player:WaitForChild("PlayerGui")
  local connections = {}
  local state = GuidanceState.new()
- local lastAction, roomOwned = nil, false
- local previousOverlay = player:GetAttribute("HubOverlayOpen") == true
+ local roomOwned = false
  local previousRaceState = player:GetAttribute("RaceState")
  local function open(action)
   if roomOwned then return end
-  lastAction = action
-  Garage.open(action)
+  Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end
  local canvas = Instance.new("Frame")
  canvas.Name, canvas.Size, canvas.BackgroundTransparency = "SafeCanvas", UDim2.fromScale(1,1), 1
  canvas.Active, canvas.Parent = false, gui
- local guidance = GuidanceView.create(canvas, Theme, function() open("TRACKS") end)
+ local guidance = GuidanceView.create(canvas, Theme, function() open(GuidanceState.nextAction(state)) end)
+ local worldGuidance = WorldGuidance.create(hub, Theme)
  local panel = Instance.new("Frame")
  panel.Name = "Shortcuts"
  panel.AnchorPoint, panel.Position = Vector2.new(1,1), UDim2.new(1,-12,1,-12)
@@ -81,20 +81,29 @@ function HubUiController.start()
  local function update()
   local overlay = player:GetAttribute("HubOverlayOpen") == true
   local raceState = player:GetAttribute("RaceState")
-  if previousOverlay and not overlay and lastAction then GuidanceState.returned(state, lastAction) end
   if previousRaceState ~= "GARAGE" and raceState == "GARAGE" then GuidanceState.returned(state, "RACE_RETURN") end
-  previousOverlay, previousRaceState = overlay, raceState
+  previousRaceState = raceState
   gui.Enabled = player:GetAttribute("RaceState") == "GARAGE"
    and player:GetAttribute("HubOverlayOpen") ~= true
    and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
-  guidance.update(GuidanceState.presentation(state, canvas.AbsoluteSize, raceState, overlay,
-   player:GetAttribute("KDMRoutePending"), roomOwned or (rooms ~= nil and rooms.Enabled)))
+  local presentation = GuidanceState.presentation(state, canvas.AbsoluteSize, raceState, overlay,
+   player:GetAttribute("KDMRoutePending"), roomOwned or (rooms ~= nil and rooms.Enabled))
+  guidance.update(presentation)
+  worldGuidance.update(raceState == "GARAGE", if presentation.visible then presentation.destination else nil)
  end
+ local disconnectNavigation = Garage.observeNavigation(function(event, action)
+  if event == "Returned" then GuidanceState.returned(state, action)
+  elseif event == "TrackConfirmed" then GuidanceState.confirmed(state, action) end
+  update()
+ end)
  table.insert(connections, canvas:GetPropertyChangedSignal("AbsoluteSize"):Connect(update))
  local roomRemote = ReplicatedStorage:WaitForChild("MatchRoomControl")
  table.insert(connections, roomRemote.OnClientEvent:Connect(function(action, snapshot)
-  if action == "Snapshot" then roomOwned = snapshot.room ~= nil end
+  if action == "Snapshot" then
+   roomOwned = snapshot.room ~= nil
+   if snapshot.visible and snapshot.trackId then GuidanceState.confirmed(state, snapshot.trackId) end
+  end
   update()
  end))
  local function watchRooms(child)
@@ -135,6 +144,8 @@ function HubUiController.start()
  gui.Destroying:Connect(function()
   for _, connection in connections do connection:Disconnect() end
   guidance.destroy()
+  worldGuidance.destroy()
+  disconnectNavigation()
   if display then display:Destroy();display=nil end
   started = false
  end)

@@ -24,13 +24,13 @@ local injection=[[
 local guidance=hubGui.SafeCanvas.NextAction
 check(guidance and guidance.Visible,"guidance exists on Hub return")
 check(guidance.BackgroundColor3==modules.KDMUiTheme.Panel and not guidance.Active,"non-blocking navy card")
-check(guidance.SelectTrack.Text=="SELECT TRACK" and guidance.SelectTrack.BackgroundColor3==modules.KDMUiTheme.PrimaryAction,"Track primary CTA yellow")
+check(guidance.SelectTrack.Text=="ROOMS" and guidance.SelectTrack.BackgroundColor3==modules.KDMUiTheme.PrimaryAction,"context primary CTA yellow")
 check(guidance.SelectTrack.AutoLocalize and guidance.Message.AutoLocalize and guidance.Helper.AutoLocalize,"automatic translation candidate")
-check(guidance.Helper.Text=="Kart changes are optional","Garage is optional")
-guidance.SelectTrack.Activated:Fire()
+check(guidance.Helper.Text=="You can use the default kart","Garage is optional")
+shortcuts.TRACKS.Activated:Fire()
 check(backdrop.TrackPreview.Visible and not hubGui.Enabled,"CTA opens existing Track Select")
 controller.close()
-check(guidance.Visible and guidance.Heading.Text=="NEXT" and guidance.Message.Text=="Choose a track and race again","Track return context")
+check(guidance.Visible and guidance.Heading.Text=="NEXT" and guidance.Message.Text=="Create or join a room","Track return context")
 shortcuts.GARAGE.Activated:Fire();controller.close()
 check(guidance.Heading.Text=="KART READY" and not guidance.Message.Visible,"Garage return compact")
 local roomRemote=replicated.MatchRoomControl
@@ -60,7 +60,7 @@ for _,resolution in {{932,342},{844,302},{640,230},{751,244},{390,786},{1920,102
 end
 for _=1,5 do
  player.CharacterAdded:Fire(player.Character);hubController.start()
- guidance.SelectTrack.Activated:Fire();controller.close()
+ shortcuts.TRACKS.Activated:Fire();controller.close()
  check(#hubGui.SafeCanvas:GetChildren()==1 and guidance.SelectTrack.Activated.count()==1,"respawn/reopen single card and handler")
 end
 hubGui:Destroy()

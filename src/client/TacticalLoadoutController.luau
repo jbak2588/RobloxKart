@@ -4,7 +4,11 @@ local Slots=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceI
 local View=require(script.Parent:WaitForChild("MobileControlView"))
 local ItemIconView=require(script.Parent:WaitForChild("KDMItemIconView"))
 local Controller={}
+local GuidanceState=require(script.Parent:WaitForChild("HubGuidanceState"))
+local started=false
 function Controller.start()
+ if started then return end
+ started=true
 	local player=Players.LocalPlayer
 	local remote=ReplicatedStorage:WaitForChild("RaceItemControl")
 	local gui=Instance.new("ScreenGui")
@@ -21,6 +25,8 @@ function Controller.start()
 		b.Font=Enum.Font.GothamBold;b.TextSize=14;b.Parent=parent;View.round(b,UDim.new(0,6));return b
 	end
 	local items=button(gui,"Items","ITEMS")
+ local nextAction=label(gui,"NextAction","",0,16)
+ nextAction.Size=UDim2.fromOffset(100,16);nextAction.TextSize=10;nextAction.AutoLocalize=true
 	local overlay=Instance.new("Frame");overlay.Name="Modal";overlay.Size=UDim2.fromScale(1,1)
 	overlay.BackgroundColor3=Color3.new(0,0,0);overlay.BackgroundTransparency=.25
 	overlay.Active=true;overlay.Visible=false;overlay.Parent=gui
@@ -98,7 +104,7 @@ function Controller.start()
 		remote:FireServer("SetTacticalLoadout",table.clone(draft))
 		task.delay(4,function() if pending and serial==requestSerial then pending=false;refresh();status.Text="PLEASE TRY AGAIN" end end)
 	end)
-	remote.OnClientEvent:Connect(function(action,accepted,message)
+	local remoteConnection=remote.OnClientEvent:Connect(function(action,accepted,message)
 		if action~="TacticalLoadoutResult" or not pending then return end
 		pending=false;refresh()
 		if accepted then overlay.Visible=false else status.Text=message end
@@ -107,6 +113,8 @@ function Controller.start()
 		local size=gui.AbsoluteSize
 		items.AnchorPoint=if size.X>=600 then Vector2.new(0,1) else Vector2.new(1,0)
 		items.Position=if size.X>=600 then UDim2.new(.5,134,.94,-10) else UDim2.new(1,-12,0,8)
+  nextAction.AnchorPoint=if size.X>=600 then Vector2.zero else Vector2.new(1,0)
+  nextAction.Position=items.Position+UDim2.fromOffset(0,if size.X>=600 then 2 else 46)
 		card.Size=UDim2.fromOffset(math.min(456,size.X-24),252)
 		local width=(card.Size.X.Offset-32)/3
 		for index,id in Slots.TACTICAL do
@@ -129,14 +137,22 @@ function Controller.start()
 		items.Active=eligible();items.AutoButtonColor=items.Active
 		items.BackgroundTransparency=if items.Active then 0 else .55
 		items.Text=if player:GetAttribute("RaceItemsReady")==true then "ITEMS READY" else "ITEMS "..remaining
+  nextAction.Text=if player:GetAttribute("RaceItemsReady")==true then "WAIT FOR START" else "SELECT ITEMS"
+  nextAction.Visible=GuidanceState.prepHelper(player:GetAttribute("RaceState"),player:GetAttribute("RaceMatchStatus"),player:GetAttribute("RaceItemsReady"))~=nil and not overlay.Visible
 		timer.Text="AUTO READY IN "..remaining
 		if not eligible() then
 			overlay.Visible=false;pending=false;requestSerial+=1;loadChoice()
 		end
 	end
-	for _,attr in {"RaceState","RaceMatchStatus","RaceItemsReady","RaceItemsPrepareRemaining"} do player:GetAttributeChangedSignal(attr):Connect(lifecycle) end
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	gui.Destroying:Connect(function() iconCache:destroy() end)
+ local lifecycleConnections={}
+ for _,attr in {"RaceState","RaceMatchStatus","RaceItemsReady","RaceItemsPrepareRemaining"} do table.insert(lifecycleConnections,player:GetAttributeChangedSignal(attr):Connect(lifecycle)) end
+ gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+ overlay:GetPropertyChangedSignal("Visible"):Connect(function() nextAction.Visible=items.Visible and not overlay.Visible end)
+ gui.Destroying:Connect(function()
+  iconCache:destroy();remoteConnection:Disconnect()
+  for _,connection in lifecycleConnections do connection:Disconnect() end
+  pending=false;requestSerial+=1;started=false
+ end)
 	layout();lifecycle();refresh()
 	iconCache:start(refresh)
 end
