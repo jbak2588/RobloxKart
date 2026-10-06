@@ -116,8 +116,8 @@ check(catalog.Entries.Track01.MaxPlayers==1 and catalog.Entries.Track01.TargetLa
 check(catalog.Entries.Track01Race.DisplayName=="Base Circuit" and catalog.Entries.Track01Race.MaxPlayers==4
  and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track01Race.PreviewRotationDegrees==90,
  "Base Circuit public capability")
-check(catalog.Entries.Track02.MaxPlayers==1 and catalog.Entries.Track02.TargetLaps==3
- and catalog.Entries.Track02.MatchType=="SOLO_PROTOTYPE","prototype stays solo")
+check(catalog.Entries.Track02.MaxPlayers==4 and catalog.Entries.Track02.TargetLaps==2
+ and catalog.Entries.Track02.MatchType=="PUBLIC_RACE","prototype public contract")
 check(catalog.previewKey(catalog.Entries.Track01)~=catalog.previewKey(catalog.Entries.Track01Race),
  "shared geometry uses distinct preview key")
 check(string.find(catalog.capabilityLabel(catalog.Entries.Track01Race),"1–4 RACERS",1,true)~=nil,
@@ -128,7 +128,7 @@ end
 for _, id in catalog.Order do
  local kind=mode.resolve(id)
  check(kind==(if id=="Track01" then "PRACTICE" else "RACE"),"mode "..id)
- local expected=if id=="Track01" then 1 elseif id=="Track02" then 3 else 2
+ local expected=if id=="Track01" then 1 else 2
  check(catalog.Entries[id].TargetLaps==expected and mode.targetLaps(kind,id)==expected,"laps "..id)
  check(mode.label(kind,id)==(if id=="Track01" then "PRACTICE / 1 LAP" else "RACE / "..expected.." LAPS"),"label "..id)
 end
@@ -155,7 +155,7 @@ for i=1,2 do
  checkpoints[i]=cp
 end
 child(shared,"ModuleScript","TrackCatalog")
-modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="SOLO_PRACTICE",MaxPlayers=1},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track03={Id="Track03",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
+modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="SOLO_PRACTICE",MaxPlayers=1},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4},Track03={Id="Track03",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
 local player=child(services.Players,"Player","Driver")
 player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100; human.SeatPart=seat
@@ -197,7 +197,7 @@ local function start(trackId)
  check(player:GetAttribute("RaceMode")==kind,"server derives mode "..kind)
  check(player:GetAttribute("RaceMaxPlayers")==modules.TrackCatalog.Entries[trackId].MaxPlayers,
   "server publishes selected capacity "..trackId)
- if trackId=="Track01Race" then
+ if modules.TrackCatalog.Entries[trackId].MatchType=="PUBLIC_RACE" then
   check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING",
    "circuit waits for host selection")
 tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.
@@ -276,7 +276,7 @@ for _, id in {"Track01","Track01Race","Track02","Track03"} do
   and player:GetAttribute("RaceFinalTime")==recorded,id.." delayed result preserves official time")
  check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no completion gate "..id)
  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
- if id=="Track01Race" then
+ if modules.TrackCatalog.Entries[id].MatchType=="PUBLIC_RACE" then
   check(player:GetAttribute("RaceState")=="PRE_RACE" and player:GetAttribute("RaceMatchStatus")=="WAITING"
    and player:GetAttribute("RaceMatchWaitReason")=="REMATCH", "solo circuit rematch returns to lobby")
 tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before this start action.

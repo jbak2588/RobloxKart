@@ -42,7 +42,7 @@ Quick Race → Room or Solo Entry → Item Prep / Race → Results → Rematch o
 | --- | --- | --- | --- | --- |
 | Track01 | Practice Circuit | SOLO_PRACTICE | 1 | 1 |
 | Track01Race | Base Circuit | PUBLIC_RACE | 1–4 | 2 |
-| Track02 | Prototype Circuit V2 — Legacy V2 | SOLO_PROTOTYPE | 1 | 3 |
+| Track02 | Prototype Circuit V2 — Legacy V2 | PUBLIC_RACE | 1–4 | 2 |
 | Track03 | KDM Hard Circuit | PUBLIC_RACE | 1–4 | 2 |
 
 Track03 itself is the public track; do not create a separate Track03Race.
