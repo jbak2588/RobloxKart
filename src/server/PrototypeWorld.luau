@@ -18,6 +18,8 @@ local RaceConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local KartContext = require(script.Parent:WaitForChild("KartContext"))
 local RacerCollisionIsolation = require(script.Parent:WaitForChild("RacerCollisionIsolation"))
 local KartUprightRecovery = require(script.Parent:WaitForChild("KartUprightRecovery"))
+local StraightSpeedResolver = require(script.Parent:WaitForChild("KDMStraightSpeedResolver"))
+local TrackGeometry = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry"))
 
 local PrototypeWorld = {}
 local driftOutcomeListeners = {}
@@ -296,6 +298,12 @@ function PrototypeWorld.start(options)
 	))
 
 	TrackBuilder.build(prototype, initialTrack, groundTop)
+	-- Analyze each shared geometry once during world load, never in a physics frame.
+	if KartConfig.STRAIGHT_SPEED_ENABLED then
+		for _, entry in TrackCatalog.Entries do
+			StraightSpeedResolver.get(entry.GeometryId, TrackGeometry, KartConfig)
+		end
+	end
 	print(string.format("[RobloxKart] %s ready", initialTrack.DisplayName or initialTrackId))
 
 	local initialGrid = initialTrack.GridSlots[1]
@@ -811,6 +819,8 @@ function PrototypeWorld.start(options)
 				return
 			end
 			if raceControlsLocked then
+				context.straightEligible, context.straightExitActive, context.straightLastEvaluation = false, false, nil
+				context.straightBoostReturnActive = false
 				context.tiltUnsafeElapsed = 0
 				stopNitro("locked")
 				stopSlick()
@@ -1037,11 +1047,27 @@ function PrototypeWorld.start(options)
 				end
 			end
 
+			local offTrack = kart:GetAttribute("KartOffTrack") == true
+			local trackWorld = prototype:FindFirstChild("TestTrack")
+			local geometryId = if trackWorld then trackWorld:GetAttribute("GeometryId") else nil
+			if context.straightGeometryId ~= geometryId then
+				context.straightGeometryId = geometryId
+				context.straightEligible, context.straightLastEvaluation, context.straightExitActive = false, nil, false
+			end
+			local straightCourse = if KartConfig.STRAIGHT_SPEED_ENABLED then StraightSpeedResolver.get(geometryId, TrackGeometry, KartConfig) else nil
+			StraightSpeedResolver.update(context, straightCourse, chassis.Position, now,
+				player ~= nil and player:GetAttribute("RaceState") == "RACING" and not offTrack
+				and not context.driftActive and not context.missileHitActive and not context.thunderHitActive)
+			local normalForwardCap = if context.straightEligible then KartConfig.STRAIGHT_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
+			context.normalForwardCap = normalForwardCap
+			if context.nitro.active or context.nitro.exiting or context.boostActive then context.straightBoostReturnActive = true end
+			-- Natural Boost overspeed keeps its existing return rate, even when the
+			-- straight mask exits on the very same expiry frame.
+			if context.straightBoostReturnActive then context.straightExitActive = false end
 			local forwardTargetSpeed = if context.nitro.active then KartConfig.NITRO_MAX_SPEED elseif context.boostActive
 				then KartConfig.MINI_BOOST_MAX_SPEED
 				elseif context.driftActive then KartConfig.DRIFT_MAX_SPEED
-				else KartConfig.MAX_FORWARD_SPEED
-			local offTrack = kart:GetAttribute("KartOffTrack") == true
+				else normalForwardCap
 			if context.thunderHitActive then forwardTargetSpeed = math.min(forwardTargetSpeed, RaceItemConfig.THUNDER_SPEED_CAP) end
 			if context.missileHitActive then forwardTargetSpeed = math.min(forwardTargetSpeed, RaceItemConfig.MISSILE_SPEED_CAP) end
 			if offTrack then
@@ -1053,7 +1079,7 @@ function PrototypeWorld.start(options)
 				if context.commandedSpeed < 0 then
 					context.commandedSpeed = moveToward(context.commandedSpeed, 0, KartConfig.BRAKE_FORCE * throttle * deltaTime)
 				elseif (context.nitro.active or context.nitro.exiting) and not offTrack then
-					context.commandedSpeed = context.nitro:forwardSpeed(context.commandedSpeed, context.boostActive, throttle, deltaTime)
+					context.commandedSpeed = context.nitro:forwardSpeed(context.commandedSpeed, context.boostActive, throttle, deltaTime, normalForwardCap)
 				elseif offTrack and context.commandedSpeed > forwardTargetSpeed then
 					context.commandedSpeed = moveToward(context.commandedSpeed, forwardTargetSpeed, KartConfig.BRAKE_FORCE * deltaTime)
 				elseif context.driftActive and context.commandedSpeed > forwardTargetSpeed then
@@ -1063,11 +1089,11 @@ function PrototypeWorld.start(options)
 						KartConfig.DRIFT_SPEED_DECELERATION * deltaTime
 					)
 				elseif not context.boostActive and not context.driftActive and not offTrack
-					and context.commandedSpeed > KartConfig.MAX_FORWARD_SPEED then
+					and context.commandedSpeed > normalForwardCap then
 					context.commandedSpeed = moveToward(
 						context.commandedSpeed,
-						KartConfig.MAX_FORWARD_SPEED,
-						KartConfig.BOOST_EXIT_DECELERATION * deltaTime
+						normalForwardCap,
+						(if context.straightExitActive then KartConfig.STRAIGHT_EXIT_DECELERATION else KartConfig.BOOST_EXIT_DECELERATION) * deltaTime
 					)
 				else
 					context.commandedSpeed = moveToward(context.commandedSpeed, forwardTargetSpeed, forwardAcceleration * throttle * deltaTime)
@@ -1085,7 +1111,11 @@ function PrototypeWorld.start(options)
 			local nitroSpeed = context.nitro.active or context.nitro.exiting
 			context.commandedSpeed = math.clamp(context.commandedSpeed, -KartConfig.MAX_REVERSE_SPEED,
 				if nitroSpeed then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED)
-			context.nitro:finishStep(context.commandedSpeed)
+			context.nitro:finishStep(context.commandedSpeed, normalForwardCap)
+			if context.commandedSpeed <= normalForwardCap then
+				context.straightExitActive = false
+				context.straightBoostReturnActive = false
+			end
 
 			local effectiveGrip = if context.driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
 			if context.missileHitActive then effectiveGrip *= RaceItemConfig.MISSILE_LATERAL_GRIP_MULTIPLIER end

@@ -3,6 +3,13 @@ local Balance = require(script.Parent:WaitForChild("KDMGameplayBalance"))
 
 local KartConfig = {
 	MAX_FORWARD_SPEED = 70,
+	STRAIGHT_SPEED_ENABLED = Balance.SPEED.Straight.Enabled,
+	STRAIGHT_MAX_SPEED = Balance.SPEED.Straight.MaxSpeed,
+	STRAIGHT_LOOK_AHEAD = Balance.SPEED.Straight.LookAheadStuds,
+	STRAIGHT_ENTER_MAX_TURN = Balance.SPEED.Straight.EnterMaxTurnDegrees,
+	STRAIGHT_EXIT_MAX_TURN = Balance.SPEED.Straight.ExitMaxTurnDegrees,
+	STRAIGHT_EVALUATION_INTERVAL = Balance.SPEED.Straight.EvaluationInterval,
+	STRAIGHT_EXIT_DECELERATION = Balance.SPEED.Straight.ExitDeceleration,
 	OFF_TRACK_MAX_SPEED = 50,
 	MAX_REVERSE_SPEED = 24,
 	ACCELERATION = 36,

@@ -85,6 +85,7 @@ local server=object("Folder","Server")
 local modules={}
 local now=0
 local environment={
+	Vector2=rb.Vector2,
 	Instance={new=object}, Vector3=V, CFrame=CF, Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence, Enum=rb.Enum,
 	PhysicalProperties={new=function() return {} end},
 	game={GetService=function(_,name) return assert(services[name]) end},
@@ -204,6 +205,8 @@ player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100
 load("src/server/RacerCollisionIsolation.luau",server,"RacerCollisionIsolation")
 load("src/server/KartUprightRecovery.luau",server,"KartUprightRecovery")
+load("src/server/KDMStraightSpeedResolver.luau",server,"KDMStraightSpeedResolver")
+load("src/shared/TrackGeometry.luau",shared,"TrackGeometry")
 local world=load("src/server/PrototypeWorld.luau",server,"PrototypeWorld")
 check(not world.activateNitro(player),"pre-start rejection")
 world.start()

@@ -36,18 +36,18 @@ function NitroState:update(now, driver, driveEnabled, offTrack, crash, validInpu
 	end
 end
 
-function NitroState:forwardSpeed(speed, miniBoost, throttle, dt)
+function NitroState:forwardSpeed(speed, miniBoost, throttle, dt, normalCap)
 	local c = self.config
 	local target = if self.active then c.NITRO_MAX_SPEED
-		elseif miniBoost then c.MINI_BOOST_MAX_SPEED else c.MAX_FORWARD_SPEED
+		elseif miniBoost then c.MINI_BOOST_MAX_SPEED else (normalCap or c.MAX_FORWARD_SPEED)
 	local rate = if self.active then c.NITRO_ACCELERATION
 		elseif speed > target then c.NITRO_EXIT_DECELERATION
 		elseif miniBoost then c.MINI_BOOST_ACCELERATION else c.ACCELERATION
 	return approach(speed, target, rate * (if speed > target then 1 else throttle) * dt)
 end
 
-function NitroState:finishStep(speed)
-	if not self.active and speed <= self.config.MAX_FORWARD_SPEED then
+function NitroState:finishStep(speed, normalCap)
+	if not self.active and speed <= (normalCap or self.config.MAX_FORWARD_SPEED) then
 		self.exiting = false
 		self.driver = nil
 	end

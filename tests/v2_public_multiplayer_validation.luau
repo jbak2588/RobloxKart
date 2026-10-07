@@ -31,8 +31,10 @@ end
 local checkpoint="dd739b88296b360ea21c889b9213dcaf103488d4"
 -- K1 authorizes TrackBuilder presentation changes; its generated road/gate/
 -- barrier equivalence and Hard output are tested by track_visual_standard_validation.
+-- K1A adds only SPEED.Straight; existing balance sections are exactly compared
+-- against the K1 checkpoint by straight_speed_validation.
 for _,path in {"src/shared/TrackGeometry.luau",
- "src/shared/KDMGameplayBalance.luau","src/shared/RaceItemConfig.luau","src/server/RaceLoadout.luau",
+ "src/shared/RaceItemConfig.luau","src/server/RaceLoadout.luau",
  "src/server/RaceItemController.luau","tests/fixtures/garage_phase1b_geometry.json","tests/fixtures/kart_v2_geometry.json"} do
  local baseline=process.exec("git",{"show",checkpoint..":"..path})
  check(baseline.ok and baseline.stdout:gsub("\r\n","\n")==fs.readFile(path):gsub("\r\n","\n"),"checkpoint preserved "..path)
