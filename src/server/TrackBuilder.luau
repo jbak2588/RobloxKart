@@ -2,6 +2,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TrackGeometry = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry"))
 
 local TrackBuilder = {}
+-- Presentation only. Barrier thresholds/stride/offset remain geometry-owned below.
+local TRACK_VISUAL_STYLE = {
+	Practice = { Version = 1, KerbRows = 1, SignEvery = 12, SignText = "KDM / PRACTICE" },
+	Base = { Version = 1, KerbRows = 1, SignEvery = 9, SignText = "KDM / BASE CIRCUIT" },
+	Standard = { Version = 1, KerbRows = 1, SignEvery = 6, SignText = "KDM / TECHNICAL" },
+	Hard = { Version = 1, KerbRows = 2 },
+}
 
 local function createPart(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3): Part
 	local part = Instance.new("Part")
@@ -19,6 +26,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local definition = TrackGeometry.getDefinition(track.GeometryId)
 	assert(definition, "Track geometry is missing: " .. tostring(track.GeometryId))
 	local isHardCircuit = track.GeometryId == "HardCircuitV1"
+	local styleName = if isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
+		elseif track.Id == "Track01Race" then "Base" else "Practice"
+	local style = TRACK_VISUAL_STYLE[styleName]
 	local environmentVersion = if isHardCircuit then 6 else 1
 	local previousTrack = prototype:FindFirstChild("TestTrack")
 	if previousTrack and previousTrack:IsA("Model")
@@ -29,6 +39,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		and previousTrack:FindFirstChild("BarrierTriggers")
 		and previousTrack:GetAttribute("BarrierForwardTangentVersion") == 1
 		and previousTrack:GetAttribute("EnvironmentCueVersion") == environmentVersion
+		and previousTrack:GetAttribute("VisualStyleVersion") == style.Version
+		and previousTrack:GetAttribute("VisualStyleProfile") == styleName
 		and not previousTrack:FindFirstChild("BarrierCollisions")
 	then
 		return previousTrack
@@ -237,7 +249,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 					CFrame.new(base + Vector3.new(0, height, 0)), color, material)
 				speedCueParts += 1
 			end
-			if isHardCircuit and kind == 1 then
+			if kind == 1 and (isHardCircuit or speedCueObjects % style.SignEvery == 1) then
 				cuePart("SignPost", Vector3.new(1, 12, 1), 6, Color3.fromRGB(65, 73, 80), nil)
 				local board = createVisualPart(speedCues, string.format("Cue%02dBillboard", speedCueObjects),
 					Vector3.new(12, 6, 0.3), CFrame.lookAt(base + Vector3.new(0, 12, 0), base + Vector3.new(0, 12, 0) - normal),
@@ -249,7 +261,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				local label = Instance.new("TextLabel")
 				label.Size = UDim2.fromScale(1, 1)
 				label.BackgroundTransparency = 1
-				label.Text = if role and role.Role == "ENTRY" then "KDM / NITRO " .. (if role.Straight == 1 then "A" else "B")
+				label.Text = if not isHardCircuit then style.SignText elseif role and role.Role == "ENTRY" then "KDM / NITRO " .. (if role.Straight == 1 then "A" else "B")
 					elseif role and role.Role == "EXIT" then (if role.Straight == 1 then "TURN RIGHT" else "TURN LEFT")
 					elseif speedCueObjects % 2 == 0 then "BOOST" else "KDM"
 				label.TextScaled = true
@@ -264,7 +276,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				cuePart("Canopy", Vector3.new(11, 12, 11), 16, Color3.fromRGB(46, 113, 65), Enum.Material.SmoothPlastic)
 			elseif kind == 2 then
 				cuePart("Pole", Vector3.new(1, 18, 1), 9, Color3.fromRGB(70, 78, 83), Enum.Material.SmoothPlastic)
-				cuePart("Head", Vector3.new(5, 2, 3), 18, Color3.fromRGB(255, 224, 139), Enum.Material.Neon)
+				cuePart("Head", Vector3.new(5, 2, 3), 18, if isHardCircuit then Color3.fromRGB(255, 224, 139) else white,
+					if isHardCircuit then Enum.Material.Neon else Enum.Material.SmoothPlastic)
 			else
 				cuePart("Rock", Vector3.new(7, 5, 6), 2.5, Color3.fromRGB(105, 111, 110), Enum.Material.Slate)
 			end
@@ -324,14 +337,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 		-- Leave the grid and finish crossing visually open. Corner strips sit beyond the road edge.
 		local nearStart = index <= 3 or index >= #samples - 2
-		if not isHardCircuit and not nearStart and bend >= kerbThreshold then
-			local offset = roadWidth * 0.5 + 1.9
-			local firstKerb = first + firstRight * (offset * innerSide)
-			local secondKerb = second + secondRight * (offset * innerSide)
-			createSegment(kerbFolder, "Kerb" .. index, roadPoint(firstKerb, 0.025), roadPoint(secondKerb, 0.025),
-				3.5, 0.07, 0.6, if index % 2 == 0 then kerbRed else kerbWhite, nil)
-			kerbCount += 1
-		end
+		-- Legacy bend threshold remains the corner cue; the common single band
+		-- continues along both edges, merging gentle spans to bound mobile parts.
+		if not isHardCircuit and not nearStart and bend >= kerbThreshold then cornerSegments[index] = true end
 
 		if not nearStart and bend >= barrierThreshold and index % barrierStride == 0
 			and not exitClearSegments[index] then
@@ -401,6 +409,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		for segment = 2, #samples - 1 do
 			if doubleSegments[segment] and not doubleSegments[segment - 1] then sharpGroupCount += 1 end
 		end
+	end
+	-- Hard retains its exact band algorithm; standard profiles use only row one.
+	do
 		local function edgeAt(index: number, offset: number, side: number): Vector3
 			local tangent = directionAt(index)
 			return samples[index] + Vector3.new(-tangent.Z, 0, tangent.X) * offset * side
@@ -416,7 +427,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			end
 			return error
 		end
-		for row = 1, 2 do
+		for row = 1, style.KerbRows do
 			local offset = roadWidth * 0.5 + 2.6 + (row - 1) * 3.6
 			local segment, stripe = 2, 0
 			while segment <= #samples - 1 do
@@ -537,6 +548,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	testTrack:SetAttribute("GeometryId", track.GeometryId)
 	testTrack:SetAttribute("TrackId", track.Id)
+	testTrack:SetAttribute("VisualStyleProfile", styleName)
+	testTrack:SetAttribute("VisualStyleVersion", style.Version)
 	testTrack:SetAttribute("VisualPartCount", partCount)
 	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts)
 	testTrack:SetAttribute("EnvironmentCueVersion", environmentVersion)

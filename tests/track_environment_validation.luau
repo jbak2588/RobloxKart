@@ -407,7 +407,7 @@ for _, id in {"PracticeCircuitV1","PrototypeCircuitV2","HardCircuitV1"} do
   local function visit(node,path)
    for _,child in node:GetChildren() do
     local childPath=path.."/"..child.Name
-    if frozen and (child.Name=="Kerbs" or child.Name=="DirectionMarkers") then continue end
+    if frozen and (child.Name=="Kerbs" or child.Name=="DirectionMarkers" or (frozen=="gameplay" and child.Name=="Environment")) then continue end
     if child:IsA("BasePart") then
      table.insert(rows,childPath..tostring(child.CFrame)..tostring(child.Size)..tostring(child.Color)..tostring(child.Material))
     elseif child.ClassName=="TextLabel" then table.insert(rows,childPath..child.Text) end
@@ -422,15 +422,14 @@ for _, id in {"PracticeCircuitV1","PrototypeCircuitV2","HardCircuitV1"} do
   local frozen=require("@lune/serde").hash("sha256",signature(world,true))
   check(frozen=="32af549655290265ed043ccc0ec702a75b830a36177e8d616166c80f3926be5b","all R3B road/barrier/trigger/ground/checkpoint/scenery output frozen")
  end
- if id=="PrototypeCircuitV2" then
+ if id=="PrototypeCircuitV2" or id=="PracticeCircuitV1" then
   local result=require("@lune/process").exec("git",{"show","647be04b28e63f23e2826cfb0bc1e50b9cad2232:src/server/TrackBuilder.luau"})
   assert(result.ok)
   local baseline=luau.load(result.stdout,{environment=env})().build(object("Folder"),track,0)
-  check(signature(baseline)==expectedSignature,"Legacy full generated output exactly matches accepted baseline")
-  print("Legacy full output SHA256",require("@lune/serde").hash("sha256",expectedSignature))
- end
- if id=="PracticeCircuitV1" then
-  check(require("@lune/serde").hash("sha256",expectedSignature)=="9358251dcdd74abc65b0567a97cbccb6f54736e815cc7d94c7a9273ef02865c3","Practice full output matches accepted 647be04 baseline")
+  -- K1 intentionally replaces legacy kerbs/scenery. Preserve the exact road,
+  -- markings, visible barriers and all race/barrier triggers independently.
+  check(signature(baseline,"gameplay")==signature(world,"gameplay"),"Legacy gameplay output exactly matches accepted baseline")
+  print(id.." gameplay output SHA256",require("@lune/serde").hash("sha256",signature(world,"gameplay")))
  end
  if require("@lune/process").args[1]=="Report" and isV2 then
   local rows={} local surfaceGuis,textLabels=0,0

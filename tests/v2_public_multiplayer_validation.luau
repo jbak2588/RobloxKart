@@ -29,7 +29,9 @@ for i,frame in v2.GridSlots do
  end
 end
 local checkpoint="dd739b88296b360ea21c889b9213dcaf103488d4"
-for _,path in {"src/shared/TrackGeometry.luau","src/server/TrackBuilder.luau",
+-- K1 authorizes TrackBuilder presentation changes; its generated road/gate/
+-- barrier equivalence and Hard output are tested by track_visual_standard_validation.
+for _,path in {"src/shared/TrackGeometry.luau",
  "src/shared/KDMGameplayBalance.luau","src/shared/RaceItemConfig.luau","src/server/RaceLoadout.luau",
  "src/server/RaceItemController.luau","tests/fixtures/garage_phase1b_geometry.json","tests/fixtures/kart_v2_geometry.json"} do
  local baseline=process.exec("git",{"show",checkpoint..":"..path})
