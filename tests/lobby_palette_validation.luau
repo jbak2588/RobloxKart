@@ -16,7 +16,17 @@ for _,path in {"src/shared/KDMUiTheme.luau","src/shared/TrackCatalog.luau","src/
  "src/client/KartInputController.luau","src/client/RaceHudController.luau","src/client/TrackMapRenderer.luau",
  "src/shared/KartVisualFactory.luau","src/shared/KartPreviewFraming.luau"} do
  local old=process.exec("git",{"show",baseline..":"..path})
- check(old.ok and require("./helpers/m1_presentation_freeze")(old.stdout)==require("./helpers/m1_presentation_freeze")(fs.readFile(path)),"byte frozen "..path)
+ if path=="src/shared/TrackGeometry.luau" then
+  local current=fs.readFile(path):gsub("\r\n","\n")
+  local a=assert(current:find("\t-- Dedicated planar drift practice:",1,true));local b=assert(current:find("\t-- Exact straight/arc path",a,true))
+  current=current:sub(1,a-1)..current:sub(b)
+  check(old.ok and old.stdout:gsub("\r\n","\n")==current,"existing geometry/functions byte frozen")
+ elseif path=="src/shared/TrackCatalog.luau" or path=="src/server/TrackBuilder.luau" then
+  local result=process.exec("lune",{"run","tests/practice_figure8_geometry_validation.luau"})
+  check(result.ok,"P1 full Base/V2/Hard catalog/world output freeze "..path..result.stderr)
+ else
+  check(old.ok and require("./helpers/m1_presentation_freeze")(old.stdout)==require("./helpers/m1_presentation_freeze")(fs.readFile(path)),"byte frozen "..path)
+ end
 end
 -- Verify the normalizer actually rejects non-color changes and mixed statement edits.
 check(normalize("b.TextColor3 = old\nb.Position = UDim2.fromScale(.5,.5)")~=normalize("b.TextColor3 = new\nb.Position = UDim2.fromScale(.4,.5)"),"layout mutation rejected")

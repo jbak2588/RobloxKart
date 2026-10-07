@@ -7,18 +7,18 @@ local TrackCatalog = {
 			PreviewImageAssetId = "rbxassetid://132968191916633",
 			DisplayName = "Practice Track",
 			ModelName = "TestTrack",
-			GeometryId = "PracticeCircuitV1",
+			GeometryId = "PracticeFigure8V1",
 			MatchType = "SOLO_PRACTICE",
 			MinPlayers = 1,
 			MaxPlayers = 1,
 			PreviewRotationDegrees = 0,
-			TargetLaps = 1,
-			-- Original V1 grid slots from 88de2b3. The server adds ground height.
+			TargetLaps = 2,
+			-- Reserved forward-facing slots on the launch straight; capacity stays solo.
 			GridSlots = {
-				CFrame.new(-350, 0, 465),
-				CFrame.new(-340, 0, 465),
-				CFrame.new(-355, 0, 480),
-				CFrame.new(-345, 0, 480),
+				CFrame.new(-98.898394282067, 0, 125.031263841772) * CFrame.Angles(0, 2.520066031181, 0),
+				CFrame.new(-111.906242059067, 0, 115.714832324772) * CFrame.Angles(0, 2.520066031181, 0),
+				CFrame.new(-84.923747007067, 0, 105.519492175772) * CFrame.Angles(0, 2.520066031181, 0),
+				CFrame.new(-97.931594785067, 0, 96.203060658772) * CFrame.Angles(0, 2.520066031181, 0),
 			},
 		},
 		Track01Race = {

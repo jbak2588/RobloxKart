@@ -1,6 +1,35 @@
 local TrackGeometry = {}
 
 TrackGeometry.Definitions = {
+	-- Dedicated planar drift practice: tangent circular corners, unequal loops,
+	-- unchanged drift radii, longer exits and a 190-stud standing-start approach.
+	PracticeFigure8V1 = {
+		Segments = {
+			{ "Straight", -119.959242415067, 140.697810235772, -230.591866666511, 295.166002515392 },
+			{ "Arc", -133.033008335511, 365.039238887392, 120.000000000000, -2.520066029000, -2.192322951000 },
+			{ "Straight", -133.033008335511, 485.039238887392, 162.226651990511, 485.039238887392 },
+			{ "Arc", 162.226651990511, 380.039238887392, 105.000000000000, 1.570796327000, -2.192322951000 },
+			{ "Straight", 247.590653030511, 318.900157061392, -125.006068178000, -201.329227267000 },
+			{ "Arc", -64.031781721000, -245.000000000000, 75.000000000000, 2.520066029000, 2.192322951000 },
+			{ "Straight", -64.031781721000, -320.000000000000, 44.569352617000, -320.000000000000 },
+			{ "Arc", 44.569352617000, -235.000000000000, 85.000000000000, -1.570796327000, 2.192322951000 },
+			{ "Straight", 113.673543935000, -185.506457570000, -119.959242415067, 140.697810235772 },
+		},
+		RoadWidth = 60,
+		SampleSpacing = 10,
+		CheckpointFractions = { 0.127914464202, 0.318134532852, 0.461116957585, 0.615042495526, 0.754450233071, 0.912660768901 },
+		Crossover = {
+			Position = Vector3.new(0, 0, -26.792452830),
+			VisualHalfLength = 110, KerbClearRadius = 52,
+			BranchTangents = { Vector3.new(-0.582276969769, 0, -0.812990486092), Vector3.new(-0.582276969769, 0, 0.812990486092) },
+		},
+		DriftZones = {
+			{ Name = "A EASY LOWER ENTRY", Radius = 120, StartFraction = 0.076642536737, EndFraction = 0.182763710866, HeadingDegrees = -125.610852421966 },
+			{ Name = "B LOWER LOOP EXIT", Radius = 105, StartFraction = 0.301866075978, EndFraction = 0.394722103340, HeadingDegrees = -125.610852421966 },
+			{ Name = "C TIGHT UPPER ENTRY", Radius = 75, StartFraction = 0.652844498025, EndFraction = 0.719170231856, HeadingDegrees = 125.610852421966 },
+			{ Name = "D UPPER LOOP EXIT", Radius = 85, StartFraction = 0.762977949914, EndFraction = 0.838147114922, HeadingDegrees = 125.610852421966 },
+		},
+	},
 	-- Exact straight/arc path from 88de2b3:src/server/PrototypeWorld.luau.
 	-- Sample zero is ten studs into the old Main road, at the finish line.
 	PracticeCircuitV1 = {

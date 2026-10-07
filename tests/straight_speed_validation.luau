@@ -80,7 +80,20 @@ for _,path in {"src/shared/TrackGeometry.luau","src/shared/TrackCatalog.luau","s
  local baseline=require("@lune/process").exec("git",{"show","7b3f668:"..path})
  local normalize=if path=="src/client/HubUiController.luau" or path=="src/client/GarageUiController.luau"
   then require("./helpers/ui_palette_freeze") else function(s)return s:gsub("\r\n","\n")end
- check(baseline.ok and normalize(require("./helpers/m1_presentation_freeze")(baseline.stdout))==normalize(require("./helpers/m1_presentation_freeze")(fs.readFile(path))),"K1 frozen non-palette contract "..path)
+ if path=="src/shared/TrackGeometry.luau" then
+  local current=fs.readFile(path):gsub("\r\n","\n")
+  local first=assert(current:find("\t-- Dedicated planar drift practice:",1,true))
+  local last=assert(current:find("\t-- Exact straight/arc path",first,true))
+  current=current:sub(1,first-1)..current:sub(last)
+  check(baseline.ok and normalize(baseline.stdout)==current,"K1 existing geometry and all geometry functions frozen")
+ elseif path=="src/shared/TrackCatalog.luau" or path=="src/server/TrackBuilder.luau" then
+  -- P1 changes Practice only. Compare complete Base/V2/Hard generated worlds,
+  -- including catalog, flags, attributes, environment and collisions.
+  local result=require("@lune/process").exec("lune",{"run","tests/practice_figure8_geometry_validation.luau"})
+  check(result.ok,"P1 scoped production freeze "..path.." "..result.stderr)
+ else
+  check(baseline.ok and normalize(require("./helpers/m1_presentation_freeze")(baseline.stdout))==normalize(require("./helpers/m1_presentation_freeze")(fs.readFile(path))),"K1 frozen non-palette contract "..path)
+ end
 end
 if require("@lune/process").args[1]=="Report" then fs.writeDir("artifacts/r7-k1a");fs.writeFile("artifacts/r7-k1a/masks.json",serde.encode("json",report)) end
 print("PASS: "..count.." straight resolver checks")

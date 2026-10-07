@@ -6,36 +6,50 @@ function RaceRouteProgress.new(course, roadWidth: number)
 	return { course = course, roadWidth = roadWidth, previous = nil, position = nil, pending = 1 }
 end
 
-local function project(samples, position: Vector3)
-	local bestDistance, fraction = math.huge, 0
+local function project(samples, position: Vector3, previous, length, limit, corridor)
+	local bestDistance, fraction, bestDelta = math.huge, nil, math.huge
 	for index, point in samples do
 		local edge = samples[index % #samples + 1] - point
-		local offset = position - point
-		local alpha = math.clamp(offset:Dot(edge) / edge:Dot(edge), 0, 1)
-		local distance = (offset - edge * alpha).Magnitude
-		if distance < bestDistance then
-			bestDistance = distance
-			fraction = (index - 1 + alpha) / #samples
+		local edgeLengthSquared = edge:Dot(edge)
+		if edgeLengthSquared > 0 then
+			local offset = position - point
+			local alpha = math.clamp(offset:Dot(edge) / edgeLengthSquared, 0, 1)
+			local candidate = ((index - 1 + alpha) / #samples) % 1
+			local delta = if previous then math.abs((candidate - previous + 0.5) % 1 - 0.5) else 0
+			-- Filter BOTH forward and reverse motion before nearest-distance selection.
+			if previous == nil or delta * length <= limit then
+				local distance = (offset - edge * alpha).Magnitude
+				if (previous == nil or distance <= corridor)
+					and (distance < bestDistance or (distance == bestDistance and delta < bestDelta)) then
+					bestDistance, fraction, bestDelta = distance, candidate, delta
+				end
+			end
 		end
 	end
-	return fraction % 1, bestDistance
+	return fraction
 end
 
 function RaceRouteProgress.step(state, worldPosition: Vector3, nextCheckpoint: number, onRoad: boolean): number
 	local position = Vector3.new(worldPosition.X, 0, worldPosition.Z)
-	local fraction, distance = project(state.course.Samples, position)
 	local previous = state.previous
 	local previousPosition = state.position
-	state.previous = fraction
-	state.position = position
 	state.pending = math.max(state.pending, nextCheckpoint)
+	-- previous AND position are last ACCEPTED route/world samples. Rejected hitches,
+	-- teleports and distant excursions retain both anchors until a compatible return
+	-- or RaceController's existing clearGateState() creates fresh route state.
+	local moved = if previousPosition then (position - previousPosition).Magnitude else 0
+	if previous ~= nil and moved > 60 then return nextCheckpoint end
+	local fraction = project(state.course.Samples, position, previous,
+		state.course.CenterlineLength, math.min(80, moved * 3 + 2), state.roadWidth * 2)
+	if fraction == nil then return nextCheckpoint end
+	-- A segment-end projection can stay fixed while the chassis rounds an inside
+	-- corner. Keep its movement anchor until route position changes, so legitimate
+	-- travel accumulates instead of repeatedly losing the ability to leave that end.
+	if fraction ~= previous then state.previous, state.position = fraction, position end
 	if previous and previousPosition then
 		local advance = (fraction - previous + 0.5) % 1 - 0.5
-		local moved = (position - previousPosition).Magnitude
-		-- Reject teleports and projection jumps onto a different leg of the course.
-		if moved <= 60 and advance > 0
-			and advance * state.course.CenterlineLength <= math.min(80, moved * 3 + 2)
-			and distance <= state.roadWidth * 2 then
+		-- Route position may move backward; only forward motion recovers checkpoints.
+		if advance > 0 then
 			local checkpoint = state.course.CheckpointSamples[state.pending]
 			while checkpoint do
 				local toCheckpoint = (checkpoint.Fraction - previous) % 1

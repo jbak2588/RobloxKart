@@ -130,7 +130,7 @@ check(sorted[1].state=="RACING","active racer outranks DNF")
 
 local prototype=child(services.Workspace,"Folder","Prototype")
 local track=child(prototype,"Model","TestTrack")
-track:SetAttribute("TrackId","Track01")
+track:SetAttribute("TrackId","Track01Race")
 track:SetAttribute("GeometryId","PracticeCircuitV1")
 track:SetAttribute("CheckpointCount",2)
 local roads=child(track,"Folder","Road")
@@ -178,7 +178,7 @@ local race=load("src/server/RaceController.luau",server,"RaceController")
 load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 load("src/shared/RaceItemSlots.luau",shared,"RaceItemSlots")
 local tactical=load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService").new(sessionType.forPlayer)
-race.start()
+race.start({trackId="Track01Race"})
 local session=sessionType.active()
 local function tick(dt) now+=dt;services.RunService.Heartbeat:Fire(dt) end
 local remote=services.ReplicatedStorage.RaceControl.OnServerEvent

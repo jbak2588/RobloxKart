@@ -15,6 +15,10 @@ end
 for id,name in names do
  check(current.Entries[id].DisplayName==name,"exact name "..id)
  local entry=table.clone(current.Entries[id]);entry.DisplayName=baseline.Entries[id].DisplayName
+ if id=="Track01" then
+  check(entry.GeometryId=="PracticeFigure8V1" and entry.TargetLaps==2,"P1 Practice-only geometry/laps")
+  for _,key in {"GeometryId","TargetLaps","GridSlots"}do entry[key]=baseline.Entries[id][key]end
+ end
  check(equal(entry,baseline.Entries[id]),"all non-display catalog fields unchanged "..id)
 end
 local source=fs.readFile("src/client/MatchRoomUiController.luau")

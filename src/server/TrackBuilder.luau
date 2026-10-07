@@ -10,6 +10,53 @@ local TRACK_VISUAL_STYLE = {
 	Hard = { Version = 1, KerbRows = 2 },
 }
 
+-- Sanitized native structure from Workspace.Billboard in audited Place1.
+-- Original tutorial decals/textures and all behaviors are excluded.
+local PRACTICE_BILLBOARD_PARTS = {
+	{ Size = Vector3.new(2.000000000, 2.000000000, 0.399999976), Frame = CFrame.new(0.000000000, 6.000000000, -4.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 13.800000191, 0.400000036), Frame = CFrame.new(6.599975586, 15.900001526, -0.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 16.000000000, 0.200000003), Frame = CFrame.new(0.000000000, 16.000000000, -0.899993896, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.929411769, 0.917647064, 0.917647064), Shape = Enum.PartType.Block, Transparency = 0, Board = true },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(-6.600006104, 8.800003052, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(-15.600006104, 8.800003052, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(29.000000000, 3.000000000, 3.000000000), Frame = CFrame.new(0.000000000, -9.500000000, 0.000000000, 0.000000000, -1.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Cylinder, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.399999857), Frame = CFrame.new(0.000000000, 7.199996948, 2.399978638, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(31.599998474, 0.200000003, 3.599999905), Frame = CFrame.new(0.000000000, 7.309997559, -3.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.105882354, 0.164705887, 0.207843140), Shape = Enum.PartType.Block, Transparency = 0.8999999761581421, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.600000024, 9.399999619), Frame = CFrame.new(0.000000000, 6.699996948, 0.100006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.600000024, 9.399999619), Frame = CFrame.new(-12.000000000, 6.699996948, 0.100006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 14.599999428, 0.400000036), Frame = CFrame.new(15.400001526, 15.900001526, -0.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.599999845), Frame = CFrame.new(0.000000000, 7.199996948, -4.699996948, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.599999428, 0.400000006), Frame = CFrame.new(0.000000000, 8.300003052, 0.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 13.800000191, 0.400000036), Frame = CFrame.new(6.599975586, 15.900001526, 0.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.599999905), Frame = CFrame.new(0.000000000, 7.199996948, 4.699981689, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(15.599998474, 23.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 16.000000000, 0.200000003), Frame = CFrame.new(0.000000000, 16.000000000, 0.899993896, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.929411769, 0.917647064, 0.917647064), Shape = Enum.PartType.Block, Transparency = 0, Board = true },
+	{ Size = Vector3.new(32.000000000, 0.599999428, 0.400000006), Frame = CFrame.new(0.000000000, 8.300003052, -0.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.399999857), Frame = CFrame.new(0.000000000, 7.199996948, -3.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.600000024, 9.399999619), Frame = CFrame.new(-6.000000000, 6.699996948, 0.100006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 14.600000381, 0.400000036), Frame = CFrame.new(-15.400001526, 15.900001526, -0.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.599999428, 0.400000006), Frame = CFrame.new(0.000000000, 23.499992371, 0.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.399999857), Frame = CFrame.new(0.000000000, 7.199996948, -2.400009155, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(31.599998474, 0.200000003, 3.599999905), Frame = CFrame.new(0.000000000, 7.309997559, 3.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.105882354, 0.164705887, 0.207843140), Shape = Enum.PartType.Block, Transparency = 0.8999999761581421, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(6.599998474, 23.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(3.000000000, 3.000000000, 3.000000000), Frame = CFrame.new(0.000000000, 6.500000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 14.600000381, 0.400000036), Frame = CFrame.new(-15.400001526, 15.900001526, 0.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.399999857), Frame = CFrame.new(0.000000000, 7.199996948, 3.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(2.000000000, 2.000000000, 0.399999976), Frame = CFrame.new(0.000000000, 6.000000000, 4.599990845, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(15.599998474, 8.800003052, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.599999428, 0.400000006), Frame = CFrame.new(0.000000000, 23.499992371, -0.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(8.800001144, 2.000000000, 2.000000000), Frame = CFrame.new(0.000000000, 6.000000000, -0.000015259, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 1.000000000, 0.000000000, 0.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Cylinder, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(6.599998474, 8.800003052, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(-6.600006104, 23.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.600000024, 9.399999619), Frame = CFrame.new(6.000000000, 6.699996948, 0.100006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.599999845), Frame = CFrame.new(0.000000000, 7.199996948, 1.299987793, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.400000006, 1.600000024), Frame = CFrame.new(-15.600006104, 23.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 13.800000191, 0.400000036), Frame = CFrame.new(-6.599983215, 15.900001526, -0.599975586, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 14.599999428, 0.400000036), Frame = CFrame.new(15.400001526, 15.900001526, 0.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 13.800000191, 0.400000036), Frame = CFrame.new(-6.599983215, 15.900001526, 0.600006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(32.000000000, 0.399999976, 0.599999905), Frame = CFrame.new(0.000000000, 7.199996948, -1.300003052, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+	{ Size = Vector3.new(0.400000006, 0.600000024, 9.399999619), Frame = CFrame.new(12.000000000, 6.699996948, 0.100006104, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000, 0.000000000, 0.000000000, 0.000000000, 1.000000000), Color = Color3.new(0.733333349, 0.701960802, 0.698039234), Shape = Enum.PartType.Block, Transparency = 0, Board = false },
+}
+
 local function createPart(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3): Part
 	local part = Instance.new("Part")
 	part.Name = name
@@ -26,10 +73,11 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local definition = TrackGeometry.getDefinition(track.GeometryId)
 	assert(definition, "Track geometry is missing: " .. tostring(track.GeometryId))
 	local isHardCircuit = track.GeometryId == "HardCircuitV1"
+	local isFigure8 = track.GeometryId == "PracticeFigure8V1"
 	local styleName = if isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
 		elseif track.Id == "Track01Race" then "Base" else "Practice"
 	local style = TRACK_VISUAL_STYLE[styleName]
-	local environmentVersion = if isHardCircuit then 6 else 1
+	local environmentVersion = if isFigure8 then 4 elseif isHardCircuit then 6 else 1
 	local previousTrack = prototype:FindFirstChild("TestTrack")
 	if previousTrack and previousTrack:IsA("Model")
 		and previousTrack:GetAttribute("GeometryId") == track.GeometryId
@@ -86,7 +134,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local white = Color3.fromRGB(245, 245, 235)
 	local kerbRed = Color3.fromRGB(205, 48, 45)
 	local kerbWhite = Color3.fromRGB(238, 236, 229)
-	local isPractice = track.GeometryId == "PracticeCircuitV1"
+	local isPractice = track.GeometryId == "PracticeCircuitV1" or isFigure8
 	local kerbThreshold = math.rad(if isPractice then 5 else 3.5)
 	if isHardCircuit then kerbThreshold = math.atan(definition.SampleSpacing / 350) end
 	local barrierThreshold = math.rad(if isPractice then 7 else 9)
@@ -146,6 +194,13 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		local arriving = (current - previous).Unit
 		local leaving = (following - current).Unit
 		return arriving:Cross(leaving).Y
+	end
+
+	local function inCrossover(point: Vector3, margin: number?): boolean
+		if not isFigure8 then return false end
+		local crossing = definition.Crossover
+		local delta = point - crossing.Position
+		return Vector2.new(delta.X, delta.Z).Magnitude <= crossing.KerbClearRadius + (margin or 0)
 	end
 
 	-- Sample zero is on the long finish straight: corner runs cannot wrap the grid.
@@ -211,7 +266,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			end
 		end
 	end
-	for index = 8, #samples - 8, cueStride do
+	for index = 8, (if isFigure8 then 0 else #samples - 8), cueStride do
 		if not isHardCircuit or (not cornerSegments[index] and turnAt(index) < math.rad(1)) then
 			if not straightCueRoles[index] and (not isHardCircuit or #cueIndices < maxSpeedCueObjects) then table.insert(cueIndices, index) end
 		end
@@ -294,7 +349,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		Color3.fromRGB(84, 125, 79), Enum.Material.Grass
 	)
 
-	if isHardCircuit then
+	if isHardCircuit or isFigure8 then
 		local support = createPart(testTrack, "SafetyGround",
 			Vector3.new(bounds.MaxX - bounds.MinX + grassMargin * 2, 1, bounds.MaxZ - bounds.MinZ + grassMargin * 2),
 			CFrame.new((bounds.MinX + bounds.MaxX) * 0.5, groundTop - 0.5, (bounds.MinZ + bounds.MaxZ) * 0.5),
@@ -306,6 +361,47 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		support.Material = Enum.Material.Grass
 	end
 
+	if isFigure8 then
+		-- Same physical support/corridor authority; only the visual footprint changes.
+		-- Slightly separated noncolliding ribbons hide coplanar road intersections.
+		local crossing = definition.Crossover
+		local guidance = Instance.new("Folder")
+		guidance.Name = "CrossoverGuidance"
+		guidance.Parent = markingFolder
+		for branch, tangent in crossing.BranchTangents do
+			local label = if branch == 1 then "A" else "B"
+			local center = roadPoint(crossing.Position, 0.055 + (branch - 1) * 0.015)
+			local ribbon = createVisualPart(environmentFolder, "CrossoverRibbon" .. label,
+				Vector3.new(roadWidth, 0.02, crossing.VisualHalfLength * 2),
+				CFrame.lookAt(center, center + tangent), roadColor, Enum.Material.Asphalt)
+			ribbon:SetAttribute("CrossoverBranch", label)
+			ribbon:SetAttribute("ForwardTangent", tangent)
+			local right = Vector3.new(-tangent.Z, 0, tangent.X)
+			for dash, distance in { -96, -72, -48, -24, 24, 48, 72, 96 } do
+				local point = crossing.Position + tangent * distance
+				local part = createSegment(guidance, "Branch" .. label .. "Dash" .. dash,
+					roadPoint(point - tangent * 7, 0.11), roadPoint(point + tangent * 7, 0.11),
+					0.8, 0.03, 0, white, nil)
+				part:SetAttribute("CrossoverBranch", label)
+				part:SetAttribute("BranchDistance", distance)
+				part:SetAttribute("GuidanceKind", "RacingDivider")
+			end
+			-- Edges stop outside literal branch overlap; no kerb grid through the center.
+			for _, side in { -1, 1 } do
+				for _, direction in { -1, 1 } do
+					local edge = crossing.Position + right * (roadWidth * 0.5 * side)
+					local part = createSegment(guidance, "Branch" .. label .. "Edge" .. side .. "_" .. direction,
+						roadPoint(edge + tangent * (42 * direction), 0.11),
+						roadPoint(edge + tangent * (crossing.VisualHalfLength * direction), 0.11),
+						1, 0.03, 0, white, nil)
+					part:SetAttribute("CrossoverBranch", label)
+					part:SetAttribute("GuidanceKind", "OuterEdge")
+				end
+			end
+		end
+	end
+
+	local nextEdgeSegment = 1
 	for index = 1, #samples do
 		local nextIndex = index % #samples + 1
 		local first = samples[index]
@@ -325,14 +421,25 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		local secondRight = Vector3.new(-secondDirection.Z, 0, secondDirection.X)
 		local strongestTurn = if startBend >= endBend then index else nextIndex
 		local innerSide = if signedTurnAt(strongestTurn) > 0 then -1 else 1
-		for _, side in { -1, 1 } do
-			local firstEdge = first + firstRight * (roadWidth * 0.5 * side)
-			local secondEdge = second + secondRight * (roadWidth * 0.5 * side)
-			createSegment(
-				markingFolder, (if side < 0 then "LeftEdge" else "RightEdge") .. index,
-				roadPoint(firstEdge, 0.04), roadPoint(secondEdge, 0.04),
-				1, 0.035, 0.6, white, nil
-			)
+		-- Only Practice merges exactly straight edge spans; curved boundaries stay sampled.
+		if not isFigure8 or index >= nextEdgeSegment then
+			local last = index
+			if isFigure8 and not inCrossover(first, 12) and not inCrossover(second, 12) then
+				while last < math.min(index + 3, #samples - 1)
+					and turnAt(last) < 0.001 and turnAt(last + 1) < 0.001
+					and not inCrossover(samples[last + 2], 12) do last += 1 end
+			end
+			nextEdgeSegment = last + 1
+			local edgeEnd = samples[last % #samples + 1]
+			local endDirection = directionAt(last % #samples + 1)
+			local endRight = Vector3.new(-endDirection.Z, 0, endDirection.X)
+			for _, side in { -1, 1 } do
+				if inCrossover(first, 12) or inCrossover(edgeEnd, 12) then continue end
+				createSegment(markingFolder, (if side < 0 then "LeftEdge" else "RightEdge") .. index,
+					roadPoint(first + firstRight * (roadWidth * 0.5 * side), 0.04),
+					roadPoint(edgeEnd + endRight * (roadWidth * 0.5 * side), 0.04),
+					1, 0.035, 0.6, white, nil)
+			end
 		end
 
 		-- Leave the grid and finish crossing visually open. Corner strips sit beyond the road edge.
@@ -341,7 +448,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		-- continues along both edges, merging gentle spans to bound mobile parts.
 		if not isHardCircuit and not nearStart and bend >= kerbThreshold then cornerSegments[index] = true end
 
-		if not nearStart and bend >= barrierThreshold and index % barrierStride == 0
+		if not isFigure8 and not nearStart and bend >= barrierThreshold and index % barrierStride == 0
 			and not exitClearSegments[index] then
 			local outerSide = -innerSide
 			local offset = roadWidth * 0.5 + (if isHardCircuit then (if majorSegments[index] then 28 else 22) else 7)
@@ -376,7 +483,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			barrierCount += 1
 		end
 
-		if index % 3 == 1 then
+		if index % 3 == 1 and not inCrossover(first, 12) and not inCrossover(second, 12) then
 			createSegment(
 				markingFolder, "CenterDash" .. index,
 				roadPoint(first:Lerp(second, 0.22), 0.04),
@@ -388,7 +495,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	local singleKerbParts, doubleKerbParts, sharpGroupCount = 0, 0, 0
 	local doubleSegments = {}
-	if isHardCircuit then
+	if isHardCircuit or isFigure8 then
 		-- A sustained <=105-stud core enters the thick kerb band; <=140 holds it
 		-- through the shoulder of the bend. Ignore isolated one/two-sample spikes.
 		local sharpCore = math.atan(definition.SampleSpacing / 105)
@@ -414,7 +521,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	do
 		local function edgeAt(index: number, offset: number, side: number): Vector3
 			local tangent = directionAt(index)
-			return samples[index] + Vector3.new(-tangent.Z, 0, tangent.X) * offset * side
+			return samples[(index - 1) % #samples + 1] + Vector3.new(-tangent.Z, 0, tangent.X) * offset * side
 		end
 		local function chordError(first: number, last: number, offset: number, side: number): number
 			local a, b = edgeAt(first, offset, side), edgeAt(last + 1, offset, side)
@@ -427,15 +534,19 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			end
 			return error
 		end
-		for row = 1, style.KerbRows do
+		for row = 1, (if isFigure8 then 2 else style.KerbRows) do
 			local offset = roadWidth * 0.5 + 2.6 + (row - 1) * 3.6
-			local segment, stripe = 2, 0
-			while segment <= #samples - 1 do
+			local segment, stripe = (if isFigure8 then 1 else 2), 0
+			local lastAllowed = if isFigure8 then #samples else #samples - 1
+			while segment <= lastAllowed do
+				if inCrossover(samples[segment], 12) or inCrossover(samples[segment % #samples + 1], 12) then segment += 1; continue end
 				if row == 2 and not doubleSegments[segment] then segment += 1; continue end
 				local last = segment
 				-- Merge only gentle spans within 0.25 stud of BOTH true offset edges.
-				while last < math.min(segment + 3, #samples - 1)
+				while last < math.min(segment + 3, lastAllowed)
 					and (row == 1 or doubleSegments[last + 1])
+					and not inCrossover(samples[(last + 1) % #samples + 1], 12)
+					and not inCrossover(samples[(last + 2) % #samples + 1], 12)
 					and turnAt(last + 1) < math.atan(definition.SampleSpacing / 250)
 					and chordError(segment, last + 1, offset, -1) <= 0.25
 					and chordError(segment, last + 1, offset, 1) <= 0.25 do last += 1 end
@@ -459,7 +570,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	local chevronParts = 0
 	local chevronClusters = 0
-	if isHardCircuit then
+	if isHardCircuit or isFigure8 then
 		local directions = Instance.new("Folder")
 		directions.Name = "DirectionMarkers"
 		directions.Parent = testTrack
@@ -472,7 +583,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			for _, checkpoint in checkpointSamples do
 				if (samples[index] - checkpoint.Position).Magnitude < 28 then clearOfGate = false end
 			end
-			if not clearOfGate then continue end
+			if not clearOfGate or inCrossover(samples[index], if isFigure8 then 98 else 45) then continue end
 			local tangent = directionAt(index)
 			local right = Vector3.new(-tangent.Z, 0, tangent.X)
 			for _, laneSide in { -1, 1 } do
@@ -497,6 +608,104 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 			nextMarker = traveled + (if cornerSegments[index] then 98 else 154)
 		end
+	end
+
+	if isFigure8 then
+		local directions = testTrack:FindFirstChild("DirectionMarkers")
+		local crossing = definition.Crossover
+		for branch, tangent in crossing.BranchTangents do
+			local right = Vector3.new(-tangent.Z, 0, tangent.X)
+			for _, distance in { -118, 118 } do
+				for _, lane in { -1, 1 } do
+					local origin = crossing.Position + tangent * distance + right * (roadWidth * 0.25 * lane)
+					local cluster = Instance.new("Folder")
+					cluster.Name = "CrossoverChevron" .. branch .. "_" .. distance .. "_" .. lane
+					cluster:SetAttribute("ForwardTangent", tangent)
+					cluster:SetAttribute("CrossoverBranch", branch)
+					cluster:SetAttribute("BranchDistance", distance)
+					cluster:SetAttribute("LaneSide", lane)
+					cluster.Parent = directions
+					for _, wing in { -1, 1 } do
+						createSegment(cluster, "Wing" .. wing,
+							roadPoint(origin - tangent * 3 + right * (wing * 3), 0.12),
+							roadPoint(origin + tangent * 3, 0.12), 1.1, 0.035, 0,
+							Color3.fromRGB(185, 202, 204), nil)
+						chevronParts += 1
+					end
+					chevronClusters += 1
+				end
+			end
+		end
+	end
+
+	if isFigure8 then
+		local decor = Instance.new("Folder")
+		decor.Name = "PracticeLandmarks"
+		decor.Parent = environmentFolder
+		local billboardFraction = 0.42
+		local tangent = TrackGeometry.getTangentAtFraction(samples, billboardFraction)
+		local normal = Vector3.new(-tangent.Z, 0, tangent.X)
+		local billboardCenter = TrackGeometry.getSampleAtFraction(samples, billboardFraction) + normal * 88
+		local mount = CFrame.lookAt(roadPoint(billboardCenter, 24), roadPoint(billboardCenter - normal, 24))
+		local billboard = Instance.new("Model")
+		billboard.Name = "KDMDriftPracticeBillboard"
+		billboard.Parent = decor
+		for index, spec in PRACTICE_BILLBOARD_PARTS do
+			local part = createVisualPart(billboard, "Structure" .. index, spec.Size, mount * spec.Frame,
+				if spec.Board then Color3.fromRGB(26, 40, 53) else spec.Color, Enum.Material.SmoothPlastic)
+			part.Shape = spec.Shape
+			part.Transparency = spec.Transparency
+			if spec.Board then
+				for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+					local gui = Instance.new("SurfaceGui")
+					gui.Face = face
+					gui.CanvasSize = Vector2.new(640, 320)
+					gui.Parent = part
+					local label = Instance.new("TextLabel")
+					label.Size = UDim2.fromScale(1, 1)
+					label.BackgroundTransparency = 1
+					label.Text = "KDM\nDRIFT PRACTICE"
+					label.TextScaled = true
+					label.TextColor3 = Color3.fromRGB(0, 196, 224)
+					label.Font = Enum.Font.GothamBold
+					label.Parent = gui
+				end
+			end
+		end
+		local trees = 0
+		for _, fraction in { .09, .16, .22, .31, .36, .41, .60, .66, .70, .77, .81, .85, .27, .55, .95, .04 } do
+			if trees >= 12 then break end
+			local point = TrackGeometry.getSampleAtFraction(samples, fraction)
+			local forward = TrackGeometry.getTangentAtFraction(samples, fraction)
+			local right = Vector3.new(-forward.Z, 0, forward.X)
+			local a = TrackGeometry.getTangentAtFraction(samples, fraction - .005)
+			local b = TrackGeometry.getTangentAtFraction(samples, fraction + .005)
+			local preferred = if a:Cross(b).Y > 0 then 1 else -1
+			for _, side in { preferred, -preferred } do
+				local center = point + right * (78 * side)
+				local clear = not inCrossover(center, 55) and (center - billboardCenter).Magnitude > 55
+				for _, roadSample in samples do
+					if (center - roadSample).Magnitude < 62 then clear = false; break end
+				end
+				if not clear then continue end
+				trees += 1
+				local tree = Instance.new("Model")
+				tree.Name = "PracticePine" .. trees
+				tree.Parent = decor
+				-- Audited PineTree trunk dimensions/colors, with three native canopy
+				-- tiers replacing its 44 nonportable UnionOperations. No donor mesh.
+				createVisualPart(tree, "Trunk", Vector3.new(2, 34, 2), CFrame.new(roadPoint(center, 17)),
+					Color3.fromRGB(108, 88, 75), Enum.Material.SmoothPlastic)
+				for tier, spec in { {18, 22}, {14, 28}, {10, 34} } do
+					createVisualPart(tree, "Canopy" .. tier, Vector3.new(spec[1], 7, spec[1]),
+						CFrame.new(roadPoint(center, spec[2])), Color3.fromRGB(80, 109, 84), Enum.Material.SmoothPlastic)
+				end
+				break
+			end
+		end
+		testTrack:SetAttribute("PracticeTreeCount", trees)
+		testTrack:SetAttribute("PracticeBillboardPartCount", #PRACTICE_BILLBOARD_PARTS)
+		testTrack:SetAttribute("PracticeSignalPartCount", 0)
 	end
 
 	local function createRaceGate(name: string, point: Vector3, direction: Vector3, gateType: string, checkpointIndex: number?)
@@ -551,9 +760,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	testTrack:SetAttribute("VisualStyleProfile", styleName)
 	testTrack:SetAttribute("VisualStyleVersion", style.Version)
 	testTrack:SetAttribute("VisualPartCount", partCount)
-	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts)
+	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts + (if isFigure8 then 2 + #PRACTICE_BILLBOARD_PARTS + (testTrack:GetAttribute("PracticeTreeCount") or 0) * 4 else 0))
 	testTrack:SetAttribute("EnvironmentCueVersion", environmentVersion)
-	if isHardCircuit then
+	if isHardCircuit or isFigure8 then
 		testTrack:SetAttribute("CornerZoneCount", #cornerZones)
 		testTrack:SetAttribute("SingleKerbPartCount", singleKerbParts)
 		testTrack:SetAttribute("DoubleKerbPartCount", doubleKerbParts)

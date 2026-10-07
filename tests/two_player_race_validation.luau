@@ -130,7 +130,7 @@ check(sorted[1].state=="RACING","active racer outranks DNF")
 
 local prototype=child(services.Workspace,"Folder","Prototype")
 local track=child(prototype,"Model","TestTrack")
-track:SetAttribute("TrackId","Track01")
+track:SetAttribute("TrackId","Track01Race")
 track:SetAttribute("GeometryId","PracticeCircuitV1")
 track:SetAttribute("CheckpointCount",2)
 local roads=child(track,"Folder","Road")
@@ -177,7 +177,7 @@ modules.PrototypeWorld={
  releaseKartContext=function(p) released[p]=(released[p] or 0)+1 end,
 }
 local race=load("src/server/RaceController.luau",server,"RaceController")
-race.start()
+race.start({trackId="Track01Race"})
 check(a:GetAttribute("RaceMapActive")==false and b:GetAttribute("RaceMapActive")==false
  and a:GetAttribute("RaceMapPosition")==V.zero,"map publication initializes inactive")
 local session=sessionType.active()

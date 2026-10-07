@@ -130,7 +130,7 @@ check(sorted[1].state=="RACING","active racer outranks DNF")
 
 local prototype=child(services.Workspace,"Folder","Prototype")
 local track=child(prototype,"Model","TestTrack")
-track:SetAttribute("TrackId","Track01")
+track:SetAttribute("TrackId","Track01Race")
 track:SetAttribute("GeometryId","PracticeCircuitV1")
 track:SetAttribute("CheckpointCount",2)
 local roads=child(track,"Folder","Road")
@@ -175,7 +175,7 @@ modules.PrototypeWorld={
  releaseKartContext=function(p) released[p]=(released[p] or 0)+1 end,
 }
 local race=load("src/server/RaceController.luau",server,"RaceController")
-race.start()
+race.start({trackId="Track01Race"})
 local session=sessionType.active()
 local function tick(dt) now+=dt;services.RunService.Heartbeat:Fire(dt) end
 local remote=services.ReplicatedStorage.RaceControl.OnServerEvent

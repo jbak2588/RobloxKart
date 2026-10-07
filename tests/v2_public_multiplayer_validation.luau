@@ -13,7 +13,7 @@ check(v2.MatchType=="PUBLIC_RACE" and v2.MinPlayers==1 and v2.MaxPlayers==4 and 
 check(v2.GeometryId=="PrototypeCircuitV2" and v2.PreviewImageAssetId=="rbxassetid://104449535838897","production identity/image unchanged")
 for _,id in {"Track01","Track01Race","Track03"} do
  local track=catalog.Entries[id]
- check(track.TargetLaps==(if id=="Track01" then 1 else 2)
+ check(track.TargetLaps==2
   and track.MaxPlayers==(if id=="Track01" then 1 else 4)
   and track.MatchType==(if id=="Track01" then "SOLO_PRACTICE" else "PUBLIC_RACE"),"existing track "..id)
 end
@@ -37,7 +37,12 @@ for _,path in {"src/shared/TrackGeometry.luau",
  "src/shared/RaceItemConfig.luau","src/server/RaceLoadout.luau",
  "src/server/RaceItemController.luau","tests/fixtures/garage_phase1b_geometry.json","tests/fixtures/kart_v2_geometry.json"} do
  local baseline=process.exec("git",{"show",checkpoint..":"..path})
- check(baseline.ok and baseline.stdout:gsub("\r\n","\n")==fs.readFile(path):gsub("\r\n","\n"),"checkpoint preserved "..path)
+ local current=fs.readFile(path):gsub("\r\n","\n")
+ if path=="src/shared/TrackGeometry.luau" then
+  local a=assert(current:find("\t-- Dedicated planar drift practice:",1,true));local b=assert(current:find("\t-- Exact straight/arc path",a,true))
+  current=current:sub(1,a-1)..current:sub(b)
+ end
+ check(baseline.ok and baseline.stdout:gsub("\r\n","\n")==current,"checkpoint preserved except additive Practice definition "..path)
 end
 local fixturePath="tests/fixtures/garage_phase1b_geometry.json"
 local previousFixture=process.exec("git",{"show",checkpoint..":"..fixturePath})

@@ -68,7 +68,9 @@ check(serial()==before+1 and player:GetAttribute("RaceCompletedLaps")==2
  and actualLoadout.counts.Thunder==0,"V2 second/final lap excluded")
 start("Track01")
 empty({"Shield","Slick","Missile"});before=serial();lap()
-check(serial()==before and actualLoadout.counts.Shield==0,"single-lap Practice excluded")
+check(serial()==before+1 and actualLoadout.counts.Shield==1 and actualLoadout.counts.Slick==1 and actualLoadout.counts.Missile==1,"two-lap Practice uses existing non-final tactical refill")
+empty({"Shield","Slick","Missile"});lap()
+check(serial()==before+1 and actualLoadout.counts.Shield==0,"Practice final lap has no refill")
 -- Pure loadout boundary tests: disabled policy, cap, positive counts and hard Nitro exclusion.
 local l=originalNew();l:prepare();l.counts.Shield=0;l.counts.Nitro=0
 local ids,n=l:refillLapItems({Enabled=false,Eligible=policy.Eligible,RefillTo=1})
