@@ -70,12 +70,12 @@ function HubUiController.start()
   local button = Instance.new("TextButton")
   button.Name, button.Text = action, action
   button.Size, button.Position = UDim2.new(1,-12,0,44), UDim2.fromOffset(6,6+(index-1)*48)
-  button.BackgroundColor3 = if action == "TRACKS" then Theme.PrimaryAction else Theme.Background
-  button.TextColor3 = if action == "TRACKS" then Theme.Background else Theme.TextPrimary
+  button.BackgroundColor3 = Theme.Panel
+  button.TextColor3 = Theme.TextPrimary
   button.Font, button.TextSize, button.BorderSizePixel = Enum.Font.GothamBold, 16, 0
   button.Parent = panel
   local stroke = Instance.new("UIStroke")
-  stroke.Color, stroke.ApplyStrokeMode, stroke.Parent = Theme.Selection, Enum.ApplyStrokeMode.Border, button
+  stroke.Color, stroke.ApplyStrokeMode, stroke.Parent = Theme.TextSecondary, Enum.ApplyStrokeMode.Border, button
   table.insert(connections, button.Activated:Connect(function() open(action) end))
  end
  local function update()

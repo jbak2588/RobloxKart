@@ -12,7 +12,7 @@ local function label(parent, name, size, position, text, fontSize)
 	item.Size = size
 	item.Position = position
 	item.BackgroundTransparency = 1
-	item.TextColor3 = Color3.fromRGB(245, 246, 250)
+	item.TextColor3 = Theme.TextPrimary
 	item.TextSize = fontSize or 20
 	item.Font = Enum.Font.GothamBold
 	item.TextXAlignment = Enum.TextXAlignment.Left
@@ -25,10 +25,10 @@ local function button(parent, text, position, size, callback)
 	local item = Instance.new("TextButton")
 	item.Size = size
 	item.Position = position
-	item.BackgroundColor3 = Color3.fromRGB(43, 128, 226)
+	item.BackgroundColor3 = Theme.Background
 	item.BorderSizePixel = 0
 	item.Text = text
-	item.TextColor3 = Color3.new(1, 1, 1)
+	item.TextColor3 = Theme.TextPrimary
 	item.TextSize = 18
 	item.Font = Enum.Font.GothamBold
 	item.Parent = parent
@@ -50,23 +50,24 @@ function MatchRoomUiController.start()
 	gui.Parent = player:WaitForChild("PlayerGui")
 	local shade = Instance.new("Frame")
 	shade.Size = UDim2.fromScale(1, 1)
-	shade.BackgroundColor3 = Color3.fromRGB(8, 15, 26)
+	shade.BackgroundColor3 = Theme.Background
 	shade.BackgroundTransparency = 0.1
 	shade.Parent = gui
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.Size = UDim2.new(0.9, 0, 0.8, 0)
-	panel.BackgroundColor3 = Color3.fromRGB(18, 29, 44)
+	panel.BackgroundColor3 = Theme.Panel
 	panel.Parent = shade
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MaxSize = Vector2.new(650, 650)
 	constraint.Parent = panel
 	local title = label(panel, "Title", UDim2.new(1, -32, 0, 48), UDim2.fromOffset(16, 10), "RACE ROOMS", 26)
-	title.TextColor3 = Color3.fromRGB(255, 218, 73)
+	title.TextColor3 = Theme.TextPrimary
 	local status = label(panel, "Status", UDim2.new(1, -32, 0, 38), UDim2.fromOffset(16, 55), "", 17)
  local guidance = label(panel, "NextAction", UDim2.new(1,-32,0,28), UDim2.fromOffset(16,94), "", 13)
- guidance.AutoLocalize, guidance.TextWrapped, guidance.TextColor3 = true, true, Theme.Selection
+ guidance.AutoLocalize, guidance.TextWrapped, guidance.TextColor3 = true, true, Theme.TextSecondary
+ status.TextColor3 = Theme.TextSecondary
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "RoomList"
 	list.Position = UDim2.new(0, 16, 0, 128)
@@ -82,13 +83,15 @@ function MatchRoomUiController.start()
 	layout.Parent = list
 	local primary = button(panel, "CREATE ROOM", UDim2.new(0, 16, 1, -68), UDim2.new(0.48, -20, 0, 52), function() end)
 	local back = button(panel, "BACK", UDim2.new(0.52, 0, 1, -68), UDim2.new(0.48, -16, 0, 52), function() end)
-	back.BackgroundColor3 = Color3.fromRGB(84, 68, 75)
+	back.BackgroundColor3 = Theme.Panel
+ primary.BackgroundColor3, primary.TextColor3 = Theme.PrimaryAction, Theme.Background
 	local primaryConnection, backConnection
 	local function bindButtons(primaryText, primaryAction, backText, backAction)
 		if primaryConnection then primaryConnection:Disconnect() end
 		if backConnection then backConnection:Disconnect() end
 		primary.Text = primaryText
 		back.Text = backText
+  back.BackgroundColor3 = if backText == "LEAVE" then Theme.Danger else Theme.Panel
 		primaryConnection = primary.Activated:Connect(primaryAction)
 		backConnection = back.Activated:Connect(backAction)
 	end
@@ -100,7 +103,7 @@ function MatchRoomUiController.start()
 	local function row(text, actionText, callback)
 		local frame = Instance.new("Frame")
 		frame.Size = UDim2.new(1, -8, 0, 56)
-		frame.BackgroundColor3 = Color3.fromRGB(29, 44, 62)
+		frame.BackgroundColor3 = Theme.Panel
 		frame.Parent = list
 		label(frame, "Name", UDim2.new(0.63, -8, 1, 0), UDim2.fromOffset(10, 0), text, 16)
 		if actionText then
@@ -129,6 +132,7 @@ function MatchRoomUiController.start()
 	end
 	render = function()
 		clearRows()
+  status.TextColor3 = Theme.TextSecondary
   guidance.Text = GuidanceState.roomHelper(snapshot, player.UserId)
   guidance.Visible = pendingAction == nil and invitation == nil and player:GetAttribute("RaceState") == "GARAGE"
 		gui.Enabled = ((snapshot and snapshot.visible == true) or invitation ~= nil)
@@ -171,6 +175,7 @@ function MatchRoomUiController.start()
 		elseif snapshot and snapshot.room then
 			local room = snapshot.room
 			title.Text = (snapshot.trackName or "RACE") .. " ROOM"
+   status.TextColor3 = if room.state == "READY" then Theme.Ready else Theme.TextSecondary
 			status.Text = string.format("HOST: %s   RACERS %d / %d  •  %s",
 				room.hostName, #room.members, room.maxPlayers,
 				if room.hostUserId ~= player.UserId and room.state == "WAITING" then "WAITING FOR HOST" else RoomDisplay.state(room.state))
@@ -201,6 +206,7 @@ function MatchRoomUiController.start()
 			bindButtons("CREATE ROOM", function() send("Create") end,
 				"BACK", function() remote:FireServer("Back") end)
 		end
+  status.TextColor3 = if errorMessage then Theme.Danger else status.TextColor3
 		if errorMessage then status.Text = errorMessage end
 	end
  local remoteConnection = remote.OnClientEvent:Connect(function(action, data)

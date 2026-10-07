@@ -68,6 +68,7 @@ local Loadout=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 local boundLoadouts={}
 local originalLoadoutNew=Loadout.new
 Loadout.new=function() local l=originalLoadoutNew();table.insert(boundLoadouts,l);return l end
+load("src/shared/KDMItemVFXConfig.luau",shared,"KDMItemVFXConfig")
 local Visuals=load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 local Service=load("src/server/HomingMissileService.luau",server,"HomingMissileService")
 load("src/server/ThunderStrikeService.luau",server,"ThunderStrikeService")

@@ -1,0 +1,11 @@
+{
+  "files": {
+    "src\\client\\GarageUiController.luau": "7ff92c4b4c59b7fc902384eb9414c2d262290e6aa933455f21fcd4ff33a3c881",
+    "src\\client\\KDMItemVFXController.luau": "bb8a94de4ccc4f3dff37d7f724018885db6d1bd6ef05a3e8430ee270614d77ee",
+    "src\\server\\PrototypeWorld.luau": "9b3474af12a74a343c184d588625cbf73219e2dc3fc1518b5858e9dcf426ab08",
+    "src\\server\\RaceBotController.luau": "16238ce3b360338db25366a8085ed0135d28bfd2aefcb51deacf815b6c41897e",
+    "src\\server\\SlickMotion.luau": "5933fada74f6bef65fdcecf92a21d3af07438d95d048f6c5f109618106f5f59b",
+    "src\\shared\\KDMGameplayBalance.luau": "75c5a17623f3d58f4afeada496f3dd00c5a49fec031ed2c37acb1a183dd001a1"
+  },
+  "hash_mode": "sha256-canonical-lf-v1"
+}

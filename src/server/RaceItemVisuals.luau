@@ -1,4 +1,5 @@
 -- Original temporary geometry outside Kart/Visual's production contract.
+local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("KDMItemVFXConfig"))
 local Visuals = {}
 local function part(parent, name, size, frame, color)
 	local p = Instance.new("Part")
@@ -111,10 +112,17 @@ function Visuals.missile(parent, frame)
 	local trail = Instance.new("Trail")
 	trail.Name = "ExhaustTrail"
 	trail.Attachment0, trail.Attachment1 = a, b
-	trail.Lifetime, trail.LightEmission = 0.18, 1
+	trail.Lifetime, trail.LightEmission = Config.Missile.TrailLifetime, 1
 	trail.Color = ColorSequence.new(Color3.fromRGB(255, 190, 65))
 	trail.Transparency = NumberSequence.new(0.25, 1)
 	trail.Parent = body
+	local smoke = Instance.new("Trail")
+	smoke.Name = "SmokeTrail"
+	smoke.Attachment0, smoke.Attachment1 = a, b
+	smoke.Lifetime, smoke.LightEmission = Config.Missile.SmokeLifetime, 0
+	smoke.Color = ColorSequence.new(Color3.fromRGB(145, 155, 165))
+	smoke.Transparency = NumberSequence.new(0.65, 1)
+	smoke.Parent = body
 	local launch = part(model, "LaunchFlash", Vector3.one * 1.2, frame, Color3.fromRGB(255, 205, 65))
 	launch.Shape, launch.Material, launch.Transparency = Enum.PartType.Ball, Enum.Material.Neon, 0.25
 	model.Parent = parent
@@ -124,9 +132,9 @@ end
 function Visuals.updateMissile(model, age)
 	local launch = model:FindFirstChild("LaunchFlash")
 	if launch then
-		if age >= 0.18 then launch:Destroy() else
+		if age >= Config.Missile.LaunchFlashLifetime then launch:Destroy() else
 			launch.Size = Vector3.one * (1.2 + age * 10)
-			launch.Transparency = 0.25 + age / 0.18 * 0.75
+			launch.Transparency = 0.25 + age / Config.Missile.LaunchFlashLifetime * 0.75
 		end
 	end
 end
@@ -139,16 +147,61 @@ function Visuals.shieldPulse(kart, chassis)
 	pulse.Anchored = false
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0, weld.Part1, weld.Parent = chassis, pulse, pulse
+	local ripple = Instance.new("Highlight")
+	ripple.Name, ripple.Adornee = "BlockRipple", pulse
+	ripple.FillTransparency, ripple.OutlineTransparency = 1, 0.15
+	ripple.OutlineColor = Color3.fromRGB(120, 245, 255)
+	ripple.DepthMode = Enum.HighlightDepthMode.Occluded
+	ripple.Parent = pulse -- Expands with the existing pulse; inherits its cleanup.
 	return pulse
 end
 
+-- Child parts share the parent's existing service lifetime/cleanup owner.
+local function rays(root, count, radius, color, prefix)
+	for i = 1, count do
+		local angle = i * math.pi * 2 / count
+		local ray = part(root, prefix..i, Vector3.new(.13, .13, radius*.55),
+			root.CFrame * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -radius*.65), color)
+		ray.Material, ray.Transparency = Enum.Material.Neon, .15
+	end
+end
 function Visuals.missileImpact(parent, position, blocked)
-	local flash = part(parent, "MissileImpact", Vector3.one, CFrame.new(position),
+	local flash = part(parent, if blocked then "MissileShieldImpact" else "MissileImpact", Vector3.one, CFrame.new(position),
 		if blocked then Color3.fromRGB(65, 210, 255) else Color3.fromRGB(255, 200, 75))
-	flash.Shape = Enum.PartType.Ball
-	flash.Material = Enum.Material.Neon
-	flash.Transparency = 0.3
+	flash.Shape, flash.Material, flash.Transparency = Enum.PartType.Ball, Enum.Material.Neon, .3
+	if not blocked then
+		rays(flash, Config.Missile.SparkCount, Config.Missile.BurstRadius, Color3.fromRGB(255, 225, 140), "Burst")
+		local puff = part(flash, "ImpactPuff", Vector3.one*2*Config.Missile.PuffScale, flash.CFrame, Color3.fromRGB(100, 105, 115))
+		puff.Shape, puff.Transparency = Enum.PartType.Ball, Config.Missile.PuffTransparency
+		local residual = part(flash, "Aftershock", Vector3.one, flash.CFrame, Color3.fromRGB(255, 205, 100))
+		residual.Shape, residual.Material, residual.Transparency = Enum.PartType.Ball, Enum.Material.Neon, 1
+	end
 	return flash
+end
+function Visuals.updateMissileImpact(flash, age)
+	local t = math.clamp(age / Config.Missile.ImpactLifetime, 0, 1)
+	flash.Size, flash.Transparency = Vector3.one*(1+3*t), .3+.7*t
+	local delay = Config.Missile.AftershockDelay
+	local after = math.clamp((age-delay)/(Config.Missile.ImpactLifetime-delay),0,1)
+	local primary = math.max(0,1-age/delay)
+	local intensity = if age >= delay then Config.Missile.AftershockScale*(1-after) else primary
+	for _, child in flash:GetChildren() do
+		if child:IsA("BasePart") then
+			local index = tonumber(string.match(child.Name, "^Burst(%d+)$"))
+			if index then
+				child.Transparency = 1-.85*intensity
+				local angle = index*math.pi*2/Config.Missile.SparkCount
+				child.CFrame = flash.CFrame*CFrame.Angles(0,angle,0)*CFrame.new(0,0,-Config.Missile.BurstRadius*(.3+.7*t))
+			elseif child.Name == "ImpactPuff" then
+				child.Size = Vector3.one*(2+2*t)*Config.Missile.PuffScale
+				child.Transparency = Config.Missile.PuffTransparency+(1-Config.Missile.PuffTransparency)*t
+			elseif child.Name == "Aftershock" then
+				child.Size = Vector3.one*(1+2*after)
+				child.Transparency = if age < delay then 1 else 1-Config.Missile.AftershockScale*(1-after)
+			end
+		end
+	end
+	return t >= 1
 end
 
 function Visuals.smoke(parent, frame, config)
@@ -178,7 +231,7 @@ function Visuals.thunderWarning(parent, chassis)
   local puff=part(model,"Cloud"..i,Vector3.new(2.5,1.8,2.3),CFrame.new(),Color3.fromRGB(45,49,60))
   puff.Shape=Enum.PartType.Ball
  end
- local glow=part(model,"ElectricGlow",Vector3.new(.25,1.4,.25),CFrame.new(),Color3.fromRGB(255,230,90))
+ local glow=part(model,"ElectricGlow",Vector3.new(.25,1.4,.25),CFrame.new(),Color3.fromRGB(90,230,255))
  glow.Material=Enum.Material.Neon
  Visuals.updateThunderWarning(model,chassis)
  return model
@@ -187,15 +240,36 @@ function Visuals.updateThunderWarning(model,chassis)
  for i=1,3 do model:FindFirstChild("Cloud"..i).CFrame=CFrame.new(chassis.Position+Vector3.new((i-2)*1.5,6+ (if i==2 then .4 else 0),0)) end
  model.ElectricGlow.CFrame=CFrame.new(chassis.Position+Vector3.new(0,4.8,0))
 end
-function Visuals.thunderStrike(parent,chassis)
- local model=Instance.new("Model");model.Name="ThunderStrike";model.Parent=parent
+function Visuals.thunderStrike(parent,chassis,blocked)
+ local model=Instance.new("Model");model.Name=if blocked then "ThunderShieldImpact" else "ThunderStrike";model.Parent=parent
  for i=1,3 do
-  local bolt=part(model,"Bolt"..i,Vector3.new(.3,2.3,.3),CFrame.new(chassis.Position+Vector3.new(if i==2 then .4 else 0,7-i*2,0))*CFrame.Angles(0,0,if i==2 then .35 else -.18),Color3.fromRGB(255,245,150))
+  local bolt=part(model,"Bolt"..i,Vector3.new(.3,2.3,.3),CFrame.new(chassis.Position+Vector3.new(if i==2 then .4 else 0,7-i*2,0))*CFrame.Angles(0,0,if i==2 then .35 else -.18),Color3.fromRGB(210,250,255))
   bolt.Material=Enum.Material.Neon
  end
- local flash=part(model,"Impact",Vector3.new(5,.25,5),CFrame.new(chassis.Position),Color3.fromRGB(255,235,100))
- flash.Material=Enum.Material.Neon;flash.Transparency=.45
+ local flash=part(model,"Impact",Vector3.new(5,.25,5),CFrame.new(chassis.Position),Color3.fromRGB(65,225,255))
+ flash.Material=Enum.Material.Neon;flash.Transparency=.65
+ if blocked then
+  -- Absorbed strike ends at the shell; no full electric ground burst.
+  for i=1,3 do model:FindFirstChild("Bolt"..i).Transparency=.75 end
+ else
+  rays(flash,Config.Thunder.ArcCount,3,Color3.fromRGB(100,235,255),"ElectricArc")
+ end
  return model
 end
 
+function Visuals.thunderStrikeLifetime() return Config.Thunder.StrikeLifetime end
+function Visuals.updateThunderStrike(model, age)
+	local c=Config.Thunder
+	local t=math.clamp(age/c.StrikeLifetime,0,1)
+	local primary=math.max(0,1-age/c.PrimaryDuration)
+	local after=if age<c.AfterFlashDelay then 0 else c.AfterFlashScale*(1-math.clamp((age-c.AfterFlashDelay)/(c.StrikeLifetime-c.AfterFlashDelay),0,1))
+	local blocked=model.Name=="ThunderShieldImpact"
+	local intensity=if blocked then .20*(1-t) else math.max(primary,after)
+	for _,p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			-- Fade the initial vertical strike; residual arcs/ground pulse remain lighter.
+			p.Transparency=1-intensity*(if p.Name:match("^Bolt") then .80 else .65)
+		end
+	end
+end
 return Visuals

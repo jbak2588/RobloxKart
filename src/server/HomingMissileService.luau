@@ -113,6 +113,7 @@ function Service:update(now)
 		if Service.sweptHit(from, to, p.targetPrevious, targetPosition, c.MISSILE_HIT_RADIUS) then
 			local accepted, reason = d.resolve(p.target, p.owner, "Missile")
 			if accepted and (reason == "hit" or reason == "blocked") then
+				if #self.flashes >= 32 then self.flashes[1].visual:Destroy(); table.remove(self.flashes, 1) end
 				table.insert(self.flashes, { visual = d.visuals.missileImpact(d.parent, targetPosition, reason == "blocked"),
 					born = now, session = p.session, owner = p.owner, target = p.target })
 			end
@@ -125,8 +126,7 @@ function Service:update(now)
 	for index = #self.flashes, 1, -1 do
 		local f = self.flashes[index]
 		local age = now - f.born
-		if age >= 0.2 then f.visual:Destroy(); table.remove(self.flashes, index)
-		else f.visual.Size = Vector3.one * (1 + age * 15); f.visual.Transparency = 0.3 + age * 3 end
+		if d.visuals.updateMissileImpact(f.visual, age) then f.visual:Destroy(); table.remove(self.flashes, index) end
 	end
 end
 

@@ -1,5 +1,6 @@
 local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
+local Theme=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
 local Slots=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemSlots"))
 local View=require(script.Parent:WaitForChild("MobileControlView"))
 local ItemIconView=require(script.Parent:WaitForChild("KDMItemIconView"))
@@ -17,21 +18,21 @@ function Controller.start()
 	local function label(parent,name,text,y,height)
 		local l=Instance.new("TextLabel");l.Name=name;l.Text=text;l.Position=UDim2.new(0,12,0,y)
 		l.Size=UDim2.new(1,-24,0,height);l.BackgroundTransparency=1;l.TextSize=16
-		l.Font=Enum.Font.GothamBold;l.TextColor3=Color3.fromRGB(220,240,250);l.Parent=parent;return l
+		l.Font=Enum.Font.GothamBold;l.TextColor3=Theme.TextPrimary;l.Parent=parent;return l
 	end
 	local function button(parent,name,text)
 		local b=Instance.new("TextButton");b.Name=name;b.Text=text;b.Size=UDim2.fromOffset(100,44)
-		b.BackgroundColor3=Color3.fromRGB(35,75,105);b.TextColor3=Color3.new(1,1,1)
+		b.BackgroundColor3=Theme.Panel;b.TextColor3=Theme.TextPrimary
 		b.Font=Enum.Font.GothamBold;b.TextSize=14;b.Parent=parent;View.round(b,UDim.new(0,6));return b
 	end
 	local items=button(gui,"Items","ITEMS")
  local nextAction=label(gui,"NextAction","",0,16)
  nextAction.Size=UDim2.fromOffset(100,16);nextAction.TextSize=10;nextAction.AutoLocalize=true
 	local overlay=Instance.new("Frame");overlay.Name="Modal";overlay.Size=UDim2.fromScale(1,1)
-	overlay.BackgroundColor3=Color3.new(0,0,0);overlay.BackgroundTransparency=.25
+	overlay.BackgroundColor3=Theme.Background;overlay.BackgroundTransparency=.25
 	overlay.Active=true;overlay.Visible=false;overlay.Parent=gui
 	local card=Instance.new("Frame");card.Name="Card";card.AnchorPoint=Vector2.new(.5,.5)
-	card.Position=UDim2.fromScale(.5,.5);card.BackgroundColor3=Color3.fromRGB(16,25,35);card.BorderSizePixel=0
+	card.Position=UDim2.fromScale(.5,.5);card.BackgroundColor3=Theme.Panel;card.BorderSizePixel=0
 	card.Parent=overlay;View.round(card,UDim.new(0,10))
 	label(card,"Core","CORE  •  NITRO LOCKED",8,24)
 	label(card,"Choose","CHOOSE 3",36,22)
@@ -42,8 +43,10 @@ function Controller.start()
 	local draft, pending={},false
 	local confirm=button(card,"Confirm","CONFIRM & READY")
 	confirm.TextSize=11
+ confirm.BackgroundColor3,confirm.TextColor3=Theme.PrimaryAction,Theme.Background
 	local timer=label(card,"Timer","AUTO READY IN 10",110,18)
 	timer.TextSize=12
+ timer.TextColor3=Theme.TextSecondary
 	status.Position=UDim2.new(0,12,0,128);status.Size=UDim2.new(1,-24,0,18);status.TextSize=12
 	local reset=button(card,"Reset","RESET DEFAULT")
 	local back=button(card,"Back","BACK")
@@ -64,8 +67,9 @@ function Controller.start()
 			controls[id].Text=string.upper(id)..(if chosen then " ✓" else "")
 			itemLabels[id].Text=controls[id].Text
 			itemLabels[id].TextTransparency=if pending then .55 else 0
+   itemLabels[id].TextColor3=if chosen then Theme.Selection else Theme.TextPrimary
 			itemIcons[id]:update(true,if pending then 0 else 1,false)
-			controls[id].BackgroundColor3=if chosen then Color3.fromRGB(35,125,155) else Color3.fromRGB(35,50,65)
+			controls[id].BackgroundColor3=if chosen then Theme.Panel:Lerp(Theme.Selection,.18) else Theme.Background
 			controls[id].Active=not pending
 		end
 	end
@@ -137,6 +141,8 @@ function Controller.start()
 		items.Active=eligible();items.AutoButtonColor=items.Active
 		items.BackgroundTransparency=if items.Active then 0 else .55
 		items.Text=if player:GetAttribute("RaceItemsReady")==true then "ITEMS READY" else "ITEMS "..remaining
+  items.BackgroundColor3=if player:GetAttribute("RaceItemsReady")==true then Theme.Ready else Theme.Panel
+  items.TextColor3=if player:GetAttribute("RaceItemsReady")==true then Theme.Background else Theme.TextPrimary
   nextAction.Text=if player:GetAttribute("RaceItemsReady")==true then "WAIT FOR START" else "SELECT ITEMS"
   nextAction.Visible=GuidanceState.prepHelper(player:GetAttribute("RaceState"),player:GetAttribute("RaceMatchStatus"),player:GetAttribute("RaceItemsReady"))~=nil and not overlay.Visible
 		timer.Text="AUTO READY IN "..remaining

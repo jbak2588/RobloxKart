@@ -33,6 +33,8 @@ local function load(path)
 	if path == "src/shared/KartConfig.luau" or path == "src/shared/RaceItemConfig.luau" then return require("./helpers/gameplay_config")(path) end
 	return luau.load(fs.readFile(path), {debugName=path, environment={
 		Vector3=V, CFrame=CF, Color3=rb.Color3, Enum=rb.Enum, Instance={new=instance},
+		game={GetService=function() return {WaitForChild=function(self) return self end} end},
+		require=function() return luau.load(fs.readFile("src/shared/KDMItemVFXConfig.luau"))() end,
 	}})()
 end
 local config = load("src/shared/RaceItemConfig.luau")

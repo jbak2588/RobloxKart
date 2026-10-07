@@ -13,6 +13,11 @@ local function signal()
 	end }
 end
 local methods = {}
+function methods:GetDescendants()
+	local out={}
+	for _,child in self.children do table.insert(out,child);for _,v in child:GetDescendants() do table.insert(out,v) end end
+	return out
+end
 local function object(class, name)
 	local p = {ClassName = class, Name = name or class, CFrame = CF.identity, Size = V.one,
 		PlayerAdded=signal(), PlayerRemoving=signal(), CharacterRemoving=signal(),
@@ -70,6 +75,7 @@ load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 local Slots=load("src/shared/RaceItemSlots.luau",shared,"RaceItemSlots")
 local Loadout=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
 local Geometry=load("src/server/RaceItemGeometry.luau",server,"RaceItemGeometry")
+load("src/shared/KDMItemVFXConfig.luau",shared,"KDMItemVFXConfig")
 local Visuals=load("src/server/RaceItemVisuals.luau",server,"RaceItemVisuals")
 load("src/server/HomingMissileService.luau",server,"HomingMissileService")
 load("src/server/ThunderStrikeService.luau",server,"ThunderStrikeService")
@@ -205,7 +211,7 @@ check(contexts[b].kart:GetAttribute("KartThunderHitActive") and contexts[c].kart
 check(d:GetAttribute("RaceThunderHitCount")==2 and d:GetAttribute("RaceThunderBlockedCount")==1 and d:GetAttribute("RaceThunderResultSerial")==1,"one aggregate mixed result 2 hit 1 block")
 check(owner:GetAttribute("RaceItemBlockedSerial")==1 and not d:GetAttribute("RaceCombatFeedbackSerial"),"victim block serial; no per-target owner overwrite")
 for i=1,3 do check(players[i]:GetAttribute("RaceThunderIncomingCount")==0,"resolved warning zero "..i) end
-check(warnings()==0,"warning visuals removed at strike");tick(.26);check(#prototype.RaceMissiles:GetChildren()==0,"short strike flash expires")
+check(warnings()==0,"warning visuals removed at strike");tick(modules.KDMItemVFXConfig.Thunder.StrikeLifetime+.01);check(#prototype.RaceMissiles:GetChildren()==0,"short strike flash expires")
 reset();use(owner,"Shield");use(d,"Thunder");tick(.95)
 check(Items.tryApplyOffensiveItem(c,d,"Smoke"),"shared immunity fixture just before strike")
 tick(.05)

@@ -27,7 +27,7 @@ function View.create(hub, theme)
     stroke.Size, stroke.BackgroundTransparency = UDim2.fromScale(1,1), 1
     stroke.Parent = surface
     local outline = Instance.new("UIStroke")
-    outline.Color, outline.Thickness, outline.Parent = theme.Selection, 3, stroke
+    outline.Color, outline.Thickness, outline.Parent = theme.TextSecondary, 3, stroke
     local text = Instance.new("TextLabel")
     text.Size, text.Position, text.BackgroundTransparency, text.AutoLocalize = UDim2.fromScale(1,.45), UDim2.fromScale(0,.55), 1, true
     text.Text, text.Font, text.TextSize = definition[1], Enum.Font.GothamBold, 68
@@ -38,7 +38,7 @@ function View.create(hub, theme)
     local localDirection=spawn.CFrame:VectorToObjectSpace(toward-center)
     arrow.Rotation=math.deg(math.atan2(localDirection.X,-localDirection.Z))
     arrow.Parent=stroke
-    entries[definition[1]] = {plate=plate, surface=surface, text=text, arrow=arrow}
+    entries[definition[1]] = {plate=plate, surface=surface, text=text, arrow=arrow, outline=outline}
    end
   end
  end
@@ -47,6 +47,7 @@ function View.create(hub, theme)
   for destination, entry in entries do
    entry.plate.Transparency = if visible then .12 else 1
    entry.surface.Enabled = visible
+   entry.outline.Color = if destination == active then theme.Selection else theme.TextSecondary
    entry.text.TextColor3 = if destination == active then theme.PrimaryAction else theme.TextPrimary
    entry.arrow.TextColor3 = entry.text.TextColor3
   end

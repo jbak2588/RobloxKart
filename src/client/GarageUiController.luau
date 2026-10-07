@@ -44,23 +44,23 @@ end
 local GARAGE_LAYOUT_DEBUG = false
 local GARAGE_LAYOUT_REVISION = "GARAGE R2"
 local GARAGE_COLORS = {
-	BackgroundTop = Color3.fromRGB(16, 28, 46),
-	BackgroundBottom = Color3.fromRGB(6, 12, 23),
-	Stage = Color3.fromRGB(20, 37, 57),
-	StageDeep = Color3.fromRGB(10, 20, 34),
-	Cyan = Color3.fromRGB(0, 205, 255),
+	BackgroundTop = Theme.Background,
+	BackgroundBottom = Theme.Background,
+	Stage = Theme.Panel,
+	StageDeep = Color3.fromRGB(10, 20, 34), -- Frozen 3D podium material, not UI palette.
+	Cyan = Theme.Selection,
 	CyanSoft = Color3.fromRGB(65, 165, 220),
 	Primary = Theme.PrimaryAction,
-	Gold = Color3.fromRGB(255, 210, 55),
-	White = Color3.fromRGB(245, 248, 252),
-	Muted = Color3.fromRGB(135, 151, 169),
+	Gold = Theme.PrimaryAction,
+	White = Theme.TextPrimary,
+	Muted = Theme.TextSecondary,
 }
 
 local function visualStroke(parent: Instance, transparency: number): UIStroke
 	local stroke = Instance.new("UIStroke")
 	stroke.Name = "ArcadeStroke"
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Color = GARAGE_COLORS.CyanSoft
+	stroke.Color = Theme.TextSecondary
 	stroke.Thickness = 1.5
 	stroke.Transparency = transparency
 	stroke.Parent = parent
@@ -81,7 +81,7 @@ local function makeText(parent: Instance, size: UDim2, position: UDim2, text: st
 	label.Position = position
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = Color3.fromRGB(245, 245, 245)
+	label.TextColor3 = Theme.TextPrimary
 	label.TextScaled = false
 	label.TextSize = fontSize
 	label.Text = text
@@ -93,10 +93,10 @@ local function makeButton(parent: Instance, text: string, position: UDim2): Text
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.fromOffset(170, 48)
 	button.Position = position
-	button.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
+	button.BackgroundColor3 = Theme.Panel
 	button.BorderSizePixel = 0
 	button.Font = Enum.Font.GothamBold
-	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextColor3 = Theme.TextPrimary
 	button.TextSize = 19
 	button.Text = text
 	button.Parent = parent
@@ -154,14 +154,14 @@ function GarageUiController.start()
 
 	local backdrop = Instance.new("Frame")
 	backdrop.Size = UDim2.fromScale(1, 1)
-	backdrop.BackgroundColor3 = Color3.fromRGB(12, 19, 31)
+	backdrop.BackgroundColor3 = Theme.Background
 	backdrop.BackgroundTransparency = 1
 	backdrop.BorderSizePixel = 0
 	backdrop.Parent = gui
 	local routeOverlay = Instance.new("Frame")
 	routeOverlay.Name = "RouteTransition"
 	routeOverlay.Size = UDim2.fromScale(1, 1)
-	routeOverlay.BackgroundColor3 = Color3.fromRGB(8, 14, 24)
+	routeOverlay.BackgroundColor3 = Theme.Background
 	routeOverlay.BackgroundTransparency = 0.35
 	routeOverlay.BorderSizePixel = 0
 	routeOverlay.Active = true
@@ -173,10 +173,10 @@ function GarageUiController.start()
 	routeCard.AnchorPoint = Vector2.new(0.5, 0.5)
 	routeCard.Position = UDim2.fromScale(0.5, 0.5)
 	routeCard.Size = UDim2.fromOffset(280, 72)
-	routeCard.BackgroundColor3 = Color3.fromRGB(25, 36, 52)
+	routeCard.BackgroundColor3 = Theme.Panel
 	routeCard.BorderSizePixel = 0
 	routeCard.Font = Enum.Font.GothamBold
-	routeCard.TextColor3 = Color3.fromRGB(255, 215, 75)
+	routeCard.TextColor3 = Theme.TextPrimary
 	routeCard.TextSize = 20
 	routeCard.Text = "JOINING RACE..."
 	routeCard.ZIndex = 31
@@ -190,7 +190,7 @@ function GarageUiController.start()
 	title.Active = false
 	title.Selectable = false
 	title.AnchorPoint = Vector2.new(.5, .5)
-	title.TextColor3 = Color3.fromRGB(255, 215, 75)
+	title.TextColor3 = Theme.TextPrimary
 	title.TextScaled = true
 	local titleSize = Instance.new("UITextSizeConstraint")
 	titleSize.MaxTextSize = 40
@@ -204,10 +204,10 @@ function GarageUiController.start()
 	detailLabel.Name = "GarageDetail"
 	detailLabel.TextWrapped = true
 	local errorLabel = makeText(backdrop, UDim2.fromScale(0.8, 0.05), UDim2.fromScale(0.1, 0.77), "", 18)
-	errorLabel.TextColor3 = Color3.fromRGB(255, 110, 110)
+	errorLabel.TextColor3 = Theme.Danger
 	local buildLabel = makeText(backdrop, UDim2.fromOffset(140, 16), UDim2.new(0, 10, 1, -20),
 		"BUILD PV " .. tostring(game.PlaceVersion), 11)
-	buildLabel.TextColor3 = Color3.fromRGB(135, 151, 169)
+	buildLabel.TextColor3 = Theme.TextSecondary
 	if GARAGE_LAYOUT_DEBUG then
 		buildLabel.Text ..= " • " .. GARAGE_LAYOUT_REVISION
 		buildLabel.Size = UDim2.fromOffset(260, 16)
@@ -219,7 +219,7 @@ function GarageUiController.start()
 	presencePanel.AnchorPoint = Vector2.new(1, 0)
 	presencePanel.Position = UDim2.new(1, -16, 0.19, 0)
 	presencePanel.Size = UDim2.fromOffset(205, 100)
-	presencePanel.BackgroundColor3 = Color3.fromRGB(25, 36, 52)
+	presencePanel.BackgroundColor3 = Theme.Panel
 	presencePanel.BackgroundTransparency = 0.08
 	presencePanel.BorderSizePixel = 0
 	presencePanel.Parent = backdrop
@@ -227,7 +227,7 @@ function GarageUiController.start()
 	presenceCorner.CornerRadius = UDim.new(0, 8)
 	presenceCorner.Parent = presencePanel
 	local presenceHeader = makeText(presencePanel, UDim2.new(1, -12, 0, 23), UDim2.fromOffset(6, 3), "", 14)
-	presenceHeader.TextColor3 = Color3.fromRGB(255, 215, 75)
+	presenceHeader.TextColor3 = Theme.TextPrimary
 	presenceHeader.TextXAlignment = Enum.TextXAlignment.Left
 	local populationLabel = makeText(presencePanel, UDim2.new(1, -12, 0, 42),
 		UDim2.fromOffset(6, 25), "KDM STATUS UPDATING...", 12)
@@ -344,7 +344,7 @@ function GarageUiController.start()
 	viewport.AnchorPoint = Vector2.new(0.5, 0)
 	viewport.Position = UDim2.fromScale(0.5, 0.265)
 	viewport.Size = UDim2.fromScale(0.52, 0.32)
-	viewport.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
+	viewport.BackgroundColor3 = Theme.Panel
 	viewport.BackgroundTransparency = .12
 	viewport.BorderSizePixel = 0
 	viewport.Ambient = Color3.fromRGB(182, 189, 200)
@@ -372,7 +372,7 @@ function GarageUiController.start()
 	mapPanel.AnchorPoint = viewport.AnchorPoint
 	mapPanel.Position = viewport.Position
 	mapPanel.Size = viewport.Size
-	mapPanel.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
+	mapPanel.BackgroundColor3 = Theme.Panel
 	mapPanel.BorderSizePixel = 0
 	mapPanel.Visible = false
 	mapPanel.Parent = backdrop
@@ -405,7 +405,7 @@ function GarageUiController.start()
 	trackInfo.Name = "TrackInformation"
 	trackInfo.Position = UDim2.new(0,0,1,-54)
 	trackInfo.Size = UDim2.new(1,0,0,54)
-	trackInfo.BackgroundColor3 = Theme.Background
+	trackInfo.BackgroundColor3 = Theme.Panel
 	trackInfo.BackgroundTransparency = .08
 	trackInfo.BorderSizePixel = 0
 	trackInfo.ZIndex = 4
@@ -422,7 +422,7 @@ function GarageUiController.start()
 		local arrow = makeButton(backdrop, text, UDim2.new(0.5, xOffset, 0.43, 0))
 		arrow.Name = if xOffset < 0 then "PreviousChoice" else "NextChoice"
 		arrow.Size = UDim2.fromOffset(52, 64)
-		arrow.BackgroundColor3 = Color3.fromRGB(36, 51, 73)
+		arrow.BackgroundColor3 = Theme.Panel
 		arrow.BackgroundTransparency = 0.12
 		arrow.TextSize = 29
 		arrow.ZIndex = 3
@@ -436,7 +436,7 @@ function GarageUiController.start()
 	controlsCard.AnchorPoint = Vector2.new(1, 0)
 	controlsCard.Position = UDim2.new(1, -16, 0.28, 0)
 	controlsCard.Size = UDim2.fromOffset(292, 184)
-	controlsCard.BackgroundColor3 = Color3.fromRGB(22, 32, 48)
+	controlsCard.BackgroundColor3 = Theme.Panel
 	controlsCard.BackgroundTransparency = 0.08
 	controlsCard.BorderSizePixel = 0
 	controlsCard.Parent = backdrop
@@ -444,7 +444,7 @@ function GarageUiController.start()
 	controlsCorner.CornerRadius = UDim.new(0, 10)
 	controlsCorner.Parent = controlsCard
 	local controlsTitle = makeText(controlsCard, UDim2.new(1, -24, 0, 26), UDim2.fromOffset(12, 8), "CONTROLS", 17)
-	controlsTitle.TextColor3 = Color3.fromRGB(255, 215, 75)
+	controlsTitle.TextColor3 = Theme.TextPrimary
 	controlsTitle.TextXAlignment = Enum.TextXAlignment.Left
 	for index, hint in {
 		"W / S   Accelerate / Brake & Reverse",
@@ -474,7 +474,7 @@ function GarageUiController.start()
 	inviteModal.AnchorPoint = Vector2.new(0.5, 0.5)
 	inviteModal.Position = UDim2.fromScale(0.5, 0.5)
 	inviteModal.Size = UDim2.fromOffset(290, 174)
-	inviteModal.BackgroundColor3 = Color3.fromRGB(20, 31, 46)
+	inviteModal.BackgroundColor3 = Theme.Panel
 	inviteModal.BorderSizePixel = 0
 	inviteModal.ZIndex = 10
 	inviteModal.Visible = false
@@ -486,17 +486,18 @@ function GarageUiController.start()
 	inviteCorner.CornerRadius = UDim.new(0, 10)
 	inviteCorner.Parent = inviteModal
 	local inviteTitle = makeText(inviteModal, UDim2.new(1, -24, 0, 28), UDim2.fromOffset(12, 10), "RACE INVITE", 19)
-	inviteTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+	inviteTitle.TextColor3 = Theme.TextPrimary
 	inviteTitle.ZIndex = 11
 	local inviteDescription = makeText(inviteModal, UDim2.new(1, -24, 0, 70), UDim2.fromOffset(12, 40), "", 14)
 	inviteDescription.TextWrapped = true
 	inviteDescription.ZIndex = 11
 	local declineInvite = makeButton(inviteModal, "DECLINE", UDim2.fromOffset(12, 120))
 	declineInvite.Size = UDim2.fromOffset(126, 40)
-	declineInvite.BackgroundColor3 = Color3.fromRGB(80, 60, 65)
+	declineInvite.BackgroundColor3 = Theme.Panel
 	declineInvite.ZIndex = 11
 	local joinInvite = makeButton(inviteModal, "JOIN", UDim2.fromOffset(152, 120))
 	joinInvite.Size = UDim2.fromOffset(126, 40)
+ joinInvite.BackgroundColor3,joinInvite.TextColor3 = Theme.PrimaryAction,Theme.Background
 	joinInvite.ZIndex = 11
 	local tutorial = MobileTutorialView.create(backdrop, function()
 		preferenceRemote:FireServer("Dismiss")
@@ -523,7 +524,7 @@ function GarageUiController.start()
 	local shellCorner = Instance.new("UICorner")
 	shellCorner.CornerRadius = UDim.new(0, 12)
 	shellCorner.Parent = shell
-	visualGradient(shell, GARAGE_COLORS.Stage, GARAGE_COLORS.StageDeep)
+	visualGradient(shell, GARAGE_COLORS.Stage, Theme.Background)
 	local shellStroke = visualStroke(shell, .55)
 	shellStroke.Color = GARAGE_COLORS.Cyan
 	local platform = Instance.new("Frame")
@@ -545,7 +546,7 @@ function GarageUiController.start()
 	halo.AnchorPoint = Vector2.new(.5, .5)
 	halo.Position = UDim2.fromScale(.5, .57)
 	halo.Size = UDim2.fromScale(.74, .68)
-	halo.BackgroundColor3 = GARAGE_COLORS.CyanSoft
+	halo.BackgroundColor3 = Theme.TextSecondary
 	halo.BackgroundTransparency = .96
 	halo.BorderSizePixel = 0
 	halo.Active = false
@@ -572,7 +573,7 @@ function GarageUiController.start()
 		square.Name = "CheckerSquare"
 		square.Position = UDim2.fromOffset(column*8, row*8)
 		square.Size = UDim2.fromOffset(8, 8)
-		square.BackgroundColor3 = if (row+column)%2 == 0 then GARAGE_COLORS.White else GARAGE_COLORS.CyanSoft
+		square.BackgroundColor3 = if (row+column)%2 == 0 then GARAGE_COLORS.White else Theme.TextSecondary
 		square.BackgroundTransparency = if (row+column)%2 == 0 then .65 else .9
 		square.BorderSizePixel = 0
 		square.Active = false
@@ -591,11 +592,11 @@ function GarageUiController.start()
 	local readyCorner = Instance.new("UICorner")
 	readyCorner.CornerRadius = UDim.new(0, 12)
 	readyCorner.Parent = readyCard
-	visualGradient(readyCard, GARAGE_COLORS.Stage, GARAGE_COLORS.StageDeep)
+	visualGradient(readyCard, GARAGE_COLORS.Stage, Theme.Background)
 	visualStroke(readyCard, .75)
 	for _, button in {previousButton, cycleButton, nextButton, leftArrow, rightArrow} do
 		local primary = button == cycleButton or button == nextButton
-		button.BackgroundColor3 = if primary then GARAGE_COLORS.Primary else GARAGE_COLORS.StageDeep
+		button.BackgroundColor3 = if primary then GARAGE_COLORS.Primary else Theme.Panel
 		button.TextColor3 = if primary then Theme.Background else Theme.TextPrimary
 		button.AutoButtonColor = true -- Native hover/press feedback, without layout animation.
 		visualStroke(button, if primary then .3 else .65)
@@ -1153,6 +1154,7 @@ function GarageUiController.start()
 		trackMapKey = key
 		mapPanel:SetAttribute("TrackId",trackId)
 		trackName.Text = track.DisplayName
+  trackMetadata.TextColor3 = if track.MatchType == "PUBLIC_RACE" then Theme.PublicRace else Theme.TextSecondary
 		trackMetadata.Text = if track.MatchType == "PUBLIC_RACE" then
 			string.format("PUBLIC RACE • %d–%d PLAYERS • %d %s",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
 			else string.format("SOLO • 1 PLAYER • %d %s",track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
@@ -1381,7 +1383,7 @@ function GarageUiController.start()
   for key,tab in tabs do
    tab.Position=UDim2.new(tab.Position.X.Scale,tab.Position.X.Offset,0,if sideControls then 24 else 0)
    tab.TextSize=if sideControls then 12 else 16
-   tab.BackgroundColor3=if key==family then Theme.Selection else Theme.Background
+   tab.BackgroundColor3=if key==family then Theme.Selection else Theme.Panel
    tab.TextColor3=if key==family then Theme.Background else Theme.TextPrimary
   end
   fitSelectionPreview()
