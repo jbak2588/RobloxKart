@@ -1226,7 +1226,7 @@ function RaceHudController.start()
 		roomQueueLabel.Visible = roomSnapshot ~= nil and (raceState == "RACING"
 			or raceState == "FINISHED" or raceState == "DNF")
 		roomQueueLabel.Text = if not roomSnapshot then ""
-			elseif raceState == "RACING" then string.format("ROOM %d/%d  •  NEXT %d",
+			elseif raceState == "RACING" then string.format("LOBBY %d/%d  •  NEXT %d",
 				roomSnapshot.count, roomSnapshot.maxPlayers, roomSnapshot.queuedCount)
 			else string.format("NEXT ROUND  •  %d READY  •  %d QUEUED",
 				getNumberAttribute(player, "RaceRematchReadyCount", 0), roomSnapshot.queuedCount)
@@ -1240,7 +1240,10 @@ function RaceHudController.start()
 			else availableCount, available = GaragePresence.availableSnapshot(Players:GetPlayers(), player, #availabilityRows) end
 			availableTotal = if entries then #entries else availableCount
 			availableHasBot = lobbyWaiting and entries ~= nil and entries[1] ~= nil and entries[1].botId ~= nil
-			availabilityHeading.Text = if roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount)
+			availabilityHeading.AutoLocalize=not (roomSnapshot and lobbyWaiting)
+			availabilityHeading.TextTruncate=Enum.TextTruncate.AtEnd
+			availabilityHeading.Text = if roomSnapshot and lobbyWaiting then roomSnapshot.lobbyTitle or "RACE LOBBY"
+				elseif roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount)
 				elseif isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
 			local botRowCount = if entries and entries[1] and entries[1].botId then 1 else 0
 			availabilityTitle.Text = if roomSnapshot then string.format("AVAILABLE RACERS  %d", availableCount+botRowCount)

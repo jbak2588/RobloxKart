@@ -1,4 +1,5 @@
 -- Ephemeral, server-only room authority shared by HUB and reserved RACE jobs.
+local Titles=require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("LobbyTitleCatalog"))
 local ActiveMatchDirectory = {}
 ActiveMatchDirectory.__index = ActiveMatchDirectory
 ActiveMatchDirectory.MAP_NAME = "KDM_ActiveBaseRooms_v1"
@@ -11,6 +12,7 @@ function ActiveMatchDirectory.new(map, now)
 end
 
 local function stamp(self, record)
+	record.lobbyTitle,record.lobbyTitleKind=Titles.publicTitle(record)
 	record.updatedAt = self.now()
 	return record
 end
@@ -19,6 +21,7 @@ function ActiveMatchDirectory:create(room)
 	local record = stamp(self, {
 		roomId = room.id, trackId = room.trackId, state = "WAITING",
 		hostUserId = room.hostUserId, hostName = room.hostName,
+		lobbyTitleKind=room.lobbyTitleKind, lobbyTitle=room.lobbyTitle,
 		currentRacers = #room.members, maxPlayers = room.maxPlayers,
 		queued = {}, roundId = 0, matchId = "", ownerJobId = room.ownerJobId,
 		waitingMembers = room.members,
@@ -56,6 +59,7 @@ function ActiveMatchDirectory:createPersistent(room, accessCode, privateServerId
 	local record = stamp(self, {
 		roomId = room.id, trackId = room.trackId, state = "WAITING",
 		hostUserId = room.hostUserId, hostName = room.hostName,
+		lobbyTitleKind=room.lobbyTitleKind, lobbyTitle=room.lobbyTitle,
 		maxPlayers = room.maxPlayers, currentRacers = 0,
 		stagedMembers = {}, currentRoundMembers = {}, rivalUserIds = {}, leftUserIds = {}, queued = {},
 		stagedBots = {}, currentRoundBots = {},
@@ -555,7 +559,9 @@ function ActiveMatchDirectory:list()
 end
 
 function ActiveMatchDirectory:display(record)
+	local lobbyTitle,lobbyTitleKind=Titles.publicTitle(record)
 	return { id = record.roomId, trackId = record.trackId, state = record.state,
+		lobbyTitle=lobbyTitle, lobbyTitleKind=lobbyTitleKind,
 		hostUserId = record.hostUserId, hostName = record.hostName,
 		count = if record.state == "WAITING" and record.stagedMembers
 			then waitingCapacity(record) else record.currentRacers,

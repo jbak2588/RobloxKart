@@ -1,3 +1,4 @@
+local titleModules=require("./helpers/lobby_title_modules")
 -- Actual Directory, Coordinator and BotController under deterministic service/transport mocks.
 -- Native physics/effects are independently covered by race_item_validation and Studio driving.
 local fs, luau, rb = require("@lune/fs"), require("@lune/luau"), require("@lune/roblox")
@@ -80,7 +81,7 @@ local function map()
 end
 local enum={SortDirection={Ascending=1,Descending=2},HumanoidRigType={R15="R15"}}
 local roomMap,presenceMap,inviteMap=map(),map(),map()
-local Directory=luau.load(fs.readFile("src/server/ActiveMatchDirectory.luau"),{environment={Enum=enum}})()
+local Directory=luau.load(fs.readFile("src/server/ActiveMatchDirectory.luau"),{environment=titleModules.environment(enum)})()
 local directory=Directory.new(roomMap,function() return clock end)
 local descriptor={botId="Bot01",name="KDM Rookie [BOT]",kartId="Kart01",gridSlot=4}
 local function member(id) return {userId=id,name="Human"..id,kartId="Kart01",driverId="Driver01"} end
@@ -193,7 +194,7 @@ function world.releaseBotKartContext(state)
 	local context=contexts[state];if context then context.kart:Destroy();contexts[state]=nil end
 end
 function world.getKartContext(state) return contexts[state] end
-local Social=luau.load(fs.readFile("src/server/RoomSocialDirectory.luau"),{environment={Enum=enum}})()
+local Social=luau.load(fs.readFile("src/server/RoomSocialDirectory.luau"),{environment=titleModules.environment(enum)})()
 local modules={ActiveMatchDirectory=Directory,RoomSocialDirectory=Social,PrototypeWorld=world,
 	RaceSession={active=function() return session end},RaceConfig=config,TrackCatalog=catalog,
 	RaceController={isRosterLocked=function() return session.locked==true end},

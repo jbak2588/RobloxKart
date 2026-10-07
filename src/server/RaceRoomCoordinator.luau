@@ -77,6 +77,7 @@ function RaceRoomCoordinator.start(payload)
 			elseif cachedInvite.expiresAt>os.time() and cachedInvite.hostUserId==record.hostUserId and not excluded[userId] then pending[tostring(userId)]=cachedInvite.expiresAt end
 		end
 		local safe = { roomId=roomId, pendingInvites=pending, hostUserId = record.hostUserId, hostName = record.hostName,
+			lobbyTitle=directory:display(record).lobbyTitle,lobbyTitleKind=directory:display(record).lobbyTitleKind,
 			state = record.state, count = record.currentRacers,
 			maxPlayers = record.maxPlayers, queuedCount = #record.queued,
 			queued = queued, available = available }
@@ -117,7 +118,7 @@ function RaceRoomCoordinator.start(payload)
 		local members = {}
 		for _, player in players do
 			if player:GetAttribute("IsBot") ~= true and player.Parent == Players then
-				table.insert(members, { userId = player.UserId, name = player.DisplayName,
+				table.insert(members, { userId = player.UserId, name = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
 					driverId = player:GetAttribute("SelectedDriverId"),
 					kartId = player:GetAttribute("SelectedKartId") })
 			end

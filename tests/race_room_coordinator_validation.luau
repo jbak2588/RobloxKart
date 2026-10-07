@@ -1,3 +1,4 @@
+local titleModules=require("./helpers/lobby_title_modules")
 -- lune run tests/race_room_coordinator_validation.luau
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -28,9 +29,9 @@ local roomMap, presenceMap, inviteMap = map(), map(), map()
 local maps = { KDM_ActiveBaseRooms_v1 = roomMap, KDM_HubPresence_v1 = presenceMap }
 local enum = { SortDirection = { Ascending = "Ascending", Descending = "Descending" } }
 local Directory = luau.load(fs.readFile("src/server/ActiveMatchDirectory.luau"),
-	{ environment = { Enum = enum } })()
+	{ environment = titleModules.environment(enum) })()
 local Social = luau.load(fs.readFile("src/server/RoomSocialDirectory.luau"),
-	{ environment = { Enum = enum } })()
+	{ environment = titleModules.environment(enum) })()
 local directory = Directory.new(roomMap)
 local social = Social.new(presenceMap, inviteMap)
 local function member(userId, priority)

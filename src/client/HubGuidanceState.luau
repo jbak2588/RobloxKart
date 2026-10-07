@@ -26,7 +26,7 @@ end
 
 function HubGuidanceState.roomHelper(snapshot, userId)
  local room = snapshot and snapshot.room
- if not room then return "CREATE OR JOIN A ROOM" end
+ if not room then return "CREATE OR JOIN A LOBBY" end
  if room.membershipKind == "QUEUED" then return "WAITING FOR NEXT RACE" end
  if room.state ~= "WAITING" then return "WAITING FOR NEXT ROUND" end
  -- Hub rooms launch a reserved server BEFORE item prep is available.
@@ -44,8 +44,8 @@ function HubGuidanceState.presentation(state, safeSize, raceState, overlayOpen, 
  local heading = if state.context == "KART_READY" then "KART READY" elseif state.context == "NEXT_RACE" then "NEXT RACE" else "NEXT"
  local message = if state.context == "TRACK_RETURN" then "Choose a track and race again" else "Choose a track and start racing"
  local action, destination = HubGuidanceState.nextAction(state)
- local button = if action == "GARAGE" then "CHOOSE KART" elseif action == "ROOMS" then "ROOMS" else "SELECT TRACK"
- message = if action == "GARAGE" then "Check your kart in Garage" elseif action == "ROOMS" then "Create or join a room" else message
+ local button = if action == "GARAGE" then "CHOOSE KART" elseif action == "ROOMS" then "LOBBIES" else "SELECT TRACK"
+ message = if action == "GARAGE" then "Check your kart in Garage" elseif action == "ROOMS" then "Create or join a lobby" else message
  return {
   visible = raceState == "GARAGE" and not overlayOpen and not roomOwned
    and (routePending == nil or routePending == "") and safeSize.X >= 200 and safeSize.Y >= 212,

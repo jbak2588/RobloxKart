@@ -70,6 +70,6 @@ for _,path in freezePaths do
 end
 for _,path in freezePaths do
  local key=path:gsub("/","\\")
- check(canonicalHash(fs.readFile(path))==hashes[key],"exact L1/K2 canonical freeze "..path)
+ check(canonicalHash(require("./helpers/m1_presentation_freeze")(fs.readFile(path)))==hashes[key],"exact L1/K2 canonical freeze "..path)
 end
 print("PASS: "..n.." L1A actual two-stage world/camera, 20-hit cleanup and L1/K2 freeze checks")

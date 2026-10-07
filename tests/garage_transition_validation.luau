@@ -18,7 +18,7 @@ local coreInsetY = 58
 local function object(class, name)
 	local props = { ClassName = class, Name = name or class, Size = rb.UDim2.fromScale(1, 1),
 		Position = rb.UDim2.fromScale(0, 0), Visible = true, Enabled = true,
-		Activated = signal(), OnClientEvent = signal(), CharacterAdded = signal(), ChildAdded = signal(), CharacterRemoving = signal(), Destroying = signal(), InputBegan = signal(), InputChanged = signal(), InputEnded = signal(), WindowFocusReleased = signal() }
+		FocusLost = signal(), Activated = signal(), OnClientEvent = signal(), CharacterAdded = signal(), ChildAdded = signal(), CharacterRemoving = signal(), Destroying = signal(), InputBegan = signal(), InputChanged = signal(), InputEnded = signal(), WindowFocusReleased = signal() }
 	return setmetatable({ _p = props, _children = {}, _attrs = {}, _signals = {}, _properties = {} }, {
 		__index = function(self, key)
 			if methods[key] then return methods[key] end
@@ -124,6 +124,7 @@ function methods:GetPropertyChangedSignal(name)
 	if not self._properties[name] then self._properties[name] = signal() end
 	return self._properties[name]
 end
+function methods:ReleaseFocus() self.FocusLost:Fire(false) end
 function methods:FireServer(...) self.lastFire = { ... }; self.fireCount = (self.fireCount or 0) + 1 end
 local function child(parent, class, name) local item = object(class, name); item.Parent = parent; return item end
 local player = object("Player", "LocalPlayer")

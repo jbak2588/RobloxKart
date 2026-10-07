@@ -113,7 +113,7 @@ check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02" and catalo
 check(catalog.Entries.Track01.GeometryId==catalog.Entries.Track01Race.GeometryId,"Practice and V1 race share geometry")
 check(catalog.Entries.Track01.MaxPlayers==1 and catalog.Entries.Track01.TargetLaps==1
  and catalog.Entries.Track01.MatchType=="SOLO_PRACTICE","Practice stays solo")
-check(catalog.Entries.Track01Race.DisplayName=="Base Circuit" and catalog.Entries.Track01Race.MaxPlayers==4
+check(catalog.Entries.Track01Race.DisplayName=="Base Track" and catalog.Entries.Track01Race.MaxPlayers==4
  and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track01Race.PreviewRotationDegrees==90,
  "Base Circuit public capability")
 check(catalog.Entries.Track02.MaxPlayers==4 and catalog.Entries.Track02.TargetLaps==2

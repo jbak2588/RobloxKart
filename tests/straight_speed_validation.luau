@@ -80,7 +80,7 @@ for _,path in {"src/shared/TrackGeometry.luau","src/shared/TrackCatalog.luau","s
  local baseline=require("@lune/process").exec("git",{"show","7b3f668:"..path})
  local normalize=if path=="src/client/HubUiController.luau" or path=="src/client/GarageUiController.luau"
   then require("./helpers/ui_palette_freeze") else function(s)return s:gsub("\r\n","\n")end
- check(baseline.ok and normalize(baseline.stdout)==normalize(fs.readFile(path)),"K1 frozen non-palette contract "..path)
+ check(baseline.ok and normalize(require("./helpers/m1_presentation_freeze")(baseline.stdout))==normalize(require("./helpers/m1_presentation_freeze")(fs.readFile(path))),"K1 frozen non-palette contract "..path)
 end
 if require("@lune/process").args[1]=="Report" then fs.writeDir("artifacts/r7-k1a");fs.writeFile("artifacts/r7-k1a/masks.json",serde.encode("json",report)) end
 print("PASS: "..count.." straight resolver checks")

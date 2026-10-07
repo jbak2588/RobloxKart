@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
+local LobbyTitleService = require(script.Parent:WaitForChild("LobbyTitleService"))
 local ActiveMatchDirectory = require(script.Parent:WaitForChild("ActiveMatchDirectory"))
 local RoomSocialDirectory = require(script.Parent:WaitForChild("RoomSocialDirectory"))
 local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"))
@@ -38,7 +39,7 @@ end
 
 local function memberFor(player, priority)
 	local selected = selections[player.UserId]
-	return { userId = player.UserId, name = player.DisplayName,
+	return { userId = player.UserId, name = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
 		driverId = selected.driverId, kartId = selected.kartId,
 		hubJobId = game.JobId, queuedAt = DateTime.now().UnixTimestampMillis, priority = priority or 3,
 		admissionToken = HttpService:GenerateGUID(false) }
@@ -99,7 +100,7 @@ local function refresh()
 			local player = Players:GetPlayerByUserId(userId)
 			if player then
 				pcall(function() social:clearInvite(userId) end)
-				remote:FireClient(player, "Error", "ROOM CLOSED - CHOOSE ANOTHER ROOM")
+				remote:FireClient(player, "Error", "LOBBY CLOSED - CHOOSE ANOTHER LOBBY")
 			end
 		end
 	end
@@ -156,16 +157,16 @@ local function stagePlayer(player, roomId)
 	local selected = selections[player.UserId]
 	local found, current = pcall(function() return directory:get(roomId) end)
 	if not selected or not found or not current or current.trackId ~= selected.trackId
-		or not publicTrack(current.trackId) then errorTo(player, "ROOM TRACK MISMATCH"); return false end
+		or not publicTrack(current.trackId) then errorTo(player, "LOBBY TRACK MISMATCH"); return false end
 	local member = memberFor(player)
 	local ok, record = pcall(function() return directory:stage(roomId, member, member.admissionToken, selected.trackId) end)
 	if not ok or not record then
 		if not ok then warn("[KDMRoom] staging failed: " .. tostring(record)) end
 		local found, current = pcall(function() return directory:get(roomId) end)
-		errorTo(player, if found and not current then "ROOM CLOSED - CHOOSE ANOTHER ROOM"
-			elseif found and current and current.state ~= "WAITING" then "ROOM STARTED - QUEUE FOR NEXT RACE"
-			elseif found and current and #current.stagedMembers + #(current.stagedBots or {}) >= current.maxPlayers then "ROOM FULL"
-			else "ROOM STATUS UPDATING...")
+		errorTo(player, if found and not current then "LOBBY CLOSED - CHOOSE ANOTHER LOBBY"
+			elseif found and current and current.state ~= "WAITING" then "LOBBY STARTED - QUEUE FOR NEXT RACE"
+			elseif found and current and #current.stagedMembers + #(current.stagedBots or {}) >= current.maxPlayers then "LOBBY FULL"
+			else "LOBBY STATUS UPDATING...")
 		return false
 	end
 	membership[player.UserId] = { roomId = roomId, kind = "STAGED" }
@@ -179,13 +180,13 @@ local function queuePlayer(player, roomId, priority)
 	local selected = selections[player.UserId]
 	local found, current = pcall(function() return directory:get(roomId) end)
 	if not selected or not found or not current or current.trackId ~= selected.trackId
-		or not publicTrack(current.trackId) then errorTo(player, "ROOM TRACK MISMATCH"); return false end
+		or not publicTrack(current.trackId) then errorTo(player, "LOBBY TRACK MISMATCH"); return false end
 	local member = memberFor(player, priority)
 	local ok, record = pcall(function() return directory:queue(roomId, member, selected.trackId) end)
 	if not ok or not record then
 		local found, current = pcall(function() return directory:get(roomId) end)
-		errorTo(player, if found and not current then "ROOM CLOSED - CHOOSE ANOTHER ROOM"
-			else "ROOM STATUS UPDATING...")
+		errorTo(player, if found and not current then "LOBBY CLOSED - CHOOSE ANOTHER LOBBY"
+			else "LOBBY STATUS UPDATING...")
 		return false
 	end
 	membership[player.UserId] = { roomId = roomId, kind = "QUEUED" }
@@ -194,40 +195,58 @@ local function queuePlayer(player, roomId, priority)
 	return true
 end
 
-local function createRoom(player)
+local function createRoom(player,mode,value)
 	if not eligible(player) or membership[player.UserId] or not selections[player.UserId]
 		or creating[player.UserId] then return end
 	local selectedTrackId = selections[player.UserId].trackId
 	if not publicTrack(selectedTrackId) then return end
-	creating[player.UserId] = true
+	local selected=selections[player.UserId]
+	local selectedAttribute=player:GetAttribute("SelectedTrackId")
+	creating[player.UserId] = selected
+	local function clearCreating()
+		if creating[player.UserId]==selected then creating[player.UserId]=nil end
+	end
+	local function stillEligible()
+		return eligible(player) and not membership[player.UserId] and selections[player.UserId]==selected
+			and player:GetAttribute("SelectedTrackId")==selectedAttribute
+	end
+	local resolved,kind,title=pcall(function()
+		return LobbyTitleService.resolve(player,mode,value,if mode=="CUSTOM" then game:GetService("TextService") else nil)
+	end)
+	if not resolved or not kind then clearCreating();errorTo(player,LobbyTitleService.ERROR);return end
+	if not stillEligible() then clearCreating();return end
 	local reserved, code, privateId = pcall(function()
 		return TeleportService:ReserveServerAsync(game.PlaceId)
 	end)
 	if not reserved or type(code) ~= "string" or code == "" then
-		creating[player.UserId] = nil
+		clearCreating()
 		errorTo(player, "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN"); return
 	end
-	if not eligible(player) or membership[player.UserId] or selections[player.UserId].trackId ~= selectedTrackId then
-		creating[player.UserId] = nil
+	if not stillEligible() then
+		clearCreating()
 		return
 	end
 	local roomId = HttpService:GenerateGUID(false)
 	local created, createError = pcall(function()
 		directory:createPersistent({ id = roomId, matchId = HttpService:GenerateGUID(false),
 			trackId = selectedTrackId, hostUserId = player.UserId,
-			hostName = player.DisplayName, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
+			hostName = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
+			lobbyTitleKind=kind,lobbyTitle=title, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
 			code, privateId)
 	end)
 	if not created then
-		creating[player.UserId] = nil
+		clearCreating()
 		warn("[KDMRoom] create failed: " .. tostring(createError))
-		errorTo(player, "ROOM STATUS UPDATING...")
+		errorTo(player, "LOBBY STATUS UPDATING...")
 		return
+	end
+	if not stillEligible() then
+		pcall(function() directory:remove(roomId) end);clearCreating();return
 	end
 	if not stagePlayer(player, roomId) then
 		pcall(function() directory:remove(roomId) end)
 	end
-	creating[player.UserId] = nil
+	clearCreating()
 end
 
 function MatchRoomService.openBrowser(player, driverId, kartId, trackId)
@@ -250,7 +269,7 @@ function MatchRoomService.start()
 		elseif action == "Back" then
 			if not own then browsing[player.UserId] = nil; broadcast() end
 		elseif action == "Create" then
-			createRoom(player)
+			createRoom(player,first,second)
 		elseif action == "Join" and type(first) == "string" then
 			if eligible(player) and not own and selections[player.UserId] then
 				stagePlayer(player, first)
@@ -336,12 +355,13 @@ function MatchRoomService.start()
 						remote:FireClient(player, "Invite", { roomId = invite.roomId,
 							hostUserId = invite.hostUserId, hostName = invite.hostName,
 							trackId = invite.trackId, state = record.state,
+							lobbyTitle=directory:display(record).lobbyTitle,lobbyTitleKind=directory:display(record).lobbyTitleKind,
 							count = directory:display(record).count,
 							maxPlayers = record.maxPlayers })
 					elseif not directoryStale then
 						pcall(function() social:clearInvite(player.UserId) end)
 						errorTo(player, if record then "INVITE EXPIRED"
-							else "ROOM CLOSED - CHOOSE ANOTHER ROOM")
+							else "LOBBY CLOSED - CHOOSE ANOTHER LOBBY")
 					end
 				end
 			end

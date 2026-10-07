@@ -3,6 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RoomDisplay = require(script.Parent:WaitForChild("RoomDisplay"))
 local GuidanceState = require(script.Parent:WaitForChild("HubGuidanceState"))
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
+local Titles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LobbyTitleCatalog"))
+local LobbyCreateView = require(script.Parent:WaitForChild("LobbyCreateView"))
 local MatchRoomUiController = {}
 local started = false
 
@@ -44,7 +46,8 @@ function MatchRoomUiController.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "KDMMatchRooms"
 	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
+	gui.IgnoreGuiInset = false
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.DisplayOrder = 30
 	gui.Enabled = false
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -56,22 +59,22 @@ function MatchRoomUiController.start()
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.new(0.9, 0, 0.8, 0)
+	panel.Size = UDim2.new(0.9, 0, 0.94, 0)
 	panel.BackgroundColor3 = Theme.Panel
 	panel.Parent = shade
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MaxSize = Vector2.new(650, 650)
 	constraint.Parent = panel
-	local title = label(panel, "Title", UDim2.new(1, -32, 0, 48), UDim2.fromOffset(16, 10), "RACE ROOMS", 26)
+	local title = label(panel, "Title", UDim2.new(1, -32, 0, 36), UDim2.fromOffset(16, 4), "RACE LOBBIES", 22)
 	title.TextColor3 = Theme.TextPrimary
-	local status = label(panel, "Status", UDim2.new(1, -32, 0, 38), UDim2.fromOffset(16, 55), "", 17)
- local guidance = label(panel, "NextAction", UDim2.new(1,-32,0,28), UDim2.fromOffset(16,94), "", 13)
+	local status = label(panel, "Status", UDim2.new(1, -32, 0, 30), UDim2.fromOffset(16, 40), "", 14)
+ local guidance = label(panel, "NextAction", UDim2.new(1,-32,0,24), UDim2.fromOffset(16,70), "", 12)
  guidance.AutoLocalize, guidance.TextWrapped, guidance.TextColor3 = true, true, Theme.TextSecondary
  status.TextColor3 = Theme.TextSecondary
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "RoomList"
-	list.Position = UDim2.new(0, 16, 0, 128)
-	list.Size = UDim2.new(1, -32, 1, -210)
+	list.Position = UDim2.new(0, 16, 0, 96)
+	list.Size = UDim2.new(1, -32, 1, -162)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 6
@@ -81,8 +84,8 @@ function MatchRoomUiController.start()
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 8)
 	layout.Parent = list
-	local primary = button(panel, "CREATE ROOM", UDim2.new(0, 16, 1, -68), UDim2.new(0.48, -20, 0, 52), function() end)
-	local back = button(panel, "BACK", UDim2.new(0.52, 0, 1, -68), UDim2.new(0.48, -16, 0, 52), function() end)
+	local primary = button(panel, "CREATE LOBBY", UDim2.new(0, 16, 1, -60), UDim2.new(0.48, -20, 0, 52), function() end)
+	local back = button(panel, "BACK", UDim2.new(0.52, 0, 1, -60), UDim2.new(0.48, -16, 0, 52), function() end)
 	back.BackgroundColor3 = Theme.Panel
  primary.BackgroundColor3, primary.TextColor3 = Theme.PrimaryAction, Theme.Background
 	local primaryConnection, backConnection
@@ -100,12 +103,17 @@ function MatchRoomUiController.start()
 			if child:IsA("GuiObject") then child:Destroy() end
 		end
 	end
-	local function row(text, actionText, callback)
+	local function row(text, actionText, callback, detail, identity)
 		local frame = Instance.new("Frame")
 		frame.Size = UDim2.new(1, -8, 0, 56)
 		frame.BackgroundColor3 = Theme.Panel
 		frame.Parent = list
-		label(frame, "Name", UDim2.new(0.63, -8, 1, 0), UDim2.fromOffset(10, 0), text, 16)
+		local name=label(frame,"Name",UDim2.new(0.63,-8,0,if detail then 26 else 56),UDim2.fromOffset(10,0),text,16)
+		name.AutoLocalize=not identity;name.TextTruncate=Enum.TextTruncate.AtEnd
+		if detail then
+			local metadata=label(frame,"Detail",UDim2.new(.63,-8,0,26),UDim2.fromOffset(10,26),detail,12)
+			metadata.TextColor3=Theme.TextSecondary;metadata.TextTruncate=Enum.TextTruncate.AtEnd
+		end
 		if actionText then
 			button(frame, actionText, UDim2.new(0.66, 0, 0, 5), UDim2.new(0.32, 0, 1, -10), callback)
 		end
@@ -114,6 +122,7 @@ function MatchRoomUiController.start()
 	local snapshot
 	local pendingAction, errorMessage, pendingSerial = nil, nil, 0
 	local render
+	local createView
 	local function send(action, ...)
 		if pendingAction then return end
 		pendingAction = action
@@ -125,23 +134,26 @@ function MatchRoomUiController.start()
 		task.delay(15, function()
 			if pendingSerial == serial and pendingAction then
 				pendingAction = nil
-				errorMessage = "ROOM STATUS UPDATING..."
+				errorMessage = "LOBBY STATUS UPDATING..."
 				render()
 			end
 		end)
 	end
+	createView=LobbyCreateView.new(panel,function(mode,value) send("Create",mode,value) end)
 	render = function()
 		clearRows()
   status.TextColor3 = Theme.TextSecondary
   guidance.Text = GuidanceState.roomHelper(snapshot, player.UserId)
-  guidance.Visible = pendingAction == nil and invitation == nil and player:GetAttribute("RaceState") == "GARAGE"
+  guidance.Visible = pendingAction == nil and invitation == nil and snapshot ~= nil and snapshot.room ~= nil
+   and player:GetAttribute("RaceState") == "GARAGE"
 		gui.Enabled = ((snapshot and snapshot.visible == true) or invitation ~= nil)
 			and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
    and player:GetAttribute("RaceState") == "GARAGE"
-		if not gui.Enabled then return end
+		if not gui.Enabled then createView.close();return end
+		title.AutoLocalize=true
 		if pendingAction then
-			status.Text = ({ Create = "CREATING ROOM...", Join = "JOINING ROOM...",
-				Queue = "JOINING QUEUE...", AcceptInvite = "JOINING ROOM...",
+			status.Text = ({ Create = "CREATING LOBBY...", Join = "JOINING LOBBY...",
+				Queue = "JOINING QUEUE...", AcceptInvite = "JOINING LOBBY...",
 				CancelQueue = "CANCELING QUEUE..." })[pendingAction] or "JOINING RACE..."
 			primary.Active = false
 			back.Active = false
@@ -151,8 +163,8 @@ function MatchRoomUiController.start()
 		back.Active = true
 		if invitation and (not snapshot or not snapshot.room) then
 			title.Text = "RACE INVITE"
-			status.Text = string.format("%s invited you to %s  •  %d / %d",
-				invitation.hostName, invitation.trackId or "Race", invitation.count, invitation.maxPlayers)
+			status.Text = string.format("%s invited you to",invitation.hostName)
+			row(Titles.publicTitle(invitation),nil,nil,string.format("RACERS %d / %d",invitation.count,invitation.maxPlayers),true)
 			bindButtons(if invitation.state == "WAITING" and invitation.count < invitation.maxPlayers
 				then "JOIN" else "QUEUE NEXT", function()
 				send("AcceptInvite", player:GetAttribute("SelectedDriverId"), player:GetAttribute("SelectedKartId"))
@@ -164,8 +176,9 @@ function MatchRoomUiController.start()
 			local room = snapshot.room
 			title.Text = "QUEUED FOR NEXT RACE"
 			status.Text = if room.nextRoundStarting then "JOINING NEXT RACE..."
-				else string.format("%s'S ROOM  •  QUEUE #%d  •  CURRENT %s %d / %d",
-					room.hostName, room.queuePosition or 0, RoomDisplay.state(room.state), room.count, room.maxPlayers)
+				else string.format("QUEUE #%d  •  CURRENT %s %d / %d",
+					room.queuePosition or 0, RoomDisplay.state(room.state), room.count, room.maxPlayers)
+			row(Titles.publicTitle(room),nil,nil,nil,true)
 			row(if room.nextRoundStarting then "Moving you to the starting grid..."
 				else "You will join when the next round is ready.", nil, nil)
 			primary.Visible = false
@@ -174,7 +187,7 @@ function MatchRoomUiController.start()
 				function() send("CancelQueue") end)
 		elseif snapshot and snapshot.room then
 			local room = snapshot.room
-			title.Text = (snapshot.trackName or "RACE") .. " ROOM"
+			title.Text = Titles.publicTitle(room);title.AutoLocalize=false;title.TextTruncate=Enum.TextTruncate.AtEnd
    status.TextColor3 = if room.state == "READY" then Theme.Ready else Theme.TextSecondary
 			status.Text = string.format("HOST: %s   RACERS %d / %d  •  %s",
 				room.hostName, #room.members, room.maxPlayers,
@@ -191,19 +204,19 @@ function MatchRoomUiController.start()
 			bindButtons(if #room.members == 1 then "START SOLO" else "START RACE",
 				function() remote:FireServer("Start") end, "LEAVE", function() remote:FireServer("Leave") end)
 		else
-			title.Text = (snapshot.trackName or "RACE") .. " ROOMS"
-			status.Text = if snapshot.directoryStale then "ROOM STATUS UPDATING..." else string.format("CREATE OR JOIN A 1–%d RACER ROOM", snapshot.maxPlayers or 1)
+			title.Text = "RACE LOBBIES"
+			status.Text = if snapshot.directoryStale then "LOBBY STATUS UPDATING..." else string.format("CREATE OR JOIN A 1–%d RACER LOBBY", snapshot.maxPlayers or 1)
 			for _, room in snapshot.rooms do
 				local waiting = RoomDisplay.canJoin(room)
-				row(string.format("%s  •  %s  %d / %d  •  NEXT %d",
-					room.hostName, RoomDisplay.state(room.state), room.count, room.maxPlayers, room.queuedCount),
-					if waiting then "JOIN" else "QUEUE NEXT",
-					function() send(if waiting then "Join" else "Queue", room.id) end)
+				row(Titles.publicTitle(room),
+					if waiting then "ENTER LOBBY" else "QUEUE NEXT",
+					function() send(if waiting then "Join" else "Queue", room.id) end,
+					string.format("HOST: %s • %s • %d / %d",room.hostName,RoomDisplay.state(room.state),room.count,room.maxPlayers),true)
 			end
-			if #snapshot.rooms == 0 then row(if snapshot.directoryStale then "ROOM STATUS UPDATING..." else "NO ACTIVE ROOMS", nil, nil) end
+			if #snapshot.rooms == 0 then row(if snapshot.directoryStale then "LOBBY STATUS UPDATING..." else "NO ACTIVE LOBBIES", nil, nil) end
 			primary.Visible = true
 			back.Visible = true
-			bindButtons("CREATE ROOM", function() send("Create") end,
+			bindButtons("CREATE LOBBY", function() createView.open() end,
 				"BACK", function() remote:FireServer("Back") end)
 		end
   status.TextColor3 = if errorMessage then Theme.Danger else status.TextColor3
@@ -222,13 +235,13 @@ function MatchRoomUiController.start()
 		elseif action == "Error" then
 			pendingAction = nil; pendingSerial += 1
 			errorMessage = tostring(data)
-			if errorMessage == "ROOM CLOSED - CHOOSE ANOTHER ROOM"
+			if errorMessage == "LOBBY CLOSED - CHOOSE ANOTHER LOBBY"
 				or errorMessage == "INVITE EXPIRED" then invitation = nil end
 			render()
 		end
 	end)
  local raceConnection = player:GetAttributeChangedSignal("RaceState"):Connect(function()
-		if player:GetAttribute("RaceState") ~= "GARAGE" then gui.Enabled = false end
+		if player:GetAttribute("RaceState") ~= "GARAGE" then createView.close();gui.Enabled = false end
 	end)
  local routeConnection = player:GetAttributeChangedSignal("KDMRoutePending"):Connect(render)
  gui.Destroying:Connect(function()

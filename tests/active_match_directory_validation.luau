@@ -1,3 +1,4 @@
+local titleModules=require("./helpers/lobby_title_modules")
 -- lune run tests/active_match_directory_validation.luau
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -27,7 +28,7 @@ function map:GetRangeAsync()
 	return rows
 end
 local Directory = luau.load(fs.readFile("src/server/ActiveMatchDirectory.luau"),
-	{ environment = { Enum = { SortDirection = { Ascending = "Ascending" } } } })()
+	{ environment = titleModules.environment({ SortDirection = { Ascending = "Ascending" } }) })()
 local directory = Directory.new(map, function() return now end)
 local count = 0
 local function check(value, message) assert(value, message); count += 1 end

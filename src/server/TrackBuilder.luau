@@ -5,7 +5,7 @@ local TrackBuilder = {}
 -- Presentation only. Barrier thresholds/stride/offset remain geometry-owned below.
 local TRACK_VISUAL_STYLE = {
 	Practice = { Version = 1, KerbRows = 1, SignEvery = 12, SignText = "KDM / PRACTICE" },
-	Base = { Version = 1, KerbRows = 1, SignEvery = 9, SignText = "KDM / BASE CIRCUIT" },
+	Base = { Version = 1, KerbRows = 1, SignEvery = 9, SignText = "KDM / BASE TRACK" },
 	Standard = { Version = 1, KerbRows = 1, SignEvery = 6, SignText = "KDM / TECHNICAL" },
 	Hard = { Version = 1, KerbRows = 2 },
 }

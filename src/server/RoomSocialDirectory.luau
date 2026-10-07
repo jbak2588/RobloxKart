@@ -1,4 +1,5 @@
 -- Short-lived, server-only HUB availability and Room invitations.
+local Titles=require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("LobbyTitleCatalog"))
 local RoomSocialDirectory = {}
 RoomSocialDirectory.__index = RoomSocialDirectory
 RoomSocialDirectory.PRESENCE_MAP = "KDM_HubPresence_v1"
@@ -12,7 +13,7 @@ function RoomSocialDirectory.new(presenceMap, inviteMap, now)
 end
 
 function RoomSocialDirectory:publish(player, hubJobId)
-	local entry = { userId = player.UserId, name = player.DisplayName,
+	local entry = { userId = player.UserId, name = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
 		hubJobId = hubJobId, state = "HUB_AVAILABLE", updatedAt = self.now() }
 	self.presence:SetAsync(tostring(player.UserId), entry, self.PRESENCE_TTL, entry.updatedAt)
 end
@@ -41,8 +42,10 @@ function RoomSocialDirectory:list(excludeUserId)
 end
 
 function RoomSocialDirectory:sendInvite(targetUserId, room)
+	local title,kind=Titles.publicTitle(room)
 	local invite = { roomId = room.roomId, hostUserId = room.hostUserId,
 		hostName = room.hostName, trackId = room.trackId,
+		lobbyTitle=title,lobbyTitleKind=kind,
 		expiresAt = self.now() + self.INVITE_TTL }
 	self.invites:SetAsync(tostring(targetUserId), invite, self.INVITE_TTL)
 	return invite

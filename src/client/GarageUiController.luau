@@ -1493,7 +1493,7 @@ function GarageUiController.start()
 			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
 		previousButton.Visible = true
-		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "ROOMS" else "SELECT"
+		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "LOBBIES" else "SELECT"
 		cycleButton.Active = selectionPending == nil
 		cycleButton.Visible = step <= STEP_TRACK
 		nextButton.Visible = step == STEP_READY

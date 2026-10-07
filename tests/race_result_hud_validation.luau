@@ -383,10 +383,10 @@ set("RaceSessionComplete",false);set("RaceMatchWaitReason","REMATCH");set("RaceM
 set("RaceMatchStatus","WAITING");set("RaceState","PRE_RACE")
 check(lobby.Visible and not results.Visible and hud.Countdown.Text=="WAITING FOR RACERS",
  "rematch voters return to flexible lobby without result overlap")
-garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,lobbyTitle="Beginners Welcome",lobbyTitleKind="PRESET",state="WAITING",count=1,
  maxPlayers=4,queuedCount=1,queued={{name="Friend",kind="INVITED"}},
  available={{userId=9,name="Remote Friend"}}})
-check(availability.WaitingTitle.Text=="WAITING NEXT  1"
+check(availability.WaitingTitle.Text=="Beginners Welcome" and availability.WaitingTitle.AutoLocalize==false
  and availability.AvailableRacer1.Text=="NEXT Friend  INVITED"
  and availability.AvailableRacer2.Text=="Remote Friend",
  "reserved Room lobby shows queued friend and cross-server availability")
@@ -402,7 +402,7 @@ garageRemote.OnClientEvent:Fire("InviteSent",{targetUserId=9,requestId=requestId
 check(availability.Invite2.Text=="WAITING" and not availability.Invite2.Active
  and delayed[#delayed][1]<=23 and delayed[#delayed][1]>21,
  "storage acknowledgement uses server expiry rather than a client constant")
-garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,lobbyTitle="Beginners Welcome",lobbyTitleKind="PRESET",state="WAITING",count=1,
  maxPlayers=4,queuedCount=0,queued={},pendingInvites={["9"]=os.time()+23},
  available={{userId=10,name="Second Friend"},{userId=9,name="Remote Friend"}}})
 check(availability.Invite1.Text=="INVITE" and availability.Invite1.Active
@@ -424,12 +424,12 @@ check(availability.Invite2.Text=="INVITE" and availability.Invite2.Active,"expir
 availability.Invite2.Activated:Fire()
 delayed[#delayed][2]()
 check(availability.Invite2.Text=="RETRY" and availability.Invite2.Active,"missing acknowledgement times out to retry")
-garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,lobbyTitle="Beginners Welcome",lobbyTitleKind="PRESET",state="WAITING",count=1,
  maxPlayers=4,queuedCount=0,queued={},pendingInvites={["9"]=os.time()+20},
  available={{userId=10,name="Second Friend"},{userId=9,name="Remote Friend"}}})
 check(availability.Invite2.Text=="WAITING" and not availability.Invite2.Active,
  "authoritative snapshot recovers pending state after missing acknowledgement")
-garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,state="WAITING",count=1,
+garageRemote.OnClientEvent:Fire("RoomSnapshot",{hostUserId=1,lobbyTitle="Beginners Welcome",lobbyTitleKind="PRESET",state="WAITING",count=1,
  maxPlayers=4,queuedCount=0,queued={},pendingInvites={},
  available={{userId=10,name="Second Friend"},{userId=9,name="Remote Friend"}}})
 check(availability.Invite2.Text=="INVITE" and availability.Invite2.Active,

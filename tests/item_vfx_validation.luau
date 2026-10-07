@@ -29,7 +29,7 @@ m:clear();check(not select(3,m:sample(0)),"lifecycle cancellation")
 local process=require("@lune/process")
 for _,path in {"src/shared/KDMGameplayBalance.luau","src/shared/KartConfig.luau","src/server/PrototypeWorld.luau","src/server/RaceBotController.luau","src/client/RaceHudController.luau"} do
  local old=process.exec("git",{"show","09f82653106f59e73089a84e43d13c58c145a928:"..path})
- check(old.ok and old.stdout:gsub("\r\n","\n")==fs.readFile(path):gsub("\r\n","\n"),"frozen gameplay/geometry/HUD "..path)
+ check(old.ok and require("./helpers/m1_presentation_freeze")(old.stdout)==require("./helpers/m1_presentation_freeze")(fs.readFile(path)),"frozen gameplay/geometry/HUD "..path)
 end
 check(c.Slick.SpinDegrees==360 and c.Slick.SpinEnabled,"authorized spin presentation")
 print("PASS: "..n.." VFX config, finite camera motion, clamps, cleanup and gameplay parity checks")

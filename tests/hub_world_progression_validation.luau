@@ -11,7 +11,7 @@ S.confirmed(s,"Track01Race");check(S.nextAction(s)=="ROOMS","confirmed Track rou
 check(s.trackId=="Track01Race","acknowledged track identity retained")
 S.returned(s,"GARAGE");check(S.nextAction(s)=="ROOMS","later Garage does not reset progress")
 S.returned(s,"RACE_RETURN");check(s.context=="NEXT_RACE" and S.nextAction(s)=="ROOMS","race return bypasses onboarding")
-check(S.roomHelper(nil,1)=="CREATE OR JOIN A ROOM","browser helper")
+check(S.roomHelper(nil,1)=="CREATE OR JOIN A LOBBY","browser helper")
 check(S.roomHelper({room={hostUserId=1,state="WAITING"}},1):find("OPTIONAL")~=nil,"host optional Invite")
 check(not S.roomHelper({room={hostUserId=2,state="WAITING"}},1):find("INVITE"),"nonhost no host instruction")
 check(S.roomHelper({room={membershipKind="QUEUED"}},1)=="WAITING FOR NEXT RACE","queue owns waiting")
@@ -47,7 +47,7 @@ card.SelectTrack.Activated:Fire();selectButton.Activated:Fire()
 check(card.SelectTrack.Text=="SELECT TRACK","public confirmation waits for server browser acknowledgement")
 replicated.MatchRoomControl.OnClientEvent:Fire("Snapshot",{visible=true,trackId="Track01",room=nil})
 controller.close()
-check(card.SelectTrack.Text=="ROOMS","server browser acknowledgement confirms public Track")
+check(card.SelectTrack.Text=="LOBBIES","server browser acknowledgement confirms public Track")
 active("RACE")
 local before=remote.fireCount
 card.SelectTrack.Activated:Fire()
@@ -59,7 +59,7 @@ card.SelectTrack.Activated:Fire()
 check(remote.lastFire[4]=="InvitedPublic","Rooms retains acknowledged invite track independent of preview index")
 modules.TrackCatalog.Entries.InvitedPublic=nil
 services.ProximityPromptService.PromptTriggered:Fire(prompt,player);controller.close()
-check(card.SelectTrack.Text=="ROOMS","progress survives later Garage")
+check(card.SelectTrack.Text=="LOBBIES","progress survives later Garage")
 for _=1,3 do player.CharacterAdded:Fire(player.Character);hubController.start();check(#world:GetChildren()==3,"respawn no duplicate markers") end
 modules.TrackCatalog.Entries.Track01.MatchType="SOLO_PRACTICE"
 ]]
@@ -70,6 +70,10 @@ fixture=fixture:gsub("hubGui:Destroy%(%)",function()return [[
 local oldWorld=hub.KDMClientWorldGuidance
 child(client,"ModuleScript","RoomDisplay")
 modules.RoomDisplay=luau.load(fs.readFile("src/client/RoomDisplay.luau"))()
+child(shared,"ModuleScript","LobbyTitleCatalog")
+modules.LobbyTitleCatalog=luau.load(fs.readFile("src/shared/LobbyTitleCatalog.luau"))()
+child(client,"ModuleScript","LobbyCreateView")
+modules.LobbyCreateView=luau.load(fs.readFile("src/client/LobbyCreateView.luau"),{environment=environment})()
 local roomController=luau.load(fs.readFile("src/client/MatchRoomUiController.luau"),{environment=environment})()
 roomController.start();roomController.start()
 local roomGui=playerGui.KDMMatchRooms
@@ -77,7 +81,7 @@ playerGui.ChildAdded:Fire(roomGui)
 local helper=roomGui:FindFirstChild("NextAction",true)
 local roomRemote=replicated.MatchRoomControl
 roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,trackId="Track01",rooms={},maxPlayers=4})
-check(helper.Text=="CREATE OR JOIN A ROOM" and not hubGui.SafeCanvas.NextAction.Visible,"real room browser guidance owns attention")
+check(helper.Text=="CREATE OR JOIN A LOBBY" and not helper.Visible and not hubGui.SafeCanvas.NextAction.Visible,"browser suppresses duplicate guidance and owns attention")
 roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,room={state="WAITING",hostUserId=player.UserId,hostName="Host",members={{name="Host"}},available={},maxPlayers=4}})
 check(helper.Text:find("OPTIONAL") and not helper.Text:find("CREATE"),"real joined host guidance")
 roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,room={state="WAITING",hostUserId=2,hostName="Host",members={{name="Host"}},available={},maxPlayers=4}})

@@ -52,7 +52,7 @@ for i,id in modules.TrackCatalog.Order do
  input.InputChanged:Fire({UserInputType=rb.Enum.UserInputType.Touch,Position=rb.Vector3.new(200,0,0)})
  check(image.Image==source,'drag has no effect '..id)
  if modules.TrackCatalog.Entries[id].MatchType=='PUBLIC_RACE' then
-  check(select.Text=='ROOMS' and panel.TrackInformation.TrackMetadata.Text:find('1–4 PLAYERS',1,true),'public metadata '..id)
+  check(select.Text=='LOBBIES' and panel.TrackInformation.TrackMetadata.Text:find('1–4 PLAYERS',1,true),'public metadata '..id)
   select.Activated:Fire()
   check(remote.lastFire[1]=='Ready' and remote.lastFire[4]==id and panel.Visible,'public keeps existing selected-track Room route '..id)
  else

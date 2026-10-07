@@ -1,3 +1,4 @@
+local titleModules=require("./helpers/lobby_title_modules")
 -- lune run tests/match_room_service_validation.luau
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -42,9 +43,9 @@ local maps = { KDM_ActiveBaseRooms_v1 = roomMap, KDM_HubPresence_v1 = presenceMa
 local now = 1000
 local enum = { SortDirection = { Ascending = "Ascending", Descending = "Descending" } }
 local Directory = luau.load(fs.readFile("src/server/ActiveMatchDirectory.luau"),
-	{ environment = { Enum = enum } })()
+	{ environment = titleModules.environment(enum) })()
 local Social = luau.load(fs.readFile("src/server/RoomSocialDirectory.luau"),
-	{ environment = { Enum = enum } })()
+	{ environment = titleModules.environment(enum) })()
 local directory = Directory.new(roomMap, function() return now end)
 local social = Social.new(presenceMap, inviteMap, function() return now end)
 local serial, reservations = 0, 0
@@ -70,6 +71,7 @@ local services = {
 }
 local launches, failLaunch = {}, false
 local modules = {
+ LobbyTitleService=titleModules.service,
 	TrackCatalog = { Entries = { Track01Race = { MatchType="PUBLIC_RACE", MaxPlayers = 4 }, Track03={MatchType="PUBLIC_RACE",MaxPlayers=4}, Track02={MatchType="SOLO_PROTOTYPE",MaxPlayers=1} } },
 	DriverCatalog = { Entries = { Driver01 = {} } },
 	KartCatalog = { Entries = { Kart01 = {} } },
@@ -214,7 +216,7 @@ check(stale.directoryStale and #stale.rooms > 0,
 roomMap.GetRangeAsync = originalRange
 directory:remove(roomA)
 browse(e)
-check(latest(c, "Error") == "ROOM CLOSED - CHOOSE ANOTHER ROOM"
+check(latest(c, "Error") == "LOBBY CLOSED - CHOOSE ANOTHER LOBBY"
 	and latest(c, "Snapshot").visible,
 	"expired queued Room returns player to Browser")
 -- Additional selected-track, malicious cross-track, invite and launch cases.
