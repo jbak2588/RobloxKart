@@ -85,7 +85,7 @@ function RaceRoomCoordinator.start(payload)
 		for _, bot in (if record.state == "WAITING" then record.stagedBots else record.currentRoundBots) or {} do
 			table.insert(safe.activeBots, {botId=bot.botId, name=bot.name})
 		end
-		safe.botCandidates = if RaceConfig.INVITEABLE_BOT_ENABLED and record.trackId == "Track01Race" then {
+		safe.botCandidates = if RaceConfig.INVITEABLE_BOT_ENABLED and TrackCatalog.botAllowed(record.trackId) then {
 			{botId="Bot01", name="KDM Rookie [BOT]", available=record.state == "WAITING"
 				and #safe.activeBots == 0 and (#record.stagedMembers + #(record.stagedBots or {})) < record.maxPlayers}
 		} else {}

@@ -1,3 +1,4 @@
+local selectedTrack=require("@lune/process").args[1] or "Track01Race"
 local titleModules=require("./helpers/lobby_title_modules")
 -- Actual Directory, Coordinator and BotController under deterministic service/transport mocks.
 -- Native physics/effects are independently covered by race_item_validation and Studio driving.
@@ -86,12 +87,23 @@ local directory=Directory.new(roomMap,function() return clock end)
 local descriptor={botId="Bot01",name="KDM Rookie [BOT]",kartId="Kart01",gridSlot=4}
 local function member(id) return {userId=id,name="Human"..id,kartId="Kart01",driverId="Driver01"} end
 local function room(id, humans)
-	directory:createPersistent({id=id,matchId=id.."-match",trackId="Track01Race",hostUserId=1,hostName="Human1",maxPlayers=4},"reserved-code","private-room")
+	directory:createPersistent({id=id,matchId=id.."-match",trackId=selectedTrack,hostUserId=1,hostName="Human1",maxPlayers=4},"reserved-code","private-room")
 	for index=1,humans do
 		assert(directory:stage(id,member(index),"token-"..index))
 		assert(directory:confirmArrival(id,index,"token-"..index,"race-job"))
 	end
 	return directory:get(id)
+end
+for humans=1,4 do
+ for _,withBot in {false,true} do
+  local id='matrix-'..humans..'-'..tostring(withBot)
+  room(id,humans)
+  if withBot then
+   check((directory:addBot(id,descriptor)~=nil)==(humans<4),'Bot capacity matrix '..id)
+  end
+  check(directory:get(id).currentRacers==humans+(if withBot and humans<4 then 1 else 0),'total occupancy '..id)
+  if humans==4 then check(not directory:stage(id,member(5),'fifth'),'four Humans reject fifth') end
+ end
 end
 room("directory",1)
 check(directory:get("directory").currentRacers==1,"one Human occupancy")
@@ -212,7 +224,7 @@ modules.RaceBotController=luau.load(fs.readFile("src/server/RaceBotController.lu
 local Bot=modules.RaceBotController
 local Coordinator=luau.load(fs.readFile("src/server/RaceRoomCoordinator.luau"),{environment=environment})()
 room("production",1)
-local coordinator=Coordinator.start({roomId="production",matchId="production-match",trackId="Track01Race",participantUserIds={1}})
+local coordinator=Coordinator.start({roomId="production",matchId="production-match",trackId=selectedTrack,participantUserIds={1}})
 check(not replicated:FindFirstChild("KDMBotRacers"),"no action means no Bot")
 local function action(p,action,id,extra)
 	clock+=1;remote.OnServerEvent:Fire(p,action,id or "Bot01",extra)
@@ -245,7 +257,7 @@ bot.context.seat:GetPropertyChangedSignal("Occupant"):Fire()
 check(bot.context.chassis.writes==2,"unchanged Occupant notification does not hammer ownership")
 local oldSeat=bot.context.seat
 check(bot.state:GetAttribute("DisplayName")=="KDM Rookie [BOT]" and bot.state:GetAttribute("GridSlot")==4,"distinct NPC + final grid slot")
-check(bot.context.chassis.CFrame==rb.CFrame.new(0,2.75,0)*catalog.Entries.Track01Race.GridSlots[4],"actual grid + production groundTop")
+check(bot.context.chassis.CFrame==rb.CFrame.new(0,2.75,0)*catalog.Entries[selectedTrack].GridSlots[4],"actual grid + production groundTop")
 bot.state:SetAttribute("RaceState","RACING")
 check(bot.context.botControl().targetSpeed==70 and not bot.context.botControl().driftRequested,"same fixed input-only steering")
 local firstFraction=firstSteeringState.previous
@@ -356,7 +368,7 @@ local process=require("@lune/process")
 local checkpoint=process.exec("git",{"show","c815d2fd0ef174e20631a9f034f43c3d7f75c9cc:src/server/RaceBotController.luau"})
 local source=fs.readFile("src/server/RaceBotController.luau")
 check(checkpoint.ok and normalizeFreeze(source)==checkpoint.stdout:gsub("\r\n","\n"),"only exact approved integration edits excluded from historical freeze")
-for _,pair in {{'track.Id == "Track01Race"','track.Id == "Track01"'},
+for _,pair in {{'TrackCatalog.botAllowed(options.trackId)','true'},
  {'root:SetNetworkOwner(nil)','root:SetNetworkOwner(player)'},
  {'state:SetAttribute("SelectedKartId", "Kart01")','state:SetAttribute("SelectedKartId", "Kart02")'},
  {'Steering.reset(productionRecord.steeringState)','Steering.reset(wrongState)'}}do

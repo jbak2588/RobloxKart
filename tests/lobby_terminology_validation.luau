@@ -14,11 +14,11 @@ local function equal(a,b)
 end
 for id,name in names do
  check(current.Entries[id].DisplayName==name,"exact name "..id)
- local entry=table.clone(current.Entries[id]);entry.DisplayName=baseline.Entries[id].DisplayName
+ local entry=table.clone(current.Entries[id]);entry.BotAllowed=nil;entry.DisplayName=baseline.Entries[id].DisplayName
  if id=="Track01" then
-  check(entry.GeometryId=="PracticeFigure8V1" and entry.TargetLaps==2,"P1 Practice-only geometry/laps")
+  check(entry.GeometryId=="PracticeFigure8V1" and entry.TargetLaps==3,"P1 Practice-only geometry/laps")
   check(entry.PreviewImageAssetId=="rbxassetid://75369478362729","P1C approved Practice preview")
-  for _,key in {"GeometryId","TargetLaps","GridSlots","PreviewImageAssetId"}do entry[key]=baseline.Entries[id][key]end
+  for _,key in {"GeometryId","TargetLaps","GridSlots","PreviewImageAssetId","MatchType","MaxPlayers"}do entry[key]=baseline.Entries[id][key]end
  end
  check(equal(entry,baseline.Entries[id]),"all non-display catalog fields unchanged "..id)
 end

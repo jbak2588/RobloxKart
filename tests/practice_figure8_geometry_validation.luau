@@ -19,7 +19,7 @@ for _,index in {2,4,6,8}do
  check(old[4]==new[4] and math.abs(old[5]-new[5])<1e-10 and math.abs(old[6]-new[6])<1e-10,'accepted corner radius/heading preserved')
 end
 
-check(track.GeometryId=='PracticeFigure8V1' and track.TargetLaps==2 and track.MaxPlayers==1 and track.MinPlayers==1 and track.MatchType=='SOLO_PRACTICE','Practice two-lap solo contract')
+check(track.GeometryId=='PracticeFigure8V1' and track.TargetLaps==3 and track.MaxPlayers==4 and track.MinPlayers==1 and track.MatchType=='PUBLIC_RACE' and track.BotAllowed==true,'Practice public three-lap contract')
 check(track.PreviewImageAssetId=='rbxassetid://75369478362729','P1C user-approved Figure-8 selection artwork')
 check(c.CenterlineLength>=1700 and c.CenterlineLength<=2500 and def.RoadWidth==60,'short forgiving practice course')
 local function difference(a,b)return (a-b+.5)%1-.5 end
@@ -60,7 +60,8 @@ local function budget(world)
  end;return result
 end
 for _,id in {'Track01Race','Track02','Track03'}do
- check(equal(catalog.Entries[id],frozenCatalog.Entries[id]),'frozen full catalog '..id)
+ local entry=table.clone(catalog.Entries[id]);entry.BotAllowed=nil
+ check(equal(entry,frozenCatalog.Entries[id]),'frozen full catalog except authorized Bot capability '..id)
  local now=builder.build(object('Folder'),catalog.Entries[id],0)
  local old=oldBuilder.build(object('Folder'),frozenCatalog.Entries[id],0)
  check(signature(now)==signature(old),'frozen complete generated world '..id)

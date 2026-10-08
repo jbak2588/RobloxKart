@@ -88,7 +88,7 @@ local function valueSignature(value)
  local parts={};for _,key in keys do table.insert(parts,tostring(key).."="..valueSignature(value[key]))end
  return "{"..table.concat(parts,";").."}"
 end
-for id,entry in baselineCatalog.Entries do local gameplay=table.clone(currentCatalog.Entries[id]); gameplay.PreviewImageAssetId=nil; gameplay.DisplayName=entry.DisplayName; if id=="Track01" then check(gameplay.GeometryId=="PracticeFigure8V1" and gameplay.TargetLaps==2,"P1 dedicated two-lap Practice"); for _,key in {"GeometryId","TargetLaps","GridSlots"} do gameplay[key]=entry[key] end end; if id=="Track02" then gameplay.MatchType=entry.MatchType; gameplay.MaxPlayers=entry.MaxPlayers; gameplay.TargetLaps=entry.TargetLaps end; check(valueSignature(entry)==valueSignature(gameplay),"unchanged catalog gameplay entry "..id) end
+for id,entry in baselineCatalog.Entries do local gameplay=table.clone(currentCatalog.Entries[id]); gameplay.PreviewImageAssetId=nil; gameplay.BotAllowed=nil; gameplay.DisplayName=entry.DisplayName; if id=="Track01" then check(gameplay.GeometryId=="PracticeFigure8V1" and gameplay.TargetLaps==3,"P2B dedicated three-lap Practice"); for _,key in {"GeometryId","TargetLaps","GridSlots","MatchType","MaxPlayers"} do gameplay[key]=entry[key] end end; if id=="Track02" then gameplay.MatchType=entry.MatchType; gameplay.MaxPlayers=entry.MaxPlayers; gameplay.TargetLaps=entry.TargetLaps end; check(valueSignature(entry)==valueSignature(gameplay),"unchanged catalog gameplay entry "..id) end
 local serde=require("@lune/serde")
 print("Legacy geometry SHA256",serde.hash("sha256",definitionSignature(g.Definitions.PrototypeCircuitV2)))
 
@@ -149,7 +149,7 @@ check(a.minimum>=80 and candidateC.minimum>=80,"major right candidates retain br
 check((c.StartPosition-rb.Vector3.new(-360,0,430)).Magnitude<.01,"original grid/start position")
 check(c.StartTangent:Dot(rb.Vector3.new(0,0,-1))>.999,"northbound grid/start tangent")
 local catalog=luau.load(fs.readFile("src/shared/TrackCatalog.luau"),{environment={CFrame=rb.CFrame}})()
-check(catalog.Entries.Track01.TargetLaps==2 and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track02.TargetLaps==2 and catalog.Entries.Track03.TargetLaps==2,"production lap contracts")
+check(catalog.Entries.Track01.TargetLaps==3 and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track02.TargetLaps==2 and catalog.Entries.Track03.TargetLaps==2,"production lap contracts")
 check(catalog.Entries.Track02.MatchType=="PUBLIC_RACE" and catalog.Entries.Track02.DisplayName=="Prototype V2 Track","V2 route identity unchanged")
 for _,slot in catalog.Entries.Track03.GridSlots do
  local delta=slot.Position-c.StartPosition
@@ -284,7 +284,7 @@ local function valueSignature(value)
  local parts={};for _,key in keys do table.insert(parts,tostring(key).."="..valueSignature(value[key]))end
  return "{"..table.concat(parts,";").."}"
 end
-for id,entry in baselineCatalog.Entries do local gameplay=table.clone(currentCatalog.Entries[id]); gameplay.PreviewImageAssetId=nil; gameplay.DisplayName=entry.DisplayName; if id=="Track01" then check(gameplay.GeometryId=="PracticeFigure8V1" and gameplay.TargetLaps==2,"P1 dedicated two-lap Practice"); for _,key in {"GeometryId","TargetLaps","GridSlots"} do gameplay[key]=entry[key] end end; if id=="Track02" then gameplay.MatchType=entry.MatchType; gameplay.MaxPlayers=entry.MaxPlayers; gameplay.TargetLaps=entry.TargetLaps end; check(valueSignature(entry)==valueSignature(gameplay),"unchanged catalog gameplay entry "..id) end
+for id,entry in baselineCatalog.Entries do local gameplay=table.clone(currentCatalog.Entries[id]); gameplay.PreviewImageAssetId=nil; gameplay.BotAllowed=nil; gameplay.DisplayName=entry.DisplayName; if id=="Track01" then check(gameplay.GeometryId=="PracticeFigure8V1" and gameplay.TargetLaps==3,"P2B dedicated three-lap Practice"); for _,key in {"GeometryId","TargetLaps","GridSlots","MatchType","MaxPlayers"} do gameplay[key]=entry[key] end end; if id=="Track02" then gameplay.MatchType=entry.MatchType; gameplay.MaxPlayers=entry.MaxPlayers; gameplay.TargetLaps=entry.TargetLaps end; check(valueSignature(entry)==valueSignature(gameplay),"unchanged catalog gameplay entry "..id) end
 local serde=require("@lune/serde")
 print("Legacy geometry SHA256",serde.hash("sha256",definitionSignature(g.Definitions.PrototypeCircuitV2)))
 
@@ -345,7 +345,7 @@ check(a.minimum>=80 and candidateC.minimum>=80,"major right candidates retain br
 check((c.StartPosition-rb.Vector3.new(-360,0,430)).Magnitude<.01,"original grid/start position")
 check(c.StartTangent:Dot(rb.Vector3.new(0,0,-1))>.999,"northbound grid/start tangent")
 local catalog=luau.load(fs.readFile("src/shared/TrackCatalog.luau"),{environment={CFrame=rb.CFrame}})()
-check(catalog.Entries.Track01.TargetLaps==2 and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track02.TargetLaps==2 and catalog.Entries.Track03.TargetLaps==2,"production lap contracts")
+check(catalog.Entries.Track01.TargetLaps==3 and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track02.TargetLaps==2 and catalog.Entries.Track03.TargetLaps==2,"production lap contracts")
 check(catalog.Entries.Track02.MatchType=="PUBLIC_RACE" and catalog.Entries.Track02.DisplayName=="Prototype V2 Track","V2 route identity unchanged")
 for _,slot in catalog.Entries.Track03.GridSlots do
  local delta=slot.Position-c.StartPosition

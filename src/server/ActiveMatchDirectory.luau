@@ -1,5 +1,6 @@
 -- Ephemeral, server-only room authority shared by HUB and reserved RACE jobs.
 local Titles=require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("LobbyTitleCatalog"))
+local TrackCatalog=require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("TrackCatalog"))
 local ActiveMatchDirectory = {}
 ActiveMatchDirectory.__index = ActiveMatchDirectory
 ActiveMatchDirectory.MAP_NAME = "KDM_ActiveBaseRooms_v1"
@@ -89,7 +90,7 @@ function ActiveMatchDirectory:addBot(roomId, descriptor)
 	if type(descriptor) ~= "table" or descriptor.botId ~= "Bot01"
 		or descriptor.name ~= "KDM Rookie [BOT]" or descriptor.kartId ~= "Kart01" then return nil end
 	return self:update(roomId, function(record)
-		if record.state ~= "WAITING" or record.trackId ~= "Track01Race" or not record.stagedMembers
+		if record.state ~= "WAITING" or not TrackCatalog.botAllowed(record.trackId) or not record.stagedMembers
 			or type(record.raceJobId) ~= "string" or record.raceJobId == "" or #record.stagedBots >= 1
 			or waitingCapacity(record) >= record.maxPlayers or descriptor.gridSlot ~= record.maxPlayers then return nil end
 		local hostPresent = false

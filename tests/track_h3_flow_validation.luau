@@ -3,7 +3,13 @@ local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox
 local prior=require('@lune/process').exec('git',{'show','43f84c3e640f44e9c771cae9ac5428ba6b424c6e:src/shared/TrackCatalog.luau'})
 assert(prior.ok,'P1B checkpoint available')
 local expected,replacements=prior.stdout:gsub('rbxassetid://132968191916633','rbxassetid://75369478362729',1)
-assert(replacements==1 and expected:gsub('\r\n','\n')==fs.readFile('src/shared/TrackCatalog.luau'):gsub('\r\n','\n'),'P1C sole catalog change / other previews, geometry, laps, capacity, order frozen')
+local currentCatalogSource=fs.readFile('src/shared/TrackCatalog.luau'):gsub('\r\n','\n')
+local approved=require('@lune/process').exec('git',{'show','749f8726bd789997e5cbb6e6f54cca5b6a4a9e01:src/shared/TrackCatalog.luau'})
+assert(approved.ok,'P2A1 accepted catalog available')
+-- Exact P2B inverse is independently mutation-tested by practice_public_bot_validation.
+local inverseSource=fs.readFile('tests/helpers/p2b_track_capability_freeze.luau')
+local inverse=luau.load(inverseSource)()
+assert(replacements==1 and expected:gsub('\r\n','\n')==inverse(currentCatalogSource),'P1C preview + exact P2B fields only; all other catalog bytes frozen')
 -- Exercise the production static card and real catalog in the safe-area GUI harness.
 -- Independent H3 builder/orbit validation files remain as preserved-module coverage.
 local harness=fs.readFile('tests/garage_transition_validation.luau')

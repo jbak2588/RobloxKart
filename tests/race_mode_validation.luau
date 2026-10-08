@@ -111,8 +111,8 @@ local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
 check(#catalog.Order==4 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Practice first/default")
 check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02" and catalog.Order[4]=="Track03","two races follow Practice")
 check(catalog.Entries.Track01.GeometryId=="PracticeFigure8V1" and catalog.Entries.Track01Race.GeometryId=="PracticeCircuitV1","Practice has dedicated geometry / Base frozen")
-check(catalog.Entries.Track01.MaxPlayers==1 and catalog.Entries.Track01.TargetLaps==2
- and catalog.Entries.Track01.MatchType=="SOLO_PRACTICE","Practice stays solo")
+check(catalog.Entries.Track01.MaxPlayers==4 and catalog.Entries.Track01.TargetLaps==3
+ and catalog.Entries.Track01.MatchType=="PUBLIC_RACE","Practice public 1–4 / 3 laps")
 check(catalog.Entries.Track01Race.DisplayName=="Base Track" and catalog.Entries.Track01Race.MaxPlayers==4
  and catalog.Entries.Track01Race.TargetLaps==2 and catalog.Entries.Track01Race.PreviewRotationDegrees==90,
  "Base Circuit public capability")
@@ -127,10 +127,10 @@ for i,cf in catalog.Entries.Track01.GridSlots do
 end
 for _, id in catalog.Order do
  local kind=mode.resolve(id)
- check(kind==(if id=="Track01" then "PRACTICE" else "RACE"),"mode "..id)
- local expected=2
+ check(kind=="RACE","mode "..id)
+ local expected=if id=="Track01" then 3 else 2
  check(catalog.Entries[id].TargetLaps==expected and mode.targetLaps(kind,id)==expected,"laps "..id)
- check(mode.label(kind,id)==(if id=="Track01" then "PRACTICE / 2 LAPS" else "RACE / "..expected.." LAPS"),"label "..id)
+ check(mode.label(kind,id)==("RACE / "..expected.." LAPS"),"label "..id)
 end
 check(raceConfig.TOTAL_LAPS==3,"global laps unchanged")
 check(not fs.isFile("src/client/DrivingLicenseUiController.luau"),"no License/tutorial controller")
@@ -155,7 +155,7 @@ for i=1,2 do
  checkpoints[i]=cp
 end
 child(shared,"ModuleScript","TrackCatalog")
-modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="SOLO_PRACTICE",MaxPlayers=1},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4},Track03={Id="Track03",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
+modules.TrackCatalog={DefaultId="Track01",Entries={Track01={Id="Track01",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4,TargetLaps=3,BotAllowed=true},Track02={Id="Track02",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4},Track03={Id="Track03",GeometryId="PracticeCircuitV1",MatchType="SOLO_PROTOTYPE",MaxPlayers=1},Track01Race={Id="Track01Race",GeometryId="PracticeCircuitV1",MatchType="PUBLIC_RACE",MaxPlayers=4}}}
 local player=child(services.Players,"Player","Driver")
 player.Character=object("Model","Character")
 local human=child(player.Character,"Humanoid","Humanoid"); human.Health=100; human.SeatPart=seat
@@ -221,7 +221,7 @@ local function crossFinishPlaneOutside(x, reverse)
  chassis.CFrame=finish.CFrame*CF.new(x,0,after); tick(0.1)
 end
 start("Track01")
-check(player:GetAttribute("RaceTotalLaps")==2,"practice published target")
+check(player:GetAttribute("RaceTotalLaps")==3,"practice published target")
 crossFinishPlaneOutside(7,false)
 check(player:GetAttribute("RaceFinishMissedSerial")==0,"missing checkpoint does not show finish miss")
 cross(checkpoints[2]); cross(finish)
@@ -238,9 +238,11 @@ check(player:GetAttribute("RaceFinishMissedSerial")==1 and player:GetAttribute("
 cross(finish)
 check(player:GetAttribute("RaceState")=="RACING" and player:GetAttribute("RaceCompletedLaps")==1,"Practice first lap keeps racing")
 cross(checkpoints[1]); cross(checkpoints[2]); cross(finish)
+check(player:GetAttribute("RaceState")=="RACING" and player:GetAttribute("RaceCompletedLaps")==2,"Practice second lap keeps racing")
+cross(checkpoints[1]); cross(checkpoints[2]); cross(finish)
 check(player:GetAttribute("RaceState")=="FINISHING" and kart:GetAttribute("KartFinishRollActive")==true
  and kart:GetAttribute("RaceControlsLocked")==true and player:GetAttribute("RaceFinishPhase")=="ROLL","practice enters locked moving finish sequence")
-check(player:GetAttribute("RaceCompletedLaps")==2,"exactly two Practice laps")
+check(player:GetAttribute("RaceCompletedLaps")==3,"exactly three Practice laps")
 check(player:GetAttribute("RaceLap1Time")>player:GetAttribute("RaceLap2Time") and player:GetAttribute("RaceBestLapNumber")==2,"two-lap Practice history retains standing start and faster second lap")
 local officialTime=player:GetAttribute("RaceFinalTime")
 local presentationPosition=chassis.Position
@@ -261,7 +263,7 @@ check(player:GetAttribute("RaceState")=="FINISHED" and kart:GetAttribute("KartFi
 check(player:GetAttribute("RaceFinishMissedSerial")==1,"valid finish gives no additional miss warning")
 check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no license state created")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
-check(player:GetAttribute("RaceTotalLaps")==2 and player:GetAttribute("RaceMode")=="PRACTICE","practice rematch stays practice")
+check(player:GetAttribute("RaceTotalLaps")==3 and player:GetAttribute("RaceMode")=="RACE","practice rematch stays practice")
 for _, id in {"Track01","Track01Race","Track02","Track03"} do
  start(id)
  local laps=catalog.Entries[id].TargetLaps
@@ -292,7 +294,7 @@ tick(raceConfig.ITEM_PREP_SECONDS) -- Complete the server-owned item prep before
   and not kart:GetAttribute("KartFinishRollActive"),"rematch clears lap and finish state "..id)
 end
 start("Track01")
-for lap=1,2 do cross(checkpoints[1]); cross(checkpoints[2]); cross(finish) end
+for lap=1,3 do cross(checkpoints[1]); cross(checkpoints[2]); cross(finish) end
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.01)
 local hubReturns=0
 local releaseCountBeforeReserved= releasedKartContexts

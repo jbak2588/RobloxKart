@@ -13,9 +13,9 @@ check(v2.MatchType=="PUBLIC_RACE" and v2.MinPlayers==1 and v2.MaxPlayers==4 and 
 check(v2.GeometryId=="PrototypeCircuitV2" and v2.PreviewImageAssetId=="rbxassetid://104449535838897","production identity/image unchanged")
 for _,id in {"Track01","Track01Race","Track03"} do
  local track=catalog.Entries[id]
- check(track.TargetLaps==2
-  and track.MaxPlayers==(if id=="Track01" then 1 else 4)
-  and track.MatchType==(if id=="Track01" then "SOLO_PRACTICE" else "PUBLIC_RACE"),"existing track "..id)
+ check(track.TargetLaps==(if id=="Track01" then 3 else 2)
+  and track.MaxPlayers==4
+  and track.MatchType=="PUBLIC_RACE","existing track "..id)
 end
 local course=geometry.getCourse(geometry.getDefinition(v2.GeometryId))
 check(#v2.GridSlots==4,"four existing V2 grids")

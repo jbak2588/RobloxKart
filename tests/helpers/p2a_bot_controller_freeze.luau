@@ -1,7 +1,7 @@
 -- Reverse only exact authorized P2A/P2A1 integration edits for historical freezes.
 -- Exact literal matching keeps gates, ownership and unrelated source detectable.
 return function(source)
-	source=source:gsub("\r\n","\n")
+	source=require("./p2b_track_capability_freeze")(source):gsub("\r\n","\n")
 	local function replace(current,prior)
 		local start=source:find(current,1,true)
 		if start then source=source:sub(1,start-1)..prior..source:sub(start+#current) end

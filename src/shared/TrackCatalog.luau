@@ -8,12 +8,13 @@ local TrackCatalog = {
 			DisplayName = "Practice Track",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeFigure8V1",
-			MatchType = "SOLO_PRACTICE",
+			MatchType = "PUBLIC_RACE",
 			MinPlayers = 1,
-			MaxPlayers = 1,
+			MaxPlayers = 4,
 			PreviewRotationDegrees = 0,
-			TargetLaps = 2,
-			-- Reserved forward-facing slots on the launch straight; capacity stays solo.
+			TargetLaps = 3,
+			BotAllowed = true,
+			-- Existing forward-facing launch slots; the optional Bot uses the final slot.
 			GridSlots = {
 				CFrame.new(-98.898394282067, 0, 125.031263841772) * CFrame.Angles(0, 2.520066031181, 0),
 				CFrame.new(-111.906242059067, 0, 115.714832324772) * CFrame.Angles(0, 2.520066031181, 0),
@@ -32,6 +33,7 @@ local TrackCatalog = {
 			MaxPlayers = 4,
 			PreviewRotationDegrees = 90,
 			TargetLaps = 2,
+			BotAllowed = true,
 			-- Original V1 grid slots from 88de2b3. The server adds ground height.
 			GridSlots = {
 				CFrame.new(-350, 0, 465),
@@ -78,6 +80,11 @@ local TrackCatalog = {
 		},
 	},
 }
+
+function TrackCatalog.botAllowed(trackId)
+	local track = TrackCatalog.Entries[trackId]
+	return track ~= nil and track.BotAllowed == true and track.MatchType == "PUBLIC_RACE" and track.MaxPlayers >= 2
+end
 
 function TrackCatalog.capabilityLabel(track)
 	local laps = string.format("%d %s", track.TargetLaps, if track.TargetLaps == 1 then "LAP" else "LAPS")

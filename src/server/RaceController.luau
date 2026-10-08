@@ -1076,7 +1076,7 @@ function RaceController.start(options)
 		if not permitted or state:GetAttribute("IsBot")~=true or self:contains(state)
 			or self:count()>=self.maxPlayers or self:humanCount()==0 or rosterLocked
 			or not context or not context.kart.Parent or PrototypeWorld.getKartContext(state)~=context
-			or self.trackId~="Track01Race" or self.phase~="WAITING" then return false end
+			or not TrackCatalog.botAllowed(self.trackId) or self.phase~="WAITING" then return false end
 		initializePlayerAttributes(state,checkpointCount,self.trackId)
 		state:SetAttribute("RaceSessionId",self.roundId+1)
 		local racer=createRacer(state,context);racer.targetLaps=self.targetLaps

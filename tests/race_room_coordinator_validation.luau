@@ -89,6 +89,7 @@ local modules = { ActiveMatchDirectory = Directory, RoomSocialDirectory = Social
 	TrackCatalog = { Entries = { Track01Race = { GridSlots = {
 		rb.CFrame.new(0, 0, 0), rb.CFrame.new(10, 0, 0),
 		rb.CFrame.new(20, 0, 0), rb.CFrame.new(30, 0, 0) } } } } }
+modules.TrackCatalog.botAllowed=function(id)return id=="Track01Race" end
 local environment = {
 	game = { PrivateServerId = "private-original", JobId = "race-job",
 		GetService = function(_, name) return assert(services[name]) end },

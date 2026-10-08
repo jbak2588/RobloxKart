@@ -55,7 +55,7 @@ local function create(source, options)
 	local record = {connections={}, source=source}
 	local ok, err = pcall(function()
 		local track = TrackCatalog.Entries[options.trackId]
-		assert(track and track.Id == "Track01Race", "Bot course unavailable")
+		assert(track and TrackCatalog.botAllowed(options.trackId), "Bot course unavailable")
 		local course = TrackGeometry.getCourse(TrackGeometry.getDefinition(track.GeometryId))
 		record.steeringState = Steering.new(course, TrackGeometry.getDefinition(track.GeometryId).RoadWidth, KartConfig)
 		record.folder = ReplicatedStorage:FindFirstChild("KDMBotRacers")
@@ -152,11 +152,12 @@ end
 
 function Controller.addProductionBot(options)
 	local session = Session.active()
+	local track = TrackCatalog.Entries[options.trackId]
 	if not RaceConfig.INVITEABLE_BOT_ENABLED or Workspace:GetAttribute("KDMServerRole") ~= "RACE"
 		or type(options.roomId) ~= "string" or options.roomId == "" or productionPending
 		or productionRecord or testRecord or not session or session.phase ~= "WAITING"
-		or session:humanCount() == 0 or options.trackId ~= "Track01Race"
-		or options.gridSlot ~= TrackCatalog.Entries.Track01Race.MaxPlayers then return false end
+		or session:humanCount() == 0 or not TrackCatalog.botAllowed(options.trackId)
+		or not track or track.MaxPlayers < 2 or options.gridSlot ~= track.MaxPlayers then return false end
 	productionPending = true
 	local record, reason = create("PRODUCTION_ROOM", options)
 	local admitted = false
@@ -185,7 +186,7 @@ function Controller.setProductionSpawn(frame)
 	productionRecord.context:setSpawnCFrame(frame)
 	Steering.reset(productionRecord.steeringState)
 	productionRecord.context.kart:SetAttribute("RaceStartCFrame", frame)
-	productionRecord.state:SetAttribute("GridSlot", 4)
+	productionRecord.state:SetAttribute("GridSlot", TrackCatalog.Entries[productionRecord.state:GetAttribute("SelectedTrackId")].MaxPlayers)
 end
 
 function Controller.startTestHarness()

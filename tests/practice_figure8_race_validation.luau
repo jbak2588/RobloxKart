@@ -61,7 +61,7 @@ end
 local function fresh()
  services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,'ReturnGarage')
  start('Track01')
- check(player:GetAttribute('RaceTotalLaps')==2,'actual Practice two-lap authority')
+ check(player:GetAttribute('RaceTotalLaps')==3,'actual Practice three-lap authority')
  check(math.abs(modules.RaceSession.active().trackData.minimumValidLapTime-metrics.minimumValidLapTime)<.0001,'minimum lap recalculated from actual gates')
 end
 fresh()
@@ -70,10 +70,12 @@ check(player:GetAttribute('RaceCompletedLaps')==1 and player:GetAttribute('RaceS
 place(.001,-70);tick(.1);place(0,-70);tick(.1);place(.001,70);tick(.1)
 check(player:GetAttribute('RaceCompletedLaps')==1,'finish oscillation/recross cannot double count')
 move(.001,1,100)
-check(player:GetAttribute('RaceCompletedLaps')==2 and player:GetAttribute('RaceState')=='FINISHING','fast legal second actual lap finishes')
+check(player:GetAttribute('RaceCompletedLaps')==2 and player:GetAttribute('RaceState')=='RACING','fast legal second actual lap continues')
+move(.001,1,100)
+check(player:GetAttribute('RaceCompletedLaps')==3 and player:GetAttribute('RaceState')=='FINISHING','third actual lap finishes')
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+.01)
-check(player:GetAttribute('RaceState')=='FINISHED' and player:GetAttribute('RaceLap1Time')>metrics.minimumValidLapTime and player:GetAttribute('RaceLap2Time')>metrics.minimumValidLapTime,'two recorded physical-gate laps / terminal result')
-services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,'Rematch');tick(3.1)
+check(player:GetAttribute('RaceState')=='FINISHED' and player:GetAttribute('RaceLap1Time')>metrics.minimumValidLapTime and player:GetAttribute('RaceLap2Time')>metrics.minimumValidLapTime,'three recorded physical-gate laps / terminal result')
+services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,'Rematch');tick(raceConfig.ITEM_PREP_SECONDS);services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,'StartSolo');tick(3.1)
 check(player:GetAttribute('RaceCompletedLaps')==0 and player:GetAttribute('RaceNextCheckpoint')==1 and player:GetAttribute('RaceState')=='RACING','rematch clears all actual route anchors/gates')
 move(1,0,-70)
 check(player:GetAttribute('RaceCompletedLaps')==0 and player:GetAttribute('RaceNextCheckpoint')==1,'reverse actual Figure-8 cannot complete')
@@ -108,8 +110,9 @@ check(not kart:GetAttribute('KartOffTrack') and player:GetAttribute('RaceNextChe
 kart:SetAttribute('RaceResetSerial',(kart:GetAttribute('RaceResetSerial')or 0)+1);tick(.1)
 check(player:GetAttribute('RaceCompletedLaps')==0 and player:GetAttribute('RaceNextCheckpoint')==1,'fall invalidates only current lap and clears stale continuity')
 move(0,1,80);check(player:GetAttribute('RaceCompletedLaps')==1,'valid lap after fall/recovery')
-move(0,1,80);check(player:GetAttribute('RaceCompletedLaps')==2,'second recovered lap finishes')
-local report={checks=count,actualGeometry='PracticeFigure8V1',twoLaps='PASS',fastLap100='PASS',reverse='PASS',wrongLoop='PASS',teleport='PASS',impossibleMinimumLap='PASS',finishOscillation='PASS',offroadRecovery='PASS',fallReset='PASS',rematch='PASS',manualDriving=false}
+move(0,1,80);check(player:GetAttribute('RaceCompletedLaps')==2 and player:GetAttribute('RaceState')=='RACING','second recovered lap continues')
+move(0,1,80);check(player:GetAttribute('RaceCompletedLaps')==3,'third recovered lap finishes')
+local report={checks=count,actualGeometry='PracticeFigure8V1',threeLaps='PASS',fastLap100='PASS',reverse='PASS',wrongLoop='PASS',teleport='PASS',impossibleMinimumLap='PASS',finishOscillation='PASS',offroadRecovery='PASS',fallReset='PASS',rematch='PASS',manualDriving=false}
 if require('@lune/process').args[1]=='Report' then
  fs.writeDir('artifacts/r7-p1b')
  fs.writeFile('artifacts/r7-p1b/practice_race_integrity.json',require('@lune/serde').encode('json',report))
