@@ -1,4 +1,9 @@
 local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox')
+-- P1C changes exactly the accepted Practice asset; every other catalog byte stays frozen.
+local prior=require('@lune/process').exec('git',{'show','43f84c3e640f44e9c771cae9ac5428ba6b424c6e:src/shared/TrackCatalog.luau'})
+assert(prior.ok,'P1B checkpoint available')
+local expected,replacements=prior.stdout:gsub('rbxassetid://132968191916633','rbxassetid://75369478362729',1)
+assert(replacements==1 and expected:gsub('\r\n','\n')==fs.readFile('src/shared/TrackCatalog.luau'):gsub('\r\n','\n'),'P1C sole catalog change / other previews, geometry, laps, capacity, order frozen')
 -- Exercise the production static card and real catalog in the safe-area GUI harness.
 -- Independent H3 builder/orbit validation files remain as preserved-module coverage.
 local harness=fs.readFile('tests/garage_transition_validation.luau')
@@ -31,7 +36,7 @@ local back,select,ready
 for _,v in backdrop:GetChildren() do
  if v.Text=='BACK' then back=v elseif v.Text=='SELECT' then select=v elseif v.Text=='READY' then ready=v end
 end
-local approved={'rbxassetid://132968191916633','rbxassetid://129972226920253','rbxassetid://104449535838897','rbxassetid://104244063916395'}
+local approved={'rbxassetid://75369478362729','rbxassetid://129972226920253','rbxassetid://104449535838897','rbxassetid://104244063916395'}
 local committed=player:GetAttribute('SelectedKartId')
 controller.open('TRACKS')
 local changedConnections=image:GetPropertyChangedSignal('IsLoaded').count()

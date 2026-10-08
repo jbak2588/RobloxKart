@@ -20,7 +20,7 @@ for _,index in {2,4,6,8}do
 end
 
 check(track.GeometryId=='PracticeFigure8V1' and track.TargetLaps==2 and track.MaxPlayers==1 and track.MinPlayers==1 and track.MatchType=='SOLO_PRACTICE','Practice two-lap solo contract')
-check(track.PreviewImageAssetId=='rbxassetid://132968191916633','selection artwork unchanged')
+check(track.PreviewImageAssetId=='rbxassetid://75369478362729','P1C user-approved Figure-8 selection artwork')
 check(c.CenterlineLength>=1700 and c.CenterlineLength<=2500 and def.RoadWidth==60,'short forgiving practice course')
 local function difference(a,b)return (a-b+.5)%1-.5 end
 local function position(f,offset)
