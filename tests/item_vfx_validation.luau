@@ -29,7 +29,10 @@ m:clear();check(not select(3,m:sample(0)),"lifecycle cancellation")
 local process=require("@lune/process")
 for _,path in {"src/shared/KDMGameplayBalance.luau","src/shared/KartConfig.luau","src/server/PrototypeWorld.luau","src/server/RaceBotController.luau","src/client/RaceHudController.luau"} do
  local old=process.exec("git",{"show","09f82653106f59e73089a84e43d13c58c145a928:"..path})
- local normalize=function(s)return require("./helpers/m1_presentation_freeze")(require("./helpers/p2a_bot_controller_freeze")(s))end
+ local normalize=function(s)
+  if path=="src/client/RaceHudController.luau" then s=require("./helpers/n2_hud_presentation_freeze")(s)end
+  return require("./helpers/m1_presentation_freeze")(require("./helpers/p2a_bot_controller_freeze")(s))
+ end
  check(old.ok and normalize(old.stdout)==normalize(fs.readFile(path)),"frozen gameplay/geometry/HUD "..path)
 end
 check(c.Slick.SpinDegrees==360 and c.Slick.SpinEnabled,"authorized spin presentation")

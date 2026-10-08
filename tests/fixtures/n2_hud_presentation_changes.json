@@ -1,0 +1,37 @@
+{
+  "parent": "a7e551fac3031c395f4febf6e4ebfc208f8b4639",
+  "changes": [
+    {
+      "before": "",
+      "after": "local FinishPresentation = requireModule(ReplicatedStorage:WaitForChild(\"Shared\"):WaitForChild(\"KDMFinishPresentation\") :: ModuleScript)\n"
+    },
+    {
+      "before": "",
+      "after": "\tlocal finishPlace = Instance.new(\"TextLabel\")\n\tfinishPlace.Name = \"FinishPlace\"\n\tfinishPlace.Position = UDim2.new(0, 0, 1, 4)\n\tfinishPlace.Size = UDim2.new(1, 0, 0, 24)\n\tfinishPlace.BackgroundTransparency = 1\n\tfinishPlace.Font = Enum.Font.GothamBold\n\tfinishPlace.Text = \"\"\n\tfinishPlace.TextSize = 20\n\tfinishPlace.TextColor3 = Color3.fromRGB(255, 218, 75)\n\tfinishPlace.TextStrokeTransparency = .4\n\tfinishPlace.Parent = finishBanner\n"
+    },
+    {
+      "before": "",
+      "after": "\tlocal resultsScale = Instance.new(\"UIScale\")\n\tresultsScale.Name = \"FinishRevealScale\"\n\tresultsScale.Scale = 1\n\tresultsScale.Parent = resultsPanel\n\tlocal resultRevealTween = nil\n\tlocal function stopResultReveal()\n\t\tif resultRevealTween then resultRevealTween:Cancel();resultRevealTween=nil end\n\t\tresultsScale.Scale = 1\n\tend\n\tscreenGui.Destroying:Connect(stopResultReveal)\n"
+    },
+    {
+      "before": "",
+      "after": "\t\tif not resultsPanel.Visible then\n\t\t\tstopResultReveal()\n\t\telseif previousRaceState ~= raceState then\n\t\t\tstopResultReveal()\n\t\t\tresultsScale.Scale = FinishPresentation.REVEAL_SCALE\n\t\t\tresultRevealTween = TweenService:Create(resultsScale,\n\t\t\t\tTweenInfo.new(FinishPresentation.REVEAL_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale=1})\n\t\t\tresultRevealTween:Play()\n\t\tend\n"
+    },
+    {
+      "before": "\t\tif raceState == \"FINISHING\" and previousRaceState ~= \"FINISHING\" then\n",
+      "after": "\t\tlocal finishKind, placeText = FinishPresentation.resolve(raceState,\n\t\t\tplayer:GetAttribute(\"RaceFinishPosition\"), player:GetAttribute(\"RaceParticipantCount\"))\n\t\tfinishPlace.Text = placeText\n\t\tfinishPlace.TextColor3 = if finishKind==\"PLACED\" then Color3.fromRGB(190, 245, 255) else Color3.fromRGB(255, 218, 75)\n\t\tif raceState == \"FINISHING\" and previousRaceState ~= \"FINISHING\"\n\t\t\tand player:GetAttribute(\"RaceFinishPhase\") ~= \"PRESENT\" then\n"
+    },
+    {
+      "before": "\t\t\tpulse(finishBanner, finishBannerScale)\n\t\t\ttask.delay(1, function()\n",
+      "after": "\t\t\tfinishBannerScale.Scale = .88\n\t\t\tTweenService:Create(finishBannerScale, TweenInfo.new(.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale=1.08}):Play()\n\t\t\tfinishPlace.TextTransparency = 1\n\t\t\ttask.delay(.12, function()\n\t\t\t\tif serial==finishBannerSerial and finishBanner.Visible then\n\t\t\t\t\tTweenService:Create(finishBannerScale, TweenInfo.new(.18), {Scale=1}):Play()\n\t\t\t\t\tTweenService:Create(finishPlace, TweenInfo.new(.18), {TextTransparency=0}):Play()\n\t\t\t\tend\n\t\t\tend)\n\t\t\ttask.delay(FinishPresentation.BANNER_SECONDS, function()\n"
+    },
+    {
+      "before": "\t\telseif raceState ~= \"FINISHING\" then\n",
+      "after": "\t\telseif raceState ~= \"FINISHING\" or player:GetAttribute(\"RaceFinishPhase\") == \"PRESENT\" then\n"
+    },
+    {
+      "before": "",
+      "after": "\t\t\"RaceFinishPhase\",\n"
+    }
+  ]
+}

@@ -136,5 +136,22 @@
       "reason": "2026-10-08 user-authorized missing Hub/grass restoration, PV496; identify thin broad donor floor independently of duplicate Union sibling order",
       "sha256": "b2c06de1c2a7d8d06b3e9e9c8e584075ca820380ae8e652c7ca35b5fefac91cc"
     }
+  },
+  "approvedPresentationCandidates": {
+    "src/client/RaceHudController.luau": {
+      "task": "R7-N2",
+      "parent": "a7e551fac3031c395f4febf6e4ebfc208f8b4639",
+      "sha256": "9f98b31223fbbaa5240b912d6db7cd6fbc5678667be9001752ce07d1a2dedd3e"
+    },
+    "src/client/DriverCelebrationController.luau": {
+      "task": "R7-N2",
+      "parent": "a7e551fac3031c395f4febf6e4ebfc208f8b4639",
+      "sha256": "7486464124b6afb0d502d3d44b4164e6070b4d79b05b8684e7c2df4a64fcaa35"
+    },
+    "src/client/init.client.luau": {
+      "task": "R7-N2",
+      "parent": "a7e551fac3031c395f4febf6e4ebfc208f8b4639",
+      "sha256": "dc855f6493e984d2495d0040099d7af8d6ce3b88a83d57f194d2ff81bb2f8312"
+    }
   }
 }

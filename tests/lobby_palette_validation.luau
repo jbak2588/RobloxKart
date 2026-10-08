@@ -25,7 +25,10 @@ for _,path in {"src/shared/KDMUiTheme.luau","src/shared/TrackCatalog.luau","src/
   local result=process.exec("lune",{"run","tests/practice_figure8_geometry_validation.luau"})
   check(result.ok,"P1 full Base/V2/Hard catalog/world output freeze "..path..result.stderr)
  else
-  local normalizeBot=function(s)return m1(require("./helpers/p2a_bot_controller_freeze")(s))end
+  local normalizeBot=function(s)
+   if path=="src/client/RaceHudController.luau" then s=require("./helpers/n2_hud_presentation_freeze")(s)end
+   return m1(require("./helpers/p2a_bot_controller_freeze")(s))
+  end
   check(old.ok and normalizeBot(old.stdout)==normalizeBot(fs.readFile(path)),"byte frozen "..path)
  end
 end

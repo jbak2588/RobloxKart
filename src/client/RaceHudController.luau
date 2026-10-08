@@ -17,6 +17,7 @@ local KartCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitF
 local TrackCatalog = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog") :: ModuleScript)
 local TrackGeometry = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry") :: ModuleScript)
 local RaceResultFormat = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceResultFormat") :: ModuleScript)
+local FinishPresentation = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMFinishPresentation") :: ModuleScript)
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
 local RaceMinimapRivals = require(script.Parent:WaitForChild("RaceMinimapRivals"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
@@ -592,6 +593,17 @@ function RaceHudController.start()
 	finishBanner.Parent = screenGui
 	local finishBannerScale = Instance.new("UIScale")
 	finishBannerScale.Parent = finishBanner
+	local finishPlace = Instance.new("TextLabel")
+	finishPlace.Name = "FinishPlace"
+	finishPlace.Position = UDim2.new(0, 0, 1, 4)
+	finishPlace.Size = UDim2.new(1, 0, 0, 24)
+	finishPlace.BackgroundTransparency = 1
+	finishPlace.Font = Enum.Font.GothamBold
+	finishPlace.Text = ""
+	finishPlace.TextSize = 20
+	finishPlace.TextColor3 = Color3.fromRGB(255, 218, 75)
+	finishPlace.TextStrokeTransparency = .4
+	finishPlace.Parent = finishBanner
 	local finishMissLabel = Instance.new("TextLabel")
 	finishMissLabel.Name = "FinishMissWarning"
 	finishMissLabel.AnchorPoint = Vector2.new(0.5, 0)
@@ -619,6 +631,16 @@ function RaceHudController.start()
 	resultsPanel.Visible = false
 	resultsPanel.Parent = screenGui
 	addCorner(resultsPanel, 10)
+	local resultsScale = Instance.new("UIScale")
+	resultsScale.Name = "FinishRevealScale"
+	resultsScale.Scale = 1
+	resultsScale.Parent = resultsPanel
+	local resultRevealTween = nil
+	local function stopResultReveal()
+		if resultRevealTween then resultRevealTween:Cancel();resultRevealTween=nil end
+		resultsScale.Scale = 1
+	end
+	screenGui.Destroying:Connect(stopResultReveal)
 
 	local resultsLayout = Instance.new("UIListLayout")
 	resultsLayout.Padding = UDim.new(0, 8)
@@ -1146,6 +1168,15 @@ function RaceHudController.start()
 			+ (if raceEndLabel.Visible then 23 else 0) + (if quitRow.Visible then quitRow.Size.Y.Offset else 0))
 
 		resultsPanel.Visible = (raceState == "FINISHED" or raceState == "DNF") and not returningToHub
+		if not resultsPanel.Visible then
+			stopResultReveal()
+		elseif previousRaceState ~= raceState then
+			stopResultReveal()
+			resultsScale.Scale = FinishPresentation.REVEAL_SCALE
+			resultRevealTween = TweenService:Create(resultsScale,
+				TweenInfo.new(FinishPresentation.REVEAL_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale=1})
+			resultRevealTween:Play()
+		end
 		local routeError = player:GetAttribute("RaceEntryError")
 		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
 			and type(routeError) == "string" and routeError ~= "" then "HUB UNAVAILABLE\nRETRY" else "GARAGE"
@@ -1201,15 +1232,28 @@ function RaceHudController.start()
 			end
 		else totalLabel.Visible=true end
 
-		if raceState == "FINISHING" and previousRaceState ~= "FINISHING" then
+		local finishKind, placeText = FinishPresentation.resolve(raceState,
+			player:GetAttribute("RaceFinishPosition"), player:GetAttribute("RaceParticipantCount"))
+		finishPlace.Text = placeText
+		finishPlace.TextColor3 = if finishKind=="PLACED" then Color3.fromRGB(190, 245, 255) else Color3.fromRGB(255, 218, 75)
+		if raceState == "FINISHING" and previousRaceState ~= "FINISHING"
+			and player:GetAttribute("RaceFinishPhase") ~= "PRESENT" then
 			finishBannerSerial += 1
 			local serial = finishBannerSerial
 			finishBanner.Visible = true
-			pulse(finishBanner, finishBannerScale)
-			task.delay(1, function()
+			finishBannerScale.Scale = .88
+			TweenService:Create(finishBannerScale, TweenInfo.new(.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale=1.08}):Play()
+			finishPlace.TextTransparency = 1
+			task.delay(.12, function()
+				if serial==finishBannerSerial and finishBanner.Visible then
+					TweenService:Create(finishBannerScale, TweenInfo.new(.18), {Scale=1}):Play()
+					TweenService:Create(finishPlace, TweenInfo.new(.18), {TextTransparency=0}):Play()
+				end
+			end)
+			task.delay(FinishPresentation.BANNER_SECONDS, function()
 				if serial == finishBannerSerial then finishBanner.Visible = false end
 			end)
-		elseif raceState ~= "FINISHING" then
+		elseif raceState ~= "FINISHING" or player:GetAttribute("RaceFinishPhase") == "PRESENT" then
 			finishBannerSerial += 1
 			finishBanner.Visible = false
 		end
@@ -1402,6 +1446,7 @@ function RaceHudController.start()
 	for _, attributeName in {
 		"RaceSessionId",
 		"RaceState",
+		"RaceFinishPhase",
 		"RaceCountdown",
 		"RaceCurrentLap",
 		"RaceCompletedLaps",

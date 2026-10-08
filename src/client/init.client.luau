@@ -19,6 +19,7 @@ local ShieldEffectsController = require(script:WaitForChild("ShieldEffectsContro
 local TouchDrivingController = require(script:WaitForChild("TouchDrivingController"))
 local DriftChargeController = require(script:WaitForChild("DriftChargeController"))
 local DriverCelebrationController = require(script:WaitForChild("DriverCelebrationController"))
+local FinishCelebrationController = require(script:WaitForChild("FinishCelebrationController"))
 local Workspace = game:GetService("Workspace")
 
 local role = Workspace:GetAttribute("KDMServerRole")
@@ -46,3 +47,4 @@ if role == "RACE" then TacticalLoadoutController.start() end
 SmokeEffectView.new(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),game:GetService("Players").LocalPlayer)
 ShieldEffectsController.start()
 DriverCelebrationController.start()
+FinishCelebrationController.start()

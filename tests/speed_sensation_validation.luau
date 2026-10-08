@@ -53,6 +53,13 @@ for path,hash in fixture.hashes do
    and hotfix.parent=='fc5baa5c8238ff35b9eef226d52f37e915c5579e','explicit approved result-cache hotfix only')
  end
  local expected=if hotfix then hotfix.sha256 else hash
+ local presentation=fixture.approvedPresentationCandidates and fixture.approvedPresentationCandidates[path]
+ if presentation then
+  check((path=='src/client/RaceHudController.luau' or path=='src/client/DriverCelebrationController.luau'
+   or path=='src/client/init.client.luau') and presentation.task=='R7-N2'
+   and presentation.parent=='a7e551fac3031c395f4febf6e4ebfc208f8b4639','exact approved N2 presentation scope')
+  expected=presentation.sha256
+ end
  check(actual==expected or (repair~=nil and actual==repair.sha256),'frozen gameplay/geometry/audio/exhaust '..path)
 end
 print('PASS: '..n..' cosmetic speed profile, priority, cadence, immutable configuration and source freeze checks')

@@ -22,13 +22,15 @@ local function signal()
 end
 local stateChanged=signal()
 local phaseChanged=signal()
-local player={attrs={RaceState="GARAGE",RaceFinishPhase="NONE"},Character=nil,CharacterAdded=signal(),CharacterRemoving=signal()}
+local player={attrs={RaceState="GARAGE",RaceFinishPhase="NONE",RaceFinishPosition=1,RaceParticipantCount=2,RaceSessionId=1},Character=nil,CharacterAdded=signal(),CharacterRemoving=signal()}
 function player:GetAttribute(name) return self.attrs[name] end
 function player:GetAttributeChangedSignal(name) return if name=="RaceState" then stateChanged else phaseChanged end
 local preSimulation=signal()
-local services={Players={LocalPlayer=player},RunService={PreSimulation=preSimulation}}
+local shared={WaitForChild=function(_,name)return name end}
+local services={Players={LocalPlayer=player},RunService={PreSimulation=preSimulation},ReplicatedStorage={WaitForChild=function()return shared end}}
 local controller=luau.load(fs.readFile("src/client/DriverCelebrationController.luau"),{environment={
  game={GetService=function(_,name) return services[name] end},CFrame=rb.CFrame,
+ require=function()return luau.load(fs.readFile('src/shared/KDMFinishPresentation.luau'))()end,
 }})()
 controller.start()
 local function character(rig, shoulderName)

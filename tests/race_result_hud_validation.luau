@@ -88,16 +88,23 @@ local input=object("UserInputService"); input.PreferredInput=rb.Enum.PreferredIn
 local guiService=object("GuiService"); guiService.TopbarInset={Min=rb.Vector2.new(165,0),Max=rb.Vector2.new(780,58),Width=615}
 local otherPlayer=object("Player","AvailableRacer");otherPlayer.UserId=2;otherPlayer.DisplayName="Available Racer"
 otherPlayer:SetAttribute("RaceState","GARAGE")
+local tweens={}
 local services={Players={LocalPlayer=player,GetPlayers=function() return {player,otherPlayer} end,PlayerAdded=signal(),PlayerRemoving=signal()},ReplicatedStorage=replicated,Workspace=workspace,
- RunService={RenderStepped=signal()},TweenService={Create=function() return {Play=function() end} end},
+ RunService={RenderStepped=signal()},TweenService={Create=function(_,target,info,values)
+  local tween={target=target,values=values,cancelled=false}
+  function tween:Play() table.insert(tweens,self) end
+  function tween:Cancel() self.cancelled=true end
+  return tween
+ end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
 for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController"} do child(modulesFolder,"ModuleScript",name) end
-for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat"} do
+for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat","KDMFinishPresentation"} do
  child(shared,"ModuleScript",name)
 end
 local format=luau.load(fs.readFile("src/shared/RaceResultFormat.luau"))()
 local modules={
+ KDMFinishPresentation=luau.load(fs.readFile("src/shared/KDMFinishPresentation.luau"))(),
  KartInputController={isTouchPreferred=function() return input.PreferredInput==rb.Enum.PreferredInput.Touch end,getEffectiveSteering=function() return 0 end},
  TrackMapRenderer={create=function() return {destroy=function() end,setRacerMarker=function() end,
   removeRacerMarker=function() end,clearRacerMarkers=function() end} end},
@@ -584,6 +591,28 @@ otherPlayer:SetAttribute("RaceFinishPosition",2);otherPlayer:SetAttribute("RaceF
 otherPlayer:SetAttribute("RaceState","FINISHED");set("RaceSessionComplete",true)
 check(board.Racer2.TotalTime.Text=="2:25.00" and not board.Racer3.Visible,
  "final two-Human standings remain correct after rival finishes")
+-- N2 checkpoint: a legitimate participating Bot remains live, then final.
+services.Players.GetPlayers=function() return {player} end
+set('RaceState','RACING');set('RaceSessionId',904);set('RaceSessionComplete',false)
+set('RaceParticipantCount',2);set('RaceFinishPosition',0)
+phantom:SetAttribute('RaceSessionId',904);phantom:SetAttribute('RaceState','RACING')
+phantom:SetAttribute('RacePosition',2);phantom:SetAttribute('RaceFinishPosition',0)
+phantom:SetAttribute('RaceFinalTime',0);phantom.Parent=botFolder
+services.RunService.RenderStepped:Fire(.2)
+set('RaceFinishPosition',1);set('RaceFinalTime',130);set('RaceFinishPhase','PRESENT');set('RaceState','FINISHED')
+services.RunService.RenderStepped:Fire(.2)
+check(board.Racer1.TotalTime.Text=='2:10.00' and board.Racer2.RacerName.Text=='KDM Rookie [BOT]'
+ and board.Racer2.TotalTime.Text=='RACING' and results.StandingsStatus.Text=='WAITING FOR RACERS',
+ 'Human first official time with actual participating live Bot retained')
+local liveBotRevealCount=#tweens
+phantom:SetAttribute('RaceFinishPosition',2);phantom:SetAttribute('RaceFinalTime',143)
+phantom:SetAttribute('RaceState','FINISHED');set('RaceSessionComplete',true)
+services.RunService.RenderStepped:Fire(.2)
+check(board.Racer2.TotalTime.Text=='2:23.00' and results.StandingsStatus.Text=='FINAL STANDINGS'
+ and not board.Racer3.Visible,'actual Bot final time updates final two-racer standings')
+check(#tweens==liveBotRevealCount and not hud.FinishBanner.Visible,'Bot finish does not replay result reveal or Finish banner')
+phantom.Parent=nil;services.RunService.RenderStepped:Fire(.2)
+check(board.Racer2.TotalTime.Text=='2:23.00','finished participating Bot survives replication departure')
 botFolder:Destroy()
 -- Production room Bot rows use distinct actions, preserve Human invites and fit short phones.
 set("RaceState","PRE_RACE");set("RaceHostUserId",1);set("RaceParticipantCount",1)
@@ -612,6 +641,31 @@ set("RaceHostUserId",1);set("RaceState","RACING");botSnapshot.state="RACING"
 garageRemote.OnClientEvent:Fire("RoomSnapshot",botSnapshot)
 hud.RacingInviteToggle.Activated:Fire()
 check(not availability.Invite1.Visible,"racing Bot removal disabled")
+-- N2 reuses the real panel: a reveal happens once per terminal state entry.
+local function revealCount()
+ local total=0;for _,t in tweens do if t.target==results.FinishRevealScale then total+=1 end end;return total
+end
+for _,entry in {{1,1,'RACE COMPLETE'},{2,1,'1ST PLACE'},{2,2,'2ND PLACE'},{3,3,'3RD PLACE'},{4,4,'4TH PLACE'}}do
+ set('RaceState','COUNTDOWN');set('RaceFinishPhase','NONE')
+ set('RaceParticipantCount',entry[1]);set('RaceFinishPosition',entry[2])
+ set('RaceState','RACING');set('RaceFinishPhase','ROLL');set('RaceState','FINISHING')
+ check(hud.FinishBanner.Visible and hud.FinishBanner.FinishPlace.Text==entry[3] and not results.Visible,
+  'place-aware crossing banner with hidden Results')
+ local timer=delayed[#delayed];check(timer[1]==1.1,'banner duration fixed at 1.1 seconds')
+ timer[2]();check(not hud.FinishBanner.Visible,'banner ends before hero camera')
+ set('RaceFinishPhase','PRESENT');check(not hud.FinishBanner.Visible,'PRESENT never restarts Finish banner')
+ local before=revealCount();set('RaceState','FINISHED')
+ check(results.Visible and results.FinishRevealScale.Scale==.95 and revealCount()==before+1,'one result entry reveal')
+ set('RaceSessionComplete',false);set('RaceSessionComplete',true);set('RaceRematchReadyCount',2)
+ otherPlayer:SetAttribute('RaceFinalTime',151+entry[2])
+ check(revealCount()==before+1,'rival/standings/ready updates never restart reveal')
+ set('RaceState','PRE_RACE');check(results.FinishRevealScale.Scale==1,'Rematch clears reveal scale')
+ timer[2]();check(not hud.FinishBanner.Visible,'stale finish timer cannot show anything in Rematch')
+end
+set('RaceState','DNF');check(results.Visible and not hud.FinishBanner.Visible,'DNF reveal has no victory banner')
+local dnfReveals=revealCount();set('RaceDNFReason','RACE_TIMEOUT')
+check(revealCount()==dnfReveals,'DNF reason change does not replay reveal')
+set('RaceState','GARAGE');check(not results.Visible and results.FinishRevealScale.Scale==1,'Garage reveal cleanup')
 print("PASS: "..count.." production race result HUD checks")
 
 -- D2 opt-in executes the real HUD, retaining speed source, POS and OFF fallback.
