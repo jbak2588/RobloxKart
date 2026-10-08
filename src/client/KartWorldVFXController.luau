@@ -5,6 +5,7 @@ local RunService=game:GetService("RunService")
 local Workspace=game:GetService("Workspace")
 local Shield=require(script.Parent.ShieldWorldRenderer)
 local Exhaust=require(script.Parent.KartWorldExhaustRenderer)
+local Speed=require(script.Parent.KartWorldSpeedRenderer)
 local Controller={}
 local stop
 function Controller.start()
@@ -17,6 +18,7 @@ function Controller.start()
   if r.source and r.source.Parent then r.source.LocalTransparencyModifier=0 end
   r.source=nil
   if r.exhaust then r.exhaust:destroy();r.exhaust=nil end
+  if r.speed then r.speed:destroy();r.speed=nil end
  end
  local function remove(k)
   local r=records[k];if not r then return end
@@ -52,9 +54,12 @@ function Controller.start()
     and (not owner or owner:GetAttribute("RaceState")=="RACING")
    local chassis=kart.PrimaryPart
    if not chassis then clear(r);continue end
+   if r.chassis~=chassis then clear(r);r.chassis=chassis end
    if not enabled then clear(r);continue end
    if not r.exhaust then r.exhaust=Exhaust.new(kart) end
    if r.exhaust then r.exhaust:update(dt,true) end
+   if not r.speed then r.speed=Speed.new(kart) end
+   if r.speed then r.speed:update(dt,true) end
    local shell=kart:FindFirstChild("RaceItemShield")
    local active=kart:GetAttribute("KartShieldActive")==true and shell~=nil
    if active and not r.shield then r.shield=Shield.new(kart,chassis,human.Parent) end

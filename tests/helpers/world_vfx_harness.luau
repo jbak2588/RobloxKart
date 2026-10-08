@@ -22,7 +22,7 @@ function methods:Emit(n)self.emitted=(self.emitted or 0)+n end
 function methods:Clear()self.cleared=true end
 function methods:GetDescendants()local out={};for _,c in self.children do table.insert(out,c);for _,v in c:GetDescendants() do table.insert(out,v) end end;return out end
 function methods:Destroy()self.Destroying:Fire();for _,c in table.clone(self.children) do c:Destroy() end;self.Parent=nil end
-return function(racers,rounds)
+return function(racers,rounds,exercise)
  local workspace=object("Workspace")
  local prototype=object("Folder");prototype.Name="Prototype";prototype.Parent=workspace
  local players={};for i=1,racers do local p=object("Player");p.UserId=i;p.AncestryChanged=signal();p.OnTeleport=signal();p:SetAttribute("RaceState","RACING");p:SetAttribute("RaceSessionId",1);players[i]=p end
@@ -30,13 +30,16 @@ return function(racers,rounds)
  local now=0
  local services={Workspace=workspace,Players={LocalPlayer=players[1],GetPlayerByUserId=function(_,id)return players[id] end},RunService=run}
  local modules={}
- local parent={ShieldWorldRenderer="shield",KartWorldExhaustRenderer="exhaust",KartWorldVFXController="observer"}
- local env={game={GetService=function(_,name)return services[name] end,ReplicatedStorage={Shared={KDMShieldGeometry="geometry"}}},script={Parent=parent},require=function(k)return assert(modules[k],tostring(k)) end,
- Instance={new=object},Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,ColorSequenceKeypoint=rb.ColorSequenceKeypoint,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,NumberRange=rb.NumberRange,Enum=rb.Enum,time=function()return now end}
+ local parent={ShieldWorldRenderer="shield",KartWorldExhaustRenderer="exhaust",KartWorldSpeedRenderer="speed",KartWorldVFXController="observer"}
+ local allocated=0
+ local env={game={GetService=function(_,name)return services[name] end,ReplicatedStorage={Shared={KDMShieldGeometry="geometry",KDMSpeedSensation="speedProfile"}}},script={Parent=parent},require=function(k)return assert(modules[k],tostring(k)) end,
+ Instance={new=function(class)allocated+=1;return object(class)end},Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,ColorSequenceKeypoint=rb.ColorSequenceKeypoint,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,NumberRange=rb.NumberRange,Enum=rb.Enum,time=function()return now end}
  local function load(path)return luau.load(fs.readFile(path),{environment=env})() end
  modules.geometry=load("src/shared/KDMShieldGeometry.luau")
  modules.shield=load("src/client/ShieldWorldRenderer.luau")
  modules.exhaust=load("src/client/KartWorldExhaustRenderer.luau")
+ modules.speedProfile=load("src/shared/KDMSpeedSensation.luau")
+ modules.speed=load("src/client/KartWorldSpeedRenderer.luau")
  modules.observer=load("src/client/KartWorldVFXController.luau")
  local function kart(id)
   local k=object("Model");k.Name="Kart_"..id;k:SetAttribute("PrototypeKart",true);k:SetAttribute("KartOwnerUserId",id);k.Parent=prototype
@@ -49,7 +52,7 @@ return function(racers,rounds)
   for _,side in {"Left","Right"} do
    local w=object("Part");w.Size=rb.Vector3.new(1,2,2);w.CFrame=rb.CFrame.new(if side=="Left" then -4 else 4,0,3);w:SetAttribute("VisualMotionRole","RearWheel");w:SetAttribute("WheelSide",side);w:SetAttribute("WheelRadius",1);w:SetAttribute("WheelWidth",1);w.Parent=v
    local m=object("Motor6D");m.Name="VisualMotor";m.C0=w.CFrame;m.Parent=w
-   local a=object("Attachment");a:SetAttribute("EffectRole","Exhaust"..side);a.Parent=w
+   local a=object("Attachment");a.CFrame=rb.CFrame.identity;a:SetAttribute("EffectRole","Exhaust"..side);a.Parent=w
   end
   return k
  end
@@ -62,6 +65,8 @@ return function(racers,rounds)
   local n=0;for _,o in k:GetDescendants() do if o:IsA(class) and (not name or o.Name:find(name,1,true)) then n+=1 end end;return n
  end
  tick(.3)
+ if exercise then exercise({karts=karts,players=players,tick=tick,count=count,object=object,run=run,
+  prototype=prototype,allocated=function()return allocated end,modules=modules}) end
  for round=1,rounds do
   for id,k in karts do
    local shell=object("Part");shell.Name="RaceItemShield";shell.Parent=k;k:SetAttribute("KartShieldActive",true)
@@ -87,7 +92,8 @@ return function(racers,rounds)
   tick(.01);tick(.31)
   for _,k in karts do
    check(not k:FindFirstChild("KDMShieldWorld"),"expiry removes Shield model")
-   check(count(k,"Attachment","ShieldRear")==0 and count(k,"Trail")==2,"expiry leaves only existing DriftTireTrail pair")
+   check(count(k,"Attachment","ShieldRear")==0 and count(k,"Trail")==4,"expiry leaves Drift pair plus two disabled persistent speed trails")
+   for _,p in k:GetDescendants() do if p.Name:find("KDMSpeedTrail",1,true) then check(not p.Enabled,"idle speed trails disabled independently of Shield") end end
    for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(not p.Enabled,"expired boosts stop remote emission") end end
   end
  end
@@ -96,7 +102,7 @@ return function(racers,rounds)
  end
  tick(.01)
  for id,k in karts do players[id]:SetAttribute("RaceState","FINISHING") end
- tick(.01);for _,k in karts do check(not k:FindFirstChild("KDMShieldWorld") and count(k,"ParticleEmitter")==0,"finish clears world effects") end
+ tick(.01);for _,k in karts do check(not k:FindFirstChild("KDMShieldWorld") and count(k,"ParticleEmitter")==0 and count(k,"Trail","KDMSpeed")==0 and count(k,"Attachment","KDMSpeed")==0,"finish clears world effects including speed") end
  for id,k in karts do
   players[id]:SetAttribute("RaceState","RACING");players[id]:SetAttribute("RaceSessionId",2);k:SetAttribute("RaceResetSerial",1)
  end
@@ -108,6 +114,6 @@ return function(racers,rounds)
  for _,k in karts do check(count(k,"ParticleEmitter","BoostFlame")==2,"replacement kart rebinds exactly one pair") end
  controller.destroy();controller.destroy()
  check(run.Heartbeat.Count()==0 and prototype.DescendantAdded.Count()==0 and prototype.DescendantRemoving.Count()==0,"destroy disconnects shared observer")
- for _,k in karts do check(count(k,"ParticleEmitter")==0,"destroy leaves zero emitters") end
+ for _,k in karts do check(count(k,"ParticleEmitter")==0 and count(k,"Trail","KDMSpeed")==0 and count(k,"Attachment","KDMSpeed")==0,"destroy leaves zero emitters and speed instances") end
  print("PASS: "..n.." production world-VFX checks ("..racers.." racers, "..rounds.." repeated cycles)")
 end

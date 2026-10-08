@@ -10,6 +10,7 @@ local RaceConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitFo
 local ChaseMotion = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ChaseCameraMotion"))
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local FinishComposition = require(script.Parent:WaitForChild("FinishCameraComposition"))
+local SpeedSensation = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMSpeedSensation"))
 
 local KartCameraController = {}
 
@@ -72,6 +73,9 @@ function KartCameraController.start()
 	local finishTransitionStartCFrame: CFrame? = nil
 	local finishRollCameraElapsed = 0
 	local wasFinishRoll = false
+	local speedFieldOfView = KartConfig.CAMERA_FOV
+	local speedResetSerial = nil
+	local teleporting = false
 
 	local disableChase: () -> ()
 
@@ -94,6 +98,19 @@ function KartCameraController.start()
 
 		lastPlanarForward = getPlanarForward(chassis, lastPlanarForward)
 		local raceState = player:GetAttribute("RaceState")
+		local kart = chassis.Parent
+		local resetSerial = kart:GetAttribute("RaceResetSerial")
+		local justReset = resetSerial ~= speedResetSerial
+		speedResetSerial = resetSerial
+		if raceState ~= "RACING" or justReset then
+			speedFieldOfView = KartConfig.CAMERA_FOV
+		else
+			local tier, intensity = SpeedSensation.resolve(chassis.AssemblyLinearVelocity:Dot(lastPlanarForward),
+				kart:GetAttribute("KartBoosting") == true, kart:GetAttribute("KartNitroActive") == true,
+				kart:GetAttribute("RaceControlsLocked") ~= true, kart:GetAttribute("KartOffTrack") == true)
+			speedFieldOfView = SpeedSensation.stepFov(speedFieldOfView,
+				SpeedSensation.targetFov(KartConfig.CAMERA_FOV, tier, intensity), deltaTime)
+		end
 		local finishPhase = player:GetAttribute("RaceFinishPhase")
 		local roll = raceState == "FINISHING" and finishPhase == "ROLL"
 		if roll then
@@ -173,7 +190,7 @@ function KartCameraController.start()
 		end
 
 		camera.CameraType = Enum.CameraType.Scriptable
-		camera.FieldOfView = KartConfig.CAMERA_FOV
+		camera.FieldOfView = speedFieldOfView
 		camera.CFrame = ChaseMotion.step(camera.CFrame, previousTarget, chassis.Position, desiredCFrame, KartConfig.CAMERA_RESPONSE, deltaTime)
 		previousTarget = chassis.Position
 		camera.Focus = CFrame.new(lookTarget)
@@ -205,6 +222,8 @@ function KartCameraController.start()
 		finishRollCameraElapsed = 0
 		wasFinishRoll = false
 		previousTarget = nil
+		speedFieldOfView = KartConfig.CAMERA_FOV
+		speedResetSerial = nil
 		activeSeat = nil
 		savedFieldOfView = nil
 		print("[RobloxKart] Chase camera disabled")
@@ -232,6 +251,8 @@ function KartCameraController.start()
 		finishTransitionStartCFrame = nil
 		finishRollCameraElapsed = 0
 		wasFinishRoll = false
+		speedFieldOfView = KartConfig.CAMERA_FOV
+		speedResetSerial = chassis.Parent:GetAttribute("RaceResetSerial")
 		savedFieldOfView = camera.FieldOfView
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = KartConfig.CAMERA_FOV
@@ -246,6 +267,7 @@ function KartCameraController.start()
 	end
 
 	local function updateSeat(seatPart: BasePart?)
+		if teleporting then disableChase();return end
 		local chassis = getPrototypeChassis(seatPart)
 		if seatPart and chassis then
 			enableChase(seatPart, chassis)
@@ -293,6 +315,10 @@ function KartCameraController.start()
 	end)
 
 	player.CharacterAdded:Connect(bindCharacter)
+	player.OnTeleport:Connect(function(state)
+		teleporting = state ~= Enum.TeleportState.Failed
+		if teleporting then disableChase() end
+	end)
 	player.CharacterRemoving:Connect(function()
 		disableChase()
 		if seatedConnection then

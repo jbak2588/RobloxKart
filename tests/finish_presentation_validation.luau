@@ -16,6 +16,7 @@ local modules = {KartConfig = {CAMERA_DISTANCE = 18, CAMERA_HEIGHT = 8,
 	CAMERA_LOOK_AHEAD = 12, CAMERA_RESPONSE = 6, CAMERA_FOV = 75},
 	RaceConfig = luau.load(fs.readFile("src/shared/RaceConfig.luau"))(),
 	ChaseCameraMotion = luau.load(fs.readFile("src/shared/ChaseCameraMotion.luau"))()}
+modules.KDMSpeedSensation = luau.load(fs.readFile("src/shared/KDMSpeedSensation.luau"))()
 modules.FinishCameraComposition = luau.load(fs.readFile("src/client/FinishCameraComposition.luau"),
 	{environment = {Vector3 = rb.Vector3}})()
 local touchPreferred = false
@@ -31,6 +32,9 @@ local chassis = {Position = rb.Vector3.zero, CFrame = rb.CFrame.identity,
 	AssemblyLinearVelocity = rb.Vector3.zero, Parent = true}
 function chassis:IsA(name) return name == "BasePart" end
 local kart = {PrimaryPart = chassis, Parent = true}
+kart.attrs = {}
+function kart:GetAttribute(name) return self.attrs[name] end
+chassis.Parent = kart
 function kart:IsA(name) return name == "Model" end
 local seat = {Parent = kart}
 function seat:GetAttribute(name) return name == "PrototypeKartSeat" end
@@ -38,7 +42,7 @@ local humanoid = {SeatPart = seat, Seated = signal()}
 function humanoid:GetPropertyChangedSignal() return signal() end
 local character = {}
 function character:WaitForChild(name) assert(name == "Humanoid"); return humanoid end
-local player = {Character = character, CharacterAdded = signal(), CharacterRemoving = signal(),
+local player = {Character = character, CharacterAdded = signal(), CharacterRemoving = signal(), OnTeleport = signal(),
 	attrs = {RaceState = "RACING", RaceFinishPhase = "NONE"}}
 function player:GetAttribute(name) return self.attrs[name] end
 local safeWidth = 1280
