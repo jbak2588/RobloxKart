@@ -123,6 +123,14 @@
     "src/shared/TrackCatalog.luau": "2a8e4d35d1c98320c8a848616906d794d139b484bcb64b8b173675723a2848ef",
     "src/shared/TrackGeometry.luau": "948529127458727a6b1ad44e33fdcc2cf59a0ca7df64e8c18865e0a2689f75b9"
   },
+  "approvedSourceHotfixes": {
+    "src/client/RaceResultsCache.luau": {
+      "task": "R7-N1B",
+      "parent": "fc5baa5c8238ff35b9eef226d52f37e915c5579e",
+      "reason": "User-approved absent nonterminal result pruning; preserve departed FINISHED/DNF results",
+      "sha256": "79ff1658be97cd09cd268248c72dda7202d12c10a83bbce12b6d6f0784907622"
+    }
+  },
   "unstagedPresentationExceptions": {
     "src/server/CompactHubBuilder.luau": {
       "reason": "2026-10-08 user-authorized missing Hub/grass restoration, PV496; identify thin broad donor floor independently of duplicate Union sibling order",

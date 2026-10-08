@@ -54,6 +54,7 @@ end
 function methods:FindFirstChildOfClass(class)
  for _,child in self._children do if child.ClassName==class then return child end end
 end
+function methods:GetChildren() return table.clone(self._children) end
 function methods:IsA(class) return self.ClassName==class or (class=="BasePart" and self.ClassName=="Part") end
 function methods:WaitForChild(name) return assert(self:FindFirstChild(name),name) end
 function methods:GetAttribute(name) return self._attrs[name] end
@@ -555,6 +556,35 @@ set("RaceEndCountdownRemaining",0)
 check(board.Racer1.RacerName.Text=="Winner","finished departed racer remains cached")
 set("RaceSessionId",902)
 check(not board.Racer2.Visible,"new round drops previous result cache")
+-- Field regression: two actual Humans, with a temporary non-participating Bot
+-- snapshot cached during RACING and removed before the local result appears.
+racers={player,otherPlayer}
+services.Players.GetPlayers=function() return racers end
+otherPlayer:SetAttribute("RaceSessionId",903);otherPlayer:SetAttribute("RaceFinishPosition",0)
+otherPlayer:SetAttribute("RaceFinalTime",0);otherPlayer:SetAttribute("RaceState","RACING")
+set("RaceState","RACING");set("RaceSessionId",903);set("RaceParticipantCount",2)
+set("RaceSessionComplete",false);set("RaceFinishPosition",0)
+local botFolder=child(replicated,"Folder","KDMBotRacers")
+local phantom=child(botFolder,"Folder","Bot01")
+phantom:SetAttribute("IsBot",true);phantom:SetAttribute("BotId","Bot01")
+phantom:SetAttribute("DisplayName","KDM Rookie [BOT]")
+phantom:SetAttribute("RaceSessionId",903);phantom:SetAttribute("RaceState","RACING")
+phantom:SetAttribute("RacePosition",3)
+services.RunService.RenderStepped:Fire(.2)
+phantom.Parent=nil
+set("RaceFinishPosition",1);set("RaceState","FINISHED")
+services.RunService.RenderStepped:Fire(.2)
+check(board.Racer1.RacerName.Text=="Local Racer" and board.Racer2.RacerName.Text=="Winner"
+ and board.Racer2.TotalTime.Text=="RACING","first finisher retains actual live Human rival")
+check(not board.Racer3.Visible and not board.Racer4.Visible,"two-Human result prunes phantom RACING Bot row")
+for _,row in {board.Racer1,board.Racer2,board.Racer3,board.Racer4} do
+ check(not row.Visible or row.RacerName.Text~="KDM Rookie [BOT]","no visible phantom Bot in production mobile standings")
+end
+otherPlayer:SetAttribute("RaceFinishPosition",2);otherPlayer:SetAttribute("RaceFinalTime",145)
+otherPlayer:SetAttribute("RaceState","FINISHED");set("RaceSessionComplete",true)
+check(board.Racer2.TotalTime.Text=="2:25.00" and not board.Racer3.Visible,
+ "final two-Human standings remain correct after rival finishes")
+botFolder:Destroy()
 -- Production room Bot rows use distinct actions, preserve Human invites and fit short phones.
 set("RaceState","PRE_RACE");set("RaceHostUserId",1);set("RaceParticipantCount",1)
 set("RaceItemsRequiredCount",1);set("RaceItemsReadyCount",1)

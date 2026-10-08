@@ -47,6 +47,12 @@ for path,hash in fixture.hashes do
   check(path=='src/server/CompactHubBuilder.luau' and type(repair.reason)=='string','explicit unstaged Hub-only exception')
  end
  local actual=serde.hash('sha256',(fs.readFile(path):gsub('\r\n','\n')))
- check(actual==hash or (repair~=nil and actual==repair.sha256),'frozen gameplay/geometry/audio/exhaust '..path)
+ local hotfix=fixture.approvedSourceHotfixes and fixture.approvedSourceHotfixes[path]
+ if hotfix then
+  check(path=='src/client/RaceResultsCache.luau' and hotfix.task=='R7-N1B'
+   and hotfix.parent=='fc5baa5c8238ff35b9eef226d52f37e915c5579e','explicit approved result-cache hotfix only')
+ end
+ local expected=if hotfix then hotfix.sha256 else hash
+ check(actual==expected or (repair~=nil and actual==repair.sha256),'frozen gameplay/geometry/audio/exhaust '..path)
 end
 print('PASS: '..n..' cosmetic speed profile, priority, cadence, immutable configuration and source freeze checks')

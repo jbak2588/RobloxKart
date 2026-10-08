@@ -10,8 +10,10 @@ function Cache:collect(localPlayer, players, bots)
 	local sessionId = localPlayer:GetAttribute("RaceSessionId")
 	if self.sessionId ~= sessionId then self.sessionId=sessionId; table.clear(self.entries) end
 	if not sessionId or sessionId == 0 then return {} end
+	local liveKeys={}
 	for _,p in players do
 		if p:GetAttribute("RaceSessionId") == sessionId then
+			liveKeys[p.UserId]=true
 			local function number(key) return p:GetAttribute(key) or 0 end
 			self.entries[p.UserId] = {userId=p.UserId,name=p.Name,displayName=p.DisplayName or p.Name,sessionId=sessionId,
 				finishPosition=number("RaceFinishPosition"),racePosition=number("RacePosition"),
@@ -24,6 +26,7 @@ function Cache:collect(localPlayer, players, bots)
 	for _,bot in bots or {} do
 		if bot:GetAttribute("IsBot")==true and bot:GetAttribute("RaceSessionId")==sessionId then
 			local key="bot:"..bot:GetAttribute("BotId")
+			liveKeys[key]=true
 			local function number(name) return bot:GetAttribute(name) or 0 end
 			self.entries[key]={userId=key,isBot=true,sessionId=sessionId,
 				name=bot:GetAttribute("DisplayName"),displayName=bot:GetAttribute("DisplayName"),
@@ -32,6 +35,12 @@ function Cache:collect(localPlayer, players, bots)
 				laps={number("RaceLap1Time"),number("RaceLap2Time"),number("RaceLap3Time")},
 				completedLaps=number("RaceCompletedLaps"),bestLap=number("RaceBestLapTime"),
 				bestLapNumber=number("RaceBestLapNumber"),dnfReason=bot:GetAttribute("RaceDNFReason")}
+		end
+	end
+	-- Keep departed official results, but never retain an absent unfinished racer.
+	for key,row in self.entries do
+		if not liveKeys[key] and row.state~="FINISHED" and row.state~="DNF" then
+			self.entries[key]=nil
 		end
 	end
 	local rows={}
