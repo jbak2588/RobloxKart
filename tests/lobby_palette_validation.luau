@@ -25,7 +25,8 @@ for _,path in {"src/shared/KDMUiTheme.luau","src/shared/TrackCatalog.luau","src/
   local result=process.exec("lune",{"run","tests/practice_figure8_geometry_validation.luau"})
   check(result.ok,"P1 full Base/V2/Hard catalog/world output freeze "..path..result.stderr)
  else
-  check(old.ok and require("./helpers/m1_presentation_freeze")(old.stdout)==require("./helpers/m1_presentation_freeze")(fs.readFile(path)),"byte frozen "..path)
+  local normalizeBot=function(s)return m1(require("./helpers/p2a_bot_controller_freeze")(s))end
+  check(old.ok and normalizeBot(old.stdout)==normalizeBot(fs.readFile(path)),"byte frozen "..path)
  end
 end
 -- Verify the normalizer actually rejects non-color changes and mixed statement edits.

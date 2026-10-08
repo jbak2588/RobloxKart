@@ -8,12 +8,13 @@ local count=0
 local function check(ok,message) assert(ok,message);count+=1 end
 local course=geometry.getCourse(geometry.getDefinition('PracticeCircuitV1'))
 for _,ahead in {10,14,18,22} do
+	local tracker=steering.new(course,60)
 	for index,point in course.Samples do
 		local nextPoint=course.Samples[index % #course.Samples+1]
 		local direction=(nextPoint-point).Unit
 		-- fromMatrix avoids the installed Lune lookAt handedness mismatch.
 		local frame=rb.CFrame.fromMatrix(point,direction:Cross(rb.Vector3.yAxis),rb.Vector3.yAxis,-direction)
-		local command=steering.command(course.Samples,frame,ahead,2)
+		local command=steering.command(tracker,frame,ahead,2)
 		check(command.targetSpeed==70 and command.throttle==1 and not command.driftRequested,'constant target at every curve/sample')
 		check(command.steering>=-1 and command.steering<=1,'bounded steering')
 	end

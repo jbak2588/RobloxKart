@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 local TrackGeometry = require(Shared:WaitForChild("TrackGeometry"))
 local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
+local KartConfig = require(Shared:WaitForChild("KartConfig"))
 local Controller = {}
 local testRecord
 local productionRecord
@@ -56,6 +57,7 @@ local function create(source, options)
 		local track = TrackCatalog.Entries[options.trackId]
 		assert(track and track.Id == "Track01Race", "Bot course unavailable")
 		local course = TrackGeometry.getCourse(TrackGeometry.getDefinition(track.GeometryId))
+		record.steeringState = Steering.new(course, TrackGeometry.getDefinition(track.GeometryId).RoadWidth, KartConfig)
 		record.folder = ReplicatedStorage:FindFirstChild("KDMBotRacers")
 		if not record.folder then
 			record.folder = Instance.new("Folder")
@@ -96,7 +98,13 @@ local function create(source, options)
 		local context = World.createBotKartContext(state, npc, options.spawnCFrame, source, options.roomId)
 		record.context = context
 		context.botControl = function()
-			local command = Steering.command(course.Samples, context.chassis.CFrame)
+			local look = context.chassis.CFrame.LookVector
+			local forward = Vector3.new(look.X, 0, look.Z)
+			local speed = if forward.Magnitude > 0.001 then context.chassis.AssemblyLinearVelocity:Dot(forward.Unit) else 0
+			local command = Steering.command(record.steeringState, context.chassis.CFrame, nil, nil, speed)
+			-- PrototypeWorld polls even while staging/countdown controls are locked.
+			-- Those poses must not seed stale pursuit before the round's grid teleport.
+			if state:GetAttribute("RaceState") ~= "RACING" then Steering.reset(record.steeringState) end
 			state:SetAttribute("BotTargetSpeed", command.targetSpeed)
 			return command
 		end
@@ -175,6 +183,7 @@ end
 function Controller.setProductionSpawn(frame)
 	if not productionRecord then return end
 	productionRecord.context:setSpawnCFrame(frame)
+	Steering.reset(productionRecord.steeringState)
 	productionRecord.context.kart:SetAttribute("RaceStartCFrame", frame)
 	productionRecord.state:SetAttribute("GridSlot", 4)
 end

@@ -733,7 +733,7 @@ function PrototypeWorld.start(options)
 
 
 		-- Server internal NPC input; no remote can choose a bot context.
-		function context:setServerControl(steering: number)
+		function context:setServerControl(steering: number, throttle: number?)
 			local permitted = if self.botSource == "PRODUCTION_ROOM"
 				then RaceConfig.INVITEABLE_BOT_ENABLED and Workspace:GetAttribute("KDMServerRole") == "RACE"
 				else RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot") == true
@@ -742,7 +742,9 @@ function PrototypeWorld.start(options)
 			if not humanoid or seat.Occupant~=humanoid or humanoid.SeatPart~=seat
 				or self.botParticipant:GetAttribute("RaceState")~="RACING" then self.control=nil;return false end
 			if type(steering)~="number" or steering~=steering or math.abs(steering)==math.huge then return false end
-			self.control={throttle=1,steering=math.clamp(steering,-1,1),driftRequested=false,lastUpdate=time()}
+			if throttle == nil then throttle = 1 end
+			if type(throttle)~="number" or throttle~=throttle or math.abs(throttle)==math.huge then return false end
+			self.control={throttle=math.clamp(throttle,0,1),steering=math.clamp(steering,-1,1),driftRequested=false,lastUpdate=time()}
 			kart:SetAttribute("KartVisualSteering",if context.crashActive or context.slick.active then 0 else self.control.steering)
 			return true
 		end
@@ -751,7 +753,10 @@ function PrototypeWorld.start(options)
 			return occupant and Players:GetPlayerFromCharacter(occupant.Parent)
 		end
 		function context:step(deltaTime: number)
-			if context.botControl then context:setServerControl(context.botControl().steering) end
+			if context.botControl then
+				local command = context.botControl()
+				context:setServerControl(command.steering, command.throttle)
+			end
 			-- Snapshot before early exits or collision responses alter motion. This is
 			-- diagnostic-only; input validation and simulation below are unchanged.
 			do

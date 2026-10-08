@@ -152,7 +152,7 @@ workspace:SetAttribute("KDMServerRole","RACE")
 local prototype=parent(object("Folder","Prototype"),workspace);workspace.Prototype=prototype
 local ground=parent(object("BasePart","Baseplate"),workspace);ground.Position=rb.Vector3.zero;ground.Size=rb.Vector3.new(100,2,100)
 local run={Heartbeat=signal()}
-function run:IsStudio() return false end
+function run:IsStudio() return self.studio==true end
 local config=luau.load(fs.readFile("src/shared/RaceConfig.luau"))()
 local catalog=luau.load(fs.readFile("src/shared/TrackCatalog.luau"),{environment={CFrame=rb.CFrame}})()
 local contexts={}
@@ -169,10 +169,10 @@ function session:removeServerBot(state) self.participants[state]=nil end
 local world={}
 local ownershipUnavailable, ownershipWriteRejected = false, false
 function world.createBotKartContext(state,npc,frame,source,roomId)
-	check(source=="PRODUCTION_ROOM" and roomId=="production","production creation source and room")
+	check(source=="PRODUCTION_ROOM" and roomId=="production" or source=="STUDIO_TEST" and roomId==nil,"explicit creation source and room")
 	local kart=parent(object("Model","KDM_Rookie_Bot"),prototype)
 	local seat=object("Seat")
-	local chassis={CFrame=frame,auto=false,writes=0}
+	local chassis={CFrame=frame,AssemblyLinearVelocity=rb.Vector3.zero,auto=false,writes=0}
 	chassis.AssemblyRootPart=chassis;seat.AssemblyRootPart=chassis
 	function chassis:CanSetNetworkOwnership() return not ownershipUnavailable, "test anchored assembly" end
 	function chassis:GetNetworkOwner() return self.owner end
@@ -196,13 +196,14 @@ end
 function world.getKartContext(state) return contexts[state] end
 local Social=luau.load(fs.readFile("src/server/RoomSocialDirectory.luau"),{environment=titleModules.environment(enum)})()
 local modules={ActiveMatchDirectory=Directory,RoomSocialDirectory=Social,PrototypeWorld=world,
+	KartConfig=require("./helpers/gameplay_config")("src/shared/KartConfig.luau"),
 	RaceSession={active=function() return session end},RaceConfig=config,TrackCatalog=catalog,
 	RaceController={isRosterLocked=function() return session.locked==true end},
 	RaceBotSteering=luau.load(fs.readFile("src/server/RaceBotSteering.luau"),{environment={Vector3=rb.Vector3}})(),
 	TrackGeometry=luau.load(fs.readFile("src/shared/TrackGeometry.luau"),{environment={Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame}})()}
 local services={Players=players,Workspace=workspace,ReplicatedStorage=replicated,RunService=run,
 	MemoryStoreService={GetSortedMap=function(_,name) return if name==Directory.MAP_NAME then roomMap else presenceMap end,GetHashMap=function() return inviteMap end}}
-local environment={Instance={new=object},CFrame=rb.CFrame,Color3=rb.Color3,Enum=enum,time=function() return clock end,
+local environment={Vector3=rb.Vector3,Instance={new=object},CFrame=rb.CFrame,Color3=rb.Color3,Enum=enum,time=function() return clock end,
 	game={JobId="race-job",PrivateServerId="private-room",GetService=function(_,name) return assert(services[name],name) end},
 	script={Parent={WaitForChild=function(_,name) return {Name=name} end}},
 	require=function(module) return assert(modules[module.Name],module.Name) end,
@@ -234,6 +235,8 @@ remote.OnServerEvent:Fire(human,"RemoveBot","Bot01")
 check(remote.messages[#remote.messages].data.accepted==false and Bot.hasProductionBot("Bot01"),"rapid actions are throttled without changing occupancy")
 check(session:count()==2 and directory:get("production").currentRacers==2,"local and authoritative count=2")
 local bot=Bot.getProductionBot("Bot01")
+local firstSteeringState=bot.steeringState
+check(firstSteeringState and firstSteeringState.previous==nil and firstSteeringState.position==nil,"one fresh tracker at creation")
 check(bot.context.chassis.owner==nil and not bot.context.chassis.auto,"joined NPC assembly is manual server-owned")
 check(bot.context.chassis.writes==1,"initial seating finalization avoids duplicate writes")
 bot.context.seat:Sit(bot.humanoid)
@@ -243,7 +246,35 @@ check(bot.context.chassis.writes==2,"unchanged Occupant notification does not ha
 local oldSeat=bot.context.seat
 check(bot.state:GetAttribute("DisplayName")=="KDM Rookie [BOT]" and bot.state:GetAttribute("GridSlot")==4,"distinct NPC + final grid slot")
 check(bot.context.chassis.CFrame==rb.CFrame.new(0,2.75,0)*catalog.Entries.Track01Race.GridSlots[4],"actual grid + production groundTop")
+bot.state:SetAttribute("RaceState","RACING")
 check(bot.context.botControl().targetSpeed==70 and not bot.context.botControl().driftRequested,"same fixed input-only steering")
+local firstFraction=firstSteeringState.previous
+for _=1,20 do bot.context.botControl() end
+check(bot.steeringState==firstSteeringState and firstSteeringState.previous==firstFraction,"control commands reuse one tracker")
+local originalFrame=bot.context.chassis.CFrame
+for _=1,2 do
+	firstSteeringState.cornerCoastActive=true
+	Bot.setProductionSpawn(originalFrame)
+	check(bot.steeringState==firstSteeringState and firstSteeringState.previous==nil and firstSteeringState.position==nil,"next-round spawn resets existing tracker")
+	check(not firstSteeringState.cornerCoastActive,"spawn resets corner coast hysteresis")
+	check(bot.context.spawnCFrame==originalFrame and bot.npc.Parent==prototype,"reset preserves NPC and assigned spawn")
+	bot.context.botControl()
+	check(firstSteeringState.previous~=nil,"fresh acquisition after round reset")
+end
+local baseCourse=firstSteeringState.course
+local finishPose=modules.TrackGeometry.getSampleAtFraction(baseCourse.Samples,.75)
+bot.context.chassis.CFrame=rb.CFrame.new(finishPose)
+modules.RaceBotSteering.reset(firstSteeringState);bot.context.botControl()
+check(firstSteeringState.previous~=nil,"old round established finish-area pursuit")
+Bot.setProductionSpawn(originalFrame)
+for _,phase in {"FINISHED","WAITING","COUNTDOWN"}do
+	bot.state:SetAttribute("RaceState",phase);bot.context.botControl()
+	check(firstSteeringState.previous==nil and firstSteeringState.position==nil,"locked-phase poll cannot reacquire stale finish pose "..phase)
+end
+bot.context.chassis.CFrame=originalFrame;bot.state:SetAttribute("RaceState","RACING")
+local firstRoundCommand=bot.context.botControl()
+check(not firstRoundCommand.heldPrevious and firstSteeringState.previous~=nil,"first RACING frame freshly acquires teleported grid")
+bot.state:SetAttribute("RaceState","WAITING")
 check(bot.state:GetAttribute("RaceItemsReady")==true,"Bot auto-ready")
 local snapshot
 for index=#remote.messages,1,-1 do
@@ -261,6 +292,7 @@ check(session:count()==1 and not replicated:FindFirstChild("KDMBotRacers") and n
 check(oldSeat.signals.Occupant.count()==0,"removed Bot ownership listener disconnected")
 check(not action(human,"RemoveBot"),"Remove twice remains clean")
 check(action(human,"AddBot"),"Add Remove Add succeeds")
+check(Bot.getProductionBot("Bot01").steeringState~=firstSteeringState and Bot.getProductionBot("Bot01").steeringState.previous==nil,"remove/re-add never inherits tracker")
 check(#replicated.KDMBotRacers:GetChildren()==1,"one replicated entry")
 check(run.Heartbeat.count()==1,"one bot connection")
 action(human,"RemoveBot")
@@ -297,4 +329,38 @@ check(rows[1].botAction==nil and rows[1].status=="ACTIVE","non-host inactive Bot
 rows=Rows.collect({activeBots={descriptor}},true,false)
 check(rows[1].botAction==nil,"racing Bot cannot Remove")
 check(Rows.layout(1,2,false).panelHeight==108,"racing panel geometry unchanged")
+-- The shared creation factory must provide fresh state after a harness restart.
+local fixtureKart=parent(object("Model","Kart"),prototype)
+fixtureKart:SetAttribute("RaceStartCFrame",rb.CFrame.new(0,3,0))
+run.studio=true;workspace:SetAttribute("KDMEnableRaceBot",true)
+local harnessStates={}
+local originalNew=modules.RaceBotSteering.new
+modules.RaceBotSteering.new=function(...)
+	local state=originalNew(...);table.insert(harnessStates,state);return state
+end
+for iteration=1,2 do
+	check(Bot.startTestHarness(),"controlled Studio harness start")
+	local identity=replicated.KDMBotRacers:FindFirstChild("Bot01")
+	local tracker=harnessStates[iteration]
+	check(tracker.previous==nil,"harness starts fresh")
+	identity:SetAttribute("RaceState","RACING")
+	contexts[identity].botControl();check(tracker.previous~=nil,"harness tracker acquires")
+	Bot.stop()
+	check(not replicated:FindFirstChild("KDMBotRacers") and run.Heartbeat.count()==0,"harness stop fully releases connections and identity")
+end
+check(harnessStates[1]~=harnessStates[2],"harness restart cannot leak route state")
+modules.RaceBotSteering.new=originalNew
+workspace:SetAttribute("KDMEnableRaceBot",false);run.studio=false;fixtureKart:Destroy()
+local normalizeFreeze=require("./helpers/p2a_bot_controller_freeze")
+local process=require("@lune/process")
+local checkpoint=process.exec("git",{"show","c815d2fd0ef174e20631a9f034f43c3d7f75c9cc:src/server/RaceBotController.luau"})
+local source=fs.readFile("src/server/RaceBotController.luau")
+check(checkpoint.ok and normalizeFreeze(source)==checkpoint.stdout:gsub("\r\n","\n"),"only exact approved integration edits excluded from historical freeze")
+for _,pair in {{'track.Id == "Track01Race"','track.Id == "Track01"'},
+ {'root:SetNetworkOwner(nil)','root:SetNetworkOwner(player)'},
+ {'state:SetAttribute("SelectedKartId", "Kart01")','state:SetAttribute("SelectedKartId", "Kart02")'},
+ {'Steering.reset(productionRecord.steeringState)','Steering.reset(wrongState)'}}do
+	local start=assert(source:find(pair[1],1,true));local mutated=source:sub(1,start-1)..pair[2]..source:sub(start+#pair[1])
+	check(normalizeFreeze(mutated)~=normalizeFreeze(source),"historical freeze detects unauthorized edit "..pair[1])
+end
 print("PASS: "..checks.." production Bot room authority, security, reusable NPC and lifecycle checks")

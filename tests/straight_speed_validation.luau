@@ -91,6 +91,18 @@ for _,path in {"src/shared/TrackGeometry.luau","src/shared/TrackCatalog.luau","s
   -- including catalog, flags, attributes, environment and collisions.
   local result=require("@lune/process").exec("lune",{"run","tests/practice_figure8_geometry_validation.luau"})
   check(result.ok,"P1 scoped production freeze "..path.." "..result.stderr)
+ elseif path=="src/server/RaceBotSteering.luau" then
+  -- P2A intentionally replaces projection. Freeze speed/pursuit configuration
+  -- and execute real Base commands; historical target parity is additionally
+  -- checked in bot_route_continuity_validation against the P1C checkpoint.
+  check(baseline.ok,"historical Bot steering available")
+  local env={Vector3=rb.Vector3}
+  local before=luau.load(baseline.stdout,{environment=env})()
+  local after=luau.load(fs.readFile(path),{environment=env})()
+  for _,key in {"TARGET_SPEED","LOOK_AHEAD","GAIN"}do
+   check(before[key]==after[key],"frozen Bot pursuit value "..key)
+  end
+  require("./race_bot_validation")
  else
   check(baseline.ok and normalize(require("./helpers/m1_presentation_freeze")(baseline.stdout))==normalize(require("./helpers/m1_presentation_freeze")(fs.readFile(path))),"K1 frozen non-palette contract "..path)
  end
