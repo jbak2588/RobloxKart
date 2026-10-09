@@ -3,6 +3,7 @@
 local fs,serde=require('@lune/fs'),require('@lune/serde')
 local fixture=serde.decode('json',fs.readFile('tests/fixtures/n2_hud_presentation_changes.json'))
 return function(source)
+ source=require('./l2_presentation_freeze')(source,'src/client/RaceHudController.luau')
  source=source:gsub('\r\n','\n')
  for _,change in fixture.changes do
   if change.after~='' then

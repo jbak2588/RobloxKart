@@ -1179,7 +1179,7 @@ function RaceHudController.start()
 		end
 		local routeError = player:GetAttribute("RaceEntryError")
 		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
-			and type(routeError) == "string" and routeError ~= "" then "HUB UNAVAILABLE\nRETRY" else "GARAGE"
+			and type(routeError) == "string" and routeError ~= "" then "KDM LOBBY UNAVAILABLE\nRETRY" else "GARAGE"
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
 		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"
@@ -1286,7 +1286,7 @@ function RaceHudController.start()
 			availableHasBot = lobbyWaiting and entries ~= nil and entries[1] ~= nil and entries[1].botId ~= nil
 			availabilityHeading.AutoLocalize=not (roomSnapshot and lobbyWaiting)
 			availabilityHeading.TextTruncate=Enum.TextTruncate.AtEnd
-			availabilityHeading.Text = if roomSnapshot and lobbyWaiting then roomSnapshot.lobbyTitle or "RACE LOBBY"
+			availabilityHeading.Text = if roomSnapshot and lobbyWaiting then roomSnapshot.lobbyTitle or "RACE"
 				elseif roomSnapshot then string.format("WAITING NEXT  %d", roomSnapshot.queuedCount)
 				elseif isHost then "WAITING FOR RACERS" else "WAITING FOR HOST"
 			local botRowCount = if entries and entries[1] and entries[1].botId then 1 else 0

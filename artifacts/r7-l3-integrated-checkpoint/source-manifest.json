@@ -1,0 +1,1285 @@
+{
+  "source": "artifacts/r7-l3-a1-final-gate-v2/source-manifest.json",
+  "files": [
+    {
+      "file": "src/client/AudioRuntime.luau",
+      "rawSha256": "5324db2a401d586a4f19a013db15d70203f05938c56c420b0ba8f15a9e17dbd7",
+      "lfSha256": "5324db2a401d586a4f19a013db15d70203f05938c56c420b0ba8f15a9e17dbd7"
+    },
+    {
+      "file": "src/client/CombatFeedbackView.luau",
+      "rawSha256": "000008146d28d008707a00f52ee6b23e679de8a86113fdae5b7ba504168bf111",
+      "lfSha256": "000008146d28d008707a00f52ee6b23e679de8a86113fdae5b7ba504168bf111"
+    },
+    {
+      "file": "src/client/DriftChargeController.luau",
+      "rawSha256": "2791ebac7d02e615116d7f7c0ee373b8bfbebe82188682ffa598d7ac0ebd70c4",
+      "lfSha256": "e6af913096373fccb948be47ba70cc7c76591deeb492b5b0081a1f66d2b85d08"
+    },
+    {
+      "file": "src/client/DriftChargeView.luau",
+      "rawSha256": "433ec1f3d6b0510f57c656a35eb53d816fc7d77bfd6e0b5523be350f1ca40fd5",
+      "lfSha256": "253e718143ce4b716628379b59cb717a67d889953ce71501f355a8477425f440"
+    },
+    {
+      "file": "src/client/DriverCelebrationController.luau",
+      "rawSha256": "7486464124b6afb0d502d3d44b4164e6070b4d79b05b8684e7c2df4a64fcaa35",
+      "lfSha256": "7486464124b6afb0d502d3d44b4164e6070b4d79b05b8684e7c2df4a64fcaa35"
+    },
+    {
+      "file": "src/client/EngineLoopDiagnostic.luau",
+      "rawSha256": "aaab9fa214a89d952f68217bd9ef315a790ac4d8f029652ba700890e0f8a7fe5",
+      "lfSha256": "aaab9fa214a89d952f68217bd9ef315a790ac4d8f029652ba700890e0f8a7fe5"
+    },
+    {
+      "file": "src/client/FinishCameraComposition.luau",
+      "rawSha256": "28f620e7f47573bbd781cb7b6dd777f3539a502342c90f92322b3c97f00c7c72",
+      "lfSha256": "28f620e7f47573bbd781cb7b6dd777f3539a502342c90f92322b3c97f00c7c72"
+    },
+    {
+      "file": "src/client/FinishCelebrationController.luau",
+      "rawSha256": "707816704e2790ee9e8a7cefda12318a56d4e390a2817a0621f3b96f79084fdb",
+      "lfSha256": "707816704e2790ee9e8a7cefda12318a56d4e390a2817a0621f3b96f79084fdb"
+    },
+    {
+      "file": "src/client/GaragePresence.luau",
+      "rawSha256": "fc2cc2c67e943cd18f4e8b38b4ad7d310a2ab9293d1264072c41c8ab9b8b45e7",
+      "lfSha256": "fc2cc2c67e943cd18f4e8b38b4ad7d310a2ab9293d1264072c41c8ab9b8b45e7"
+    },
+    {
+      "file": "src/client/GarageTexturePreload.luau",
+      "rawSha256": "fca61aeeece21a107c457b86c849b27de80acff1ef3bd693cc8176d79ef3fcbc",
+      "lfSha256": "fca61aeeece21a107c457b86c849b27de80acff1ef3bd693cc8176d79ef3fcbc"
+    },
+    {
+      "file": "src/client/GarageUiController.luau",
+      "rawSha256": "1252b5bbf7936b0f32cea3ba8da602fcc765dbbda3bbbceb9ddfe79e6f176588",
+      "lfSha256": "1252b5bbf7936b0f32cea3ba8da602fcc765dbbda3bbbceb9ddfe79e6f176588"
+    },
+    {
+      "file": "src/client/HubArrivalCameraController.luau",
+      "rawSha256": "1c547006786ce4a2eeb0a836516a6c15132427572f434b38948481ce9b92f70f",
+      "lfSha256": "1c547006786ce4a2eeb0a836516a6c15132427572f434b38948481ce9b92f70f"
+    },
+    {
+      "file": "src/client/HubGuidanceState.luau",
+      "rawSha256": "4f295ba1597cbe193745e2ec4e032d7bdaf68e1afd2bff861b3c7f310c1ba77b",
+      "lfSha256": "59378b8c3faf88c49ce193834fcfc651a58c352eb0985446fb7f417f79fa10fa"
+    },
+    {
+      "file": "src/client/HubGuidanceView.luau",
+      "rawSha256": "55a83961537480713c184c5be81d9b110691de3be1df4db5ea17da15db137749",
+      "lfSha256": "55a83961537480713c184c5be81d9b110691de3be1df4db5ea17da15db137749"
+    },
+    {
+      "file": "src/client/HubUiController.luau",
+      "rawSha256": "a90249988f177fabc2ec89224072f272f1a53f61ef0e10d4a907ef06735ad2be",
+      "lfSha256": "78e04fd066cd2e4e22fce62725517ac34bd57d41b924e7b57cbc81c710209ade"
+    },
+    {
+      "file": "src/client/HubWorldGuidanceView.luau",
+      "rawSha256": "5ab5fed78266a2800ef73bf54d480c022caa0f1d94efa08409a1ae1aeab62fad",
+      "lfSha256": "5ab5fed78266a2800ef73bf54d480c022caa0f1d94efa08409a1ae1aeab62fad"
+    },
+    {
+      "file": "src/client/init.client.luau",
+      "rawSha256": "99e0961a8650de8580db1c7ea7be69aecb2effa66d5a8ebb2374d16329005e1b",
+      "lfSha256": "99e0961a8650de8580db1c7ea7be69aecb2effa66d5a8ebb2374d16329005e1b"
+    },
+    {
+      "file": "src/client/KartAudioController.luau",
+      "rawSha256": "a81990bcabe2bfe0b6cf15fe1bcbd415432f8b8b5537ff5024c5ee724f548e6b",
+      "lfSha256": "77d1182382f3ef5a10469b288e905e31270cd62cf6352524b7b25c9b918c29ca"
+    },
+    {
+      "file": "src/client/KartCameraController.luau",
+      "rawSha256": "ccd5c8831c1ceeea6ae0ec2f5f4862e2337d7ac9dd611cb34974752c801a05c4",
+      "lfSha256": "ccd5c8831c1ceeea6ae0ec2f5f4862e2337d7ac9dd611cb34974752c801a05c4"
+    },
+    {
+      "file": "src/client/KartEffectsController.luau",
+      "rawSha256": "e0f11988923d96ee11d20faa69b1e8ecd4bb9d6664fba9e856b4cae0cc48dd89",
+      "lfSha256": "27dfd51b71dc5e9af2204ebc488954d7ae2f08c0d4dd1cd696458db13389947d"
+    },
+    {
+      "file": "src/client/KartInputController.luau",
+      "rawSha256": "ddbf6531dc1ce5b0abe79125e44fa0770932153550f36c9d529a4d0ce16ae83e",
+      "lfSha256": "62ba26b81f7e4445fdfbe2671332c3e698f1f7882c0b7411cf55e0bbe9d0f897"
+    },
+    {
+      "file": "src/client/KartVisualMotionController.luau",
+      "rawSha256": "c923ea8f49fab823bcab482251f7e3c5c1918da1422763e54dbee2e9563b1090",
+      "lfSha256": "c923ea8f49fab823bcab482251f7e3c5c1918da1422763e54dbee2e9563b1090"
+    },
+    {
+      "file": "src/client/KartWorldExhaustRenderer.luau",
+      "rawSha256": "4b999b6eab0700d9781a49e71a4f6465ac7c9cfff79cc367d8d9fe0a6eb61b47",
+      "lfSha256": "ade4c95054dc559a53a8c2527ec69254c14cd1a5952b042b04cee86df739ac8b"
+    },
+    {
+      "file": "src/client/KartWorldSpeedRenderer.luau",
+      "rawSha256": "18739a2e978708c6817c71af063d4f6a86dc243fcad42c4ca2dcd8aa0c03c843",
+      "lfSha256": "18739a2e978708c6817c71af063d4f6a86dc243fcad42c4ca2dcd8aa0c03c843"
+    },
+    {
+      "file": "src/client/KartWorldVFXController.luau",
+      "rawSha256": "f9999ae0a0b62a07b35dcaf573645f5024eb1d5b7214f88b6b853c14027166ab",
+      "lfSha256": "ae6609f8ee47635287adc941d96af6cb72fbb9efd0be1865422b6c71bb4d7a39"
+    },
+    {
+      "file": "src/client/KDMControlIconView.luau",
+      "rawSha256": "44573c4be1dc455ce5aaadbd7923ed2d2f343dfe98abc17fd714f7f88070c587",
+      "lfSha256": "a003f93608b6eb2c81496fec99c95f9a6eb034943e80dacab5a568cfefba763e"
+    },
+    {
+      "file": "src/client/KDMDriverGripController.luau",
+      "rawSha256": "11b042867f6e58c67940319075631a0f35a23a52d30a2196c83e2b531bd0430e",
+      "lfSha256": "11b042867f6e58c67940319075631a0f35a23a52d30a2196c83e2b531bd0430e"
+    },
+    {
+      "file": "src/client/KDMIconCatalog.luau",
+      "rawSha256": "07f90ed1acaf192edd9ee60811d7480e52cf1609508153c46c18090213b2a3dc",
+      "lfSha256": "e402d46003755b55a6db911443e794cc33230a82005674c3eddffcf769484dcf"
+    },
+    {
+      "file": "src/client/KDMImpactCameraController.luau",
+      "rawSha256": "c80765594912b0fca5408cb019b2dec8e1f7ff5b571dd1d4fdba0012840e5616",
+      "lfSha256": "c80765594912b0fca5408cb019b2dec8e1f7ff5b571dd1d4fdba0012840e5616"
+    },
+    {
+      "file": "src/client/KDMItemIconView.luau",
+      "rawSha256": "afa42861ec8bddce81a0abfd42a7400021ba2d22d465f0da0f21a1d09048cb3b",
+      "lfSha256": "4e285c151179fd53d15c45d45f92214645c57ed8837bc43f6e5095ab7fb9a68a"
+    },
+    {
+      "file": "src/client/KDMItemVFXController.luau",
+      "rawSha256": "bb8a94de4ccc4f3dff37d7f724018885db6d1bd6ef05a3e8430ee270614d77ee",
+      "lfSha256": "bb8a94de4ccc4f3dff37d7f724018885db6d1bd6ef05a3e8430ee270614d77ee"
+    },
+    {
+      "file": "src/client/LobbyCreateView.luau",
+      "rawSha256": "6d931a73c9e0eef516951168a2576c50c6f963dc1aed12ab0c3fbe864121e16c",
+      "lfSha256": "4e3aa50cc18214fc708a6535e47d767151764f7ea768d595605c48dc31ecf089"
+    },
+    {
+      "file": "src/client/LobbyDriftFeedback.luau",
+      "rawSha256": "f1cf370142a6d02618361b900420730f202652a51bcc0bc816bef9528f4d3e99",
+      "lfSha256": "f1cf370142a6d02618361b900420730f202652a51bcc0bc816bef9528f4d3e99"
+    },
+    {
+      "file": "src/client/LobbyDriveLayout.luau",
+      "rawSha256": "8a352b7b0e07446a2a727f0283d261d452868e3272307a115f9a5ed7e02d0725",
+      "lfSha256": "8a352b7b0e07446a2a727f0283d261d452868e3272307a115f9a5ed7e02d0725"
+    },
+    {
+      "file": "src/client/LobbyTestDriveController.luau",
+      "rawSha256": "7460b4580ef7015614a484538a45caad2fe2f380239945b3e58e115b85b71d79",
+      "lfSha256": "2a13e24d3de26d9d5c86eb57c8470137fd03de60176e981ebf59aa4eb600510c"
+    },
+    {
+      "file": "src/client/MatchRoomUiController.luau",
+      "rawSha256": "9dc6336a5dc433060ac2b374fdb7d5c19a8bd25148dc6669da47e336d66a0d38",
+      "lfSha256": "c25f21eea7b72f5ce6f93b738103eb48cbf52064ef3f76e357d54cbfbab2ea76"
+    },
+    {
+      "file": "src/client/MobileControlView.luau",
+      "rawSha256": "6d5fc1490cbeed93927fd3cbe0f75ce0a6761318f61e8681cd5ca14f66d49d08",
+      "lfSha256": "51bf69b6cf9c0246b661357a8689b2f9ae1ec0b2b51fbbc666ac452d57275d06"
+    },
+    {
+      "file": "src/client/MobileTutorialView.luau",
+      "rawSha256": "d15c55a7213a859cdff8d4fc5ac4c863225e191b578894fa219fdb2fb7bf4257",
+      "lfSha256": "bc33c8176e45b6a70a0a60430ab5fbd07cc221b96e28f506024c03269b18a180"
+    },
+    {
+      "file": "src/client/RaceAudioController.luau",
+      "rawSha256": "b3d1bae7cc65f7e444d5c6287e00faaa2c7bd05c440eedd6823fc3b1b4077b45",
+      "lfSha256": "de53094f7fee1dff852e1c6bfbe102f37ff444ef0e8c6ac4c65a94b5b2101b3e"
+    },
+    {
+      "file": "src/client/RaceHudController.luau",
+      "rawSha256": "bf8dd5dc3aa654f59cbacf5c45edc7bb10b66fc9f3305a24c8078095bbb5ee07",
+      "lfSha256": "210122373c451b76b0bc9a0f8cfc68e2b3309fba10f8756079db7fe34602cb11"
+    },
+    {
+      "file": "src/client/RaceItemUiController.luau",
+      "rawSha256": "0b77deb75095b68de3a8345cd1e663dc66984e6b41c940d9e64467341476387c",
+      "lfSha256": "0b77deb75095b68de3a8345cd1e663dc66984e6b41c940d9e64467341476387c"
+    },
+    {
+      "file": "src/client/RaceMinimapRivals.luau",
+      "rawSha256": "014ef32e87bf693eb32a0b613ad5897c77400d3dd0a650365ac1f1827aca1e2c",
+      "lfSha256": "abab39656cb0d2afb8539b42ce86c883aadfe016dbcabc188bfe033bbf7611d3"
+    },
+    {
+      "file": "src/client/RaceResultsCache.luau",
+      "rawSha256": "3ad2afacf4e387d27a29228d08e7e3495586db55358a117c48084ba6c77b7877",
+      "lfSha256": "79ff1658be97cd09cd268248c72dda7202d12c10a83bbce12b6d6f0784907622"
+    },
+    {
+      "file": "src/client/RaceRoomRacerRows.luau",
+      "rawSha256": "f65404cc20e42292d24f0b2ae239b109366fd73434199507b171b910a7e9e689",
+      "lfSha256": "f65404cc20e42292d24f0b2ae239b109366fd73434199507b171b910a7e9e689"
+    },
+    {
+      "file": "src/client/RoomDisplay.luau",
+      "rawSha256": "7827b9ede1bf4708bed20286f9c5258b749399786cd57ec68bff75afa3b8bafa",
+      "lfSha256": "7827b9ede1bf4708bed20286f9c5258b749399786cd57ec68bff75afa3b8bafa"
+    },
+    {
+      "file": "src/client/ShieldEffectsController.luau",
+      "rawSha256": "4b0e5efea853bd5482fb2cae38e2a7065593bec2e17e96b21ac38da5f7d9fbf5",
+      "lfSha256": "3a5efead4c2524a096c852eb63f238d72dcf8a5f3912d15c4ada4bad4e8f3610"
+    },
+    {
+      "file": "src/client/ShieldWorldRenderer.luau",
+      "rawSha256": "ef2aa6642aa8316b15953889ff8d9f6ccbecb820c6e5c6de25ca6b5e27ad6927",
+      "lfSha256": "b8a21afc99aecfc5bc622f621100039c417f3fe4f5289bf11aab7b0755ecac39"
+    },
+    {
+      "file": "src/client/SlickRearPreview.luau",
+      "rawSha256": "e6a2d24d3eddce3c683b0d63ae6454f1b2ccdcaff0133a961f6cbfda90a25a5e",
+      "lfSha256": "3033a6d0b12dfc1534a7634f4b67102bdece6a5e86b0c4d365c8afba5186e5b4"
+    },
+    {
+      "file": "src/client/SmokeEffectView.luau",
+      "rawSha256": "0b95041e59d0b80207138959533cb0db9a683c662d235558eb30dc353018af98",
+      "lfSha256": "0b95041e59d0b80207138959533cb0db9a683c662d235558eb30dc353018af98"
+    },
+    {
+      "file": "src/client/TacticalLoadoutController.luau",
+      "rawSha256": "e6382c22bbf5716fcdaf0e6760045d4b5f724578062d64730df7ec600adaa2e0",
+      "lfSha256": "e6382c22bbf5716fcdaf0e6760045d4b5f724578062d64730df7ec600adaa2e0"
+    },
+    {
+      "file": "src/client/TouchDrivingController.luau",
+      "rawSha256": "c0419e885cf79022cc45557d4840e4d5faff2dff1470d4aaa36ac1cbec533218",
+      "lfSha256": "305f5d2e8ea99ea07e91ab3aeb4d7662921651452b17744e120940eb37523ebf"
+    },
+    {
+      "file": "src/client/TouchDrivingModel.luau",
+      "rawSha256": "650e69fe3ce73fb60deb96d10832d85970d0aac6d0fc1e3fff351c14dab7be62",
+      "lfSha256": "49bc229ac190ca814bfc2bdf0be304397184c6e940d1956b511336c1649a4f7a"
+    },
+    {
+      "file": "src/client/TrackDioramaController.luau",
+      "rawSha256": "3c174eabb3d3cc09c66927ca0429dda68263edce82fe1e702d8e3698318ce94e",
+      "lfSha256": "3c174eabb3d3cc09c66927ca0429dda68263edce82fe1e702d8e3698318ce94e"
+    },
+    {
+      "file": "src/client/TrackDioramaOrbit.luau",
+      "rawSha256": "ba4fe9f3a8945c4fa5aa8844b7839a89712a459ed4c2ba26353c0da56e454b7c",
+      "lfSha256": "ba4fe9f3a8945c4fa5aa8844b7839a89712a459ed4c2ba26353c0da56e454b7c"
+    },
+    {
+      "file": "src/client/TrackMapRenderer.luau",
+      "rawSha256": "bf8e8fb03af8e4ce0e28b1ccc59d35fd2adea9a165db691f0d101481ef3d4036",
+      "lfSha256": "c84bf921687031134606e7e23b131588d2e76465c6bf657fb3edd223715562a1"
+    },
+    {
+      "file": "src/client/TrackPreviewBuilder.luau",
+      "rawSha256": "e1833d020940a594f5b30fef9eaa2326dfdb37a0914a0c90d06961dcf2aae5b8",
+      "lfSha256": "e1833d020940a594f5b30fef9eaa2326dfdb37a0914a0c90d06961dcf2aae5b8"
+    },
+    {
+      "file": "src/client/V2DonorGauge.luau",
+      "rawSha256": "03466b785b5da7050977990157e84605bd0f35012f4db466dfe09a42f2cde9d2",
+      "lfSha256": "c00b7e82967a5d3370ae918366cc8f6cd39e0bde4e2c46d63729cae4d3c71a44"
+    },
+    {
+      "file": "src/client/V2DonorGaugeTemplate.rbxmx",
+      "rawSha256": "639fc11083f2405f0210235e3a9a56d1b8df8910ce9d01ef2e40b6173585b619",
+      "lfSha256": "d6678a8030c2a40e4613bb0c4ca6029e5a6df5e6a42209aac5f6eef6c7b7afbd"
+    },
+    {
+      "file": "src/client/V2GaugeController.luau",
+      "rawSha256": "0c80474ccae34abc1002c84ef99d97456a3317befa7f39508cabf8407731e3b3",
+      "lfSha256": "2e6fd558781ad3bdfe404687e9b099cc8bc733d6817e798570600b3e0ca81dc6"
+    },
+    {
+      "file": "src/client/V2GaugePresentation.luau",
+      "rawSha256": "09547a9e82aa62db1e6a04660e11ec08c32cf36ff53e9fa816e50e2c2921ab35",
+      "lfSha256": "17e4b5816a2cf9c180a1c06c5c52c15385d318d234823738440642eb69590b76"
+    },
+    {
+      "file": "src/server/ActiveMatchDirectory.luau",
+      "rawSha256": "25ffd8ac1fda8a3a1356f0690e042abe47148589370470c08e23b9bc4afd374a",
+      "lfSha256": "25ffd8ac1fda8a3a1356f0690e042abe47148589370470c08e23b9bc4afd374a"
+    },
+    {
+      "file": "src/server/CompactHubBuilder.luau",
+      "rawSha256": "71f89b76efa9d2b7f7c2459bc2fcbe4321d5f6bb90c7298d89aefd1b6e8d1734",
+      "lfSha256": "71f89b76efa9d2b7f7c2459bc2fcbe4321d5f6bb90c7298d89aefd1b6e8d1734"
+    },
+    {
+      "file": "src/server/DriftTelemetry.luau",
+      "rawSha256": "dbbf26570dbfb27ef3669d7f825bba2523b3eb4d40307102bafcf23eb898e2d0",
+      "lfSha256": "dbbf26570dbfb27ef3669d7f825bba2523b3eb4d40307102bafcf23eb898e2d0"
+    },
+    {
+      "file": "src/server/GarageController.luau",
+      "rawSha256": "01762b696fa8ce979816023031d4be6738ad1a38c2f958a6f77153e4895d6838",
+      "lfSha256": "01762b696fa8ce979816023031d4be6738ad1a38c2f958a6f77153e4895d6838"
+    },
+    {
+      "file": "src/server/HomingMissileService.luau",
+      "rawSha256": "9a8a90c848381134d3c1b6ba54fff78906b2a4d6d732aab0959026fdcfc9e07d",
+      "lfSha256": "adf11016b8c80f53ff0db73913c12fc9985cd7bec8ddc3f4b92755b233607180"
+    },
+    {
+      "file": "src/server/init.server.luau",
+      "rawSha256": "4c14ecd140a140a7410e299fb21b8edbad6da98cc7be49714357c476872928e7",
+      "lfSha256": "4c14ecd140a140a7410e299fb21b8edbad6da98cc7be49714357c476872928e7"
+    },
+    {
+      "file": "src/server/KartContext.luau",
+      "rawSha256": "6745f64d890549ae6eb74f10b9beb7ba423c0363c306ea0d8b827cfe9434da4a",
+      "lfSha256": "6745f64d890549ae6eb74f10b9beb7ba423c0363c306ea0d8b827cfe9434da4a"
+    },
+    {
+      "file": "src/server/KartUprightRecovery.luau",
+      "rawSha256": "9d81461173694c0418197d17e9ee72e450c21f5598f215cf74da52ac93cb5e77",
+      "lfSha256": "9d81461173694c0418197d17e9ee72e450c21f5598f215cf74da52ac93cb5e77"
+    },
+    {
+      "file": "src/server/KDMServerPresence.luau",
+      "rawSha256": "8d4ea1121c256e8f068f2ccee8ca2e27366534a68a581dff54c717cc8dfa6ec4",
+      "lfSha256": "2d8138dd9d0106ee57661958bb91ac4e6a39cde8d3824882944409582faa53e8"
+    },
+    {
+      "file": "src/server/KDMStraightSpeedResolver.luau",
+      "rawSha256": "9f013174ccbf39d50de322804a68175f2e9dc25f696f9ed294f7ca21588e40ef",
+      "lfSha256": "9f013174ccbf39d50de322804a68175f2e9dc25f696f9ed294f7ca21588e40ef"
+    },
+    {
+      "file": "src/server/LobbyFrontDriveZoneBuilder.luau",
+      "rawSha256": "1cf1b41015ae027fc1db6ac4d3236b1c744ed167226a78813a6280c1cfc29891",
+      "lfSha256": "1bb23f5b8848496406989ea6165452c4eb2583075c29024fcf2a1b073c97f0b1"
+    },
+    {
+      "file": "src/server/LobbyTestDriveService.luau",
+      "rawSha256": "239101509d17dbbabfddb16cd8c1654f47e34bca3e468823cc78bac230d37d46",
+      "lfSha256": "e118f404fed21e0026942e20cbd48b4c96fe814c30805e59921dafaa8b636188"
+    },
+    {
+      "file": "src/server/LobbyTitleService.luau",
+      "rawSha256": "8ed1c037dfc2232e8287ad48f5b0dea25ee007dd5c6b62a452633cac03ec706a",
+      "lfSha256": "8ed1c037dfc2232e8287ad48f5b0dea25ee007dd5c6b62a452633cac03ec706a"
+    },
+    {
+      "file": "src/server/MatchRoomRegistry.luau",
+      "rawSha256": "3b381a0fd98590c6d50534a19fc289d05794f973487274cec420be66cdf0b3fd",
+      "lfSha256": "3b381a0fd98590c6d50534a19fc289d05794f973487274cec420be66cdf0b3fd"
+    },
+    {
+      "file": "src/server/MatchRoomService.luau",
+      "rawSha256": "eed8045ae25c318c36f1ccc28889837b96f2442f35922294e003b002fb7674ee",
+      "lfSha256": "eed8045ae25c318c36f1ccc28889837b96f2442f35922294e003b002fb7674ee"
+    },
+    {
+      "file": "src/server/NitroState.luau",
+      "rawSha256": "a18d4ab61261df23dc917700a6942cecc68bc88351996403d5869d754354275d",
+      "lfSha256": "a18d4ab61261df23dc917700a6942cecc68bc88351996403d5869d754354275d"
+    },
+    {
+      "file": "src/server/PlayerPreferences.luau",
+      "rawSha256": "79aac512e4fa9336b8ef21742216387e1355012f509d54fb0c3a062a4df979f5",
+      "lfSha256": "79aac512e4fa9336b8ef21742216387e1355012f509d54fb0c3a062a4df979f5"
+    },
+    {
+      "file": "src/server/PrototypeWorld.luau",
+      "rawSha256": "eaf5d827d7088ec03893d1a3818510e20ccdd8d08a54f733687e4dea6815c16a",
+      "lfSha256": "eaf5d827d7088ec03893d1a3818510e20ccdd8d08a54f733687e4dea6815c16a"
+    },
+    {
+      "file": "src/server/RaceArrivalPlan.luau",
+      "rawSha256": "62ef77e285944511e12bd5e7fa17ad845d36cacd57f23d02f8c33054741f01c3",
+      "lfSha256": "62ef77e285944511e12bd5e7fa17ad845d36cacd57f23d02f8c33054741f01c3"
+    },
+    {
+      "file": "src/server/RaceBotController.luau",
+      "rawSha256": "1e27550cc0bd926a79ea43906e82f073dc2969d0712477b809cce2a150c7d8a8",
+      "lfSha256": "1e27550cc0bd926a79ea43906e82f073dc2969d0712477b809cce2a150c7d8a8"
+    },
+    {
+      "file": "src/server/RaceBotSteering.luau",
+      "rawSha256": "ac791bc076f553d2976b3cc9f41c5fb58e6e279094680377d31435acc14c78a7",
+      "lfSha256": "ac791bc076f553d2976b3cc9f41c5fb58e6e279094680377d31435acc14c78a7"
+    },
+    {
+      "file": "src/server/RaceController.luau",
+      "rawSha256": "f1037ddbd85e7dfb7ccdd342bb7743e8df68dd7ea99da9b8ad6b87db25409415",
+      "lfSha256": "f1037ddbd85e7dfb7ccdd342bb7743e8df68dd7ea99da9b8ad6b87db25409415"
+    },
+    {
+      "file": "src/server/RaceItemController.luau",
+      "rawSha256": "521127cf19918f76ed6d09f697d394483db0fd369cff7320fe381e6160b3a72d",
+      "lfSha256": "86830d50fb6c965e4eca9910833e33844282b5f7aa929c1b830ff4df14aee12c"
+    },
+    {
+      "file": "src/server/RaceItemGeometry.luau",
+      "rawSha256": "283a9c07c8980490ed94b5c16d5a3436f077022cc6f8f1cc07aaa5e7c6b7a45f",
+      "lfSha256": "283a9c07c8980490ed94b5c16d5a3436f077022cc6f8f1cc07aaa5e7c6b7a45f"
+    },
+    {
+      "file": "src/server/RaceItemVisuals.luau",
+      "rawSha256": "db96a43f69629e02a6c5e9c254ba87ae79147ec878ecc8f1679d2633e44bd6df",
+      "lfSha256": "222db885d212270098a3c74018660555f850a4749498f47f68f232450ef3c646"
+    },
+    {
+      "file": "src/server/RaceLaunchPayload.luau",
+      "rawSha256": "b8bbb7b080e3a7c3618d9daf15e715306b2b0b1f4bba4c6f56985fe5d019d7c9",
+      "lfSha256": "b8bbb7b080e3a7c3618d9daf15e715306b2b0b1f4bba4c6f56985fe5d019d7c9"
+    },
+    {
+      "file": "src/server/RaceLaunchService.luau",
+      "rawSha256": "0899ce28282ecdcdc50585f4e651e837377c12f7eedf957abe95f32633ec1241",
+      "lfSha256": "0899ce28282ecdcdc50585f4e651e837377c12f7eedf957abe95f32633ec1241"
+    },
+    {
+      "file": "src/server/RaceLoadout.luau",
+      "rawSha256": "ed83ff1c0be4c143f0faf98b62fc427cbd9d117e573296cb14f00d3334fb2c6a",
+      "lfSha256": "ed83ff1c0be4c143f0faf98b62fc427cbd9d117e573296cb14f00d3334fb2c6a"
+    },
+    {
+      "file": "src/server/RaceRanking.luau",
+      "rawSha256": "94a5aa0320213c51ec99770639cb808a280aa4559eefea07229f10221e1d7019",
+      "lfSha256": "94a5aa0320213c51ec99770639cb808a280aa4559eefea07229f10221e1d7019"
+    },
+    {
+      "file": "src/server/RacerCollisionIsolation.luau",
+      "rawSha256": "00c72c2aecaa1cb7e7cde6f4bfab80e7596ebd5c4f4f6be005cc31f6713e4eb9",
+      "lfSha256": "00c72c2aecaa1cb7e7cde6f4bfab80e7596ebd5c4f4f6be005cc31f6713e4eb9"
+    },
+    {
+      "file": "src/server/RaceRoomCoordinator.luau",
+      "rawSha256": "edc2e303bbffef5e236dbd3126824167784fb8fc44ca9ee955178992f25b66e7",
+      "lfSha256": "edc2e303bbffef5e236dbd3126824167784fb8fc44ca9ee955178992f25b66e7"
+    },
+    {
+      "file": "src/server/RacerState.luau",
+      "rawSha256": "629ec3fd19b43ba6d60e03ec4ffc7ca7f6f19dd6f0458dd388d5e70f7b7230ce",
+      "lfSha256": "629ec3fd19b43ba6d60e03ec4ffc7ca7f6f19dd6f0458dd388d5e70f7b7230ce"
+    },
+    {
+      "file": "src/server/RaceServerBootstrap.luau",
+      "rawSha256": "3dad3f43d729be58df904af7216dd2f9b88464604de17c3a9462b959a2f5c7e0",
+      "lfSha256": "3dad3f43d729be58df904af7216dd2f9b88464604de17c3a9462b959a2f5c7e0"
+    },
+    {
+      "file": "src/server/RaceSession.luau",
+      "rawSha256": "50c92c0bb43a0eda163dca80920c4ca95d63719d863744ae535339e2f497b0dd",
+      "lfSha256": "5edb03ac559c885ee65c36b8b7097dd01373f0d9da675d419e2fea0976981e0a"
+    },
+    {
+      "file": "src/server/RoomSocialDirectory.luau",
+      "rawSha256": "2995c6d168ae9b663965d945348761b8f1429f6db11618618fa5b1a895837a31",
+      "lfSha256": "2995c6d168ae9b663965d945348761b8f1429f6db11618618fa5b1a895837a31"
+    },
+    {
+      "file": "src/server/ServerRuntime.luau",
+      "rawSha256": "41c22f7b124fc9f40d648508bc140d4587261fa295fd60d48e83cd39495c775b",
+      "lfSha256": "41c22f7b124fc9f40d648508bc140d4587261fa295fd60d48e83cd39495c775b"
+    },
+    {
+      "file": "src/server/SlickMotion.luau",
+      "rawSha256": "5933fada74f6bef65fdcecf92a21d3af07438d95d048f6c5f109618106f5f59b",
+      "lfSha256": "5933fada74f6bef65fdcecf92a21d3af07438d95d048f6c5f109618106f5f59b"
+    },
+    {
+      "file": "src/server/SmokeHazardService.luau",
+      "rawSha256": "9ecac7c591d69593692a794e0e2b0c6d83d1e63254e3d328c1e00e67512fdeea",
+      "lfSha256": "9ecac7c591d69593692a794e0e2b0c6d83d1e63254e3d328c1e00e67512fdeea"
+    },
+    {
+      "file": "src/server/TacticalLoadoutService.luau",
+      "rawSha256": "f53cc2efb0ea5123360e941035078e0b3919c8bde0d1d129750f4c62f34c8581",
+      "lfSha256": "f53cc2efb0ea5123360e941035078e0b3919c8bde0d1d129750f4c62f34c8581"
+    },
+    {
+      "file": "src/server/ThunderStrikeService.luau",
+      "rawSha256": "2a15ee834e3677827097fa5e057f7ec0ad81f55a2afd77dfa3d37b6ba9af4b59",
+      "lfSha256": "0172d795929045beb40ad4d76b442f85fd4ccdc65b9aa679012e89f7b3a9fa2e"
+    },
+    {
+      "file": "src/server/TrackBuilder.luau",
+      "rawSha256": "ecb7ae830c414136b7216acf94ef43976b63798c39eef2b2d87b7a10726198cb",
+      "lfSha256": "1d5c2aa7ede3d8eb754ac2aee27c8b5ca00cdd36aa0acaf6b91a83ad9e015eca"
+    },
+    {
+      "file": "src/shared/AudioConfig.luau",
+      "rawSha256": "cf96d307d4064f51beb31d6e638c96e1190c7db6170059fa3f840e63fe70ee5d",
+      "lfSha256": "be0f100d3e0d10e4e47244e012520656741ed51a652c294e5782f9c0fc432232"
+    },
+    {
+      "file": "src/shared/ChaseCameraMotion.luau",
+      "rawSha256": "6771e0a25a5e79de2e25164b86755c0cb4568785c6888cc54bb3aac5cb7a96d0",
+      "lfSha256": "6771e0a25a5e79de2e25164b86755c0cb4568785c6888cc54bb3aac5cb7a96d0"
+    },
+    {
+      "file": "src/shared/DriverAppearance.luau",
+      "rawSha256": "3a4578c0ac740c5c3034f63d91000e9c71ce31d1a8283b48ae4d1b9c0444f6c4",
+      "lfSha256": "3a4578c0ac740c5c3034f63d91000e9c71ce31d1a8283b48ae4d1b9c0444f6c4"
+    },
+    {
+      "file": "src/shared/DriverCatalog.luau",
+      "rawSha256": "60651100e2eefe97ebb8fce7687fc9669ed4a928bbb7a740c1397ab2af13379c",
+      "lfSha256": "cdc2c408844d93b596627882e3403dd8b37a9b2690949a1f78e99fe269ab832b"
+    },
+    {
+      "file": "src/shared/Hello.luau",
+      "rawSha256": "68de9377a853c5dd3863901c12e8f29802b9d6d3dd01b99e44a8d332755cca8f",
+      "lfSha256": "68de9377a853c5dd3863901c12e8f29802b9d6d3dd01b99e44a8d332755cca8f"
+    },
+    {
+      "file": "src/shared/KartCatalog.luau",
+      "rawSha256": "5785b29774d6061ac07c57f477d3bdc8b52e2efdaa5128b8212aa53cb2ed9bb1",
+      "lfSha256": "91b3a74742891aab8898ea1cf01816c98bde3908ecb7ff62132a6fe4e389335d"
+    },
+    {
+      "file": "src/shared/KartConfig.luau",
+      "rawSha256": "e5417ac3170b7cf5e8fba0d19da5eff619eaef3b2e32f64c7f36c22a11603798",
+      "lfSha256": "3334742ce602f3de524c3930ab3d7027f5873a94f34fa98380c9c9a6fa829c1f"
+    },
+    {
+      "file": "src/shared/KartPreviewFraming.luau",
+      "rawSha256": "daeb595d656ba58b0353d8935ab2e6bd59052d44458af8b853304e5efe4a90b9",
+      "lfSha256": "b310e75a82a5096305fb46a680f54be6d7a5544db022aa6bc99f41fd06618a77"
+    },
+    {
+      "file": "src/shared/KartVisualFactory.luau",
+      "rawSha256": "dc0b64ebe5655f6c2f60284710b233238152e5cfd02dc7ba8f19735c7338e52d",
+      "lfSha256": "aaaf2d50b4066c726b00b1127970e45ffbdbf6e766533376953e457326e234cb"
+    },
+    {
+      "file": "src/shared/KDMFinishPresentation.luau",
+      "rawSha256": "514c919d861df13dbe95fee67f75bd80d1747f0b9427d876993bc7360f711f58",
+      "lfSha256": "514c919d861df13dbe95fee67f75bd80d1747f0b9427d876993bc7360f711f58"
+    },
+    {
+      "file": "src/shared/KDMGameplayBalance.luau",
+      "rawSha256": "aacfdeeab8905a781458001a87fc39d6e687792f3b3d12667f82bf579bc8296a",
+      "lfSha256": "75c5a17623f3d58f4afeada496f3dd00c5a49fec031ed2c37acb1a183dd001a1"
+    },
+    {
+      "file": "src/shared/KDMImpactCameraMotion.luau",
+      "rawSha256": "31a112dec71068aaf10fd76f29ad39d2c2ed78dcc5d69e7d7081d5b4a09ad3b6",
+      "lfSha256": "31a112dec71068aaf10fd76f29ad39d2c2ed78dcc5d69e7d7081d5b4a09ad3b6"
+    },
+    {
+      "file": "src/shared/KDMItemVFXConfig.luau",
+      "rawSha256": "bf72581de1ffeaf57f3e474373fad04eee6bceb823cf6c937e70d51008862da9",
+      "lfSha256": "33c94c1bcaa4a0726f17ab53b6b4dc39cc88e6b94d9ee7cf7d90b3e0f88c249a"
+    },
+    {
+      "file": "src/shared/KDMPitGarageArt.rbxm",
+      "rawSha256": "37d86a1ad84b0b593e2abf2825b3330b08bea100c2297c70087f66e57bcef57b",
+      "lfSha256": "a36a3d57c1fbbe421a330e3aaa7f6d93afd62b4b9bd76abf313a8f12e04d23fa"
+    },
+    {
+      "file": "src/shared/KDMShieldGeometry.luau",
+      "rawSha256": "dd897769c8d31f97a6f89f38eebe04824de923ec159dba25a3dde8724be07185",
+      "lfSha256": "dd897769c8d31f97a6f89f38eebe04824de923ec159dba25a3dde8724be07185"
+    },
+    {
+      "file": "src/shared/KDMSpeedSensation.luau",
+      "rawSha256": "54df42b823b45fc14e2057169f636b150fd41ad05c6ab42e879925244d311013",
+      "lfSha256": "54df42b823b45fc14e2057169f636b150fd41ad05c6ab42e879925244d311013"
+    },
+    {
+      "file": "src/shared/KDMUiTheme.luau",
+      "rawSha256": "7427efb98d96cedfafa026961cfda19273b4b1f87bf2c95ce934d0fae7749ba2",
+      "lfSha256": "7427efb98d96cedfafa026961cfda19273b4b1f87bf2c95ce934d0fae7749ba2"
+    },
+    {
+      "file": "src/shared/KDMV2Geometry.rbxmx",
+      "rawSha256": "9e792ff55f80d208d121ba2f25334fac74a43da81b52b3a695e05df88d99a5a8",
+      "lfSha256": "5ce51303f94f2ccbfa5ae43dcf32ad59eb8349788bf08ba353abae106d033e4c"
+    },
+    {
+      "file": "src/shared/KDMV2VisualDefinition.luau",
+      "rawSha256": "3ea00af0bc6c1bfcbfb7be5efb7a9095578712b26720fed022ead3faaec547d0",
+      "lfSha256": "3ea00af0bc6c1bfcbfb7be5efb7a9095578712b26720fed022ead3faaec547d0"
+    },
+    {
+      "file": "src/shared/KDMWorldAssets.luau",
+      "rawSha256": "0f72e3e96f0eb599ff5c6d9f62e9625912d46840b3118be2ca7055e7411439cb",
+      "lfSha256": "06e039a62ce916b1e685993010e42fa22eafe9e147503106a1ba73f0e958315d"
+    },
+    {
+      "file": "src/shared/LobbyDriveGeometry.luau",
+      "rawSha256": "6924f9c459186365727e2341547ca424a804c8f25233d3172a3de3fa93c2d404",
+      "lfSha256": "6924f9c459186365727e2341547ca424a804c8f25233d3172a3de3fa93c2d404"
+    },
+    {
+      "file": "src/shared/LobbyDrivePolicy.luau",
+      "rawSha256": "9be51b4f5b0a4adc4322b98bcbe8361e763efe467737d4e2c22512028cdbbb91",
+      "lfSha256": "9be51b4f5b0a4adc4322b98bcbe8361e763efe467737d4e2c22512028cdbbb91"
+    },
+    {
+      "file": "src/shared/LobbySkidPattern.luau",
+      "rawSha256": "939d89e7816fea7528409b7bc440a4e951afc64046b02c20d0fd50c399037fb3",
+      "lfSha256": "939d89e7816fea7528409b7bc440a4e951afc64046b02c20d0fd50c399037fb3"
+    },
+    {
+      "file": "src/shared/LobbyTitleCatalog.luau",
+      "rawSha256": "4f7b3273cd9a3449c42e74fd62f19930cac09e50360144f2348997064750f2f2",
+      "lfSha256": "4f7b3273cd9a3449c42e74fd62f19930cac09e50360144f2348997064750f2f2"
+    },
+    {
+      "file": "src/shared/RaceConfig.luau",
+      "rawSha256": "f789b90f07817657aaf5d388ee4d01768fb1f4cc99d874419379b59fe4bfc4bd",
+      "lfSha256": "f789b90f07817657aaf5d388ee4d01768fb1f4cc99d874419379b59fe4bfc4bd"
+    },
+    {
+      "file": "src/shared/RaceItemCatalog.luau",
+      "rawSha256": "f15b796450f0c56178f07589b02c2925576aeb0707716741e990934b30d8a6d7",
+      "lfSha256": "f15b796450f0c56178f07589b02c2925576aeb0707716741e990934b30d8a6d7"
+    },
+    {
+      "file": "src/shared/RaceItemConfig.luau",
+      "rawSha256": "43c3a5a10e2fc5e5d36f2cb4aeaa1b1f2c97cc25712b064df4075a3dfde724a8",
+      "lfSha256": "ae0a8b89362d8ab8d5209d8970db2479f5cebb8dbce4f66c1cc7a816b95caa6e"
+    },
+    {
+      "file": "src/shared/RaceItemSlots.luau",
+      "rawSha256": "1a24272b760b1df520b3774653ebc3aec09289945137a4592c6e8d7ccdb1fddc",
+      "lfSha256": "1a24272b760b1df520b3774653ebc3aec09289945137a4592c6e8d7ccdb1fddc"
+    },
+    {
+      "file": "src/shared/RaceMode.luau",
+      "rawSha256": "5b6cb3fbce10fe82f13e99131bf3fd509ff13f3bf6d2dd8757d0f909b38af21f",
+      "lfSha256": "d7162a09219a050c6c3446b26380069fe0423f1b102e10db8e8e97736576ee44"
+    },
+    {
+      "file": "src/shared/RaceResultFormat.luau",
+      "rawSha256": "25108e1fb92ab58c69f2f5a056964291eccfd5acf5873c0751628e71839642a1",
+      "lfSha256": "25108e1fb92ab58c69f2f5a056964291eccfd5acf5873c0751628e71839642a1"
+    },
+    {
+      "file": "src/shared/RaceRouteProgress.luau",
+      "rawSha256": "3e0b5bf6097cc86c4d148b63a504f9347e26bdfe88d2e9f5611fab75e546798d",
+      "lfSha256": "3e0b5bf6097cc86c4d148b63a504f9347e26bdfe88d2e9f5611fab75e546798d"
+    },
+    {
+      "file": "src/shared/TrackCatalog.luau",
+      "rawSha256": "2a8e4d35d1c98320c8a848616906d794d139b484bcb64b8b173675723a2848ef",
+      "lfSha256": "2a8e4d35d1c98320c8a848616906d794d139b484bcb64b8b173675723a2848ef"
+    },
+    {
+      "file": "src/shared/TrackGeometry.luau",
+      "rawSha256": "5e8a8f9dd41240d70b9c18f2625d3d4dcb5df33c9ef6e7d203ff7c5718c78e28",
+      "lfSha256": "948529127458727a6b1ad44e33fdcc2cf59a0ca7df64e8c18865e0a2689f75b9"
+    },
+    {
+      "file": "tests/active_match_directory_validation.luau",
+      "rawSha256": "fab229e6c94e6627ed86a6abdc705a707ace0c30d80ac488a06a0190be70e6de",
+      "lfSha256": "b23301583761d46d7b350b301e075b76d277747cab68d4b97501cc99af5380a5"
+    },
+    {
+      "file": "tests/avatar_identity_validation.luau",
+      "rawSha256": "512c097802e62ddf87e29d15e3d276ad3bdb453eb8c0d9ecccbcfef27a6cf354",
+      "lfSha256": "019d9432f96bda4f3e763b38fdfdfa13fece2c46e818017bcf0f27f64c3614df"
+    },
+    {
+      "file": "tests/bot_curve_pursuit_validation.luau",
+      "rawSha256": "62a860a645ec99f7e1c723ce12434d25b1adcd5f63c6af374b04900b263b81a7",
+      "lfSha256": "62a860a645ec99f7e1c723ce12434d25b1adcd5f63c6af374b04900b263b81a7"
+    },
+    {
+      "file": "tests/bot_internal_control_validation.luau",
+      "rawSha256": "6b2b90346aa72dd5f969ea3206ea43c7e2f66962c9d0a1bcbe2f92285cf4e24b",
+      "lfSha256": "6b2b90346aa72dd5f969ea3206ea43c7e2f66962c9d0a1bcbe2f92285cf4e24b"
+    },
+    {
+      "file": "tests/bot_route_continuity_validation.luau",
+      "rawSha256": "13b9999b8311cc9d100609f7fd43e4841df9630ff0288c988784a3df57ba0ba1",
+      "lfSha256": "13b9999b8311cc9d100609f7fd43e4841df9630ff0288c988784a3df57ba0ba1"
+    },
+    {
+      "file": "tests/camera_motion_validation.luau",
+      "rawSha256": "a975dca9ed418ca3922f7e41fded354b4f30b63f7714f6cad68b8c0798e7c22c",
+      "lfSha256": "a975dca9ed418ca3922f7e41fded354b4f30b63f7714f6cad68b8c0798e7c22c"
+    },
+    {
+      "file": "tests/combat_feedback_view_validation.luau",
+      "rawSha256": "f6dbc250ff95960820570045052f3c541d19d70e61aded6eafd3e9502bf2ec27",
+      "lfSha256": "f6dbc250ff95960820570045052f3c541d19d70e61aded6eafd3e9502bf2ec27"
+    },
+    {
+      "file": "tests/compact_hub_validation.luau",
+      "rawSha256": "572dac8e21885cb8e6d88295fb66d3201455141dad859e5d39ae48e7e0bf465a",
+      "lfSha256": "bea5ac37c1f9bddb7035b432e045981248b59aa3da01f1f3b57d6d33558582c3"
+    },
+    {
+      "file": "tests/drift_telemetry_validation.luau",
+      "rawSha256": "a1c79a8d5218c39ad5f9304c5ce94a2dc749b208d504a5a5b8f8d14fccd3cbeb",
+      "lfSha256": "2ae1b14e9c83e6670e3d0b051df27e2cc8c721a662b6357b4d28284747502440"
+    },
+    {
+      "file": "tests/driver_finish_celebration_validation.luau",
+      "rawSha256": "6d5e60a4c263d338c245ad3f2a0da0554d453cf106ec25839243835b0b7d608b",
+      "lfSha256": "6d5e60a4c263d338c245ad3f2a0da0554d453cf106ec25839243835b0b7d608b"
+    },
+    {
+      "file": "tests/finish_celebration_validation.luau",
+      "rawSha256": "9a2e5955c432838c184e56fc861fd06eb6094a16c121423db70a01047cfcf01d",
+      "lfSha256": "9a2e5955c432838c184e56fc861fd06eb6094a16c121423db70a01047cfcf01d"
+    },
+    {
+      "file": "tests/finish_outcome_validation.luau",
+      "rawSha256": "5692d3748ba6ab513558b24ba459f3df2d6dfc0bad6fc8fca5edfabcf9929ae9",
+      "lfSha256": "5692d3748ba6ab513558b24ba459f3df2d6dfc0bad6fc8fca5edfabcf9929ae9"
+    },
+    {
+      "file": "tests/finish_presentation_validation.luau",
+      "rawSha256": "550c70c2b1c54633cef99fd4ad3c8c3576d1409ecd44c06804616c2d79496086",
+      "lfSha256": "550c70c2b1c54633cef99fd4ad3c8c3576d1409ecd44c06804616c2d79496086"
+    },
+    {
+      "file": "tests/finish_sequence_validation.luau",
+      "rawSha256": "3ef3d07d25105ccc9dfb4458bd9036d60a3c7932c9ffc32f182ba9abd8045d3c",
+      "lfSha256": "3ef3d07d25105ccc9dfb4458bd9036d60a3c7932c9ffc32f182ba9abd8045d3c"
+    },
+    {
+      "file": "tests/finish_source_freeze_validation.luau",
+      "rawSha256": "33601f07a702a92537e047148350fa3d340b9d08f604e2c3cf44d342b2618d25",
+      "lfSha256": "33601f07a702a92537e047148350fa3d340b9d08f604e2c3cf44d342b2618d25"
+    },
+    {
+      "file": "tests/fixtures/garage_phase1b_geometry.json",
+      "rawSha256": "ded0b1a64e8830058a4683a05fdf0494a4bea797214cf05c7a739184a7ac06f2",
+      "lfSha256": "ded0b1a64e8830058a4683a05fdf0494a4bea797214cf05c7a739184a7ac06f2"
+    },
+    {
+      "file": "tests/fixtures/item_aftershock_starting_hashes.json",
+      "rawSha256": "1c2df53fb58688dcb4f3ee5570ff4f23d5d898dd7e71e4d46954eb138ac1d7fe",
+      "lfSha256": "1c2df53fb58688dcb4f3ee5570ff4f23d5d898dd7e71e4d46954eb138ac1d7fe"
+    },
+    {
+      "file": "tests/fixtures/kart_v2_geometry.json",
+      "rawSha256": "ad596aa215b9644bd1a296b766ead1cd1838c0a207c7de06f692f3e07abd4291",
+      "lfSha256": "ad596aa215b9644bd1a296b766ead1cd1838c0a207c7de06f692f3e07abd4291"
+    },
+    {
+      "file": "tests/fixtures/l2_presentation_changes.json",
+      "rawSha256": "9a8767017fdf83122a82a8cfbab36c8243190f2c882eef55a2bb3a2c09fbad29",
+      "lfSha256": "4b6ad7c9f0506c4d8f6ecca0b8b78574f7954af4d75b70cf214a2b7a85a6209b"
+    },
+    {
+      "file": "tests/fixtures/n2_hud_presentation_changes.json",
+      "rawSha256": "8f9d3ba9a25a53a59a3302d62c1f8aeb6201a08149c84321b844176328e2b1c5",
+      "lfSha256": "71b89df47601c25d6b074ea01f0ba26cf2d2b4472952c84229f7ca0ce437d2ed"
+    },
+    {
+      "file": "tests/fixtures/n2_source_freeze.json",
+      "rawSha256": "39108dc96614bc09c1000651dfb2bed88840a68a2a1bc7d7764a10feec538fa5",
+      "lfSha256": "aef534de48853288dba2ef4cdd07b2bbe9b2bc57d5d0af9176d148b4348400f0"
+    },
+    {
+      "file": "tests/fixtures/practice_figure8_p1_baseline.json",
+      "rawSha256": "2f89b5e249f88b034240790dc0fc08375c4fc20babc368d9996e4a2c19dd58dd",
+      "lfSha256": "f9b597209539a1d12637de2d51ffd8acb61b82ce21e458b5defde59c45fb8d62"
+    },
+    {
+      "file": "tests/fixtures/speed_sensation_starting_hashes.json",
+      "rawSha256": "28575cf26346b681ab7906bb8520cf904a51caccab6491f3d487c3ba802045b1",
+      "lfSha256": "14ea01536820ef1b7d06d0bc84c085492528232aac64388b259468773bf358f6"
+    },
+    {
+      "file": "tests/four_player_race_validation.luau",
+      "rawSha256": "54479b476684c515ed83c4680830e026040d098ed68174bb00c72c2575b83129",
+      "lfSha256": "54479b476684c515ed83c4680830e026040d098ed68174bb00c72c2575b83129"
+    },
+    {
+      "file": "tests/gameplay_balance_validation.luau",
+      "rawSha256": "4f5435f8b71baf7ee8e41f6b2aa986f506447c6a9f61b638ac221688f0fe80f3",
+      "lfSha256": "5f9ef408d605ef70fb1ada71fa5ca9577ab137b1a5a728b0bf0929d629d0d2e1"
+    },
+    {
+      "file": "tests/garage_h2_flow_validation.luau",
+      "rawSha256": "771afb36171d43c8732bc91a29a52c0a3d7a3efd046389e55edca9a348b71267",
+      "lfSha256": "b8b6247f79419da212334277c0acb4c4e8d9573d563e02b8c66bf32df2885033"
+    },
+    {
+      "file": "tests/garage_h2_kart_display_validation.luau",
+      "rawSha256": "70804d9280707161731d16ed5a018c2c92a0d4cfb00c00b610edacb012ea3bc0",
+      "lfSha256": "645d28c8f912b9b5e23aff375cc6f8444e6b1b3e3489786fcd41cc320fe5bc07"
+    },
+    {
+      "file": "tests/garage_polish_validation.luau",
+      "rawSha256": "4b2a08766dd8d61f14edb5e300a7341667668738c768bb8a1b19a0280af642d4",
+      "lfSha256": "5516f949eb28d0af2738530b4e09afba59f611450a36e5809f8ec8f52a6253b4"
+    },
+    {
+      "file": "tests/garage_transition_validation.luau",
+      "rawSha256": "96673c430033bbffbd016a7c77c44bc775639d94a55daf6cb10cc8fa2b29c9f7",
+      "lfSha256": "173a3d81b24d9bcf9b5d191ae2361a6e35050111a88fe827f9f5419c7ef428cc"
+    },
+    {
+      "file": "tests/garage_two_player_validation.luau",
+      "rawSha256": "baea91b655c1a0cd1f314b4b1b4e2fe9c24ad13cdbffc3daf3afce1bee36ba0a",
+      "lfSha256": "baea91b655c1a0cd1f314b4b1b4e2fe9c24ad13cdbffc3daf3afce1bee36ba0a"
+    },
+    {
+      "file": "tests/helpers/finish_controller_harness.luau",
+      "rawSha256": "fac4b2ef7ac7cfb9537939df55bc75b52d3c3e2f13798bcc436a4ccd821e7b6e",
+      "lfSha256": "fac4b2ef7ac7cfb9537939df55bc75b52d3c3e2f13798bcc436a4ccd821e7b6e"
+    },
+    {
+      "file": "tests/helpers/gameplay_config.luau",
+      "rawSha256": "65cdf991876d605b4e25393f15b9a359a8ce3f377dd13832aea7c8794a2d1630",
+      "lfSha256": "123a7dcef0245e9f78a91f870df0a06274fa9db7f1842a1a19157904f40d28df"
+    },
+    {
+      "file": "tests/helpers/l2_presentation_freeze.luau",
+      "rawSha256": "c608b1a66f5a30e995cc362f3067e686451208e4094adee99f6ce5a48fe07119",
+      "lfSha256": "c608b1a66f5a30e995cc362f3067e686451208e4094adee99f6ce5a48fe07119"
+    },
+    {
+      "file": "tests/helpers/lobby_title_modules.luau",
+      "rawSha256": "27daab81321bf262248edd84ccb8c102be202dca6079aa938592ef5042e3aa53",
+      "lfSha256": "27daab81321bf262248edd84ccb8c102be202dca6079aa938592ef5042e3aa53"
+    },
+    {
+      "file": "tests/helpers/m1_presentation_freeze.luau",
+      "rawSha256": "1a391d52feb89ab65e86ddbda0c86373cefe04277f8d1436e44e4478a4d99ea5",
+      "lfSha256": "d221c9bf22976a62079cad3d33527e4b8ec587289ada7413d35b62bedad4bae1"
+    },
+    {
+      "file": "tests/helpers/n2_hud_presentation_freeze.luau",
+      "rawSha256": "81c2e308bf9dbfefb4789a33f63c7616b335e4b42c92f74948e3664740955290",
+      "lfSha256": "81c2e308bf9dbfefb4789a33f63c7616b335e4b42c92f74948e3664740955290"
+    },
+    {
+      "file": "tests/helpers/p2a_bot_controller_freeze.luau",
+      "rawSha256": "0bb400d81a27717051832221ca1a5733a589367ef5f636d80b993c53251e0672",
+      "lfSha256": "0bb400d81a27717051832221ca1a5733a589367ef5f636d80b993c53251e0672"
+    },
+    {
+      "file": "tests/helpers/p2b_track_capability_freeze.luau",
+      "rawSha256": "8a38ca42d8cb6094b717dbc42161289a6b9081c247e3444212497c54139b7f85",
+      "lfSha256": "e7281106b20e015988c4b94b72c0d1d6f28be73da2459920b81e664ce5d104e3"
+    },
+    {
+      "file": "tests/helpers/ui_palette_freeze.luau",
+      "rawSha256": "c36e5974115e18d7e4a82d9a47070304d6e5ad51bc8b984a3478b51682373b0b",
+      "lfSha256": "c36e5974115e18d7e4a82d9a47070304d6e5ad51bc8b984a3478b51682373b0b"
+    },
+    {
+      "file": "tests/helpers/world_vfx_harness.luau",
+      "rawSha256": "2eacfe62708705e572689e7a2f49b81529b8c066fbd51560f7144b679561a900",
+      "lfSha256": "4621a1d391709bf37e3a99bd30b4fdb74e91e01ee9f76b18294bab5b2869fb9e"
+    },
+    {
+      "file": "tests/hub_next_action_guidance_validation.luau",
+      "rawSha256": "2e444b0241817857d12cf7f9cb18f8bde18bff71b689459aeb5cf32e69c65538",
+      "lfSha256": "ad3a1252f8ba67c9b98ae06cfd03ebed95f8dd1fe9e3b7cfa8d3ad281de2db8b"
+    },
+    {
+      "file": "tests/hub_world_progression_validation.luau",
+      "rawSha256": "8fd5d80e295491d40ab26db295fbc81dc6d602b850e37fd4759654b7d4e5a245",
+      "lfSha256": "6e372bce1c75a41908bb57fc94848b18e0b7ff3242b94e296711cfe4bbf5e102"
+    },
+    {
+      "file": "tests/impact_camera_validation.luau",
+      "rawSha256": "1078b652e66cd1186268cce070b13ccd0d0345a1de2b278bec620f3938533057",
+      "lfSha256": "3bf1837d753c59a8c0befc6b11d77cdb53be5491cf0f039de09ea64564fb6ce5"
+    },
+    {
+      "file": "tests/item_aftershock_validation.luau",
+      "rawSha256": "2dea7c140770f17cf175051b6098d3b02f75a2820cf2b264531092a964e3bbc5",
+      "lfSha256": "4204e59bdf8907a94f44ab96c0c7ec34b6f69d264a8cf8485fbd04f834b65dc3"
+    },
+    {
+      "file": "tests/item_local_vfx_validation.luau",
+      "rawSha256": "cd242a3c2c6c369adf8f0110eac37b575a9a459d4aa52e34324d75c5179d8c52",
+      "lfSha256": "2016432614ad1f4c39e38ac264e8199485c150f37a62d8b01814043e6269fd73"
+    },
+    {
+      "file": "tests/item_preparation_validation.luau",
+      "rawSha256": "c1b7b96754404e9671d97fc1ec0f7239c5306b80d9084a5852d1dbd49fb073ab",
+      "lfSha256": "c1b7b96754404e9671d97fc1ec0f7239c5306b80d9084a5852d1dbd49fb073ab"
+    },
+    {
+      "file": "tests/item_vfx_validation.luau",
+      "rawSha256": "1ce09a31f427d11071ef5f1293d8d18c7482f312b31792cfdfed3c62323c6399",
+      "lfSha256": "2f452098a1370d1be648fedf02fb8fd1b9859ac5df65dca8713ca912fbefba6c"
+    },
+    {
+      "file": "tests/item_world_vfx_validation.luau",
+      "rawSha256": "bf1709e4093e9e4a7549687d93e550aa7bbc4a14b713b250465f66edbdfb5dcc",
+      "lfSha256": "a8203ee222b2819f0965aec8a8da2ce586ab46da4a3df9fac550322898e83c3f"
+    },
+    {
+      "file": "tests/kart_audio_validation.luau",
+      "rawSha256": "f2694cdfa235aaffdc8fc5162e2aa379a06567625c1e08d4d13b944036331353",
+      "lfSha256": "aaae6631c6d27f41c031562d109ca6a6d6538528ebe5cd68f6ff6520b15364f5"
+    },
+    {
+      "file": "tests/kart_contact_validation.luau",
+      "rawSha256": "18151f55e45adb5aee70b015a4dd86f82442d98f542d667fc9b1598a00a8ea5b",
+      "lfSha256": "2fa9de9486613687c007a83b58cb72379bdabfff3ae96861e48ce581e314de1b"
+    },
+    {
+      "file": "tests/kart_v2_production_validation.luau",
+      "rawSha256": "d46ecbaf6870836e225ef3e144be2a0c667fc78257612991426e040fb4f5d4e1",
+      "lfSha256": "0a7dc4f3250329ae38fef79a49158023698d5462ba300eab84852800663b4f3a"
+    },
+    {
+      "file": "tests/kart_visual_validation.luau",
+      "rawSha256": "ab822eaf6e9cb1418e87860d02ae7c61a11fd6cb96774be3e29c5c5f9d20baba",
+      "lfSha256": "468fb0692d88386953b7d6af8f3ce870ebb6a85e8d1d53e24188e0a792b843f8"
+    },
+    {
+      "file": "tests/kdm_control_icon_validation.luau",
+      "rawSha256": "89cb80d085efc21d198f4558a328ebe47da7f33e784a4e03084a5ccf3e338eb6",
+      "lfSha256": "0b57ef44f47a77678ff11b828bda7c2e73361624f9bb38fe25d84e91297c9c0c"
+    },
+    {
+      "file": "tests/kdm_driver_grip_validation.luau",
+      "rawSha256": "762dc6f57bdf601008c7ed17a7e114f3d9b8c60b32d4074bea238de85c6a7daa",
+      "lfSha256": "4969dd5e615d69f14bee709e5a28a03c734b0169db301c4d55443752ecaa9612"
+    },
+    {
+      "file": "tests/kdm_icon_catalog_validation.luau",
+      "rawSha256": "6826dd02e8eb01c95844284247ff4dde669dbe8f6c5d0e7d4a97f86f581a3514",
+      "lfSha256": "b11759592f6ade9303695934a0750ead36a7f5d2940464c30307f12bdc303c0b"
+    },
+    {
+      "file": "tests/lap_item_refill_validation.luau",
+      "rawSha256": "2d77bc5ca64fae81d3af7c7f2ee13d31fc8e308659fe47f08b92385f27e21d21",
+      "lfSha256": "2d77bc5ca64fae81d3af7c7f2ee13d31fc8e308659fe47f08b92385f27e21d21"
+    },
+    {
+      "file": "tests/lobby_create_security_validation.luau",
+      "rawSha256": "7e0c56ac163c5d3ec109ef3ea91e12ca8a8583449ac783e53c4af458772bcd0f",
+      "lfSha256": "ac49c20eb4cf7449fa8b4c0e1fec00d44dd8de5d2aaaa5d7176325b1882d5547"
+    },
+    {
+      "file": "tests/lobby_create_ui_validation.luau",
+      "rawSha256": "c936044508212c805c7a704ca4acf00fcfc45a939e39c9fbed5d1a339d41fe16",
+      "lfSha256": "67a8450e54795bac15420f0600215ba44512921c261c06e3378c0d0744fe74da"
+    },
+    {
+      "file": "tests/lobby_drive_mobile_fix_validation.luau",
+      "rawSha256": "b90133ceaf500484a3096265a7f19b2e913a108ca08c5df0a6da2008479ce89a",
+      "lfSha256": "b90133ceaf500484a3096265a7f19b2e913a108ca08c5df0a6da2008479ce89a"
+    },
+    {
+      "file": "tests/lobby_palette_validation.luau",
+      "rawSha256": "7e22969462a3ba6ffc1e7358c8fd31727caec5e1562926b0e745c38057ef4ae6",
+      "lfSha256": "7e22969462a3ba6ffc1e7358c8fd31727caec5e1562926b0e745c38057ef4ae6"
+    },
+    {
+      "file": "tests/lobby_side_wings_validation.luau",
+      "rawSha256": "011511d7027100062b2c82dd54818d172c719b3c5b28bf28deba193b75ea3a5d",
+      "lfSha256": "011511d7027100062b2c82dd54818d172c719b3c5b28bf28deba193b75ea3a5d"
+    },
+    {
+      "file": "tests/lobby_surface_drift_validation.luau",
+      "rawSha256": "7348852b8f21c0b29c581ae1e51f9befc5e13e407e56b526c7278e693bde642f",
+      "lfSha256": "7348852b8f21c0b29c581ae1e51f9befc5e13e407e56b526c7278e693bde642f"
+    },
+    {
+      "file": "tests/lobby_terminology_validation.luau",
+      "rawSha256": "4d4fd7922a77a72c8c7bf94a61a0ac832bfe3098570c2eb27c6a44c631312334",
+      "lfSha256": "16717c61924d9f471415ddea72de1de0282d0afbe76e3c8642bfaa98bc2e1b03"
+    },
+    {
+      "file": "tests/lobby_test_drive_validation.luau",
+      "rawSha256": "5faff592c5fdf8bfc215b295cc113bf4af062119fc7ab6a67bebcc276f826ac5",
+      "lfSha256": "5faff592c5fdf8bfc215b295cc113bf4af062119fc7ab6a67bebcc276f826ac5"
+    },
+    {
+      "file": "tests/lobby_title_persistence_validation.luau",
+      "rawSha256": "1b936a588f5aed51a459c418582f7ccb8854c2a5f8f50392379d6d0d9404eab7",
+      "lfSha256": "cc656c8c9fb77b1bd91f2d62e89c2f10363e5eef89ccbbc8675f58e33581d780"
+    },
+    {
+      "file": "tests/lobby_title_validation.luau",
+      "rawSha256": "e49f78ae4fb6c1ee271bfa5d51f6b7fde1776315ed59d1e575b4931411d71952",
+      "lfSha256": "75569555a320043712ebab3df0f82bb4eda80c6ca02366c90acbf0d20fd49d7c"
+    },
+    {
+      "file": "tests/m3_a2_presence_validation.luau",
+      "rawSha256": "883e86269726996f3146b5ab6db02095ebf9882969d80d815ce39c924d76647f",
+      "lfSha256": "16fd1ee19a7876ea444823bca0a52bb19b1c2b8f8aa40adcdf0661ed9cad654c"
+    },
+    {
+      "file": "tests/m3_a2_room_display_validation.luau",
+      "rawSha256": "ca5f5f4a46be61bed59f321910b019a4a8977c4e576dc5ac2cae491f274aba1f",
+      "lfSha256": "ca5f5f4a46be61bed59f321910b019a4a8977c4e576dc5ac2cae491f274aba1f"
+    },
+    {
+      "file": "tests/match_room_service_validation.luau",
+      "rawSha256": "6b66bb4adc15d97052eaca5eaca158db68aa4fef5d28661698119fa17d7f8725",
+      "lfSha256": "021c50610ba8f3b8b97e5540aae87dd7b41c407a40472456302391e281b901f7"
+    },
+    {
+      "file": "tests/match_room_validation.luau",
+      "rawSha256": "6adc0682a0d8530e566566758895004dd63f43dc89cf755aed87bad4bdad5c67",
+      "lfSha256": "6adc0682a0d8530e566566758895004dd63f43dc89cf755aed87bad4bdad5c67"
+    },
+    {
+      "file": "tests/missile_validation.luau",
+      "rawSha256": "be7cf8b174d2050b32d009278e5ea2b6f7f47648fa95f319bdee493c86acfb2e",
+      "lfSha256": "f24867050e9a005ed3d5b52f7c14b63dfb97c44225ef55be1cb41d708fdf017f"
+    },
+    {
+      "file": "tests/mobile_hud_polish_validation.luau",
+      "rawSha256": "b1ad0bcea6d6be21ef5463fa2530f47b9db0deb87ac2112b6801689d98cd83e2",
+      "lfSha256": "88166509ae9133451f76ccb17135adf692a2f4442187b2ac27e1befbfb231bb3"
+    },
+    {
+      "file": "tests/mobile_touch_validation.luau",
+      "rawSha256": "d902f8918d7666d744c2e32ec50cbd652132b8b4094bd198b79c834c9771636e",
+      "lfSha256": "d902f8918d7666d744c2e32ec50cbd652132b8b4094bd198b79c834c9771636e"
+    },
+    {
+      "file": "tests/multiplayer_foundation_validation.luau",
+      "rawSha256": "a6fddac91eda00648df6051b7b38ca8245961760d79638fa280710f4a832ceee",
+      "lfSha256": "9cc79df91ed6143aef9722f59473ad810d271858afc22e8a5c6e651d183f84ea"
+    },
+    {
+      "file": "tests/multiplayer_presentation_validation.luau",
+      "rawSha256": "eb63bf04c17f9d6c238c51f14d908e668fc9c132021133b48bb1780dbb84a8a8",
+      "lfSha256": "eb63bf04c17f9d6c238c51f14d908e668fc9c132021133b48bb1780dbb84a8a8"
+    },
+    {
+      "file": "tests/persistent_room_race_validation.luau",
+      "rawSha256": "25de28ba225568bf900cfca80dd31fd2b7f83779826676ecf622b1adb70cdb63",
+      "lfSha256": "345769cc827fffa2ec6581a28c506310454012bf48445d71475fd2e2af622214"
+    },
+    {
+      "file": "tests/pit_garage_art_validation.luau",
+      "rawSha256": "d31a2a652713de16edbf1c7235e1a14d5b911c7818cabe487cd43615265e5a58",
+      "lfSha256": "61ffb588e18ad74e46ec324f1e12edac00043d28b79ad7b1afb217d81a36aa68"
+    },
+    {
+      "file": "tests/player_preferences_validation.luau",
+      "rawSha256": "75961e69531914583a284b69269e9fcc1fb46450086f478d6ec22e70e65fdacf",
+      "lfSha256": "75961e69531914583a284b69269e9fcc1fb46450086f478d6ec22e70e65fdacf"
+    },
+    {
+      "file": "tests/practice_crossover_visual_validation.luau",
+      "rawSha256": "be380aebd334be393c5a4331672e827311846cad7a25bf53fccea7d4fdfdc237",
+      "lfSha256": "8fc77174876031d5d3af93a9308636cc61d4a1198410e81066f6eb8717bacf96"
+    },
+    {
+      "file": "tests/practice_figure8_feasibility_validation.luau",
+      "rawSha256": "6c7acb6ac77236fe31287b038b3ac2b25f9410bc806e3ad2cda3592ba5a7ac15",
+      "lfSha256": "6c7acb6ac77236fe31287b038b3ac2b25f9410bc806e3ad2cda3592ba5a7ac15"
+    },
+    {
+      "file": "tests/practice_figure8_geometry_validation.luau",
+      "rawSha256": "80ab3506aaa58531e2d8b25367755687a5209a1cdd0e3526a58818adac7d3617",
+      "lfSha256": "80ab3506aaa58531e2d8b25367755687a5209a1cdd0e3526a58818adac7d3617"
+    },
+    {
+      "file": "tests/practice_figure8_race_validation.luau",
+      "rawSha256": "8bb8f25ba08e6d0f84f5f255103306e275a42757e52468a4795acda61f874191",
+      "lfSha256": "8bb8f25ba08e6d0f84f5f255103306e275a42757e52468a4795acda61f874191"
+    },
+    {
+      "file": "tests/practice_public_bot_validation.luau",
+      "rawSha256": "e1f010814aed627bac22c011e835ae7c9f7cfa154859dc23406b1989cba82fcf",
+      "lfSha256": "e1f010814aed627bac22c011e835ae7c9f7cfa154859dc23406b1989cba82fcf"
+    },
+    {
+      "file": "tests/practice_three_lap_validation.luau",
+      "rawSha256": "eda11e539a69f95b8239ae8e2d9d5352615621ca150cfde6d881e10f12c21783",
+      "lfSha256": "eda11e539a69f95b8239ae8e2d9d5352615621ca150cfde6d881e10f12c21783"
+    },
+    {
+      "file": "tests/production_bot_validation.luau",
+      "rawSha256": "6e08442548d754d03b01e85c66c14c4bbde6074f261d2b6f098dbc42736a6f8a",
+      "lfSha256": "6e08442548d754d03b01e85c66c14c4bbde6074f261d2b6f098dbc42736a6f8a"
+    },
+    {
+      "file": "tests/race_audio_validation.luau",
+      "rawSha256": "3ae9c2fb8d3eca02e3aa3a50dd22598a1c61cfa0cb682918cd600dc50e97b5aa",
+      "lfSha256": "ac03ce6bbcef10c9300e9b366a044048dd70474ad836ddb5862b8b49db8302c1"
+    },
+    {
+      "file": "tests/race_bot_validation.luau",
+      "rawSha256": "eeb9ea02575a92ff48cc4930679ea8654a6a4faa307af5e611229498fab1977f",
+      "lfSha256": "eeb9ea02575a92ff48cc4930679ea8654a6a4faa307af5e611229498fab1977f"
+    },
+    {
+      "file": "tests/race_item_reset_validation.luau",
+      "rawSha256": "457491115edb5f7c01b52b35141d79af209c0672ac1e2b4ee540aae70d68b224",
+      "lfSha256": "26803ba6ea95f0d2413426e57ce9ff616b6e3a8ebf713cd84f43a98946233690"
+    },
+    {
+      "file": "tests/race_item_validation.luau",
+      "rawSha256": "3d7af4525a9cc0fd1ec3b1a3af58acf7d047ed64c5d4b1ddb0528da6e207e586",
+      "lfSha256": "f368808a881fc3f7608ae76a7a670860140406a1df64dc2d1e2d9ab5ae37a6e3"
+    },
+    {
+      "file": "tests/race_launch_routing_validation.luau",
+      "rawSha256": "f43008112ffe3109c0778655663666f93076fb1adfa03af3d113f0399e77e8fe",
+      "lfSha256": "f43008112ffe3109c0778655663666f93076fb1adfa03af3d113f0399e77e8fe"
+    },
+    {
+      "file": "tests/race_loadout_slots_validation.luau",
+      "rawSha256": "c774698d57a4a5b0910e1c2274c11ffe587a4384632d94f5c111a6778134bf17",
+      "lfSha256": "c774698d57a4a5b0910e1c2274c11ffe587a4384632d94f5c111a6778134bf17"
+    },
+    {
+      "file": "tests/race_mode_validation.luau",
+      "rawSha256": "d52f55f360a1e75cfaa41787bbdd20bc7891f1456d673745ebf00e9457990671",
+      "lfSha256": "d52f55f360a1e75cfaa41787bbdd20bc7891f1456d673745ebf00e9457990671"
+    },
+    {
+      "file": "tests/race_result_hud_validation.luau",
+      "rawSha256": "e8fed8f39f4f192ec0d4b1f6d0c91d444930160df26ec42617614f3a482339fa",
+      "lfSha256": "e361ef0c453317b2e701179e5939a3ff5e56aadee98fffe4eb8c582395f96b2c"
+    },
+    {
+      "file": "tests/race_results_cache_validation.luau",
+      "rawSha256": "182077a9f8e5ac3e9798fb482fb8bbd2bff016cdb9ce96003c49395743bc6f42",
+      "lfSha256": "182077a9f8e5ac3e9798fb482fb8bbd2bff016cdb9ce96003c49395743bc6f42"
+    },
+    {
+      "file": "tests/race_room_coordinator_validation.luau",
+      "rawSha256": "cf1e7b4c067317b73076002f769b52496f55ef5e7103aa40cfc3410f4f90a6d4",
+      "lfSha256": "b390ad6f2df9c8f62e635cb0b6b7be4a57526428163ec0b945fa6693e468c813"
+    },
+    {
+      "file": "tests/race_route_validation.luau",
+      "rawSha256": "472af37431efe09bc6fc8e32e92abc5bf1add98da7c326971d6c680325753372",
+      "lfSha256": "28dee7bb4e7e3a8b150dc2ee301d1b263c092cf467fa5cefe81890a8616b8656"
+    },
+    {
+      "file": "tests/remote_world_vfx_validation.luau",
+      "rawSha256": "c997ddb688f272c18787fd6c817639550bc9293ad25a611115a139470299e27a",
+      "lfSha256": "480cbba5c6e8afa1c1ca51d090aac4b25516a316b6d3c4574148064c0070a3a4"
+    },
+    {
+      "file": "tests/repeatable_nitro_validation.luau",
+      "rawSha256": "f786f313e035262e2b3d07857218270b4d88ed8d26009fcffee4ac526c83edf3",
+      "lfSha256": "f786f313e035262e2b3d07857218270b4d88ed8d26009fcffee4ac526c83edf3"
+    },
+    {
+      "file": "tests/reserved_arrival_validation.luau",
+      "rawSha256": "a7ab1c07bc3f65e5c1f7c6f8716b1bbeaf7cb792a5cc4b993c567badcaebdc11",
+      "lfSha256": "849e10e5d2a0677521d9e6880b88587b015e0656a8e8e2c3bd71a1c8022286d7"
+    },
+    {
+      "file": "tests/reserved_match_validation.luau",
+      "rawSha256": "3c5e49e290309f887fabf4b50def43ae1323073517c709baa70fba075995757d",
+      "lfSha256": "8f3a39e685af0ffaca7e24ba32bb07e0e533a87f515af1725172c1859d6bdc3b"
+    },
+    {
+      "file": "tests/route_continuity_validation.luau",
+      "rawSha256": "c0f122211ce9d629e602a89f3da456d5e613aacdcb1c15d4d0f90372754e850e",
+      "lfSha256": "c0f122211ce9d629e602a89f3da456d5e613aacdcb1c15d4d0f90372754e850e"
+    },
+    {
+      "file": "tests/shield_restore_validation.luau",
+      "rawSha256": "c12265722d20d145852b4baef7ecf6505561bb8a0e4bacd610a3d6e2244c4024",
+      "lfSha256": "f24cb258c35d7e853caace7e53a59c6b15f34c176f9e3109b91365c53350bed8"
+    },
+    {
+      "file": "tests/slick_spin_validation.luau",
+      "rawSha256": "1613435d190cb9f5da24d872e523f20b3d77fae4633f5f6ce8c08b0af08abb5b",
+      "lfSha256": "2233e1b2ec38d497932bf02f868abc2f4543fa7ce6dd2d6095011f106f6de274"
+    },
+    {
+      "file": "tests/slick_validation.luau",
+      "rawSha256": "71b26a2915c213644cb3c4d811034077b95a4ac4956ab7d9bd23a1df5d2db63f",
+      "lfSha256": "763d796f41fd31b8ac81b946186021a2c9e407c60195ab2ed7b7aed3d70a2828"
+    },
+    {
+      "file": "tests/smoke_effect_view_validation.luau",
+      "rawSha256": "dc8754b2af83ce0448f3b14baf6794fcb42609145ab2cd9ec8c29e651c0cea2e",
+      "lfSha256": "dc8754b2af83ce0448f3b14baf6794fcb42609145ab2cd9ec8c29e651c0cea2e"
+    },
+    {
+      "file": "tests/smoke_validation.luau",
+      "rawSha256": "10f6670d1fb956afa3419c5cc6d1a99ac445466b349cfaaebae9db05a96ede0f",
+      "lfSha256": "543a0dcb943733b634731d49299e8a5e7cf1ddba57a2c92c0f5df9cd951c5e45"
+    },
+    {
+      "file": "tests/speed_sensation_camera_validation.luau",
+      "rawSha256": "c6412c85530e476581092b75687ef8dca1d0c0b8c670d9224dd00f7ae4b76ed3",
+      "lfSha256": "c6412c85530e476581092b75687ef8dca1d0c0b8c670d9224dd00f7ae4b76ed3"
+    },
+    {
+      "file": "tests/speed_sensation_validation.luau",
+      "rawSha256": "a21a44ad2c8b43a3c2e2dac9ff669db7e9697e1b7420cbce2f8964f3187c62ab",
+      "lfSha256": "a21a44ad2c8b43a3c2e2dac9ff669db7e9697e1b7420cbce2f8964f3187c62ab"
+    },
+    {
+      "file": "tests/speed_world_vfx_validation.luau",
+      "rawSha256": "a9e387adb734063455da2db32375a3845c208bd8338d31de956600865b0b09e5",
+      "lfSha256": "0ba40041ef017978a3e90b70b709c9546541f597b3b1d7af482fc12d7af049f1"
+    },
+    {
+      "file": "tests/straight_speed_kart_validation.luau",
+      "rawSha256": "a6b5e82948c73f3a33274b365649410f91a7cbeca99f0fec6b11207bf857766d",
+      "lfSha256": "a6b5e82948c73f3a33274b365649410f91a7cbeca99f0fec6b11207bf857766d"
+    },
+    {
+      "file": "tests/straight_speed_validation.luau",
+      "rawSha256": "e1f2a6ef3356d85a079a70d8edf6375db0cc2cd400566abb0787d4aba36fed4d",
+      "lfSha256": "e1f2a6ef3356d85a079a70d8edf6375db0cc2cd400566abb0787d4aba36fed4d"
+    },
+    {
+      "file": "tests/thunder_validation.luau",
+      "rawSha256": "b110ca5c080bcd7641f90a3e762fea394b2a9c646551bb4f1de0bb9032b1f00d",
+      "lfSha256": "97b2008721fa4865d28517fb1315526581c64f49928969e6125b510e5544e061"
+    },
+    {
+      "file": "tests/track03_four_player_validation.luau",
+      "rawSha256": "8f2506fc6fcedae62490363806d412e0e0158cb9cb3dc7fedbe5288605fccf65",
+      "lfSha256": "8f2506fc6fcedae62490363806d412e0e0158cb9cb3dc7fedbe5288605fccf65"
+    },
+    {
+      "file": "tests/track_diorama_orbit_validation.luau",
+      "rawSha256": "dbc36380a902a33c98e58b6ada11596196b5e640556a7faa793505aec2345558",
+      "lfSha256": "00845a13b1b5e145eb560f7830daa17c2dc5dbf5404f889f3bf6e97a3140d6d8"
+    },
+    {
+      "file": "tests/track_diorama_validation.luau",
+      "rawSha256": "bc6b3abbe57d73a71647e4ba208a08590059f0172f6ff42f5a54d46f2a9bfe96",
+      "lfSha256": "b49bfa28495b12aae6ccf2a2175a9083393c4dd7cd0cf24f9c888c9a3fa70abd"
+    },
+    {
+      "file": "tests/track_environment_validation.luau",
+      "rawSha256": "f43a649e53d9f8699a5c929c497873f0b8c98dde2a5a8de26d1ce36c8ec330ef",
+      "lfSha256": "8c4b2361349324be2d527e777de68d52e03c3172a05effcb0d7061b8d380bf64"
+    },
+    {
+      "file": "tests/track_h3_flow_validation.luau",
+      "rawSha256": "3c4958dcb732e3b9498ca192ae0bf824bfd0a28ac69d6934fb79016a8500cdd4",
+      "lfSha256": "6c2d9fa789f245d3160e3a5998b30519ea724ad0281b3e1bbe62a8bfacca6554"
+    },
+    {
+      "file": "tests/track_v2_geometry_validation.luau",
+      "rawSha256": "ca6605ca2faf61e4e1195f90fec4609a86961bec4b3d265df319d3abecc92635",
+      "lfSha256": "ca6605ca2faf61e4e1195f90fec4609a86961bec4b3d265df319d3abecc92635"
+    },
+    {
+      "file": "tests/track_visual_standard_validation.luau",
+      "rawSha256": "53416e0abcaff30b506fecaf2c98e9c887c0a4c0aff6d3d4fe5f3fcc20988d52",
+      "lfSha256": "53416e0abcaff30b506fecaf2c98e9c887c0a4c0aff6d3d4fe5f3fcc20988d52"
+    },
+    {
+      "file": "tests/two_player_race_validation.luau",
+      "rawSha256": "57b59cf696ba91069e55949ab030eedc6c45668299467d69dd206a5a4c8abfd7",
+      "lfSha256": "57b59cf696ba91069e55949ab030eedc6c45668299467d69dd206a5a4c8abfd7"
+    },
+    {
+      "file": "tests/v2_gauge_v1_audio_validation.luau",
+      "rawSha256": "2f7ca4cde6446a7cf734944b32cba585dd5c0c62ef7c4e7700d4ef3faf393f05",
+      "lfSha256": "8eb33ec0bed2b2945192decd55504832fff3dd3a87d9ea6d8c593819fb208cbd"
+    },
+    {
+      "file": "tests/v2_public_multiplayer_validation.luau",
+      "rawSha256": "a858e628dd6892d7c3b5f7d8c53741f0a5f739a6a1301ba5c131de5808e1df43",
+      "lfSha256": "a858e628dd6892d7c3b5f7d8c53741f0a5f739a6a1301ba5c131de5808e1df43"
+    }
+  ]
+}

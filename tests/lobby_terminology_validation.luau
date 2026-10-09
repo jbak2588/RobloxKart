@@ -23,7 +23,7 @@ for id,name in names do
  check(equal(entry,baseline.Entries[id]),"all non-display catalog fields unchanged "..id)
 end
 local source=fs.readFile("src/client/MatchRoomUiController.luau")
-for _,text in {"RACE LOBBIES","CREATE LOBBY","ENTER LOBBY","CREATING LOBBY...","JOINING LOBBY...","LOBBY STATUS UPDATING...","NO ACTIVE LOBBIES","CREATE OR JOIN A 1–%d RACER LOBBY"}do
+for _,text in {"RACE LIST","CREATE RACE","ENTER RACE","CREATING RACE...","ENTERING RACE...","RACE LIST UPDATING...","NO ACTIVE RACES","CREATE OR JOIN A RACE • 1–%d RACERS"}do
  check(source:find(text,1,true)~=nil,"exact visible mapping "..text)
 end
 check(not source:find('"RACE ROOMS"',1,true)and not source:find('"CREATE ROOM"',1,true),"obsolete browser terms absent")
@@ -37,5 +37,5 @@ check(fs.readFile("src/server/RoomSocialDirectory.luau"):find('"KDM_RoomInvites_
 local g=luau.load(fs.readFile("src/client/HubGuidanceState.luau"))()
 local state=g.new();g.confirmed(state,"Track03")
 check(g.nextAction(state)=="ROOMS","internal action token preserved")
-check(g.presentation(state,rb.Vector2.new(844,390),"GARAGE",false,"",false).button=="LOBBIES","display separates action token")
+check(g.presentation(state,rb.Vector2.new(844,390),"GARAGE",false,"",false).button=="RACE LIST","display separates action token")
 print("PASS: "..n.." exact terminology / catalog parity / internal protocol contracts")

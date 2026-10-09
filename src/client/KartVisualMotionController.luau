@@ -7,11 +7,11 @@ local STEER_MAX = math.rad(25)
 local STEER_RESPONSE = 10
 
 local function getKart(seatPart: BasePart?): Model?
-	if not seatPart or seatPart:GetAttribute("PrototypeKartSeat") ~= true then
+	if not seatPart or (seatPart:GetAttribute("PrototypeKartSeat") ~= true and seatPart:GetAttribute("LobbyKartSeat") ~= true) then
 		return nil
 	end
 	local kart = seatPart.Parent
-	if kart and kart:IsA("Model") and kart:GetAttribute("PrototypeKart") == true then
+	if kart and kart:IsA("Model") and (kart:GetAttribute("PrototypeKart") == true or kart:GetAttribute("LobbyKart") == true) then
 		return kart
 	end
 	return nil

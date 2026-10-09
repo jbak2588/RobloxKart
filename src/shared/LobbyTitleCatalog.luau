@@ -9,7 +9,7 @@ Catalog.Presets = table.freeze({
 Catalog.Order = table.freeze({"LETS_RACE", "BEGINNERS_WELCOME", "DRIFT_PRACTICE"})
 
 function Catalog.defaultTitle(displayName)
- return (if type(displayName)=="string" and displayName~="" then displayName else "Racer").."'s Lobby"
+ return (if type(displayName)=="string" and displayName~="" then displayName else "Racer").."'s Race"
 end
 
 -- Pure input normalization. Filtering belongs exclusively to the server.

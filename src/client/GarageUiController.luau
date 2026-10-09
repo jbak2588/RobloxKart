@@ -25,6 +25,8 @@ local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialVie
 local started = false
 local STEP_KART, STEP_TRACK, STEP_READY = 1, 2, 3
 local openOverlay, closeOverlay
+local openGate = nil
+function GarageUiController.setOpenGate(gate) openGate = gate end
 local navigationObservers = {}
 local function notifyNavigation(event, action)
  for callback in navigationObservers do callback(event, action) end
@@ -82,6 +84,8 @@ local function makeText(parent: Instance, size: UDim2, position: UDim2, text: st
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBold
 	label.TextColor3 = Theme.TextPrimary
+	label.TextStrokeColor3 = Theme.Background
+	label.TextStrokeTransparency = .55
 	label.TextScaled = false
 	label.TextSize = fontSize
 	label.Text = text
@@ -145,10 +149,13 @@ function GarageUiController.start()
 	local background = Instance.new("Frame")
 	background.Name = "FullScreenBackground"
 	background.Size = UDim2.fromScale(1, 1)
-	background.BackgroundColor3 = Color3.new(1, 1, 1)
+	background.BackgroundColor3 = Theme.Background
+	background.BackgroundTransparency = .82
+	background.Active = true
 	background.BorderSizePixel = 0
 	background.Parent = backgroundGui
-	visualGradient(background, GARAGE_COLORS.BackgroundTop, GARAGE_COLORS.BackgroundBottom)
+	-- The live Workspace Lobby remains behind normal selections. RouteTransition
+	-- keeps its independent loading shade and input ownership below.
 	gui:GetPropertyChangedSignal("Enabled"):Connect(function() backgroundGui.Enabled = gui.Enabled end)
 	gui.Destroying:Connect(function() backgroundGui:Destroy() end)
 
@@ -156,6 +163,7 @@ function GarageUiController.start()
 	backdrop.Size = UDim2.fromScale(1, 1)
 	backdrop.BackgroundColor3 = Theme.Background
 	backdrop.BackgroundTransparency = 1
+	backdrop.Active = true
 	backdrop.BorderSizePixel = 0
 	backdrop.Parent = gui
 	local routeOverlay = Instance.new("Frame")
@@ -209,7 +217,7 @@ function GarageUiController.start()
 		"BUILD PV " .. tostring(game.PlaceVersion), 11)
 	buildLabel.TextColor3 = Theme.TextSecondary
 	if GARAGE_LAYOUT_DEBUG then
-		buildLabel.Text ..= " • " .. GARAGE_LAYOUT_REVISION
+		buildLabel.Text ..= " \u{2022} " .. GARAGE_LAYOUT_REVISION
 		buildLabel.Size = UDim2.fromOffset(260, 16)
 	end
 	buildLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -242,8 +250,8 @@ function GarageUiController.start()
 		if not snapshot or snapshot.stale then
 			populationLabel.Text = "KDM STATUS UPDATING..."
 		else
-			local separator = if populationTwoLines then "\n" else " • "
-			populationLabel.Text = string.format("KDM ONLINE %d%sLOBBY %d • IN RACE %d",
+			local separator = if populationTwoLines then "\n" else " \u{2022} "
+			populationLabel.Text = string.format("KDM ONLINE %d%sLOBBY %d \u{2022} IN RACE %d",
 				snapshot.online, separator, snapshot.lobby, snapshot.inRace)
 		end
 	end
@@ -650,7 +658,7 @@ function GarageUiController.start()
 		if entry and entry.Visible ~= false and entry.Selectable ~= false then table.insert(trackOrder, id) end
 	end
 	local catalogs = { [STEP_KART] = KartCatalog, [STEP_TRACK] = {Order=trackOrder, Entries=TrackCatalog.Entries} }
-	local headings = { [STEP_KART] = "KART GARAGE", [STEP_TRACK] = "STEP 1 / 2 · TRACK SELECT", [STEP_READY] = "2 / 2   READY" }
+	local headings = { [STEP_KART] = "KART GARAGE", [STEP_TRACK] = "STEP 1 / 2 \u{00B7} TRACK SELECT", [STEP_READY] = "2 / 2   READY" }
 	local previewKey: string? = nil
 	local previewWorld: WorldModel? = nil
 	local previewCamera: Camera? = nil
@@ -914,7 +922,7 @@ function GarageUiController.start()
 		rightArrow.Position = UDim2.fromOffset(selectionCenter+stageWidth*.5+8,arrowTop)
 		if step == STEP_TRACK then
 			-- Track-only expansion: metadata shares the card, freeing the former
-			-- name/detail lanes. Fit preserves the whole approved 1672×941 image.
+			-- name/detail lanes. Fit preserves the whole approved 1672x941 image.
 			if mobileCompact and width>height then
 				-- Keep online/room information together in the preserved sidebar,
 				-- releasing an entire header row for the full-circuit image.
@@ -1156,8 +1164,8 @@ function GarageUiController.start()
 		trackName.Text = track.DisplayName
   trackMetadata.TextColor3 = if track.MatchType == "PUBLIC_RACE" then Theme.PublicRace else Theme.TextSecondary
 		trackMetadata.Text = if track.MatchType == "PUBLIC_RACE" then
-			string.format("PUBLIC RACE • %d–%d PLAYERS • %d %s",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
-			else string.format("SOLO • 1 PLAYER • %d %s",track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
+			string.format("PUBLIC RACE \u{2022} %d\u{2013}%d PLAYERS \u{2022} %d %s",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
+			else string.format("SOLO \u{2022} 1 PLAYER \u{2022} %d %s",track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
 		-- A nonblocking silhouette is present until the approved image is ready.
 		-- A missing/denied asset keeps this fallback; no launch/selection gate.
 		local ok,fallback = pcall(function()
@@ -1373,7 +1381,7 @@ function GarageUiController.start()
   for _,key in KartCatalog.Order do
    local chip=chips[key];chip.Visible=KartCatalog.Entries[key].VisualModelName==family
    if chip.Visible then chip.Position=UDim2.fromOffset(if columns then index%columns*chipPitch else index*chipPitch,if columns then math.floor(index/columns)*chipPitch else 0);index+=1 end
-   chip.Text=if key==id then "✓" else ""
+   chip.Text=if key==id then "\u{2713}" else ""
    chip.BackgroundTransparency,chip.TextTransparency=if sideControls then 1 else 0,if sideControls then 1 else 0
    chip.Swatch.Visible,chip.Swatch.Text=sideControls,chip.Text
    chip.SelectionRing.Transparency=if key==id then 0 else 1
@@ -1487,13 +1495,13 @@ function GarageUiController.start()
 			choiceLabel.Text = catalog.Entries[selectedId].DisplayName
 			detailLabel.Text = if step <= STEP_KART then ""
 				else (if TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
-				else string.format("SOLO • 1 PLAYER • %d %s", TrackCatalog.Entries[trackId].TargetLaps, if TrackCatalog.Entries[trackId].TargetLaps == 1 then "LAP" else "LAPS"))
+				else string.format("SOLO \u{2022} 1 PLAYER \u{2022} %d %s", TrackCatalog.Entries[trackId].TargetLaps, if TrackCatalog.Entries[trackId].TargetLaps == 1 then "LAP" else "LAPS"))
 		else
 			choiceLabel.Text = string.format("%s / %s", KartCatalog.Entries[kartId].DisplayName, TrackCatalog.Entries[trackId].DisplayName)
 			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
 		previousButton.Visible = true
-		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "LOBBIES" else "SELECT"
+		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE LIST" else "SELECT"
 		cycleButton.Active = selectionPending == nil
 		cycleButton.Visible = step <= STEP_TRACK
 		nextButton.Visible = step == STEP_READY
@@ -1512,6 +1520,7 @@ function GarageUiController.start()
 
 
  openOverlay = function(action, confirmedTrackId)
+  if openGate and openGate(function() openOverlay(action, confirmedTrackId) end) then return end
   if player:GetAttribute("RaceState") ~= "GARAGE" or localRouteRequested
    or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH" then return end
   -- A browser acknowledgement can come from an Invite as well as Track Select.

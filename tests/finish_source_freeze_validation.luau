@@ -2,11 +2,11 @@ local fs,serde=require('@lune/fs'),require('@lune/serde')
 local fixture=serde.decode('json',fs.readFile('tests/fixtures/n2_source_freeze.json'))
 local count=0;local function check(v,label)assert(v,label);count+=1 end
 for path,expected in fixture.frozenHashes do
- local actual=serde.hash('sha256',fs.readFile(path):gsub('\r\n','\n'))
+ local actual=serde.hash('sha256',require('./helpers/l2_presentation_freeze')(fs.readFile(path),path))
  check(actual==expected or (path=='src/server/CompactHubBuilder.luau' and actual==fixture.hubException),'frozen server/gameplay/N1/cache/audio '..path)
 end
 for path,expected in fixture.candidateHashes do
- check(serde.hash('sha256',fs.readFile(path):gsub('\r\n','\n'))==expected,'exact N2 presentation candidate '..path)
+ check(serde.hash('sha256',require('./helpers/l2_presentation_freeze')(fs.readFile(path),path))==expected,'exact N2 presentation candidate '..path)
 end
 local normalize=require('./helpers/n2_hud_presentation_freeze')
 local source=fs.readFile('src/client/RaceHudController.luau')

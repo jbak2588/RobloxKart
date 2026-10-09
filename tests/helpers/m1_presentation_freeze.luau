@@ -1,5 +1,6 @@
 -- Only exact R7-M1 display changes are reversed; unrelated edits remain detectable.
 return function(source)
+ source=require('./l2_presentation_freeze')(source)
  source=source:gsub("\r\n","\n")
  do local current,prior=[====[		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "LOBBIES" else "SELECT"
 ]====],[====[		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "ROOMS" else "SELECT"

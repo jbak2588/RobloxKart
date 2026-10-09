@@ -1,0 +1,364 @@
+{
+  "src/client/GarageUiController.luau": {
+    "currentHash": "1252b5bbf7936b0f32cea3ba8da602fcc765dbbda3bbbceb9ddfe79e6f176588",
+    "a1Hash": "6a65d0c02eaeff7f1d9234e0a9839eda6f888df97cd11f095849c202a70faefc",
+    "beforeHash": "846a219c6f59dad43142658f995dd06960ce12b7c256ae8d40ea88da33861bec",
+    "followupInverse": [
+      {
+        "start": 8720,
+        "finish": 8781,
+        "after": "\t\tbuildLabel.Text ..= \" \\u{2022} \" .. GARAGE_LAYOUT_REVISION\n",
+        "before": "\t\tbuildLabel.Text ..= \" \u2022 \" .. GARAGE_LAYOUT_REVISION\n"
+      },
+      {
+        "start": 10218,
+        "finish": 10376,
+        "after": "\t\t\tlocal separator = if populationTwoLines then \"\\n\" else \" \\u{2022} \"\n\t\t\tpopulationLabel.Text = string.format(\"KDM ONLINE %d%sLOBBY %d \\u{2022} IN RACE %d\",\n",
+        "before": "\t\t\tlocal separator = if populationTwoLines then \"\\n\" else \" \u2022 \"\n\t\t\tpopulationLabel.Text = string.format(\"KDM ONLINE %d%sLOBBY %d \u2022 IN RACE %d\",\n"
+      },
+      {
+        "start": 28237,
+        "finish": 28370,
+        "after": "\tlocal headings = { [STEP_KART] = \"KART GARAGE\", [STEP_TRACK] = \"STEP 1 / 2 \\u{00B7} TRACK SELECT\", [STEP_READY] = \"2 / 2   READY\" }\n",
+        "before": "\tlocal headings = { [STEP_KART] = \"KART GARAGE\", [STEP_TRACK] = \"STEP 1 / 2 \u00b7 TRACK SELECT\", [STEP_READY] = \"2 / 2   READY\" }\n"
+      },
+      {
+        "start": 43649,
+        "finish": 43723,
+        "after": "\t\t\t-- name/detail lanes. Fit preserves the whole approved 1672x941 image.\n",
+        "before": "\t\t\t-- name/detail lanes. Fit preserves the whole approved 1672\u00d7941 image.\n"
+      },
+      {
+        "start": 56302,
+        "finish": 56602,
+        "after": "\t\t\tstring.format(\"PUBLIC RACE \\u{2022} %d\\u{2013}%d PLAYERS \\u{2022} %d %s\",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then \"LAP\" else \"LAPS\")\n\t\t\telse string.format(\"SOLO \\u{2022} 1 PLAYER \\u{2022} %d %s\",track.TargetLaps,if track.TargetLaps==1 then \"LAP\" else \"LAPS\")\n",
+        "before": "\t\t\tstring.format(\"PUBLIC RACE \u2022 %d\u2013%d PLAYERS \u2022 %d %s\",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then \"LAP\" else \"LAPS\")\n\t\t\telse string.format(\"SOLO \u2022 1 PLAYER \u2022 %d %s\",track.TargetLaps,if track.TargetLaps==1 then \"LAP\" else \"LAPS\")\n"
+      },
+      {
+        "start": 66335,
+        "finish": 66383,
+        "after": "   chip.Text=if key==id then \"\\u{2713}\" else \"\"\n",
+        "before": "   chip.Text=if key==id then \"\u2713\" else \"\"\n"
+      },
+      {
+        "start": 71247,
+        "finish": 71427,
+        "after": "\t\t\t\telse string.format(\"SOLO \\u{2022} 1 PLAYER \\u{2022} %d %s\", TrackCatalog.Entries[trackId].TargetLaps, if TrackCatalog.Entries[trackId].TargetLaps == 1 then \"LAP\" else \"LAPS\"))\n",
+        "before": "\t\t\t\telse string.format(\"SOLO \u2022 1 PLAYER \u2022 %d %s\", TrackCatalog.Entries[trackId].TargetLaps, if TrackCatalog.Entries[trackId].TargetLaps == 1 then \"LAP\" else \"LAPS\"))\n"
+      }
+    ],
+    "a1Inverse": [
+      {
+        "start": 1498,
+        "finish": 1585,
+        "after": "local openGate = nil\nfunction GarageUiController.setOpenGate(gate) openGate = gate end\n",
+        "before": ""
+      },
+      {
+        "start": 72537,
+        "finish": 72634,
+        "after": "  if openGate and openGate(function() openOverlay(action, confirmedTrackId) end) then return end\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/client/HubUiController.luau": {
+    "currentHash": "78e04fd066cd2e4e22fce62725517ac34bd57d41b924e7b57cbc81c710209ade",
+    "a1Hash": "e45d721686dceb5b3d72bf1d0dce71a2bc15b370ac09ae0183dee701239cac55",
+    "beforeHash": "5ebb7508506c02957caabfae266d0cce34cffc4985076b3440887907dd3a5f9d",
+    "followupInverse": [
+      {
+        "start": 626,
+        "finish": 774,
+        "after": "local LobbyLayout=require(script.Parent:WaitForChild(\"LobbyDriveLayout\"))\nlocal MobileView=require(script.Parent:WaitForChild(\"MobileControlView\"))\n",
+        "before": ""
+      },
+      {
+        "start": 5484,
+        "finish": 5857,
+        "after": "  local driveLayout=LobbyLayout.shortcuts(canvas.AbsoluteSize,MobileView)\n  panel.AnchorPoint = if driving then Vector2.zero else Vector2.new(1,1)\n  panel.Position = if driving then UDim2.fromOffset(driveLayout.x,driveLayout.y) else UDim2.new(1,-12,1,-12)\n  panel.Size = if driving then UDim2.fromOffset(driveLayout.width,driveLayout.height) else UDim2.fromOffset(150,104)\n",
+        "before": "  panel.AnchorPoint = if driving then Vector2.new(.5,0) else Vector2.new(1,1)\n  panel.Position = if driving then UDim2.new(.5,0,0,8) else UDim2.new(1,-12,1,-12)\n  panel.Size = if driving then UDim2.fromOffset(300,48) else UDim2.fromOffset(150,104)\n"
+      },
+      {
+        "start": 5931,
+        "finish": 6125,
+        "after": "   button.Size = if driving then UDim2.new(1,-12,0,34) else UDim2.new(1,-12,0,44)\n   button.Position = if driving then UDim2.fromOffset(6,4+(index-1)*38) else UDim2.fromOffset(6,6+(index-1)*48)\n",
+        "before": "   button.Size = if driving then UDim2.fromOffset(140,36) else UDim2.new(1,-12,0,44)\n   button.Position = if driving then UDim2.fromOffset(6+(index-1)*148,6) else UDim2.fromOffset(6,6+(index-1)*48)\n"
+      },
+      {
+        "start": 8074,
+        "finish": 8668,
+        "after": "  if ok then\n   display=result\n   local point=Instance.new(\"Part\");point.Name=\"LobbyDisplayDrivePoint\";point.Size=Vector3.one;point.Transparency=1;point.Anchored=true;point.CanCollide=false;point.CanTouch=false;point.CanQuery=false\n   point.CFrame=anchor.CFrame*CFrame.new(0,2,0);point.Parent=display\n   local prompt=Instance.new(\"ProximityPrompt\");prompt.Name=\"LobbyDisplayTestDrive\";prompt.ActionText=\"TEST DRIVE\";prompt.ObjectText=\"\";prompt.RequiresLineOfSight=false;prompt.MaxActivationDistance=8;prompt.Parent=point\n  else warn(\"[Hub] My Kart display unavailable: \"..tostring(result)) end\n",
+        "before": "  if ok then display=result else warn(\"[Hub] My Kart display unavailable: \"..tostring(result)) end\n"
+      }
+    ],
+    "a1Inverse": [
+      {
+        "start": 5219,
+        "finish": 5862,
+        "after": "  local driving = player:GetAttribute(\"LobbyDriveActive\") == true\n  if driving then presentation.visible = false end\n  panel.AnchorPoint = if driving then Vector2.new(.5,0) else Vector2.new(1,1)\n  panel.Position = if driving then UDim2.new(.5,0,0,8) else UDim2.new(1,-12,1,-12)\n  panel.Size = if driving then UDim2.fromOffset(300,48) else UDim2.fromOffset(150,104)\n  for index, name in {\"GARAGE\",\"TRACKS\"} do\n   local button = panel[name]\n   button.Size = if driving then UDim2.fromOffset(140,36) else UDim2.new(1,-12,0,44)\n   button.Position = if driving then UDim2.fromOffset(6+(index-1)*148,6) else UDim2.fromOffset(6,6+(index-1)*48)\n  end\n",
+        "before": ""
+      },
+      {
+        "start": 7442,
+        "finish": 7573,
+        "after": "  if not anchor or player:GetAttribute(\"RaceState\") ~= \"GARAGE\" or player:GetAttribute(\"LobbyDriveActive\") == true then return end\n",
+        "before": "  if not anchor or player:GetAttribute(\"RaceState\") ~= \"GARAGE\" then return end\n"
+      },
+      {
+        "start": 8181,
+        "finish": 8285,
+        "after": " table.insert(connections,player:GetAttributeChangedSignal(\"LobbyDriveActive\"):Connect(refreshDisplay))\n",
+        "before": ""
+      },
+      {
+        "start": 8303,
+        "finish": 8398,
+        "after": " for _, attribute in {\"RaceState\", \"HubOverlayOpen\", \"KDMRoutePending\", \"LobbyDriveActive\"} do\n",
+        "before": " for _, attribute in {\"RaceState\", \"HubOverlayOpen\", \"KDMRoutePending\"} do\n"
+      }
+    ]
+  },
+  "src/client/init.client.luau": {
+    "currentHash": "99e0961a8650de8580db1c7ea7be69aecb2effa66d5a8ebb2374d16329005e1b",
+    "a1Hash": "99e0961a8650de8580db1c7ea7be69aecb2effa66d5a8ebb2374d16329005e1b",
+    "beforeHash": "dc855f6493e984d2495d0040099d7af8d6ce3b88a83d57f194d2ff81bb2f8312",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 2520,
+        "finish": 2611,
+        "after": "if role == \"HUB\" then require(script:WaitForChild(\"LobbyTestDriveController\")).start() end\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/client/KartInputController.luau": {
+    "currentHash": "62ba26b81f7e4445fdfbe2671332c3e698f1f7882c0b7411cf55e0bbe9d0f897",
+    "a1Hash": "f96c5278bd6c833ff5c3d703b35c3d8e5d9272d8607136331cb48256d683ee65",
+    "beforeHash": "e0100b57fb66dbd9039337091113f72f90cf6ba10c3fecd7d5d774bc00a899d7",
+    "followupInverse": [
+      {
+        "start": 5552,
+        "finish": 5710,
+        "after": "\t\t\t\tlocal throttle, steering, drift = getInputAxes()\n\t\t\t\tlobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift)\n",
+        "before": "\t\t\t\tlocal throttle, steering = getInputAxes()\n\t\t\t\tlobbySender(if neutral then 0 else throttle, if neutral then 0 else steering)\n"
+      }
+    ],
+    "a1Inverse": [
+      {
+        "start": 742,
+        "finish": 1450,
+        "after": "local lobbySender = nil\nlocal lobbyTouchReset = nil\nfunction KartInputController.setLobbyInputSender(sender) lobbySender = sender end\nfunction KartInputController.setLobbyTouchReset(reset) lobbyTouchReset = reset end\nfunction KartInputController.resetLobbyTouchState() if lobbyTouchReset then lobbyTouchReset() end end\nfunction KartInputController.isLobbyDriving()\n local player=Players.LocalPlayer\n local h=player.Character and player.Character:FindFirstChildOfClass(\"Humanoid\")\n local seat=h and h.SeatPart\n return player:GetAttribute(\"LobbyDriveActive\")==true and h and h.Health>0 and seat\n  and seat:GetAttribute(\"LobbyKartSeat\")==true and seat.Parent:GetAttribute(\"LobbyOwnerUserId\")==player.UserId\nend\n",
+        "before": ""
+      },
+      {
+        "start": 3822,
+        "finish": 3919,
+        "after": "\treturn if isDrivingPrototypeKart() or KartInputController.isLobbyDriving() then steering else 0\n",
+        "before": "\treturn if isDrivingPrototypeKart() then steering else 0\n"
+      },
+      {
+        "start": 5472,
+        "finish": 5725,
+        "after": "\t\tif lobbySender and KartInputController.isLobbyDriving() then\n\t\t\tif force then\n\t\t\t\tlocal throttle, steering = getInputAxes()\n\t\t\t\tlobbySender(if neutral then 0 else throttle, if neutral then 0 else steering)\n\t\t\t\ttimeSinceSend = 0\n\t\t\tend\n\t\t\treturn\n\t\tend\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/client/KartVisualMotionController.luau": {
+    "currentHash": "c923ea8f49fab823bcab482251f7e3c5c1918da1422763e54dbee2e9563b1090",
+    "a1Hash": "c923ea8f49fab823bcab482251f7e3c5c1918da1422763e54dbee2e9563b1090",
+    "beforeHash": "aff53efd60456127cacbc796fbdf02d6e2038d6e469136b74827c25149ac6453",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 263,
+        "finish": 392,
+        "after": "\tif not seatPart or (seatPart:GetAttribute(\"PrototypeKartSeat\") ~= true and seatPart:GetAttribute(\"LobbyKartSeat\") ~= true) then\n",
+        "before": "\tif not seatPart or seatPart:GetAttribute(\"PrototypeKartSeat\") ~= true then\n"
+      },
+      {
+        "start": 440,
+        "finish": 567,
+        "after": "\tif kart and kart:IsA(\"Model\") and (kart:GetAttribute(\"PrototypeKart\") == true or kart:GetAttribute(\"LobbyKart\") == true) then\n",
+        "before": "\tif kart and kart:IsA(\"Model\") and kart:GetAttribute(\"PrototypeKart\") == true then\n"
+      }
+    ]
+  },
+  "src/client/TouchDrivingController.luau": {
+    "currentHash": "305f5d2e8ea99ea07e91ab3aeb4d7662921651452b17744e120940eb37523ebf",
+    "a1Hash": "297f9697e2eac95c6fe1e5748673eca3c3c1cf220a0c56ff919d3965748e880d",
+    "beforeHash": "03536b27e76df0afae36ba82ae60805df50ca96e9a31a6f8ca9d075e9fd6b61f",
+    "followupInverse": [
+      {
+        "start": 501,
+        "finish": 575,
+        "after": "local LobbyLayout=require(script.Parent:WaitForChild(\"LobbyDriveLayout\"))\n",
+        "before": ""
+      },
+      {
+        "start": 9881,
+        "finish": 9959,
+        "after": "\t\tif Input.isLobbyDriving() then l=LobbyLayout.apply(l,root.AbsoluteSize) end\n",
+        "before": ""
+      },
+      {
+        "start": 12678,
+        "finish": 12749,
+        "after": "\tconnect(player:GetAttributeChangedSignal(\"LobbyDriveActive\"), layout)\n",
+        "before": ""
+      },
+      {
+        "start": 14302,
+        "finish": 14325,
+        "after": "\t\tdrift.Visible = true\n",
+        "before": "\t\tdrift.Visible = not lobby\n"
+      }
+    ],
+    "a1Inverse": [
+      {
+        "start": 5967,
+        "finish": 6000,
+        "after": "\tInput.setLobbyTouchReset(reset)\n",
+        "before": ""
+      },
+      {
+        "start": 6213,
+        "finish": 6366,
+        "after": "\t\treturn if humanoid and humanoid.Health > 0 and seat and (seat:GetAttribute(\"PrototypeKartSeat\") == true or seat:GetAttribute(\"LobbyKartSeat\") == true)\n",
+        "before": "\t\treturn if humanoid and humanoid.Health > 0 and seat and seat:GetAttribute(\"PrototypeKartSeat\") == true\n"
+      },
+      {
+        "start": 6635,
+        "finish": 6710,
+        "after": "\t\t\tand (race == \"COUNTDOWN\" or race == \"RACING\" or Input.isLobbyDriving())\n",
+        "before": "\t\t\tand (race == \"COUNTDOWN\" or race == \"RACING\")\n"
+      },
+      {
+        "start": 6770,
+        "finish": 6883,
+        "after": "\t\treturn canShow() and root.Visible and (player:GetAttribute(\"RaceState\") == \"RACING\" or Input.isLobbyDriving())\n",
+        "before": "\t\treturn canShow() and root.Visible and player:GetAttribute(\"RaceState\") == \"RACING\"\n"
+      },
+      {
+        "start": 12451,
+        "finish": 12526,
+        "after": "\tconnect(player:GetAttributeChangedSignal(\"LobbyDriveResetSerial\"), reset)\n",
+        "before": ""
+      },
+      {
+        "start": 14040,
+        "finish": 14129,
+        "after": "\t\tlocal lobby = Input.isLobbyDriving()\n\t\tdrift.Visible = not lobby\n\t\tuse.Visible = false\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/server/CompactHubBuilder.luau": {
+    "currentHash": "71f89b76efa9d2b7f7c2459bc2fcbe4321d5f6bb90c7298d89aefd1b6e8d1734",
+    "a1Hash": "71f89b76efa9d2b7f7c2459bc2fcbe4321d5f6bb90c7298d89aefd1b6e8d1734",
+    "beforeHash": "f74bbd61119f1072284a0107d8b056364897fe91c2779882808beb1f9c5bdc62",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 14937,
+        "finish": 15180,
+        "after": "-- Explicit Global Lobby startup calls this after the accepted shell has been built.\nfunction CompactHubBuilder.buildFrontDriveZone(hub, ground)\n return require(script.Parent:WaitForChild(\"LobbyFrontDriveZoneBuilder\")).build(hub, ground)\nend\n\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/server/GarageController.luau": {
+    "currentHash": "01762b696fa8ce979816023031d4be6738ad1a38c2f958a6f77153e4895d6838",
+    "a1Hash": "01762b696fa8ce979816023031d4be6738ad1a38c2f958a6f77153e4895d6838",
+    "beforeHash": "6b51190825602358d2e9b548b3694a58cf79af35c58de06660c8b200023bc96e",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 943,
+        "finish": 1247,
+        "after": "local function stopLobbyDrive(player, reason)\n if player:GetAttribute(\"LobbyDriveActive\") ~= true and player:GetAttribute(\"LobbyDrivePending\") ~= true then return end\n local module = script.Parent:FindFirstChild(\"LobbyTestDriveService\")\n if module then require(module).stop(player, reason, true) end\nend\n",
+        "before": ""
+      },
+      {
+        "start": 5239,
+        "finish": 5273,
+        "after": "\t\tstopLobbyDrive(player, \"ready\")\n",
+        "before": ""
+      },
+      {
+        "start": 10698,
+        "finish": 10858,
+        "after": "\t\t\tif player:GetAttribute(\"LobbyDriveActive\") == true or player:GetAttribute(\"LobbyDrivePending\") == true then\n\t\t\t\tstopLobbyDrive(player, \"select_kart\")\n\t\t\tend\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/server/init.server.luau": {
+    "currentHash": "4c14ecd140a140a7410e299fb21b8edbad6da98cc7be49714357c476872928e7",
+    "a1Hash": "4c14ecd140a140a7410e299fb21b8edbad6da98cc7be49714357c476872928e7",
+    "beforeHash": "52608199845853f29ada2d8c08b986d82f7167bb7ed7776a5c6d61c4f4a09941",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 6451,
+        "finish": 6918,
+        "after": "\tif game.PrivateServerId == \"\" and not botTest and CompactHubBuilder.buildFrontDriveZone then\n\t\tlocal drive = require(script:WaitForChild(\"LobbyTestDriveService\"))\n\t\tdrive.configureCollision()\n\t\tlocal hub = Workspace:FindFirstChild(\"KDMHub\")\n\t\tlocal ground = Workspace:FindFirstChild(\"Baseplate\") or Workspace.Prototype:FindFirstChild(\"Ground\")\n\t\tlocal zone = CompactHubBuilder.buildFrontDriveZone(hub, ground)\n\t\tdrive.start(zone, MatchRoomService.canTestDrive)\n\tend\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/server/MatchRoomService.luau": {
+    "currentHash": "eed8045ae25c318c36f1ccc28889837b96f2442f35922294e003b002fb7674ee",
+    "a1Hash": "eed8045ae25c318c36f1ccc28889837b96f2442f35922294e003b002fb7674ee",
+    "beforeHash": "59423875e519acec7805cd0d2acfb26e4c1f572370f59a4eb291f1092eaf5090",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 10958,
+        "finish": 11436,
+        "after": "function MatchRoomService.canTestDrive(player)\n return eligible(player) and not browsing[player.UserId] and not membership[player.UserId] and not creating[player.UserId]\nend\nlocal function stopLobbyDrive(player, reason)\n if player:GetAttribute(\"LobbyDriveActive\") ~= true and player:GetAttribute(\"LobbyDrivePending\") ~= true then return end\n local module = script.Parent:FindFirstChild(\"LobbyTestDriveService\")\n if module then require(module).stop(player, reason, true) end\nend\n",
+        "before": ""
+      },
+      {
+        "start": 11661,
+        "finish": 11695,
+        "after": "\tstopLobbyDrive(player, \"browse\")\n",
+        "before": ""
+      },
+      {
+        "start": 12018,
+        "finish": 12163,
+        "after": "\t\tif action == \"Create\" or action == \"Join\" or action == \"Queue\" or action == \"AcceptInvite\" then\n\t\t\tstopLobbyDrive(player, \"room_action\")\n\t\tend\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/server/RaceLaunchService.luau": {
+    "currentHash": "0899ce28282ecdcdc50585f4e651e837377c12f7eedf957abe95f32633ec1241",
+    "a1Hash": "0899ce28282ecdcdc50585f4e651e837377c12f7eedf957abe95f32633ec1241",
+    "beforeHash": "87792e04af371bff3ef4bb64704a6ee5dde5b6c8b05320dbc9fd437df75b48a9",
+    "followupInverse": [],
+    "a1Inverse": [
+      {
+        "start": 315,
+        "finish": 619,
+        "after": "local function stopLobbyDrive(player, reason)\n if player:GetAttribute(\"LobbyDriveActive\") ~= true and player:GetAttribute(\"LobbyDrivePending\") ~= true then return end\n local module = script.Parent:FindFirstChild(\"LobbyTestDriveService\")\n if module then require(module).stop(player, reason, true) end\nend\n",
+        "before": ""
+      },
+      {
+        "start": 2558,
+        "finish": 2597,
+        "after": "\tstopLobbyDrive(player, \"launch_solo\")\n",
+        "before": ""
+      },
+      {
+        "start": 4850,
+        "finish": 4891,
+        "after": "\t\tstopLobbyDrive(player, \"launch_match\")\n",
+        "before": ""
+      }
+    ]
+  }
+}

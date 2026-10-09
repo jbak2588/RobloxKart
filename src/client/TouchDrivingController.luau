@@ -6,6 +6,7 @@ local Model = require(script.Parent:WaitForChild("TouchDrivingModel"))
 local View = require(script.Parent:WaitForChild("MobileControlView"))
 local IconView = require(script.Parent:WaitForChild("KDMControlIconView"))
 local ContentProvider = game:GetService("ContentProvider")
+local LobbyLayout=require(script.Parent:WaitForChild("LobbyDriveLayout"))
 local Controller = {}
 local started = false
 
@@ -140,22 +141,23 @@ function Controller.start()
 		Input.setTouchEnabled(false)
 		publish()
 	end
+	Input.setLobbyTouchReset(reset)
 	local function kart()
 		local character = if not removing then player.Character else nil
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local seat = humanoid and humanoid.SeatPart
-		return if humanoid and humanoid.Health > 0 and seat and seat:GetAttribute("PrototypeKartSeat") == true
+		return if humanoid and humanoid.Health > 0 and seat and (seat:GetAttribute("PrototypeKartSeat") == true or seat:GetAttribute("LobbyKartSeat") == true)
 			then seat.Parent else nil
 	end
 	local function canShow()
 		local race = player:GetAttribute("RaceState")
 		return gui.Enabled and Input.isTouchPreferred() and focused and not GuiService.MenuIsOpen
 			and UserInputService:GetFocusedTextBox() == nil and kart() ~= nil
-			and (race == "COUNTDOWN" or race == "RACING")
+			and (race == "COUNTDOWN" or race == "RACING" or Input.isLobbyDriving())
 	end
 	local function canDrive()
 		local activeKart = kart()
-		return canShow() and root.Visible and player:GetAttribute("RaceState") == "RACING"
+		return canShow() and root.Visible and (player:GetAttribute("RaceState") == "RACING" or Input.isLobbyDriving())
 			and activeKart ~= nil and activeKart:GetAttribute("RaceControlsLocked") ~= true
 	end
 	local function release(input)
@@ -215,6 +217,7 @@ function Controller.start()
 	local function layout()
 		reset()
 		local l = View.layout(root.AbsoluteSize)
+		if Input.isLobbyDriving() then l=LobbyLayout.apply(l,root.AbsoluteSize) end
 		joystick.Size = UDim2.fromOffset(l.joystick, l.joystick)
 		joystick.Position = UDim2.new(1, -l.margin, 1, -l.margin)
 		if auto then auto.Size = UDim2.fromOffset(48, 48)
@@ -272,6 +275,8 @@ function Controller.start()
 		bindHumanoid()
 	end
 	connect(player.CharacterAdded, bindCharacter)
+	connect(player:GetAttributeChangedSignal("LobbyDriveResetSerial"), reset)
+	connect(player:GetAttributeChangedSignal("LobbyDriveActive"), layout)
 	connect(player.CharacterRemoving, function() removing = true; bindKart(nil) end)
 	if player.Character then bindCharacter(player.Character) end
 	connect(player:GetAttributeChangedSignal("RaceState"), reset)
@@ -305,6 +310,9 @@ function Controller.start()
 		controlsEnabled=enabled
 		if not enabled then reset() end
 		Input.setTouchEnabled(enabled)
+		local lobby = Input.isLobbyDriving()
+		drift.Visible = true
+		use.Visible = false
 		local selected = player:GetAttribute("SelectedRaceItemId")
 		local charges = if type(selected) == "string" then player:GetAttribute("RaceCharge"..selected) else 0
 		useIcon:setEnabled(enabled and type(charges) == "number" and charges > 0)

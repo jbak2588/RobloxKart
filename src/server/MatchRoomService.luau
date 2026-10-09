@@ -249,8 +249,17 @@ local function createRoom(player,mode,value)
 	clearCreating()
 end
 
+function MatchRoomService.canTestDrive(player)
+ return eligible(player) and not browsing[player.UserId] and not membership[player.UserId] and not creating[player.UserId]
+end
+local function stopLobbyDrive(player, reason)
+ if player:GetAttribute("LobbyDriveActive") ~= true and player:GetAttribute("LobbyDrivePending") ~= true then return end
+ local module = script.Parent:FindFirstChild("LobbyTestDriveService")
+ if module then require(module).stop(player, reason, true) end
+end
 function MatchRoomService.openBrowser(player, driverId, kartId, trackId)
 	if not eligible(player) or membership[player.UserId] or creating[player.UserId] or not choose(player, driverId, kartId, trackId) then return false end
+	stopLobbyDrive(player, "browse")
 	browsing[player.UserId] = true
 	refresh()
 	return true
@@ -263,6 +272,9 @@ function MatchRoomService.start()
 	remote.Name = "MatchRoomControl"
 	remote.Parent = ReplicatedStorage
 	remote.OnServerEvent:Connect(function(player, action, first, second, third)
+		if action == "Create" or action == "Join" or action == "Queue" or action == "AcceptInvite" then
+			stopLobbyDrive(player, "room_action")
+		end
 		local own = membership[player.UserId]
 		if action == "Browse" then
 			MatchRoomService.openBrowser(player, first, second, third)

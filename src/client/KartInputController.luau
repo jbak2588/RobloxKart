@@ -13,6 +13,18 @@ local raceItemRemote: RemoteEvent? = nil
 local touchActions = { throttle = 0, steering = 0, drift = false }
 local touchEnabled = false
 local touchUpdate: ((number) -> ())? = nil
+local lobbySender = nil
+local lobbyTouchReset = nil
+function KartInputController.setLobbyInputSender(sender) lobbySender = sender end
+function KartInputController.setLobbyTouchReset(reset) lobbyTouchReset = reset end
+function KartInputController.resetLobbyTouchState() if lobbyTouchReset then lobbyTouchReset() end end
+function KartInputController.isLobbyDriving()
+ local player=Players.LocalPlayer
+ local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+ local seat=h and h.SeatPart
+ return player:GetAttribute("LobbyDriveActive")==true and h and h.Health>0 and seat
+  and seat:GetAttribute("LobbyKartSeat")==true and seat.Parent:GetAttribute("LobbyOwnerUserId")==player.UserId
+end
 
 function KartInputController.isTouchPreferred(): boolean
 	return UserInputService.TouchEnabled and UserInputService.PreferredInput == Enum.PreferredInput.Touch
@@ -76,7 +88,7 @@ end
 
 function KartInputController.getEffectiveSteering(): number
 	local _, steering = getInputAxes()
-	return if isDrivingPrototypeKart() then steering else 0
+	return if isDrivingPrototypeKart() or KartInputController.isLobbyDriving() then steering else 0
 end
 
 -- Desktop selected-item use; mobile slots use the atomic direct-item path below.
@@ -112,6 +124,14 @@ function KartInputController.start()
 	local wasDriving = false
 
 	local function sendInput(force: boolean, neutral: boolean?)
+		if lobbySender and KartInputController.isLobbyDriving() then
+			if force then
+				local throttle, steering, drift = getInputAxes()
+				lobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift)
+				timeSinceSend = 0
+			end
+			return
+		end
 		local driving = isDrivingPrototypeKart()
 		local throttle, steering, driftRequested = getInputAxes()
 

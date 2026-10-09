@@ -84,7 +84,16 @@ function CompactHubBuilder.build(workspace, playerSpawn)
   end
   -- The donor floor is a CSG union with lift-bay cutouts. Use one continuous
   -- surface so the old studded Baseplate cannot show through those openings.
-  local donorFloor = art.Garage_Part_Architecture:FindFirstChild("Union")
+  -- Several walls and the floor share the name Union. Serialized sibling order
+  -- can change; select the broad, thin floor rather than the first name match.
+  local donorFloor = nil
+  for _, candidate in art.Garage_Part_Architecture:GetChildren() do
+   if candidate:IsA("BasePart") and candidate.Name == "Union" and candidate.Size.Y < 2
+    and candidate.Size.X > 50 and candidate.Size.Z > 80 then
+    assert(donorFloor == nil, "Ambiguous garage floor")
+    donorFloor = candidate
+   end
+  end
   assert(donorFloor and donorFloor:IsA("BasePart") and donorFloor.Size.Y < 2, "Missing garage floor")
   local garageFloor = Instance.new("Part")
   garageFloor.Name, garageFloor.Size, garageFloor.CFrame = "GarageFloor", donorFloor.Size, donorFloor.CFrame
@@ -120,13 +129,13 @@ function CompactHubBuilder.build(workspace, playerSpawn)
   anchor("MyKartDisplayAnchor",4,.08,0)
   anchor("QueueFutureAnchor",38,1,18)
   local function sign(name,text,x,y,z,width,height,yaw)
-   local board=part(visuals,name,Vector3.new(width,height,.25),CFrame.new(x,y,z)*CFrame.Angles(0,yaw,0),Theme.Panel,false)
+   local board=part(visuals,name,Vector3.new(width,height,.25),CFrame.new(x,y,z)*CFrame.Angles(0,yaw,0),Color3.fromRGB(111,211,245),false)
    local gui=Instance.new("SurfaceGui")
    gui.Face,gui.CanvasSize,gui.LightInfluence=Enum.NormalId.Back,Vector2.new(800,180),0
    gui.Parent=board
    local label=Instance.new("TextLabel")
    label.Size,label.BackgroundTransparency=UDim2.fromScale(1,1),1
-   label.Text,label.Font,label.TextScaled,label.TextColor3=text,Enum.Font.GothamBold,true,Theme.TextPrimary
+   label.Text,label.Font,label.TextScaled,label.TextColor3=text,Enum.Font.GothamBold,true,Color3.fromRGB(12,27,42)
    label.Parent=gui;return board
   end
   for _,d in {{"GarageStation","GARAGE","GaragePromptAnchor",9,-17},{"TrackStation","TRACKS","TracksPromptAnchor",9,17},{"RaceStation","RACE","RacePromptAnchor",25,0}} do
@@ -142,13 +151,79 @@ function CompactHubBuilder.build(workspace, playerSpawn)
    reverse.Name,reverse.Face="ReverseSign",Enum.NormalId.Front
    reverse.Parent=board
   end
-  sign("KDMTitle","KART DRIFT MASTERS / KDM PIT GARAGE",-27,20,0,40,4,math.pi/2)
-  sign("MyKartLabel","BAY 2 / MY KART",-26,4,0,18,2,math.pi/2)
-  sign("Bay1","BAY 1",-26,7,-31,10,2,math.pi/2)
-  sign("Bay3","BAY 3",-26,7,31,10,2,math.pi/2)
-  for _,d in {{"HeroBoard",assets.Primary.Hero,-26,11,0},{"GarageBoard",assets.Primary.Garage,-10,11,-24},{"TracksBoard",assets.Primary.Tracks,-10,11,24}} do
-   local a=anchor(d[1].."Anchor",d[3],d[4],d[5])
-   local board=part(visuals,d[1],Vector3.new(18,10.125,.25),CFrame.new(d[3],d[4],d[5])*CFrame.Angles(0,math.pi/2,0),Theme.Panel,false)
+  -- BAY labels were decorative and did not identify functional destinations.
+  -- Arcade lettering is actual raised geometry, without a backing panel.
+  -- Mount two lines inside the central window, clear of its outer frame.
+  local glyphs = {
+   A={"01110","10001","10001","11111","10001","10001","10001"},
+   B={"11110","10001","10001","11110","10001","10001","11110"},
+   D={"11110","10001","10001","10001","10001","10001","11110"},
+   E={"11111","10000","10000","11110","10000","10000","11111"},
+   F={"11111","10000","10000","11110","10000","10000","10000"},
+   I={"11111","00100","00100","00100","00100","00100","11111"},
+   K={"10001","10010","10100","11000","10100","10010","10001"},
+   L={"10000","10000","10000","10000","10000","10000","11111"},
+   M={"10001","11011","10101","10101","10001","10001","10001"},
+   O={"01110","10001","10001","10001","10001","10001","01110"},
+   R={"11110","10001","10001","11110","10100","10010","10001"},
+   S={"01111","10000","10000","01110","00001","00001","11110"},
+   T={"11111","00100","00100","00100","00100","00100","00100"},
+   Y={"10001","10001","01010","00100","00100","00100","00100"},
+  }
+  local letters=Instance.new("Model");letters.Name="KDMWindowLettering";letters.Parent=visuals
+  local function raisedLine(text,y,unit,color)
+   local frame=CFrame.new(29.1,y,2.51)*CFrame.Angles(0,-math.pi/2,0)
+   local width=(#text*6-1)*unit
+   for index=1,#text do
+    local glyph=glyphs[text:sub(index,index)]
+    if glyph then for row,bits in glyph do
+     local column=1
+     while column<=5 do
+      if bits:sub(column,column)=="1" then
+       local last=column
+       while last<5 and bits:sub(last+1,last+1)=="1" do last+=1 end
+       local x=-width/2+((index-1)*6+column-1+(last-column+1)/2)*unit
+       local stroke=part(letters,"LetterStroke",Vector3.new((last-column+1)*unit,unit,.28),frame*CFrame.new(x,(4-row)*unit,0),color,false)
+       stroke.CastShadow=false
+       column=last+1
+      else column+=1 end
+     end
+    end end
+   end
+  end
+  raisedLine("KART DRIFT MASTERS",21,.21,Color3.fromRGB(12,27,42))
+  raisedLine("KDM LOBBY",17.5,.28,Color3.fromRGB(12,27,42))
+  -- Measured solid rear bays and the window-free side wall. Resolve transformed
+  -- donor parts by geometry, never same-name serialization order. Keep tools,
+  -- lights, windows, station signs and the pedestrian/garage exits unobstructed.
+  local posterWalls = {}
+  for _, candidate in art.Garage_Part_Architecture:GetChildren() do
+   if candidate:IsA("BasePart") then
+    local position = origin:PointToObjectSpace(candidate.CFrame.Position)
+    if candidate.Size.X < .6 and candidate.Size.Y > 16.4 and candidate.Size.Y < 16.6
+     and position.X < -29 and position.X > -30 then
+     local key = if position.Z > 30 then "Hero" elseif position.Z < -35 then "Garage" else nil
+     if key then assert(posterWalls[key] == nil,"Ambiguous poster bay");posterWalls[key] = candidate end
+    elseif candidate.Size.Z < .2 and candidate.Size.Y > 27 and candidate.Size.Y < 28
+     and candidate.Size.X > 60 and position.Z < -46 and position.Z > -47 then
+     assert(posterWalls.Tracks == nil,"Ambiguous poster side wall");posterWalls.Tracks = candidate
+    end
+   end
+  end
+  local clearance = .1
+  for _,d in {{"HeroBoard",assets.Primary.Hero,"Hero",18},{"GarageBoard",assets.Primary.Garage,"Garage",14},{"TracksBoard",assets.Primary.Tracks,"Tracks",14}} do
+   local wall = assert(posterWalls[d[3]],"Missing solid poster wall")
+   local size = Vector3.new(d[4],d[4]*9/16,.25)
+   local position = origin:PointToObjectSpace(wall.CFrame.Position)
+   local offset = if d[3] == "Tracks" then CFrame.new(-13-position.X,18.5-position.Y,wall.Size.Z/2+clearance+size.Z/2)
+    else CFrame.new(wall.Size.X/2+clearance+size.Z/2,15-position.Y,0)*CFrame.Angles(0,math.pi/2,0)
+   -- Back (+Z) carries the image and faces the room; the dark front faces the wall.
+   local mounted = wall.CFrame * offset
+   local a=anchor(d[1].."Anchor",0,0,0);a.CFrame=mounted
+   local board=part(visuals,d[1],size,CFrame.new(),Theme.Panel,false)
+   board.CFrame=mounted
+   board:SetAttribute("WallMounted",true);board:SetAttribute("WallClearance",clearance)
+   board:SetAttribute("WallBay",d[3])
    local gui=Instance.new("SurfaceGui");gui.Face,gui.CanvasSize,gui.LightInfluence=Enum.NormalId.Back,Vector2.new(1672,941),0;gui.Parent=board
    local image=Instance.new("ImageLabel")
    image.Size,image.BackgroundTransparency,image.ScaleType=UDim2.fromScale(1,1),1,Enum.ScaleType.Fit
@@ -172,6 +247,11 @@ function CompactHubBuilder.build(workspace, playerSpawn)
  end
  root:SetAttribute("HubPresentation","PIT_GARAGE")
  root.Parent=workspace;return root
+end
+
+-- Explicit Global Lobby startup calls this after the accepted shell has been built.
+function CompactHubBuilder.buildFrontDriveZone(hub, ground)
+ return require(script.Parent:WaitForChild("LobbyFrontDriveZoneBuilder")).build(hub, ground)
 end
 
 return CompactHubBuilder

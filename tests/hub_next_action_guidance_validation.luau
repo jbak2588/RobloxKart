@@ -24,13 +24,13 @@ local injection=[[
 local guidance=hubGui.SafeCanvas.NextAction
 check(guidance and guidance.Visible,"guidance exists on Hub return")
 check(guidance.BackgroundColor3==modules.KDMUiTheme.Panel and not guidance.Active,"non-blocking navy card")
-check(guidance.SelectTrack.Text=="LOBBIES" and guidance.SelectTrack.BackgroundColor3==modules.KDMUiTheme.PrimaryAction,"context primary CTA yellow")
+check(guidance.SelectTrack.Text=="RACE LIST" and guidance.SelectTrack.BackgroundColor3==modules.KDMUiTheme.PrimaryAction,"context primary CTA yellow")
 check(guidance.SelectTrack.AutoLocalize and guidance.Message.AutoLocalize and guidance.Helper.AutoLocalize,"automatic translation candidate")
 check(guidance.Helper.Text=="You can use the default kart","Garage is optional")
 shortcuts.TRACKS.Activated:Fire()
 check(backdrop.TrackPreview.Visible and not hubGui.Enabled,"CTA opens existing Track Select")
 controller.close()
-check(guidance.Visible and guidance.Heading.Text=="NEXT" and guidance.Message.Text=="Create or join a lobby","Track return context")
+check(guidance.Visible and guidance.Heading.Text=="NEXT" and guidance.Message.Text=="Create or join a race","Track return context")
 shortcuts.GARAGE.Activated:Fire();controller.close()
 check(guidance.Heading.Text=="KART READY" and not guidance.Message.Visible,"Garage return compact")
 local roomRemote=replicated.MatchRoomControl

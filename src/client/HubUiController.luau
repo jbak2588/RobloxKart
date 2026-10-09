@@ -7,6 +7,8 @@ local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDM
 local GuidanceState = require(script.Parent:WaitForChild("HubGuidanceState"))
 local GuidanceView = require(script.Parent:WaitForChild("HubGuidanceView"))
 local WorldGuidance = require(script.Parent:WaitForChild("HubWorldGuidanceView"))
+local LobbyLayout=require(script.Parent:WaitForChild("LobbyDriveLayout"))
+local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
 local HubUiController = {}
 local started = false
 
@@ -53,7 +55,8 @@ function HubUiController.start()
  local roomOwned = false
  local previousRaceState = player:GetAttribute("RaceState")
  local function open(action)
-  if roomOwned then return end
+  local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
+  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (rooms and rooms.Enabled) then return end
   Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end
  local canvas = Instance.new("Frame")
@@ -78,6 +81,10 @@ function HubUiController.start()
   stroke.Color, stroke.ApplyStrokeMode, stroke.Parent = Theme.TextSecondary, Enum.ApplyStrokeMode.Border, button
   table.insert(connections, button.Activated:Connect(function() open(action) end))
  end
+ local promptEnabled = {}
+ for _, prompt in hub.Stations:GetDescendants() do
+  if prompt:IsA("ProximityPrompt") then promptEnabled[prompt] = prompt.Enabled end
+ end
  local function update()
   local overlay = player:GetAttribute("HubOverlayOpen") == true
   local raceState = player:GetAttribute("RaceState")
@@ -87,8 +94,23 @@ function HubUiController.start()
    and player:GetAttribute("HubOverlayOpen") ~= true
    and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
+  local modal = overlay or roomOwned or (rooms ~= nil and rooms.Enabled)
+  for prompt, enabled in promptEnabled do
+   prompt.Enabled = enabled and raceState == "GARAGE" and not modal
+  end
   local presentation = GuidanceState.presentation(state, canvas.AbsoluteSize, raceState, overlay,
    player:GetAttribute("KDMRoutePending"), roomOwned or (rooms ~= nil and rooms.Enabled))
+  local driving = player:GetAttribute("LobbyDriveActive") == true
+  if driving then presentation.visible = false end
+  local driveLayout=LobbyLayout.shortcuts(canvas.AbsoluteSize,MobileView)
+  panel.AnchorPoint = if driving then Vector2.zero else Vector2.new(1,1)
+  panel.Position = if driving then UDim2.fromOffset(driveLayout.x,driveLayout.y) else UDim2.new(1,-12,1,-12)
+  panel.Size = if driving then UDim2.fromOffset(driveLayout.width,driveLayout.height) else UDim2.fromOffset(150,104)
+  for index, name in {"GARAGE","TRACKS"} do
+   local button = panel[name]
+   button.Size = if driving then UDim2.new(1,-12,0,34) else UDim2.new(1,-12,0,44)
+   button.Position = if driving then UDim2.fromOffset(6,4+(index-1)*38) else UDim2.fromOffset(6,6+(index-1)*48)
+  end
   guidance.update(presentation)
   worldGuidance.update(raceState == "GARAGE", if presentation.visible then presentation.destination else nil)
  end
@@ -121,17 +143,23 @@ function HubUiController.start()
   if display then display:Destroy();display=nil end
   local anchors=hub:FindFirstChild("Anchors")
   local anchor=anchors and anchors:FindFirstChild("MyKartDisplayAnchor")
-  if not anchor or player:GetAttribute("RaceState") ~= "GARAGE" then return end
+  if not anchor or player:GetAttribute("RaceState") ~= "GARAGE" or player:GetAttribute("LobbyDriveActive") == true then return end
   local id=player:GetAttribute("SelectedKartId") or catalog.DefaultId
   local definition=catalog.Entries[id] or catalog.Entries[catalog.DefaultId]
   local ok,result=pcall(HubUiController.createDisplay,hub,anchor,definition,factory)
-  if ok then display=result else warn("[Hub] My Kart display unavailable: "..tostring(result)) end
+  if ok then
+   display=result
+   local point=Instance.new("Part");point.Name="LobbyDisplayDrivePoint";point.Size=Vector3.one;point.Transparency=1;point.Anchored=true;point.CanCollide=false;point.CanTouch=false;point.CanQuery=false
+   point.CFrame=anchor.CFrame*CFrame.new(0,2,0);point.Parent=display
+   local prompt=Instance.new("ProximityPrompt");prompt.Name="LobbyDisplayTestDrive";prompt.ActionText="TEST DRIVE";prompt.ObjectText="";prompt.RequiresLineOfSight=false;prompt.MaxActivationDistance=8;prompt.Parent=point
+  else warn("[Hub] My Kart display unavailable: "..tostring(result)) end
  end
  table.insert(connections,player:GetAttributeChangedSignal("SelectedKartId"):Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("RaceState"):Connect(refreshDisplay))
  table.insert(connections,player.CharacterAdded:Connect(refreshDisplay))
+ table.insert(connections,player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(refreshDisplay))
  refreshDisplay()
- for _, attribute in {"RaceState", "HubOverlayOpen", "KDMRoutePending"} do
+ for _, attribute in {"RaceState", "HubOverlayOpen", "KDMRoutePending", "LobbyDriveActive"} do
   table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(update))
  end
  table.insert(connections, ProximityPromptService.PromptTriggered:Connect(function(prompt, triggeringPlayer)
@@ -148,6 +176,7 @@ function HubUiController.start()
   disconnectNavigation()
   if display then display:Destroy();display=nil end
   started = false
+  for prompt, enabled in promptEnabled do if prompt.Parent then prompt.Enabled = enabled end end
  end)
  update()
 end

@@ -9,8 +9,8 @@ local filter={FilterStringAsync=function(_,text,id,ctx)
  return {GetNonChatStringForBroadcastAsync=function()return "Filtered Lobby" end}
 end}
 local kind,title=S.resolve(player,nil)
-check(kind=="DEFAULT" and title=="Racer's Lobby","legacy default")
-player.DisplayName="";check(select(2,S.resolve(player,"DEFAULT"))=="Account's Lobby","username fallback");player.DisplayName="Racer"
+check(kind=="DEFAULT" and title=="Racer's Race","legacy default")
+player.DisplayName="";check(select(2,S.resolve(player,"DEFAULT"))=="Account's Race","username fallback");player.DisplayName="Racer"
 for _,id in C.Order do
  kind,title=S.resolve(player,"PRESET",id,filter)
  check(kind=="PRESET" and title==C.Presets[id],"allowlisted preset "..id)
@@ -38,8 +38,8 @@ filter.FilterStringAsync=function()error("filter unavailable")end
 check(S.resolve(player,"CUSTOM","safe",filter)==nil,"filter exception")
 filter.FilterStringAsync=function()return {GetNonChatStringForBroadcastAsync=function()error("broadcast unavailable")end}end
 check(S.resolve(player,"CUSTOM","safe",filter)==nil,"broadcast exception")
-check(C.publicTitle({hostName="Legacy"})=="Legacy's Lobby","legacy fallback")
-check(C.publicTitle({hostName="New",lobbyTitleKind="DEFAULT",lobbyTitle="Old's Lobby"})=="New's Lobby","default host authority")
+check(C.publicTitle({hostName="Legacy"})=="Legacy's Race","legacy fallback")
+check(C.publicTitle({hostName="New",lobbyTitleKind="DEFAULT",lobbyTitle="Old's Race"})=="New's Race","default host authority")
 check(C.publicTitle({hostName="New",lobbyTitleKind="CUSTOM",lobbyTitle="Filtered"})=="Filtered","custom identity")
 -- Every source freeze must still reject unauthorized geometry/physics edits.
 local inverse=require("./helpers/m1_presentation_freeze")

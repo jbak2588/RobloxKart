@@ -5,7 +5,7 @@ local serial=0
 local function make(kind,legacy)
  serial+=1;local id="title-"..serial
  directory:createPersistent({id=id,matchId="match-"..serial,hostUserId=1,hostName="Racer1",trackId="Track01Race",maxPlayers=4,
- lobbyTitleKind=kind,lobbyTitle=if kind=="DEFAULT" then "Racer1's Lobby" else "Fixed Title"},"access","private")
+ lobbyTitleKind=kind,lobbyTitle=if kind=="DEFAULT" then "Racer1's Race" else "Fixed Title"},"access","private")
  if legacy then map.values[id].lobbyTitleKind=nil;map.values[id].lobbyTitle=nil end
  for index=1,2 do
   directory:stage(id,member(index),"token"..index,"Track01Race")
@@ -15,7 +15,7 @@ local function make(kind,legacy)
 end
 local function verify(id,kind,host)
  local record=assert(directory:get(id));local public=directory:display(record)
- local expected=if kind=="DEFAULT" then "Racer"..host.."'s Lobby" else "Fixed Title"
+ local expected=if kind=="DEFAULT" then "Racer"..host.."'s Race" else "Fixed Title"
  check(record.hostUserId==host and record.lobbyTitle==expected,"stored host/title")
  check(public.lobbyTitle==expected and public.lobbyTitleKind==kind,"public host/title")
  check(public.reservedServerAccessCode==nil,"title projection keeps private code hidden")
@@ -39,7 +39,7 @@ for _,kind in {"DEFAULT","PRESET","CUSTOM"} do
  directory:claimNext(id,"classic-match","classic-next","access","private",{member(4)});verify(id,kind,4)
 end
 local legacy=make("DEFAULT",true)
-check(directory:display(directory:get(legacy)).lobbyTitle=="Racer1's Lobby","legacy missing fields displayed default")
+check(directory:display(directory:get(legacy)).lobbyTitle=="Racer1's Race","legacy missing fields displayed default")
 directory:removeStaged(legacy,1);verify(legacy,"DEFAULT",2)
 print("PASS: "..count.." directory title lifecycle/host transfer/legacy/queue/rematch contracts")
 ]=]

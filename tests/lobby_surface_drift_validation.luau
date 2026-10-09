@@ -1,0 +1,29 @@
+local fs,luau=require('@lune/fs'),require('@lune/luau')
+local policy=luau.load(fs.readFile('src/shared/LobbyDrivePolicy.luau'))()
+local config=require('./helpers/gameplay_config')('src/shared/KartConfig.luau')
+local n=0;local function check(v,label)assert(v,label);n+=1 end
+for speed=0,100,.5 do
+ local impact=policy.barrierImpact(speed,config)
+ local strong=speed>=config.BARRIER_CRASH_MIN_SPEED
+ local severity=math.clamp((speed-config.BARRIER_CRASH_MIN_SPEED)/(config.MINI_BOOST_MAX_SPEED-config.BARRIER_CRASH_MIN_SPEED),0,1)
+ local rebound=if strong then math.clamp(speed*config.BARRIER_CRASH_BOUNCE_FACTOR,config.BARRIER_CRASH_MIN_REBOUND_SPEED,config.BARRIER_CRASH_MAX_REBOUND_SPEED) else 5+3*math.clamp(speed/config.BARRIER_CRASH_MIN_SPEED,0,1)
+ local duration=if strong then config.BARRIER_CRASH_DURATION_MIN+(config.BARRIER_CRASH_DURATION_MAX-config.BARRIER_CRASH_DURATION_MIN)*severity else .22
+ check(impact.rebound==rebound,'existing race rebound policy exactly matched')
+ check(impact.duration==duration,'existing duration matched')
+ check(impact.rebound<=28,'bounded rebound, no 65 percent heading reversal')
+ check(strong or impact.turns==0,'gentle contacts do not spin')
+end
+local builder=fs.readFile('src/server/LobbyFrontDriveZoneBuilder.luau')
+check(builder:find('LobbyFrontSmoothFloor',1,true)~=nil,'single physical floor')
+check(builder:find('Color3.fromRGB(54,64,72),false',1,true)~=nil,'decorative asphalt slices cannot collide')
+check(builder:find('Color3.fromRGB(111,211,245),false',1,true)~=nil,'entry bridge cannot trip kart')
+check(builder:find('LobbyFrontInnerKerb',1,true)~=nil,'inner perimeter kerbs')
+check(builder:find('gateLeft,gateRight=-126,-114',1,true)~=nil,'rail opening aligns with 12 stud entry')
+local server=fs.readFile('src/server/LobbyTestDriveService.luau')
+check(not server:find('body.CFrame=CFrame.lookAt(pos,pos+f)',1,true),'no instant collision direction teleport')
+check(not server:find('if drifting then .9',1,true) and not server:find('if drifting then 2.2',1,true),'Lobby Drift has no grip/yaw multiplier')
+local feedback=fs.readFile('src/client/LobbyDriftFeedback.luau')
+check(feedback:find('DRIFT_LOOP',1,true)~=nil and feedback:find('LobbySkidMark',1,true)~=nil,'skid marks and licensed drift loop present')
+check(feedback:find('%96',1,true)~=nil and feedback:find('now+4',1,true)~=nil,'bounded mark pool and expiry')
+check(not feedback:find('BOOST_',1,true),'cosmetics cannot activate boost')
+print('PASS: '..n..' Lobby surface / Drift-only / exact Barrier policy checks')

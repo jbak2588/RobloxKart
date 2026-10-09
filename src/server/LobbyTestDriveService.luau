@@ -1,0 +1,272 @@
+local Players=game:GetService("Players")
+local ReplicatedStorage=game:GetService("ReplicatedStorage")
+local RunService=game:GetService("RunService")
+local Physics=game:GetService("PhysicsService")
+local Workspace=game:GetService("Workspace")
+local Shared=ReplicatedStorage:WaitForChild("Shared")
+local Policy=require(Shared:WaitForChild("LobbyDrivePolicy"))
+local Geometry=require(Shared:WaitForChild("LobbyDriveGeometry")).create(Policy)
+local KartConfig=require(Shared:WaitForChild("KartConfig"))
+local Catalog=require(Shared:WaitForChild("KartCatalog"))
+local Factory=require(Shared:WaitForChild("KartVisualFactory"))
+local Service={}
+local records,generations,bindings,lastRequest={},{},{},{}
+local started,remote,zone,canEnter=false,nil,nil,nil
+local function generation(player)
+ generations[player]=(generations[player] or 0)+1
+ player:SetAttribute("LobbyDriveGeneration",generations[player]);return generations[player]
+end
+function Service.configureCollision()
+ for _,name in {"LobbyKart","LobbyAvatar","LobbyBoundary"} do
+  if not Physics:IsCollisionGroupRegistered(name) then Physics:RegisterCollisionGroup(name) end
+ end
+ Physics:CollisionGroupSetCollidable("LobbyKart","LobbyKart",false)
+ Physics:CollisionGroupSetCollidable("LobbyKart","LobbyAvatar",false)
+ Physics:CollisionGroupSetCollidable("LobbyKart","Default",true)
+ Physics:CollisionGroupSetCollidable("LobbyAvatar","Default",true)
+ Physics:CollisionGroupSetCollidable("LobbyBoundary","Default",false)
+ Physics:CollisionGroupSetCollidable("LobbyBoundary","LobbyAvatar",false)
+ Physics:CollisionGroupSetCollidable("LobbyBoundary","LobbyKart",true)
+ for _,name in {"RacerKart","RacerDriver"} do
+  if Physics:IsCollisionGroupRegistered(name) then
+   Physics:CollisionGroupSetCollidable("LobbyBoundary",name,false)
+   Physics:CollisionGroupSetCollidable("LobbyKart",name,false)
+  end
+ end
+end
+local function restoreCharacter(player)
+ local binding=bindings[player];if not binding then return end
+ binding.added:Disconnect()
+ for part,original in binding.parts do if part.Parent then part.CollisionGroup=original end end
+ bindings[player]=nil
+end
+local function bindCharacter(player,character)
+ restoreCharacter(player)
+ if not started then return end
+ local parts={}
+ local function assign(part)
+  if part:IsA("BasePart") then parts[part]=part.CollisionGroup;part.CollisionGroup="LobbyAvatar" end
+ end
+ for _,part in character:GetDescendants() do assign(part) end
+ bindings[player]={parts=parts,added=character.DescendantAdded:Connect(assign)}
+end
+local function inside(position,margin)
+ local c=zone:GetAttribute("Center");return Geometry.inside(position.X-c.X,position.Z-c.Z,margin)
+end
+function Service.stop(player,reason,returnToHub)
+ local record=records[player]
+ if not record then return true end
+ records[player]=nil;generation(player)
+ player:SetAttribute("LobbyDrivePending",true);player:SetAttribute("LobbyDriveActive",false)
+ if record.destroying then record.destroying:Disconnect() end
+ if record.occupantConnection then record.occupantConnection:Disconnect() end
+ if record.kart.Parent then
+  record.body.AssemblyLinearVelocity=Vector3.zero;record.body.AssemblyAngularVelocity=Vector3.zero
+  record.body.Anchored=true
+ end
+ if record.humanoid.Parent then record.humanoid.Sit=false;record.humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
+ record.kart:Destroy() -- Removes the SeatWeld even if an Occupant change arrives late.
+ if returnToHub and player.Character==record.character and record.humanoid.Health>0 then
+  local hub=Workspace:FindFirstChild("KDMHub");local spawn=hub and hub:FindFirstChild("HubSpawn")
+  if spawn then record.character:PivotTo(spawn.CFrame*CFrame.new(0,3,0))
+   local root=record.character:FindFirstChild("HumanoidRootPart")
+   if root then root.AssemblyLinearVelocity=Vector3.zero;root.AssemblyAngularVelocity=Vector3.zero end
+   player:SetAttribute("HubArrivalSerial",(player:GetAttribute("HubArrivalSerial") or 0)+1)
+  end
+ end
+ player:SetAttribute("LobbyDriveKartId",nil);player:SetAttribute("LobbyDrivePending",false)
+ return true
+end
+local function createKart(player,definition,frame)
+ local kart=Instance.new("Model");kart.Name="LobbyKart_"..player.UserId
+ kart:SetAttribute("LobbyKart",true);kart:SetAttribute("LobbyOwnerUserId",player.UserId)
+ kart:SetAttribute("KartId",definition.Id);kart:SetAttribute("KartVisualSteering",0)
+ local body=Instance.new("Part");body.Name="Chassis";body.Size=Vector3.new(6,1,8)
+ body.CFrame=frame;body.Transparency=1;body.CanCollide=true;body.CanTouch=false
+ body.RootPriority=127;body.CustomPhysicalProperties=PhysicalProperties.new(1,.05,0,100,100);body.Parent=kart
+ kart.PrimaryPart=body
+ local function join(part,motor)
+  local joint=Instance.new(if motor then "Motor6D" else "WeldConstraint")
+  joint.Name=if motor then "VisualMotor" else "LobbyWeld"
+  joint.Part0=body;joint.Part1=part
+  if motor then joint.C0=body.CFrame:ToObjectSpace(part.CFrame);joint.C1=CFrame.identity end
+  joint.Parent=part
+ end
+ local visual=Factory.createVisual(definition);visual:PivotTo(frame);visual.Parent=kart
+ for _,part in visual:GetChildren() do if part:IsA("BasePart") then
+  if part.Name=="StaticRoot" then join(part,false) elseif part:GetAttribute("VisualMotionRole") then join(part,true) end
+ end end
+ local seat=Instance.new("Seat");seat.Name="Seat";seat.Size=Vector3.new(2.5,1,2.5)
+ seat.CFrame=frame*Factory.getDriverSeatLocalCFrame(definition)
+ seat.Transparency=1;seat.CanCollide=false;seat.CanTouch=false;seat.Massless=true
+ seat:SetAttribute("LobbyKartSeat",true);seat.Parent=kart;join(seat,false)
+ for _,part in kart:GetDescendants() do if part:IsA("BasePart") then part.CollisionGroup="LobbyKart" end end
+ kart.Parent=zone;body:SetNetworkOwner(nil)
+ return kart,body,seat
+end
+local function drive(player)
+ if not started or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true)
+  or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH"
+  or player:GetAttribute("LobbyDrivePending")==true or (canEnter and not canEnter(player)) then return false,"DRIVE UNAVAILABLE" end
+ if records[player] then return true end
+ local character=player.Character;local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+ local root=character and character:FindFirstChild("HumanoidRootPart")
+ if not humanoid or humanoid.Health<=0 or humanoid.SeatPart or not root then return false,"DRIVE UNAVAILABLE" end
+ local hub=zone.Parent;local spawn=hub:FindFirstChild("HubSpawn")
+ if not inside(root.Position,0) and (not spawn or (root.Position-spawn.Position).Magnitude>140) then return false,"RETURN TO LOBBY" end
+ local definition=Catalog.Entries[player:GetAttribute("SelectedKartId") or Catalog.DefaultId]
+ if not definition then return false,"SELECT A KART" end
+ local gen=generation(player);player:SetAttribute("LobbyDrivePending",true)
+ local frame=zone.LobbyFrontDriveStart.CFrame
+ -- Side-by-side/non-contact start slots, all on the straight, never at the display anchor.
+ local occupied={};for _,r in records do occupied[r.slot]=true end
+ local slot=0;while occupied[slot] do slot+=1 end
+ frame=frame*CFrame.new((slot%3-1)*8,0,-math.floor(slot/3)*16)
+ if not inside(frame.Position,Policy.FootprintMargin) then player:SetAttribute("LobbyDrivePending",false);return false,"DRIVE ZONE BUSY" end
+ local ok,kart,body,seat=pcall(createKart,player,definition,frame)
+ if not ok then player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
+ local record={kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
+  throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,slot=slot,seated=false}
+ records[player]=record
+ record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+  local occupant=seat.Occupant
+  if occupant and occupant~=humanoid then occupant.Sit=false;Service.stop(player,"wrong_occupant",true)
+  elseif not occupant and record.seated then Service.stop(player,"unseated",true) end
+ end)
+ record.destroying=kart.Destroying:Connect(function() Service.stop(player,"destroyed",false) end)
+ seat:Sit(humanoid)
+ local deadline=os.clock()+1.5
+ while records[player]==record and player.Character==character and humanoid.Health>0
+  and not (seat.Occupant==humanoid and humanoid.SeatPart==seat) and os.clock()<deadline do RunService.Heartbeat:Wait() end
+ if records[player]~=record then return false,"DRIVE CANCELLED" end
+ if seat.Occupant~=humanoid or humanoid.SeatPart~=seat or player.Character~=character or humanoid.Health<=0 then
+  Service.stop(player,"sit_failed",true);return false,"COULD NOT ENTER KART"
+ end
+ record.seated=true;player:SetAttribute("LobbyDriveKartId",definition.Id)
+ player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)
+ return true
+end
+function Service.start(driveZone,eligibility)
+ if started then return end
+ if not driveZone or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true) then return end
+ started,zone,canEnter=true,driveZone,eligibility
+ Service.configureCollision()
+ remote=Instance.new("RemoteEvent");remote.Name="LobbyDriveControl";remote.Parent=ReplicatedStorage
+ local connections={}
+ zone.Destroying:Connect(function()
+  started=false
+  for _,player in Players:GetPlayers() do
+   Service.stop(player,"zone_removed",false);restoreCharacter(player)
+   player:SetAttribute("LobbyDriveAvailable",false)
+  end
+ end)
+ local function bind(player)
+  generation(player);player:SetAttribute("LobbyDriveAvailable",true)
+  player:SetAttribute("LobbyDriveActive",false);player:SetAttribute("LobbyDrivePending",false)
+  if player.Character then bindCharacter(player,player.Character) end
+  local list={
+   player.CharacterAdded:Connect(function(character) Service.stop(player,"respawn",false);bindCharacter(player,character) end),
+   player.CharacterRemoving:Connect(function() Service.stop(player,"character_removed",false);restoreCharacter(player) end),
+   player:GetAttributeChangedSignal("RaceState"):Connect(function() if player:GetAttribute("RaceState")~="GARAGE" then Service.stop(player,"state",false) end end),
+   player:GetAttributeChangedSignal("KDMRoutePending"):Connect(function() if player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH" then Service.stop(player,"launch",false) end end),
+   player:GetAttributeChangedSignal("SelectedKartId"):Connect(function() Service.stop(player,"selection",true) end),
+  };connections[player]=list
+ end
+ for _,player in Players:GetPlayers() do bind(player) end
+ Players.PlayerAdded:Connect(bind)
+ Players.PlayerRemoving:Connect(function(player)
+  Service.stop(player,"leave",false);restoreCharacter(player)
+  for _,c in connections[player] or {} do c:Disconnect() end
+  connections[player],generations[player],lastRequest[player]=nil,nil,nil
+ end)
+ remote.OnServerEvent:Connect(function(player,action,id,first,second,drift)
+  if action=="Input" then
+   local r=records[player]
+   if not r or not r.seated or id~=r.generation or not Policy.validAxes(first,second)
+    or player.Character~=r.character or r.humanoid.Health<=0 or r.seat.Occupant~=r.humanoid or r.humanoid.SeatPart~=r.seat
+    or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH" then return end
+   if os.clock()-r.lastInput<1/90 then return end
+   r.throttle,r.steering,r.lastInput=math.clamp(first,-1,1),math.clamp(second,-1,1),os.clock();r.drift=drift==true;return
+  end
+  if type(id)~="number" or id~=id or id<0 or id>1e9 or id%1~=0 then return end
+  if action=="Drive" then
+   local now=os.clock();if now-(lastRequest[player] or -1e9)<.6 then remote:FireClient(player,"Reply",id,generations[player],false,"PLEASE WAIT");return end
+   lastRequest[player]=now;local ok,message=drive(player)
+   remote:FireClient(player,"Reply",id,generations[player],ok,message)
+  elseif action=="Stop" then
+   Service.stop(player,"exit",true)
+   local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+   local deadline=os.clock()+.5
+   while h and h.Parent and h.SeatPart and os.clock()<deadline do RunService.Heartbeat:Wait() end
+   remote:FireClient(player,"Reply",id,generations[player],h==nil or h.SeatPart==nil,"EXIT KART")
+  end
+ end)
+ RunService.Heartbeat:Connect(function(dt)
+  dt=math.min(dt,.05)
+  for player,r in records do
+   if not r.seated then continue end
+   if not r.body.Parent or player.Character~=r.character or r.humanoid.Health<=0
+    or r.humanoid.SeatPart~=r.seat or r.seat.Occupant~=r.humanoid then Service.stop(player,"seat_lost",true);continue end
+   local body=r.body;local pos=body.Position;local c=zone:GetAttribute("Center")
+   if not inside(pos,0) or pos.Y<c.Y-4 or pos.Y>c.Y+18 or body.CFrame.UpVector.Y<.55 then
+    body.AssemblyLinearVelocity=Vector3.zero;body.AssemblyAngularVelocity=Vector3.zero
+    r.kart:PivotTo(r.safe);r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;r.kart:SetAttribute("LobbyDrifting",false)
+    player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1);continue
+   end
+   local throttle,steering=r.throttle,r.steering
+   local drifting=r.drift==true and math.abs(r.speed)>8 and math.abs(steering)>.1
+   if os.clock()-r.lastInput>Policy.InputTimeout then throttle,steering,drifting=0,0,false end
+   local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit
+   local right=Vector3.new(-f.Z,0,f.X)
+   local physical=Vector3.new(body.AssemblyLinearVelocity.X,0,body.AssemblyLinearVelocity.Z)
+   -- Respect actual wall stops: never keep accelerating into a rail with stale commanded speed.
+   if math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then r.speed=physical:Dot(f) end
+   r.speed=Policy.advance(r.speed,throttle,dt)
+   local now=os.clock()
+   local localPos=pos-c
+   local clearance,nx,nz=Geometry.contact(localPos.X,localPos.Z)
+   local normal=Vector3.new(nx,0,nz)
+   local approach=physical:Dot(normal)
+   if not r.crashEnd then
+    if clearance<=Policy.FootprintMargin and approach>KartConfig.BARRIER_CONTACT_MIN_SPEED
+     and now>=(r.crashCooldown or 0) then
+     local impact=Policy.barrierImpact(approach,KartConfig)
+     local inward=-normal;local tangent=Vector3.new(-normal.Z,0,normal.X)
+     if tangent:Dot(f)<0 then tangent=-tangent end
+     r.crashVelocity=(inward*.75+tangent*.4).Unit*impact.rebound
+     r.crashForward=tangent
+     local cross=physical:Cross(inward).Y
+     r.crashSpin=(if cross<0 then -1 else 1)*impact.turns*2*math.pi/impact.duration
+     r.crashEnd=now+impact.duration;r.crashCooldown=r.crashEnd+KartConfig.BARRIER_CRASH_COOLDOWN
+     r.crashAlignStart=r.crashEnd-math.min(.35,impact.duration*.54);r.crashAlignDeadline=r.crashEnd+.2
+     r.speed,r.yaw=0,0;r.kart:SetAttribute("LobbyBarrierSerial",(r.kart:GetAttribute("LobbyBarrierSerial") or 0)+1)
+     r.kart:SetAttribute("LobbyBarrierRebound",impact.rebound)
+    end
+   end
+   if r.crashEnd then
+    local headingError=math.atan2(f:Cross(r.crashForward).Y,f:Dot(r.crashForward))
+    if now>=r.crashEnd and (math.abs(headingError)<=math.rad(20) or now>=r.crashAlignDeadline) then
+     r.crashEnd=nil;body.AssemblyLinearVelocity=Vector3.new(0,body.AssemblyLinearVelocity.Y,0);body.AssemblyAngularVelocity=Vector3.zero
+    else
+     r.crashVelocity*=math.exp(-KartConfig.BARRIER_CRASH_DAMPING*dt)
+     body.AssemblyLinearVelocity=r.crashVelocity+Vector3.new(0,body.AssemblyLinearVelocity.Y,0)
+     local spinWeight=math.clamp((r.crashAlignStart+.08-now)/.08,0,1)
+     local alignment=math.clamp(headingError*16,-12,12)
+     body.AssemblyAngularVelocity=Vector3.new(0,r.crashSpin*spinWeight+alignment*(1-spinWeight),0)
+    end
+    r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartVisualSteering",0);continue
+   end
+   -- Lobby Drift keeps normal grip and speed; only its turn radius is reduced.
+   local lateral=right*(physical:Dot(right)*math.exp(-6*dt))
+   local velocity=f*r.speed+lateral
+   if velocity.Magnitude>70 then velocity=velocity.Unit*70 end
+   body.AssemblyLinearVelocity=velocity+Vector3.new(0,body.AssemblyLinearVelocity.Y,0)
+   local target=if math.abs(r.speed)>2 then -steering*math.abs(r.speed)/Policy.turnRadius(drifting)*math.sign(r.speed) else 0
+   r.yaw+=(target-r.yaw)*(1-math.exp(-6*dt));body.AssemblyAngularVelocity=Vector3.new(0,r.yaw,0)
+   r.kart:SetAttribute("KartVisualSteering",steering)
+   r.kart:SetAttribute("LobbyDrifting",drifting)
+   if inside(pos,Policy.FootprintMargin+4) and math.abs(pos.Y-(c.Y+1.75))<3 and body.CFrame.UpVector.Y>.95 then r.safe=body.CFrame end
+  end
+ end)
+end
+return Service

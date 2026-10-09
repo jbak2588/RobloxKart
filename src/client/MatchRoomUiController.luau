@@ -27,13 +27,19 @@ local function button(parent, text, position, size, callback)
 	local item = Instance.new("TextButton")
 	item.Size = size
 	item.Position = position
-	item.BackgroundColor3 = Theme.Background
+	item.BackgroundColor3 = Theme.Panel
 	item.BorderSizePixel = 0
 	item.Text = text
 	item.TextColor3 = Theme.TextPrimary
-	item.TextSize = 18
+	item.TextSize = 19
 	item.Font = Enum.Font.GothamBold
 	item.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0,8);corner.Parent = item
+	local stroke = Instance.new("UIStroke")
+	stroke.Color,stroke.Thickness,stroke.Transparency = Theme.TextSecondary,1.5,.65
+	stroke.ApplyStrokeMode,stroke.Parent = Enum.ApplyStrokeMode.Border,item
+	item.TextWrapped = true
 	item.Activated:Connect(callback)
 	return item
 end
@@ -52,20 +58,26 @@ function MatchRoomUiController.start()
 	gui.Enabled = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 	local shade = Instance.new("Frame")
+	shade.Active = true
 	shade.Size = UDim2.fromScale(1, 1)
 	shade.BackgroundColor3 = Theme.Background
-	shade.BackgroundTransparency = 0.1
+	shade.BackgroundTransparency = .82
 	shade.Parent = gui
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.new(0.9, 0, 0.94, 0)
+	panel.Size = UDim2.new(0.9, 0, 0.9, 0)
 	panel.BackgroundColor3 = Theme.Panel
+	panel.BorderSizePixel = 0
 	panel.Parent = shade
+	local panelCorner = Instance.new("UICorner")
+	panelCorner.CornerRadius = UDim.new(0,12);panelCorner.Parent = panel
+	local panelStroke = Instance.new("UIStroke")
+	panelStroke.Color,panelStroke.Transparency,panelStroke.Parent = Theme.TextSecondary,.65,panel
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MaxSize = Vector2.new(650, 650)
 	constraint.Parent = panel
-	local title = label(panel, "Title", UDim2.new(1, -32, 0, 36), UDim2.fromOffset(16, 4), "RACE LOBBIES", 22)
+	local title = label(panel, "Title", UDim2.new(1, -32, 0, 36), UDim2.fromOffset(16, 4), "RACE LIST", 22)
 	title.TextColor3 = Theme.TextPrimary
 	local status = label(panel, "Status", UDim2.new(1, -32, 0, 30), UDim2.fromOffset(16, 40), "", 14)
  local guidance = label(panel, "NextAction", UDim2.new(1,-32,0,24), UDim2.fromOffset(16,70), "", 12)
@@ -84,10 +96,11 @@ function MatchRoomUiController.start()
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 8)
 	layout.Parent = list
-	local primary = button(panel, "CREATE LOBBY", UDim2.new(0, 16, 1, -60), UDim2.new(0.48, -20, 0, 52), function() end)
+	local primary = button(panel, "CREATE RACE", UDim2.new(0, 16, 1, -60), UDim2.new(0.48, -20, 0, 52), function() end)
 	local back = button(panel, "BACK", UDim2.new(0.52, 0, 1, -60), UDim2.new(0.48, -16, 0, 52), function() end)
 	back.BackgroundColor3 = Theme.Panel
  primary.BackgroundColor3, primary.TextColor3 = Theme.PrimaryAction, Theme.Background
+ local createView
 	local primaryConnection, backConnection
 	local function bindButtons(primaryText, primaryAction, backText, backAction)
 		if primaryConnection then primaryConnection:Disconnect() end
@@ -95,8 +108,14 @@ function MatchRoomUiController.start()
 		primary.Text = primaryText
 		back.Text = backText
   back.BackgroundColor3 = if backText == "LEAVE" then Theme.Danger else Theme.Panel
-		primaryConnection = primary.Activated:Connect(primaryAction)
-		backConnection = back.Activated:Connect(backAction)
+		primaryConnection = primary.Activated:Connect(function()
+   if createView and createView.isOpen() then return end
+   primaryAction()
+  end)
+		backConnection = back.Activated:Connect(function()
+   if createView and createView.isOpen() then return end
+   backAction()
+  end)
 	end
 	local function clearRows()
 		for _, child in list:GetChildren() do
@@ -115,14 +134,16 @@ function MatchRoomUiController.start()
 			metadata.TextColor3=Theme.TextSecondary;metadata.TextTruncate=Enum.TextTruncate.AtEnd
 		end
 		if actionText then
-			button(frame, actionText, UDim2.new(0.66, 0, 0, 5), UDim2.new(0.32, 0, 1, -10), callback)
+			button(frame, actionText, UDim2.new(0.66, 0, 0, 5), UDim2.new(0.32, 0, 1, -10), function()
+    if createView and createView.isOpen() then return end
+    callback()
+   end)
 		end
 	end
 	local invitation
 	local snapshot
 	local pendingAction, errorMessage, pendingSerial = nil, nil, 0
 	local render
-	local createView
 	local function send(action, ...)
 		if pendingAction then return end
 		pendingAction = action
@@ -134,7 +155,7 @@ function MatchRoomUiController.start()
 		task.delay(15, function()
 			if pendingSerial == serial and pendingAction then
 				pendingAction = nil
-				errorMessage = "LOBBY STATUS UPDATING..."
+				errorMessage = "RACE LIST UPDATING..."
 				render()
 			end
 		end)
@@ -152,8 +173,8 @@ function MatchRoomUiController.start()
 		if not gui.Enabled then createView.close();return end
 		title.AutoLocalize=true
 		if pendingAction then
-			status.Text = ({ Create = "CREATING LOBBY...", Join = "JOINING LOBBY...",
-				Queue = "JOINING QUEUE...", AcceptInvite = "JOINING LOBBY...",
+			status.Text = ({ Create = "CREATING RACE...", Join = "ENTERING RACE...",
+				Queue = "JOINING QUEUE...", AcceptInvite = "ENTERING RACE...",
 				CancelQueue = "CANCELING QUEUE..." })[pendingAction] or "JOINING RACE..."
 			primary.Active = false
 			back.Active = false
@@ -204,23 +225,25 @@ function MatchRoomUiController.start()
 			bindButtons(if #room.members == 1 then "START SOLO" else "START RACE",
 				function() remote:FireServer("Start") end, "LEAVE", function() remote:FireServer("Leave") end)
 		else
-			title.Text = "RACE LOBBIES"
-			status.Text = if snapshot.directoryStale then "LOBBY STATUS UPDATING..." else string.format("CREATE OR JOIN A 1–%d RACER LOBBY", snapshot.maxPlayers or 1)
+			title.Text = "RACE LIST"
+			status.Text = if snapshot.directoryStale then "RACE LIST UPDATING..." else string.format("CREATE OR JOIN A RACE • 1–%d RACERS", snapshot.maxPlayers or 1)
 			for _, room in snapshot.rooms do
 				local waiting = RoomDisplay.canJoin(room)
 				row(Titles.publicTitle(room),
-					if waiting then "ENTER LOBBY" else "QUEUE NEXT",
+					if waiting then "ENTER RACE" else "QUEUE NEXT",
 					function() send(if waiting then "Join" else "Queue", room.id) end,
 					string.format("HOST: %s • %s • %d / %d",room.hostName,RoomDisplay.state(room.state),room.count,room.maxPlayers),true)
 			end
-			if #snapshot.rooms == 0 then row(if snapshot.directoryStale then "LOBBY STATUS UPDATING..." else "NO ACTIVE LOBBIES", nil, nil) end
+			if #snapshot.rooms == 0 then row(if snapshot.directoryStale then "RACE LIST UPDATING..." else "NO ACTIVE RACES", nil, nil) end
 			primary.Visible = true
 			back.Visible = true
-			bindButtons("CREATE LOBBY", function() createView.open() end,
+			bindButtons("CREATE RACE", function() createView.open() end,
 				"BACK", function() remote:FireServer("Back") end)
 		end
   status.TextColor3 = if errorMessage then Theme.Danger else status.TextColor3
-		if errorMessage then status.Text = errorMessage end
+		if errorMessage then
+   status.Text = errorMessage:gsub("LOBBY NAME", "RACE TITLE"):gsub("LOBBY", "RACE")
+  end
 	end
  local remoteConnection = remote.OnClientEvent:Connect(function(action, data)
 		if action == "Snapshot" then

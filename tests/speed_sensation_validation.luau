@@ -46,7 +46,7 @@ for path,hash in fixture.hashes do
  if repair then
   check(path=='src/server/CompactHubBuilder.luau' and type(repair.reason)=='string','explicit unstaged Hub-only exception')
  end
- local actual=serde.hash('sha256',(fs.readFile(path):gsub('\r\n','\n')))
+ local actual=serde.hash('sha256',require('./helpers/l2_presentation_freeze')(fs.readFile(path),path))
  local hotfix=fixture.approvedSourceHotfixes and fixture.approvedSourceHotfixes[path]
  if hotfix then
   check(path=='src/client/RaceResultsCache.luau' and hotfix.task=='R7-N1B'

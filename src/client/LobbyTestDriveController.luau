@@ -1,0 +1,157 @@
+local Players=game:GetService("Players")
+local RS=game:GetService("ReplicatedStorage")
+local Run=game:GetService("RunService")
+local Workspace=game:GetService("Workspace")
+local UIS=game:GetService("UserInputService")
+local GuiService=game:GetService("GuiService")
+local PromptService=game:GetService("ProximityPromptService")
+local Shared=RS:WaitForChild("Shared")
+local Motion=require(Shared:WaitForChild("ChaseCameraMotion"))
+local AudioConfig=require(Shared:WaitForChild("AudioConfig"))
+local Audio=require(script.Parent:WaitForChild("AudioRuntime"))
+local EngineDiagnostic=require(script.Parent:WaitForChild("EngineLoopDiagnostic"))
+local Input=require(script.Parent:WaitForChild("KartInputController"))
+local Garage=require(script.Parent:WaitForChild("GarageUiController"))
+local LobbyLayout=require(script.Parent:WaitForChild("LobbyDriveLayout"))
+local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
+local DriftFeedback=require(script.Parent:WaitForChild("LobbyDriftFeedback"))
+local Controller={}
+local started=false
+function Controller.start()
+ if started or Workspace:GetAttribute("KDMServerRole")~="HUB" or game.PrivateServerId~=""
+  or Workspace:GetAttribute("KDMEnableRaceBot")==true then return end
+ local remote=RS:WaitForChild("LobbyDriveControl",10);if not remote then return end
+ started=true
+ local player=Players.LocalPlayer;local token=0;local pending=nil;local suspended=false;local handoffComplete=false
+ local feedback=nil
+ local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,diagnostic=nil,nil
+ local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
+ local entryPrompt=driveZone:WaitForChild("LobbyFrontDriveEntry"):FindFirstChildOfClass("ProximityPrompt")
+ local gui=Instance.new("ScreenGui");gui.Name="KDMLobbyTestDrive";gui.ResetOnSpawn=false
+ gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.DisplayOrder=21;gui.Parent=player:WaitForChild("PlayerGui")
+ local canvas=Instance.new("Frame");canvas.Name="SafeCanvas";canvas.Size=UDim2.fromScale(1,1);canvas.BackgroundTransparency=1;canvas.Parent=gui
+ local button=Instance.new("TextButton");button.Name="Drive";button.AnchorPoint=Vector2.new(0,1)
+ button.Position=UDim2.new(0,12,1,-12);button.Size=UDim2.fromOffset(156,44)
+ button.BackgroundColor3=Color3.fromRGB(111,211,245);button.TextColor3=Color3.fromRGB(12,27,42)
+ button.Font=Enum.Font.GothamBold;button.TextSize=17;button.BorderSizePixel=0;button.Text="DRIVE";button.Parent=canvas
+ local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(0,8);corner.Parent=button
+ local status=Instance.new("TextLabel");status.Name="Status";status.AnchorPoint=Vector2.new(0,1)
+ status.Position=UDim2.new(0,12,1,-60);status.Size=UDim2.fromOffset(240,24)
+ status.BackgroundColor3=Color3.fromRGB(19,39,54);status.BackgroundTransparency=.15
+ status.TextColor3=Color3.fromRGB(224,245,249);status.Font=Enum.Font.GothamBold;status.TextSize=12;status.Text="";status.Parent=canvas
+ local function seatKart()
+  local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+  local seat=h and h.SeatPart;local kart=seat and seat.Parent
+  if h and h.Health>0 and seat and seat:GetAttribute("LobbyKartSeat")==true and kart and kart:GetAttribute("LobbyOwnerUserId")==player.UserId then return kart,h end
+  return nil,nil
+ end
+ local function neutral()
+  if feedback then feedback:update(0,false) end
+  suspended=true;Input.resetTouchActions();Input.resetLobbyTouchState()
+  remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),0,0)
+ end
+ local function detach()
+  if feedback then feedback:destroy();feedback=nil end
+  if engine then engine:Stop();engine:Destroy();engine=nil end
+  if diagnostic then diagnostic:destroy();diagnostic=nil end
+  if cameraBody then
+   local camera=Workspace.CurrentCamera;local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+   if camera then camera.CameraType=Enum.CameraType.Custom;if h then camera.CameraSubject=h end;if savedFov then camera.FieldOfView=savedFov end end
+  end
+  cameraBody,previousTarget,savedFov=nil,nil,nil
+ end
+ local function request(action,callback)
+  if pending then return false end
+  token+=1;local id=token;pending={id=id,callback=callback,action=action}
+  if action=="Stop" then neutral();detach() else suspended=false end
+  button.Active=false;remote:FireServer(action,id)
+  task.delay(5,function()
+   if pending and pending.id==id then
+    local stale=pending;pending=nil;neutral();detach();status.Text="PLEASE TRY AGAIN";button.Active=true
+    if stale.action=="Drive" then token+=1;remote:FireServer("Stop",token) end
+    if stale.callback then stale.callback(false) end
+   end
+  end)
+  return true
+ end
+ Garage.setOpenGate(function(resume)
+  if handoffComplete then handoffComplete=false;return false end
+  if player:GetAttribute("LobbyDriveActive")~=true and player:GetAttribute("LobbyDrivePending")~=true and not pending then return false end
+  if pending then return true end
+  request("Stop",function(ok) if ok then handoffComplete=true;resume() end end)
+  return true
+ end)
+ Input.setLobbyInputSender(function(throttle,steering,drift)
+  local kart=seatKart();if not kart or player:GetAttribute("LobbyDriveActive")~=true then return end
+  if suspended or not focused or GuiService.MenuIsOpen or UIS:GetFocusedTextBox() then throttle,steering,drift=0,0,false end
+  remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),throttle,steering,drift==true)
+ end)
+ remote.OnClientEvent:Connect(function(action,id,gen,ok,message)
+  if action~="Reply" or not pending or id~=pending.id then return end
+  local current=player:GetAttribute("LobbyDriveGeneration") or 0
+  if type(gen)~="number" or gen<current then return end
+  local done=pending;pending=nil;button.Active=true
+  status.Text=if ok then "" else (message or "DRIVE UNAVAILABLE")
+  if not ok then neutral();detach() end
+  if done.callback then done.callback(ok) end
+ end)
+ button.Activated:Connect(function()
+  if pending then return end
+  request(if player:GetAttribute("LobbyDriveActive")==true then "Stop" else "Drive")
+ end)
+ PromptService.PromptTriggered:Connect(function(prompt,who)
+  if who==player and prompt.Parent and (prompt.Parent.Name=="LobbyFrontDriveEntry" or prompt.Name=="LobbyDisplayTestDrive") and not pending then request("Drive") end
+ end)
+ player.CharacterRemoving:Connect(function() neutral();detach();if pending and pending.callback then pending.callback(false) end;pending=nil;token+=1 end)
+ player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(function()
+  if player:GetAttribute("LobbyDriveActive")~=true then neutral();detach() else suspended=false end
+ end)
+ player:GetAttributeChangedSignal("LobbyDriveResetSerial"):Connect(function() neutral();previousTarget=nil;suspended=false end)
+ UIS.WindowFocusReleased:Connect(function() focused=false;neutral() end)
+ UIS.WindowFocused:Connect(function() focused=true;suspended=false end)
+ GuiService.MenuOpened:Connect(neutral)
+ GuiService.MenuClosed:Connect(function() suspended=false end)
+ Run.RenderStepped:Connect(function(dt)
+  local active=player:GetAttribute("LobbyDriveActive")==true
+  local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")
+  gui.Enabled=player:GetAttribute("LobbyDriveAvailable")==true and player:GetAttribute("RaceState")=="GARAGE"
+   and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled)
+  button.Visible=active
+  button.Text=if pending then "PLEASE WAIT" else "EXIT KART"
+  local touch=gui.Parent:FindFirstChild("RobloxKartTouchDriving")
+  local controls=touch and touch:FindFirstChild("Controls")
+  local driftButton=controls and controls:FindFirstChild("Drift")
+  local size=if controls then controls.AbsoluteSize else Workspace.CurrentCamera.ViewportSize
+  local l=LobbyLayout.apply(MobileView.layout(size),size)
+  if driftButton and controls.Visible then
+   local bottom=driftButton.AbsolutePosition.Y-canvas.AbsolutePosition.Y-8
+   button.Position=UDim2.fromOffset(12,bottom)
+  else button.Position=UDim2.new(0,12,1,-(l.driftBottom+l.driftHitHeight+8)) end
+  local display=Workspace.KDMHub:FindFirstChild("KDMClientMyKartDisplay")
+  local displayPrompt=display and display:FindFirstChild("LobbyDisplayTestDrive",true)
+  if displayPrompt then displayPrompt.Enabled=gui.Enabled and not active and not pending end
+  if entryPrompt then entryPrompt.Enabled=gui.Enabled and not active and not pending end
+  status.Visible=status.Text~=""
+  local kart,h=seatKart();local body=kart and kart:FindFirstChild("Chassis")
+  if not active or not body or suspended then if feedback then feedback:update(dt,false) end;if not active then detach() end;return end
+  local camera=Workspace.CurrentCamera;if not camera then return end
+  if body~=cameraBody then
+   detach();cameraBody=body;savedFov=camera.FieldOfView;previousTarget=nil
+   feedback=DriftFeedback.new(body,kart,driveZone)
+   engine=Audio.createSound("LobbyEngineLoop",AudioConfig.ASSETS.ENGINE_LOOP,body,Audio.getGroup("RobloxKartEngine"),true,AudioConfig.ENGINE.IDLE_VOLUME,true)
+   if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
+  end
+  if feedback then feedback:update(dt,kart:GetAttribute("LobbyDrifting")==true and not suspended and focused and not GuiService.MenuIsOpen) end
+  local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit
+  local target=body.Position+Vector3.new(0,2,0)
+  local desired=CFrame.lookAt(target-f*18+Vector3.new(0,8,0),target+f*12)
+  camera.CameraType=Enum.CameraType.Scriptable;camera.FieldOfView=75
+  camera.CFrame=Motion.step(camera.CFrame,previousTarget,target,desired,6,dt);camera.Focus=CFrame.new(target);previousTarget=target
+  if engine then
+   local ratio=math.clamp(body.AssemblyLinearVelocity.Magnitude/70,0,1)
+   if not diagnostic or not diagnostic:isFixed() then engine.PlaybackSpeed=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*ratio end
+   engine.Volume=AudioConfig.ENGINE.IDLE_VOLUME+(AudioConfig.ENGINE.NORMAL_VOLUME-AudioConfig.ENGINE.IDLE_VOLUME)*ratio
+  end
+ end)
+end
+return Controller

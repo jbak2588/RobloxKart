@@ -208,6 +208,9 @@ check(playerGui.HubRaceInvite.Enabled, "invite surface independent of overlay")
 check(not preview.PreviewWorld, "closed overlay has no preview/render allocation")
 controller.open("KART")
 check(gui.Enabled and player:GetAttribute("HubOverlayOpen"), "Garage action opens local overlay")
+local background=playerGui.RobloxKartGarageBackground.FullScreenBackground
+check(background.BackgroundTransparency==.82 and not background:FindFirstChild('ArcadeDepth'),'live Lobby background replaces opaque gradient')
+check(backdrop.Active and background.Active,'selection backdrop sinks world taps')
 check(backdrop.GarageStep.Text == "KART GARAGE" and preview.PreviewWorld.PreviewKart, "first step is Kart")
 check(backdrop.GarageChoice.Text == "KDM V2 Cyan", "Garage opens on V2 when no V2 is committed")
 local kartControls=backdrop.KartControls
@@ -369,6 +372,7 @@ end
 local stations=child(hub,"Folder","Stations")
 local station=child(stations,"Part","GarageStation");station:SetAttribute("HubAction","GARAGE")
 local prompt=child(station,"ProximityPrompt","HubPrompt")
+prompt.Enabled=true
 local hubController=luau.load(fs.readFile("src/client/HubUiController.luau"),{environment=environment})()
 workspace:SetAttribute("KDMServerRole","RACE");hubController.start()
 check(not playerGui:FindFirstChild("KDMHubNavigation"),"RACE has no Hub shortcuts")
@@ -388,11 +392,16 @@ check(hub.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart01","Retur
 local shortcuts=hubGui.Shortcuts
 shortcuts.GARAGE.Activated:Fire()
 check(gui.Enabled and not hubGui.Enabled and backdrop.GarageStep.Text=="KART GARAGE","Garage shortcut opens correct local step")
+check(not prompt.Enabled,'modal disables world navigation prompts locally')
+local stepBefore=backdrop.GarageStep.Text
+services.ProximityPromptService.PromptTriggered:Fire(prompt,player)
+check(backdrop.GarageStep.Text==stepBefore,'prompt through open modal cannot switch selection')
 check(backdrop.GarageChoice.Text=="KDM V2 Cyan" and player:GetAttribute("SelectedKartId")=="Kart01","V2 first preview preserves committed Sprint until USE KART")
 controller.close();shortcuts.TRACKS.Activated:Fire()
 check(backdrop.TrackPreview.Visible and not hubGui.Enabled,"Tracks shortcut navigates without launching")
 controller.close()
 local sent=remote.fireCount
+check(prompt.Enabled,'closing modal restores prior prompt state')
 services.ProximityPromptService.PromptTriggered:Fire(prompt,player)
 check(gui.Enabled and remote.fireCount==sent,"native station prompt only navigates")
 controller.close()

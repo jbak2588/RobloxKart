@@ -5,6 +5,11 @@ local RunService = game:GetService("RunService")
 local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"))
 
 local RaceLaunchService = {}
+local function stopLobbyDrive(player, reason)
+ if player:GetAttribute("LobbyDriveActive") ~= true and player:GetAttribute("LobbyDrivePending") ~= true then return end
+ local module = script.Parent:FindFirstChild("LobbyTestDriveService")
+ if module then require(module).stop(player, reason, true) end
+end
 local pending = {}
 local started = false
 local ERROR_TEXT = "RACE SERVER UNAVAILABLE - PLEASE TRY AGAIN"
@@ -47,6 +52,7 @@ function RaceLaunchService.launchSolo(player, trackId, driverId, kartId, onFailu
 	if player.Parent ~= Players or pending[player] then return false end
 	local payload = RaceLaunchPayload.buildSolo(HttpService:GenerateGUID(false), player, trackId, driverId, kartId)
 	if not payload then return false end
+	stopLobbyDrive(player, "launch_solo")
 	local token = {}
 	pending[player] = { token = token, kind = "launch", onFailure = onFailure }
 	player:SetAttribute("KDMRoutePending", "RACE_LAUNCH")
@@ -92,6 +98,7 @@ function RaceLaunchService.launchMatch(players, payload, onPlayerFailure, access
 	end
 	local token = {}
 	for _, player in players do
+		stopLobbyDrive(player, "launch_match")
 		local selection = payload.selections[tostring(player.UserId)]
 		pending[player] = { token = token, kind = if preserveStateOnFailure then "round" else "launch", onFailure = function()
 			if onPlayerFailure then onPlayerFailure(player) end

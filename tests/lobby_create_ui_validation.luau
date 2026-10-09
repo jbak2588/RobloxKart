@@ -14,18 +14,28 @@ local gui=playerGui.KDMMatchRooms;local panel=gui.Frame.Frame;local modal=panel.
 local box=modal.Content.LobbyTitleInput
 local function snapshot(data)r.OnClientEvent:Fire("Snapshot",data or {visible=true,rooms={},maxPlayers=4})end
 local function opener()
- for _,item in panel:GetChildren() do if item.Text=="CREATE LOBBY" then return item end end
+ for _,item in panel:GetChildren() do if item.Text=="CREATE RACE" then return item end end
  error("Create button absent")
 end
 local function open()snapshot();opener().Activated:Fire();check(modal.Visible,"modal opened")end
 local function acknowledged()snapshot({visible=false,rooms={}});snapshot()end
-snapshot();check(panel.Title.Text=="RACE LOBBIES","browser wording")
-check(panel.Status.Text=="CREATE OR JOIN A 1–4 RACER LOBBY" and not panel.NextAction.Visible,"browser capacity without duplicate guidance")
+snapshot();check(panel.Title.Text=="RACE LIST","browser wording")
+check(panel.Status.Text=="CREATE OR JOIN A RACE • 1–4 RACERS" and not panel.NextAction.Visible,"browser capacity without duplicate guidance")
 check(gui.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets,"native safe insets")
+check(gui.Frame.BackgroundTransparency==.82 and gui.Frame.Active,'directory reveals live world and blocks world input')
+check(math.abs(panel.Size.Y.Scale-.9)<.00001,'directory leaves safe world margin')
+check(opener().BackgroundColor3==modules.KDMUiTheme.PrimaryAction and opener().Font==rb.Enum.Font.GothamBold,'shared primary style')
+check(opener():FindFirstChild('UICorner').CornerRadius==rb.UDim.new(0,8),'shared eight pixel button corners')
 local before=r.fireCount or 0;open();modal.Cancel.Activated:Fire()
-check(modal.Heading.Text=="CREATE RACE LOBBY" and modal.Content.TitleLabel.Text=="LOBBY NAME (OPTIONAL)" and box.PlaceholderText=="Your Lobby Name","modal name terminology")
+check(modal.Heading.Text=="CREATE RACE" and modal.Content.TitleLabel.Text=="RACE TITLE (OPTIONAL)" and box.PlaceholderText=="Your Race Title","modal name terminology")
 check(modal.Content.Hint.Text=="Leave blank to use your racer name." and modal.Content.QuickTitles.Text=="QUICK TITLES","modal help preserved")
 check(modal.Content.CharacterCount.Text=="0 / 32","empty input count")
+check(modal.Create.Text=='CREATE RACE' and modal.Create.TextSize==19 and modal.Cancel.TextSize==19,'consistent footer hierarchy')
+open();local clicks=r.fireCount or 0
+opener().Activated:Fire()
+for _,item in panel:GetChildren() do if item.Text=='BACK' then item.Activated:Fire() end end
+check(modal.Visible and (r.fireCount or 0)==clicks,'Create modal prevents background actions')
+modal.Cancel.Activated:Fire()
 check(not modal.Visible and (r.fireCount or 0)==before,"cancel no remote/reserve")
 open();modal.Create.Activated:Fire()
 check(r.lastFire[1]=="Create" and r.lastFire[2]=="DEFAULT","blank default")
@@ -48,7 +58,7 @@ local function bounds(item,parent,label)
  local p,s=item.AbsolutePosition,item.AbsoluteSize;local a,b=parent.AbsolutePosition,parent.AbsoluteSize
  check(p.X>=a.X-.01 and p.Y>=a.Y-.01 and p.X+s.X<=a.X+b.X+.01 and p.Y+s.Y<=a.Y+b.Y+.01,label)
 end
-for _,screen in {rb.Vector2.new(844,332),rb.Vector2.new(740,302),rb.Vector2.new(390,720)} do
+for _,screen in {rb.Vector2.new(844,332),rb.Vector2.new(740,302),rb.Vector2.new(705,302),rb.Vector2.new(390,720),rb.Vector2.new(1920,1022)} do
  safeSize=screen;open()
  bounds(panel,gui,"panel safe bounds");bounds(modal.Create,panel,"Create safe bounds");bounds(modal.Cancel,panel,"Cancel safe bounds")
  check(panel.RoomList.AbsoluteSize.Y>=100,"short screen retains usable scrolling rows")
@@ -69,7 +79,7 @@ local row=panel.RoomList:FindFirstChild("Frame")
 check(row:FindFirstChild("Name").Text=="Filtered custom title" and not row:FindFirstChild("Name").AutoLocalize,"public title row identity")
 check(row.Detail.Text:find("HOST: Host",1,true) and row:FindFirstChild("Name").TextTruncate==rb.Enum.TextTruncate.AtEnd,"two line metadata/truncate")
 local entry=row:FindFirstChild("TextButton")
-check(entry.Text=="ENTER LOBBY" and not panel.NextAction.Visible,"available lobby action wording")
+check(entry.Text=="ENTER RACE" and not panel.NextAction.Visible,"available lobby action wording")
 entry.Activated:Fire();check(r.lastFire[1]=="Join" and r.lastFire[2]=="a","entry retains Join protocol")
 acknowledged()
 snapshot({visible=true,rooms={{id="b",hostName="Host",count=2,maxPlayers=4,state="RACING",lobbyTitleKind="CUSTOM",lobbyTitle=string.rep("W",32)}},maxPlayers=4})
@@ -81,7 +91,7 @@ snapshot({visible=true,room={hostName="NewHost",hostUserId=2,state="WAITING",mem
 check(panel.Title.Text=="Drift Practice" and panel.Title.AutoLocalize==false,"owned lobby main title")
 check(panel.NextAction.Visible and panel.NextAction.Text=="WAIT FOR HOST • ITEMS NEXT","nonhost useful guidance retained")
 snapshot({visible=true,room={hostName="QueueHost",membershipKind="QUEUED",state="RACING",count=2,maxPlayers=4,queuePosition=1,lobbyTitleKind="DEFAULT"}})
-check(panel.RoomList:FindFirstChild("Frame"):FindFirstChild("Name").Text=="QueueHost's Lobby","queue default title fallback")
+check(panel.RoomList:FindFirstChild("Frame"):FindFirstChild("Name").Text=="QueueHost's Race","queue default title fallback")
 check(panel.NextAction.Visible and panel.NextAction.Text=="WAITING FOR NEXT RACE","queue useful guidance retained")
 open();player:SetAttribute("RaceState","RACING")
 check(not gui.Enabled and not modal.Visible,"race closes keyboard/modal")

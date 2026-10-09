@@ -119,6 +119,14 @@ else
 	MatchRoomService.start()
 	CompactHubBuilder.build(Workspace, Workspace.Prototype.PlayerSpawn)
 	GarageController.start()
+	if game.PrivateServerId == "" and not botTest and CompactHubBuilder.buildFrontDriveZone then
+		local drive = require(script:WaitForChild("LobbyTestDriveService"))
+		drive.configureCollision()
+		local hub = Workspace:FindFirstChild("KDMHub")
+		local ground = Workspace:FindFirstChild("Baseplate") or Workspace.Prototype:FindFirstChild("Ground")
+		local zone = CompactHubBuilder.buildFrontDriveZone(hub, ground)
+		drive.start(zone, MatchRoomService.canTestDrive)
+	end
 	PlayerPreferences.start()
 	if botTest then require(script:WaitForChild("RaceBotController")).start() end
 end

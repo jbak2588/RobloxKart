@@ -15,6 +15,11 @@ local requireModule = require :: (ModuleScript) -> any
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
 local GarageController = {}
+local function stopLobbyDrive(player, reason)
+ if player:GetAttribute("LobbyDriveActive") ~= true and player:GetAttribute("LobbyDrivePending") ~= true then return end
+ local module = script.Parent:FindFirstChild("LobbyTestDriveService")
+ if module then require(module).stop(player, reason, true) end
+end
 local REMOTE_NAME = "GarageControl"
 local started = false
 
@@ -137,6 +142,7 @@ function GarageController.start()
 		if type(driverId) ~= "string" or type(kartId) ~= "string" or type(trackId) ~= "string" then
 			return
 		end
+		stopLobbyDrive(player, "ready")
 		local mode = RaceMode.resolve(trackId)
 		local driver = DriverCatalog.Entries[driverId]
 		local kartSelection = KartCatalog.Entries[kartId]
@@ -270,6 +276,9 @@ function GarageController.start()
 
 	remote.OnServerEvent:Connect(function(player: Player, action: unknown, first: unknown, second: unknown, third: unknown)
 		if action == "SelectKart" then
+			if player:GetAttribute("LobbyDriveActive") == true or player:GetAttribute("LobbyDrivePending") == true then
+				stopLobbyDrive(player, "select_kart")
+			end
 			if Workspace:GetAttribute("KDMServerRole") ~= "HUB" or player.Parent ~= Players
 				or player:GetAttribute("RaceState") ~= "GARAGE" or readyPending[player]
 				or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH"

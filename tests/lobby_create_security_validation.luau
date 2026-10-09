@@ -64,10 +64,10 @@ for index,id in titleModules.catalog.Order do
 end
 local fallback=fresh(160);fallback.DisplayName="";action(fallback,"Create")
 local fallbackRoom=assert(recordFor(fallback))
-check(fallbackRoom.lobbyTitle=="Account160's Lobby" and fallbackRoom.stagedMembers[1].name=="Account160","default creator/account fallback persisted")
+check(fallbackRoom.lobbyTitle=="Account160's Race" and fallbackRoom.stagedMembers[1].name=="Account160","default creator/account fallback persisted")
 local successor=fresh(161);successor.DisplayName="";action(successor,"Join",fallbackRoom.roomId)
 directory:removeStaged(fallbackRoom.roomId,160)
-check(directory:get(fallbackRoom.roomId).lobbyTitle=="Account161's Lobby","host transfer account fallback")
+check(directory:get(fallbackRoom.roomId).lobbyTitle=="Account161's Race","host transfer account fallback")
 print("PASS: "..count.." production create, reservation, filter, guard, stale request and title propagation checks")
 ]=]
 local titles=require("./helpers/lobby_title_modules")

@@ -1,0 +1,1112 @@
+{
+  "source": "artifacts/r7-l3-a1-final-gate-v2b/validation.json",
+  "originalEvidenceSha256": "4499659df799c96bf712ded5e38e70ee390b921585a00ceceb69e90cd758a0e8",
+  "freshLogicalCommands": 109,
+  "result": "109/109 PASS",
+  "buildSha256": "8c8806067518136e8cdb8184439b5143e4d0a56b0dc7b68a1f36c0dcb9b6a1df",
+  "rows": [
+    {
+      "label": "Strict adapter mutation rejection",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "--self-test"
+      ],
+      "mode": "gate-only helper test",
+      "exitCode": 0
+    },
+    {
+      "label": "Production Luau compile",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-a1-mobile-fix/compile.luau"
+      ],
+      "mode": "CURRENT direct compile",
+      "exitCode": 0
+    },
+    {
+      "label": "Rojo build",
+      "command": [
+        "rojo",
+        "build",
+        "default.project.json",
+        "--output",
+        "artifacts/r7-l3-integrated-checkpoint/candidate.rbxl"
+      ],
+      "mode": "CURRENT build",
+      "exitCode": 0
+    },
+    {
+      "label": "git diff --check",
+      "command": [
+        "git",
+        "-c",
+        "core.safecrlf=false",
+        "diff",
+        "--check"
+      ],
+      "mode": "CURRENT diff",
+      "exitCode": 0
+    },
+    {
+      "label": "active_match_directory_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/active_match_directory_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "avatar_identity_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/avatar_identity_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "bot_curve_pursuit_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/bot_curve_pursuit_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "bot_internal_control_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/bot_internal_control_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "bot_route_continuity_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/bot_route_continuity_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "camera_motion_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/camera_motion_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "combat_feedback_view_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/combat_feedback_view_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "compact_hub_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/compact_hub_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "drift_telemetry_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/drift_telemetry_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "driver_finish_celebration_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/driver_finish_celebration_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "finish_celebration_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/finish_celebration_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "finish_outcome_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/finish_outcome_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "finish_presentation_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/finish_presentation_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "finish_sequence_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/finish_sequence_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "finish_source_freeze_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "tests/finish_source_freeze_validation.luau"
+      ],
+      "mode": "STRICT followup inverse -> original A1 adapter -> unchanged Historical Freeze assertions",
+      "exitCode": 0
+    },
+    {
+      "label": "four_player_race_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/four_player_race_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "gameplay_balance_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/gameplay_balance_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "garage_h2_flow_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/garage_h2_flow_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "garage_h2_kart_display_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/garage_h2_kart_display_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "garage_polish_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/garage_polish_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "garage_transition_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-a1-mobile-fix/garage_harness.luau"
+      ],
+      "mode": "CURRENT functional; existing mock-module registration harness, assertions unchanged",
+      "exitCode": 0
+    },
+    {
+      "label": "garage_two_player_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/garage_two_player_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "hub_next_action_guidance_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/hub_guidance_harness.luau"
+      ],
+      "mode": "CURRENT original Hub guidance assertions; exact mock module registration only",
+      "exitCode": 0
+    },
+    {
+      "label": "hub_world_progression_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/hub_guidance_harness.luau",
+        "tests/hub_world_progression_validation.luau"
+      ],
+      "mode": "CURRENT original Hub guidance assertions; exact mock module registration only",
+      "exitCode": 0
+    },
+    {
+      "label": "impact_camera_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/impact_camera_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "item_aftershock_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "tests/item_aftershock_validation.luau"
+      ],
+      "mode": "STRICT followup inverse -> original A1 adapter -> unchanged Historical Freeze assertions",
+      "exitCode": 0
+    },
+    {
+      "label": "item_local_vfx_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/item_local_vfx_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "item_preparation_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/item_preparation_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "item_vfx_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/item_vfx_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "item_world_vfx_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/item_world_vfx_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kart_audio_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kart_audio_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kart_contact_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kart_contact_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kart_v2_production_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kart_v2_production_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kart_visual_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kart_visual_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kdm_control_icon_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kdm_control_icon_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kdm_driver_grip_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kdm_driver_grip_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "kdm_icon_catalog_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/kdm_icon_catalog_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lap_item_refill_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lap_item_refill_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_create_security_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_create_security_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_create_ui_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_create_ui_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_drive_mobile_fix_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_drive_mobile_fix_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_palette_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "tests/lobby_palette_validation.luau"
+      ],
+      "mode": "STRICT followup inverse -> original A1 adapter -> unchanged Historical Freeze assertions",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_side_wings_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_side_wings_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_surface_drift_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_surface_drift_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_terminology_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_terminology_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_test_drive_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_test_drive_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_title_persistence_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_title_persistence_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "lobby_title_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/lobby_title_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "m3_a2_presence_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/m3_a2_presence_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "m3_a2_room_display_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/m3_a2_room_display_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "match_room_service_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/match_room_service_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "match_room_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/match_room_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "missile_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/missile_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "mobile_hud_polish_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/mobile_hud_polish_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "mobile_touch_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-a1-mobile-fix/touch_harness.luau"
+      ],
+      "mode": "CURRENT functional; existing mock-module registration harness, assertions unchanged",
+      "exitCode": 0
+    },
+    {
+      "label": "multiplayer_foundation_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/multiplayer_foundation_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "multiplayer_presentation_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/multiplayer_presentation_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "persistent_room_race_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/persistent_room_race_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "pit_garage_art_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/pit_garage_art_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "player_preferences_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/player_preferences_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "practice_crossover_visual_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/practice_crossover_visual_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "practice_figure8_feasibility_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/practice_figure8_feasibility_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "practice_figure8_geometry_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/practice_figure8_geometry_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "practice_figure8_race_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/practice_figure8_race_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "practice_public_bot_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/practice_public_bot_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "practice_three_lap_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/practice_three_lap_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "production_bot_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/production_bot_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_audio_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_audio_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_bot_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_bot_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_item_reset_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_item_reset_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_item_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_item_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_launch_routing_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_launch_routing_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_loadout_slots_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_loadout_slots_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_mode_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_mode_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_result_hud_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_result_hud_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_results_cache_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_results_cache_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_room_coordinator_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_room_coordinator_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "race_route_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/race_route_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "remote_world_vfx_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/remote_world_vfx_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "repeatable_nitro_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/repeatable_nitro_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "reserved_arrival_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/reserved_arrival_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "reserved_match_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/reserved_match_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "route_continuity_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/route_continuity_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "shield_restore_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/shield_restore_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "slick_spin_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/slick_spin_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "slick_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/slick_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "smoke_effect_view_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/smoke_effect_view_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "smoke_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/smoke_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "speed_sensation_camera_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/speed_sensation_camera_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "speed_sensation_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "tests/speed_sensation_validation.luau"
+      ],
+      "mode": "STRICT followup inverse -> original A1 adapter -> unchanged Historical Freeze assertions",
+      "exitCode": 0
+    },
+    {
+      "label": "speed_world_vfx_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/speed_world_vfx_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "straight_speed_kart_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/straight_speed_kart_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "straight_speed_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "tests/straight_speed_validation.luau"
+      ],
+      "mode": "STRICT followup inverse -> original A1 adapter -> unchanged Historical Freeze assertions",
+      "exitCode": 0
+    },
+    {
+      "label": "thunder_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/thunder_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track03_four_player_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track03_four_player_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track_diorama_orbit_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track_diorama_orbit_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track_diorama_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track_diorama_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track_environment_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track_environment_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track_h3_flow_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track_h3_flow_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track_v2_geometry_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track_v2_geometry_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "track_visual_standard_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/track_visual_standard_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "two_player_race_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/two_player_race_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "v2_gauge_v1_audio_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-integrated-checkpoint/strict_freeze_runner.luau",
+        "tests/v2_gauge_v1_audio_validation.luau"
+      ],
+      "mode": "STRICT followup inverse -> original A1 adapter -> unchanged Historical Freeze assertions",
+      "exitCode": 0
+    },
+    {
+      "label": "v2_public_multiplayer_validation.luau",
+      "command": [
+        "lune",
+        "run",
+        "tests/v2_public_multiplayer_validation.luau"
+      ],
+      "mode": "CURRENT direct test",
+      "exitCode": 0
+    },
+    {
+      "label": "Joystick",
+      "command": [
+        "lune",
+        "run",
+        "artifacts/r7-l3-a1-mobile-fix/touch_harness.luau",
+        "Joystick"
+      ],
+      "mode": "CURRENT existing mock registration harness",
+      "exitCode": 0
+    }
+  ]
+}
