@@ -1,0 +1,92 @@
+{
+  "src/shared/TrackGeometry.luau": {
+    "candidateHash": "8603d7cce523add99b98f54534d25d372d6575e178c4a69d142a1f8cb0d6081d",
+    "baselineHash": "948529127458727a6b1ad44e33fdcc2cf59a0ca7df64e8c18865e0a2689f75b9",
+    "hunks": [
+      {
+        "start": 7958,
+        "finish": 9993,
+        "after": "-- Local B-only candidate; Legacy definitions remain byte-identical.\nTrackGeometry.Definitions.PrototypeCircuitV2B = (function()\n-- KDM R7-N3 candidate B: Track02 prototype only. Not an approved/played production track.\n-- Add as TrackGeometry.Definitions.PrototypeCircuitV2B after careful review; do NOT replace legacy.\n-- 24 signed Catmull-Rom control points; original P1-P16 unchanged.\nlocal definition = {\n    ControlPoints = {\n        Vector3.new(-360.000, 0, 430.000), -- P1\n        Vector3.new(-360.000, 0, 180.000), -- P2\n        Vector3.new(-300.000, 0, 70.000), -- P3\n        Vector3.new(-120.000, 0, 30.000), -- P4\n        Vector3.new(60.000, 0, 80.000), -- P5\n        Vector3.new(180.000, 0, -20.000), -- P6\n        Vector3.new(190.000, 0, -180.000), -- P7\n        Vector3.new(80.000, 0, -330.000), -- P8\n        Vector3.new(-140.000, 0, -330.000), -- P9\n        Vector3.new(-360.000, 0, -330.000), -- P10\n        Vector3.new(-500.000, 0, -400.000), -- P11\n        Vector3.new(-620.000, 0, -380.000), -- P12\n        Vector3.new(-620.000, 0, -40.000), -- P13\n        Vector3.new(-560.000, 0, 80.000), -- P14\n        Vector3.new(-430.000, 0, 160.000), -- P15\n        Vector3.new(-520.000, 0, 280.000), -- P16\n        Vector3.new(-680.000, 0, 365.000), -- P17\n        Vector3.new(-740.000, 0, 560.000), -- P18\n        Vector3.new(-700.000, 0, 745.000), -- P19\n        Vector3.new(-581.791, 0, 866.756), -- P20\n        Vector3.new(-452.744, 0, 895.306), -- P21\n        Vector3.new(-328.511, 0, 822.636), -- P22\n        Vector3.new(-305.730, 0, 705.840), -- P23\n        Vector3.new(-360.000, 0, 540.450), -- P24\n    },\n    RoadWidth = 48,\n    SampleSpacing = 14,\n    -- Fractions are new route-station proposals; retain exactly six ordered checkpoints.\n    CheckpointFractions = { 0.118282592, 0.321054611, 0.363298781, 0.490031293, 0.650784732, 0.737278028 },\n    -- Candidate focus for exit-clearance study; calibrate using actual Builder corner zones.\n    MajorDriftFractions = { 0.710, 0.835 },\n}\nreturn definition\n\nend)()\n\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/server/TrackBuilder.luau": {
+    "candidateHash": "93bc945112e47d951f113f72f680a7fbaaf0649ed03e2918c07c92a16a40184f",
+    "baselineHash": "1d5c2aa7ede3d8eb754ac2aee27c8b5ca00cdd36aa0acaf6b91a83ad9e015eca",
+    "hunks": [
+      {
+        "start": 564,
+        "finish": 651,
+        "after": "\tV2B = { Version = 1, KerbRows = 2, SignEvery = 6, SignText = \"KDM / V2B CANDIDATE\" },\n",
+        "before": ""
+      },
+      {
+        "start": 16850,
+        "finish": 17043,
+        "after": "\tlocal isV2B = track.GeometryId == \"PrototypeCircuitV2B\"\n\tlocal styleName = if isV2B then \"V2B\" elseif isHardCircuit then \"Hard\" elseif track.GeometryId == \"PrototypeCircuitV2\" then \"Standard\"\n",
+        "before": "\tlocal styleName = if isHardCircuit then \"Hard\" elseif track.GeometryId == \"PrototypeCircuitV2\" then \"Standard\"\n"
+      },
+      {
+        "start": 19666,
+        "finish": 19760,
+        "after": "\tif isHardCircuit or isV2B then kerbThreshold = math.atan(definition.SampleSpacing / 350) end\n",
+        "before": "\tif isHardCircuit then kerbThreshold = math.atan(definition.SampleSpacing / 350) end\n"
+      },
+      {
+        "start": 19824,
+        "finish": 19904,
+        "after": "\tif isV2B then barrierThreshold = math.atan(definition.SampleSpacing / 350) end\n",
+        "before": ""
+      },
+      {
+        "start": 22377,
+        "finish": 22409,
+        "after": "\tif isHardCircuit or isV2B then\n",
+        "before": "\tif isHardCircuit then\n"
+      },
+      {
+        "start": 28972,
+        "finish": 29017,
+        "after": "\tif isHardCircuit or isFigure8 or isV2B then\n",
+        "before": "\tif isHardCircuit or isFigure8 then\n"
+      },
+      {
+        "start": 33937,
+        "finish": 34155,
+        "after": "\t\t\t-- B-only starting probe; certified against actual Road boxes after all roads exist.\n\t\t\tlocal offset = roadWidth * 0.5 + (if isV2B then 34 elseif isHardCircuit then (if majorSegments[index] then 28 else 22) else 7)\n",
+        "before": "\t\t\tlocal offset = roadWidth * 0.5 + (if isHardCircuit then (if majorSegments[index] then 28 else 22) else 7)\n"
+      },
+      {
+        "start": 35712,
+        "finish": 38568,
+        "after": "\tif isV2B then\n\t\t-- Certify BOTH visible rails and logical triggers against every rendered road.\n\t\t-- A nearby other branch can invalidate an otherwise generous outer offset.\n\t\tlocal function quad(part: BasePart)\n\t\t\tlocal center, right, forward = part.Position, part.CFrame.RightVector, part.CFrame.LookVector\n\t\t\tlocal result = {}\n\t\t\tfor _, corner in { {-1, -1}, {-1, 1}, {1, 1}, {1, -1} } do\n\t\t\t\tlocal p = center + right * (corner[1] * part.Size.X * 0.5)\n\t\t\t\t\t+ forward * (corner[2] * part.Size.Z * 0.5)\n\t\t\t\ttable.insert(result, Vector2.new(p.X, p.Z))\n\t\t\tend\n\t\t\treturn result\n\t\tend\n\t\tlocal function distance(point, first, last)\n\t\t\tlocal edge = last - first\n\t\t\treturn (point - first - edge * math.clamp((point - first):Dot(edge) / edge:Dot(edge), 0, 1)).Magnitude\n\t\tend\n\t\tlocal function gap(a, b)\n\t\t\tlocal separated = false\n\t\t\tfor _, polygon in {a, b} do\n\t\t\t\tfor i, point in polygon do\n\t\t\t\t\tlocal edge = polygon[i % 4 + 1] - point\n\t\t\t\t\tlocal axis = Vector2.new(-edge.Y, edge.X)\n\t\t\t\t\tlocal lowA, highA, lowB, highB = math.huge, -math.huge, math.huge, -math.huge\n\t\t\t\t\tfor _, p in a do local v = p:Dot(axis); lowA = math.min(lowA, v); highA = math.max(highA, v) end\n\t\t\t\t\tfor _, p in b do local v = p:Dot(axis); lowB = math.min(lowB, v); highB = math.max(highB, v) end\n\t\t\t\t\tif highA < lowB or highB < lowA then separated = true end\n\t\t\t\tend\n\t\t\tend\n\t\t\tif not separated then return 0 end\n\t\t\tlocal minimum = math.huge\n\t\t\tfor i, p in a do\n\t\t\t\tfor j, q in b do\n\t\t\t\t\tminimum = math.min(minimum, distance(p, q, b[j % 4 + 1]), distance(q, p, a[i % 4 + 1]))\n\t\t\t\tend\n\t\t\tend\n\t\t\treturn minimum\n\t\tend\n\t\tlocal roads = {}\n\t\tfor _, road in roadFolder:GetChildren() do table.insert(roads, { Part = road, Quad = quad(road) }) end\n\t\tlocal omitted, minimum = 0, math.huge\n\t\tfor _, trigger in barrierTriggerFolder:GetChildren() do\n\t\t\tlocal rail = barrierFolder:FindFirstChild(\"Barrier\" .. trigger:GetAttribute(\"BarrierIndex\"))\n\t\t\tlocal triggerQuad, railQuad = quad(trigger), quad(rail)\n\t\t\tlocal clearance = math.huge\n\t\t\tfor _, road in roads do\n\t\t\t\tlocal delta = road.Part.Position - trigger.Position\n\t\t\t\tlocal reach = road.Part.Size.Magnitude * 0.5 + trigger.Size.Magnitude * 0.5 + 22\n\t\t\t\tif Vector2.new(delta.X, delta.Z).Magnitude <= reach then\n\t\t\t\t\tclearance = math.min(clearance, gap(triggerQuad, road.Quad), gap(railQuad, road.Quad))\n\t\t\t\tend\n\t\t\tend\n\t\t\t-- Conservative 18 everywhere also covers normal12 and major16.\n\t\t\tif clearance < 18 then\n\t\t\t\ttrigger:Destroy(); rail:Destroy(); barrierCount -= 1; partCount -= 1; omitted += 1\n\t\t\telse\n\t\t\t\tminimum = math.min(minimum, clearance)\n\t\t\t\ttrigger:SetAttribute(\"MinimumRoadClearance\", clearance)\n\t\t\t\ttrigger:SetAttribute(\"RequiredRoadClearance\", 18)\n\t\t\tend\n\t\tend\n\t\ttestTrack:SetAttribute(\"V2BSafetyOmittedBarrierCount\", omitted)\n\t\ttestTrack:SetAttribute(\"V2BMinimumBarrierClearance\", if minimum < math.huge then minimum else 0)\n\tend\n\n",
+        "before": ""
+      },
+      {
+        "start": 38662,
+        "finish": 38707,
+        "after": "\tif isHardCircuit or isFigure8 or isV2B then\n",
+        "before": "\tif isHardCircuit or isFigure8 then\n"
+      },
+      {
+        "start": 41489,
+        "finish": 42253,
+        "after": "\t\t\t\t\tif isV2B and row == 2 then\n\t\t\t\t\t\t-- The inherited tight P15 apex cannot support a second inner offset row.\n\t\t\t\t\t\t-- Keep the continuous first row and outward sharp-corner band.\n\t\t\t\t\t\tlocal foldsInnerRow = false\n\t\t\t\t\t\tfor step = segment, last + 1 do\n\t\t\t\t\t\t\tlocal before, point, after = samples[(step - 2) % #samples + 1], samples[(step - 1) % #samples + 1], samples[step % #samples + 1]\n\t\t\t\t\t\t\tlocal a, b = point - before, after - point\n\t\t\t\t\t\t\tlocal cross = a:Cross(b)\n\t\t\t\t\t\t\tif cross.Y * side < 0 and cross.Magnitude > 0.000001 then\n\t\t\t\t\t\t\t\tlocal radius = a.Magnitude * b.Magnitude * (a + b).Magnitude / (2 * cross.Magnitude)\n\t\t\t\t\t\t\t\tif radius <= offset + 2 then foldsInnerRow = true end\n\t\t\t\t\t\t\tend\n\t\t\t\t\t\tend\n\t\t\t\t\t\tif foldsInnerRow then continue end\n\t\t\t\t\tend\n",
+        "before": ""
+      },
+      {
+        "start": 42931,
+        "finish": 42976,
+        "after": "\tif isHardCircuit or isFigure8 or isV2B then\n",
+        "before": "\tif isHardCircuit or isFigure8 then\n"
+      },
+      {
+        "start": 51313,
+        "finish": 51358,
+        "after": "\tif isHardCircuit or isFigure8 or isV2B then\n",
+        "before": "\tif isHardCircuit or isFigure8 then\n"
+      }
+    ]
+  }
+}

@@ -183,6 +183,49 @@ TrackGeometry.Definitions = {
 	},
 }
 
+-- Local B-only candidate; Legacy definitions remain byte-identical.
+TrackGeometry.Definitions.PrototypeCircuitV2B = (function()
+-- KDM R7-N3 candidate B: Track02 prototype only. Not an approved/played production track.
+-- Add as TrackGeometry.Definitions.PrototypeCircuitV2B after careful review; do NOT replace legacy.
+-- 24 signed Catmull-Rom control points; original P1-P16 unchanged.
+local definition = {
+    ControlPoints = {
+        Vector3.new(-360.000, 0, 430.000), -- P1
+        Vector3.new(-360.000, 0, 180.000), -- P2
+        Vector3.new(-300.000, 0, 70.000), -- P3
+        Vector3.new(-120.000, 0, 30.000), -- P4
+        Vector3.new(60.000, 0, 80.000), -- P5
+        Vector3.new(180.000, 0, -20.000), -- P6
+        Vector3.new(190.000, 0, -180.000), -- P7
+        Vector3.new(80.000, 0, -330.000), -- P8
+        Vector3.new(-140.000, 0, -330.000), -- P9
+        Vector3.new(-360.000, 0, -330.000), -- P10
+        Vector3.new(-500.000, 0, -400.000), -- P11
+        Vector3.new(-620.000, 0, -380.000), -- P12
+        Vector3.new(-620.000, 0, -40.000), -- P13
+        Vector3.new(-560.000, 0, 80.000), -- P14
+        Vector3.new(-430.000, 0, 160.000), -- P15
+        Vector3.new(-520.000, 0, 280.000), -- P16
+        Vector3.new(-680.000, 0, 365.000), -- P17
+        Vector3.new(-740.000, 0, 560.000), -- P18
+        Vector3.new(-700.000, 0, 745.000), -- P19
+        Vector3.new(-581.791, 0, 866.756), -- P20
+        Vector3.new(-452.744, 0, 895.306), -- P21
+        Vector3.new(-328.511, 0, 822.636), -- P22
+        Vector3.new(-305.730, 0, 705.840), -- P23
+        Vector3.new(-360.000, 0, 540.450), -- P24
+    },
+    RoadWidth = 48,
+    SampleSpacing = 14,
+    -- Fractions are new route-station proposals; retain exactly six ordered checkpoints.
+    CheckpointFractions = { 0.118282592, 0.321054611, 0.363298781, 0.490031293, 0.650784732, 0.737278028 },
+    -- Candidate focus for exit-clearance study; calibrate using actual Builder corner zones.
+    MajorDriftFractions = { 0.710, 0.835 },
+}
+return definition
+
+end)()
+
 function TrackGeometry.getDefinition(id: string)
 	return TrackGeometry.Definitions[id]
 end

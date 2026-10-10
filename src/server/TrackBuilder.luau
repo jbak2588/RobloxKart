@@ -7,6 +7,7 @@ local TRACK_VISUAL_STYLE = {
 	Practice = { Version = 1, KerbRows = 1, SignEvery = 12, SignText = "KDM / PRACTICE" },
 	Base = { Version = 1, KerbRows = 1, SignEvery = 9, SignText = "KDM / BASE TRACK" },
 	Standard = { Version = 1, KerbRows = 1, SignEvery = 6, SignText = "KDM / TECHNICAL" },
+	V2B = { Version = 1, KerbRows = 2, SignEvery = 6, SignText = "KDM / V2B CANDIDATE" },
 	Hard = { Version = 1, KerbRows = 2 },
 }
 
@@ -74,7 +75,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	assert(definition, "Track geometry is missing: " .. tostring(track.GeometryId))
 	local isHardCircuit = track.GeometryId == "HardCircuitV1"
 	local isFigure8 = track.GeometryId == "PracticeFigure8V1"
-	local styleName = if isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
+	local isV2B = track.GeometryId == "PrototypeCircuitV2B"
+	local styleName = if isV2B then "V2B" elseif isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
 		elseif track.Id == "Track01Race" then "Base" else "Practice"
 	local style = TRACK_VISUAL_STYLE[styleName]
 	local environmentVersion = if isFigure8 then 4 elseif isHardCircuit then 6 else 1
@@ -136,8 +138,9 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local kerbWhite = Color3.fromRGB(238, 236, 229)
 	local isPractice = track.GeometryId == "PracticeCircuitV1" or isFigure8
 	local kerbThreshold = math.rad(if isPractice then 5 else 3.5)
-	if isHardCircuit then kerbThreshold = math.atan(definition.SampleSpacing / 350) end
+	if isHardCircuit or isV2B then kerbThreshold = math.atan(definition.SampleSpacing / 350) end
 	local barrierThreshold = math.rad(if isPractice then 7 else 9)
+	if isV2B then barrierThreshold = math.atan(definition.SampleSpacing / 350) end
 	local kerbCount = 0
 	local barrierCount = 0
 	local checkerCount = 0
@@ -206,7 +209,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	-- Sample zero is on the long finish straight: corner runs cannot wrap the grid.
 	local cornerZones = {}
 	local cornerSegments = {}
-	if isHardCircuit then
+	if isHardCircuit or isV2B then
 		local index = 4
 		while index <= #samples - 3 do
 			if turnAt(index) >= kerbThreshold then
@@ -349,7 +352,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		Color3.fromRGB(84, 125, 79), Enum.Material.Grass
 	)
 
-	if isHardCircuit or isFigure8 then
+	if isHardCircuit or isFigure8 or isV2B then
 		local support = createPart(testTrack, "SafetyGround",
 			Vector3.new(bounds.MaxX - bounds.MinX + grassMargin * 2, 1, bounds.MaxZ - bounds.MinZ + grassMargin * 2),
 			CFrame.new((bounds.MinX + bounds.MaxX) * 0.5, groundTop - 0.5, (bounds.MinZ + bounds.MaxZ) * 0.5),
@@ -451,7 +454,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		if not isFigure8 and not nearStart and bend >= barrierThreshold and index % barrierStride == 0
 			and not exitClearSegments[index] then
 			local outerSide = -innerSide
-			local offset = roadWidth * 0.5 + (if isHardCircuit then (if majorSegments[index] then 28 else 22) else 7)
+			-- B-only starting probe; certified against actual Road boxes after all roads exist.
+			local offset = roadWidth * 0.5 + (if isV2B then 34 elseif isHardCircuit then (if majorSegments[index] then 28 else 22) else 7)
 			local firstBarrier = first + firstRight * (offset * outerSide)
 			local secondBarrier = second + secondRight * (offset * outerSide)
 			local barrierY = groundTop + 1.23
@@ -493,9 +497,74 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		end
 	end
 
+	if isV2B then
+		-- Certify BOTH visible rails and logical triggers against every rendered road.
+		-- A nearby other branch can invalidate an otherwise generous outer offset.
+		local function quad(part: BasePart)
+			local center, right, forward = part.Position, part.CFrame.RightVector, part.CFrame.LookVector
+			local result = {}
+			for _, corner in { {-1, -1}, {-1, 1}, {1, 1}, {1, -1} } do
+				local p = center + right * (corner[1] * part.Size.X * 0.5)
+					+ forward * (corner[2] * part.Size.Z * 0.5)
+				table.insert(result, Vector2.new(p.X, p.Z))
+			end
+			return result
+		end
+		local function distance(point, first, last)
+			local edge = last - first
+			return (point - first - edge * math.clamp((point - first):Dot(edge) / edge:Dot(edge), 0, 1)).Magnitude
+		end
+		local function gap(a, b)
+			local separated = false
+			for _, polygon in {a, b} do
+				for i, point in polygon do
+					local edge = polygon[i % 4 + 1] - point
+					local axis = Vector2.new(-edge.Y, edge.X)
+					local lowA, highA, lowB, highB = math.huge, -math.huge, math.huge, -math.huge
+					for _, p in a do local v = p:Dot(axis); lowA = math.min(lowA, v); highA = math.max(highA, v) end
+					for _, p in b do local v = p:Dot(axis); lowB = math.min(lowB, v); highB = math.max(highB, v) end
+					if highA < lowB or highB < lowA then separated = true end
+				end
+			end
+			if not separated then return 0 end
+			local minimum = math.huge
+			for i, p in a do
+				for j, q in b do
+					minimum = math.min(minimum, distance(p, q, b[j % 4 + 1]), distance(q, p, a[i % 4 + 1]))
+				end
+			end
+			return minimum
+		end
+		local roads = {}
+		for _, road in roadFolder:GetChildren() do table.insert(roads, { Part = road, Quad = quad(road) }) end
+		local omitted, minimum = 0, math.huge
+		for _, trigger in barrierTriggerFolder:GetChildren() do
+			local rail = barrierFolder:FindFirstChild("Barrier" .. trigger:GetAttribute("BarrierIndex"))
+			local triggerQuad, railQuad = quad(trigger), quad(rail)
+			local clearance = math.huge
+			for _, road in roads do
+				local delta = road.Part.Position - trigger.Position
+				local reach = road.Part.Size.Magnitude * 0.5 + trigger.Size.Magnitude * 0.5 + 22
+				if Vector2.new(delta.X, delta.Z).Magnitude <= reach then
+					clearance = math.min(clearance, gap(triggerQuad, road.Quad), gap(railQuad, road.Quad))
+				end
+			end
+			-- Conservative 18 everywhere also covers normal12 and major16.
+			if clearance < 18 then
+				trigger:Destroy(); rail:Destroy(); barrierCount -= 1; partCount -= 1; omitted += 1
+			else
+				minimum = math.min(minimum, clearance)
+				trigger:SetAttribute("MinimumRoadClearance", clearance)
+				trigger:SetAttribute("RequiredRoadClearance", 18)
+			end
+		end
+		testTrack:SetAttribute("V2BSafetyOmittedBarrierCount", omitted)
+		testTrack:SetAttribute("V2BMinimumBarrierClearance", if minimum < math.huge then minimum else 0)
+	end
+
 	local singleKerbParts, doubleKerbParts, sharpGroupCount = 0, 0, 0
 	local doubleSegments = {}
-	if isHardCircuit or isFigure8 then
+	if isHardCircuit or isFigure8 or isV2B then
 		-- A sustained <=105-stud core enters the thick kerb band; <=140 holds it
 		-- through the shoulder of the bend. Ignore isolated one/two-sample spikes.
 		local sharpCore = math.atan(definition.SampleSpacing / 105)
@@ -552,6 +621,21 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 					and chordError(segment, last + 1, offset, 1) <= 0.25 do last += 1 end
 				stripe += 1
 				for _, side in { -1, 1 } do
+					if isV2B and row == 2 then
+						-- The inherited tight P15 apex cannot support a second inner offset row.
+						-- Keep the continuous first row and outward sharp-corner band.
+						local foldsInnerRow = false
+						for step = segment, last + 1 do
+							local before, point, after = samples[(step - 2) % #samples + 1], samples[(step - 1) % #samples + 1], samples[step % #samples + 1]
+							local a, b = point - before, after - point
+							local cross = a:Cross(b)
+							if cross.Y * side < 0 and cross.Magnitude > 0.000001 then
+								local radius = a.Magnitude * b.Magnitude * (a + b).Magnitude / (2 * cross.Magnitude)
+								if radius <= offset + 2 then foldsInnerRow = true end
+							end
+						end
+						if foldsInnerRow then continue end
+					end
 					local part = createSegment(kerbFolder,
 						(if side < 0 then "LeftKerb" else "RightKerb") .. "Row" .. row .. "_" .. segment,
 						roadPoint(edgeAt(segment, offset, side), 0.025), roadPoint(edgeAt(last + 1, offset, side), 0.025),
@@ -570,7 +654,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	local chevronParts = 0
 	local chevronClusters = 0
-	if isHardCircuit or isFigure8 then
+	if isHardCircuit or isFigure8 or isV2B then
 		local directions = Instance.new("Folder")
 		directions.Name = "DirectionMarkers"
 		directions.Parent = testTrack
@@ -762,7 +846,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	testTrack:SetAttribute("VisualPartCount", partCount)
 	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts + (if isFigure8 then 2 + #PRACTICE_BILLBOARD_PARTS + (testTrack:GetAttribute("PracticeTreeCount") or 0) * 4 else 0))
 	testTrack:SetAttribute("EnvironmentCueVersion", environmentVersion)
-	if isHardCircuit or isFigure8 then
+	if isHardCircuit or isFigure8 or isV2B then
 		testTrack:SetAttribute("CornerZoneCount", #cornerZones)
 		testTrack:SetAttribute("SingleKerbPartCount", singleKerbParts)
 		testTrack:SetAttribute("DoubleKerbPartCount", doubleKerbParts)
