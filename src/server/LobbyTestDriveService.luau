@@ -11,6 +11,7 @@ local Catalog=require(Shared:WaitForChild("KartCatalog"))
 local Factory=require(Shared:WaitForChild("KartVisualFactory"))
 local Service={}
 local records,generations,bindings,lastRequest={},{},{},{}
+local closing={}
 local started,remote,zone,canEnter=false,nil,nil,nil
 local function generation(player)
  generations[player]=(generations[player] or 0)+1
@@ -54,9 +55,17 @@ local function inside(position,margin)
  local c=zone:GetAttribute("Center");return Geometry.inside(position.X-c.X,position.Z-c.Z,margin)
 end
 function Service.stop(player,reason,returnToHub)
+ local pending=closing[player]
+ if pending then
+  if not returnToHub then pending.returnToHub=false end
+  while closing[player]==pending do RunService.Heartbeat:Wait() end
+  return true
+ end
  local record=records[player]
  if not record then return true end
+ record.returnToHub=returnToHub;closing[player]=record
  records[player]=nil;generation(player)
+ record.throttle,record.steering,record.speed=0,0,0
  player:SetAttribute("LobbyDrivePending",true);player:SetAttribute("LobbyDriveActive",false)
  if record.destroying then record.destroying:Disconnect() end
  if record.occupantConnection then record.occupantConnection:Disconnect() end
@@ -65,16 +74,34 @@ function Service.stop(player,reason,returnToHub)
   record.body.Anchored=true
  end
  if record.humanoid.Parent then record.humanoid.Sit=false;record.humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
- record.kart:Destroy() -- Removes the SeatWeld even if an Occupant change arrives late.
- if returnToHub and player.Character==record.character and record.humanoid.Health>0 then
+ -- Seat ownership must settle before character placement. A timed-out seat is
+ -- destroyed, then two physics frames drain its deferred weld/occupant updates.
+ local deadline=os.clock()+.5
+ while record.humanoid.Parent and (record.humanoid.SeatPart==record.seat or record.seat.Occupant==record.humanoid) and os.clock()<deadline do RunService.Heartbeat:Wait() end
+ record.kart:Destroy()
+ RunService.Heartbeat:Wait();RunService.Heartbeat:Wait()
+ local function validReturn()
+  return record.returnToHub and player.Parent and player.Character==record.character
+   and record.character.Parent and record.humanoid.Health>0 and not record.humanoid.SeatPart
+   and player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH"
+ end
+ if validReturn() then
   local hub=Workspace:FindFirstChild("KDMHub");local spawn=hub and hub:FindFirstChild("HubSpawn")
-  if spawn then record.character:PivotTo(spawn.CFrame*CFrame.new(0,3,0))
+  if spawn then
    local root=record.character:FindFirstChild("HumanoidRootPart")
+   if root then root:SetNetworkOwner(nil) end
+   record.character:PivotTo(spawn.CFrame*CFrame.new(0,3,0))
    if root then root.AssemblyLinearVelocity=Vector3.zero;root.AssemblyAngularVelocity=Vector3.zero end
+   record.humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+   RunService.Heartbeat:Wait();RunService.Heartbeat:Wait()
+   if root and root.Parent then root:SetNetworkOwnershipAuto() end
+   if validReturn() then
    player:SetAttribute("HubArrivalSerial",(player:GetAttribute("HubArrivalSerial") or 0)+1)
+   end
   end
  end
  player:SetAttribute("LobbyDriveKartId",nil);player:SetAttribute("LobbyDrivePending",false)
+ closing[player]=nil
  return true
 end
 local function createKart(player,definition,frame)
@@ -228,7 +255,7 @@ function Service.start(driveZone,eligibility)
    local normal=Vector3.new(nx,0,nz)
    local approach=physical:Dot(normal)
    if not r.crashEnd then
-    if clearance<=Policy.FootprintMargin and approach>KartConfig.BARRIER_CONTACT_MIN_SPEED
+    if clearance<=Policy.FootprintMargin and math.abs(f:Dot(normal))>Policy.GlancingNormal and approach>KartConfig.BARRIER_CONTACT_MIN_SPEED
      and now>=(r.crashCooldown or 0) then
      local impact=Policy.barrierImpact(approach,KartConfig)
      local inward=-normal;local tangent=Vector3.new(-normal.Z,0,normal.X)
@@ -259,9 +286,39 @@ function Service.start(driveZone,eligibility)
    -- Lobby Drift keeps normal grip and speed; only its turn radius is reduced.
    local lateral=right*(physical:Dot(right)*math.exp(-6*dt))
    local velocity=f*r.speed+lateral
-   if velocity.Magnitude>70 then velocity=velocity.Unit*70 end
+   local nearWall=clearance<=Policy.EscapeClearance
+   if nearWall and math.abs(f:Dot(normal))<=Policy.GlancingNormal then
+    local x,z=Policy.slide(velocity.X,velocity.Z,nx,nz);velocity=Vector3.new(x,0,z)
+   end
+   if velocity.Magnitude>Policy.Forward then velocity=velocity.Unit*Policy.Forward end
+   -- At most three small server corrections per contact episode. Every proposed
+   -- position clears the complete rectangular chassis and the concave outline.
+   if nearWall and physical.Magnitude<Policy.EscapeSpeed and (math.abs(throttle)>.1 or math.abs(steering)>.1) then
+    r.stuckTime=(r.stuckTime or 0)+dt
+    if r.stuckTime>=Policy.EscapeDelay and now>=(r.escapeNext or 0) then
+     r.escapeNext=now+Policy.EscapeCooldown;r.stuckTime=0
+     local footprint=Policy.footprint(f.X,f.Z,nx,nz)
+     local distance=Policy.escapeDistance(clearance,footprint)
+     local proposed=pos-normal*distance
+     if (r.escapeCount or 0)<Policy.EscapeLimit and distance>0 and inside(proposed,footprint)
+      and Policy.fits(Geometry,proposed.X-c.X,proposed.Z-c.Z,f.X,f.Z) then
+      r.kart:PivotTo(body.CFrame-normal*distance);r.escapeCount=(r.escapeCount or 0)+1
+      r.kart:SetAttribute("LobbyEscapeSerial",(r.kart:GetAttribute("LobbyEscapeSerial") or 0)+1)
+      r.kart:SetAttribute("LobbyEscapeDistance",distance)
+     else
+      r.kart:PivotTo(r.safe);r.speed,r.yaw=0,0;velocity=Vector3.zero;r.escapeCount=Policy.EscapeLimit
+      player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1)
+     end
+    end
+   else r.stuckTime=0 end
+   if clearance>Policy.EscapeClearance+4 then r.escapeCount=0 end
    body.AssemblyLinearVelocity=velocity+Vector3.new(0,body.AssemblyLinearVelocity.Y,0)
    local target=if math.abs(r.speed)>2 then -steering*math.abs(r.speed)/Policy.turnRadius(drifting)*math.sign(r.speed) else 0
+   if nearWall and physical.Magnitude<Policy.EscapeSpeed and math.abs(steering)>.1 then
+    local direction=if math.abs(r.speed)>.1 then math.sign(r.speed) elseif throttle<0 then -1 else 1
+    local assist=Policy.escapeSteering(f.X,f.Z,nx,nz,steering,direction)
+    if assist~=0 then target=assist end
+   end
    r.yaw+=(target-r.yaw)*(1-math.exp(-6*dt));body.AssemblyAngularVelocity=Vector3.new(0,r.yaw,0)
    r.kart:SetAttribute("KartVisualSteering",steering)
    r.kart:SetAttribute("LobbyDrifting",drifting)

@@ -11,7 +11,7 @@ function Builder.build(hub,ground)
  -- Preserve the front edge facing the production track while widening toward the Lobby.
  local center=Vector3.new(spawn.Position.X+120,top,spawn.Position.Z-128+Policy.OuterRadius-84)
  local zone=Instance.new("Model");zone.Name="LobbyFrontTestDriveZone"
- zone:SetAttribute("ForwardMax",70);zone:SetAttribute("ReverseMax",Policy.Reverse)
+ zone:SetAttribute("ForwardMax",Policy.Forward);zone:SetAttribute("ReverseMax",Policy.Reverse)
  zone:SetAttribute("Center",center);zone:SetAttribute("OuterRadius",Policy.OuterRadius)
  zone:SetAttribute("FootprintVersion","SIDE_WINGS_V1")
  local function part(name,size,frame,color,collide)
@@ -71,7 +71,8 @@ function Builder.build(hub,ground)
   table.insert(kerbs,{x=p.x-nx*2,z=p.z-nz*2})
  end
  strip("LobbyFrontInnerKerb",kerbs,2,.08,.22,Color3.fromRGB(230,240,244),false)
- strip("LobbyFrontGuardrail",Geometry.points,3,2.4,1.2,Color3.fromRGB(246,194,36),true)
+ -- The continuous invisible wall owns containment; decorative block seams cannot snag karts.
+ strip("LobbyFrontGuardrail",Geometry.points,3,2.4,1.2,Color3.fromRGB(246,194,36),false)
  strip("LobbyFrontBarrier",Geometry.points,2,14,7,Color3.fromRGB(139,178,194),true)
  -- Static paired tire tracks sit above the asphalt, below live Drift marks.
  local marks=Instance.new("Folder");marks.Name="LobbyPermanentSkidMarks";marks.Parent=zone

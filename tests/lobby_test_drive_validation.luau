@@ -9,9 +9,9 @@ for _,v in {{0/0,0},{0,math.huge},{-math.huge,0},{'1',0},{0,{}}} do check(not p.
 check(p.Reverse==30,'Lobby reverse maximum is 30 studs/s')
 for _,dt in {1/30,1/60} do
  local speed,distance=0,0
- for _=1,math.floor(3/dt) do speed=p.advance(speed,1,dt);distance+=speed*dt;check(speed<=70 and speed>=0,'forward capped each step') end
- check(math.abs(speed-70)<.001 and distance<240,'70 reachable on straight')
- for _=1,math.floor(2/dt) do speed=p.advance(speed,-1,dt);check(speed>=-30 and speed<=70,'brake/reverse cap every step') end
+ for _=1,math.floor(3/dt) do speed=p.advance(speed,1,dt);distance+=speed*dt;check(speed<=60 and speed>=0,'forward capped each step') end
+ check(math.abs(speed-60)<.001 and distance<240,'60 reachable on straight')
+ for _=1,math.floor(2/dt) do speed=p.advance(speed,-1,dt);check(speed>=-30 and speed<=60,'brake/reverse cap every step') end
  check(math.abs(speed+30)<.001,'reverse reached')
  for _=1,math.floor(2/dt) do speed=p.advance(speed,0,dt) end
  check(math.abs(speed)<.001,'release coasts to stop')
@@ -30,5 +30,5 @@ check(not p.inside(0,p.OuterRadius+1,0),'outer edge rejected')
 check(not p.inside(p.HalfStraight+p.OuterRadius+1,0,0),'outer curve rejected')
 check(p.inside(0,0,p.FootprintMargin),'infield remains safe ground')
 check(p.OuterRadius-p.Radius-p.RoadWidth/2-2>=16,'guardrail shoulder respects major drift clearance despite no Lobby drift')
-check(p.TurnRadius==p.Radius,'full-steer circle fits the loop at 70')
+check(p.TurnRadius==p.Radius,'full-steer circle fits the loop at 60')
 print('PASS: '..n..' Lobby policy / speed / closed-loop footprint cases')

@@ -1,10 +1,37 @@
 -- Lobby-only parameters. Never used by the race controller or KartConfig.
 local Policy = {
- Forward = 70, Reverse = 30, Acceleration = 36, Brake = 70, Coast = 18,
+ Forward = 60, Reverse = 30, Acceleration = 36, Brake = 70, Coast = 18,
  TurnRadius = 50, DriftTurnRadius = 35, InputTimeout = .5,
  Radius = 50, HalfStraight = 120, RoadWidth = 32, Shoulder = 16,
  OuterRadius = 90, FootprintMargin = 7,
+ GlancingNormal = .5, EscapeSpeed = 4, EscapeDelay = .35,
+ EscapeDistance = 3, EscapeCooldown = .75, EscapeLimit = 3,
+ EscapeClearance = 8, SteeringAssist = .65,
 }
+-- Scalar helpers also validate the server's contact response without physics mocks.
+function Policy.slide(x,z,nx,nz)
+ local outward=math.max(0,x*nx+z*nz)
+ return x-nx*outward,z-nz*outward
+end
+function Policy.footprint(fx,fz,nx,nz)
+ return 4*math.abs(fx*nx+fz*nz)+3*math.abs(-fz*nx+fx*nz)+1.35
+end
+function Policy.escapeDistance(clearance,footprint)
+ return math.clamp(math.max(Policy.EscapeClearance,footprint+.5)-clearance,0,Policy.EscapeDistance)
+end
+function Policy.fits(geometry,x,z,fx,fz)
+ if not geometry.inside(x,z) then return false end
+ for _,front in {-4,4} do for _,side in {-3,3} do
+  if not geometry.inside(x+fx*front-fz*side,z+fz*front+fx*side,1.35) then return false end
+ end end
+ return true
+end
+function Policy.escapeSteering(fx,fz,nx,nz,steering,direction)
+ local yaw=-steering*Policy.SteeringAssist*direction
+ local before=(fx*nx+fz*nz)*direction
+ local after=(fx*nx+fz*nz+(fz*nx-fx*nz)*yaw*.1)*direction
+ return if after<before then yaw else 0
+end
 function Policy.isGlobalHub(role, privateId, botTest)
  return role == "HUB" and privateId == "" and not botTest
 end

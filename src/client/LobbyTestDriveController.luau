@@ -6,6 +6,7 @@ local UIS=game:GetService("UserInputService")
 local GuiService=game:GetService("GuiService")
 local PromptService=game:GetService("ProximityPromptService")
 local Shared=RS:WaitForChild("Shared")
+local Policy=require(Shared:WaitForChild("LobbyDrivePolicy"))
 local Motion=require(Shared:WaitForChild("ChaseCameraMotion"))
 local AudioConfig=require(Shared:WaitForChild("AudioConfig"))
 local Audio=require(script.Parent:WaitForChild("AudioRuntime"))
@@ -148,7 +149,7 @@ function Controller.start()
   camera.CameraType=Enum.CameraType.Scriptable;camera.FieldOfView=75
   camera.CFrame=Motion.step(camera.CFrame,previousTarget,target,desired,6,dt);camera.Focus=CFrame.new(target);previousTarget=target
   if engine then
-   local ratio=math.clamp(body.AssemblyLinearVelocity.Magnitude/70,0,1)
+   local ratio=math.clamp(body.AssemblyLinearVelocity.Magnitude/Policy.Forward,0,1)
    if not diagnostic or not diagnostic:isFixed() then engine.PlaybackSpeed=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*ratio end
    engine.Volume=AudioConfig.ENGINE.IDLE_VOLUME+(AudioConfig.ENGINE.NORMAL_VOLUME-AudioConfig.ENGINE.IDLE_VOLUME)*ratio
   end
