@@ -38,6 +38,7 @@ TouchDrivingController.start()
 DriftChargeController.start()
 if role == "HUB" then GarageUiController.start(); MatchRoomUiController.start(); HubUiController.start(); HubArrivalCameraController.start() end
 if role == "HUB" then require(script:WaitForChild("LobbyTestDriveController")).start() end
+if role == "HUB" then require(script:WaitForChild("PersonalRecordsController")).start() end
 KartVisualMotionController.start()
 KDMDriverGripController.start()
 KartEffectsController.start()
