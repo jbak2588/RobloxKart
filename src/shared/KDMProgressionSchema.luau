@@ -182,13 +182,33 @@ function Schema.new(catalog, options)
   for id, receipt in profile.receipts do
    if type(id) ~= "string" or #id > 512 or type(receipt) ~= "table" or type(receipt.signature) ~= "string" then return false, "CORRUPT_RECEIPT" end
   end
-  -- Future records/claims have no writer in A1. Nonempty malformed data is quarantined.
+  -- Numeric records remain compatible with A1/A2; A3 evidence is optional and separate.
   for scope, record in profile.records.scoped do
    if type(scope) ~= "string" or scope:sub(1,10) ~= "record:v1|" or type(record) ~= "table" then return false, "CORRUPT_RECORD" end
    for metric, score in record do
     if (metric ~= "bestLapMilliseconds" and metric ~= "bestRaceBoosts" and metric ~= "officialBoostLifetime")
      or not Schema.integer(score) or (metric == "bestLapMilliseconds" and score == 0) then return false, "CORRUPT_RECORD" end
    end
+  end
+  if profile.records.metadata~=nil then
+   if type(profile.records.metadata)~="table" or Schema.count(profile.records.metadata)>64 then return false,"CORRUPT_RECORD_METADATA" end
+   for scope,meta in profile.records.metadata do
+    if not profile.records.scoped[scope] or type(meta)~="table" then return false,"CORRUPT_RECORD_METADATA" end
+    for metric,evidence in meta do
+     if (metric~="lap" and metric~="boost") or type(evidence)~="table" or not Schema.integer(evidence.achievedAt)
+      or not Schema.guid(evidence.roundGuid) or type(evidence.verification)~="table"
+      or evidence.verification.state~="FINISHED" or evidence.verification.serverAccepted~=true
+      or evidence.verification.provenance~="FULL_ROUTE_V1" then return false,"CORRUPT_RECORD_METADATA" end
+     local ok,expected=pcall(Schema.recordScope,evidence.trackId,evidence.geometryId,evidence.rulesetId,evidence.category)
+     if not ok or expected~=scope then return false,"CORRUPT_RECORD_SCOPE" end
+    end
+   end
+  end
+  for scope,entry in profile.pendingIndex do
+   if type(entry)~="table" or not profile.records.scoped[scope] or not Schema.integer(entry.boost)
+    or (entry.lap~=nil and (not Schema.integer(entry.lap) or entry.lap==0)) then return false,"CORRUPT_INDEX" end
+   local ok,expected=pcall(Schema.recordScope,entry.trackId,entry.geometryId,entry.rulesetId,entry.category)
+   if not ok or expected~=scope then return false,"CORRUPT_INDEX_SCOPE" end
   end
   if Schema.count(profile.daily.claimBuckets) > 8 then return false, "DAILY_CAPACITY" end
   for day, claims in profile.daily.claimBuckets do

@@ -31,6 +31,10 @@ local role, payload, resolveReason = ServerRuntime.resolve(if RunService:IsStudi
 	if firstPlayer then firstPlayer.UserId else 0)
 ServerRuntime.setRole(role)
 Workspace:SetAttribute("KDMServerRole", role)
+-- Both HUB query and Reserved RACE result writer share the existing Profile store.
+-- The service's exact server policy blocks Studio and all non-Canary accounts.
+local recordsReady = pcall(function() require(script:WaitForChild("RaceRecordService")).startQuery() end)
+if not recordsReady then warn("[KDMRecords] query unavailable") end
 print(string.format("[KDMRoute] resolve role=%s reason=%s private=%s owner=%s sourcePlace=%s sourceGame=%s match=%s track=%s job=%s",
 	role, resolveReason, tostring(game.PrivateServerId ~= ""), tostring(game.PrivateServerOwnerId),
 	tostring(if joinData then joinData.SourcePlaceId else nil),

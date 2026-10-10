@@ -23,6 +23,7 @@ local TrackGeometry = require(ReplicatedStorage:WaitForChild("Shared"):WaitForCh
 
 local PrototypeWorld = {}
 local driftOutcomeListeners = {}
+local boostOutcomeSerial = 0
 
 function PrototypeWorld.onDriftOutcome(callback)
 	table.insert(driftOutcomeListeners, callback)
@@ -34,7 +35,12 @@ end
 
 local function emitDriftOutcome(player, outcome)
 	if not player then return end
-	for _, callback in driftOutcomeListeners do callback(player, outcome) end
+	local eventId = nil
+	if outcome == "BOOST" then
+		boostOutcomeSerial += 1
+		eventId = tostring(player:GetAttribute("OfficialRoundGuid") or "untracked") .. ":boost:" .. boostOutcomeSerial
+	end
+	for _, callback in driftOutcomeListeners do callback(player, outcome, eventId) end
 end
 local contexts = {}
 local ownerContexts = {}

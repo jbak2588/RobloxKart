@@ -145,6 +145,25 @@ function RaceController.start(options)
 		end
 	end
 	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
+	-- Optional server observer: persistence failure must never change race adjudication.
+	local recordModule = script.Parent:FindFirstChild("RaceRecordService")
+	local recordLoaded, records = false, nil
+	if recordModule then recordLoaded, records = pcall(require, recordModule) end
+	if not recordLoaded then records = nil end
+	local function record(method, ...)
+		if records then
+			local ok = pcall(records[method], ...)
+			if not ok then
+				warn("[KDMRecords] observer unavailable method=" .. method)
+				records = nil -- Disable a broken observer once; never spam every Heartbeat.
+			end
+		end
+	end
+	if records then
+		PrototypeWorld.onDriftOutcome(function(player, outcome, eventId)
+			if outcome == "BOOST" then record("boost", player, eventId) end
+		end)
+	end
 
 	local prototype = Workspace:WaitForChild("Prototype")
 	local session = RaceSession.new(initialTrackId, RaceMode.resolve(initialTrackId),
@@ -372,6 +391,7 @@ function RaceController.start(options)
 		end
 
 		local function invalidateCurrentLap(player: Player, now: number, reason: string)
+			record("invalidate", player)
 			local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
 			local previousNext = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
 			print(string.format(
@@ -477,6 +497,7 @@ function RaceController.start(options)
 			racer.finishEndTime = 0
 			setRaceState(player, "FINISHED")
 			session.terminal[player] = "FINISHED"
+			record("finish", player)
 		end
 
 		local function completeLap(player: Player, now: number)
@@ -488,6 +509,8 @@ function RaceController.start(options)
 
 			local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
 			completedLaps += 1
+			record("checkpoints", player, player:GetAttribute("RaceNextCheckpoint"))
+			record("lap", player, now)
 			local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
 
 			player:SetAttribute("RaceLastLapTime", lapTime)
@@ -578,6 +601,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceCountdown", 0)
 			setRaceState(player, "RACING")
 			kart:SetAttribute("RaceControlsLocked", false)
+			record("start", player, startTime)
 		end
 
 		function racer:finish()
@@ -639,6 +663,9 @@ function RaceController.start(options)
 					print(string.format("[Race] checkpoint route accepted from=%d next=%d lap=%d", nextCheckpoint, recoveredNext, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
 				end
 			end
+			record("progress", player, now, Vector3.new(chassis.Position.X, 0, chassis.Position.Z),
+				if racer.routeProgress then racer.routeProgress.previous else nil,
+				player:GetAttribute("RaceNextCheckpoint"))
 			for _, gate in gates do
 				local inside = isInsideGate(gate, chassis.Position)
 				if inside and not racer.insideGate[gate] then
@@ -798,6 +825,8 @@ function RaceController.start(options)
 	local function startSharedRace()
 		session.phase = "RACING"
 		session.startTime = session.countdownEndTime
+		-- Freeze the actual GO roster; a departure during COUNTDOWN is not a starter.
+		record("begin", session, routeCourse, checkpointCount)
 		for _, player in session:orderedParticipants() do
 			racers[player]:startRace(session.startTime)
 		end

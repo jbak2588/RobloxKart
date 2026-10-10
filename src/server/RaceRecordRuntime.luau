@@ -1,0 +1,85 @@
+-- Injected I/O: official Profile is authoritative; index writes are eventual repair.
+local Runtime={}
+function Runtime.new(S,schema,Ops,deps)
+ local jobs,closing={},false
+ local api={}
+ local function publish(player,op,status,receipt)
+  if player:GetAttribute("OfficialRoundGuid")~=op.round.RoundGuid then return end
+  player:SetAttribute("RaceRecordNewPB",receipt~=nil and (receipt.lapImproved or receipt.boostImproved) or false)
+  player:SetAttribute("RaceRecordSaveState",status)
+ end
+ local function repair(player,adapter,profile)
+  if not deps.allowed(player,"repair") then return end
+  for scope,entry in profile.pendingIndex do
+   local ok=deps.index(player,entry)
+   if ok then adapter.commit(adapter.beginUpdate(S.userKey(player.UserId),Ops.clearIndex(S,schema,player.UserId,scope,entry))) end
+  end
+ end
+ function api.read(player)
+  if not deps.allowed(player,"read") then return {status="ACCESS_BLOCKED"} end
+  local adapter=deps.adapter(player);local read=adapter.read(S.userKey(player.UserId))
+  if read.status~="FOUND" or not schema.validate(read.value,S.userKey(player.UserId)) or read.value.deleted then
+   return {status=if read.status=="FOUND" then "READ_ONLY" else read.status}
+  end
+  repair(player,adapter,read.value)
+  return {status="FOUND",records=S.clone(read.value.records)}
+ end
+ local function attempt(job)
+  local player,op=job.player,job.op
+  if not deps.allowed(player,"write") then publish(player,op,"ACCESS_BLOCKED");job.done=true;return end
+  local adapter=deps.adapter(player);local key=S.userKey(player.UserId)
+  -- A failed read must never be interpreted as an absent profile.
+  local read=adapter.read(key)
+  local receipt=Ops.confirm(S,schema,read,op)
+  if not receipt and read.status=="FOUND" and schema.validate(read.value,key) and not read.value.deleted then
+   local result=adapter.commit(adapter.beginUpdate(key,Ops.reduce(S,schema,op)))
+   if result.status~="SAVED" and result.status~="PENDING" then
+    publish(player,op,"SAVE_FAILED");job.done=true;return
+   end
+   -- UseCache=false even after a successful UpdateAsync response or lost ACK.
+   read=adapter.read(key);receipt=Ops.confirm(S,schema,read,op)
+  end
+  if receipt then
+   publish(player,op,"SAVE_CONFIRMED",receipt);job.done=true
+   deps.diagnostic(player,"RECORD_SAVED",op.round.RoundGuid)
+   repair(player,adapter,read.value);return
+  end
+  if read.status=="ABSENT" or read.status=="CORRUPT" or read.status=="FUTURE"
+   or (read.status=="FOUND" and (read.value.deleted or not schema.validate(read.value,key))) then
+   publish(player,op,"READ_ONLY");job.done=true;return
+  end
+  publish(player,op,"SAVE_PENDING")
+  job.attempts+=1
+  if job.attempts<deps.retryAttempts and not closing then
+   deps.delay(0.5*2^(job.attempts-1),function() job.running=true;local ok=pcall(attempt,job);job.running=false
+    if not ok then publish(player,op,"SAVE_PENDING");job.done=true end end)
+  else job.done=true end
+ end
+ function api.submit(player,op)
+  if closing or not Ops.valid(S,op) or player.UserId~=op.userId or not deps.allowed(player,"write") then return false end
+  local key=S.userKey(player.UserId)..":"..op.round.RoundGuid
+  if jobs[key] then return S.canonical(jobs[key].op)==S.canonical(op) end
+  local count=0
+  for k,job in jobs do if job.done then jobs[k]=nil else count+=1 end end
+  if count>=16 then return false end
+  local job={player=player,op=S.freeze(S.clone(op)),attempts=0,done=false,running=true};jobs[key]=job
+  publish(player,op,"SAVE_PENDING")
+  deps.spawn(function()
+   local ok=pcall(attempt,job);job.running=false
+   if not ok then publish(player,op,"SAVE_PENDING");job.done=true end
+  end)
+  return true
+ end
+ function api.shutdown()
+  closing=true
+  local deadline=deps.clock()+deps.shutdownSeconds
+  -- Jobs keep immutable envelopes after departure. Never start a competing write.
+  while deps.clock()<deadline do
+   local active=false;for _,job in jobs do if not job.done then active=true end end
+   if not active then break end
+   deps.wait(0.1)
+  end
+ end
+ return api
+end
+return table.freeze(Runtime)

@@ -1186,6 +1186,14 @@ function RaceHudController.start()
 			then "RACE TIMEOUT" elseif player:GetAttribute("RaceDNFReason") == "FORFEIT"
 			then "FORFEIT" else "OFF TRACK") elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
 		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP %d  -  %s", bestLapNumber, RaceResultFormat.time(bestLap)) else "BEST LAP  --"
+		local recordState = player:GetAttribute("RaceRecordSaveState")
+		if raceState == "FINISHED" and recordState == "SAVE_CONFIRMED" then
+			resultsBestLabel.Text = if player:GetAttribute("RaceRecordNewPB") == true then "NEW PERSONAL BEST" else "RECORD SAVED"
+		elseif raceState == "FINISHED" and recordState == "SAVE_PENDING" then
+			resultsBestLabel.Text = "RECORD SAVE PENDING"
+		elseif raceState == "FINISHED" and (recordState == "SAVE_FAILED" or recordState == "READ_ONLY") then
+			resultsBestLabel.Text = "RECORD SAVE UNCONFIRMED"
+		end
 		resultsBestLabel.Visible = raceState == "FINISHED"
 		local canRematch = (raceState == "FINISHED" or raceState == "DNF"
 			and player:GetAttribute("RaceDNFReason") ~= "FORFEIT")
@@ -1456,6 +1464,8 @@ function RaceHudController.start()
 		"RaceLastLapTime",
 		"RaceBestLapTime",
 		"RaceBestLapNumber",
+		"RaceRecordSaveState",
+		"RaceRecordNewPB",
 		"RaceLap1Time",
 		"RaceLap2Time",
 		"RaceLap3Time",
