@@ -50,6 +50,8 @@ end
 
 function RaceLaunchService.launchSolo(player, trackId, driverId, kartId, onFailure)
 	if player.Parent ~= Players or pending[player] then return false end
+	local module = script.Parent.FindFirstChild and script.Parent:FindFirstChild("ProgressionRuntimeBinding")
+	if module then kartId = require(module).selection(player, kartId) end
 	local payload = RaceLaunchPayload.buildSolo(HttpService:GenerateGUID(false), player, trackId, driverId, kartId)
 	if not payload then return false end
 	stopLobbyDrive(player, "launch_solo")

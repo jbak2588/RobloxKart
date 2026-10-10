@@ -5,6 +5,16 @@ function HubGuidanceState.new()
  return { context = "HUB", visited = false, garageDone = false, trackConfirmed = false }
 end
 
+function HubGuidanceState.profileRestored(state,profile)
+ -- Server restore evidence only; default SelectedKartId or KartSelected ACK is insufficient.
+ if profile.completed~=true or profile.result~="FOUND" or profile.restored~=true
+  or profile.validKart~=true or profile.kartId~=profile.restoredKartId
+  or profile.saveState~="SAVE_CONFIRMED" then return false end
+ state.garageDone=true
+ if state.context=="HUB" then state.context="KART_READY" end
+ return true
+end
+
 function HubGuidanceState.returned(state, action)
  state.visited = true
  state.context = if action == "GARAGE" then "KART_READY" elseif action == "RACE_RETURN" then "NEXT_RACE" else "TRACK_RETURN"

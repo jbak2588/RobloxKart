@@ -15,6 +15,10 @@ local requireModule = require :: (ModuleScript) -> any
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 
 local GarageController = {}
+local function progressionBinding()
+ local module = script.Parent.FindFirstChild and script.Parent:FindFirstChild("ProgressionRuntimeBinding")
+ return if module then require(module) else nil
+end
 local function stopLobbyDrive(player, reason)
  if player:GetAttribute("LobbyDriveActive") ~= true and player:GetAttribute("LobbyDrivePending") ~= true then return end
  local module = script.Parent:FindFirstChild("LobbyTestDriveService")
@@ -59,6 +63,10 @@ function GarageController.start()
 		return
 	end
 	started = true
+	local persistence = progressionBinding()
+	if persistence and persistence.enabled() then
+		game:BindToClose(function() persistence.shutdown() end)
+	end
 
 	local prototype = Workspace:WaitForChild("Prototype")
 	local hub = Workspace:WaitForChild("KDMHub")
@@ -105,6 +113,8 @@ function GarageController.start()
 		player:SetAttribute("SelectedDriverId", DriverCatalog.DefaultId) -- legacy compatibility only
 		player.RespawnLocation = spawnLocation
 		player:SetAttribute("SelectedKartId", KartCatalog.DefaultId)
+		local persistence = progressionBinding()
+		if persistence then persistence.bind(player) end
 		player:SetAttribute("SelectedTrackId", TrackCatalog.DefaultId)
 		player:SetAttribute("RaceEntryError", "")
 		player:SetAttribute("ReadyOrder", 0)
@@ -130,6 +140,8 @@ function GarageController.start()
 	end
 	Players.PlayerAdded:Connect(bindPlayer)
 	Players.PlayerRemoving:Connect(function(player)
+		local persistence = progressionBinding()
+		if persistence then persistence.remove(player) end
 		readyPending[player] = nil
 		pendingInvites[player] = nil
 		releaseSlot(player)
@@ -286,7 +298,13 @@ function GarageController.start()
 				remote:FireClient(player, "KartSelectionRejected")
 				return
 			end
-			player:SetAttribute("SelectedKartId", first)
+			local module = script and script.Parent.FindFirstChild and script.Parent:FindFirstChild("ProgressionRuntimeBinding")
+			local persistence = if module then require(module) else nil
+			if not persistence or not persistence.enabled() then
+				player:SetAttribute("SelectedKartId", first)
+			elseif not persistence.select(player, first) then
+				remote:FireClient(player, "KartSelectionRejected"); return
+			end
 			remote:FireClient(player, "KartSelected", first)
 		elseif action == "Ready" then
 			ready(player, first, player:GetAttribute("SelectedKartId") or KartCatalog.DefaultId, third)

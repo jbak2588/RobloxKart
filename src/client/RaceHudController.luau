@@ -713,7 +713,7 @@ function RaceHudController.start()
 	garageButton.BackgroundColor3 = Color3.fromRGB(75, 80, 90)
 	garageButton.BorderSizePixel = 0
 	garageButton.Font = Enum.Font.GothamBold
-	garageButton.Text = "GARAGE"
+	garageButton.Text = "LOBBY"
 	garageButton.TextColor3 = Color3.new(1, 1, 1)
 	garageButton.TextSize = 20
 	garageButton.Parent = resultsPanel
@@ -1179,7 +1179,7 @@ function RaceHudController.start()
 		end
 		local routeError = player:GetAttribute("RaceEntryError")
 		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
-			and type(routeError) == "string" and routeError ~= "" then "KDM LOBBY UNAVAILABLE\nRETRY" else "GARAGE"
+			and type(routeError) == "string" and routeError ~= "" then "KDM LOBBY UNAVAILABLE\nRETRY" else "LOBBY"
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
 		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"

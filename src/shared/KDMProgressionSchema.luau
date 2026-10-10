@@ -1,0 +1,205 @@
+-- R8-A1 pure contract. No service lookup; catalog and trusted mock inputs are injected.
+local Schema = {}
+local MAX_INTEGER = 9007199254740991
+
+function Schema.integer(value, maximum)
+ return type(value) == "number" and value == value and value >= 0
+  and value <= (maximum or MAX_INTEGER) and value % 1 == 0
+end
+
+function Schema.clone(value)
+ if type(value) ~= "table" then return value end
+ local result = {}
+ for key, item in value do result[key] = Schema.clone(item) end
+ return result
+end
+
+function Schema.freeze(value)
+ if type(value) == "table" then
+  for _, item in value do Schema.freeze(item) end
+  if not table.isfrozen(value) then table.freeze(value) end
+ end
+ return value
+end
+
+-- Length framing avoids delimiter collisions. This is a canonical string, not a crypto hash.
+function Schema.frame(value)
+ return tostring(#value) .. ":" .. value
+end
+
+function Schema.canonical(value)
+ local seen, nodes = {}, 0
+ local function visit(item, depth)
+  nodes += 1
+  assert(depth <= 16 and nodes <= 32768, "structure_limit")
+  if type(item) == "string" then return "s" .. Schema.frame(item) end
+  if type(item) == "boolean" then return if item then "b1" else "b0" end
+  if type(item) == "number" then
+   assert(item == item and math.abs(item) <= MAX_INTEGER, "nonfinite_number")
+   return "n" .. Schema.frame(string.format("%.17g", item))
+  end
+  if item == nil then return "z" end
+  assert(type(item) == "table" and getmetatable(item) == nil and not seen[item], "unsafe_structure")
+  seen[item] = true
+  local parts = {}
+  for key, child in item do
+   assert(type(key) == "string" or (Schema.integer(key) and key > 0), "invalid_key")
+   table.insert(parts, visit(key, depth+1) .. visit(child, depth+1))
+  end
+  table.sort(parts)
+  seen[item] = nil
+  return "t" .. Schema.frame(table.concat(parts))
+ end
+ return visit(value, 0)
+end
+
+function Schema.count(value)
+ local count = 0
+ for _ in value do count += 1 end
+ return count
+end
+
+function Schema.userKey(userId)
+ assert(Schema.integer(userId) and userId > 0, "invalid_user_id")
+ return "u:" .. string.format("%.0f", userId)
+end
+
+function Schema.guid(value)
+ return type(value) == "string" and #value == 36
+  and value:match("^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$") ~= nil
+end
+
+function Schema.eventId(roundGuid, userId, rewardKind)
+ assert(Schema.guid(roundGuid), "global_round_guid_required")
+ assert(type(rewardKind) == "string" and #rewardKind > 0 and #rewardKind <= 48, "invalid_reward_kind")
+ return "event:v1|" .. Schema.frame(roundGuid:lower()) .. Schema.frame(Schema.userKey(userId)) .. Schema.frame(rewardKind)
+end
+
+function Schema.utcDay(utcMs)
+ assert(Schema.integer(utcMs), "invalid_utc_time")
+ return "UTC_DAY:" .. string.format("%.0f", math.floor(utcMs / 86400000))
+end
+
+function Schema.classify(roster)
+ if type(roster) ~= "table" or #roster < 1 or #roster > 4 then return "UNCLASSIFIED", 0, 0 end
+ local humans, bots, seen = 0, 0, {}
+ if Schema.count(roster) ~= #roster then return "UNCLASSIFIED", 0, 0 end
+ for i = 1, #roster do
+  local member = roster[i]
+  if type(member) ~= "table" or type(member.IsBot) ~= "boolean" then return "UNCLASSIFIED", 0, 0 end
+  if member.IsBot then
+   if type(member.BotId) ~= "string" or member.BotId == "" or seen["b:" .. member.BotId] then return "UNCLASSIFIED", 0, 0 end
+   seen["b:" .. member.BotId] = true; bots += 1
+  else
+   if not Schema.integer(member.UserId) or member.UserId == 0 or seen[member.UserId] then return "UNCLASSIFIED", 0, 0 end
+   seen[member.UserId] = true; humans += 1
+  end
+ end
+ if humans == 0 then return "UNCLASSIFIED", humans, bots end
+ if bots > 0 then
+  return if humans == 1 and bots == 1 then "BOT_1H_1B" else "BOT_ASSISTED_" .. humans .. "H_" .. bots .. "B", humans, bots
+ end
+ return if humans == 1 then "SOLO_1H_0B" else "HUMAN_" .. humans .. "H_0B", humans, bots
+end
+
+function Schema.recordScope(trackId, geometryId, rulesetId, category)
+ for _, id in {trackId, geometryId, rulesetId, category} do
+  assert(type(id) == "string" and #id > 0 and #id <= 128, "invalid_scope_component")
+ end
+ assert(category ~= "UNCLASSIFIED", "unclassified_scope")
+ return "record:v1|" .. Schema.frame(trackId) .. Schema.frame(geometryId) .. Schema.frame(rulesetId) .. Schema.frame(category)
+end
+
+function Schema.freezeRound(input)
+ assert(type(input) == "table" and Schema.guid(input.RoundGuid), "invalid_round")
+ assert(pcall(Schema.canonical,input), "invalid_round_structure")
+ assert(type(input.diagnostic) == "boolean", "explicit_diagnostic_required")
+ local category, humans, bots = Schema.classify(input.roster)
+ assert(category ~= "UNCLASSIFIED", "unclassified_roster")
+ local result = {RoundGuid=input.RoundGuid:lower(),TrackId=input.TrackId,GeometryId=input.GeometryId,
+  RulesetId=input.RulesetId,diagnostic=input.diagnostic,roster={}}
+ for _, member in input.roster do
+  table.insert(result.roster,if member.IsBot then {IsBot=true,BotId=member.BotId} else {IsBot=false,UserId=member.UserId})
+ end
+ result.RaceCategory, result.humanCount, result.botCount = category, humans, bots
+ result.recordScope = Schema.recordScope(result.TrackId, result.GeometryId, result.RulesetId, category)
+ return Schema.freeze(result)
+end
+
+function Schema.officialCandidate(round, userId, finish)
+ if type(round) ~= "table" or not table.isfrozen(round) or type(round.roster) ~= "table"
+  or round.diagnostic or round.RaceCategory == "UNCLASSIFIED" then return false end
+ local human = false
+ for _, member in round.roster do
+  if not member.IsBot and member.UserId == userId then human = true end
+ end
+ return human and type(finish) == "table" and finish.serverAccepted == true
+  and finish.state == "FINISHED" and finish.fullLapValid == true
+end
+
+function Schema.globalCandidate(round, userId, finish)
+ -- Candidate only: public board selection awaits A3/A5; nothing writes a score here.
+ return Schema.officialCandidate(round, userId, finish) and round.botCount == 0
+end
+
+function Schema.new(catalog, options)
+ assert(type(catalog) == "table" and catalog.DefaultId == "Kart05" and catalog.Entries[catalog.DefaultId], "catalog_contract")
+ options = options or {}
+ local supported = {}
+ for id in catalog.Entries do supported[id] = true end
+ local api = {maxCash=2147483647, maxReceipts=options.maxReceipts or 4096, maxBytes=options.maxBytes or 262144}
+ function api.default(userId)
+  Schema.userKey(userId)
+  return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
+   wallet={cash=0,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
+   records={scoped={}},daily={claimBuckets={}},receipts={},pendingIndex={},deleted=false}
+ end
+ function api.supportsKart(id) return type(id) == "string" and supported[id] == true end
+ function api.validate(profile, key)
+  local ok, encoded = pcall(Schema.canonical, profile)
+  -- Conservative JSON escaping reserve (up to six bytes per raw byte), not an exact serializer.
+  if not ok or #encoded*6 > api.maxBytes then return false, "STRUCTURE_OR_CAPACITY" end
+  if type(profile) ~= "table" then return false, "CORRUPT" end
+  if profile.schemaVersion ~= 1 then return false, "UNSUPPORTED_SCHEMA" end
+  if not Schema.integer(profile.userId) or profile.userId == 0 or Schema.userKey(profile.userId) ~= key then return false, "WRONG_USER_KEY" end
+  if type(profile.deleted) ~= "boolean" then return false, "CORRUPT_DELETION" end
+  local s, w, c = profile.selection, profile.wallet, profile.cosmetics
+  if type(s) ~= "table" or not api.supportsKart(s.kartId) or not Schema.integer(s.revision)
+   or type(s.lastOpId) ~= "string" or #s.lastOpId > 128 then return false, "CORRUPT_SELECTION" end
+  if type(w) ~= "table" or not Schema.integer(w.cash,api.maxCash) or not Schema.integer(w.ledgerRevision) then return false, "CORRUPT_WALLET" end
+  if type(c) ~= "table" or type(c.ownedPartIds) ~= "table" or type(c.equippedPartIdsBySlot) ~= "table" then return false, "CORRUPT_INVENTORY" end
+  if Schema.count(c.ownedPartIds) > 256 or Schema.count(c.equippedPartIdsBySlot) > 16 then return false, "INVENTORY_CAPACITY" end
+  for id, owned in c.ownedPartIds do
+   if type(id) ~= "string" or #id == 0 or #id > 128 or owned ~= true then return false, "CORRUPT_ENTITLEMENT" end
+  end
+  for slot, id in c.equippedPartIdsBySlot do
+   if type(slot) ~= "string" or #slot == 0 or #slot > 64 or type(id) ~= "string" or c.ownedPartIds[id] ~= true then return false, "UNOWNED_EQUIP" end
+  end
+  if type(profile.records) ~= "table" or type(profile.records.scoped) ~= "table" or Schema.count(profile.records.scoped) > 64
+   or type(profile.daily) ~= "table" or type(profile.daily.claimBuckets) ~= "table"
+   or type(profile.receipts) ~= "table" or type(profile.pendingIndex) ~= "table" then return false, "CORRUPT_FIELDS" end
+  if Schema.count(profile.pendingIndex) > 64 or Schema.count(profile.receipts) > api.maxReceipts then return false, "RECEIPT_CAPACITY" end
+  for id, receipt in profile.receipts do
+   if type(id) ~= "string" or #id > 512 or type(receipt) ~= "table" or type(receipt.signature) ~= "string" then return false, "CORRUPT_RECEIPT" end
+  end
+  -- Future records/claims have no writer in A1. Nonempty malformed data is quarantined.
+  for scope, record in profile.records.scoped do
+   if type(scope) ~= "string" or scope:sub(1,10) ~= "record:v1|" or type(record) ~= "table" then return false, "CORRUPT_RECORD" end
+   for metric, score in record do
+    if (metric ~= "bestLapMilliseconds" and metric ~= "bestRaceBoosts" and metric ~= "officialBoostLifetime")
+     or not Schema.integer(score) or (metric == "bestLapMilliseconds" and score == 0) then return false, "CORRUPT_RECORD" end
+   end
+  end
+  if Schema.count(profile.daily.claimBuckets) > 8 then return false, "DAILY_CAPACITY" end
+  for day, claims in profile.daily.claimBuckets do
+   if type(day) ~= "string" or not day:match("^UTC_DAY:%d+$") or type(claims) ~= "table" then return false, "CORRUPT_DAILY" end
+   for kind, claimed in claims do
+    if type(kind) ~= "string" or claimed ~= true then return false, "CORRUPT_DAILY" end
+   end
+  end
+  return true, "VALID"
+ end
+ return table.freeze(api)
+end
+
+return table.freeze(Schema)

@@ -88,6 +88,13 @@ function HubUiController.start()
  local function update()
   local overlay = player:GetAttribute("HubOverlayOpen") == true
   local raceState = player:GetAttribute("RaceState")
+  local selectedId=player:GetAttribute("SelectedKartId")
+  local kartCatalog=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
+  GuidanceState.profileRestored(state,{
+   completed=player:GetAttribute("KartProfileLoadCompleted"),result=player:GetAttribute("KartProfileLoadResult"),
+   restored=player:GetAttribute("KartRestorationConfirmed"),restoredKartId=player:GetAttribute("KartRestoredKartId"),
+   kartId=selectedId,validKart=kartCatalog.Entries[selectedId]~=nil,saveState=player:GetAttribute("KartSaveState"),
+  })
   if previousRaceState ~= "GARAGE" and raceState == "GARAGE" then GuidanceState.returned(state, "RACE_RETURN") end
   previousRaceState = raceState
   gui.Enabled = player:GetAttribute("RaceState") == "GARAGE"
@@ -159,7 +166,8 @@ function HubUiController.start()
  table.insert(connections,player.CharacterAdded:Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(refreshDisplay))
  refreshDisplay()
- for _, attribute in {"RaceState", "HubOverlayOpen", "KDMRoutePending", "LobbyDriveActive"} do
+ for _, attribute in {"RaceState", "HubOverlayOpen", "KDMRoutePending", "LobbyDriveActive",
+  "KartProfileLoadCompleted","KartProfileLoadResult","KartRestorationConfirmed","KartRestoredKartId","KartSaveState","SelectedKartId"} do
   table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(update))
  end
  table.insert(connections, ProximityPromptService.PromptTriggered:Connect(function(prompt, triggeringPlayer)

@@ -31,6 +31,8 @@ local function eligible(player)
 end
 
 local function choose(player, driverId, kartId, trackId)
+	local module = script.Parent.FindFirstChild and script.Parent:FindFirstChild("ProgressionRuntimeBinding")
+	if module then kartId = require(module).selection(player, kartId) end
 	if type(driverId) ~= "string" or type(kartId) ~= "string"
 		or not publicTrack(trackId) or not DriverCatalog.Entries[driverId] or not KartCatalog.Entries[kartId] then return false end
 	selections[player.UserId] = { driverId = driverId, kartId = kartId, trackId = trackId }
@@ -39,6 +41,8 @@ end
 
 local function memberFor(player, priority)
 	local selected = selections[player.UserId]
+	local module = script.Parent.FindFirstChild and script.Parent:FindFirstChild("ProgressionRuntimeBinding")
+	if module then selected.kartId = require(module).selection(player, selected.kartId) end
 	return { userId = player.UserId, name = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
 		driverId = selected.driverId, kartId = selected.kartId,
 		hubJobId = game.JobId, queuedAt = DateTime.now().UnixTimestampMillis, priority = priority or 3,
