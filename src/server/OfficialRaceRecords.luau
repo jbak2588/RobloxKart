@@ -16,7 +16,7 @@ function Records.new(S, deps)
  end
  function api.start(player, now)
   local s=states[player];if not s then return end
-  s.start=now;s.raceStart=now;s.lastTime=now;s.invalid=false;s.progress=0;s.previous=nil;s.position=nil
+  s.start=now;s.raceStart=now;s.lastTime=now;s.invalid=false;s.progress=0;s.previous=nil;s.position=nil;s.routePosition=nil
  end
  function api.invalidate(player)
   local s=states[player];if s then s.invalid=true;s.eligible=false;s.nextCheckpoint=1 end
@@ -33,12 +33,17 @@ function Records.new(S, deps)
    -- Reject teleport/hitch discontinuity independently of the gameplay timer.
    if now<=s.lastTime or moved>math.min(60,110*(now-s.lastTime)+12) then s.invalid=true end
    local advance=(fraction-s.previous+0.5)%1-0.5
-   if math.abs(advance)*s.length>moved*3+4 then s.invalid=true end
+   -- Route projection can hold a segment endpoint while the kart rounds an
+   -- inside corner. Compare against its last changed-route anchor, matching
+   -- RaceRouteProgress, while the per-frame teleport/speed check stays above.
+   local routeMoved=(position-(s.routePosition or s.position)).Magnitude
+   if math.abs(advance)*s.length>routeMoved*3+4 then s.invalid=true end
    s.progress+=advance
   else
    -- Grid is near the start plane, on either side of fraction zero.
    if math.min(fraction,1-fraction)*s.length>100 then s.invalid=true end
   end
+  if fraction~=s.previous then s.routePosition=position end
   s.position=position;s.previous=fraction;s.lastTime=now
  end
  function api.lap(player, now, officialLapTime)
@@ -53,7 +58,7 @@ function Records.new(S, deps)
   if s.lap==s.targetLaps then s.finishedAt=deps.utcMs() end
   s.lap+=1;s.start=now;s.invalid=false;s.nextCheckpoint=1;s.progress=0
   -- A new full lap begins only at the server-accepted finish boundary.
-  s.previous=0;s.position=nil;s.lastTime=now
+  s.previous=0;s.position=nil;s.routePosition=nil;s.lastTime=now
   return valid
  end
  function api.boost(player, eventId)
