@@ -128,10 +128,18 @@ function Gauge.new(parent)
 		if object:IsA("GuiObject") then object.Active=false;object.Selectable=false end
 	end
 	local self={root=root}
+	local lastWidth,lastHeight,lastMobile,lastVisible=nil,nil,nil,nil
+	local settle=0
+	local cachedDigitalY,cachedOffset=nil,0
 	function self:update(state,size,mobile,blocked)
 		local l=Gauge.layout(size.X,size.Y,mobile)
 		scale.Scale=l.scale
 		root.Visible=l.visible and not blocked
+		if size.X~=lastWidth or size.Y~=lastHeight or mobile~=lastMobile or root.Visible~=lastVisible then
+			lastWidth,lastHeight,lastMobile,lastVisible=size.X,size.Y,mobile,root.Visible
+			settle=3 -- Let Roblox resolve newly resized text and absolute bounds.
+		end
+		if not root.Visible then return false end
 		root.Tach.Needle.Rotation=45+225*math.clamp(state.rpm/7000,0,1)
 		root.Speedo.Needle.Rotation=45+225*math.clamp(state.speedKmh/150,0,1)
 		value.Text=tostring(math.floor(state.speedKmh+.5))
@@ -141,13 +149,15 @@ function Gauge.new(parent)
 		digital.Size=UDim2.fromOffset(total,40)
 		value.Size=UDim2.fromOffset(numberWidth,40);value.Position=UDim2.new(0,0,1,0)
 		unit.Size=UDim2.fromOffset(unitWidth,28);unit.Position=UDim2.new(0,numberWidth+5,1,0)
-		local dialBounds=Gauge.visualBounds(root,dialObjects)
-		if dialBounds then
-			digital.Position=UDim2.fromOffset(320,(dialBounds.maxY-root.AbsolutePosition.Y)/l.scale)
+		if settle>0 then
+			settle-=1
+			local dialBounds=Gauge.visualBounds(root,dialObjects)
+			if dialBounds then cachedDigitalY=(dialBounds.maxY-root.AbsolutePosition.Y)/l.scale end
+			if cachedDigitalY then digital.Position=UDim2.fromOffset(320,cachedDigitalY) end
+			local bounds=Gauge.visualBounds(root,objects)
+			cachedOffset=if bounds then bounds.maxY-(root.AbsolutePosition.Y+root.AbsoluteSize.Y) else 0
 		end
-		local bounds=Gauge.visualBounds(root,objects)
-		local offset=if bounds then bounds.maxY-(root.AbsolutePosition.Y+root.AbsoluteSize.Y) else 0
-		root.Position=UDim2.fromOffset(l.x,l.y-offset)
+		root.Position=UDim2.fromOffset(l.x,l.y-cachedOffset)
 		return root.Visible
 	end
 	function self:destroy() root:Destroy() end

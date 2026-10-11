@@ -20,6 +20,8 @@ local RacerCollisionIsolation = require(script.Parent:WaitForChild("RacerCollisi
 local KartUprightRecovery = require(script.Parent:WaitForChild("KartUprightRecovery"))
 local StraightSpeedResolver = require(script.Parent:WaitForChild("KDMStraightSpeedResolver"))
 local TrackGeometry = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry"))
+local perfModule=script.Parent:FindFirstChild('RacePerformanceMonitor')
+local PerformanceMonitor=if perfModule then require(perfModule) else nil
 
 local PrototypeWorld = {}
 local driftOutcomeListeners = {}
@@ -760,7 +762,9 @@ function PrototypeWorld.start(options)
 		end
 		function context:step(deltaTime: number)
 			if context.botControl then
+				local began=PerformanceMonitor and PerformanceMonitor.active() and os.clock()
 				local command = context.botControl()
+				if began then context.perfBotSteeringMs=(os.clock()-began)*1000 end
 				context:setServerControl(command.steering, command.throttle)
 			end
 			-- Snapshot before early exits or collision responses alter motion. This is
@@ -1266,6 +1270,7 @@ function PrototypeWorld.start(options)
 			stopNitro("destroyed")
 			stopSlick()
 			contexts[context] = nil
+			if PerformanceMonitor then PerformanceMonitor.remove(context) end
 		end)
 		if owner then context:assignOwner(owner) end
 		return context
@@ -1351,8 +1356,13 @@ function PrototypeWorld.start(options)
 		PrototypeWorld.destroyKartContext(player)
 	end)
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		local diagnostic=PerformanceMonitor and PerformanceMonitor.active()
 		for context in contexts do
-			if context.kart.Parent then context:step(deltaTime) end
+			if context.kart.Parent then
+				local began=if diagnostic then os.clock() else 0
+				context:step(deltaTime)
+				if diagnostic then PerformanceMonitor.observe(context,deltaTime,(os.clock()-began)*1000) end
+			end
 		end
 	end)
 

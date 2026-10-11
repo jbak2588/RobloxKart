@@ -1564,7 +1564,10 @@ function RaceHudController.start()
 	local displayedSteering = 0
 	local speedUpdateElapsed = 0
 	local botResultElapsed = 0
+	local performanceModule=script.Parent:FindFirstChild('RacePerformanceMonitor')
+	local performanceMonitor=performanceModule and require(performanceModule)
 	RunService.RenderStepped:Connect(function(deltaTime: number)
+		local frameStarted=os.clock()
 		if ReplicatedStorage:FindFirstChild("KDMBotRacers") then
 			botResultElapsed+=deltaTime
 			if botResultElapsed>=.15 then botResultElapsed=0;updateHud() end
@@ -1629,6 +1632,7 @@ function RaceHudController.start()
 		local gaugeActive = gaugeController and gaugeController:update(chassis,targetSpeed,deltaTime,
 			Input.isTouchPreferred(),gaugeEnabled and not quitOverlay.Visible and not routeOverlay.Visible
 				and not availabilityPanel.Visible) == true
+		if performanceMonitor then performanceMonitor.observe(chassis,targetSpeed,deltaTime,(os.clock()-frameStarted)*1000) end
 		speedPanel.Visible = not gaugeActive
 		steeringDisplay.Visible = not gaugeActive
 		wheelClip.Visible = Input.isTouchPreferred() and not gaugeActive

@@ -10,6 +10,8 @@ local RaceConfig = requireModule(Shared:WaitForChild("RaceConfig") :: ModuleScri
 local TrackCatalog = requireModule(Shared:WaitForChild("TrackCatalog") :: ModuleScript)
 local TrackGeometry = requireModule(Shared:WaitForChild("TrackGeometry") :: ModuleScript)
 local RaceRouteProgress = requireModule(Shared:WaitForChild("RaceRouteProgress") :: ModuleScript)
+local perfModule=script.Parent:FindFirstChild('RacePerformanceMonitor')
+local PerformanceMonitor=perfModule and requireModule(perfModule)
 local RaceMode = requireModule(Shared:WaitForChild("RaceMode") :: ModuleScript)
 local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
@@ -1127,6 +1129,8 @@ function RaceController.start(options)
 	session.removeServerBot=session.removeTestBot
 	local rankElapsed = 0
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		local diagnostic=PerformanceMonitor and PerformanceMonitor.active()
+		local loopStarted=if diagnostic then os.clock() else 0
 		local now = time()
 		for _, player in Players:GetPlayers() do
 			local context = PrototypeWorld.getKartContext(player)
@@ -1178,6 +1182,7 @@ function RaceController.start(options)
 			publishMapPositions()
 		end
 		publishSession(now)
+		if diagnostic then PerformanceMonitor.route(deltaTime,(os.clock()-loopStarted)*1000,session:count()) end
 	end)
 
 	print(string.format("[Race] minimumValidLapTime=%.2f", minimumValidLapTime))
