@@ -38,7 +38,17 @@ local function value(n,multiplier)
  return if type(n)=='number' then string.format('%.2f',n*(multiplier or 1)) else 'N/A'
 end
 local previousSpeed,previousPosition,previousRound,lastSample=0,nil,nil,-math.huge
-local display,shownUntil=nil,0
+local display,shownUntil,displayRound=nil,0,nil
+-- Called by the HUD before its non-driving early return. Expiry must not
+-- depend on a seated kart or on the next race starting.
+function Monitor.updateDisplay()
+	if not enabled then return end
+	local round=player:GetAttribute('OfficialRoundGuid') or player:GetAttribute('RaceSessionId')
+	if player:GetAttribute('RaceState')~='RACING' then pendingPair=nil end
+	if display and (os.clock()>shownUntil or player:GetAttribute('RaceState')~='RACING' or displayRound~=round) then
+		display.Visible=false
+	end
+end
 local function show(text)
 	if not display then
 		local gui=Instance.new('ScreenGui');gui.Name='KDMPerfCanary';gui.ResetOnSpawn=false
@@ -49,15 +59,16 @@ local function show(text)
 		display.Font=Enum.Font.Code;display.TextSize=12;display.TextWrapped=true
 		display.Active=false;display.Parent=gui
 	end
+	displayRound=player:GetAttribute('OfficialRoundGuid') or player:GetAttribute('RaceSessionId')
 	display.Text=text;display.Visible=true;shownUntil=os.clock()+6
 end
 function Monitor.observe(chassis,speed,dt,workMs)
 	if not enabled then return end
-	if display and (os.clock()>shownUntil or player:GetAttribute('RaceState')~='RACING') then display.Visible=false end
+	Monitor.updateDisplay()
 	local round=player:GetAttribute('OfficialRoundGuid') or player:GetAttribute('RaceSessionId')
 	if pendingPair then
 		local pair=pendingPair;pendingPair=nil
-		if pair.round==round then
+		if pair.round==round and player:GetAttribute('RaceState')=='RACING' then
 			local nearest,gap=nil,math.huge
 			for _,sample in pair.history do
 				local d=math.abs(sample.t-pair.client.t)
@@ -124,10 +135,11 @@ function Monitor.observe(chassis,speed,dt,workMs)
 		if snapshotRemote then
 			snapshotRemote:FireServer({t=row.t,round=row.round,speed=speed,dt=dt,moved=moved,inputSentAge=row.inputSentAge,zeroDuration=zeroDuration})
 		end
-		show(string.format('PERF %s R %.0fms S %sms age %ss pre/post %s/%s input %ss AUTO %s',
-			if zero then 'ZERO' else 'GAP',dt*1000,value(row.serverDt,1000),value(row.serverAge),
+		local reason=if zero then 'ZERO' elseif dt>=.15 then 'FRAME GAP' else 'HUD WORK'
+		show(string.format('PERF %s R %.0fms HUD %.1fms S %sms age %ss pre/post %s/%s input %ss AUTO %s',
+			reason,dt*1000,workMs,value(row.serverDt,1000),value(row.serverAge),
 			value(row.server and row.server.preSpeed),value(row.server and row.server.speed),value(row.serverInputAge),tostring(row.auto)))
-		warn('[KDMPerfClient] '..HttpService:JSONEncode({event=if zero then 'ZERO_SPEED' else 'RENDER_GAP',sample=row,history=Monitor.buffer:snapshot()}))
+		warn('[KDMPerfClient] '..HttpService:JSONEncode({event=if zero then 'ZERO_SPEED' elseif dt>=.15 then 'RENDER_GAP' else 'HUD_WORK',sample=row,history=Monitor.buffer:snapshot()}))
 	end
 end
 return Monitor

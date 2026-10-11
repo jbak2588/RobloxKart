@@ -1568,6 +1568,7 @@ function RaceHudController.start()
 	local performanceMonitor=performanceModule and require(performanceModule)
 	RunService.RenderStepped:Connect(function(deltaTime: number)
 		local frameStarted=os.clock()
+		if performanceMonitor then performanceMonitor.updateDisplay() end
 		if ReplicatedStorage:FindFirstChild("KDMBotRacers") then
 			botResultElapsed+=deltaTime
 			if botResultElapsed>=.15 then botResultElapsed=0;updateHud() end
