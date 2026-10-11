@@ -54,6 +54,33 @@ function Controller.lines(response)
  if #scopes==0 then table.insert(lines,"No official finished race saved yet.") end
  return lines
 end
+function Controller.createRecordsPanel(gui)
+ local panel=Instance.new("ScrollingFrame")
+ panel.Name="SavedRecords";panel.AnchorPoint=Vector2.new(1,0);panel.Position=UDim2.new(1,-12,0,60)
+ panel.Size=UDim2.new(0.8,0,0.5,0);panel.AutomaticCanvasSize=Enum.AutomaticSize.None
+ panel.CanvasSize=UDim2.new();panel.ScrollBarThickness=8
+ panel.Active=true;panel.ScrollingEnabled=true;panel.ScrollingDirection=Enum.ScrollingDirection.Y
+ panel.BackgroundColor3=Color3.fromRGB(20,30,44);panel.Visible=false;panel.Parent=gui
+ local limit=Instance.new("UISizeConstraint");limit.MaxSize=Vector2.new(440,280);limit.Parent=panel
+ local label=Instance.new("TextLabel")
+ label.Name="ReadOnlyRecords";label.Position=UDim2.fromOffset(10,8);label.Size=UDim2.new(1,-28,0,0)
+ label.AutomaticSize=Enum.AutomaticSize.None;label.TextWrapped=true;label.BackgroundTransparency=1
+ label.TextColor3=Color3.new(1,1,1);label.Font=Enum.Font.Gotham;label.TextSize=14
+ label.TextXAlignment=Enum.TextXAlignment.Left;label.TextYAlignment=Enum.TextYAlignment.Top;label.Parent=panel
+ -- Measure the complete wrapped text independently of the viewport. Nested
+ -- automatic sizing can clamp the label to the frame and leave no scroll range.
+ local textService=game:GetService("TextService")
+ local function resize()
+  local width=math.max(1,panel.AbsoluteSize.X-28)
+  local bounds=textService:GetTextSize(label.Text,label.TextSize,label.Font,Vector2.new(width,1000000))
+  local height=math.ceil(bounds.Y)
+  label.Size=UDim2.new(1,-28,0,height)
+  panel.CanvasSize=UDim2.fromOffset(0,height+16)
+ end
+ local connections={label:GetPropertyChangedSignal("Text"):Connect(resize),panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)}
+ resize()
+ return panel,label,connections
+end
 function Controller.start()
  local player=game:GetService("Players").LocalPlayer
  if player.UserId~=11700555357 then return end
@@ -65,17 +92,7 @@ function Controller.start()
  button.AnchorPoint=Vector2.new(1,0);button.Position=UDim2.new(1,-12,0,12)
  button.BackgroundColor3=Color3.fromRGB(20,30,44);button.TextColor3=Color3.new(1,1,1)
  button.Font=Enum.Font.GothamBold;button.TextSize=14;button.Parent=gui
- local panel=Instance.new("ScrollingFrame")
- panel.Name="SavedRecords";panel.AnchorPoint=Vector2.new(1,0);panel.Position=UDim2.new(1,-12,0,60)
- panel.Size=UDim2.new(0.8,0,0.5,0);panel.AutomaticCanvasSize=Enum.AutomaticSize.Y
- panel.CanvasSize=UDim2.new();panel.ScrollBarThickness=8
- panel.BackgroundColor3=Color3.fromRGB(20,30,44);panel.Visible=false;panel.Parent=gui
- local limit=Instance.new("UISizeConstraint");limit.MaxSize=Vector2.new(440,280);limit.Parent=panel
- local label=Instance.new("TextLabel")
- label.Name="ReadOnlyRecords";label.Position=UDim2.fromOffset(10,8);label.Size=UDim2.new(1,-28,0,0)
- label.AutomaticSize=Enum.AutomaticSize.Y;label.TextWrapped=true;label.BackgroundTransparency=1
- label.TextColor3=Color3.new(1,1,1);label.Font=Enum.Font.Gotham;label.TextSize=14
- label.TextXAlignment=Enum.TextXAlignment.Left;label.TextYAlignment=Enum.TextYAlignment.Top;label.Parent=panel
+ local panel,label,resizeConnections=Controller.createRecordsPanel(gui)
  local busy=false;local last=-math.huge;local alive=true
  local click=button.Activated:Connect(function()
   panel.Visible=not panel.Visible
@@ -93,6 +110,7 @@ function Controller.start()
   if not gui.Enabled then panel.Visible=false end
  end
  local connections={click}
+ for _,c in resizeConnections do table.insert(connections,c) end
  for _,name in {"RaceState","HubOverlayOpen","LobbyDriveActive","KDMRoutePending"} do
   table.insert(connections,player:GetAttributeChangedSignal(name):Connect(update))
  end
