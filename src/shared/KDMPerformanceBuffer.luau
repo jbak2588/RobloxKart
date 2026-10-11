@@ -21,6 +21,8 @@ function Buffer:report(now)
 	return true
 end
 function Buffer.allowed(studio,userId,experience,place)
-	return studio or userId==11700555357 and experience==10768420544 and place==127925465904803
+	-- Performance diagnostics only; progression/records Canary policies are separate.
+	return studio or (userId==11700555357 or userId==11736539305)
+		and experience==10768420544 and place==127925465904803
 end
 return Buffer
