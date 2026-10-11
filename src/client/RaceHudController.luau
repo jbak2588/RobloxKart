@@ -73,6 +73,8 @@ function RaceHudController.start()
 	local previousGauge = playerGui:FindFirstChild("KDMV2GaugeHud")
 	if previousGauge then previousGauge:Destroy() end
 	local gaugeController = nil
+	local performanceModule=script.Parent:FindFirstChild('RacePerformanceMonitor')
+	local performanceMonitor=performanceModule and require(performanceModule)
 
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = HUD_NAME
@@ -770,10 +772,30 @@ function RaceHudController.start()
 	resultActions.Visible=false
 	resultActions.Parent=resultsPanel
 
+	local lastRacingLayoutInputs=nil
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local mobile = Input.isTouchPreferred()
+		-- Bot polling and rank replication call updateHud frequently. During a
+		-- race, unchanged geometry must not rewrite the complete responsive HUD.
+		if player:GetAttribute("RaceState")=="RACING" then
+			local inputs={viewportSize,screenGui.AbsoluteSize,screenGui.AbsolutePosition,
+				mobileTopGui.AbsoluteSize,mobileTopGui.AbsolutePosition,GuiService.TopbarInset,
+				mobile,UserInputService.TouchEnabled,offTrackLabel.Visible,raceEndLabel.Visible,
+				quitRow.Visible,roomQueueLabel.Visible,availableTotal,availableHasBot,
+				player:GetAttribute("RaceMatchStatus") or false,player:GetAttribute("RaceSessionComplete") or false,
+				player:GetAttribute("RaceParticipantCount") or 1,player:GetAttribute("RaceHostUserId") or 0,
+				player:GetAttribute("RaceEndCountdownActive") or false,player:GetAttribute("RaceTotalLaps") or 3}
+			for _,row in availabilityRows do
+				table.insert(inputs,row.label.Text);table.insert(inputs,row.userId or false)
+				table.insert(inputs,row.botId or false);table.insert(inputs,row.botAction or false)
+			end
+			local same=lastRacingLayoutInputs~=nil and #inputs==#lastRacingLayoutInputs
+			if same then for i,v in inputs do if lastRacingLayoutInputs[i]~=v then same=false;break end end end
+			if same then return end
+			lastRacingLayoutInputs=inputs
+		else lastRacingLayoutInputs=nil end
 		local phoneMap = mobile and screenGui.AbsoluteSize.X > screenGui.AbsoluteSize.Y
 			and screenGui.AbsoluteSize.Y < 500 and player:GetAttribute("RaceState") == "RACING"
 		miniMapPanel.Parent = if phoneMap then mobileTopGui else screenGui
@@ -1117,6 +1139,7 @@ function RaceHudController.start()
 		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
 	updateHud = function()
+		local eventStarted=if performanceMonitor and performanceMonitor.active() and player:GetAttribute('RaceState')=='RACING' then os.clock() else nil
 		local resultEntries=resultCache:collect(player,Players:GetPlayers(),botSnapshots())
 		local raceState = player:GetAttribute("RaceState")
 		local returningToHub = player:GetAttribute("KDMRoutePending") == "HUB_RETURN"
@@ -1440,6 +1463,7 @@ function RaceHudController.start()
 		end
 		displayedLap = currentLap
 		applyResponsiveLayout()
+		if eventStarted then performanceMonitor.metric('hudEvent',(os.clock()-eventStarted)*1000) end
 	end
 	garageRemote.OnClientEvent:Connect(function(action, data)
 		if action == "RoomSnapshot" then
@@ -1564,11 +1588,36 @@ function RaceHudController.start()
 	local displayedSteering = 0
 	local speedUpdateElapsed = 0
 	local botResultElapsed = 0
-	local performanceModule=script.Parent:FindFirstChild('RacePerformanceMonitor')
-	local performanceMonitor=performanceModule and require(performanceModule)
+	local markersActive=false
+	local spareRivalKeys={}
+	local lastGaugeActive=nil
+	local gaugeMode=nil
+	local frameStarted,sectionStarted,measuring,frameDt,displayCost=0,0,false,0,0
+	local function mark(name)
+		if not measuring then return end
+		local now=os.clock()
+		performanceMonitor.metric(name,(now-sectionStarted)*1000)
+		sectionStarted=now
+	end
+	local function finish(chassis,speed)
+		if not performanceMonitor or not performanceMonitor.active() then return end
+		mark('otherHud')
+		local work=(os.clock()-frameStarted)*1000
+		local began=os.clock()
+		if performanceMonitor then
+			performanceMonitor.frame(frameDt,work)
+			performanceMonitor.observe(chassis,speed,frameDt,work)
+		end
+		if measuring then
+			performanceMonitor.metric('diagnostics',displayCost+(os.clock()-began)*1000)
+			performanceMonitor.metric('callbackTotal',(os.clock()-frameStarted)*1000)
+		end
+	end
 	RunService.RenderStepped:Connect(function(deltaTime: number)
-		local frameStarted=os.clock()
+		frameDt=deltaTime;frameStarted=os.clock();sectionStarted=frameStarted
+		measuring=performanceMonitor and performanceMonitor.active() and player:GetAttribute('RaceState')=='RACING'
 		if performanceMonitor then performanceMonitor.updateDisplay() end
+		if measuring then local now=os.clock();displayCost=(now-sectionStarted)*1000;sectionStarted=now end
 		if ReplicatedStorage:FindFirstChild("KDMBotRacers") then
 			botResultElapsed+=deltaTime
 			if botResultElapsed>=.15 then botResultElapsed=0;updateHud() end
@@ -1576,7 +1625,9 @@ function RaceHudController.start()
 		if autoReadyNoticeUntil > 0 and time() >= autoReadyNoticeUntil then
 			autoReadyNoticeUntil = 0; updateHud()
 		end
+		mark('botResults')
 		if miniMapPanel.Visible and mapRenderer then
+			markersActive=true
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			local seat = humanoid and humanoid.SeatPart
@@ -1586,7 +1637,8 @@ function RaceHudController.start()
 				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL")
 			local rivals = RaceMinimapRivals.collect(player, Players:GetPlayers(),
 				getNumberAttribute(player, "RaceParticipantCount", 1),botSnapshots())
-			local activeKeys = {}
+			local activeKeys = spareRivalKeys
+			table.clear(activeKeys)
 			for userId, position in rivals do
 				local key = "rival:" .. tostring(userId)
 				activeKeys[key] = true
@@ -1601,12 +1653,15 @@ function RaceHudController.start()
 					displayedRivalPositions[key] = nil
 				end
 			end
+			spareRivalKeys=displayedRivalKeys
 			displayedRivalKeys = activeKeys
-		elseif mapRenderer then
+		elseif mapRenderer and markersActive then
+			markersActive=false
 			mapRenderer:clearRacerMarkers()
 			displayedRivalKeys = {}
 			displayedRivalPositions = {}
 		end
+		mark('minimap')
 		local state = player:GetAttribute("RaceState")
 		local drivingHud = state == "COUNTDOWN" or state == "RACING"
 		local gaugeEnabled = Workspace:GetAttribute("KDMEnableV2Gauge") ~= false
@@ -1615,6 +1670,7 @@ function RaceHudController.start()
 			displayedSpeed = 0
 			displayedSteering = 0
 			steeringRing.Rotation = 0
+			mark('gauge');finish(nil,0)
 			return
 		end
 		local character = player.Character
@@ -1627,42 +1683,51 @@ function RaceHudController.start()
 			local velocity = chassis.AssemblyLinearVelocity
 			targetSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 		end
+		local desiredMode=if performanceMonitor then performanceMonitor.gaugeMode() else 'ANALOG'
+		if gaugeController and gaugeMode~=desiredMode then gaugeController:destroy();gaugeController=nil end
 		if gaugeEnabled and not gaugeController then
-			gaugeController = require(script.Parent:WaitForChild("V2GaugeController")).new(playerGui)
+			gaugeMode=desiredMode
+			gaugeController = require(script.Parent:WaitForChild("V2GaugeController")).new(playerGui,gaugeMode,MobileView)
 		end
 		local gaugeActive = gaugeController and gaugeController:update(chassis,targetSpeed,deltaTime,
 			Input.isTouchPreferred(),gaugeEnabled and not quitOverlay.Visible and not routeOverlay.Visible
 				and not availabilityPanel.Visible) == true
-		if performanceMonitor then performanceMonitor.observe(chassis,targetSpeed,deltaTime,(os.clock()-frameStarted)*1000) end
+		mark('gauge')
 		speedPanel.Visible = not gaugeActive
 		steeringDisplay.Visible = not gaugeActive
 		wheelClip.Visible = Input.isTouchPreferred() and not gaugeActive
-		positionLabel.Parent = if gaugeActive then screenGui else speedPanel
-		positionLabel.AnchorPoint = if gaugeActive then Vector2.new(.5,0) else Vector2.zero
-		positionLabel.Position = if gaugeActive then UDim2.new(.5,0,0,8) else UDim2.new(1,-76,0,1)
-		positionLabel.Size = UDim2.fromOffset(if gaugeActive then 140 else 72,if gaugeActive then 24 else 17)
-		positionLabel.TextXAlignment = if gaugeActive then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
-		positionLabel.Visible = getNumberAttribute(player,"RaceParticipantCount",1)>=2
-		local steering = kart and kart:GetAttribute("KartVisualSteering")
-		local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"
-			then math.clamp(steering, -1, 1) else 0
-		if Input.isTouchPreferred() then
-			targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true
-				and kart:GetAttribute("KartCrashActive") ~= true and kart:GetAttribute("KartSlickActive") ~= true
-				then Input.getEffectiveSteering() else 0
+		if lastGaugeActive~=gaugeActive then
+			lastGaugeActive=gaugeActive
+			positionLabel.Parent = if gaugeActive then screenGui else speedPanel
+			positionLabel.AnchorPoint = if gaugeActive then Vector2.new(.5,0) else Vector2.zero
+			positionLabel.Position = if gaugeActive then UDim2.new(.5,0,0,8) else UDim2.new(1,-76,0,1)
+			positionLabel.Size = UDim2.fromOffset(if gaugeActive then 140 else 72,if gaugeActive then 24 else 17)
+			positionLabel.TextXAlignment = if gaugeActive then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
 		end
+		positionLabel.Visible = getNumberAttribute(player,"RaceParticipantCount",1)>=2
 		local alpha = 1 - math.exp(-10 * deltaTime)
 		displayedSpeed += (targetSpeed - displayedSpeed) * alpha
-		displayedSteering += (targetSteering - displayedSteering) * alpha
-		if Input.isTouchPreferred() then displayedSteering = targetSteering end
-		steeringRing.Rotation = displayedSteering * 35
-		speedUpdateElapsed += deltaTime
-		if speedUpdateElapsed >= 0.08 then
-			speedUpdateElapsed = 0
-			local STUDS_PER_SECOND_TO_KMH = 1.008
-			speedValue.Text = tostring(math.floor(displayedSpeed * STUDS_PER_SECOND_TO_KMH + 0.5))
-			speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.NITRO_MAX_SPEED, 0, 1), 1)
+		if not gaugeActive then
+			local steering = kart and kart:GetAttribute("KartVisualSteering")
+			local targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true and type(steering) == "number"
+				then math.clamp(steering, -1, 1) else 0
+			if Input.isTouchPreferred() then
+				targetSteering = if kart and kart:GetAttribute("RaceControlsLocked") ~= true
+					and kart:GetAttribute("KartCrashActive") ~= true and kart:GetAttribute("KartSlickActive") ~= true
+					then Input.getEffectiveSteering() else 0
+			end
+			displayedSteering += (targetSteering - displayedSteering) * alpha
+			if Input.isTouchPreferred() then displayedSteering = targetSteering end
+			steeringRing.Rotation = displayedSteering * 35
+			speedUpdateElapsed += deltaTime
+			if speedUpdateElapsed >= 0.08 then
+				speedUpdateElapsed = 0
+				local STUDS_PER_SECOND_TO_KMH = 1.008
+				speedValue.Text = tostring(math.floor(displayedSpeed * STUDS_PER_SECOND_TO_KMH + 0.5))
+				speedFill.Size = UDim2.fromScale(math.clamp(displayedSpeed / KartConfig.NITRO_MAX_SPEED, 0, 1), 1)
+			end
 		end
+		finish(chassis,targetSpeed)
 	end)
 	print("[RobloxKart] Race HUD ready")
 end

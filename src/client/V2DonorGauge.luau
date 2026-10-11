@@ -130,10 +130,14 @@ function Gauge.new(parent)
 	local self={root=root}
 	local lastWidth,lastHeight,lastMobile,lastVisible=nil,nil,nil,nil
 	local settle=0
+	local cachedLayout,lastNumberWidth,lastUnitWidth=nil,nil,nil
 	local cachedDigitalY,cachedOffset=nil,0
 	function self:update(state,size,mobile,blocked)
-		local l=Gauge.layout(size.X,size.Y,mobile)
-		scale.Scale=l.scale
+		if not cachedLayout or size.X~=lastWidth or size.Y~=lastHeight or mobile~=lastMobile then
+			cachedLayout=Gauge.layout(size.X,size.Y,mobile)
+			scale.Scale=cachedLayout.scale
+		end
+		local l=cachedLayout
 		root.Visible=l.visible and not blocked
 		if size.X~=lastWidth or size.Y~=lastHeight or mobile~=lastMobile or root.Visible~=lastVisible then
 			lastWidth,lastHeight,lastMobile,lastVisible=size.X,size.Y,mobile,root.Visible
@@ -142,13 +146,17 @@ function Gauge.new(parent)
 		if not root.Visible then return false end
 		root.Tach.Needle.Rotation=45+225*math.clamp(state.rpm/7000,0,1)
 		root.Speedo.Needle.Rotation=45+225*math.clamp(state.speedKmh/150,0,1)
-		value.Text=tostring(math.floor(state.speedKmh+.5))
+		local text=tostring(math.floor(state.speedKmh+.5))
+		if value.Text~=text then value.Text=text end
 		local numberWidth=value.TextBounds.X/l.scale
 		local unitWidth=unit.TextBounds.X/l.scale
-		local total=numberWidth+5+unitWidth
-		digital.Size=UDim2.fromOffset(total,40)
-		value.Size=UDim2.fromOffset(numberWidth,40);value.Position=UDim2.new(0,0,1,0)
-		unit.Size=UDim2.fromOffset(unitWidth,28);unit.Position=UDim2.new(0,numberWidth+5,1,0)
+		if numberWidth~=lastNumberWidth or unitWidth~=lastUnitWidth then
+			lastNumberWidth,lastUnitWidth=numberWidth,unitWidth
+			local total=numberWidth+5+unitWidth
+			digital.Size=UDim2.fromOffset(total,40)
+			value.Size=UDim2.fromOffset(numberWidth,40);value.Position=UDim2.new(0,0,1,0)
+			unit.Size=UDim2.fromOffset(unitWidth,28);unit.Position=UDim2.new(0,numberWidth+5,1,0)
+		end
 		if settle>0 then
 			settle-=1
 			local dialBounds=Gauge.visualBounds(root,dialObjects)
@@ -157,7 +165,8 @@ function Gauge.new(parent)
 			local bounds=Gauge.visualBounds(root,objects)
 			cachedOffset=if bounds then bounds.maxY-(root.AbsolutePosition.Y+root.AbsoluteSize.Y) else 0
 		end
-		root.Position=UDim2.fromOffset(l.x,l.y-cachedOffset)
+		local position=UDim2.fromOffset(l.x,l.y-cachedOffset)
+		if root.Position~=position then root.Position=position end
 		return root.Visible
 	end
 	function self:destroy() root:Destroy() end
