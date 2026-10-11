@@ -8,13 +8,20 @@ local player=Players.LocalPlayer
 local enabled=Buffer.allowed(RunService:IsStudio(),player.UserId,game.GameId,game.PlaceId)
 local latest,lastSent,lastInput,zeroSince,zeroDuration=nil,nil,nil,nil,0
 local reportedZero=false
+local pendingPair
+Monitor.pairs=Buffer.new(6)
 local snapshotConnection,discoveryConnection,snapshotRemote
 function Monitor.inputSent(throttle,steering,drift)
  if not enabled then return end
  lastSent=workspace:GetServerTimeNow();lastInput={throttle=throttle,steering=steering,drift=drift}
 end
 function Monitor.receive(row)
- if enabled and type(row)=='table' and row.user==player.UserId then latest=row end
+ if enabled and type(row)=='table' and row.user==player.UserId then
+  if row.kind=='PAIR' then
+   Monitor.pairs:push(row);pendingPair=row
+   warn('[KDMPerfPairClient] '..HttpService:JSONEncode(row))
+  else latest=row end
+ end
 end
 if enabled then
  local storage=game:GetService('ReplicatedStorage')
@@ -48,6 +55,22 @@ function Monitor.observe(chassis,speed,dt,workMs)
 	if not enabled then return end
 	if display and (os.clock()>shownUntil or player:GetAttribute('RaceState')~='RACING') then display.Visible=false end
 	local round=player:GetAttribute('OfficialRoundGuid') or player:GetAttribute('RaceSessionId')
+	if pendingPair then
+		local pair=pendingPair;pendingPair=nil
+		if pair.round==round then
+			local nearest,gap=nil,math.huge
+			for _,sample in pair.history do
+				local d=math.abs(sample.t-pair.client.t)
+				if d<gap then nearest,gap=sample,d end
+			end
+			-- A sparse/old history is reported unavailable, not simultaneous evidence.
+			if gap>.25 then nearest=nil end
+			show(string.format('PAIR delta %ss pre/post %s/%s dt %sms timeout %s lock %s reset %s',
+				value(if gap<math.huge then gap else nil),value(nearest and nearest.preSpeed),value(nearest and nearest.speed),
+				value(nearest and nearest.dt,1000),if nearest then tostring(nearest.inputTimeout) else 'N/A',
+				if nearest then tostring(nearest.locked) else 'N/A',if nearest then tostring(nearest.reset) else 'N/A'))
+		end
+	end
 	if player:GetAttribute('RaceState')~='RACING' or round~=previousRound then
 		previousSpeed,previousPosition,previousRound=0,nil,round
 		zeroSince,zeroDuration=nil,0

@@ -42,7 +42,9 @@ local function send(row)
      for _,key in {'speed','dt','moved','inputSentAge','zeroDuration'} do
       local v=client[key];if type(v)=='number' and v==v and math.abs(v)<1e7 then safe[key]=v end
      end
-     warn('[KDMPerfPair] '..HttpService:JSONEncode({event='CLIENT_ANOMALY',client=safe,serverAt=workspace:GetServerTimeNow(),history=state.history:snapshot()}))
+     local pair={kind='PAIR',user=p.UserId,round=state.round,t=workspace:GetServerTimeNow(),client=safe,history=state.history:snapshot()}
+     remote:FireClient(p,pair)
+     warn('[KDMPerfPair] '..HttpService:JSONEncode({event='CLIENT_ANOMALY',client=safe,serverAt=pair.t,history=pair.history}))
      return
     end
    end
