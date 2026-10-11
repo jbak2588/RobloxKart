@@ -142,6 +142,36 @@ function Schema.globalCandidate(round, userId, finish)
  return Schema.officialCandidate(round, userId, finish) and round.botCount == 0
 end
 
+-- Optional v1 extension: old numeric records and receipts remain byte-for-byte compatible.
+function Schema.raceScope(scope, laps)
+ assert(type(scope)=="string" and scope:sub(1,10)=="record:v1|" and Schema.integer(laps,3) and laps>0,"invalid_race_scope")
+ return "race:v1|"..Schema.frame(scope)..tostring(laps)
+end
+
+function Schema.raceSnapshotValid(value)
+ if type(value)~="table" or not Schema.integer(value.userId) or value.userId==0
+  or not Schema.guid(value.roundGuid) or not Schema.integer(value.finishedAt)
+  or not Schema.integer(value.targetLaps,3) or value.targetLaps==0
+  or not Schema.integer(value.totalMilliseconds,86400000) or value.totalMilliseconds==0
+  or not Schema.integer(value.raceBoosts,10000) or type(value.laps)~="table"
+  or #value.laps~=value.targetLaps or Schema.count(value.laps)~=#value.laps
+  or not Schema.integer(value.startingHumans,4) or value.startingHumans==0
+  or not Schema.integer(value.startingBots,3) or value.startingHumans+value.startingBots>4
+  or not Schema.integer(value.finishPosition,value.startingHumans+value.startingBots) or value.finishPosition==0
+  or type(value.eligible)~="boolean" or type(value.reason)~="string"
+  or value.serverAccepted~=true or value.state~="FINISHED" or value.positionFinalized~=true then return false end
+ local category=if value.startingBots>0 then (if value.startingHumans==1 and value.startingBots==1 then "BOT_1H_1B"
+  else "BOT_ASSISTED_"..value.startingHumans.."H_"..value.startingBots.."B")
+  else (if value.startingHumans==1 then "SOLO_1H_0B" else "HUMAN_"..value.startingHumans.."H_0B")
+ if value.category~=category then return false end
+ local ok,scope=pcall(Schema.recordScope,value.trackId,value.geometryId,value.rulesetId,value.category)
+ if not ok or value.recordScope~=scope then return false end
+ local sum=0
+ for _,ms in value.laps do if not Schema.integer(ms,86400000) or ms==0 then return false end;sum+=ms end
+ return if value.eligible then value.reason=="FULL_ROUTE_V1" and math.abs(sum-value.totalMilliseconds)<=value.targetLaps
+  else value.reason=="INVALID_ROUTE_OR_TIMER_RESET" or value.reason=="TOTAL_LAP_MISMATCH"
+end
+
 function Schema.new(catalog, options)
  assert(type(catalog) == "table" and catalog.DefaultId == "Kart05" and catalog.Entries[catalog.DefaultId], "catalog_contract")
  options = options or {}
@@ -209,6 +239,25 @@ function Schema.new(catalog, options)
     or (entry.lap~=nil and (not Schema.integer(entry.lap) or entry.lap==0)) then return false,"CORRUPT_INDEX" end
    local ok,expected=pcall(Schema.recordScope,entry.trackId,entry.geometryId,entry.rulesetId,entry.category)
    if not ok or expected~=scope then return false,"CORRUPT_INDEX_SCOPE" end
+  end
+  if profile.records.races~=nil then
+   if type(profile.records.races)~="table" or Schema.count(profile.records.races)>64 then return false,"CORRUPT_RACES" end
+   for scope,entry in profile.records.races do
+    if type(entry)~="table" or not Schema.raceSnapshotValid(entry.lastRace) then return false,"CORRUPT_RACES" end
+    for _,snapshot in {entry.lastRace,entry.bestRace} do
+     if not Schema.raceSnapshotValid(snapshot) or snapshot.userId~=profile.userId
+      or Schema.raceScope(snapshot.recordScope,snapshot.targetLaps)~=scope then return false,"CORRUPT_RACE_SCOPE" end
+    end
+    if entry.bestRace and not entry.bestRace.eligible then return false,"INELIGIBLE_BEST_RACE" end
+   end
+  end
+  if profile.pendingRaceIndex~=nil then
+   if type(profile.pendingRaceIndex)~="table" or Schema.count(profile.pendingRaceIndex)>64 then return false,"CORRUPT_RACE_INDEX" end
+   for scope,entry in profile.pendingRaceIndex do
+    local race=profile.records.races and profile.records.races[scope]
+    if not race or not race.bestRace or type(entry)~="table" or entry.kind~="RACE"
+     or Schema.canonical(entry.snapshot)~=Schema.canonical(race.bestRace) or entry.snapshot.startingBots~=0 then return false,"CORRUPT_RACE_INDEX" end
+   end
   end
   if Schema.count(profile.daily.claimBuckets) > 8 then return false, "DAILY_CAPACITY" end
   for day, claims in profile.daily.claimBuckets do

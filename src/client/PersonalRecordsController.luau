@@ -1,5 +1,22 @@
 -- Canary read-only viewer. All authorization and profile reads remain server-owned.
 local Controller = {}
+local names={Track01="Practice Circuit",Track01Race="Base Circuit",Track02="Prototype Circuit V2B",Track03="KDM Hard Circuit"}
+local categories={SOLO_1H_0B="Solo",BOT_1H_1B="1 driver + 1 bot",HUMAN_2H_0B="2 drivers",HUMAN_3H_0B="3 drivers",HUMAN_4H_0B="4 drivers"}
+local function title(evidence)
+ return (names[evidence.trackId] or "Track").." / "..(categories[evidence.category] or "Bot-assisted race")
+end
+local function time(ms)
+ return if type(ms)=="number" and ms>0 then string.format("%d:%06.3f",math.floor(ms/60000),(ms%60000)/1000) else "--"
+end
+local function snapshot(lines,label,race)
+ table.insert(lines,label)
+ if not race then table.insert(lines,"No full race saved yet.");return end
+ table.insert(lines,"Total Time "..time(race.totalMilliseconds))
+ for lap,ms in race.laps do table.insert(lines,"Lap "..lap.."  "..time(ms)) end
+ table.insert(lines,"Finish Position "..race.finishPosition.." / "..(race.startingHumans+race.startingBots))
+ table.insert(lines,"Starting Racers "..race.startingHumans.." drivers + "..race.startingBots.." bots | Boosts "..race.raceBoosts)
+ if not race.eligible then table.insert(lines,"Not eligible for Best Race: invalid route or timer reset.") end
+end
 function Controller.lines(response)
  if type(response) ~= "table" or response.status ~= "FOUND" then
   return {"RECORDS: " .. tostring(if type(response)=="table" then response.status else "ERROR")}
@@ -14,11 +31,25 @@ function Controller.lines(response)
   local score=records.scoped[scope]
   local meta=records.metadata and records.metadata[scope]
   local evidence=meta and (meta.lap or meta.boost)
-  table.insert(lines,if evidence then evidence.trackId.." / "..evidence.geometryId.." / "..evidence.category else scope)
-  local ms=score.bestLapMilliseconds
-  local lap=if type(ms)=="number" and ms>0 then string.format("%d:%06.3f",math.floor(ms/60000),(ms%60000)/1000) else "--"
-  table.insert(lines,"PB LAP "..lap.." | BEST BOOSTS "..tostring(score.bestRaceBoosts or 0))
+  table.insert(lines,if evidence then title(evidence) else "Saved personal records")
+  local races={}
+  for key,entry in records.races or {} do
+   if entry.lastRace.recordScope==scope then table.insert(races,{key=key,entry=entry}) end
+  end
+  table.sort(races,function(a,b) return a.key<b.key end)
+  if #races==0 then snapshot(lines,"BEST RACE",nil) end
+  for _,item in races do
+   table.insert(lines,tostring(item.entry.lastRace.targetLaps).." LAP RACE")
+   snapshot(lines,"BEST RACE",item.entry.bestRace)
+  end
+  table.insert(lines,"BEST LAP / PB LAP "..time(score.bestLapMilliseconds))
+  table.insert(lines,"DRIFT RECORDS | BEST BOOSTS "..tostring(score.bestRaceBoosts or 0))
   table.insert(lines,"TOTAL OFFICIAL BOOSTS "..tostring(score.officialBoostLifetime or 0))
+  for _,item in races do
+   table.insert(lines,tostring(item.entry.lastRace.targetLaps).." LAP RACE")
+   snapshot(lines,"LAST RACE",item.entry.lastRace)
+  end
+  table.insert(lines,"")
  end
  if #scopes==0 then table.insert(lines,"No official finished race saved yet.") end
  return lines

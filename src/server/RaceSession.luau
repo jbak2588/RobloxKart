@@ -101,6 +101,21 @@ function RaceSession:recordFinish(player, officialTime)
 	return player:GetAttribute("RaceFinishPosition")
 end
 
+-- A settled prefix is final even while slower racers continue. Every racer shares GO.
+-- Read the sorted official results only after the server clock has passed that finish;
+-- a remaining racer cannot subsequently produce an earlier/equal official time.
+function RaceSession:finalizedFinish(player, now)
+ for position,entry in self.finishOrder do
+  if entry.player~=player then continue end
+  if now-self.startTime<=entry.time then return nil end
+  for other,racer in self.participants do
+   if other:GetAttribute("RaceState")=="RACING" and racer.raceStartTime~=self.startTime then return nil end
+  end
+  return {totalTime=entry.time,position=position,positionFinalized=true}
+ end
+ return nil
+end
+
 function RaceSession:contains(player)
 	return self.participants[player] ~= nil
 end

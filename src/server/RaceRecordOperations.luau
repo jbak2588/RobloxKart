@@ -12,6 +12,12 @@ function Ops.valid(S,op)
  if not ok or frozen.recordScope~=r.recordScope or frozen.RaceCategory~=r.RaceCategory
   or frozen.botCount~=r.botCount or frozen.humanCount~=r.humanCount then return false end
  local member=false;for _,m in frozen.roster do if not m.IsBot and m.UserId==op.userId then member=true end end
+ if op.race~=nil then
+  local race=op.race
+  if not S.raceSnapshotValid(race) or race.userId~=op.userId or race.roundGuid~=frozen.RoundGuid
+   or race.recordScope~=r.recordScope or race.targetLaps~=v.targetLaps or race.raceBoosts~=op.bestRaceBoosts
+   or race.finishedAt~=op.achievedAt or race.startingHumans~=frozen.humanCount or race.startingBots~=frozen.botCount then return false end
+ end
  return member and ((op.bestLapMilliseconds==nil and v.fullLapValid==false)
   or (S.integer(op.bestLapMilliseconds,86400000) and op.bestLapMilliseconds>0 and v.fullLapValid==true))
 end
@@ -46,7 +52,26 @@ function Ops.reduce(S,schema,op)
    verification=S.clone(copy.verification)}
   if lapImproved then record.bestLapMilliseconds=copy.bestLapMilliseconds;meta.lap=S.clone(evidence) end
   if boostImproved then record.bestRaceBoosts=copy.bestRaceBoosts;meta.boost=S.clone(evidence) end
+  local raceImproved=false
+  if copy.race then
+   local raceScope=S.raceScope(scope,copy.race.targetLaps)
+   nextValue.records.races=nextValue.records.races or {}
+   if not nextValue.records.races[raceScope] and S.count(nextValue.records.races)>=64 then return nil,"RACE_CAPACITY" end
+   local entry=nextValue.records.races[raceScope] or {};nextValue.records.races[raceScope]=entry
+   raceImproved=copy.race.eligible and (not entry.bestRace or copy.race.totalMilliseconds<entry.bestRace.totalMilliseconds)
+   if raceImproved then entry.bestRace=S.clone(copy.race) end
+   if not entry.lastRace or copy.race.finishedAt>entry.lastRace.finishedAt
+    or (copy.race.finishedAt==entry.lastRace.finishedAt and copy.race.roundGuid>entry.lastRace.roundGuid) then
+    entry.lastRace=S.clone(copy.race)
+   end
+   if raceImproved and copy.round.botCount==0 then
+    nextValue.pendingRaceIndex=nextValue.pendingRaceIndex or {}
+    if not nextValue.pendingRaceIndex[raceScope] and S.count(nextValue.pendingRaceIndex)>=64 then return nil,"RACE_INDEX_CAPACITY" end
+    nextValue.pendingRaceIndex[raceScope]={kind="RACE",snapshot=S.clone(entry.bestRace)}
+   end
+  end
   nextValue.receipts[key]={signature=signature,lapImproved=lapImproved,boostImproved=boostImproved}
+  if copy.race then nextValue.receipts[key].raceImproved=raceImproved end
   if copy.round.botCount==0 then
    nextValue.pendingIndex[scope]={trackId=copy.round.TrackId,geometryId=copy.round.GeometryId,
     rulesetId=copy.round.RulesetId,category=copy.round.RaceCategory,
@@ -63,8 +88,9 @@ end
 function Ops.clearIndex(S,schema,userId,scope,expected)
  return function(previous)
   if not schema.validate(previous,S.userKey(userId)) or previous.deleted then return nil,"READ_ONLY" end
-  if not previous.pendingIndex[scope] or S.canonical(previous.pendingIndex[scope])~=S.canonical(expected) then return nil,"INDEX_ADVANCED" end
-  local nextValue=S.clone(previous);nextValue.pendingIndex[scope]=nil;return nextValue,"INDEX_REPAIRED"
+  local field=if expected.kind=="RACE" then "pendingRaceIndex" else "pendingIndex"
+  if not previous[field] or not previous[field][scope] or S.canonical(previous[field][scope])~=S.canonical(expected) then return nil,"INDEX_ADVANCED" end
+  local nextValue=S.clone(previous);nextValue[field][scope]=nil;return nextValue,"INDEX_REPAIRED"
  end
 end
 return table.freeze(Ops)

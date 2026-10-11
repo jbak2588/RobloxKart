@@ -491,13 +491,14 @@ function RaceController.start(options)
 			player:SetAttribute("RaceFinishPhase", "PRESENT")
 		end
 
-		local function endFinishSequence(player: Player)
+		local function endFinishSequence(player: Player, now: number)
 			if player:GetAttribute("RaceFinishPhase") == "ROLL" then beginFinishPresentation(player) end
 			racer.finishRollEndTime = 0
 			racer.finishEndTime = 0
 			setRaceState(player, "FINISHED")
 			session.terminal[player] = "FINISHED"
-			record("finish", player)
+			local officialResult = session:finalizedFinish(player, now)
+			if officialResult then record("finish", player, officialResult) end
 		end
 
 		local function completeLap(player: Player, now: number)
@@ -510,7 +511,7 @@ function RaceController.start(options)
 			local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
 			completedLaps += 1
 			record("checkpoints", player, player:GetAttribute("RaceNextCheckpoint"))
-			record("lap", player, now)
+			record("lap", player, now, lapTime)
 			local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
 
 			player:SetAttribute("RaceLastLapTime", lapTime)
@@ -627,7 +628,7 @@ function RaceController.start(options)
 				if now >= racer.finishRollEndTime and player:GetAttribute("RaceFinishPhase") == "ROLL" then
 					beginFinishPresentation(player)
 				end
-				if now >= racer.finishEndTime then endFinishSequence(player) end
+				if now >= racer.finishEndTime then endFinishSequence(player, now) end
 				return
 			end
 			if raceState == "COUNTDOWN" then

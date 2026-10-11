@@ -6,11 +6,16 @@ function Runtime.new(S,schema,Ops,deps)
  local function publish(player,op,status,receipt)
   if player:GetAttribute("OfficialRoundGuid")~=op.round.RoundGuid then return end
   player:SetAttribute("RaceRecordNewPB",receipt~=nil and (receipt.lapImproved or receipt.boostImproved) or false)
+  player:SetAttribute("RaceRecordNewBestRace",receipt~=nil and receipt.raceImproved==true)
   player:SetAttribute("RaceRecordSaveState",status)
  end
  local function repair(player,adapter,profile)
   if not deps.allowed(player,"repair") then return end
   for scope,entry in profile.pendingIndex do
+   local ok=deps.index(player,entry)
+   if ok then adapter.commit(adapter.beginUpdate(S.userKey(player.UserId),Ops.clearIndex(S,schema,player.UserId,scope,entry))) end
+  end
+  for scope,entry in profile.pendingRaceIndex or {} do
    local ok=deps.index(player,entry)
    if ok then adapter.commit(adapter.beginUpdate(S.userKey(player.UserId),Ops.clearIndex(S,schema,player.UserId,scope,entry))) end
   end

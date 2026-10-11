@@ -35,6 +35,21 @@ local function live()
     end})
   end,
   index=function(player,entry)
+   if entry.kind=="RACE" then
+    local snapshot=entry.snapshot
+    if not S.raceSnapshotValid(snapshot) or not snapshot.eligible or snapshot.startingBots~=0 then return false end
+    local scope=Policy.indexScope(Config,snapshot);if not scope then return false end
+    scope..="_L"..snapshot.targetLaps
+    local store=ds(player,"repair")
+    if store:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.OrderedRead)<1
+     or store:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.OrderedWrite)<1 then return false end
+    return pcall(function()
+     store:GetOrderedDataStore("KDM_A3_Race_v1",scope):UpdateAsync(tostring(player.UserId),function(old)
+      if old~=nil then assert(S.integer(old) and old>0,"invalid_index");return math.min(old,snapshot.totalMilliseconds) end
+      return snapshot.totalMilliseconds
+     end)
+    end)
+   end
    local scope=Policy.indexScope(Config,entry);if not scope then return false end
    local store=ds(player,"repair")
    if store:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.OrderedRead)<2
@@ -69,6 +84,7 @@ function Service.begin(session,course,checkpointCount)
  for _,p in participants do
   p:SetAttribute("OfficialRoundGuid",round.RoundGuid);p:SetAttribute("RaceRecordCategory",round.RaceCategory)
   p:SetAttribute("RaceRecordNewPB",false);p:SetAttribute("RaceRecordSaveState","NONE")
+  p:SetAttribute("RaceRecordNewBestRace",false)
  end
 end
 function Service.start(player,now) collector.start(player,now) end
@@ -76,11 +92,11 @@ function Service.invalidate(player) collector.invalidate(player) end
 function Service.progress(player,now,position,fraction,nextCheckpoint)
  collector.sample(player,now,position,fraction);collector.checkpoints(player,nextCheckpoint)
 end
-function Service.lap(player,now) collector.lap(player,now) end
+function Service.lap(player,now,officialLapTime) collector.lap(player,now,officialLapTime) end
 function Service.checkpoints(player,nextCheckpoint) collector.checkpoints(player,nextCheckpoint) end
 function Service.boost(player,eventId) collector.boost(player,eventId) end
-function Service.finish(player)
- local op=collector.finish(player)
+function Service.finish(player,result)
+ local op=collector.finish(player,result)
  if op and allowed(player,"write") then
   if not live().submit(player,op) then player:SetAttribute("RaceRecordSaveState","SAVE_FAILED") end
  end

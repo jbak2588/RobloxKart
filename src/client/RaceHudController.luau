@@ -688,10 +688,15 @@ function RaceHudController.start()
 	end
 	local resultsBestLabel = createLabel(resultsPanel, "Best", 6)
 	resultsBestLabel.TextXAlignment = Enum.TextXAlignment.Center
+	local recordSaveLabel = createLabel(resultsPanel, "RecordSave", 7)
+	recordSaveLabel.TextXAlignment = Enum.TextXAlignment.Center
+	recordSaveLabel.Size = UDim2.new(1, -20, 0, 18)
+	recordSaveLabel.TextSize = 13
+	recordSaveLabel.Visible = false
 
 	local rematchButton = Instance.new("TextButton")
 	rematchButton.Name = "Rematch"
-	rematchButton.LayoutOrder = 7
+	rematchButton.LayoutOrder = 8
 	rematchButton.Size = UDim2.fromOffset(180, 44)
 	rematchButton.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
 	rematchButton.BorderSizePixel = 0
@@ -708,7 +713,7 @@ function RaceHudController.start()
 
 	local garageButton = Instance.new("TextButton")
 	garageButton.Name = "ReturnGarage"
-	garageButton.LayoutOrder = 8
+	garageButton.LayoutOrder = 9
 	garageButton.Size = UDim2.fromOffset(180, 44)
 	garageButton.BackgroundColor3 = Color3.fromRGB(75, 80, 90)
 	garageButton.BorderSizePixel = 0
@@ -841,6 +846,9 @@ function RaceHudController.start()
 			local resultState = player:GetAttribute("RaceState")
 			local resultLaps = getNumberAttribute(player, "RaceTotalLaps", RaceConfig.TOTAL_LAPS)
 			local targetHeight = if resultState == "DNF" then 185 elseif resultLaps == 1 then 240 else 270
+			if resultState == "FINISHED" and player:GetAttribute("RaceRecordSaveState") ~= nil
+				and player:GetAttribute("RaceRecordSaveState") ~= "NONE" then targetHeight += 22 end
+			if resultLaps == 3 then targetHeight += 22 end
 			local resultHeight = math.min(targetHeight, resultArea.Y - 16)
 			local tight = resultArea.Y < 280
 			local splitResult = mobile and resultState == "FINISHED" and resultArea.X >= 720
@@ -902,6 +910,10 @@ function RaceHudController.start()
 			local resultState = player:GetAttribute("RaceState")
 			local resultLaps = getNumberAttribute(player, "RaceTotalLaps", RaceConfig.TOTAL_LAPS)
 			resultsPanel.Size = UDim2.fromOffset(370, if resultState == "DNF" then 220 elseif resultLaps == 1 then 280 else 340)
+			if resultState == "FINISHED" and player:GetAttribute("RaceRecordSaveState") ~= nil
+				and player:GetAttribute("RaceRecordSaveState") ~= "NONE" then
+				resultsPanel.Size = UDim2.fromOffset(370, 356 + 27 * resultLaps)
+			end
 			resultsLayout.Padding = UDim.new(0, 6)
 			resultsPadding.PaddingTop = UDim.new(0, 14)
 			resultsPadding.PaddingBottom = UDim.new(0, 14)
@@ -1055,8 +1067,13 @@ function RaceHudController.start()
 		if multiplayer then
 			local safe=screenGui.AbsoluteSize
 			local width=if mobile then math.min(330,safe.X*.45) else 390
+			local saving = player:GetAttribute("RaceState") == "FINISHED" and player:GetAttribute("RaceRecordSaveState") ~= nil
+				and player:GetAttribute("RaceRecordSaveState") ~= "NONE"
+			local panelHeight=(if mobile then 272 else 304)+(if saving then 22 else 0)
+			if saving then panelHeight=math.min(panelHeight,safe.Y-16) end
 			local rowHeight=if mobile then 40 else 48
-			resultsPanel.Size=UDim2.fromOffset(width,if mobile then 272 else 304)
+			if saving then rowHeight=math.min(rowHeight,math.floor((panelHeight-134)/4)) end
+			resultsPanel.Size=UDim2.fromOffset(width,panelHeight)
 			resultsPanel.AnchorPoint=Vector2.new(0,.5)
 			resultsPanel.Position=if mobile then UDim2.new(0,14,.5,0) else UDim2.new(.08,0,.5,0)
 			resultsLayout.Padding=UDim.new(0,4)
@@ -1188,12 +1205,14 @@ function RaceHudController.start()
 		resultsBestLabel.Text = if bestLap > 0 then string.format("BEST LAP %d  -  %s", bestLapNumber, RaceResultFormat.time(bestLap)) else "BEST LAP  --"
 		local recordState = player:GetAttribute("RaceRecordSaveState")
 		if raceState == "FINISHED" and recordState == "SAVE_CONFIRMED" then
-			resultsBestLabel.Text = if player:GetAttribute("RaceRecordNewPB") == true then "NEW PERSONAL BEST" else "RECORD SAVED"
+			recordSaveLabel.Text = if player:GetAttribute("RaceRecordNewBestRace") == true then "NEW BEST RACE" else "RECORD SAVED"
 		elseif raceState == "FINISHED" and recordState == "SAVE_PENDING" then
-			resultsBestLabel.Text = "RECORD SAVE PENDING"
+			recordSaveLabel.Text = "SAVE PENDING"
 		elseif raceState == "FINISHED" and (recordState == "SAVE_FAILED" or recordState == "READ_ONLY") then
-			resultsBestLabel.Text = "RECORD SAVE UNCONFIRMED"
+			recordSaveLabel.Text = "RECORD SAVE UNCONFIRMED"
 		end
+		recordSaveLabel.Visible = raceState == "FINISHED" and (recordState == "SAVE_CONFIRMED" or recordState == "SAVE_PENDING"
+			or recordState == "SAVE_FAILED" or recordState == "READ_ONLY")
 		resultsBestLabel.Visible = raceState == "FINISHED"
 		local canRematch = (raceState == "FINISHED" or raceState == "DNF"
 			and player:GetAttribute("RaceDNFReason") ~= "FORFEIT")
@@ -1466,6 +1485,7 @@ function RaceHudController.start()
 		"RaceBestLapNumber",
 		"RaceRecordSaveState",
 		"RaceRecordNewPB",
+		"RaceRecordNewBestRace",
 		"RaceLap1Time",
 		"RaceLap2Time",
 		"RaceLap3Time",
