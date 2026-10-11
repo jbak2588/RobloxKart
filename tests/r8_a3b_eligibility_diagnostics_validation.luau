@@ -40,5 +40,9 @@ legacy.eligibilityDetail={};check(not S.raceSnapshotValid(legacy),'malformed dia
 local r=run('movement');local text=table.concat(V.lines({status='FOUND',records={scoped={[r.recordScope]={}},races={a={lastRace=r}}}}),'\n')
 check(text:find('Validation: L1 MOVEMENT_DISCONTINUITY',1,true)~=nil,'mobile shows actual first cause')
 check(not text:find('timer reset.',1,true),'unrelated cause is not falsely labeled reset')
+local old=run('movement');old.eligibilityDetail=nil
+local oldText=table.concat(V.lines({status='FOUND',records={scoped={[old.recordScope]={}},races={a={lastRace=old}}}}),'\n')
+check(oldText:find('Validation detail unavailable for this older race.',1,true)~=nil,'older invalid snapshot not assigned a guessed cause')
+local mismatch=run('total');local mismatchText=table.concat(V.lines({status='FOUND',records={scoped={[mismatch.recordScope]={}},races={a={lastRace=mismatch}}}}),'\n')
+check(mismatchText:find('total/lap timer mismatch.',1,true)~=nil,'timer mismatch display accurately distinguished')
 print('PASS: '..checks..' eligibility causes, slower valid race, bounded backward-compatible snapshots and mobile diagnostics')
-
