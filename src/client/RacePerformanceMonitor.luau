@@ -205,15 +205,15 @@ end
 -- Canary controls are confined to staging/results. No polling, quantile sorting
 -- or summary serialization runs inside the driving HUD callback.
 if enabled and RunService.Heartbeat then
- local controls,summaryLabel,elapsed,lastState=nil,nil,0,nil
+ local controls,panel,summaryLabel,elapsed,lastState=nil,nil,nil,0,nil
  RunService.Heartbeat:Connect(function(dt)
   elapsed+=dt;if elapsed<1 then return end;elapsed=0
   local state=player:GetAttribute('RaceState')
   if not controls then
    controls=Instance.new('ScreenGui');controls.Name='KDMPerfAB';controls.ResetOnSpawn=false
    controls.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;controls.DisplayOrder=25;controls.Parent=player.PlayerGui
-   local panel=Instance.new('Frame');panel.Name='Panel';panel.AnchorPoint=Vector2.new(.5,0)
-   panel.Position=UDim2.new(.5,0,0,40);panel.Size=UDim2.fromOffset(320,172)
+   panel=Instance.new('Frame');panel.Name='Panel';panel.AnchorPoint=Vector2.new(.5,0)
+   panel.Position=UDim2.new(.5,0,0,0);panel.Size=UDim2.fromOffset(320,36)
    panel.BackgroundColor3=Color3.fromRGB(15,20,30);panel.Parent=controls
    local function button(x,clicked)
     local b=Instance.new('TextButton');b.Position=UDim2.fromOffset(x,0);b.Size=UDim2.fromOffset(160,36)
@@ -235,6 +235,12 @@ if enabled and RunService.Heartbeat then
    summaryLabel.Text='Canary A/B: choose a mode before each race.';summaryLabel.Parent=panel
   end
   controls.Enabled=state=='WAITING' or state=='FINISHED' or state=='PRE_RACE'
+  -- Staging needs only the mode buttons; keep invite/Bot/item controls clear.
+  -- The full measured summary remains available on the result screen.
+  local showSummary=state=='FINISHED'
+  summaryLabel.Visible=showSummary
+  local panelHeight=if showSummary then 172 else 36
+  if panel.Size.Y.Offset~=panelHeight then panel.Size=UDim2.fromOffset(320,panelHeight) end
   if lastState=='RACING' and state~='RACING' and frames>0 then
    local result=Monitor.summary();result.round=player:GetAttribute('OfficialRoundGuid')
    local lines={mode..' / '..Monitor.gaugeMode()..' | >33ms '..over33..' >50ms '..over50..' gaps '..gaps..' / '..frames}
