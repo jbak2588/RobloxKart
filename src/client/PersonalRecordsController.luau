@@ -15,7 +15,11 @@ local function snapshot(lines,label,race)
  for lap,ms in race.laps do table.insert(lines,"Lap "..lap.."  "..time(ms)) end
  table.insert(lines,"Finish Position "..race.finishPosition.." / "..(race.startingHumans+race.startingBots))
  table.insert(lines,"Starting Racers "..race.startingHumans.." drivers + "..race.startingBots.." bots | Boosts "..race.raceBoosts)
- if not race.eligible then table.insert(lines,"Not eligible for Best Race: invalid route or timer reset.") end
+ if not race.eligible then
+  table.insert(lines,if race.reason=="TOTAL_LAP_MISMATCH" then "Not eligible for Best Race: total/lap timer mismatch." else "Not eligible for Best Race: route validation did not pass.")
+  if race.eligibilityDetail and race.eligibilityDetail~="" then table.insert(lines,"Validation: "..race.eligibilityDetail)
+  else table.insert(lines,"Validation detail unavailable for this older race.") end
+ end
 end
 function Controller.lines(response)
  if type(response) ~= "table" or response.status ~= "FOUND" then

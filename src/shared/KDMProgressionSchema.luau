@@ -160,6 +160,7 @@ function Schema.raceSnapshotValid(value)
   or not Schema.integer(value.finishPosition,value.startingHumans+value.startingBots) or value.finishPosition==0
   or type(value.eligible)~="boolean" or type(value.reason)~="string"
   or value.serverAccepted~=true or value.state~="FINISHED" or value.positionFinalized~=true then return false end
+ if value.eligibilityDetail~=nil and (type(value.eligibilityDetail)~="string" or #value.eligibilityDetail>256) then return false end
  local category=if value.startingBots>0 then (if value.startingHumans==1 and value.startingBots==1 then "BOT_1H_1B"
   else "BOT_ASSISTED_"..value.startingHumans.."H_"..value.startingBots.."B")
   else (if value.startingHumans==1 then "SOLO_1H_0B" else "HUMAN_"..value.startingHumans.."H_0B")
