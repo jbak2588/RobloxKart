@@ -9,6 +9,8 @@ local KartConfig = requireModule(kartConfigModule)
 local Slots = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemSlots"))
 
 local KartInputController = {}
+local perfModule = script.Parent:FindFirstChild("RacePerformanceMonitor")
+local PerformanceMonitor = perfModule and requireModule(perfModule)
 local raceItemRemote: RemoteEvent? = nil
 local touchActions = { throttle = 0, steering = 0, drift = false }
 local touchEnabled = false
@@ -147,6 +149,7 @@ function KartInputController.start()
 			or driving ~= wasDriving
 		if changed or (force and driving) then
 			remoteEvent:FireServer(throttle, steering, driftRequested)
+			if PerformanceMonitor then PerformanceMonitor.inputSent(throttle, steering, driftRequested) end
 			lastThrottle = throttle
 			lastSteering = steering
 			lastDriftRequested = driftRequested

@@ -1357,11 +1357,13 @@ function PrototypeWorld.start(options)
 	end)
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local diagnostic=PerformanceMonitor and PerformanceMonitor.active()
+		if diagnostic then PerformanceMonitor.lifecycle(contexts) end
 		for context in contexts do
 			if context.kart.Parent then
 				local began=if diagnostic then os.clock() else 0
+				local before=if diagnostic then context.chassis.AssemblyLinearVelocity else nil
 				context:step(deltaTime)
-				if diagnostic then PerformanceMonitor.observe(context,deltaTime,(os.clock()-began)*1000) end
+				if diagnostic then PerformanceMonitor.observe(context,deltaTime,(os.clock()-began)*1000,before) end
 			end
 		end
 	end)

@@ -6,6 +6,30 @@ local Buffer=require(game.ReplicatedStorage.Shared.KDMPerformanceBuffer)
 local Monitor={buffer=Buffer.new(60)}
 local player=Players.LocalPlayer
 local enabled=Buffer.allowed(RunService:IsStudio(),player.UserId,game.GameId,game.PlaceId)
+local latest,lastSent,lastInput,zeroSince,zeroDuration=nil,nil,nil,nil,0
+local reportedZero=false
+local snapshotConnection,discoveryConnection,snapshotRemote
+function Monitor.inputSent(throttle,steering,drift)
+ if not enabled then return end
+ lastSent=workspace:GetServerTimeNow();lastInput={throttle=throttle,steering=steering,drift=drift}
+end
+function Monitor.receive(row)
+ if enabled and type(row)=='table' and row.user==player.UserId then latest=row end
+end
+if enabled then
+ local storage=game:GetService('ReplicatedStorage')
+ local function bind(child)
+  if child.Name~='KDMPerfSnapshot' or snapshotConnection then return end
+  snapshotRemote=child
+  snapshotConnection=child.OnClientEvent:Connect(Monitor.receive)
+  if discoveryConnection then discoveryConnection:Disconnect();discoveryConnection=nil end
+ end
+ bind(storage:FindFirstChild('KDMPerfSnapshot') or {Name=''})
+ if not snapshotConnection then discoveryConnection=storage.ChildAdded:Connect(bind) end
+end
+local function value(n,multiplier)
+ return if type(n)=='number' then string.format('%.2f',n*(multiplier or 1)) else 'N/A'
+end
 local previousSpeed,previousPosition,previousRound,lastSample=0,nil,nil,-math.huge
 local display,shownUntil=nil,0
 local function show(text)
@@ -23,35 +47,63 @@ end
 function Monitor.observe(chassis,speed,dt,workMs)
 	if not enabled then return end
 	if display and (os.clock()>shownUntil or player:GetAttribute('RaceState')~='RACING') then display.Visible=false end
-	local round=player:GetAttribute('RaceSessionId')
+	local round=player:GetAttribute('OfficialRoundGuid') or player:GetAttribute('RaceSessionId')
 	if player:GetAttribute('RaceState')~='RACING' or round~=previousRound then
 		previousSpeed,previousPosition,previousRound=0,nil,round
+		zeroSince,zeroDuration=nil,0
+		reportedZero=false
 		return
 	end
 	local now=os.clock()
 	local position=chassis and chassis.Position
 	local moved=position and previousPosition and (position-previousPosition).Magnitude or 0
 	local zero=previousSpeed>20 and speed<1
+	local recovered=zeroSince~=nil and speed>=1
+	if zero then zeroSince=workspace:GetServerTimeNow() end
+	if zeroSince then
+		zeroDuration=workspace:GetServerTimeNow()-zeroSince
+		if speed>=1 then zeroSince=nil end
+	end
 	previousSpeed,previousPosition=speed,position
-	if now-lastSample<.1 and not zero and dt<.15 and workMs<8 then return end
+	if now-lastSample<.1 and not zero and not recovered and dt<.15 and workMs<8 then return end
 	lastSample=now
 	local row={t=now,dt=dt,ms=workMs,speed=speed,moved=moved,seat=chassis~=nil,
 		reset=chassis and chassis.Parent:GetAttribute('RaceResetSerial'),
 		memoryMb=nil}
+	row.t=workspace:GetServerTimeNow();row.round=round;row.zeroDuration=zeroDuration
+	row.inputSentAt=lastSent;row.inputSentAge=lastSent and row.t-lastSent;row.input=lastInput
+	local kart=chassis and chassis.Parent
+	local seat=kart and kart:FindFirstChild('Seat')
+	if not seat and kart then seat=kart:FindFirstChildWhichIsA('Seat',true) end
+	row.chassisExists=chassis~=nil and chassis.Parent~=nil
+	row.seatExists=seat~=nil
+	row.seated=seat~=nil and seat.Occupant~=nil and player.Character~=nil and seat.Occupant.Parent==player.Character
+	row.clientConnections={snapshot=snapshotConnection and snapshotConnection.Connected==true,discovery=discoveryConnection and discoveryConnection.Connected==true}
+	if latest and latest.round==round then
+		row.server=latest;row.serverAge=row.t-latest.t
+		row.serverDt=latest.dt;row.serverInputAge=latest.inputAge
+	end
 	local controls=player.PlayerGui:FindFirstChild('RobloxKartTouchDriving')
 	row.auto=controls and controls:GetAttribute('AutoForwardEnabled')
 	if chassis then
 		row.serverEvent=chassis.Parent:GetAttribute('KDMPerfServerEvent')
-		row.serverDt=chassis.Parent:GetAttribute('KDMPerfServerDt')
-		row.serverInputAge=chassis.Parent:GetAttribute('KDMPerfInputAge')
 		local at=chassis.Parent:GetAttribute('KDMPerfServerAt')
 		row.serverEventAge=at and workspace:GetServerTimeNow()-at
 	end
 	Monitor.buffer:push(row)
+	if recovered and reportedZero then
+		reportedZero=false
+		warn('[KDMPerfClient] '..HttpService:JSONEncode({event='ZERO_RECOVERED',sample=row,history=Monitor.buffer:snapshot()}))
+	end
 	if (zero or dt>=.15 or workMs>=8) and Monitor.buffer:report(now) then
+		if zero then reportedZero=true end
 		row.memoryMb=Stats:GetTotalMemoryUsageMb()
-		show(string.format('PERF %s render %.0fms server %.0fms input %.2fs AUTO %s',
-			if zero then 'ZERO' else 'GAP',dt*1000,(row.serverDt or 0)*1000,row.serverInputAge or -1,tostring(row.auto)))
+		if snapshotRemote then
+			snapshotRemote:FireServer({t=row.t,round=row.round,speed=speed,dt=dt,moved=moved,inputSentAge=row.inputSentAge,zeroDuration=zeroDuration})
+		end
+		show(string.format('PERF %s R %.0fms S %sms age %ss pre/post %s/%s input %ss AUTO %s',
+			if zero then 'ZERO' else 'GAP',dt*1000,value(row.serverDt,1000),value(row.serverAge),
+			value(row.server and row.server.preSpeed),value(row.server and row.server.speed),value(row.serverInputAge),tostring(row.auto)))
 		warn('[KDMPerfClient] '..HttpService:JSONEncode({event=if zero then 'ZERO_SPEED' else 'RENDER_GAP',sample=row,history=Monitor.buffer:snapshot()}))
 	end
 end
