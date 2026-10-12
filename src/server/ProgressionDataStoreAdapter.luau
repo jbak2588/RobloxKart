@@ -38,24 +38,24 @@ function Adapter.new(deps)
   if transaction.key~=deps.key then return {status="READ_ONLY",reason="WRONG_USER_KEY"} end
   local backend,reason=access("write")
   if not backend then return {status="PENDING",reason=reason} end
-  local outcome=nil
+  local outcome,validationReason=nil,nil
   local ok,value=pcall(function()
    return backend:UpdateAsync(transaction.key,function(previous,keyInfo)
     -- Recheck authorization on every platform callback replay; never yield here.
     if not deps.authorize() then outcome="ACCESS_BLOCKED";return nil end
     if previous~=nil then
      local read=classify(transaction.key,previous)
-     if read.status~="FOUND" then outcome=read.status;return nil end
+     if read.status~="FOUND" then outcome=read.status;validationReason=read.reason;return nil end
     end
     local nextValue,result=transaction.callback(previous);outcome=result
     if nextValue==nil then return nil end
-    local valid=deps.schema.validate(nextValue,transaction.key)
-    if not valid then outcome="CORRUPT";return nil end
+    local valid,reason=deps.schema.validate(nextValue,transaction.key)
+    if not valid then outcome="CORRUPT";validationReason=reason;return nil end
     return nextValue,if keyInfo then keyInfo:GetUserIds() else nil,if keyInfo then keyInfo:GetMetadata() else nil
    end)
   end)
   if not ok then return {status="PENDING",reason="UPDATE_OUTCOME_UNKNOWN"} end
-  if value==nil then return {status=outcome or "PENDING",reason=outcome or "UPDATE_CANCELLED"} end
+  if value==nil then return {status=outcome or "PENDING",reason=validationReason or outcome or "UPDATE_CANCELLED"} end
   -- Only a write response. Runtime performs uncached receipt/current-selection read-back.
   return {status="SAVED",value=value,outcome=outcome}
  end

@@ -15,6 +15,7 @@ local function snapshot(lines,label,race)
  for lap,ms in race.laps do table.insert(lines,"Lap "..lap.."  "..time(ms)) end
  table.insert(lines,"Finish Position "..race.finishPosition.." / "..(race.startingHumans+race.startingBots))
  table.insert(lines,"Starting Racers "..race.startingHumans.." drivers + "..race.startingBots.." bots | Boosts "..race.raceBoosts)
+ table.insert(lines,'Round '..race.roundGuid..' | saved UTC ms '..tostring(race.finishedAt))
  if not race.eligible then
   table.insert(lines,if race.reason=="TOTAL_LAP_MISMATCH" then "Not eligible for Best Race: total/lap timer mismatch." else "Not eligible for Best Race: route validation did not pass.")
   if race.eligibilityDetail and race.eligibilityDetail~="" then table.insert(lines,"Validation: "..race.eligibilityDetail)
@@ -23,7 +24,9 @@ local function snapshot(lines,label,race)
 end
 function Controller.lines(response)
  if type(response) ~= "table" or response.status ~= "FOUND" then
-  return {"RECORDS: " .. tostring(if type(response)=="table" then response.status else "ERROR")}
+  local lines={"RECORDS: " .. tostring(if type(response)=="table" then response.status else "ERROR")}
+  if type(response)=='table' and type(response.reason)=='string' then table.insert(lines,'Reason: '..response.reason) end
+  return lines
  end
  local records=response.records
  if type(records)~="table" or type(records.scoped)~="table" then return {"RECORDS: ERROR"} end

@@ -9,7 +9,7 @@ local function node(name)
 end
 local shared,server=node('Shared'),node('Server')
 local nodes,cache={},{}
-for _,p in {'src/shared/KDMProgressionSchema.luau','src/shared/KartCatalog.luau','src/shared/TrackCatalog.luau',
+for _,p in {'src/shared/KDMPerformanceBuffer.luau','src/shared/KDMProgressionSchema.luau','src/shared/KartCatalog.luau','src/shared/TrackCatalog.luau',
  'src/server/OfficialRaceRecords.luau','src/server/RaceRecordConfig.luau','src/server/RaceRecordPolicy.luau',
  'src/server/RaceRecordOperations.luau','src/server/RaceRecordRuntime.luau','src/server/RaceRecordService.luau','src/server/ProgressionDataStoreAdapter.luau'} do
  local name=p:match('/([^/]+)%.luau$');local parent=if p:find('/shared/',1,true) then shared else server
@@ -29,7 +29,8 @@ function ds:GetOrderedDataStore(name,scope)
  return {UpdateAsync=function(_,key,cb) indexCalls+=1;check(key=='11700555357','same canary index key');index[name]=cb(index[name]);return index[name] end}
 end
 local services={ReplicatedStorage={WaitForChild=function() return shared end},RunService={IsStudio=function() return studio end},
- HttpService={GenerateGUID=function() serial+=1;return string.format('12345678-1234-1234-1234-%012d',serial) end},
+ HttpService={JSONEncode=function(_,v)return require('@lune/serde').encode('json',v) end,
+ GenerateGUID=function() serial+=1;return string.format('12345678-1234-1234-1234-%012d',serial) end},
  Players={PlayerRemoving={Connect=function() end}}}
 local game={GameId=10768420544,PlaceId=127925465904803,PrivateServerId='reserved',PrivateServerOwnerId=0,
  GetService=function(_,name) if name=='DataStoreService' then calls+=1;return ds end;return assert(services[name],name) end,

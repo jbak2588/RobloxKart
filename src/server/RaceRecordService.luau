@@ -9,12 +9,40 @@ local Ops=require(script.Parent.RaceRecordOperations)
 local Adapter=require(script.Parent.ProgressionDataStoreAdapter)
 local Runtime=require(script.Parent.RaceRecordRuntime)
 local Collector=require(script.Parent.OfficialRaceRecords)
+local PerfBuffer=require(Shared.KDMPerformanceBuffer)
 local runtime=nil
 local function context()
  return {isStudio=game:GetService("RunService"):IsStudio(),role=workspace:GetAttribute("KDMServerRole"),
   experienceId=game.GameId,placeId=game.PlaceId,privateServerId=game.PrivateServerId,privateServerOwnerId=game.PrivateServerOwnerId}
 end
 local function allowed(player,kind) return Policy.allowed(Config,context(),player.UserId,kind) end
+local function diagnostic(player,event,guid,row)
+ if not PerfBuffer.allowed(game:GetService('RunService'):IsStudio(),player.UserId,game.GameId,game.PlaceId) then return end
+ local ctx=context()
+ local safe={event=event,round=guid,userId=player.UserId,experienceId=game.GameId,placeId=game.PlaceId,
+  publishedVersion=game.PlaceVersion,serverRole=ctx.role,reserved=ctx.privateServerId~='' and ctx.privateServerOwnerId==0,
+  privateServerOwnerId=ctx.privateServerOwnerId,session=player:GetAttribute('RaceSessionId'),
+  policyRead=allowed(player,'read'),policyWrite=allowed(player,'write')}
+ -- Fixed whitelist: no profile values, keys, purchases, platform error strings or receipts.
+ for _,key in {'stage','status','reason','attempt','receiptConfirmed','schemaValid','deleted','trackId','geometryId','category',
+  'targetLaps','totalMilliseconds','laps','finishPosition','eligible','eligibilityReason','startingHumans','startingBots'} do
+  if row then safe[key]=row[key] end
+ end
+ if safe.policyRead then
+  local ok,readBudget,writeBudget=pcall(function()
+   local ds=game:GetService('DataStoreService')
+   return ds:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardRead),
+    ds:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardWrite)
+  end)
+  if ok then safe.readBudget,safe.writeBudget=readBudget,writeBudget end
+ end
+ if guid==player:GetAttribute('OfficialRoundGuid') and row and row.stage and row.stage~='QUERY' then
+  player:SetAttribute('RaceRecordDiagnostic',row.stage..' / '..(row.status or 'N/A')..' / '..(row.reason or 'NONE'))
+  player:SetAttribute('RaceRecordDiagnosticRound',guid)
+  player:SetAttribute('RaceRecordReceiptConfirmed',row.receiptConfirmed==true)
+ end
+ print('[KDMRecordTrace] '..game:GetService('HttpService'):JSONEncode(safe))
+end
 local function ds(player,kind)
  assert(allowed(player,kind),"record_access_blocked")
  return game:GetService("DataStoreService")
@@ -23,7 +51,7 @@ local function live()
  if runtime then return runtime end
  runtime=Runtime.new(S,schema,Ops,{allowed=allowed,retryAttempts=Config.RetryAttempts,
   spawn=task.spawn,delay=task.delay,clock=os.clock,wait=task.wait,shutdownSeconds=Config.ShutdownSeconds,
-  diagnostic=function(player,event,guid) print(string.format("[KDMRecords] %s userId=%.0f round=%s",event,player.UserId,guid)) end,
+  diagnostic=diagnostic,
   adapter=function(player)
    return Adapter.new({schema=schema,key=S.userKey(player.UserId),authorize=function() return allowed(player,"read") end,
     getStore=function() return ds(player,"read"):GetDataStore(Config.StoreName) end,
@@ -85,6 +113,8 @@ function Service.begin(session,course,checkpointCount)
   p:SetAttribute("OfficialRoundGuid",round.RoundGuid);p:SetAttribute("RaceRecordCategory",round.RaceCategory)
   p:SetAttribute("RaceRecordNewPB",false);p:SetAttribute("RaceRecordSaveState","NONE")
   p:SetAttribute("RaceRecordNewBestRace",false)
+  p:SetAttribute('RaceRecordDiagnostic',nil);p:SetAttribute('RaceRecordDiagnosticRound',nil)
+  p:SetAttribute('RaceRecordReceiptConfirmed',false)
  end
 end
 function Service.start(player,now) collector.start(player,now) end
@@ -97,8 +127,19 @@ function Service.checkpoints(player,nextCheckpoint) collector.checkpoints(player
 function Service.boost(player,eventId) collector.boost(player,eventId) end
 function Service.finish(player,result)
  local op=collector.finish(player,result)
+ local guid=player:GetAttribute('OfficialRoundGuid')
+ local race=op and op.race
+ pcall(diagnostic,player,'FINISH',guid,{stage='FINISH',status=if not op then 'NO_OPERATION' elseif allowed(player,'write') then 'WRITE_ALLOWED' else 'ACCESS_BLOCKED',
+  trackId=race and race.trackId,geometryId=race and race.geometryId,category=race and race.category,
+  targetLaps=race and race.targetLaps,totalMilliseconds=race and race.totalMilliseconds,laps=race and race.laps,
+  finishPosition=race and race.finishPosition,eligible=race and race.eligible,eligibilityReason=race and race.reason,
+  startingHumans=race and race.startingHumans,startingBots=race and race.startingBots})
  if op and allowed(player,"write") then
-  if not live().submit(player,op) then player:SetAttribute("RaceRecordSaveState","SAVE_FAILED") end
+  local accepted,reason=live().submit(player,op)
+  if not accepted then
+   pcall(diagnostic,player,'REJECTED',guid,{stage='SUBMIT',status='SAVE_FAILED',reason=reason or 'RUNTIME_REJECTED'})
+   player:SetAttribute("RaceRecordSaveState","SAVE_FAILED")
+  end
  end
 end
 function Service.startQuery()
@@ -110,6 +151,7 @@ function Service.startQuery()
   local now=os.clock();if last[player] and now-last[player]<4 then return {status="RATE_LIMITED"} end
   last[player]=now
   local ok,value=pcall(function() return live().read(player) end)
+  pcall(diagnostic,player,'QUERY',nil,{stage='QUERY',status=if ok then value.status else 'ERROR',reason=if ok then value.reason else 'QUERY_EXCEPTION'})
   return if ok then value else {status="ERROR"}
  end
  game:GetService("Players").PlayerRemoving:Connect(function(p) last[p]=nil end)

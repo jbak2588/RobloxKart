@@ -1138,9 +1138,11 @@ function RaceHudController.start()
 		label.TextStrokeTransparency = 0.3
 		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
-	updateHud = function()
+	updateHud = function(cause, nested)
 		local eventStarted=if performanceMonitor and performanceMonitor.active() and player:GetAttribute('RaceState')=='RACING' then os.clock() else nil
+		local collectStarted=eventStarted
 		local resultEntries=resultCache:collect(player,Players:GetPlayers(),botSnapshots())
+		if collectStarted then performanceMonitor.metric('eventCollect',(os.clock()-collectStarted)*1000) end
 		local raceState = player:GetAttribute("RaceState")
 		local returningToHub = player:GetAttribute("KDMRoutePending") == "HUB_RETURN"
 		routeOverlay.Visible = returningToHub
@@ -1256,6 +1258,7 @@ function RaceHudController.start()
 				then RaceResultFormat.delta(lapTime, bestLap, lap == bestLapNumber) else ""
 			row.delta.TextColor3 = if lap == bestLapNumber then Color3.fromRGB(255, 218, 75) else Color3.fromRGB(225, 238, 245)
 		end
+		local resultWriteStarted=if eventStarted then os.clock() else nil
 		local multiplayerResults=participantCount>=2 and (raceState=="FINISHED" or raceState=="DNF")
 		standings.Visible=multiplayerResults
 		resultStatus.Visible=multiplayerResults
@@ -1281,6 +1284,7 @@ function RaceHudController.start()
 				end
 			end
 		else totalLabel.Visible=true end
+		if resultWriteStarted then performanceMonitor.metric('eventResults',(os.clock()-resultWriteStarted)*1000) end
 
 		local finishKind, placeText = FinishPresentation.resolve(raceState,
 			player:GetAttribute("RaceFinishPosition"), player:GetAttribute("RaceParticipantCount"))
@@ -1462,8 +1466,10 @@ function RaceHudController.start()
 			finalLapLabel.Visible = false
 		end
 		displayedLap = currentLap
+		local layoutStarted=if eventStarted then os.clock() else nil
 		applyResponsiveLayout()
-		if eventStarted then performanceMonitor.metric('hudEvent',(os.clock()-eventStarted)*1000) end
+		if layoutStarted then performanceMonitor.metric('eventLayout',(os.clock()-layoutStarted)*1000) end
+		if eventStarted then performanceMonitor.event((os.clock()-eventStarted)*1000,if type(cause)=='string' then cause else 'OTHER',nested) end
 	end
 	garageRemote.OnClientEvent:Connect(function(action, data)
 		if action == "RoomSnapshot" then
@@ -1540,7 +1546,7 @@ function RaceHudController.start()
 		"RaceEntryError",
 		"KDMRoutePending",
 	} do
-		player:GetAttributeChangedSignal(attributeName):Connect(updateHud)
+		player:GetAttributeChangedSignal(attributeName):Connect(function() updateHud('LOCAL:'..attributeName,false) end)
 	end
 	local presenceConnections = {}
 	local playerListConnections = {}
@@ -1554,7 +1560,7 @@ function RaceHudController.start()
 		if other == player or presenceConnections[other] then return end
 		local connections={}
 		for _,attribute in RaceResultsCache.ATTRIBUTES do
-			table.insert(connections,other:GetAttributeChangedSignal(attribute):Connect(updateHud))
+			table.insert(connections,other:GetAttributeChangedSignal(attribute):Connect(function() updateHud('RIVAL:'..attribute,false) end))
 		end
 		presenceConnections[other]=connections
 		updateHud()
@@ -1610,17 +1616,20 @@ function RaceHudController.start()
 		end
 		if measuring then
 			performanceMonitor.metric('diagnostics',displayCost+(os.clock()-began)*1000)
-			performanceMonitor.metric('callbackTotal',(os.clock()-frameStarted)*1000)
+			local callbackMs=(os.clock()-frameStarted)*1000
+			performanceMonitor.metric('callbackTotal',callbackMs)
+			performanceMonitor.completedFrame(callbackMs)
 		end
 	end
 	RunService.RenderStepped:Connect(function(deltaTime: number)
 		frameDt=deltaTime;frameStarted=os.clock();sectionStarted=frameStarted
+		if performanceMonitor and performanceMonitor.beginFrame then performanceMonitor.beginFrame(deltaTime) end
 		measuring=performanceMonitor and performanceMonitor.active() and player:GetAttribute('RaceState')=='RACING'
 		if performanceMonitor then performanceMonitor.updateDisplay() end
 		if measuring then local now=os.clock();displayCost=(now-sectionStarted)*1000;sectionStarted=now end
 		if ReplicatedStorage:FindFirstChild("KDMBotRacers") then
 			botResultElapsed+=deltaTime
-			if botResultElapsed>=.15 then botResultElapsed=0;updateHud() end
+			if botResultElapsed>=.15 then botResultElapsed=0;updateHud('BOT_POLL',true) end
 		end
 		if autoReadyNoticeUntil > 0 and time() >= autoReadyNoticeUntil then
 			autoReadyNoticeUntil = 0; updateHud()
