@@ -81,7 +81,8 @@ end
 local straightKeys = {STRAIGHT_SPEED_ENABLED=true,STRAIGHT_MAX_SPEED=80,STRAIGHT_LOOK_AHEAD=90,
  STRAIGHT_ENTER_MAX_TURN=4,STRAIGHT_EXIT_MAX_TURN=7,STRAIGHT_EVALUATION_INTERVAL=.10,STRAIGHT_EXIT_DECELERATION=20}
 for key,expected in straightKeys do check(actualKartConfig[key]==expected,"K1A adapter "..key) end
-for key in actualKartConfig do check(expectedKartConfig[key] ~= nil or straightKeys[key] ~= nil, "no unapproved public key "..key) end
+for key in actualKartConfig do check(expectedKartConfig[key] ~= nil or straightKeys[key] ~= nil or key=='ARCADE_DRIFT', "no unapproved public key "..key) end
+for key,value in balance.DRIFT.RearSlide do check(actualKartConfig.ARCADE_DRIFT[key]==value,'approved D1 tuning adapter '..key) end
 check(type(balance.DRIFT.MinSpeed) == "number" and actualKartConfig.DRIFT_MIN_SPEED == balance.DRIFT.MinSpeed, "adapter DRIFT_MIN_SPEED")
 check(type(balance.DRIFT.ExitSpeed) == "number" and actualKartConfig.DRIFT_EXIT_SPEED == balance.DRIFT.ExitSpeed, "adapter DRIFT_EXIT_SPEED")
 check(type(balance.DRIFT.EntrySteer) == "number" and actualKartConfig.DRIFT_ENTRY_STEER == balance.DRIFT.EntrySteer, "adapter DRIFT_ENTRY_STEER")

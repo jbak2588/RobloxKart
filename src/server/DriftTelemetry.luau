@@ -27,12 +27,14 @@ end
 
 function Telemetry:clear()
 	self:clearCharge()
+	self.slideMode,self.targetSlip,self.lateral='STANDARD',0,0
 	self.retain=0
 	if not self.config.DEBUG_TELEMETRY then return end
-	for _,key in {"Duration","Qualified","SlipDegrees","InputAge","MaxInputAge","ServerDelta","MaxServerDelta","Speed","Steering","RawSteering","Throttle"} do
+	for _,key in {"Duration","Qualified","SlipDegrees","InputAge","MaxInputAge","ServerDelta","MaxServerDelta","Speed","Steering","RawSteering","Throttle","TargetSlipDegrees","LateralSpeed"} do
 		self:set("KartDriftDiag"..key,0)
 	end
 	self:set("KartDriftDiagEndReason","")
+	self:set('KartDriftDiagSlideMode','STANDARD')
 	self:set("KartDriftDiagBoostEligible",false)
 	self:set("KartDriftDiagInputValid",false)
 	self:set("KartDriftDiagEndSerial",self.endSerial)
@@ -51,6 +53,12 @@ function Telemetry:observe(age,delta,speed,slip,raw,steer,throttle,valid)
 	end
 end
 
+function Telemetry:rearSlide(mode,target,lateral)
+	self.slideMode=mode
+	self.targetSlip=math.deg(target or 0)
+	self.lateral=lateral or 0
+end
+
 function Telemetry:begin()
 	self:clear()
 	self.active=true
@@ -63,6 +71,7 @@ function Telemetry:diagnostic(duration,qualified,reason,eligible)
 	if not self.config.DEBUG_TELEMETRY then return end
 	local f=self.frame
 	local values={Duration=duration,Qualified=qualified,SlipDegrees=f.slip,InputAge=f.age,
+		SlideMode=self.slideMode or 'STANDARD',TargetSlipDegrees=self.targetSlip or 0,LateralSpeed=self.lateral or 0,
 		MaxInputAge=self.maxAge,ServerDelta=f.delta,MaxServerDelta=self.maxDelta,
 		Speed=f.speed,Steering=f.steer,RawSteering=f.raw,Throttle=f.throttle,InputValid=f.valid,
 		EndReason=reason or "",BoostEligible=eligible==true,Session=self.session}

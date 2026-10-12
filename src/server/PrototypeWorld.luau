@@ -12,6 +12,7 @@ local TrackBuilder = require(script.Parent:WaitForChild("TrackBuilder"))
 local NitroState = require(script.Parent:WaitForChild("NitroState"))
 local SlickMotion = require(script.Parent:WaitForChild("SlickMotion"))
 local DriftTelemetry = require(script.Parent:WaitForChild("DriftTelemetry"))
+local ArcadeDrift = require(script.Parent:WaitForChild('ArcadeDrift'))
 local RaceItemGeometry = require(script.Parent:WaitForChild("RaceItemGeometry"))
 local RaceItemConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceItemConfig"))
 local RaceConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
@@ -350,6 +351,11 @@ function PrototypeWorld.start(options)
 		local context = KartContext.new(nil, kart, chassis, seat, spawnCFrame, KartConfig, RaceItemConfig, NitroState, SlickMotion, DriftTelemetry)
 		contexts[context] = true
 		local driverCollisionBinding = nil
+		local rearSlide = {}
+		local function arcadeEnabled()
+			return KartConfig.ARCADE_DRIFT.Enabled and not context.botParticipant
+				and not (RunService:IsStudio() and Workspace:GetAttribute('KDMDriftMode')=='STANDARD')
+		end
 		local wingConnection = nil
 		local function refreshWing()
 			local driver=context.owner
@@ -427,6 +433,7 @@ function PrototypeWorld.start(options)
 
 
 		local function setDriftActive(active: boolean, reason: string)
+			if not active and reason~='shift_release' and reason~='steer_below_exit' then ArcadeDrift.clear(rearSlide) end
 			if context.driftActive == active then
 				return
 			end
@@ -478,11 +485,11 @@ function PrototypeWorld.start(options)
 
 		-- Reset display state immediately at lifecycle boundaries; simulation reset
 		-- remains in its existing paths below.
-		kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() context.driftTelemetry:clear() end)
+		kart:GetAttributeChangedSignal("RaceResetSerial"):Connect(function() context.driftTelemetry:clear();ArcadeDrift.clear(rearSlide) end)
 		kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
-			if kart:GetAttribute("RaceControlsLocked") then context.driftTelemetry:clear() end
+			if kart:GetAttribute("RaceControlsLocked") then context.driftTelemetry:clear();ArcadeDrift.clear(rearSlide) end
 		end)
-		seat:GetPropertyChangedSignal("Occupant"):Connect(function() context.driftTelemetry:clear() end)
+		seat:GetPropertyChangedSignal("Occupant"):Connect(function() context.driftTelemetry:clear();ArcadeDrift.clear(rearSlide) end)
 
 		local function stopBoost(reason: string)
 			if not context.boostActive then
@@ -796,6 +803,7 @@ function PrototypeWorld.start(options)
 			local previousBarrierPosition = context.lastBarrierPosition
 			context.lastBarrierPosition = chassis.Position
 			if context.botParticipant and chassis.Position.Y < KartConfig.FALL_RESET_Y then
+				ArcadeDrift.clear(rearSlide)
 				context.botParticipant:SetAttribute("RaceState","DNF")
 				context.botParticipant:SetAttribute("RaceDNFReason","FALL")
 				kart:SetAttribute("RaceControlsLocked",true)
@@ -831,6 +839,7 @@ function PrototypeWorld.start(options)
 
 			local raceControlsLocked = kart:GetAttribute("RaceControlsLocked") == true
 			if kart:GetAttribute("KartFinishRollActive") == true then
+				ArcadeDrift.clear(rearSlide)
 				context.finishRollElapsed += deltaTime
 				local alpha = math.clamp(context.finishRollElapsed / RaceConfig.FINISH_ROLL_SECONDS, 0, 1)
 				local verticalSpeed = chassis.AssemblyLinearVelocity.Y
@@ -881,6 +890,7 @@ function PrototypeWorld.start(options)
 				local elapsed, recover = KartUprightRecovery.advance(upDot, context.tiltUnsafeElapsed, deltaTime, KartConfig)
 				context.tiltUnsafeElapsed = elapsed
 				if recover then
+					ArcadeDrift.clear(rearSlide)
 					context.lastPlanarForward = KartUprightRecovery.apply(kart, chassis, context.lastPlanarForward)
 					context.tiltUnsafeElapsed = 0
 					return
@@ -991,7 +1001,8 @@ function PrototypeWorld.start(options)
 					endedDriftReason = "reverse"
 				elseif driftForwardSpeed < KartConfig.DRIFT_EXIT_SPEED then
 					endedDriftReason = "speed_below_exit"
-				elseif absoluteSteering < KartConfig.DRIFT_EXIT_STEER then
+				elseif absoluteSteering < KartConfig.DRIFT_EXIT_STEER
+					and (not arcadeEnabled() or math.abs(steering)<KartConfig.DRIFT_EXIT_STEER) then
 					endedDriftReason = "steer_below_exit"
 				end
 				if endedDriftReason then
@@ -1140,8 +1151,24 @@ function PrototypeWorld.start(options)
 			end
 
 			local effectiveGrip = if context.driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
+			local slideLateral,slideYaw,slideTarget
+			if arcadeEnabled() then
+				local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)
+					*math.clamp(math.abs(context.commandedSpeed)/KartConfig.MAX_FORWARD_SPEED,0,1)
+				local normalYaw=-context.smoothedSteering*context.commandedSpeed/radius
+				local safe=occupant~=nil and hasValidInput and player==context.owner and not offTrack
+					and not context.missileHitActive and not context.thunderHitActive and not context.slick.active
+					and not nitroSpeed and throttle>0 and player:GetAttribute('RaceState')=='RACING'
+				slideLateral,slideYaw,slideTarget=ArcadeDrift.step(rearSlide,KartConfig.ARCADE_DRIFT,context.commandedSpeed,
+					lateralSpeed,context.smoothedSteering,normalYaw,context.currentYawRate,deltaTime,context.driftActive,safe)
+			else ArcadeDrift.clear(rearSlide) end
 			if context.missileHitActive then effectiveGrip *= RaceItemConfig.MISSILE_LATERAL_GRIP_MULTIPLIER end
-			lateralSpeed *= math.exp(-effectiveGrip * deltaTime)
+			if slideLateral~=nil then lateralSpeed=slideLateral else lateralSpeed *= math.exp(-effectiveGrip * deltaTime) end
+			if slideLateral~=nil and context.boostActive then
+				local maxLateral=math.sqrt(math.max(0,KartConfig.MINI_BOOST_MAX_SPEED^2-context.commandedSpeed^2))
+				lateralSpeed=math.clamp(lateralSpeed,-maxLateral,maxLateral)
+			end
+			context.driftTelemetry:rearSlide(if slideLateral~=nil then 'ARCADE' else 'STANDARD',slideTarget,lateralSpeed)
 			-- Preserve lateral handling, but Nitro must never create planar speed >100.
 			if nitroSpeed then
 				local maxLateral = math.sqrt(math.max(0, KartConfig.NITRO_MAX_SPEED ^ 2 - context.commandedSpeed ^ 2))
@@ -1171,7 +1198,7 @@ function PrototypeWorld.start(options)
 					targetYawRate *= KartConfig.DRIFT_YAW_MULTIPLIER
 				end
 			end
-			context.currentYawRate = moveToward(context.currentYawRate, targetYawRate, KartConfig.YAW_ACCELERATION * deltaTime)
+			context.currentYawRate = if slideYaw~=nil then slideYaw else moveToward(context.currentYawRate, targetYawRate, KartConfig.YAW_ACCELERATION * deltaTime)
 			chassis.AssemblyAngularVelocity = Vector3.new(0, context.currentYawRate, 0)
 
 			local slipAngleDegrees = 0

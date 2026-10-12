@@ -23,6 +23,7 @@ local KartConfig = {
 	MIN_STEERING_SPEED = 2,
 	LATERAL_GRIP = 3.75,
 	DRIFT_MIN_SPEED = Balance.DRIFT.MinSpeed,
+	ARCADE_DRIFT = Balance.DRIFT.RearSlide,
 	DRIFT_EXIT_SPEED = Balance.DRIFT.ExitSpeed,
 	DRIFT_ENTRY_STEER = Balance.DRIFT.EntrySteer,
 	DRIFT_EXIT_STEER = Balance.DRIFT.ExitSteer,

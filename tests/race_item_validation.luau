@@ -102,6 +102,7 @@ local function load(path, parent, name)
 	return result
 end
 local config=load("src/shared/KartConfig.luau",shared,"KartConfig")
+load('src/shared/KDMV2WingDefinition.luau',shared,'KDMV2WingDefinition')
 config=table.clone(config); config.DEBUG_TELEMETRY=false; modules.KartConfig=config
 local catalog=load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 for _, id in {"Nitro","Slick","Shield","Smoke"} do check(catalog[id].Id==id,"stable ID "..id) end
@@ -152,6 +153,7 @@ local originalNew=loadoutType.new
 loadoutType.new=function() local result=originalNew(); table.insert(instances,result); return result end
 local Nitro=load("src/server/NitroState.luau",server,"NitroState")
 load("src/server/DriftTelemetry.luau",server,"DriftTelemetry")
+load('src/server/ArcadeDrift.luau',server,'ArcadeDrift')
 load("src/server/KartContext.luau",server,"KartContext")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 child(shared,"ModuleScript","TrackCatalog")
