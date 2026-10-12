@@ -356,12 +356,16 @@ input:GetPropertyChangedSignal("PreferredInput"):Fire()
 check(quitButton.Size.X.Offset>=110 and quitButton.Size.Y.Offset>=36,
  "touch-enabled tablet keeps a large Quit target even with keyboard preferred")
 checkTouchQuitRect("touch tablet with keyboard preferred")
-check(quitPanel.Size.X.Offset<=170 and quitPanel.BackgroundTransparency==.65
- and quitButton.BackgroundTransparency==.45,'P2C touch tablet compact translucent panel after preferred-input switch')
+check(quitPanel.Size.X.Offset<=170 and quitPanel.BackgroundTransparency==1
+ and quitButton.BackgroundTransparency==.65,'transparent LAP overlay and soft translucent Quit after preferred-input switch')
+check(quitButton.BackgroundColor3==rb.Color3.fromRGB(196,112,120)
+ and quitPanel.Lap.TextStrokeTransparency==.6,'soft danger tone and readable overlay text')
 local safeView=luau.load(fs.readFile('src/client/MobileControlView.luau'),{environment={Vector2=rb.Vector2,Color3=rb.Color3}})()
 for _,size in {rb.Vector2.new(844,332),rb.Vector2.new(932,372),rb.Vector2.new(1600,680),rb.Vector2.new(1280,740)} do
  safeSize=size;camera.ViewportSize=size+rb.Vector2.new(0,58);camera:GetPropertyChangedSignal('ViewportSize'):Fire()
  local l=safeView.layout(size);local items=safeView.itemLayout(size,4)
+ check(quitButton.AbsolutePosition.X+quitButton.AbsoluteSize.X<=hud.AbsolutePosition.X+items.x+items.width,
+  'Quit stays inside four-item right edge '..tostring(size))
  local itemTop=hud.AbsolutePosition.Y+size.Y-items.bottom-l.slot
  local panelBottom=quitPanel.AbsolutePosition.Y+quitPanel.AbsoluteSize.Y
  local button=(hud.QuitRow or quitPanel.QuitRow).QuitRace
@@ -469,10 +473,11 @@ for _,size in {rb.Vector2.new(750,282),rb.Vector2.new(812,351),rb.Vector2.new(80
  local items=modules.MobileControlView.itemLayout(size,4)
  check(items.x==hud.Panel.Position.X.Offset and math.abs(l.driftX+(l.driftHitWidth-l.driftWidth)/2-items.x)<.001,
   "Item and visible Drift artwork align with LAP left edge")
- check(hud.Panel.Size.Y.Offset==(if activeQuitRow().Parent==hud then 70 else 110) and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
-  <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size))
- check(activeQuitRow().Parent==hud.Panel or activeQuitRow().Position.X.Offset>=hud.Panel.Position.X.Offset+hud.Panel.Size.X.Offset+8,
-  "Quit stays under LAP when the left lane fits, with a safe overflow fallback")
+ check(hud.Panel.Size.Y.Offset==96 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
+  <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size).." height="..hud.Panel.Size.Y.Offset.." itemTop="..(size.Y-items.bottom-l.slot))
+ check(activeQuitRow().Parent==hud.Panel
+  and activeQuitRow().QuitRace.AbsolutePosition.X+activeQuitRow().QuitRace.AbsoluteSize.X<=hud.AbsolutePosition.X+items.x+items.width,
+  "Quit stays under LAP inside the item group right edge")
  check(activeQuitRow().Size.Y.Offset==40 and activeQuitRow().QuitRace.Size.Y.Offset==40,
   "compact LAP retains full Quit touch target")
  check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,

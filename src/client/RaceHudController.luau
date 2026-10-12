@@ -94,7 +94,7 @@ function RaceHudController.start()
 	frame.Position = UDim2.fromOffset(24, 118)
 	frame.Size = UDim2.fromOffset(260, 112)
 	frame.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
-	frame.BackgroundTransparency = 0.65
+	frame.BackgroundTransparency = 1
 	frame.BorderSizePixel = 0
 	frame.Parent = screenGui
 	addCorner(frame, 6)
@@ -126,6 +126,10 @@ function RaceHudController.start()
 	raceEndLabel.TextSize = 14
 	raceEndLabel.TextColor3 = Color3.fromRGB(255, 205, 73)
 	raceEndLabel.Visible = false
+	for _, label in { lapLabel, checkpointLabel, bestLabel, offTrackLabel, raceEndLabel } do
+		label.TextStrokeColor3 = Color3.fromRGB(16, 19, 24)
+		label.TextStrokeTransparency = 0.6
+	end
 	local quitRow = Instance.new("Frame")
 	quitRow.Name = "QuitRow"
 	quitRow.LayoutOrder = 6
@@ -138,8 +142,8 @@ function RaceHudController.start()
 	quitButton.AnchorPoint = Vector2.new(1, 0)
 	quitButton.Position = UDim2.new(1, 0, 0, 0)
 	quitButton.Size = UDim2.fromOffset(72, 23)
-	quitButton.BackgroundColor3 = Color3.fromRGB(80, 51, 54)
-	quitButton.BackgroundTransparency = 0.45
+	quitButton.BackgroundColor3 = Color3.fromRGB(196, 112, 120)
+	quitButton.BackgroundTransparency = 0.65
 	quitButton.TextColor3 = Color3.fromRGB(255, 230, 230)
 	quitButton.Text = "QUIT RACE"
 	quitButton.TextSize = 11
@@ -975,17 +979,14 @@ function RaceHudController.start()
 			-- Short notch-safe landscape needs a compact LAP lane above the left loadout.
 			-- Preserve every status and the full 40px Quit target.
 			local shortLap = safeSize.X >= 600 and safeSize.Y < 360
-			local itemTop=safeSize.Y-MobileView.itemLayout(safeSize,4).bottom-l.slot
-			local stackedHeight=86+(if offTrackLabel.Visible then 12 else 0)+(if raceEndLabel.Visible then 12 else 0)
-			local quitBeside=shortLap and itemTop<8+stackedHeight+2
-			quitRow.Parent = if quitBeside then screenGui else frame
-			if quitBeside then
-				quitRow.Position=UDim2.fromOffset(12+math.min(170,safeSize.X*.28)+8,8)
-				quitRow.Size=UDim2.fromOffset(120,40)
-			end
-			local titleHeight, lineHeight = if shortLap then 18 else 25, if shortLap then 12 else 20
-			padding.PaddingTop = UDim.new(0, if shortLap then 2 else 6)
-			padding.PaddingBottom = UDim.new(0, if shortLap then 2 elseif quitRow.Visible then 4 else 6)
+			-- Keep Quit below the statistics in the same left lane as the items.
+			-- The former short-screen side position extended beyond the loadout.
+			local items = MobileView.itemLayout(safeSize, 4)
+			quitRow.Parent = frame
+			quitRow.Size = UDim2.fromOffset(math.min(150, items.width - 16), quitHeight)
+			local titleHeight, lineHeight = if shortLap then 16 else 25, if shortLap then 10 else 20
+			padding.PaddingTop = UDim.new(0, if shortLap then 0 else 6)
+			padding.PaddingBottom = UDim.new(0, if shortLap then 0 elseif quitRow.Visible then 4 else 6)
 			lapLabel.Size = UDim2.new(1, -16, 0, titleHeight)
 			for _, line in { checkpointLabel, bestLabel, offTrackLabel, raceEndLabel } do
 				line.Size = UDim2.new(1, -16, 0, lineHeight)
@@ -995,7 +996,7 @@ function RaceHudController.start()
 				padding.PaddingTop.Offset + titleHeight + lineHeight*2
 				+ (if offTrackLabel.Visible then lineHeight else 0)
 				+ (if raceEndLabel.Visible then lineHeight else 0)
-				+ (if quitRow.Visible and not quitBeside then quitHeight else 0) + padding.PaddingBottom.Offset)
+				+ (if quitRow.Visible then quitHeight else 0) + padding.PaddingBottom.Offset)
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
 			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,
