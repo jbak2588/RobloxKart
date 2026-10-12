@@ -10,6 +10,8 @@ local Adapter=require(script.Parent.ProgressionDataStoreAdapter)
 local Runtime=require(script.Parent.RaceRecordRuntime)
 local Collector=require(script.Parent.OfficialRaceRecords)
 local PerfBuffer=require(Shared.KDMPerformanceBuffer)
+local RecordReset=require(script.Parent.RaceRecordReset)
+local resetBusy={}
 local runtime=nil
 local function context()
  return {isStudio=game:GetService("RunService"):IsStudio(),role=workspace:GetAttribute("KDMServerRole"),
@@ -150,7 +152,39 @@ function Service.startQuery()
   if not allowed(player,"read") then return {status="ACCESS_BLOCKED"} end
   local now=os.clock();if last[player] and now-last[player]<4 then return {status="RATE_LIMITED"} end
   last[player]=now
+  local ctx=context()
+  local resetState
+  if player.UserId==Config.ResetUserId and type(game.PlaceVersion)=='number' and ctx.isStudio==false
+   and ctx.role=='HUB' and ctx.experienceId==Config.ExperienceId and ctx.placeId==Config.PlaceId and ctx.privateServerId=='' then
+   if resetBusy[player.UserId] then return {status='RESET_PENDING'} end
+   resetBusy[player.UserId]=true
+   local ok,status=pcall(function()
+    local backend=ds(player,'read')
+    if backend:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardRead)<3
+     or backend:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardWrite)<2 then return 'BUDGET_UNAVAILABLE' end
+    local store=backend:GetDataStore(Config.StoreName)
+    local archive=backend:GetDataStore('KDM_RecordResetBackup_v1')
+    local key=S.userKey(player.UserId)
+    local ref=Config.ResetId..':'..game:GetService('HttpService'):GenerateGUID(false)
+    local function read(backend,k)
+     local opts=Instance.new('DataStoreGetOptions');opts.UseCache=false;return backend:GetAsync(k,opts)
+    end
+    return RecordReset.run(S,schema,{userId=player.UserId,id=Config.ResetId,backupRef=ref,
+     utcMs=function()return DateTime.now().UnixTimestampMillis end,
+     read=function()return read(store,key)end,readBackup=function()return read(archive,ref)end,
+     backup=function(value)archive:UpdateAsync(ref,function(old)return old or value end)end,
+     update=function(callback)store:UpdateAsync(key,function(previous,info)
+      local value=callback(previous)
+      return value,if info then info:GetUserIds() else nil,if info then info:GetMetadata() else nil
+     end)end})
+   end)
+   resetBusy[player.UserId]=nil
+   resetState=if ok then status else 'RESET_UNCONFIRMED'
+   pcall(diagnostic,player,'RESET',nil,{stage='QUERY',status=resetState})
+   if resetState~='RESET_CONFIRMED' and resetState~='ALREADY_RESET' then return {status=resetState} end
+  end
   local ok,value=pcall(function() return live().read(player) end)
+  if ok and resetState then value.resetState=resetState end
   pcall(diagnostic,player,'QUERY',nil,{stage='QUERY',status=if ok then value.status else 'ERROR',reason=if ok then value.reason else 'QUERY_EXCEPTION'})
   return if ok then value else {status="ERROR"}
  end

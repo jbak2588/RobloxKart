@@ -34,6 +34,7 @@ function Controller.lines(response)
  for scope in records.scoped do table.insert(scopes,scope) end
  table.sort(scopes)
  local lines={"SAVED PERSONAL RECORDS"}
+ if response.resetState then table.insert(lines,'Personal record reset: '..response.resetState) end
  for _,scope in scopes do
   local score=records.scoped[scope]
   local meta=records.metadata and records.metadata[scope]
