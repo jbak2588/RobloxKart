@@ -294,10 +294,11 @@ function KartVisualFactory.applyAppearance(visual: Model, definition: { [string]
 	end
 end
 
-function KartVisualFactory.createVisual(definition: { [string]: any }): Model
+function KartVisualFactory.createVisual(definition: { [string]: any },wingEquipped: boolean?): Model
 	if definition.VisualModelName == "KDMV2" then
 		local visual = require(script.Parent.KDMV2VisualDefinition).createVisual()
 		KartVisualFactory.applyAppearance(visual, definition)
+		require(script.Parent.KDMV2WingDefinition).attach(visual,definition,wingEquipped==true)
 		local valid, errors = KartVisualFactory.validateVisual(visual)
 		assert(valid, table.concat(errors, "; "))
 		return visual

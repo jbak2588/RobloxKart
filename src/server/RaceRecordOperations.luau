@@ -1,5 +1,8 @@
 -- Field-only min/max reducer. Receipts are retained; capacity exhaustion fails closed.
 local Ops={}
+function Ops.signature(S,op)
+ return if op.economy then S.sha256(S.canonical(op)) else S.canonical(op)
+end
 function Ops.valid(S,op)
  if type(op)~="table" or op.kind~="OFFICIAL_RECORD" or not S.integer(op.userId) or op.userId==0
   or not S.integer(op.achievedAt) or not S.integer(op.bestRaceBoosts,10000) then return false end
@@ -18,13 +21,15 @@ function Ops.valid(S,op)
    or race.recordScope~=r.recordScope or race.targetLaps~=v.targetLaps or race.raceBoosts~=op.bestRaceBoosts
    or race.finishedAt~=op.achievedAt or race.startingHumans~=frozen.humanCount or race.startingBots~=frozen.botCount then return false end
  end
+ if op.economy and (not op.race or op.economy.version~=1 or not S.integer(op.economy.humanPosition,frozen.humanCount)
+  or op.economy.humanPosition==0 or op.economy.humanPosition>op.race.finishPosition) then return false end
  return member and ((op.bestLapMilliseconds==nil and v.fullLapValid==false)
   or (S.integer(op.bestLapMilliseconds,86400000) and op.bestLapMilliseconds>0 and v.fullLapValid==true))
 end
 function Ops.receiptKey(op) return "race-record:"..op.round.RoundGuid end
 function Ops.reduce(S,schema,op)
  if not Ops.valid(S,op) then return function() return nil,"INVALID_RECORD" end end
- local copy=S.freeze(S.clone(op));local signature=S.canonical(copy)
+ local copy=S.freeze(S.clone(op));local signature=Ops.signature(S,copy)
  return function(previous)
   if previous==nil then return nil,"PROFILE_ABSENT" end
   if not schema.validate(previous,S.userKey(copy.userId)) then return nil,"READ_ONLY" end
@@ -72,6 +77,21 @@ function Ops.reduce(S,schema,op)
   end
   nextValue.receipts[key]={signature=signature,lapImproved=lapImproved,boostImproved=boostImproved}
   if copy.race then nextValue.receipts[key].raceImproved=raceImproved end
+  if copy.economy then
+   local money={base=0,bestRace=0,bestLap=0,total=0}
+   if copy.race.eligible then
+    money.base=if copy.round.humanCount>=2 then ({35,25,20,15})[copy.economy.humanPosition]
+     elseif copy.round.botCount>0 then 15 else 10
+    money.bestRace=if raceImproved then 10 else 0
+    money.bestLap=if lapImproved then 5 else 0
+    money.total=math.min(50,money.base+money.bestRace+money.bestLap)
+   end
+   local earned=(nextValue.wallet.lifetimeEarned or 0)+money.total
+   if nextValue.wallet.cash+money.total>schema.maxCash or not S.integer(earned)
+    or not S.integer(nextValue.wallet.ledgerRevision+1) then return nil,'WALLET_CAPACITY' end
+   nextValue.wallet.cash+=money.total;nextValue.wallet.lifetimeEarned=earned
+   nextValue.wallet.ledgerRevision+=1;nextValue.receipts[key].money=money
+  end
   if copy.round.botCount==0 then
    nextValue.pendingIndex[scope]={trackId=copy.round.TrackId,geometryId=copy.round.GeometryId,
     rulesetId=copy.round.RulesetId,category=copy.round.RaceCategory,
@@ -83,7 +103,7 @@ end
 function Ops.confirm(S,schema,read,op)
  if read.status~="FOUND" or not schema.validate(read.value,S.userKey(op.userId)) or read.value.deleted then return nil end
  local receipt=read.value.receipts[Ops.receiptKey(op)]
- return if receipt and receipt.signature==S.canonical(op) then receipt else nil
+ return if receipt and receipt.signature==Ops.signature(S,op) then receipt else nil
 end
 function Ops.clearIndex(S,schema,userId,scope,expected)
  return function(previous)

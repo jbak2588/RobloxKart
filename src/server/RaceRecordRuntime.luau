@@ -16,6 +16,12 @@ function Runtime.new(S,schema,Ops,deps)
   player:SetAttribute("RaceRecordNewPB",receipt~=nil and (receipt.lapImproved or receipt.boostImproved) or false)
   player:SetAttribute("RaceRecordNewBestRace",receipt~=nil and receipt.raceImproved==true)
   player:SetAttribute("RaceRecordSaveState",status)
+  if op.economy then
+   player:SetAttribute('RaceMoneyState',if receipt and receipt.money then 'SAVE_CONFIRMED' else status)
+   if receipt and receipt.money then
+    for field,value in receipt.money do player:SetAttribute('RaceMoney_'..field,value) end
+   end
+  end
  end
  local function repair(player,adapter,profile)
   if not deps.allowed(player,"repair") then return end
@@ -65,6 +71,7 @@ function Runtime.new(S,schema,Ops,deps)
   if receipt then
    trace(job,'FINAL','SAVE_CONFIRMED','RECEIPT_MATCH',{receiptConfirmed=true})
    publish(player,op,"SAVE_CONFIRMED",receipt);job.done=true
+   if deps.profileConfirmed then deps.profileConfirmed(player,read.value) end
    if deps.diagnostic then pcall(deps.diagnostic,player,"RECORD_SAVED",op.round.RoundGuid) end
    repair(player,adapter,read.value);return
   end

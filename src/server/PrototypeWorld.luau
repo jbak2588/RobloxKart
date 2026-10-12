@@ -350,6 +350,13 @@ function PrototypeWorld.start(options)
 		local context = KartContext.new(nil, kart, chassis, seat, spawnCFrame, KartConfig, RaceItemConfig, NitroState, SlickMotion, DriftTelemetry)
 		contexts[context] = true
 		local driverCollisionBinding = nil
+		local wingConnection = nil
+		local function refreshWing()
+			local driver=context.owner
+			local visual=kart:FindFirstChild('Visual')
+			if visual then require(ReplicatedStorage.Shared.KDMV2WingDefinition).attach(visual,kartDefinition(kart:GetAttribute('KartId')),
+				driver~=nil and driver:GetAttribute('KDMWingOwned')==true and driver:GetAttribute('KDMWingEquipped')==true) end
+		end
 		local function restoreDriverCollision()
 			if driverCollisionBinding then driverCollisionBinding:restore(); driverCollisionBinding = nil end
 		end
@@ -1212,6 +1219,8 @@ function PrototypeWorld.start(options)
 			if self.owner or ownerContexts[player] then return false end
 			self.owner = player
 			ownerContexts[player] = self
+			refreshWing()
+			if player.GetAttributeChangedSignal then wingConnection=player:GetAttributeChangedSignal('KDMWingEquipped'):Connect(refreshWing) end
 			kart:SetAttribute("KartOwnerUserId", player.UserId)
 			bindDriverCollision(player)
 			self.ownerConnections = {
@@ -1254,6 +1263,7 @@ function PrototypeWorld.start(options)
 			if self.nitro.driver == player then stopNitro("player_removed") end
 			if self.slick.driver == player then stopSlick() end
 			ownerContexts[player] = nil
+			if wingConnection then wingConnection:Disconnect();wingConnection=nil end
 			self.owner = nil
 			kart:SetAttribute("KartOwnerUserId", 0)
 		end
@@ -1283,6 +1293,9 @@ function PrototypeWorld.start(options)
 		local existing = ownerContexts[player]
 		if existing then
 			if not selectVisual(existing, definition) then return nil end
+			local visual=existing.kart:FindFirstChild('Visual')
+			if visual then require(ReplicatedStorage.Shared.KDMV2WingDefinition).attach(visual,definition,
+				player:GetAttribute('KDMWingOwned')==true and player:GetAttribute('KDMWingEquipped')==true) end
 			existing:setSpawnCFrame(startCFrame)
 			return existing
 		end

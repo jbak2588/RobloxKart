@@ -13,13 +13,14 @@ local Runtime=require(script.Parent.RaceRecordRuntime)
 local Collector=require(script.Parent.OfficialRaceRecords)
 local PerfBuffer=require(Shared.KDMPerformanceBuffer)
 local RecordReset=require(script.Parent.RaceRecordReset)
+local Economy=require(script.Parent.EconomyService)
 local resetBusy={}
 local runtime=nil
 local function context()
  return {isStudio=game:GetService("RunService"):IsStudio(),role=workspace:GetAttribute("KDMServerRole"),
   experienceId=game.GameId,placeId=game.PlaceId,privateServerId=game.PrivateServerId,privateServerOwnerId=game.PrivateServerOwnerId}
 end
-local function allowed(player,kind) return Policy.allowed(Config,context(),player.UserId,kind) end
+local function allowed(player,kind) return Policy.allowed(Config,context(),player.UserId,kind) or (kind~='repair' and Economy.allowed(player,if kind=='write' then 'reward' else 'read')) end
 local function diagnostic(player,event,guid,row)
  if workspace:GetAttribute('KDMPerfInternalEnabled')~=true then return end
  if not PerfBuffer.allowed(game:GetService('RunService'):IsStudio(),player.UserId,game.GameId,game.PlaceId) then return end
@@ -56,7 +57,7 @@ local function live()
  if runtime then return runtime end
  runtime=Runtime.new(S,schema,Ops,{allowed=allowed,retryAttempts=Config.RetryAttempts,
   spawn=task.spawn,delay=task.delay,clock=os.clock,wait=task.wait,shutdownSeconds=Config.ShutdownSeconds,
-  diagnostic=diagnostic,
+  diagnostic=diagnostic,profileConfirmed=Economy.publishProfile,
   adapter=function(player)
    return Adapter.new({schema=schema,key=S.userKey(player.UserId),authorize=function() return allowed(player,"read") end,
     getStore=function() return ds(player,"read"):GetDataStore(Config.StoreName) end,
@@ -118,6 +119,8 @@ function Service.begin(session,course,checkpointCount)
   p:SetAttribute("OfficialRoundGuid",round.RoundGuid);p:SetAttribute("RaceRecordCategory",round.RaceCategory)
   p:SetAttribute("RaceRecordNewPB",false);p:SetAttribute("RaceRecordSaveState","NONE")
   p:SetAttribute("RaceRecordNewBestRace",false)
+  p:SetAttribute('RaceMoneyState','NONE')
+  for _,field in {'base','bestRace','bestLap','total'} do p:SetAttribute('RaceMoney_'..field,0) end
   p:SetAttribute('RaceRecordDiagnostic',nil);p:SetAttribute('RaceRecordDiagnosticRound',nil)
   p:SetAttribute('RaceRecordReceiptConfirmed',false)
  end
@@ -132,6 +135,9 @@ function Service.checkpoints(player,nextCheckpoint) collector.checkpoints(player
 function Service.boost(player,eventId) collector.boost(player,eventId) end
 function Service.finish(player,result)
  local op=collector.finish(player,result)
+ if op and Economy.allowed(player,'reward') and result and result.humanPosition then
+  op=S.clone(op);op.economy={version=1,humanPosition=result.humanPosition};op=S.freeze(op)
+ end
  local guid=player:GetAttribute('OfficialRoundGuid')
  local race=op and op.race
  pcall(diagnostic,player,'FINISH',guid,{stage='FINISH',status=if not op then 'NO_OPERATION' elseif allowed(player,'write') then 'WRITE_ALLOWED' else 'ACCESS_BLOCKED',

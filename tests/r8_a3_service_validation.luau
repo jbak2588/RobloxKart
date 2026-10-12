@@ -10,6 +10,7 @@ end
 local shared,server=node('Shared'),node('Server')
 local nodes,cache={},{}
 for _,p in {'src/shared/KDMPerformanceBuffer.luau','src/shared/KDMProgressionSchema.luau','src/shared/KartCatalog.luau','src/shared/TrackCatalog.luau',
+ 'src/server/EconomyService.luau','src/server/EconomyConfig.luau','src/server/EconomyPolicy.luau','src/server/EconomyOperations.luau',
  'src/server/RaceRecordReset.luau','src/server/OfficialRaceRecords.luau','src/server/RaceRecordConfig.luau','src/server/RaceRecordPolicy.luau',
  'src/server/RaceRecordOperations.luau','src/server/RaceRecordRuntime.luau','src/server/RaceRecordService.luau','src/server/ProgressionDataStoreAdapter.luau'} do
  local name=p:match('/([^/]+)%.luau$');local parent=if p:find('/shared/',1,true) then shared else server

@@ -13,8 +13,8 @@ local HubUiController = {}
 local started = false
 
 -- Visual-only client ownership. Each client calls this with its own selection/parent.
-function HubUiController.createDisplay(parent, anchor, definition, factory)
- local visual = factory.createVisual(definition)
+function HubUiController.createDisplay(parent, anchor, definition, factory,wingEquipped)
+ local visual = factory.createVisual(definition,wingEquipped)
  visual.Name = "KDMClientMyKartDisplay"
  visual:SetAttribute("SelectedKartId", definition.Id)
  local bottom = math.huge
@@ -56,7 +56,7 @@ function HubUiController.start()
  local previousRaceState = player:GetAttribute("RaceState")
  local function open(action)
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
-  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (rooms and rooms.Enabled) then return end
+  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or player:GetAttribute('KDMProfileOpen')==true or (rooms and rooms.Enabled) then return end
   Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end
  local canvas = Instance.new("Frame")
@@ -86,7 +86,7 @@ function HubUiController.start()
   if prompt:IsA("ProximityPrompt") then promptEnabled[prompt] = prompt.Enabled end
  end
  local function update()
-  local overlay = player:GetAttribute("HubOverlayOpen") == true
+  local overlay = player:GetAttribute("HubOverlayOpen") == true or player:GetAttribute('KDMProfileOpen')==true
   local raceState = player:GetAttribute("RaceState")
   local selectedId=player:GetAttribute("SelectedKartId")
   local kartCatalog=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
@@ -98,7 +98,7 @@ function HubUiController.start()
   if previousRaceState ~= "GARAGE" and raceState == "GARAGE" then GuidanceState.returned(state, "RACE_RETURN") end
   previousRaceState = raceState
   gui.Enabled = player:GetAttribute("RaceState") == "GARAGE"
-   and player:GetAttribute("HubOverlayOpen") ~= true
+   and player:GetAttribute("HubOverlayOpen") ~= true and player:GetAttribute('KDMProfileOpen')~=true
    and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
   local modal = overlay or roomOwned or (rooms ~= nil and rooms.Enabled)
@@ -153,7 +153,7 @@ function HubUiController.start()
   if not anchor or player:GetAttribute("RaceState") ~= "GARAGE" or player:GetAttribute("LobbyDriveActive") == true then return end
   local id=player:GetAttribute("SelectedKartId") or catalog.DefaultId
   local definition=catalog.Entries[id] or catalog.Entries[catalog.DefaultId]
-  local ok,result=pcall(HubUiController.createDisplay,hub,anchor,definition,factory)
+  local ok,result=pcall(HubUiController.createDisplay,hub,anchor,definition,factory,player:GetAttribute('KDMWingEquipped')==true)
   if ok then
    display=result
    local point=Instance.new("Part");point.Name="LobbyDisplayDrivePoint";point.Size=Vector3.one;point.Transparency=1;point.Anchored=true;point.CanCollide=false;point.CanTouch=false;point.CanQuery=false
@@ -162,11 +162,12 @@ function HubUiController.start()
   else warn("[Hub] My Kart display unavailable: "..tostring(result)) end
  end
  table.insert(connections,player:GetAttributeChangedSignal("SelectedKartId"):Connect(refreshDisplay))
+ table.insert(connections,player:GetAttributeChangedSignal('KDMWingEquipped'):Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("RaceState"):Connect(refreshDisplay))
  table.insert(connections,player.CharacterAdded:Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(refreshDisplay))
  refreshDisplay()
- for _, attribute in {"RaceState", "HubOverlayOpen", "KDMRoutePending", "LobbyDriveActive",
+ for _, attribute in {"RaceState", "HubOverlayOpen", "KDMProfileOpen", "KDMRoutePending", "LobbyDriveActive",
   "KartProfileLoadCompleted","KartProfileLoadResult","KartRestorationConfirmed","KartRestoredKartId","KartSaveState","SelectedKartId"} do
   table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(update))
  end

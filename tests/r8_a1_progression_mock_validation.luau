@@ -261,7 +261,7 @@ case("S19","Bounds and corrupt/unowned inventory rejected without rewrite",funct
  local tiny=Store.new(S,schema,{[key]=schema.default(userId)},{maxBytes=10})
  check(tiny.update(key,selectReducer(selectOp("bytes",0,"Kart02"))).status=="READ_ONLY","actual byte budget exhausted")
  check(tiny.stats().commits==0,"capacity never partially commits")
- local oversized=schema.default(userId);oversized.unknown=string.rep("\0",45000)
+ local oversized=schema.default(userId);oversized.unknown=string.rep("\0",math.floor(schema.maxBytes/6)+1)
  check(not schema.validate(oversized,key),"JSON escaping reserve bounded")
 end)
 case("S20","Hypothetical purchase atomic race; fixture only",function()
@@ -342,7 +342,7 @@ case("S24","Diagnostic, Bot and invalid results no official global rank",functio
  check(not S.globalCandidate(S.clone(humanRound),1,finish),"unfrozen round excluded")
  check(not S.globalCandidate(nil,1,finish),"unknown round safely excluded")
 end)
-case("S25","Mock runtime has zero service/network and no production requires",function()
+case("S25","Mock runtime has zero service/network and no production mock imports",function()
  for _,path in paths do
   local source=fs.readFile(path)
   for _,forbidden in {"DataStoreService","GetDataStore","GetAsync","UpdateAsync","OrderedDataStore","RequestAsync","GetService","Instance.new","task.spawn"} do
@@ -356,7 +356,10 @@ case("S25","Mock runtime has zero service/network and no production requires",fu
     local source=fs.readFile(p)
     for _,newPath in paths do
      local name=newPath:match("([^/]+)%.luau$")
-     check(not source:find(name,1,true),p.." does not require new mock module")
+     -- A2/A3/A4 now legitimately reuse the pure schema and operation contracts.
+     if name=='ProgressionMockStore' or name=='ProgressionMockJournal' then
+      check(not source:find(name,1,true),p.." does not require mock-only module")
+     end
     end
    end
   end

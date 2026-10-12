@@ -119,7 +119,7 @@ local function createKart(player,definition,frame)
   if motor then joint.C0=body.CFrame:ToObjectSpace(part.CFrame);joint.C1=CFrame.identity end
   joint.Parent=part
  end
- local visual=Factory.createVisual(definition);visual:PivotTo(frame);visual.Parent=kart
+ local visual=Factory.createVisual(definition,player:GetAttribute('KDMWingOwned')==true and player:GetAttribute('KDMWingEquipped')==true);visual:PivotTo(frame);visual.Parent=kart
  for _,part in visual:GetChildren() do if part:IsA("BasePart") then
   if part.Name=="StaticRoot" then join(part,false) elseif part:GetAttribute("VisualMotionRole") then join(part,true) end
  end end

@@ -41,6 +41,7 @@ print(string.format("[KDMRoute] resolve role=%s reason=%s private=%s owner=%s so
 	tostring(if joinData then joinData.SourceGameId else nil),
 	tostring(if payload then payload.matchId else nil), tostring(if payload then payload.trackId else nil),
 	tostring(game.JobId)))
+require(script:WaitForChild('EconomyService')).start()
 RaceLaunchService.start()
 
 local presenceJobKey = KDMServerPresence.resolveJobKey(game.JobId, RunService:IsStudio(),

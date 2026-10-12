@@ -113,13 +113,13 @@ function Controller.start()
   end)
  end)
  local function update()
-  gui.Enabled=player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("HubOverlayOpen")~=true
+  gui.Enabled=player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("HubOverlayOpen")~=true and player:GetAttribute('KDMProfileOpen')~=true
    and player:GetAttribute("LobbyDriveActive")~=true and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH"
   if not gui.Enabled then panel.Visible=false end
  end
  local connections={click}
  for _,c in resizeConnections do table.insert(connections,c) end
- for _,name in {"RaceState","HubOverlayOpen","LobbyDriveActive","KDMRoutePending"} do
+ for _,name in {"RaceState","HubOverlayOpen","KDMProfileOpen","LobbyDriveActive","KDMRoutePending"} do
   table.insert(connections,player:GetAttributeChangedSignal(name):Connect(update))
  end
  gui.Destroying:Connect(function() alive=false;for _,c in connections do c:Disconnect() end end)

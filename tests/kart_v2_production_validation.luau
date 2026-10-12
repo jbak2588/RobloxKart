@@ -22,7 +22,9 @@ local definitionScript = rb.Instance.new('ModuleScript')
 definitionScript.Name = 'KDMV2VisualDefinition'; definitionScript.Parent = shared
 env.script = definitionScript
 local builder = luau.load(fs.readFile('src/shared/KDMV2VisualDefinition.luau'),{environment=env})()
-env.require = function(module) assert(module == definitionScript); return builder end
+local wingScript=rb.Instance.new('ModuleScript');wingScript.Name='KDMV2WingDefinition';wingScript.Parent=shared
+local wing=luau.load(fs.readFile('src/shared/KDMV2WingDefinition.luau'),{environment=env})()
+env.require = function(module) if module==wingScript then return wing end;assert(module == definitionScript); return builder end
 local factory = luau.load(fs.readFile('src/shared/KartVisualFactory.luau'),{environment=env})()
 local catalog = luau.load(fs.readFile('src/shared/KartCatalog.luau'),{environment=env})()
 check(catalog.DefaultId=='Kart05' and #catalog.Order==11,'Cyan default and eleven selections')

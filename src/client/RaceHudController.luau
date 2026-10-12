@@ -878,6 +878,7 @@ function RaceHudController.start()
 			if resultState == "FINISHED" and player:GetAttribute("RaceRecordSaveState") ~= nil
 				and player:GetAttribute("RaceRecordSaveState") ~= "NONE" then targetHeight += 22 end
 			if resultLaps == 3 then targetHeight += 22 end
+			if player:GetAttribute('RaceMoneyState') and player:GetAttribute('RaceMoneyState')~='NONE' then targetHeight+=18 end
 			local resultHeight = math.min(targetHeight, resultArea.Y - 16)
 			local tight = resultArea.Y < 280
 			local splitResult = mobile and resultState == "FINISHED" and resultArea.X >= 720
@@ -1096,6 +1097,7 @@ function RaceHudController.start()
 			local saving = player:GetAttribute("RaceState") == "FINISHED" and player:GetAttribute("RaceRecordSaveState") ~= nil
 				and player:GetAttribute("RaceRecordSaveState") ~= "NONE"
 			local panelHeight=(if mobile then 272 else 304)+(if saving then 22 else 0)
+			if player:GetAttribute('RaceMoneyState') and player:GetAttribute('RaceMoneyState')~='NONE' then panelHeight+=18 end
 			if saving then panelHeight=math.min(panelHeight,safe.Y-16) end
 			local rowHeight=if mobile then 40 else 48
 			if saving then rowHeight=math.min(rowHeight,math.floor((panelHeight-134)/4)) end
@@ -1240,6 +1242,15 @@ function RaceHudController.start()
 		elseif raceState == "FINISHED" and (recordState == "SAVE_FAILED" or recordState == "READ_ONLY") then
 			recordSaveLabel.Text = "RECORD SAVE UNCONFIRMED"
 		end
+		local moneyState=player:GetAttribute('RaceMoneyState')
+		if raceState=='FINISHED' and moneyState and moneyState~='NONE' then
+			if moneyState=='SAVE_CONFIRMED' then
+				recordSaveLabel.Text ..= string.format('\nK$%d · BASE %d + RACE PB %d + LAP PB %d',
+					getNumberAttribute(player,'RaceMoney_total',0),getNumberAttribute(player,'RaceMoney_base',0),
+					getNumberAttribute(player,'RaceMoney_bestRace',0),getNumberAttribute(player,'RaceMoney_bestLap',0))
+			else recordSaveLabel.Text ..= '\nK$ PAYMENT UNCONFIRMED' end
+		end
+		recordSaveLabel.Size=UDim2.new(1,-20,0,if moneyState and moneyState~='NONE' then 36 else 18)
 		recordSaveLabel.Visible = raceState == "FINISHED" and (recordState == "SAVE_CONFIRMED" or recordState == "SAVE_PENDING"
 			or recordState == "SAVE_FAILED" or recordState == "READ_ONLY")
 		resultsBestLabel.Visible = raceState == "FINISHED"
@@ -1520,6 +1531,11 @@ function RaceHudController.start()
 		"RaceRecordSaveState",
 		"RaceRecordNewPB",
 		"RaceRecordNewBestRace",
+		"RaceMoneyState",
+		"RaceMoney_base",
+		"RaceMoney_bestRace",
+		"RaceMoney_bestLap",
+		"RaceMoney_total",
 		"RaceLap1Time",
 		"RaceLap2Time",
 		"RaceLap3Time",

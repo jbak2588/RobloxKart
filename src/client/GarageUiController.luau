@@ -1220,7 +1220,7 @@ function GarageUiController.start()
 	end
 
 	local function showPreview(kind: string, selectedId: string)
-		local key = kind .. ":" .. selectedId
+		local key = kind .. ":" .. selectedId .. ':' .. tostring(player:GetAttribute('KDMWingEquipped')==true)
 		if previewKey == key then
 			return
 		end
@@ -1233,7 +1233,7 @@ function GarageUiController.start()
 		camera.FieldOfView = 40
 		camera.Parent = viewport
 		if kind == "Kart" then
-			local visual = KartVisualFactory.createVisual(KartCatalog.Entries[selectedId])
+			local visual = KartVisualFactory.createVisual(KartCatalog.Entries[selectedId],player:GetAttribute('KDMWingEquipped')==true)
 			visual.Name = "PreviewKart"
 			for _, part in visual:GetDescendants() do
 				if part:IsA("BasePart") then
@@ -1618,6 +1618,7 @@ function GarageUiController.start()
 		updateRouteOverlay()
 	end)
 	player:GetAttributeChangedSignal("SelectedKartId"):Connect(function() acknowledgedKartId=nil; update() end)
+ player:GetAttributeChangedSignal('KDMWingEquipped'):Connect(function() acknowledgedKartId=nil; update() end)
 	player:GetAttributeChangedSignal("RaceEntryError"):Connect(update)
 	player:GetAttributeChangedSignal("ControlsTutorialPreferenceLoaded"):Connect(update)
 	player:GetAttributeChangedSignal("ControlsTutorialDismissed"):Connect(update)

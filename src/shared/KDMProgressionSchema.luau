@@ -31,7 +31,7 @@ function Schema.canonical(value)
  local seen, nodes = {}, 0
  local function visit(item, depth)
   nodes += 1
-  assert(depth <= 16 and nodes <= 32768, "structure_limit")
+  assert(depth <= 16 and nodes <= 262144, "structure_limit")
   if type(item) == "string" then return "s" .. Schema.frame(item) end
   if type(item) == "boolean" then return if item then "b1" else "b0" end
   if type(item) == "number" then
@@ -204,7 +204,8 @@ function Schema.new(catalog, options)
  options = options or {}
  local supported = {}
  for id in catalog.Entries do supported[id] = true end
- local api = {maxCash=2147483647, maxReceipts=options.maxReceipts or 4096, maxBytes=options.maxBytes or 262144}
+ -- Leave >1 MB below the platform limit; never prune receipts or reset an account.
+ local api = {maxCash=2147483647, maxReceipts=options.maxReceipts or 16384, maxBytes=options.maxBytes or 3000000}
  function api.default(userId)
   Schema.userKey(userId)
   return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
@@ -235,6 +236,7 @@ function Schema.new(catalog, options)
   if type(s) ~= "table" or not api.supportsKart(s.kartId) or not Schema.integer(s.revision)
    or type(s.lastOpId) ~= "string" or #s.lastOpId > 128 then return false, "CORRUPT_SELECTION" end
   if type(w) ~= "table" or not Schema.integer(w.cash,api.maxCash) or not Schema.integer(w.ledgerRevision) then return false, "CORRUPT_WALLET" end
+  if w.lifetimeEarned~=nil and not Schema.integer(w.lifetimeEarned) then return false,'CORRUPT_WALLET' end
   if type(c) ~= "table" or type(c.ownedPartIds) ~= "table" or type(c.equippedPartIdsBySlot) ~= "table" then return false, "CORRUPT_INVENTORY" end
   if Schema.count(c.ownedPartIds) > 256 or Schema.count(c.equippedPartIdsBySlot) > 16 then return false, "INVENTORY_CAPACITY" end
   for id, owned in c.ownedPartIds do
@@ -249,6 +251,12 @@ function Schema.new(catalog, options)
   if Schema.count(profile.pendingIndex) > 64 or Schema.count(profile.receipts) > api.maxReceipts then return false, "RECEIPT_CAPACITY" end
   for id, receipt in profile.receipts do
    if type(id) ~= "string" or #id > 512 or type(receipt) ~= "table" or type(receipt.signature) ~= "string" then return false, "CORRUPT_RECEIPT" end
+   if receipt.money~=nil then
+    local m=receipt.money
+    if type(m)~='table' or not Schema.integer(m.base,35) or not Schema.integer(m.bestRace,10)
+     or not Schema.integer(m.bestLap,5) or not Schema.integer(m.total,50)
+     or m.total~=math.min(50,m.base+m.bestRace+m.bestLap) then return false,'CORRUPT_MONEY_RECEIPT' end
+   end
   end
   -- Numeric records remain compatible with A1/A2; A3 evidence is optional and separate.
   for scope, record in profile.records.scoped do
@@ -307,6 +315,34 @@ function Schema.new(catalog, options)
   return true, "VALID"
  end
  return table.freeze(api)
+end
+
+
+function Schema.sha256(message)
+ local K={1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298}
+ local h={1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225}
+ local band,bxor,bnot,rshift,ror=bit32.band,bit32.bxor,bit32.bnot,bit32.rshift,bit32.rrotate
+ local bits=#message*8
+ message=message..string.char(128)..string.rep(string.char(0),(55-#message)%64)
+ local high,low=math.floor(bits/4294967296),bits%4294967296
+ local function bytes(n) return string.char(rshift(n,24),band(rshift(n,16),255),band(rshift(n,8),255),band(n,255)) end
+ message=message..bytes(high)..bytes(low)
+ for offset=1,#message,64 do
+  local w={}
+  for i=0,15 do local a,b,c,d=string.byte(message,offset+i*4,offset+i*4+3);w[i]=a*16777216+b*65536+c*256+d end
+  for i=16,63 do
+   local x,y=w[i-15],w[i-2]
+   w[i]=(w[i-16]+bxor(ror(x,7),ror(x,18),rshift(x,3))+w[i-7]+bxor(ror(y,17),ror(y,19),rshift(y,10)))%4294967296
+  end
+  local a,b,c,d,e,f,g,j=table.unpack(h)
+  for i=0,63 do
+   local t1=(j+bxor(ror(e,6),ror(e,11),ror(e,25))+bxor(band(e,f),band(bnot(e),g))+K[i+1]+w[i])%4294967296
+   local t2=(bxor(ror(a,2),ror(a,13),ror(a,22))+bxor(band(a,b),band(a,c),band(b,c)))%4294967296
+   j,g,f,e,d,c,b,a=g,f,e,(d+t1)%4294967296,c,b,a,(t1+t2)%4294967296
+  end
+  for i,v in {a,b,c,d,e,f,g,j} do h[i]=(h[i]+v)%4294967296 end
+ end
+ local out={} for _,v in h do table.insert(out,string.format('%08x',v)) end return table.concat(out)
 end
 
 return table.freeze(Schema)

@@ -36,7 +36,7 @@ for i=1,6 do
  eligible=true,reason='FULL_ROUTE_V1',serverAccepted=true,state='FINISHED',positionFinalized=true}}
  if i==1 then
   first=op;local nextValue=Ops.reduce(S,schema,op)(original)
-  check(#S.canonical(nextValue)*6>schema.maxBytes,'reproduces prior false capacity refusal')
+  check(#S.canonical(nextValue)*6>262144,'reproduces P2C original false capacity refusal')
   check(#serde.encode('json',nextValue)<schema.maxBytes,'actual JSON below unchanged limit')
  end
  p.attrs.OfficialRoundGuid=guid;check(runtime.submit(p,op),'official submit')
@@ -51,7 +51,7 @@ end
 for k,v in original.receipts do check(S.canonical(backend.value.receipts[k])==S.canonical(v),'old receipt intact')end
 for k,v in original do if k~='records' and k~='receipts' and k~='pendingIndex' and k~='pendingRaceIndex' then check(S.canonical(backend.value[k])==S.canonical(v),'non-record fields '..k)end end
 local corrupt=S.clone(original);corrupt.bad=0/0;local valid,reason=schema.validate(corrupt,S.userKey(id));check(not valid and reason=='NONFINITE_NUMBER','structural reason separate')
-corrupt=S.clone(original);corrupt.bad=string.rep('a',300000);valid,reason=schema.validate(corrupt,S.userKey(id));check(not valid and reason=='PROFILE_CAPACITY','true byte limit enforced')
+corrupt=S.clone(original);corrupt.bad=string.rep('a',schema.maxBytes+1);valid,reason=schema.validate(corrupt,S.userKey(id));check(not valid and reason=='PROFILE_CAPACITY','true byte limit enforced')
 corrupt=S.clone(original);corrupt.bad=corrupt;valid,reason=schema.validate(corrupt,S.userKey(id));check(not valid and reason=='UNSAFE_STRUCTURE','cycle rejected')
 local escaped=schema.default(id);escaped.extra=string.rep('\0"\\',1000);check(S.jsonByteBound(escaped)>=#serde.encode('json',escaped),'escaping bound conservative')
 -- Public defaults must not create diagnostic GUI, subscribe, log or sample memory.

@@ -111,7 +111,11 @@ function RaceSession:finalizedFinish(player, now)
   for other,racer in self.participants do
    if other:GetAttribute("RaceState")=="RACING" and racer.raceStartTime~=self.startTime then return nil end
   end
-  return {totalTime=entry.time,position=position,positionFinalized=true}
+  local humanPosition=0
+  for i=1,position do
+   if self.finishOrder[i].player:GetAttribute('IsBot')~=true then humanPosition+=1 end
+  end
+  return {totalTime=entry.time,position=position,positionFinalized=true,humanPosition=humanPosition}
  end
  return nil
 end

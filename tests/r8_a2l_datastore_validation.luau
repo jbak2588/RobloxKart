@@ -64,7 +64,8 @@ case('L01','constructor and blocked user perform zero lookups',function()
 end)
 case('L02','Canary OFF / Studio / Race / target / whitelist isolation',function()
  local ctx={isStudio=false,role='HUB',experienceId=10768420544,placeId=127925465904803,privateServerId=''}
- check(not Policy.allowed(Config,ctx,11700555357),'default OFF')
+ local off=table.clone(Config);off.Enabled=false
+ check(not Policy.allowed(off,ctx,11700555357),'explicit OFF blocks accepted Canary')
  local cfg=table.clone(Config);cfg.Enabled=true
  check(Policy.allowed(cfg,ctx,11700555357),'approved user only')
  for _,id in {1,11700555358,-1,'mozzy_hni'} do check(not Policy.allowed(cfg,ctx,id),'reject non-approved identity') end
