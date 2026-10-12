@@ -24,7 +24,16 @@ function methods:GetDescendants()local out={};for _,c in self.children do table.
 function methods:Destroy()self.Destroying:Fire();for _,c in table.clone(self.children) do c:Destroy() end;self.Parent=nil end
 return function(racers,rounds,exercise)
  local workspace=object("Workspace")
+ function workspace:Raycast(origin,_direction,_params)
+  if self.noGround then return nil end
+  return {Position=rb.Vector3.new(origin.X,0,origin.Z),Normal=rb.Vector3.yAxis,
+   Instance={FindFirstAncestor=function(_,name)return if name=='Road' then {} else nil end}}
+ end
  local prototype=object("Folder");prototype.Name="Prototype";prototype.Parent=workspace
+ local track=object('Folder');track.Name='TestTrack';track.Parent=prototype
+ local road=object('Folder');road.Name='Road';road.Parent=track
+ local surface=object('Part');surface.Name='Road1';surface.Size=rb.Vector3.new(200,1,20000)
+ surface.CFrame=rb.CFrame.new(0,-.5,0);surface.Parent=road
  local players={};for i=1,racers do local p=object("Player");p.UserId=i;p.AncestryChanged=signal();p.OnTeleport=signal();p:SetAttribute("RaceState","RACING");p:SetAttribute("RaceSessionId",1);players[i]=p end
  local run={Heartbeat=signal(),RenderStepped=signal()}
  local now=0
@@ -33,7 +42,7 @@ return function(racers,rounds,exercise)
  local parent={ShieldWorldRenderer="shield",KartWorldExhaustRenderer="exhaust",KartWorldSpeedRenderer="speed",KartWorldVFXController="observer"}
  local allocated=0
  local env={game={GetService=function(_,name)return services[name] end,ReplicatedStorage={Shared={KDMShieldGeometry="geometry",KDMSpeedSensation="speedProfile"}}},script={Parent=parent},require=function(k)return assert(modules[k],tostring(k)) end,
- Instance={new=function(class)allocated+=1;return object(class)end},Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,ColorSequenceKeypoint=rb.ColorSequenceKeypoint,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,NumberRange=rb.NumberRange,Enum=rb.Enum,time=function()return now end}
+ Instance={new=function(class)allocated+=1;return object(class)end},RaycastParams={new=function()return {}end},Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,ColorSequenceKeypoint=rb.ColorSequenceKeypoint,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,NumberRange=rb.NumberRange,Enum=rb.Enum,time=function()return now end}
  local function load(path)return luau.load(fs.readFile(path),{environment=env})() end
  modules.geometry=load("src/shared/KDMShieldGeometry.luau")
  modules.shield=load("src/client/ShieldWorldRenderer.luau")
@@ -66,7 +75,7 @@ return function(racers,rounds,exercise)
  end
  tick(.3)
  if exercise then exercise({karts=karts,players=players,tick=tick,count=count,object=object,run=run,
-  prototype=prototype,allocated=function()return allocated end,modules=modules}) end
+  prototype=prototype,workspace=workspace,allocated=function()return allocated end,modules=modules}) end
  for round=1,rounds do
   for id,k in karts do
    local shell=object("Part");shell.Name="RaceItemShield";shell.Parent=k;k:SetAttribute("KartShieldActive",true)

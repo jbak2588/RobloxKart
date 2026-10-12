@@ -2,10 +2,14 @@
 -- Positive steering turns right; a negative velocity/body slip puts the tail outside.
 local Slide={}
 local function approach(v,target,amount) return v+math.clamp(target-v,-amount,amount) end
-function Slide.clear(state) state.active=false;state.recovering=false end
+function Slide.clear(state) state.active=false;state.recovering=false;state.side=nil;state.entry=0 end
 function Slide.step(state,c,forwardSpeed,lateralSpeed,steering,normalYaw,currentYaw,dt,active,safe)
  if not c.Enabled or not safe or forwardSpeed<=2 or dt<=0 or dt>c.MaxStep then Slide.clear(state);return nil end
- if active then state.active=true;state.recovering=false
+ if active then
+  local side=if math.abs(steering)>=c.EntrySteer then math.sign(steering) else nil
+  if not state.active or (side and state.side and side~=state.side) then state.entry=c.EntrySeconds end
+  if side then state.side=side end
+  state.active=true;state.recovering=false
  elseif state.active then state.active=false;state.recovering=true end
  if not active and not state.recovering then return nil end
  local beta=math.atan2(lateralSpeed,forwardSpeed)
@@ -15,6 +19,10 @@ function Slide.step(state,c,forwardSpeed,lateralSpeed,steering,normalYaw,current
  local strength=math.clamp((math.abs(steering)-c.EntrySteer)/(1-c.EntrySteer),0,1)
  local target=if active then -math.sign(steering)*math.rad(c.MinSlipDegrees+(c.MaxSlipDegrees-c.MinSlipDegrees)*strength)
   *math.clamp(math.abs(steering)/c.EntrySteer,0,1) else 0
+ if active and (state.entry or 0)>0 then
+  target-=math.sign(steering)*math.rad(c.EntryExtraDegrees)*(state.entry/c.EntrySeconds)
+  state.entry=math.max(0,state.entry-dt)
+ end
  local rate=math.rad(if active then c.SlipRateDegrees else c.ExitRateDegrees)
  local nextBeta=approach(beta,target,rate*math.min(dt,c.MaxStep))
  local betaRate=(nextBeta-beta)/dt

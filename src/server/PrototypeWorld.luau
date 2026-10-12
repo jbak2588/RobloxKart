@@ -1164,7 +1164,7 @@ function PrototypeWorld.start(options)
 			else ArcadeDrift.clear(rearSlide) end
 			if context.missileHitActive then effectiveGrip *= RaceItemConfig.MISSILE_LATERAL_GRIP_MULTIPLIER end
 			if slideLateral~=nil then lateralSpeed=slideLateral else lateralSpeed *= math.exp(-effectiveGrip * deltaTime) end
-			if slideLateral~=nil and context.boostActive then
+			if arcadeEnabled() and context.boostActive then
 				local maxLateral=math.sqrt(math.max(0,KartConfig.MINI_BOOST_MAX_SPEED^2-context.commandedSpeed^2))
 				lateralSpeed=math.clamp(lateralSpeed,-maxLateral,maxLateral)
 			end

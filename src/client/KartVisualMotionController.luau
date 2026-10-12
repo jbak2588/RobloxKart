@@ -1,10 +1,17 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local SlideConfig = require(game:GetService('ReplicatedStorage'):WaitForChild('Shared'):WaitForChild('KDMGameplayBalance')).DRIFT.RearSlide
 
 local KartVisualMotionController = {}
 local started = false
 local STEER_MAX = math.rad(25)
 local STEER_RESPONSE = 10
+
+function KartVisualMotionController.resolveDriftSteer(normal, slip)
+	local blend=math.clamp(math.abs(math.deg(slip))/12,0,1)
+	local counter=math.clamp(-slip*SlideConfig.VisualCounterGain,-math.rad(SlideConfig.VisualMaxSteerDegrees),math.rad(SlideConfig.VisualMaxSteerDegrees))
+	return normal+(counter-normal)*blend
+end
 
 local function getKart(seatPart: BasePart?): Model?
 	if not seatPart or (seatPart:GetAttribute("PrototypeKartSeat") ~= true and seatPart:GetAttribute("LobbyKartSeat") ~= true) then
@@ -30,6 +37,7 @@ function KartVisualMotionController.start()
 	local wheels = {}
 	local steeringMotor: Motor6D? = nil
 	local currentSteer = 0
+	local slideRemaining = 0
 	local currentHumanoid: Humanoid? = nil
 	local seatedConnection: RBXScriptConnection? = nil
 	local seatPartConnection: RBXScriptConnection? = nil
@@ -60,6 +68,7 @@ function KartVisualMotionController.start()
 		activeSeat = nil
 		activeChassis = nil
 		currentSteer = 0
+		slideRemaining = 0
 	end
 
 	local function attach(seatPart: BasePart?, attempt: number?)
@@ -130,6 +139,15 @@ function KartVisualMotionController.start()
 			local targetSteer = if kart:GetAttribute("RaceControlsLocked") == true then 0
 				elseif type(steering) == "number" then -math.clamp(steering, -1, 1) * STEER_MAX
 				else 0
+			local safe=kart:GetAttribute('RaceControlsLocked')~=true and kart:GetAttribute('KartOffTrack')~=true
+				and forwardSpeed>=18 and kart:GetAttribute('KartMissileHitActive')~=true
+				and kart:GetAttribute('KartThunderHitActive')~=true and kart:GetAttribute('KartSlickActive')~=true
+			if safe and kart:GetAttribute('KartDrifting')==true then slideRemaining=SlideConfig.VisualExitSeconds
+			else slideRemaining=if safe then math.max(0,slideRemaining-deltaTime) else 0 end
+			if slideRemaining>0 then
+				local slip=math.atan2(velocity:Dot(activeChassis.CFrame.RightVector),forwardSpeed)
+				targetSteer=KartVisualMotionController.resolveDriftSteer(targetSteer,slip)
+			end
 			currentSteer += (targetSteer - currentSteer) * (1 - math.exp(-STEER_RESPONSE * deltaTime))
 			if steeringMotor then
 				steeringMotor.Transform = CFrame.Angles(0, 0, -currentSteer * 1.5)

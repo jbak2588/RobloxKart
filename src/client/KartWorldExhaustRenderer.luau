@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService('Workspace')
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local CRUISE_FLAME_INTERVAL = 0.45
@@ -56,12 +57,13 @@ local function makeTrail(parent: BasePart, first: Attachment, second: Attachment
 	trail.Attachment0 = first
 	trail.Attachment1 = second
 	trail.Enabled = false
-	trail.Lifetime = 0.35
-	trail.MaxLength = 14
+	trail.Lifetime = 2.5
+	trail.MaxLength = 180
 	trail.MinLength = 0.1
-	trail.Color = ColorSequence.new(Color3.fromRGB(35, 37, 40))
+	trail.Color = ColorSequence.new(Color3.fromRGB(8, 9, 11))
 	trail.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.3),
+		NumberSequenceKeypoint.new(0, 0.16),
+		NumberSequenceKeypoint.new(0.65, 0.35),
 		NumberSequenceKeypoint.new(1, 1),
 	})
 	trail.Parent = parent
@@ -131,6 +133,8 @@ function Renderer.new(kart)
  end
  if not wheels.Left or not wheels.Right or not anchors.ExhaustLeft or not anchors.ExhaustRight then return nil end
  local attachments, smokes, trails, flames, cruiseFlames = {}, {}, {}, {}, {}
+ local contacts={}
+ local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude;params.FilterDescendantsInstances={kart}
  for _, wheel in visual:GetDescendants() do
   if wheel:IsA("BasePart") and wheel:GetAttribute("VisualMotionRole") == "RearWheel" then
    local motor, radius, width = wheel:FindFirstChild("VisualMotor"), wheel:GetAttribute("WheelRadius"), wheel:GetAttribute("WheelWidth")
@@ -143,6 +147,7 @@ function Renderer.new(kart)
     local b=makeAttachment(chassis,"TireEdgeB"..side,contact+edge)
     table.insert(attachments,point);table.insert(attachments,a);table.insert(attachments,b)
     table.insert(smokes,makeSmoke(point));table.insert(trails,makeTrail(chassis,a,b))
+    table.insert(contacts,{position=contact,a=a,b=b,width=width*.45})
    end
   end
  end
@@ -159,6 +164,31 @@ function Renderer.new(kart)
  if #smokes~=2 or #trails~=2 or #flames~=2 then record:destroy();return nil end
  local previousNitro, previousBoost, previousDrift = nil,nil,nil
  local cruiseElapsed=0
+ local groundElapsed=0
+ local grounded={false,false}
+ local roadFolder=nil
+ local roadBoxes={}
+ local lastRoad={}
+ local function roadSurface(point,index)
+  local track=kart.Parent and kart.Parent:FindFirstChild('TestTrack')
+  local folder=track and track:FindFirstChild('Road')
+  if folder~=roadFolder then
+   roadFolder=folder;table.clear(roadBoxes);table.clear(lastRoad)
+   if folder then for _,part in folder:GetChildren() do if part:IsA('BasePart') then
+    table.insert(roadBoxes,{frame=part.CFrame,half=part.Size*.5})
+   end end end
+  end
+  local function project(box)
+   local p=box.frame:PointToObjectSpace(point)
+   if math.abs(p.X)<=box.half.X and math.abs(p.Z)<=box.half.Z then
+    return box.frame:PointToWorldSpace(Vector3.new(p.X,box.half.Y,p.Z))+box.frame.UpVector*.04
+   end
+  end
+  local previous=lastRoad[index]
+  if previous then local surface=project(previous);if surface then return surface end end
+  for _,box in roadBoxes do local surface=project(box);if surface then lastRoad[index]=box;return surface end end
+  lastRoad[index]=nil;return nil
+ end
  function record:update(dt,enabled)
   local off=kart:GetAttribute("KartOffTrack")==true
   local nitro=enabled and not off and kart:GetAttribute("KartNitroActive")==true
@@ -190,7 +220,27 @@ function Renderer.new(kart)
   local slip=if math.abs(forward)<5 then 0 else math.abs(math.deg(math.atan2(lateral,math.max(math.abs(forward),.01))))
   local rate=if drift then math.clamp((slip-8)*2,0,35) else 0
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
-  for _,t in trails do t.Enabled=drift and slip>=10 end
+  groundElapsed+=dt
+  if drift and slip>=5 and groundElapsed>=.04 then
+   groundElapsed=0
+   for i,contact in contacts do
+    local origin=chassis.CFrame:PointToWorldSpace(contact.position)+Vector3.yAxis*2
+    local hit=Workspace:Raycast(origin,-Vector3.yAxis*6,params)
+    local surface=roadSurface(origin,i)
+    grounded[i]=hit~=nil and hit.Normal.Y>.55 and surface~=nil and math.abs(hit.Position.Y-surface.Y)<.6
+    if grounded[i] then
+     local right=chassis.CFrame.RightVector
+     local tangent=(right-hit.Normal*right:Dot(hit.Normal)).Unit*contact.width
+     contact.a.WorldPosition=surface-tangent
+     contact.b.WorldPosition=surface+tangent
+    end
+   end
+  end
+  for i,t in trails do
+   local active=drift and slip>=5 and grounded[i]
+   if active and not t.Enabled then t:Clear() end -- no bridge across jumps/re-entry
+   t.Enabled=active
+  end
  end
  return record
 end

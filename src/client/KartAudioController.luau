@@ -218,6 +218,7 @@ function KartAudioController.start()
 					drift.Volume += (targetVolume - drift.Volume) * alpha
 					drift.PlaybackSpeed += (targetPitch - drift.PlaybackSpeed) * alpha
 					if targetVolume > 0.01 then
+						if not drift.IsPlaying then drift.TimePosition = 5 end
 						AudioRuntime.playLoop(drift)
 					elseif drift.Volume < 0.01 then
 						AudioRuntime.stop(drift)
