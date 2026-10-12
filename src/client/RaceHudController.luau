@@ -94,7 +94,7 @@ function RaceHudController.start()
 	frame.Position = UDim2.fromOffset(24, 118)
 	frame.Size = UDim2.fromOffset(260, 112)
 	frame.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
-	frame.BackgroundTransparency = 0.2
+	frame.BackgroundTransparency = 0.65
 	frame.BorderSizePixel = 0
 	frame.Parent = screenGui
 	addCorner(frame, 6)
@@ -139,6 +139,7 @@ function RaceHudController.start()
 	quitButton.Position = UDim2.new(1, 0, 0, 0)
 	quitButton.Size = UDim2.fromOffset(72, 23)
 	quitButton.BackgroundColor3 = Color3.fromRGB(80, 51, 54)
+	quitButton.BackgroundTransparency = 0.45
 	quitButton.TextColor3 = Color3.fromRGB(255, 230, 230)
 	quitButton.Text = "QUIT RACE"
 	quitButton.TextSize = 11
@@ -776,7 +777,9 @@ function RaceHudController.start()
 	local function applyResponsiveLayout()
 		local camera = Workspace.CurrentCamera
 		local viewportSize = if camera then camera.ViewportSize else Vector2.new(1280, 720)
-		local mobile = Input.isTouchPreferred()
+		-- Touch-capable tablets still need the safe mobile LAP/item geometry
+		-- after keyboard/mouse input changes the preferred input classification.
+		local mobile = Input.isTouchPreferred() or UserInputService.TouchEnabled
 		-- Bot polling and rank replication call updateHud frequently. During a
 		-- race, unchanged geometry must not rewrite the complete responsive HUD.
 		if player:GetAttribute("RaceState")=="RACING" then

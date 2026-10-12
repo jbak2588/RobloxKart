@@ -5,9 +5,11 @@ local Stats=game:GetService('Stats')
 local Buffer=require(game.ReplicatedStorage.Shared.KDMPerformanceBuffer)
 local Monitor={buffer=Buffer.new(60)}
 local player=Players.LocalPlayer
-local enabled=Buffer.allowed(RunService:IsStudio(),player.UserId,game.GameId,game.PlaceId)
--- LIGHT is the shipping default. Canary-only attributes support controlled A/B.
-local mode='LIGHT'
+-- Internal opt-in before controller startup; no public panels/connections or
+-- profiler work by default, including the previously whitelisted accounts.
+local enabled=workspace:GetAttribute('KDMPerfInternalEnabled')==true
+ and Buffer.allowed(RunService:IsStudio(),player.UserId,game.GameId,game.PlaceId)
+local mode='OFF'
 local resetRequested=false
 local pendingPair
 local latest,lastSent,lastInput,zeroSince,zeroDuration=nil,nil,nil,nil,0
@@ -279,7 +281,7 @@ function Monitor.observe(chassis,speed,dt,workMs)
 end
 -- Canary controls are confined to staging/results. No polling, quantile sorting
 -- or summary serialization runs inside the driving HUD callback.
-if enabled and RunService.Heartbeat then
+if enabled and workspace:GetAttribute('KDMPerfCanaryUI')==true and RunService.Heartbeat then
  local controls,panel,summaryLabel,summaryScroll,elapsed,lastState=nil,nil,nil,nil,0,nil
  local summaryText,lastRecord='',nil
  RunService.Heartbeat:Connect(function(dt)

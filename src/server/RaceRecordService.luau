@@ -2,7 +2,9 @@
 local Service={}
 local Shared=game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local S=require(Shared:WaitForChild("KDMProgressionSchema"))
-local schema=S.new(require(Shared:WaitForChild("KartCatalog")))
+local schema=S.new(require(Shared:WaitForChild("KartCatalog")),{jsonEncode=function(value)
+ return game:GetService('HttpService'):JSONEncode(value)
+end})
 local Config=require(script.Parent.RaceRecordConfig)
 local Policy=require(script.Parent.RaceRecordPolicy)
 local Ops=require(script.Parent.RaceRecordOperations)
@@ -19,6 +21,7 @@ local function context()
 end
 local function allowed(player,kind) return Policy.allowed(Config,context(),player.UserId,kind) end
 local function diagnostic(player,event,guid,row)
+ if workspace:GetAttribute('KDMPerfInternalEnabled')~=true then return end
  if not PerfBuffer.allowed(game:GetService('RunService'):IsStudio(),player.UserId,game.GameId,game.PlaceId) then return end
  local ctx=context()
  local safe={event=event,round=guid,userId=player.UserId,experienceId=game.GameId,placeId=game.PlaceId,

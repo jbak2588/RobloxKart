@@ -59,6 +59,32 @@ function Schema.count(value)
  return count
 end
 
+-- JSON byte bound after canonical structure validation. Escape only bytes that
+-- require escaping; multiplying the entire canonical receipt/profile by six
+-- rejects ordinary ASCII profiles long before their actual size limit.
+function Schema.jsonByteBound(value)
+ local function quoted(s)
+  local n=2
+  for i=1,#s do local b=s:byte(i);n+=if b<32 then 6 elseif b==34 or b==92 then 2 else 1 end
+  return n
+ end
+ local function size(v)
+  if type(v)=='string' then return quoted(v) end
+  if type(v)=='boolean' then return if v then 4 else 5 end
+  if type(v)=='number' then return 32 end -- bound finite number formatting
+  if v==nil then return 4 end
+  local n=2;local count=0;local array=true;local highest=0
+  for k in v do count+=1;if type(k)~='number' then array=false else highest=math.max(highest,k) end end
+  array=array and highest==count
+  for k,child in v do
+   if not array then n+=quoted(tostring(k))+1 end
+   n+=size(child)+1
+  end
+  return n
+ end
+ return size(value)
+end
+
 function Schema.userKey(userId)
  assert(Schema.integer(userId) and userId > 0, "invalid_user_id")
  return "u:" .. string.format("%.0f", userId)
@@ -188,8 +214,19 @@ function Schema.new(catalog, options)
  function api.supportsKart(id) return type(id) == "string" and supported[id] == true end
  function api.validate(profile, key)
   local ok, encoded = pcall(Schema.canonical, profile)
-  -- Conservative JSON escaping reserve (up to six bytes per raw byte), not an exact serializer.
-  if not ok or #encoded*6 > api.maxBytes then return false, "STRUCTURE_OR_CAPACITY" end
+  if not ok then
+   local detail=if tostring(encoded):find('structure_limit',1,true) then 'STRUCTURE_LIMIT'
+    elseif tostring(encoded):find('nonfinite_number',1,true) then 'NONFINITE_NUMBER'
+    elseif tostring(encoded):find('invalid_key',1,true) then 'INVALID_KEY' else 'UNSAFE_STRUCTURE'
+   return false,detail
+  end
+  local bytes
+  if options.jsonEncode then
+   local jsonOK,json=pcall(options.jsonEncode,profile)
+   if not jsonOK or type(json)~='string' then return false,'JSON_ENCODING_FAILED' end
+   bytes=#json
+  else bytes=Schema.jsonByteBound(profile) end
+  if bytes>api.maxBytes then return false,'PROFILE_CAPACITY' end
   if type(profile) ~= "table" then return false, "CORRUPT" end
   if profile.schemaVersion ~= 1 then return false, "UNSUPPORTED_SCHEMA" end
   if not Schema.integer(profile.userId) or profile.userId == 0 or Schema.userKey(profile.userId) ~= key then return false, "WRONG_USER_KEY" end

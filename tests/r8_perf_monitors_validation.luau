@@ -8,7 +8,7 @@ player.PlayerGui=gui
 local services={Players={LocalPlayer=player,GetPlayers=function()return {player}end},RunService={IsStudio=function()return false end},
  HttpService={JSONEncode=function(_,row)encoded=row;return 'bounded report' end},
  Stats={GetTotalMemoryUsageMb=function()memoryCalls+=1;return 123 end}}
-local workspace={GetServerTimeNow=function()return now end}
+local workspace={GetAttribute=function(_,k)return k=="KDMPerfInternalEnabled" or k=="KDMPerfCanaryUI" end,GetServerTimeNow=function()return now end}
 local env={game={GameId=10768420544,PlaceId=127925465904803,ReplicatedStorage={Shared={KDMPerformanceBuffer={}}},GetService=function(_,k)return services[k]end},
  require=function()return B end,workspace=workspace,os={clock=function()return now end},time=function()return now end,
  warn=function(t)table.insert(logs,t)end,Instance={new=function()return {}end},UDim2=rb.UDim2,Enum=rb.Enum,Color3=rb.Color3}
@@ -30,7 +30,7 @@ local oldOwner=c.owner;c.owner={GetAttribute=function()return 'RACING' end};c.bo
 now=5;server.observe(c,.016,.2);check(server.buffer:snapshot()[server.buffer.count].user=='BOT','Bot Folder needs no Player UserId member')
 server.remove(c);check(server.previous[c]==nil and server.lastSample[c]==nil,'destroyed context anchors released')
 c.owner=oldOwner;c.botParticipant=nil;c.chassis.Parent=kart
-local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})()
+local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})();client.configure('LIGHT')
 client.observe(c.chassis,70,.016,.1);client.observe(c.chassis,70,.016,.1)
 now=6;client.observe(c.chassis,0,4,.1)
 check(encoded.event=='ZERO_SPEED' and encoded.sample.auto==true,'client AUTO and zero observation')

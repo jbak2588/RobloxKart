@@ -356,6 +356,19 @@ input:GetPropertyChangedSignal("PreferredInput"):Fire()
 check(quitButton.Size.X.Offset>=110 and quitButton.Size.Y.Offset>=36,
  "touch-enabled tablet keeps a large Quit target even with keyboard preferred")
 checkTouchQuitRect("touch tablet with keyboard preferred")
+check(quitPanel.Size.X.Offset<=170 and quitPanel.BackgroundTransparency==.65
+ and quitButton.BackgroundTransparency==.45,'P2C touch tablet compact translucent panel after preferred-input switch')
+local safeView=luau.load(fs.readFile('src/client/MobileControlView.luau'),{environment={Vector2=rb.Vector2,Color3=rb.Color3}})()
+for _,size in {rb.Vector2.new(844,332),rb.Vector2.new(932,372),rb.Vector2.new(1600,680),rb.Vector2.new(1280,740)} do
+ safeSize=size;camera.ViewportSize=size+rb.Vector2.new(0,58);camera:GetPropertyChangedSignal('ViewportSize'):Fire()
+ local l=safeView.layout(size);local items=safeView.itemLayout(size,4)
+ local itemTop=hud.AbsolutePosition.Y+size.Y-items.bottom-l.slot
+ local panelBottom=quitPanel.AbsolutePosition.Y+quitPanel.AbsoluteSize.Y
+ local button=(hud.QuitRow or quitPanel.QuitRow).QuitRace
+ check(panelBottom<=itemTop and button.AbsolutePosition.Y+button.AbsoluteSize.Y<=itemTop,
+  'P2C LAP and Quit clear items on touch keyboard-preferred '..tostring(size))
+ check(button.AbsoluteSize.Y>=40,'P2C 40px touch target retained')
+end
 input.TouchEnabled=false;input.PreferredInput=rb.Enum.PreferredInput.Touch
 input:GetPropertyChangedSignal("PreferredInput"):Fire()
 safeSize=rb.Vector2.new(844,390);camera.ViewportSize=rb.Vector2.new(844,390)

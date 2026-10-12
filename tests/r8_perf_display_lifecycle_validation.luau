@@ -10,10 +10,10 @@ local storage={Shared={KDMPerformanceBuffer='BUFFER'},FindFirstChild=function()r
 local services={Players={LocalPlayer=player},RunService={IsStudio=function()return false end},ReplicatedStorage=storage,
  Stats={GetTotalMemoryUsageMb=function()return 100 end},HttpService={JSONEncode=function(_,v)table.insert(events,v);return 'test' end}}
 local env={game={GameId=10768420544,PlaceId=127925465904803,ReplicatedStorage=storage,GetService=function(_,k)return services[k]end},
- require=function()return Buffer end,os={clock=function()return now end},workspace={GetServerTimeNow=function()return now end},
+ require=function()return Buffer end,os={clock=function()return now end},workspace={GetAttribute=function(_,k)return k=="KDMPerfInternalEnabled" or k=="KDMPerfCanaryUI" end,GetServerTimeNow=function()return now end},
  warn=function()end,Instance={new=function(kind)local v={};if kind=='TextLabel' then table.insert(labels,v)end;return v end},
  UDim2=rb.UDim2,Enum=rb.Enum,Color3=rb.Color3}
-local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})()
+local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})();client.configure('LIGHT')
 client.configure('DETAIL')
 local kart={GetAttribute=function()return 0 end,FindFirstChild=function()return {Occupant=nil}end}
 local chassis={Parent=kart,Position=rb.Vector3.zero}

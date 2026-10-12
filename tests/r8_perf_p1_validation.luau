@@ -15,7 +15,7 @@ local services={Players={LocalPlayer=player,PlayerRemoving=signal(),GetPlayers=f
  HttpService={JSONEncode=function(_,r)table.insert(logs,r);return 'bounded' end}}
 local env={game={GameId=10768420544,PlaceId=127925465904803,ReplicatedStorage=storage,GetService=function(_,k)return services[k]end},
  require=function(m)return if m=='CONFIG' then {INPUT_TIMEOUT=.5} else B end,Vector3=rb.Vector3,
- workspace={GetServerTimeNow=function()return now end,GetDescendants=function()return {1,2,3}end},
+ workspace={GetAttribute=function(_,k)return k=="KDMPerfInternalEnabled" or k=="KDMPerfCanaryUI" end,GetServerTimeNow=function()return now end,GetDescendants=function()return {1,2,3}end},
  os={clock=function()return now end},time=function()return now end,warn=function()end,
  Instance={new=function()return {}end},UDim2=rb.UDim2,Enum=rb.Enum,Color3=rb.Color3}
 local server=luau.load(fs.readFile('src/server/RacePerformanceMonitor.luau'),{environment=env})()
@@ -60,7 +60,7 @@ for i=1,100 do now=1+i*.1;server.observe(c,.016,.2,chassis.AssemblyLinearVelocit
 check(server.states[c].history.count==60,'per-context history bounded')
 server.remove(c2);check(server.states[c2]==nil,'context cleanup releases history')
 player.PlayerGui={FindFirstChild=function()return {GetAttribute=function()return true end}end}
-local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})()
+local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})();client.configure('LIGHT')
 client.receive(sent[#sent].row);client.inputSent(1,0,false)
 client.observe(chassis,70,.016,.1);now+=.11;client.observe(chassis,70,.016,.1)
 local row=client.buffer:snapshot()[client.buffer.count]

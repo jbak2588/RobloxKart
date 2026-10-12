@@ -6,10 +6,10 @@ local services={Players={LocalPlayer={UserId=11700555357,GetAttribute=function(_
  RunService={IsStudio=function()return false end},Stats={GetTotalMemoryUsageMb=function()return 100 end},HttpService={}}
 local env={game={GameId=10768420544,PlaceId=127925465904803,ReplicatedStorage={Shared={KDMPerformanceBuffer={}}},
  GetService=function(_,k)return services[k] end},require=function()return Buffer end,os={clock=function()return now end},
- workspace={GetAttribute=function()end,GetServerTimeNow=function()return now end},warn=function()error('unexpected per-frame logging')end}
+ workspace={GetAttribute=function(_,k)return k=="KDMPerfInternalEnabled" or k=="KDMPerfCanaryUI" end,GetServerTimeNow=function()return now end},warn=function()error('unexpected per-frame logging')end}
 -- No remote is available; instrumentation must not discover/create one in these mocks.
 services.ReplicatedStorage={FindFirstChild=function()end,ChildAdded={Connect=function()return {} end}}
-local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})()
+local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})();client.configure('LIGHT')
 local n=0
 local function check(v,label)n+=1;assert(v,label)end
 local function frame(dt,cpu)

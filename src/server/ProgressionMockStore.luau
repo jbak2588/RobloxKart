@@ -65,7 +65,7 @@ function MockStore.new(schemaTools, profileSchema, initial, options)
   local valid, reason = profileSchema.validate(transaction.value, transaction.key)
   if not valid then return {status="READ_ONLY",reason=reason} end
   local encoded = S.canonical(transaction.value)
-  if #encoded*6 > (options.maxBytes or profileSchema.maxBytes) then return {status="READ_ONLY",reason="CAPACITY_FULL"} end
+  if S.jsonByteBound(transaction.value) > (options.maxBytes or profileSchema.maxBytes) then return {status="READ_ONLY",reason="CAPACITY_FULL"} end
   -- NOOP after receipt replay does not create another version/side effect.
   if data[transaction.key] == nil or S.canonical(data[transaction.key]) ~= encoded then
    data[transaction.key] = S.clone(transaction.value)

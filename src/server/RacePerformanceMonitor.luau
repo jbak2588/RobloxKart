@@ -18,6 +18,7 @@ local function recipients()
  return out
 end
 function Monitor.active()
+ if workspace:GetAttribute('KDMPerfInternalEnabled')~=true then return false end
  local now=os.clock()
  if now-Monitor.lastPoll>=1 then
   Monitor.lastPoll=now;Monitor.enabled=RunService:IsStudio() or #recipients()>0

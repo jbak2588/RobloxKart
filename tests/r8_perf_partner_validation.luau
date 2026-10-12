@@ -24,7 +24,7 @@ local services={Players={LocalPlayer=partner,PlayerRemoving=signal(),GetPlayers=
 local now=0
 local env={game={GameId=10768420544,PlaceId=127925465904803,ReplicatedStorage=storage,GetService=function(_,k)return services[k]end},
  require=function(m)return if m=='CONFIG' then {INPUT_TIMEOUT=.5} else B end,Vector3=rb.Vector3,
- workspace={GetServerTimeNow=function()return now end,GetDescendants=function()return {}end},os={clock=function()return now end},
+ workspace={GetAttribute=function(_,k)return k=="KDMPerfInternalEnabled" or k=="KDMPerfCanaryUI" end,GetServerTimeNow=function()return now end,GetDescendants=function()return {}end},os={clock=function()return now end},
  time=function()return now end,warn=function()end,Instance={new=function()return {}end},UDim2=rb.UDim2,Enum=rb.Enum,Color3=rb.Color3}
 local server=luau.load(fs.readFile('src/server/RacePerformanceMonitor.luau'),{environment=env})()
 local function context(p)
@@ -39,7 +39,7 @@ check(#sent==4,'normal snapshots delivered to both approved accounts')
 for _,r in sent do check(r.p~=other,'no diagnostics delivered to ordinary user')end
 remote.OnServerEvent.fn(partner,{t=now,round='round1',speed=0,dt=.016})
 check(sent[#sent].p==partner and sent[#sent].row.kind=='PAIR' and sent[#sent].row.user==partner.UserId,'partner receives its own paired context history')
-local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})()
+local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})();client.configure('LIGHT')
 client.receive(sent[1].row);client.observe(b.chassis,70,.016,.1);now=.11;client.observe(b.chassis,70,.016,.1)
 check(client.buffer:snapshot()[client.buffer.count].server==nil,'partner ignores primary player snapshot')
 client.receive(sent[3].row);now=.22;client.observe(b.chassis,70,.016,.1)
