@@ -2,8 +2,8 @@
 -- Positive steering turns right; a negative velocity/body slip puts the tail outside.
 local Slide={}
 local function approach(v,target,amount) return v+math.clamp(target-v,-amount,amount) end
-function Slide.clear(state) state.active=false;state.recovering=false;state.side=nil;state.entry=0 end
-function Slide.step(state,c,forwardSpeed,lateralSpeed,steering,normalYaw,currentYaw,dt,active,safe)
+function Slide.clear(state) state.active=false;state.recovering=false;state.side=nil;state.entry=0;state.planarSpeed=nil end
+function Slide.step(state,c,forwardSpeed,lateralSpeed,steering,normalYaw,currentYaw,dt,active,safe,speedBudget)
  if not c.Enabled or not safe or forwardSpeed<=2 or dt<=0 or dt>c.MaxStep then Slide.clear(state);return nil end
  if active then
   local side=if math.abs(steering)>=c.EntrySteer then math.sign(steering) else nil
@@ -17,7 +17,13 @@ function Slide.step(state,c,forwardSpeed,lateralSpeed,steering,normalYaw,current
  -- Never snap a disturbed velocity back to the arcade envelope in one frame.
  if math.abs(beta)>math.rad(c.SafetySlipDegrees) then Slide.clear(state);return nil end
  local strength=math.clamp((math.abs(steering)-c.EntrySteer)/(1-c.EntrySteer),0,1)
- local target=if active then -math.sign(steering)*math.rad(c.MinSlipDegrees+(c.MaxSlipDegrees-c.MinSlipDegrees)*strength)
+ local budget=speedBudget or math.sqrt(forwardSpeed^2+lateralSpeed^2)
+ local maxSlip=c.MaxSlipDegrees
+ if c.Angled then
+  local speedWeight=math.clamp((budget-c.FullAngleSpeedLow)/(c.FullAngleSpeedHigh-c.FullAngleSpeedLow),0,1)
+  maxSlip=c.LowSpeedMaxSlipDegrees+(c.MaxSlipDegrees-c.LowSpeedMaxSlipDegrees)*speedWeight
+ end
+ local target=if active then -math.sign(steering)*math.rad(c.MinSlipDegrees+(maxSlip-c.MinSlipDegrees)*strength)
   *math.clamp(math.abs(steering)/c.EntrySteer,0,1) else 0
  if active and (state.entry or 0)>0 then
   target-=math.sign(steering)*math.rad(c.EntryExtraDegrees)*(state.entry/c.EntrySeconds)
@@ -37,7 +43,14 @@ function Slide.step(state,c,forwardSpeed,lateralSpeed,steering,normalYaw,current
  -- add yaw/grip slip every frame; do not write CFrame or teleport the chassis.
  local outputBeta=math.clamp(nextBeta-yaw*dt,-math.rad(c.SafetySlipDegrees),math.rad(c.SafetySlipDegrees))
  local lateral=forwardSpeed*math.tan(outputBeta)
+ local outputForward=nil
+ if c.Angled then
+  -- Redistribute a single planar speed budget. Large angles never add energy.
+  state.planarSpeed=budget
+  lateral=budget*math.sin(outputBeta)
+  outputForward=budget*math.cos(outputBeta)
+ end
  if not active and math.abs(nextBeta)<math.rad(c.SettledDegrees) then state.recovering=false end
- return lateral,yaw,target
+ return lateral,yaw,target,outputForward
 end
 return table.freeze(Slide)

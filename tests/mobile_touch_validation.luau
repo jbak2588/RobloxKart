@@ -229,6 +229,15 @@ local function touch(target,dx,dy)
 	f.Position=V3.new(c.X+(dx or 0),c.Y+(dy or 0),0); target.InputBegan:Fire(f); tick(); return f
 end
 tick(); check(root.Visible and not defaultGui.Enabled,"race controls own mobile area")
+local edgeCount=#control._p.calls
+input.setTouchActions(1,1,true)
+check(#control._p.calls==edgeCount+1 and latest()[3]==true,'mobile press sends immediately without Heartbeat')
+input.setTouchActions(1,1,false)
+check(#control._p.calls==edgeCount+2 and latest()[3]==false,'mobile release preserves transport edge')
+input.setTouchActions(1,1,true)
+check(#control._p.calls==edgeCount+3 and latest()[3]==true,'rapid release/repress survives one frame')
+input.setTouchActions(0,0,false)
+check(#control._p.calls==edgeCount+4 and latest()[3]==false,'rapid probe restores neutral input')
 local sharedGui=pg.RobloxKartDriftCharge
 local gauge=sharedGui.SharedDriftDisplay.DriftChargeGauge
 local diagnostic=sharedGui.SharedDriftDisplay.DriftDiagnostic

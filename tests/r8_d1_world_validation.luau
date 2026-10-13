@@ -2,7 +2,7 @@ local fs,luau=require('@lune/fs'),require('@lune/luau')
 local source=fs.readFile('tests/race_item_validation.luau')
 source..=[[
 local d1Rows={}
-for _,mode in {'STANDARD','ARCADE'} do
+for _,mode in {'STANDARD','D2'} do
  local previous=world.getKartContext(player);if previous then previous.seat.Occupant=nil end
  world.releaseKartContext(player)
  local ctx=assert(world.acquireKartContext(player,CF.new(0,2,0),'Kart05'))
@@ -23,7 +23,7 @@ for _,mode in {'STANDARD','ARCADE'} do
  end
  check(ctx.driftActive and ctx.driftReadyLatched,'real World charge '..mode)
  local sum=0;for _,v in slips do sum+=math.abs(v)end;table.insert(d1Rows,{mode=mode,slip=sum/#slips})
- if mode=='ARCADE' then
+ if mode=='D2' then
   for _=1,30 do now+=1/60;ctx:receiveControl(player,1,-.8,true);ctx:step(1/60)
    local cf=ctx.chassis.CFrame;ctx.chassis.CFrame=CF.new(cf.Position+ctx.chassis.AssemblyLinearVelocity/60)*cf.Rotation*CF.Angles(0,ctx.chassis.AssemblyAngularVelocity.Y/60,0)
    check(ctx.driftActive and not ctx.boostActive,'countersteer retains drift without premature Boost')
@@ -33,7 +33,7 @@ for _,mode in {'STANDARD','ARCADE'} do
  check(ctx.boostActive,'real World qualified release starts Mini Boost '..mode)
  for _=1,40 do now+=1/60;ctx:receiveControl(player,1,0,false);ctx:step(1/60)
   local cf=ctx.chassis.CFrame;ctx.chassis.CFrame=CF.new(cf.Position+ctx.chassis.AssemblyLinearVelocity/60)*cf.Rotation*CF.Angles(0,ctx.chassis.AssemblyAngularVelocity.Y/60,0)
-  if mode=='ARCADE' then check(ctx.chassis.AssemblyLinearVelocity.Magnitude<=100.001,'exit cannot stack over Boost cap') end
+  if mode=='D2' then check(ctx.chassis.AssemblyLinearVelocity.Magnitude<=100.001,'exit cannot stack over Boost cap') end
  end
  check(ctx.commandedSpeed>=99,'Mini Boost 100 target preserved '..mode)
 end

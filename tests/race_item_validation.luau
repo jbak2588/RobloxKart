@@ -975,7 +975,8 @@ fresh();for _=1,100 do step(1) end;assert(world.applyThunderHit(player))
 local thunderBrakeSpeed=step(-1,.1)
 check(thunderBrakeSpeed>0 and step(1,.1)>thunderBrakeSpeed,"Brake and throttle work through Thunder")
 fresh();successfulDrift();for _=1,45 do step(1) end
-check(math.abs(step(1)-100)<.001 and kart:GetAttribute("KartBoosting") and world.applyThunderHit(player) and not kart:GetAttribute("KartBoosting")
+step(1)
+check(math.abs(chassis.AssemblyLinearVelocity.Magnitude-100)<.001 and kart:GetAttribute("KartBoosting") and world.applyThunderHit(player) and not kart:GetAttribute("KartBoosting")
  and player:GetAttribute("DriftBonusProgress")==1,"Thunder cancels Mini Boost preserving earned progress")
 sampleThunderDuration("Mini Boost")
 fresh();for _=1,100 do driftFrame(true,15) end

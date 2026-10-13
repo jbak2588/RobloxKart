@@ -1,7 +1,9 @@
 local fs,luau,rb,serde=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox'),require('@lune/serde')
 local Slide=luau.load(fs.readFile('src/server/ArcadeDrift.luau'))()
 local Balance=luau.load(fs.readFile('src/shared/KDMGameplayBalance.luau'))()
-local c=Balance.DRIFT.RearSlide
+local c=table.clone(Balance.DRIFT.RearSlide)
+-- Historical D1/D2 reference; current D3 is validated by r8_d3_physics_validation.
+c.Angled=false;c.MaxSlipDegrees=20;c.SafetySlipDegrees=26;c.ExitRateDegrees=30
 local rows={};local checks=0
 local function check(v,m)checks+=1;assert(v,m)end
 local function approach(v,target,amount)return v+math.clamp(target-v,-amount,amount)end

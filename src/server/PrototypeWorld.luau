@@ -352,6 +352,11 @@ function PrototypeWorld.start(options)
 		contexts[context] = true
 		local driverCollisionBinding = nil
 		local rearSlide = {}
+		local d2Slide=table.clone(KartConfig.ARCADE_DRIFT)
+		d2Slide.Angled=false;d2Slide.MaxSlipDegrees=20;d2Slide.SafetySlipDegrees=26;d2Slide.ExitRateDegrees=30
+		local function slideConfig()
+			return if RunService:IsStudio() and Workspace:GetAttribute('KDMDriftMode')=='D2' then d2Slide else KartConfig.ARCADE_DRIFT
+		end
 		local function arcadeEnabled()
 			return KartConfig.ARCADE_DRIFT.Enabled and not context.botParticipant
 				and not (RunService:IsStudio() and Workspace:GetAttribute('KDMDriftMode')=='STANDARD')
@@ -469,6 +474,7 @@ function PrototypeWorld.start(options)
 		end
 
 		local function startBoost(player: Player, now: number)
+			context.boostPressSerial=context.driftPressSerial or 0
 			context.boostActive = true
 			context.boostDriver = player
 			context.boostEndTime = now + KartConfig.MINI_BOOST_DURATION
@@ -740,6 +746,14 @@ function PrototypeWorld.start(options)
 				return
 			end
 			local validatedSteering = math.clamp(steering, -1, 1)
+			local held=driftRequested==true
+			local previous=context.control
+			-- A fresh release->press on the existing transport, never a timeout or
+			-- a held button predating this Boost. Lifecycle/driver checks still own entry.
+			if held and previous and previous.driftRequested==false and time()-previous.lastUpdate<=KartConfig.INPUT_TIMEOUT then
+				context.driftPressSerial=(context.driftPressSerial or 0)+1
+				context.driftPressTime=time()
+			end
 			local visualSteering = if kart:GetAttribute("RaceControlsLocked") == true or context.crashActive or context.slick.active then 0 else validatedSteering
 			if kart:GetAttribute("KartVisualSteering") ~= visualSteering then
 				kart:SetAttribute("KartVisualSteering", visualSteering)
@@ -988,6 +1002,9 @@ function PrototypeWorld.start(options)
 			context.driftTelemetry.frame.steer = context.smoothedSteering
 			local absoluteSteering = math.abs(context.smoothedSteering)
 			local endedDriftReason: string? = nil
+			local enteredDrift=false
+			local freshBoostPress=(context.driftPressSerial or 0)>(context.boostPressSerial or 0)
+				and context.driftPressTime~=nil and now-context.driftPressTime<=KartConfig.ARCADE_DRIFT.ReentryPressSeconds
 			if context.driftActive then
 				if not occupant then
 					endedDriftReason = "no_occupant"
@@ -1008,16 +1025,25 @@ function PrototypeWorld.start(options)
 				if endedDriftReason then
 					setDriftActive(false, endedDriftReason)
 				end
-			elseif not context.boostActive and not context.missileHitActive and not context.thunderHitActive
+			elseif (not context.boostActive or (freshBoostPress and math.abs(steering)>=KartConfig.DRIFT_ENTRY_STEER))
+				and not context.missileHitActive and not context.thunderHitActive
 				and occupant
 				and hasValidInput
 				and driftRequested
+				and player==context.owner and player:GetAttribute('RaceState')=='RACING'
+				and (not context.boostActive or (not context.nitro.active and not context.nitro.exiting))
+				and not context.crashActive and not context.slick.active
+				and throttle>0 and deltaTime<=KartConfig.ARCADE_DRIFT.MaxStep
 				and kart:GetAttribute("KartOffTrack") ~= true
 				and context.commandedSpeed > 0
 				and driftForwardSpeed >= KartConfig.DRIFT_MIN_SPEED
-				and absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
+				and (absoluteSteering >= KartConfig.DRIFT_ENTRY_STEER
+					or (context.boostActive and freshBoostPress and math.abs(steering)>=KartConfig.DRIFT_ENTRY_STEER))
 			then
+				context.driftReentry=context.boostActive
+				stopBoost('new_drift_press')
 				resetDriftCharge()
+				enteredDrift=true
 				context.driftDriver = player
 				setDriftActive(true, "entry")
 			end
@@ -1043,7 +1069,7 @@ function PrototypeWorld.start(options)
 					startBoost(player, now)
 				end
 				resetDriftCharge()
-			elseif context.driftActive then
+			elseif context.driftActive and not enteredDrift then
 				local chargeDeltaTime = math.min(deltaTime, 0.05)
 				context.driftDuration = math.min(
 					context.driftDuration + chargeDeltaTime,
@@ -1107,6 +1133,12 @@ function PrototypeWorld.start(options)
 				forwardTargetSpeed = math.min(forwardTargetSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
 			end
 			local forwardAcceleration = if context.boostActive then KartConfig.MINI_BOOST_ACCELERATION else KartConfig.ACCELERATION
+			local angled=arcadeEnabled() and slideConfig().Angled
+			-- While angled, acceleration/deceleration acts on total planar speed.
+			-- Store commandedSpeed as the projected forward component after the solver.
+			if angled and rearSlide.planarSpeed and (rearSlide.active or rearSlide.recovering) then
+				context.commandedSpeed=math.min(planarVelocity.Magnitude,KartConfig.MINI_BOOST_MAX_SPEED)
+			end
 
 			if throttle > 0 then
 				if context.commandedSpeed < 0 then
@@ -1119,7 +1151,7 @@ function PrototypeWorld.start(options)
 					context.commandedSpeed = moveToward(
 						context.commandedSpeed,
 						forwardTargetSpeed,
-						KartConfig.DRIFT_SPEED_DECELERATION * deltaTime
+						(if context.driftReentry then KartConfig.ARCADE_DRIFT.ReentryDeceleration else KartConfig.DRIFT_SPEED_DECELERATION) * deltaTime
 					)
 				elseif not context.boostActive and not context.driftActive and not offTrack
 					and context.commandedSpeed > normalForwardCap then
@@ -1151,7 +1183,7 @@ function PrototypeWorld.start(options)
 			end
 
 			local effectiveGrip = if context.driftActive then KartConfig.DRIFT_LATERAL_GRIP else KartConfig.LATERAL_GRIP
-			local slideLateral,slideYaw,slideTarget
+			local slideLateral,slideYaw,slideTarget,slideForward
 			if arcadeEnabled() then
 				local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)
 					*math.clamp(math.abs(context.commandedSpeed)/KartConfig.MAX_FORWARD_SPEED,0,1)
@@ -1159,11 +1191,13 @@ function PrototypeWorld.start(options)
 				local safe=occupant~=nil and hasValidInput and player==context.owner and not offTrack
 					and not context.missileHitActive and not context.thunderHitActive and not context.slick.active
 					and not nitroSpeed and throttle>0 and player:GetAttribute('RaceState')=='RACING'
-				slideLateral,slideYaw,slideTarget=ArcadeDrift.step(rearSlide,KartConfig.ARCADE_DRIFT,context.commandedSpeed,
-					lateralSpeed,context.smoothedSteering,normalYaw,context.currentYawRate,deltaTime,context.driftActive,safe)
+				slideLateral,slideYaw,slideTarget,slideForward=ArcadeDrift.step(rearSlide,slideConfig(),
+					if angled then actualForwardSpeed else context.commandedSpeed,
+					lateralSpeed,context.smoothedSteering,normalYaw,context.currentYawRate,deltaTime,context.driftActive,safe,context.commandedSpeed)
 			else ArcadeDrift.clear(rearSlide) end
 			if context.missileHitActive then effectiveGrip *= RaceItemConfig.MISSILE_LATERAL_GRIP_MULTIPLIER end
 			if slideLateral~=nil then lateralSpeed=slideLateral else lateralSpeed *= math.exp(-effectiveGrip * deltaTime) end
+			if slideForward~=nil then context.commandedSpeed=slideForward end
 			if arcadeEnabled() and context.boostActive then
 				local maxLateral=math.sqrt(math.max(0,KartConfig.MINI_BOOST_MAX_SPEED^2-context.commandedSpeed^2))
 				lateralSpeed=math.clamp(lateralSpeed,-maxLateral,maxLateral)
@@ -1176,6 +1210,10 @@ function PrototypeWorld.start(options)
 			end
 			local verticalSpeed = assemblyVelocity.Y
 			local outputPlanar = forward * context.commandedSpeed + right * lateralSpeed
+			if angled and outputPlanar.Magnitude>KartConfig.MINI_BOOST_MAX_SPEED then
+				outputPlanar=outputPlanar.Unit*KartConfig.MINI_BOOST_MAX_SPEED
+				context.commandedSpeed=outputPlanar:Dot(forward)
+			end
 			if context.thunderHitActive and outputPlanar.Magnitude > RaceItemConfig.THUNDER_SPEED_CAP then
 				outputPlanar = outputPlanar.Unit * RaceItemConfig.THUNDER_SPEED_CAP
 				context.commandedSpeed = outputPlanar:Dot(forward)

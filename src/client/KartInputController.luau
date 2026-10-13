@@ -15,6 +15,7 @@ local raceItemRemote: RemoteEvent? = nil
 local touchActions = { throttle = 0, steering = 0, drift = false }
 local touchEnabled = false
 local touchUpdate: ((number) -> ())? = nil
+local touchEdgeSender: (() -> ())? = nil
 local lobbySender = nil
 local lobbyTouchReset = nil
 function KartInputController.setLobbyInputSender(sender) lobbySender = sender end
@@ -43,9 +44,13 @@ end
 -- Adapters supply gameplay actions; only this controller sends KartControl.
 -- Steering is independent of the vertical axis so a future adapter can replace it.
 function KartInputController.setTouchActions(throttle: number, steering: number, drift: boolean)
+	local driftChanged=touchActions.drift~=(drift==true)
 	touchActions.throttle = if throttle == throttle then math.clamp(throttle, -1, 1) else 0
 	touchActions.steering = if steering == steering then math.clamp(steering, -1, 1) else 0
 	touchActions.drift = drift == true
+	-- Preserve a release/press pair even when both occur between Heartbeats.
+	-- Uses the same validated KartControl transport as PC key edges.
+	if driftChanged and touchEnabled and touchEdgeSender then touchEdgeSender() end
 end
 
 function KartInputController.setTouchEnabled(enabled: boolean)
@@ -158,6 +163,7 @@ function KartInputController.start()
 		end
 	end
 
+	touchEdgeSender=function() sendInput(true) end
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		local slot = if input.KeyCode == Enum.KeyCode.One then 1
 			elseif input.KeyCode == Enum.KeyCode.Two then 2
