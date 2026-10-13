@@ -1,6 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local MemoryStoreService = game:GetService("MemoryStoreService")
+local MemoryStoreService = if game.PlaceId==0 and game:GetService("RunService"):IsStudio() then require(script.Parent:WaitForChild("StudioOfflineMemoryStore")) else game:GetService("MemoryStoreService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")

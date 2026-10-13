@@ -18,6 +18,7 @@ local LobbyLayout=require(script.Parent:WaitForChild("LobbyDriveLayout"))
 local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
 local DriftFeedback=require(script.Parent:WaitForChild("LobbyDriftFeedback"))
 local Exhaust=require(script.Parent:WaitForChild('KartWorldExhaustRenderer'))
+local EngineAB=require(script.Parent:WaitForChild('LobbyEngineAB'))
 local Controller={}
 local started=false
 function Controller.start()
@@ -28,6 +29,7 @@ function Controller.start()
  local player=Players.LocalPlayer;local token=0;local pending=nil;local suspended=false;local handoffComplete=false
  local feedback=nil
  local exhaust=nil
+ local engineAB=nil
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,diagnostic=nil,nil
  local boostCue=nil;local previousBoost=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
@@ -63,6 +65,7 @@ function Controller.start()
   remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),0,0)
  end
  local function detach()
+  if engineAB then engineAB:destroy();engineAB=nil end
   if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false
   if exhaust then exhaust:destroy();exhaust=nil end
   if feedback then feedback:destroy();feedback=nil end
@@ -157,6 +160,7 @@ function Controller.start()
    exhaust=Exhaust.new(kart)
    engine=Audio.createSound("LobbyEngineLoop",AudioConfig.ASSETS.ENGINE_LOOP,body,Audio.getGroup("RobloxKartEngine"),true,AudioConfig.ENGINE.IDLE_VOLUME,true)
    boostCue=Audio.createSound('LobbyBoostStart',AudioConfig.ASSETS.BOOST_START,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.BOOST.START_VOLUME,true)
+   engineAB=EngineAB.new(body,canvas)
    if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
   end
   if feedback then feedback:update(dt,kart:GetAttribute("LobbyDrifting")==true and not suspended and focused and not GuiService.MenuIsOpen) end
@@ -181,6 +185,7 @@ function Controller.start()
    local alpha=1-math.exp(-AudioConfig.ENGINE.RESPONSE*dt)
    if not diagnostic or not diagnostic:isFixed() then engine.PlaybackSpeed+=(math.clamp(pitch,.7,1.55)-engine.PlaybackSpeed)*alpha end
    engine.Volume+=(volume-engine.Volume)*alpha
+   if engineAB then engineAB:update(engine,engine.PlaybackSpeed,engine.Volume) end
   end
  end)
 end

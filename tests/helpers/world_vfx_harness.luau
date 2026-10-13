@@ -22,6 +22,21 @@ function methods:Emit(n)self.emitted=(self.emitted or 0)+n end
 function methods:Clear()self.cleared=true end
 function methods:GetDescendants()local out={};for _,c in self.children do table.insert(out,c);for _,v in c:GetDescendants() do table.insert(out,v) end end;return out end
 function methods:Destroy()self.Destroying:Fire();for _,c in table.clone(self.children) do c:Destroy() end;self.Parent=nil end
+function methods:Clone()
+ local c=object(self.ClassName)
+ for k,v in self.props do if k~='Parent' and k~='Destroying' and k~='DescendantAdded' and k~='DescendantRemoving' then c[k]=v end end
+ c.attrs=table.clone(self.attrs)
+ for _,o in self:GetChildren() do local x=o:Clone();x.Parent=c end
+ return c
+end
+local function assetMock(o)
+ local c=object(o.ClassName);c.Name=o.Name
+ for _,k in {'Rate','Size','Enabled','Brightness','Range','CFrame','Texture','Lifetime','Speed','Color','Transparency','LightEmission','LightInfluence','LockedToPart','Orientation'} do
+  local ok,v=pcall(function()return o[k]end);if ok then c[k]=v end
+ end
+ for _,o in o:GetChildren() do local x=assetMock(o);x.Parent=c end
+ return c
+end
 return function(racers,rounds,exercise)
  local workspace=object("Workspace")
  function workspace:Raycast(origin,_direction,_params)
@@ -37,7 +52,9 @@ return function(racers,rounds,exercise)
  local players={};for i=1,racers do local p=object("Player");p.UserId=i;p.AncestryChanged=signal();p.OnTeleport=signal();p:SetAttribute("RaceState","RACING");p:SetAttribute("RaceSessionId",1);players[i]=p end
  local run={Heartbeat=signal(),RenderStepped=signal()}
  local now=0
- local services={Workspace=workspace,Players={LocalPlayer=players[1],GetPlayerByUserId=function(_,id)return players[id] end},RunService=run}
+ local resources=assetMock(rb.deserializeModel(fs.readFile("src/assets/KDMTemplateResources.rbxmx"))[1])
+ local rs=object("ReplicatedStorage");resources.Parent=rs
+ local services={ReplicatedStorage=rs,Workspace=workspace,Players={LocalPlayer=players[1],GetPlayerByUserId=function(_,id)return players[id] end},RunService=run}
  local modules={}
  local parent={ShieldWorldRenderer="shield",KartWorldExhaustRenderer="exhaust",KartWorldSpeedRenderer="speed",KartWorldVFXController="observer"}
  local allocated=0
@@ -86,16 +103,16 @@ return function(racers,rounds,exercise)
    local model=k:FindFirstChild("KDMShieldWorld");check(model~=nil and count(k,"Model","KDMShieldWorld")==1 and count(model,"Part","EnergyShell")==1,"self and remote Shield visible without duplicate shell")
    check(count(model,"Trail")==8 and count(model,"Part","Orbit")==8,"exactly eight original orbit trails")
    check(count(k,"Trail","ShieldRear")==0 and count(k,"Attachment","ShieldRear")==0,"cancelled rear feature remains absent")
-   check(count(k,"ParticleEmitter","BoostFlame")==2,"one exhaust pair per racer")
+   check(count(k,"ParticleEmitter","RearEmitter")==2,"one exhaust pair per racer")
    local shell=model:FindFirstChild("EnergyShell");check(shell.Size.X>=14 and shell.Size.Y>=11 and shell.Size.Z>=16,"larger Shield envelope")
-   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(p.Enabled and p.Rate==40,"replicated Nitro active drives bounded remote emitter") end end
+   for _,p in k:GetDescendants() do if p.Name=="RearEmitter" then check(p.Enabled and p.Rate==80,"replicated Nitro active drives bounded remote emitter") end end
    local before=model:FindFirstChild("Orbit1").CFrame;tick(.1);check(model:FindFirstChild("Orbit1").CFrame~=before,"preserved counterrotating orbit motion")
    local alpha=shell.Transparency;players[id]:SetAttribute("RaceItemBlockedSerial",round);tick(.001);check(shell.Transparency<alpha,"remote authoritative block brightens without camera feedback")
   end
   local total=#prototype:GetDescendants();for i=1,30 do tick(.01) end;check(#prototype:GetDescendants()==total,"unchanged states allocate no instances")
   for id,k in karts do
    k:SetAttribute("KartNitroActive",false);tick(.01)
-   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(p.Enabled and p.Rate==22,"Mini Boost remains visible after Nitro ends") end end
+   for _,p in k:GetDescendants() do if p.Name=="RearEmitter" then check(p.Enabled and p.Rate==56,"Mini Boost remains visible after Nitro ends") end end
    k:SetAttribute("KartBoosting",false);k:SetAttribute("KartShieldActive",false);k:FindFirstChild("RaceItemShield"):Destroy()
   end
   tick(.01);tick(.31)
@@ -103,7 +120,7 @@ return function(racers,rounds,exercise)
    check(not k:FindFirstChild("KDMShieldWorld"),"expiry removes Shield model")
    check(count(k,"Attachment","ShieldRear")==0 and count(k,"Trail")==4,"expiry leaves Drift pair plus two disabled persistent speed trails")
    for _,p in k:GetDescendants() do if p.Name:find("KDMSpeedTrail",1,true) then check(not p.Enabled,"idle speed trails disabled independently of Shield") end end
-   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(not p.Enabled,"expired boosts stop remote emission") end end
+   for _,p in k:GetDescendants() do if p.Name=="RearEmitter" then check(not p.Enabled,"expired boosts stop remote emission") end end
   end
  end
  for id,k in karts do
@@ -120,7 +137,7 @@ return function(racers,rounds,exercise)
  tick(.01);for _,k in karts do check(not k:FindFirstChild("KDMShieldWorld") and count(k,"Trail")==0,"seat/respawn loss clears local trails") end
  for id,k in karts do k:Destroy();karts[id]=kart(id) end
  tick(.3)
- for _,k in karts do check(count(k,"ParticleEmitter","BoostFlame")==2,"replacement kart rebinds exactly one pair") end
+ for _,k in karts do check(count(k,"ParticleEmitter","RearEmitter")==2,"replacement kart rebinds exactly one pair") end
  controller.destroy();controller.destroy()
  check(run.Heartbeat.Count()==0 and prototype.DescendantAdded.Count()==0 and prototype.DescendantRemoving.Count()==0,"destroy disconnects shared observer")
  for _,k in karts do check(count(k,"ParticleEmitter")==0 and count(k,"Trail","KDMSpeed")==0 and count(k,"Attachment","KDMSpeed")==0,"destroy leaves zero emitters and speed instances") end

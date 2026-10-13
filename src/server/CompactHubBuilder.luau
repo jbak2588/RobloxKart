@@ -2,37 +2,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
 local CompactHubBuilder = {}
 
--- Stand/display + overhead location marker, using native KDM primitives only.
-local function kiosk(part,parent,name,x,z,yaw,text,icon)
- local frame=CFrame.new(x,0,z)*CFrame.Angles(0,yaw,0)
- local graphite=Color3.fromRGB(26,40,56);local cyan=Color3.fromRGB(111,211,245)
- part(parent,name..'Base',Vector3.new(5,.25,2.5),frame*CFrame.new(0,.2,0),graphite,false)
- part(parent,name..'Stand',Vector3.new(.6,2.3,.6),frame*CFrame.new(0,1.45,0),graphite,false)
- local screen=part(parent,name..'Sign',Vector3.new(5,2.6,.3),frame*CFrame.new(0,3,0),graphite,false)
- for _,face in {Enum.NormalId.Back,Enum.NormalId.Front} do
-  local surface=Instance.new('SurfaceGui');surface.Name='KioskDisplay';surface.Face=face;surface.CanvasSize=Vector2.new(600,300);surface.LightInfluence=0;surface.Parent=screen
-  local label=Instance.new('TextLabel');label.Size=UDim2.fromScale(1,1);label.BackgroundColor3=Color3.fromRGB(28,86,108);label.TextColor3=cyan
-  label.Position=UDim2.fromScale(0,.60);label.Size=UDim2.fromScale(1,.40)
-  label.Font=Enum.Font.GothamBold;label.TextScaled=true;label.Text=text;label.Parent=surface
-  local pictogram=Instance.new('Frame');pictogram.AnchorPoint=Vector2.new(.5,0);pictogram.Position=UDim2.fromScale(.5,.07);pictogram.Size=UDim2.fromOffset(130,145);pictogram.BackgroundTransparency=1;pictogram.Parent=surface
-  local function tile(x,y,w,h,color)
-   local f=Instance.new('Frame');f.Position=UDim2.fromOffset(x,y);f.Size=UDim2.fromOffset(w,h);f.BackgroundColor3=color;f.BorderSizePixel=0;f.Parent=pictogram;return f
-  end
-  if text=='SELECT KART' then
-   tile(25,25,80,90,cyan);for _,x in {10,105} do tile(x,30,15,30,Theme.Panel);tile(x,80,15,30,Theme.Panel) end
-   tile(40,45,50,20,Theme.Panel)
-  elseif text=='SELECT TRACK' then
-   tile(25,20,80,105,cyan);tile(40,35,50,75,Theme.Panel)
-  else
-   tile(15,20,10,120,cyan);for x=0,3 do for y=0,2 do tile(25+x*22,20+y*22,22,22,if (x+y)%2==0 then cyan else Theme.Panel) end end
-  end
+-- Exact script-free kiosk mesh/display/marker extracted from the supplied template.
+local function kiosk(part,parent,name,x,z,yaw,text,_icon)
+ local anchor=part(parent,name..'KioskAnchor',Vector3.new(.1,.1,.1),CFrame.new(x,0,z)*CFrame.Angles(0,yaw,0),Theme.Panel,false)
+ anchor.Transparency=1
+ local template=ReplicatedStorage:WaitForChild('KDMTemplateResources'):WaitForChild('Kiosk')
+ local model=template:Clone();model.Name=name..'Kiosk'
+ for _,o in model:GetDescendants() do
+  if o:IsA('BasePart') then o.Anchored=true;o.CanCollide=false;o.CanTouch=false;o.CanQuery=false end
+  if o:IsA('TextLabel') and o.Text=='SPAWN CAR' then o.Text=text;o.AutoLocalize=false end
  end
- local marker=Instance.new('BillboardGui');marker.Name='KioskMarker';marker.Size=UDim2.fromOffset(190,84);marker.StudsOffsetWorldSpace=Vector3.new(0,4.5,0)
- marker.MaxDistance=100;marker.AlwaysOnTop=false;marker.Parent=screen
- local bubble=Instance.new('TextLabel');bubble.Size=UDim2.fromScale(1,.6);bubble.BackgroundColor3=graphite;bubble.BackgroundTransparency=.12;bubble.Text=text
- bubble.TextColor3=Color3.fromRGB(235,246,250);bubble.Font=Enum.Font.GothamBold;bubble.TextScaled=true;bubble.Parent=marker
- local round=Instance.new('UICorner');round.CornerRadius=UDim.new(0,10);round.Parent=bubble
- local pin=Instance.new('TextLabel');pin.Position=UDim2.fromScale(0,.6);pin.Size=UDim2.fromScale(1,.4);pin.BackgroundTransparency=1;pin.Text='◉';pin.TextColor3=cyan;pin.TextScaled=true;pin.Parent=marker
+ local pivot=model:GetPivot()
+ model:PivotTo(CFrame.new(anchor.Position)*CFrame.Angles(0,math.pi/2,0)*pivot.Rotation)
+ local box,size=model:GetBoundingBox()
+ model:PivotTo(model:GetPivot()+Vector3.new(0,anchor.Position.Y-(box.Position.Y-size.Y/2),0))
+ model.Parent=parent
 end
 
 -- Provisional foundation footprint, relative to the existing safe PlayerSpawn.

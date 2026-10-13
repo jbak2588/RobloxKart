@@ -125,24 +125,18 @@ local function makeCruiseFlame(attachment: Attachment): ParticleEmitter
 	return flame
 end
 
--- Audited buggy Rear/Spark/Glow settings scaled to kart exhaust anchors.
--- Only Roblox built-in textures; no template scripts or external flame assets.
+-- Clone actual template ParticleEmitter/PointLight children, not a reconstruction.
 local function makeFlames(point,legacy)
- if legacy then return {makeLegacyFlame(point)} end
- local result={}
- for i,layer in {'Rear','Spark','Glow'} do
-  local f=Instance.new('ParticleEmitter');f.Name=if i==1 then 'BoostFlame' else 'Boost'..layer
-  f.Enabled=false;f.Rate=0;f.LightEmission=1;f.LightInfluence=0
-  f.Texture=if i==1 then SMOKE_TEXTURE else 'rbxasset://textures/particles/sparkles_main.dds'
-  f.Lifetime=NumberRange.new(.10,.15);f.Speed=if i==3 then NumberRange.new(0) else NumberRange.new(22)
-  f.LockedToPart=true;f.EmissionDirection=Enum.NormalId.Back;f.SpreadAngle=Vector2.new(if i==1 then 15 elseif i==2 then 10 else 0,10)
-  f.Orientation=if i==3 then Enum.ParticleOrientation.FacingCamera else Enum.ParticleOrientation.VelocityParallel
-  f.Rotation=NumberRange.new(90);f.Color=ColorSequence.new(Color3.fromRGB(202,244,255),Color3.fromRGB(28,107,255))
-  f.Size=NumberSequence.new(if i==3 then 1.0 else .55)
-  f.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(.14,0),NumberSequenceKeypoint.new(.70,.12),NumberSequenceKeypoint.new(1,1)})
-  f:SetAttribute('FlameLayer',i);f.Parent=point;table.insert(result,f)
+ if legacy then return {makeLegacyFlame(point)},{} end
+ local role=point:GetAttribute('EffectRole')
+ local template=game:GetService('ReplicatedStorage'):WaitForChild('KDMTemplateResources'):WaitForChild(if role=='ExhaustLeft' then 'LeftNitroEmitterAttachment' else 'RightNitroEmitterAttachment')
+ local attachment=template:Clone();attachment.Name='TemplateNitro';attachment.CFrame=CFrame.identity;attachment.Parent=point
+ local flames,lights={},{}
+ for _,o in attachment:GetChildren() do
+  if o:IsA('ParticleEmitter') then o:SetAttribute('TemplateRate',o.Rate);o.Enabled=false;table.insert(flames,o) end
+  if o:IsA('PointLight') then o.Enabled=false;table.insert(lights,o) end
  end
- return result
+ return flames,lights,attachment
 end
 
 local Renderer = {}
@@ -156,6 +150,7 @@ function Renderer.new(kart)
  end
  if not wheels.Left or not wheels.Right or not anchors.ExhaustLeft or not anchors.ExhaustRight then return nil end
  local attachments, smokes, trails, flames, cruiseFlames = {}, {}, {}, {}, {}
+ local lights={}
  local contacts={}
  local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude;params.FilterDescendantsInstances={kart}
  for _, wheel in visual:GetDescendants() do
@@ -177,7 +172,11 @@ function Renderer.new(kart)
  for _, point in visual:GetDescendants() do
   local role=point:GetAttribute("EffectRole")
   if point:IsA("Attachment") and (role=="ExhaustLeft" or role=="ExhaustRight") then
-   for _,f in makeFlames(point,kart:GetAttribute("KDMUseLegacyExhaust")==true) do table.insert(flames,f) end;table.insert(cruiseFlames,makeCruiseFlame(point))
+   local fs,ls,a=makeFlames(point,kart:GetAttribute("KDMUseLegacyExhaust")==true)
+   for _,f in fs do table.insert(flames,f) end
+   for _,l in ls do table.insert(lights,l) end
+   if a then table.insert(attachments,a) end
+   table.insert(cruiseFlames,makeCruiseFlame(point))
   end
  end
  local record={flames=flames,smokes=smokes,trails=trails,attachments=attachments,cruise=cruiseFlames}
@@ -222,15 +221,10 @@ function Renderer.new(kart)
   local nitro=enabled and not off and kart:GetAttribute("KartNitroActive")==true
   local boost=enabled and kart:GetAttribute("KartBoosting")==true
   local drift=enabled and not off and kart:GetAttribute("KartDrifting")==true
-  if boost and not previousBoost then for _,f in flames do f:Emit(12) end end
+
   if nitro~=previousNitro or boost~=previousBoost then
    for _,f in flames do
-    local layer=f:GetAttribute("FlameLayer") or 1
-    f.Rate=if layer==3 then (if nitro then 18 else 10) else (if nitro then 40 else 22)
-    f.LightEmission=if nitro then 1 else .85
-    f.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,if layer==3 then (if nitro then 1.3 else .85) else (if nitro then .75 else .5)),NumberSequenceKeypoint.new(1,.06)})
-    f.Enabled=nitro or boost
-    if not f.Enabled then f:Clear() end
+    if not nitro and not boost then f:Clear() end
    end
   end
   if not enabled then
@@ -252,10 +246,11 @@ function Renderer.new(kart)
   local distance=if camera then (camera.CFrame.Position-chassis.Position).Magnitude else 0
   local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
   for _,f in flames do
-   local layer=f:GetAttribute('FlameLayer') or 1
-   f.Rate=(if layer==3 then (if nitro then 18 else 10) else (if nitro then 40 else 22))*lod
+   -- Full original template profile for Nitro; Mini Boost uses 70% density.
+   f.Rate=(f:GetAttribute('TemplateRate') or 30)*(if nitro then 1 else .7)*lod
    f.Enabled=(nitro or boost) and lod>0
   end
+  for _,l in lights do l.Enabled=(nitro or boost) and lod>0 end
   local rate=if drift then math.clamp((slip-8)*.8,0,28)*lod else 0
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt

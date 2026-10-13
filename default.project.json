@@ -4,6 +4,9 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
+      "KDMTemplateResources": {
+        "$path": "src/assets/KDMTemplateResources.rbxmx"
+      },
       "Shared": {
         "$path": "src/shared"
       }

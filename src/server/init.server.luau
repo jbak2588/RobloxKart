@@ -15,7 +15,7 @@ local PlayerPreferences = require(script:WaitForChild("PlayerPreferences"))
 local MatchRoomService = require(script:WaitForChild("MatchRoomService"))
 local RaceRoomCoordinator = require(script:WaitForChild("RaceRoomCoordinator"))
 local KDMServerPresence = require(script:WaitForChild("KDMServerPresence"))
-local MemoryStoreService = game:GetService("MemoryStoreService")
+local MemoryStoreService = if game.PlaceId==0 and game:GetService("RunService"):IsStudio() then require(script:WaitForChild("StudioOfflineMemoryStore")) else game:GetService("MemoryStoreService")
 local HttpService = game:GetService("HttpService")
 
 local firstPlayer

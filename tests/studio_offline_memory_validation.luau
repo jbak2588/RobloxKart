@@ -1,0 +1,17 @@
+local fs,luau=require('@lune/fs'),require('@lune/luau')
+local source=fs.readFile('src/server/StudioOfflineMemoryStore.luau')
+local now=0
+local function load(place,studio)
+ return luau.load(source,{environment={game={PlaceId=place,GetService=function()return {IsStudio=function()return studio end}end},os={clock=function()return now end}}})()
+end
+assert(not pcall(load,123,true),'published Studio cannot enter offline adapter')
+assert(not pcall(load,0,false),'live runtime cannot enter offline adapter')
+local service=load(0,true);local m=service:GetSortedMap('list')
+m:SetAsync('a',{value=1},5);assert(m:GetAsync('a').value==1)
+assert(service:GetSortedMap('list')==m)
+m:UpdateAsync('a',function(v)return {value=v.value+1}end,5)
+assert(m:GetAsync('a').value==2 and #m:GetRangeAsync(nil,4)==1)
+now=6;assert(m:GetAsync('a')==nil and #m:GetRangeAsync(nil,4)==0)
+local h=service:GetHashMap('invite');h:SetAsync('x',true,5);h:RemoveAsync('x');assert(h:GetAsync('x')==nil)
+assert(not source:find('DataStore',1,true),'no persistent store access')
+print('PASS: offline Studio guard, live rejection, TTL/update/remove/map isolation')
