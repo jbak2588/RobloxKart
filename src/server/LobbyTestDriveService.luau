@@ -9,6 +9,7 @@ local Geometry=require(Shared:WaitForChild("LobbyDriveGeometry")).create(Policy)
 local KartConfig=require(Shared:WaitForChild("KartConfig"))
 local Catalog=require(Shared:WaitForChild("KartCatalog"))
 local Factory=require(Shared:WaitForChild("KartVisualFactory"))
+local Drift=require(script.Parent.LobbyDriftSession)
 local Service={}
 local records,generations,bindings,lastRequest={},{},{},{}
 local closing={}
@@ -153,7 +154,7 @@ local function drive(player)
  local ok,kart,body,seat=pcall(createKart,player,definition,frame)
  if not ok then player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
  local record={kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
-  throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,slot=slot,seated=false}
+  throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,slot=slot,seated=false,training=Drift.new()}
  records[player]=record
  record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
   local occupant=seat.Occupant
@@ -212,7 +213,9 @@ function Service.start(driveZone,eligibility)
    if not r or not r.seated or id~=r.generation or not Policy.validAxes(first,second)
     or player.Character~=r.character or r.humanoid.Health<=0 or r.seat.Occupant~=r.humanoid or r.humanoid.SeatPart~=r.seat
     or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH" then return end
-   if os.clock()-r.lastInput<1/90 then return end
+   -- Preserve release/press edges even between regular input packets, as in race.
+   if os.clock()-r.lastInput<1/90 and (drift==true)==r.drift then return end
+   Drift.input(r.training,drift==true,os.clock(),os.clock()-r.lastInput<=Policy.InputTimeout)
    r.throttle,r.steering,r.lastInput=math.clamp(first,-1,1),math.clamp(second,-1,1),os.clock();r.drift=drift==true;return
   end
   if type(id)~="number" or id~=id or id<0 or id>1e9 or id%1~=0 then return end
@@ -237,18 +240,22 @@ function Service.start(driveZone,eligibility)
    local body=r.body;local pos=body.Position;local c=zone:GetAttribute("Center")
    if not inside(pos,0) or pos.Y<c.Y-4 or pos.Y>c.Y+18 or body.CFrame.UpVector.Y<.55 then
     body.AssemblyLinearVelocity=Vector3.zero;body.AssemblyAngularVelocity=Vector3.zero
-    r.kart:PivotTo(r.safe);r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;r.kart:SetAttribute("LobbyDrifting",false)
+    r.kart:PivotTo(r.safe);r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
     player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1);continue
    end
    local throttle,steering=r.throttle,r.steering
-   local drifting=r.drift==true and math.abs(r.speed)>8 and math.abs(steering)>.1
+   local drifting=false
    if os.clock()-r.lastInput>Policy.InputTimeout then throttle,steering,drifting=0,0,false end
    local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit
    local right=Vector3.new(-f.Z,0,f.X)
    local physical=Vector3.new(body.AssemblyLinearVelocity.X,0,body.AssemblyLinearVelocity.Z)
    -- Respect actual wall stops: never keep accelerating into a rail with stale commanded speed.
    if math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then r.speed=physical:Dot(f) end
-   r.speed=Policy.advance(r.speed,throttle,dt)
+   if throttle<=0 then
+    local target=if throttle<0 then -Policy.Reverse*-throttle else 0
+    local rate=if throttle<0 then Policy.Brake else Policy.Coast
+    r.speed+=math.clamp(target-r.speed,-rate*dt,rate*dt)
+   end
    local now=os.clock()
    local localPos=pos-c
    local clearance,nx,nz=Geometry.contact(localPos.X,localPos.Z)
@@ -281,16 +288,22 @@ function Service.start(driveZone,eligibility)
      local alignment=math.clamp(headingError*16,-12,12)
      body.AssemblyAngularVelocity=Vector3.new(0,r.crashSpin*spinWeight+alignment*(1-spinWeight),0)
     end
-    r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartVisualSteering",0);continue
+    Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0);r.kart:SetAttribute("KartVisualSteering",0);continue
    end
-   -- Lobby Drift keeps normal grip and speed; only its turn radius is reduced.
-   local lateral=right*(physical:Dot(right)*math.exp(-6*dt))
-   local velocity=f*r.speed+lateral
+   -- Use the approved race slide solver; training owns only transient charge.
+   local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)*math.clamp(math.abs(r.speed)/KartConfig.MAX_FORWARD_SPEED,0,1)
+   local normalYaw=-r.training.steer*r.speed/radius
+   if r.training.slide.active or r.training.slide.recovering then r.speed=math.min(physical.Magnitude,KartConfig.MINI_BOOST_MAX_SPEED) end
+   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,Policy.Forward)
+   if budget then r.speed=budget end
+   drifting=r.training.active
+   local lateral=right*(slideLateral or (physical:Dot(right)*math.exp(-KartConfig.LATERAL_GRIP*dt)))
+   local velocity=f*(projected or r.speed)+lateral
    local nearWall=clearance<=Policy.EscapeClearance
    if nearWall and math.abs(f:Dot(normal))<=Policy.GlancingNormal then
     local x,z=Policy.slide(velocity.X,velocity.Z,nx,nz);velocity=Vector3.new(x,0,z)
    end
-   if velocity.Magnitude>Policy.Forward then velocity=velocity.Unit*Policy.Forward end
+   if velocity.Magnitude>KartConfig.MINI_BOOST_MAX_SPEED then velocity=velocity.Unit*KartConfig.MINI_BOOST_MAX_SPEED end
    -- At most three small server corrections per contact episode. Every proposed
    -- position clears the complete rectangular chassis and the concave outline.
    if nearWall and physical.Magnitude<Policy.EscapeSpeed and (math.abs(throttle)>.1 or math.abs(steering)>.1) then
@@ -306,22 +319,25 @@ function Service.start(driveZone,eligibility)
       r.kart:SetAttribute("LobbyEscapeSerial",(r.kart:GetAttribute("LobbyEscapeSerial") or 0)+1)
       r.kart:SetAttribute("LobbyEscapeDistance",distance)
      else
-      r.kart:PivotTo(r.safe);r.speed,r.yaw=0,0;velocity=Vector3.zero;r.escapeCount=Policy.EscapeLimit
+      r.kart:PivotTo(r.safe);r.speed,r.yaw=0,0;velocity=Vector3.zero;r.escapeCount=Policy.EscapeLimit;Drift.clear(r.training)
       player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1)
      end
     end
    else r.stuckTime=0 end
    if clearance>Policy.EscapeClearance+4 then r.escapeCount=0 end
    body.AssemblyLinearVelocity=velocity+Vector3.new(0,body.AssemblyLinearVelocity.Y,0)
-   local target=if math.abs(r.speed)>2 then -steering*math.abs(r.speed)/Policy.turnRadius(drifting)*math.sign(r.speed) else 0
+   local target=if math.abs(r.speed)>2 then -r.training.steer*math.abs(r.speed)/radius*math.sign(r.speed) else 0
    if nearWall and physical.Magnitude<Policy.EscapeSpeed and math.abs(steering)>.1 then
     local direction=if math.abs(r.speed)>.1 then math.sign(r.speed) elseif throttle<0 then -1 else 1
     local assist=Policy.escapeSteering(f.X,f.Z,nx,nz,steering,direction)
     if assist~=0 then target=assist end
    end
-   r.yaw+=(target-r.yaw)*(1-math.exp(-6*dt));body.AssemblyAngularVelocity=Vector3.new(0,r.yaw,0)
+   r.yaw=slideYaw or (r.yaw+math.clamp(target-r.yaw,-KartConfig.YAW_ACCELERATION*dt,KartConfig.YAW_ACCELERATION*dt));body.AssemblyAngularVelocity=Vector3.new(0,r.yaw,0)
    r.kart:SetAttribute("KartVisualSteering",steering)
    r.kart:SetAttribute("LobbyDrifting",drifting)
+   r.kart:SetAttribute("KartDrifting",drifting);r.kart:SetAttribute("KartBoosting",r.training.boost)
+   r.kart:SetAttribute("LobbyDriftReady",r.training.ready)
+   r.kart:SetAttribute("LobbyDriftCharge",math.min(r.training.duration/KartConfig.DRIFT_CHARGE_MIN_DURATION,r.training.qualified/KartConfig.DRIFT_CHARGE_REQUIRED_TIME))
    if inside(pos,Policy.FootprintMargin+4) and math.abs(pos.Y-(c.Y+1.75))<3 and body.CFrame.UpVector.Y>.95 then r.safe=body.CFrame end
   end
  end)

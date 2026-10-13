@@ -1,3 +1,4 @@
+local training=require('./helpers/lobby_drift_session')
 local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox')
 local policy=luau.load(fs.readFile('src/shared/LobbyDrivePolicy.luau'))()
 local geometry=luau.load(fs.readFile('src/shared/LobbyDriveGeometry.luau'))().create(policy)
@@ -12,8 +13,8 @@ local workspace={GetAttribute=function(_,k)return if k=='KDMServerRole' then 'HU
 local shared={WaitForChild=function(_,name)return {Name=name}end}
 local rs={WaitForChild=function()return shared end}
 local source=fs.readFile('src/server/LobbyTestDriveService.luau'):gsub('return Service%s*$','Service.inject=function(player,record) records[player]=record end;return Service')
-local modules={LobbyDrivePolicy=policy,LobbyDriveGeometry={create=function()return geometry end},KartConfig=config,KartCatalog={},KartVisualFactory={}}
-local service=luau.load(source,{environment={game={PrivateServerId='',GetService=function(_,name)return ({Players=players,ReplicatedStorage=rs,RunService=run,PhysicsService=physics,Workspace=workspace})[name]end},require=function(m)return modules[m.Name]end,Instance={new=function()return {OnServerEvent=signal}end},Vector3=rb.Vector3,CFrame=rb.CFrame,os={clock=function()return now end}}})()
+local modules={LobbyDrivePolicy=policy,LobbyDriveGeometry={create=function()return geometry end},KartConfig=config,KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
+local service=luau.load(source,{environment={script={Parent={LobbyDriftSession={Name='LobbyDriftSession'}}},game={PrivateServerId='',GetService=function(_,name)return ({Players=players,ReplicatedStorage=rs,RunService=run,PhysicsService=physics,Workspace=workspace})[name]end},require=function(m)return modules[m.Name]end,Instance={new=function()return {OnServerEvent=signal}end},Vector3=rb.Vector3,CFrame=rb.CFrame,os={clock=function()return now end}}})()
 local center=rb.Vector3.new(120,0,766)
 local zone={Destroying=signal,GetAttribute=function()return center end}
 service.start(zone)
@@ -27,7 +28,7 @@ local kart={SetAttribute=function(_,k,v)kartAttrs[k]=v end,GetAttribute=function
  table.insert(pivots,{distance=(cf.Position-body.Position).Magnitude,time=now});body.CFrame=cf;body.Position=cf.Position
 end}
 local safe=rb.CFrame.new(200,1.75,910)
-local r={seated=true,body=body,kart=kart,seat=seat,humanoid=humanoid,character=character,speed=0,yaw=0,throttle=0,steering=1,lastInput=0,safe=safe}
+local r={seated=true,body=body,kart=kart,seat=seat,humanoid=humanoid,character=character,training=training.new(),speed=0,yaw=0,throttle=0,steering=1,lastInput=0,safe=safe}
 service.inject(player,r)
 for i=1,7 do now=i*.05;r.lastInput=now;heartbeat(.05) end
 check(#pivots==1 and pivots[1].distance<=3,'real heartbeat delays then applies bounded escape')
@@ -49,10 +50,10 @@ check(body.AssemblyLinearVelocity.Magnitude==0,'fallback creates no velocity')
 r.throttle,r.steering,r.speed,r.yaw=1,1,60,0;body.CFrame=safe;body.Position=safe.Position;body.AssemblyLinearVelocity=rb.Vector3.new(0,0,-60)
 for _=1,100 do now+=.05;r.lastInput=now;heartbeat(.05)end
 -- Roblox Vector3 stores float32; the expected -1.2 rounds to -1.20000004768.
-check(math.abs(body.AssemblyAngularVelocity.Y+60/50)<1e-6,'normal turn radius 50 unchanged by escape assist')
-r.drift=true;r.yaw=0
+check(math.abs(body.AssemblyAngularVelocity.Y+60/(22+63*60/70))<1e-6,'race-config normal radius shared with training')
+r.drift=true;r.yaw=0;training.input(r.training,true,now,true)
 for _=1,100 do now+=.05;r.lastInput=now;heartbeat(.05)end
-check(math.abs(body.AssemblyAngularVelocity.Y+60/35)<1e-6,'Drift turn radius 35 unchanged')
+check(r.training.active and math.abs(body.AssemblyAngularVelocity.Y)<=config.ARCADE_DRIFT.MaxYawRate,'real shared slide active and yaw bounded')
 -- Real heartbeat shallow-contact projection: no crash, no outward command, no overspeed.
 body.CFrame=rb.CFrame.new(120,1.75,683.5)*rb.CFrame.Angles(0,-math.pi/2+math.rad(20),0);body.Position=body.CFrame.Position
 body.AssemblyLinearVelocity=body.CFrame.LookVector*60;r.speed=60;r.steering=0;r.drift=false;r.yaw=0

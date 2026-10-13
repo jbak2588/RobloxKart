@@ -2,6 +2,39 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
 local CompactHubBuilder = {}
 
+-- Stand/display + overhead location marker, using native KDM primitives only.
+local function kiosk(part,parent,name,x,z,yaw,text,icon)
+ local frame=CFrame.new(x,0,z)*CFrame.Angles(0,yaw,0)
+ local graphite=Color3.fromRGB(26,40,56);local cyan=Color3.fromRGB(111,211,245)
+ part(parent,name..'Base',Vector3.new(5,.25,2.5),frame*CFrame.new(0,.2,0),graphite,false)
+ part(parent,name..'Stand',Vector3.new(.6,2.3,.6),frame*CFrame.new(0,1.45,0),graphite,false)
+ local screen=part(parent,name..'Sign',Vector3.new(5,2.6,.3),frame*CFrame.new(0,3,0),graphite,false)
+ for _,face in {Enum.NormalId.Back,Enum.NormalId.Front} do
+  local surface=Instance.new('SurfaceGui');surface.Name='KioskDisplay';surface.Face=face;surface.CanvasSize=Vector2.new(600,300);surface.LightInfluence=0;surface.Parent=screen
+  local label=Instance.new('TextLabel');label.Size=UDim2.fromScale(1,1);label.BackgroundColor3=Color3.fromRGB(28,86,108);label.TextColor3=cyan
+  label.Position=UDim2.fromScale(0,.60);label.Size=UDim2.fromScale(1,.40)
+  label.Font=Enum.Font.GothamBold;label.TextScaled=true;label.Text=text;label.Parent=surface
+  local pictogram=Instance.new('Frame');pictogram.AnchorPoint=Vector2.new(.5,0);pictogram.Position=UDim2.fromScale(.5,.07);pictogram.Size=UDim2.fromOffset(130,145);pictogram.BackgroundTransparency=1;pictogram.Parent=surface
+  local function tile(x,y,w,h,color)
+   local f=Instance.new('Frame');f.Position=UDim2.fromOffset(x,y);f.Size=UDim2.fromOffset(w,h);f.BackgroundColor3=color;f.BorderSizePixel=0;f.Parent=pictogram;return f
+  end
+  if text=='SELECT KART' then
+   tile(25,25,80,90,cyan);for _,x in {10,105} do tile(x,30,15,30,Theme.Panel);tile(x,80,15,30,Theme.Panel) end
+   tile(40,45,50,20,Theme.Panel)
+  elseif text=='SELECT TRACK' then
+   tile(25,20,80,105,cyan);tile(40,35,50,75,Theme.Panel)
+  else
+   tile(15,20,10,120,cyan);for x=0,3 do for y=0,2 do tile(25+x*22,20+y*22,22,22,if (x+y)%2==0 then cyan else Theme.Panel) end end
+  end
+ end
+ local marker=Instance.new('BillboardGui');marker.Name='KioskMarker';marker.Size=UDim2.fromOffset(190,84);marker.StudsOffsetWorldSpace=Vector3.new(0,4.5,0)
+ marker.MaxDistance=100;marker.AlwaysOnTop=false;marker.Parent=screen
+ local bubble=Instance.new('TextLabel');bubble.Size=UDim2.fromScale(1,.6);bubble.BackgroundColor3=graphite;bubble.BackgroundTransparency=.12;bubble.Text=text
+ bubble.TextColor3=Color3.fromRGB(235,246,250);bubble.Font=Enum.Font.GothamBold;bubble.TextScaled=true;bubble.Parent=marker
+ local round=Instance.new('UICorner');round.CornerRadius=UDim.new(0,10);round.Parent=bubble
+ local pin=Instance.new('TextLabel');pin.Position=UDim2.fromScale(0,.6);pin.Size=UDim2.fromScale(1,.4);pin.BackgroundTransparency=1;pin.Text='◉';pin.TextColor3=cyan;pin.TextScaled=true;pin.Parent=marker
+end
+
 -- Provisional foundation footprint, relative to the existing safe PlayerSpawn.
 local function buildFallback(workspace, playerSpawn)
  if workspace:GetAttribute("KDMServerRole") ~= "HUB" then return nil end
@@ -43,7 +76,7 @@ local function buildFallback(workspace, playerSpawn)
   local station = part(stations, definition[1], Vector3.new(20, .3, 16), CFrame.new(definition[3], 1.15, definition[4]), Theme.Panel, true)
   station:SetAttribute("HubAction", definition[2])
   local board = part(visuals, definition[1] .. "Sign", Vector3.new(20, 5, .5), CFrame.new(definition[3], 4, definition[4]-7), Theme.Panel, false)
-  sign(board, if definition[2] == "RACE" then "RACE • SELECT TRACK" else definition[2])
+  sign(board, if definition[2] == "RACE" then "RACE â€¢ SELECT TRACK" else definition[2])
   local prompt = Instance.new("ProximityPrompt")
   prompt.Name, prompt.ActionText, prompt.ObjectText = "HubPrompt", "OPEN", definition[2]
   prompt.HoldDuration, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = 0, 12, false
@@ -146,10 +179,7 @@ function CompactHubBuilder.build(workspace, playerSpawn)
    prompt.Name,prompt.ActionText,prompt.ObjectText="HubPrompt","OPEN",d[2]
    prompt.HoldDuration,prompt.MaxActivationDistance,prompt.RequiresLineOfSight=0,12,false
    prompt.Parent=station
-   local board=sign(d[1].."Sign",if d[2]=="RACE" then "RACE / SELECT TRACK" else d[2],d[4],5,d[5],10,2.4,math.pi/2)
-   local reverse=board:FindFirstChildOfClass("SurfaceGui"):Clone()
-   reverse.Name,reverse.Face="ReverseSign",Enum.NormalId.Front
-   reverse.Parent=board
+   kiosk(part,visuals,d[1],d[4],d[5],math.pi/2,if d[2]=='GARAGE' then 'SELECT KART' elseif d[2]=='TRACKS' then 'SELECT TRACK' else 'SELECT RACE',if d[2]=='GARAGE' then '▰' elseif d[2]=='TRACKS' then '↝' else '⚑')
   end
   -- BAY labels were decorative and did not identify functional destinations.
   -- Arcade lettering is actual raised geometry, without a backing panel.

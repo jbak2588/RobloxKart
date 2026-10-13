@@ -7,6 +7,7 @@ local GuiService=game:GetService("GuiService")
 local PromptService=game:GetService("ProximityPromptService")
 local Shared=RS:WaitForChild("Shared")
 local Policy=require(Shared:WaitForChild("LobbyDrivePolicy"))
+local KartConfig=require(Shared:WaitForChild('KartConfig'))
 local Motion=require(Shared:WaitForChild("ChaseCameraMotion"))
 local AudioConfig=require(Shared:WaitForChild("AudioConfig"))
 local Audio=require(script.Parent:WaitForChild("AudioRuntime"))
@@ -16,16 +17,19 @@ local Garage=require(script.Parent:WaitForChild("GarageUiController"))
 local LobbyLayout=require(script.Parent:WaitForChild("LobbyDriveLayout"))
 local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
 local DriftFeedback=require(script.Parent:WaitForChild("LobbyDriftFeedback"))
+local Exhaust=require(script.Parent:WaitForChild('KartWorldExhaustRenderer'))
 local Controller={}
 local started=false
 function Controller.start()
- if started or Workspace:GetAttribute("KDMServerRole")~="HUB" or game.PrivateServerId~=""
+ if started or Workspace:GetAttribute("KDMServerRole")~="HUB"
   or Workspace:GetAttribute("KDMEnableRaceBot")==true then return end
  local remote=RS:WaitForChild("LobbyDriveControl",10);if not remote then return end
  started=true
  local player=Players.LocalPlayer;local token=0;local pending=nil;local suspended=false;local handoffComplete=false
  local feedback=nil
+ local exhaust=nil
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,diagnostic=nil,nil
+ local boostCue=nil;local previousBoost=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
  local entryPrompt=driveZone:WaitForChild("LobbyFrontDriveEntry"):FindFirstChildOfClass("ProximityPrompt")
  local gui=Instance.new("ScreenGui");gui.Name="KDMLobbyTestDrive";gui.ResetOnSpawn=false
@@ -36,6 +40,12 @@ function Controller.start()
  button.BackgroundColor3=Color3.fromRGB(111,211,245);button.TextColor3=Color3.fromRGB(12,27,42)
  button.Font=Enum.Font.GothamBold;button.TextSize=17;button.BorderSizePixel=0;button.Text="DRIVE";button.Parent=canvas
  local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(0,8);corner.Parent=button
+ local charge=Instance.new('TextLabel');charge.Name='DriftCharge';charge.BackgroundTransparency=1
+ charge.Position=UDim2.fromOffset(12,12);charge.Size=UDim2.fromOffset(260,28)
+ charge.Font=Enum.Font.GothamBold;charge.TextSize=16;charge.TextColor3=Color3.fromRGB(235,246,250);charge.TextStrokeTransparency=.35;charge.Parent=canvas
+ local gauge=Instance.new('Frame');gauge.Name='TrainingChargeGauge';gauge.BackgroundTransparency=1;gauge.Position=UDim2.fromOffset(12,44);gauge.Size=UDim2.fromOffset(230,9);gauge.Parent=canvas
+ local segments={}
+ for i=1,5 do local segment=Instance.new('Frame');segment.BorderSizePixel=0;segment.Size=UDim2.fromOffset(42,9);segment.Position=UDim2.fromOffset((i-1)*46,0);segment.Parent=gauge;segments[i]=segment end
  local status=Instance.new("TextLabel");status.Name="Status";status.AnchorPoint=Vector2.new(0,1)
  status.Position=UDim2.new(0,12,1,-60);status.Size=UDim2.fromOffset(240,24)
  status.BackgroundColor3=Color3.fromRGB(19,39,54);status.BackgroundTransparency=.15
@@ -47,11 +57,14 @@ function Controller.start()
   return nil,nil
  end
  local function neutral()
+  if exhaust then exhaust:update(0,false) end
   if feedback then feedback:update(0,false) end
   suspended=true;Input.resetTouchActions();Input.resetLobbyTouchState()
   remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),0,0)
  end
  local function detach()
+  if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false
+  if exhaust then exhaust:destroy();exhaust=nil end
   if feedback then feedback:destroy();feedback=nil end
   if engine then engine:Stop();engine:Destroy();engine=nil end
   if diagnostic then diagnostic:destroy();diagnostic=nil end
@@ -119,6 +132,8 @@ function Controller.start()
    and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled)
   button.Visible=active
   button.Text=if pending then "PLEASE WAIT" else "EXIT KART"
+  charge.Visible=active
+  gauge.Visible=active
   local touch=gui.Parent:FindFirstChild("RobloxKartTouchDriving")
   local controls=touch and touch:FindFirstChild("Controls")
   local driftButton=controls and controls:FindFirstChild("Drift")
@@ -139,19 +154,33 @@ function Controller.start()
   if body~=cameraBody then
    detach();cameraBody=body;savedFov=camera.FieldOfView;previousTarget=nil
    feedback=DriftFeedback.new(body,kart,driveZone)
+   exhaust=Exhaust.new(kart)
    engine=Audio.createSound("LobbyEngineLoop",AudioConfig.ASSETS.ENGINE_LOOP,body,Audio.getGroup("RobloxKartEngine"),true,AudioConfig.ENGINE.IDLE_VOLUME,true)
+   boostCue=Audio.createSound('LobbyBoostStart',AudioConfig.ASSETS.BOOST_START,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.BOOST.START_VOLUME,true)
    if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
   end
   if feedback then feedback:update(dt,kart:GetAttribute("LobbyDrifting")==true and not suspended and focused and not GuiService.MenuIsOpen) end
+  if exhaust then exhaust:update(dt,not suspended and focused and not GuiService.MenuIsOpen) end
+  local boosting=kart:GetAttribute('KartBoosting')==true
+  if boosting and not previousBoost then Audio.playOnce(boostCue) end
+  if not boosting and previousBoost then Audio.stop(boostCue) end
+  previousBoost=boosting
+  charge.Text=if kart:GetAttribute('KartBoosting') then 'MINI BOOST' elseif kart:GetAttribute('LobbyDriftReady') then 'DRIFT READY • RELEASE' else string.format('DRIFT CHARGE %d%%',math.floor((kart:GetAttribute('LobbyDriftCharge') or 0)*100))
+  for i,segment in segments do segment.BackgroundColor3=if kart:GetAttribute('LobbyDriftReady') then Color3.fromRGB(255,218,67) elseif (kart:GetAttribute('LobbyDriftCharge') or 0)*5>=i then Color3.fromRGB(111,211,245) else Color3.fromRGB(26,40,56) end
   local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit
-  local target=body.Position+Vector3.new(0,2,0)
-  local desired=CFrame.lookAt(target-f*18+Vector3.new(0,8,0),target+f*12)
+  local target=body.Position
+  local desired=CFrame.lookAt(target-f*18+Vector3.new(0,8,0),target+f*12+Vector3.new(0,2,0))
   camera.CameraType=Enum.CameraType.Scriptable;camera.FieldOfView=75
   camera.CFrame=Motion.step(camera.CFrame,previousTarget,target,desired,6,dt);camera.Focus=CFrame.new(target);previousTarget=target
   if engine then
-   local ratio=math.clamp(body.AssemblyLinearVelocity.Magnitude/Policy.Forward,0,1)
-   if not diagnostic or not diagnostic:isFixed() then engine.PlaybackSpeed=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*ratio end
-   engine.Volume=AudioConfig.ENGINE.IDLE_VOLUME+(AudioConfig.ENGINE.NORMAL_VOLUME-AudioConfig.ENGINE.IDLE_VOLUME)*ratio
+   local speed=math.abs(body.AssemblyLinearVelocity:Dot(body.CFrame.LookVector))
+   local ratio=math.clamp(speed/KartConfig.MAX_FORWARD_SPEED,0,1)
+   local bonus=math.clamp((speed-KartConfig.MAX_FORWARD_SPEED)/(KartConfig.MINI_BOOST_MAX_SPEED-KartConfig.MAX_FORWARD_SPEED),0,1)
+   local pitch=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*ratio+(AudioConfig.ENGINE.MAX_PLAYBACK_SPEED-AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED)*bonus+(if boosting then AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS else 0)
+   local volume=AudioConfig.ENGINE.IDLE_VOLUME+(AudioConfig.ENGINE.NORMAL_VOLUME-AudioConfig.ENGINE.IDLE_VOLUME)*ratio+(AudioConfig.ENGINE.MAX_VOLUME-AudioConfig.ENGINE.NORMAL_VOLUME)*bonus
+   local alpha=1-math.exp(-AudioConfig.ENGINE.RESPONSE*dt)
+   if not diagnostic or not diagnostic:isFixed() then engine.PlaybackSpeed+=(math.clamp(pitch,.7,1.55)-engine.PlaybackSpeed)*alpha end
+   engine.Volume+=(volume-engine.Volume)*alpha
   end
  end)
 end

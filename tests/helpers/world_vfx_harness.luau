@@ -88,14 +88,14 @@ return function(racers,rounds,exercise)
    check(count(k,"Trail","ShieldRear")==0 and count(k,"Attachment","ShieldRear")==0,"cancelled rear feature remains absent")
    check(count(k,"ParticleEmitter","BoostFlame")==2,"one exhaust pair per racer")
    local shell=model:FindFirstChild("EnergyShell");check(shell.Size.X>=14 and shell.Size.Y>=11 and shell.Size.Z>=16,"larger Shield envelope")
-   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(p.Enabled and p.Rate==65,"replicated Nitro active drives remote emitter") end end
+   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(p.Enabled and p.Rate==40,"replicated Nitro active drives bounded remote emitter") end end
    local before=model:FindFirstChild("Orbit1").CFrame;tick(.1);check(model:FindFirstChild("Orbit1").CFrame~=before,"preserved counterrotating orbit motion")
    local alpha=shell.Transparency;players[id]:SetAttribute("RaceItemBlockedSerial",round);tick(.001);check(shell.Transparency<alpha,"remote authoritative block brightens without camera feedback")
   end
   local total=#prototype:GetDescendants();for i=1,30 do tick(.01) end;check(#prototype:GetDescendants()==total,"unchanged states allocate no instances")
   for id,k in karts do
    k:SetAttribute("KartNitroActive",false);tick(.01)
-   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(p.Enabled and p.Rate==30,"Mini Boost remains visible after Nitro ends") end end
+   for _,p in k:GetDescendants() do if p.Name=="BoostFlame" then check(p.Enabled and p.Rate==22,"Mini Boost remains visible after Nitro ends") end end
    k:SetAttribute("KartBoosting",false);k:SetAttribute("KartShieldActive",false);k:FindFirstChild("RaceItemShield"):Destroy()
   end
   tick(.01);tick(.31)

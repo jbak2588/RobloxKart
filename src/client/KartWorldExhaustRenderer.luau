@@ -31,20 +31,23 @@ local function makeSmoke(attachment: Attachment): ParticleEmitter
 	smoke.Texture = SMOKE_TEXTURE
 	smoke.Enabled = false
 	smoke.Rate = 0
-	smoke.Lifetime = NumberRange.new(0.35, 0.7)
+	smoke.Lifetime = NumberRange.new(.65, 1.1)
 	smoke.Speed = NumberRange.new(1, 3)
-	smoke.Acceleration = Vector3.new(0, 3, 0)
+	smoke.Acceleration = Vector3.new(0, 1, 0)
 	smoke.Drag = 1
+ smoke.RotSpeed=NumberRange.new(20,100)
+ smoke.LightInfluence=0
 	smoke.VelocityInheritance = 0.15
 	smoke.EmissionDirection = Enum.NormalId.Top
 	smoke.SpreadAngle = Vector2.new(24, 24)
-	smoke.Color = ColorSequence.new(Color3.fromRGB(125, 125, 130), Color3.fromRGB(170, 170, 175))
+	smoke.Color = ColorSequence.new(Color3.fromRGB(211, 211, 211), Color3.fromRGB(255, 255, 255))
 	smoke.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.28),
-		NumberSequenceKeypoint.new(1, 1.1),
+		NumberSequenceKeypoint.new(0, .55),
+		NumberSequenceKeypoint.new(.20, 1.8),
+		NumberSequenceKeypoint.new(1, 2.6),
 	})
 	smoke.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.35),
+		NumberSequenceKeypoint.new(0, .38),
 		NumberSequenceKeypoint.new(1, 1),
 	})
 	smoke.Parent = attachment
@@ -70,7 +73,7 @@ local function makeTrail(parent: BasePart, first: Attachment, second: Attachment
 	return trail
 end
 
-local function makeFlame(attachment: Attachment): ParticleEmitter
+local function makeLegacyFlame(attachment: Attachment): ParticleEmitter
 	local flame = Instance.new("ParticleEmitter")
 	flame.Name = "BoostFlame"
 	flame.Enabled = false
@@ -122,6 +125,26 @@ local function makeCruiseFlame(attachment: Attachment): ParticleEmitter
 	return flame
 end
 
+-- Audited buggy Rear/Spark/Glow settings scaled to kart exhaust anchors.
+-- Only Roblox built-in textures; no template scripts or external flame assets.
+local function makeFlames(point,legacy)
+ if legacy then return {makeLegacyFlame(point)} end
+ local result={}
+ for i,layer in {'Rear','Spark','Glow'} do
+  local f=Instance.new('ParticleEmitter');f.Name=if i==1 then 'BoostFlame' else 'Boost'..layer
+  f.Enabled=false;f.Rate=0;f.LightEmission=1;f.LightInfluence=0
+  f.Texture=if i==1 then SMOKE_TEXTURE else 'rbxasset://textures/particles/sparkles_main.dds'
+  f.Lifetime=NumberRange.new(.10,.15);f.Speed=if i==3 then NumberRange.new(0) else NumberRange.new(22)
+  f.LockedToPart=true;f.EmissionDirection=Enum.NormalId.Back;f.SpreadAngle=Vector2.new(if i==1 then 15 elseif i==2 then 10 else 0,10)
+  f.Orientation=if i==3 then Enum.ParticleOrientation.FacingCamera else Enum.ParticleOrientation.VelocityParallel
+  f.Rotation=NumberRange.new(90);f.Color=ColorSequence.new(Color3.fromRGB(202,244,255),Color3.fromRGB(28,107,255))
+  f.Size=NumberSequence.new(if i==3 then 1.0 else .55)
+  f.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(.14,0),NumberSequenceKeypoint.new(.70,.12),NumberSequenceKeypoint.new(1,1)})
+  f:SetAttribute('FlameLayer',i);f.Parent=point;table.insert(result,f)
+ end
+ return result
+end
+
 local Renderer = {}
 function Renderer.new(kart)
  local chassis, visual = kart:FindFirstChild("Chassis"), kart:FindFirstChild("Visual")
@@ -154,14 +177,14 @@ function Renderer.new(kart)
  for _, point in visual:GetDescendants() do
   local role=point:GetAttribute("EffectRole")
   if point:IsA("Attachment") and (role=="ExhaustLeft" or role=="ExhaustRight") then
-   table.insert(flames,makeFlame(point));table.insert(cruiseFlames,makeCruiseFlame(point))
+   for _,f in makeFlames(point,kart:GetAttribute("KDMUseLegacyExhaust")==true) do table.insert(flames,f) end;table.insert(cruiseFlames,makeCruiseFlame(point))
   end
  end
  local record={flames=flames,smokes=smokes,trails=trails,attachments=attachments,cruise=cruiseFlames}
  function record:destroy()
   for _, list in {flames,smokes,trails,cruiseFlames,attachments} do for _,o in list do o:Destroy() end end
  end
- if #smokes~=2 or #trails~=2 or #flames~=2 then record:destroy();return nil end
+ if #smokes~=2 or #trails~=2 or #flames~= (if kart:GetAttribute("KDMUseLegacyExhaust")==true then 2 else 6) then record:destroy();return nil end
  local previousNitro, previousBoost, previousDrift = nil,nil,nil
  local cruiseElapsed=0
  local groundElapsed=0
@@ -170,6 +193,11 @@ function Renderer.new(kart)
  local roadBoxes={}
  local lastRoad={}
  local function roadSurface(point,index)
+  if kart:GetAttribute('LobbyKart')==true then
+   local floor=kart.Parent and kart.Parent:FindFirstChild('LobbyFrontSmoothFloor')
+   if floor then local p=floor.CFrame:PointToObjectSpace(point);if math.abs(p.X)<=floor.Size.X/2 and math.abs(p.Z)<=floor.Size.Z/2 then return floor.CFrame:PointToWorldSpace(Vector3.new(p.X,floor.Size.Y/2,p.Z))+Vector3.yAxis*.04 end end
+   return nil
+  end
   local track=kart.Parent and kart.Parent:FindFirstChild('TestTrack')
   local folder=track and track:FindFirstChild('Road')
   if folder~=roadFolder then
@@ -197,10 +225,12 @@ function Renderer.new(kart)
   if boost and not previousBoost then for _,f in flames do f:Emit(12) end end
   if nitro~=previousNitro or boost~=previousBoost then
    for _,f in flames do
-    f.Rate=if nitro then 65 else 30
+    local layer=f:GetAttribute("FlameLayer") or 1
+    f.Rate=if layer==3 then (if nitro then 18 else 10) else (if nitro then 40 else 22)
     f.LightEmission=if nitro then 1 else .85
-    f.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,if nitro then .7 else .45),NumberSequenceKeypoint.new(1,.06)})
+    f.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,if layer==3 then (if nitro then 1.3 else .85) else (if nitro then .75 else .5)),NumberSequenceKeypoint.new(1,.06)})
     f.Enabled=nitro or boost
+    if not f.Enabled then f:Clear() end
    end
   end
   if not enabled then
@@ -218,7 +248,15 @@ function Renderer.new(kart)
   else cruiseElapsed=0 end
   local lateral=velocity:Dot(chassis.CFrame.RightVector)
   local slip=if math.abs(forward)<5 then 0 else math.abs(math.deg(math.atan2(lateral,math.max(math.abs(forward),.01))))
-  local rate=if drift then math.clamp((slip-8)*2,0,35) else 0
+  local camera=Workspace.CurrentCamera
+  local distance=if camera then (camera.CFrame.Position-chassis.Position).Magnitude else 0
+  local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
+  for _,f in flames do
+   local layer=f:GetAttribute('FlameLayer') or 1
+   f.Rate=(if layer==3 then (if nitro then 18 else 10) else (if nitro then 40 else 22))*lod
+   f.Enabled=(nitro or boost) and lod>0
+  end
+  local rate=if drift then math.clamp((slip-8)*.8,0,28)*lod else 0
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
   if drift and slip>=5 and groundElapsed>=.04 then
