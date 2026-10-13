@@ -17,6 +17,11 @@ local modules = {KartConfig = {CAMERA_DISTANCE = 18, CAMERA_HEIGHT = 8,
 	RaceConfig = luau.load(fs.readFile("src/shared/RaceConfig.luau"))(),
 	ChaseCameraMotion = luau.load(fs.readFile("src/shared/ChaseCameraMotion.luau"))()}
 modules.KDMSpeedSensation = luau.load(fs.readFile("src/shared/KDMSpeedSensation.luau"))()
+modules.DriftCameraHeading = luau.load(fs.readFile("src/shared/DriftCameraHeading.luau"),
+	{environment={Vector3=rb.Vector3,CFrame=rb.CFrame}})()
+local balance=luau.load(fs.readFile('src/shared/KDMGameplayBalance.luau'))()
+modules.KartConfig=luau.load(fs.readFile('src/shared/KartConfig.luau'),
+	{environment={script={Parent={WaitForChild=function()end}},require=function()return balance end}})()
 modules.FinishCameraComposition = luau.load(fs.readFile("src/client/FinishCameraComposition.luau"),
 	{environment = {Vector3 = rb.Vector3}})()
 local touchPreferred = false
@@ -34,6 +39,7 @@ function chassis:IsA(name) return name == "BasePart" end
 local kart = {PrimaryPart = chassis, Parent = true}
 kart.attrs = {}
 function kart:GetAttribute(name) return self.attrs[name] end
+function kart:FindFirstChild() return nil end
 chassis.Parent = kart
 function kart:IsA(name) return name == "Model" end
 local seat = {Parent = kart}
@@ -56,6 +62,7 @@ local camera = {CameraType = rb.Enum.CameraType.Custom, FieldOfView = 70,
 local workspace = {CurrentCamera = camera}
 local render
 local runService = {Heartbeat = signal(), BindToRenderStep = function(_, _, _, callback) render = callback end,
+	IsStudio = function() return false end,
 	UnbindFromRenderStep = function() render = nil end}
 local services = {Players = {LocalPlayer = player}, ReplicatedStorage = replicated,
 	RunService = runService, Workspace = workspace}
@@ -179,4 +186,12 @@ check(render == nil and camera.CameraType == rb.Enum.CameraType.Custom,
 player.CharacterRemoving:Fire()
 check(render == nil and camera.CameraType == rb.Enum.CameraType.Custom,
 	"character removal keeps Custom fallback")
+touchPreferred=false
+humanoid.SeatPart=seat;player.CharacterAdded:Fire(character);runService.Heartbeat:Fire(.25)
+function kart:FindFirstChild(name)
+	if name=='Visual' then return {GetAttribute=function()return 'KDMV2' end} end
+end
+player.attrs.RaceState='FINISHED';player.attrs.RaceFinishPhase='PRESENT'
+render(1)
+check((camera.CFrame.Position-rb.Vector3.new(6,6.5,-11)).Magnitude<.001,'V2 three-quarter contact view; Sprint baseline above preserved')
 print("PASS: " .. count .. " production finish camera lifecycle checks")

@@ -8,6 +8,7 @@ local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("
 local KartConfig = requireModule(kartConfigModule)
 local RaceConfig = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceConfig"))
 local ChaseMotion = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ChaseCameraMotion"))
+local DriftHeading = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("DriftCameraHeading"))
 local Input = require(script.Parent:WaitForChild("KartInputController"))
 local FinishComposition = require(script.Parent:WaitForChild("FinishCameraComposition"))
 local SpeedSensation = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMSpeedSensation"))
@@ -76,6 +77,7 @@ function KartCameraController.start()
 	local speedFieldOfView = KartConfig.CAMERA_FOV
 	local speedResetSerial = nil
 	local teleporting = false
+	local driftHeadingState = {}
 
 	local disableChase: () -> ()
 
@@ -120,6 +122,19 @@ function KartCameraController.start()
 			finishRollCameraElapsed = 0
 		end
 		wasFinishRoll = roll
+		local cameraSafe = raceState == "RACING" and not justReset
+			and kart:GetAttribute("RaceControlsLocked") ~= true
+			and kart:GetAttribute("KartOffTrack") ~= true
+			and kart:GetAttribute("KartCrashActive") ~= true
+			and kart:GetAttribute("KartSlickActive") ~= true
+			and kart:GetAttribute("KartMissileHitActive") ~= true
+			and kart:GetAttribute("KartThunderHitActive") ~= true
+			and kart:GetAttribute("KartNitroActive") ~= true
+		-- Studio-only A/B rollback; public mode always uses measured planar velocity.
+		if RunService:IsStudio() and Workspace:GetAttribute("KDMDriftCameraMode") == "BODY" then cameraSafe = false end
+		local chaseForward = DriftHeading.step(driftHeadingState, lastPlanarForward,
+			chassis.AssemblyLinearVelocity, deltaTime, kart:GetAttribute("KartDrifting") == true,
+			cameraSafe, KartConfig.DRIFT_CAMERA)
 		local present = finishPhase == "PRESENT"
 			and (raceState == "FINISHING" or raceState == "FINISHED")
 		local mobileFinish = false
@@ -140,6 +155,12 @@ function KartCameraController.start()
 			local right = lastPlanarForward:Cross(WORLD_UP).Unit
 			local lookTarget = chassis.Position + WORLD_UP * 2.25
 			local frontPosition = chassis.Position + lastPlanarForward * 11 + right * 2.5 + WORLD_UP * 4.5
+			local visual = kart:FindFirstChild("Visual")
+			local v2Finish = visual and visual:GetAttribute("VisualModelName") == "KDMV2"
+			if v2Finish and not (RunService:IsStudio() and Workspace:GetAttribute("KDMV2FinishCameraMode") == "D3") then
+				frontPosition = chassis.Position + lastPlanarForward * 11
+					+ right * KartConfig.V2_FINISH_CAMERA_SIDE + WORLD_UP * KartConfig.V2_FINISH_CAMERA_HEIGHT
+			end
 			if mobileFinish then
 				frontPosition, lookTarget = FinishComposition.offset(frontPosition, lookTarget, lookTarget,
 					camera.ViewportSize, KartConfig.CAMERA_FOV, RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X)
@@ -165,10 +186,10 @@ function KartCameraController.start()
 			previousTarget = nil
 		end
 		local desiredPosition = chassis.Position
-			- lastPlanarForward * KartConfig.CAMERA_DISTANCE
+			- chaseForward * KartConfig.CAMERA_DISTANCE
 			+ WORLD_UP * KartConfig.CAMERA_HEIGHT
 		local lookTarget = chassis.Position
-			+ lastPlanarForward * KartConfig.CAMERA_LOOK_AHEAD
+			+ chaseForward * KartConfig.CAMERA_LOOK_AHEAD
 			+ WORLD_UP * 2
 		if roll and mobileFinish then
 			local progress = math.clamp(finishRollCameraElapsed / RaceConfig.FINISH_ROLL_SECONDS, 0, 1)
@@ -197,6 +218,7 @@ function KartCameraController.start()
 	end
 
 	disableChase = function()
+		DriftHeading.clear(driftHeadingState)
 		if not chaseEnabled then
 			return
 		end
@@ -233,6 +255,7 @@ function KartCameraController.start()
 		if chaseEnabled and activeSeat == seatPart and activeChassis == chassis then
 			return
 		end
+		DriftHeading.clear(driftHeadingState)
 		if chaseEnabled then
 			disableChase()
 		end

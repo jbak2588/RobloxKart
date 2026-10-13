@@ -64,6 +64,23 @@ local KartConfig = {
 	CAMERA_LOOK_AHEAD = 12,
 	CAMERA_RESPONSE = 6,
 	CAMERA_FOV = 75,
+	-- A higher three-quarter V2 finish view makes the rear tire contact plane visible.
+	V2_FINISH_CAMERA_HEIGHT = 6.5,
+	V2_FINISH_CAMERA_SIDE = 6,
+	DRIFT_CAMERA = table.freeze({
+		MinSpeed = 18,
+		FullSpeed = 35,
+		MinForwardSpeed = 8,
+		MaxSlipDegrees = 55,
+		MaxVelocityChangeDegrees = 35,
+		PathLeadSeconds = 0.12,
+		MaxPathLeadDegrees = 8,
+		PathTurnResponse = 8,
+		MaxRotationDegreesPerSecond = 110,
+		EntryResponse = 7,
+		ExitResponse = 5,
+		MaxStep = 0.15,
+	}),
 
 	FALL_RESET_Y = -40,
 	INPUT_SEND_INTERVAL = 0.1,

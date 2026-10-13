@@ -114,6 +114,8 @@ child(modulesFolder,"ModuleScript","KDMControlIconView")
 modules.KDMControlIconView=luau.load(fs.readFile("src/client/KDMControlIconView.luau"),{environment=env})()
 child(modulesFolder,"ModuleScript","KDMItemIconView")
 modules.KDMItemIconView=luau.load(fs.readFile("src/client/KDMItemIconView.luau"),{environment=env})()
+child(modulesFolder,"ModuleScript","LobbyDriveLayout")
+modules.LobbyDriveLayout=luau.load(fs.readFile('src/client/LobbyDriveLayout.luau'))()
 for _, name in {"TouchDrivingModel","MobileControlView","MobileTutorialView","DriftChargeView","KartInputController","DriftChargeController","TouchDrivingController"} do
 	modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=env})()
 end
