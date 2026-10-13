@@ -351,7 +351,7 @@ else
  for _,direction in {-1,1} do
   local steer=touch(if direction==-1 then root.ForwardLeft else root.ForwardRight)
   check(latest()[1]==1 and latest()[2]==direction,"Auto plus turn")
-  local d=touch(drift);check(latest()[1]==1 and latest()[2]==direction*.60 and latest()[3],"Auto turn Drift")
+  local d=touch(drift);check(latest()[1]==1 and latest()[2]==direction and latest()[3],"Auto turn Drift")
   local brake=touch(root.BrakeReverse);check(latest()[1]==-1,"Brake overrides Auto")
   brake.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1,"Brake release resumes Auto")
   d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End;tick()
@@ -376,19 +376,19 @@ else
 		f=touch(root.Forward); local steer=touch(button)
 		check(latest()[2]==direction and not latest()[3],"normal digital steering remains full")
 		local d=touch(drift)
-		check(latest()[2]==direction*0.60 and latest()[3],"drift press immediately reduces digital steering")
-		check(input.getEffectiveSteering()==direction*0.60,"drift steering HUD action sync")
+		check(latest()[2]==direction and latest()[3],"drift press retains PC-equivalent full digital steering")
+		check(input.getEffectiveSteering()==direction,"drift steering HUD action sync")
 		-- Moving far outside the button must not change a held digital target.
 		for i=1,90 do
 			steer.Position=V3.new(i*100,-i*70,0); ui.InputChanged:Fire(steer); tick()
-			check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"stable forward/steering/drift across pointer movement")
+			check(latest()[1]==1 and latest()[2]==direction and latest()[3],"stable forward/steering/drift across pointer movement")
 		end
-		other.InputBegan:Fire(steer); tick(); check(latest()[2]==direction*0.60,"one finger cannot own two buttons")
-		local opposite=touch(other); check(latest()[2]==-direction*0.60,"last pressed wins")
-		opposite.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==direction*0.60,"release falls back to held direction")
+		other.InputBegan:Fire(steer); tick(); check(latest()[2]==direction,"one finger cannot own two buttons")
+		local opposite=touch(other); check(latest()[2]==-direction,"last pressed wins")
+		opposite.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==direction,"release falls back to held direction")
 		for _, id in {"Nitro","Slick","Shield","Missile"} do
 			input.useRaceItemDirect(id); tick()
-			check(latest()[1]==1 and latest()[2]==direction*0.60 and latest()[3],"digital drift and item actions coexist")
+			check(latest()[1]==1 and latest()[2]==direction and latest()[3],"digital drift and item actions coexist")
 		end
 		d.UserInputState=rb.Enum.UserInputState.End; tick()
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"drift release preserves throttle/steer for existing boost condition")
@@ -396,8 +396,8 @@ else
 		steer.UserInputState=rb.Enum.UserInputState.End; f.UserInputState=rb.Enum.UserInputState.End; neutral("all buttons released")
   steer=touch(button);check(latest()[1]==0 and latest()[2]==direction,"standalone steering has neutral throttle")
   b=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==direction,"brake priority preserves independently held turn")
-  d=touch(drift);check(latest()[1]==-1 and latest()[2]==direction*.60 and latest()[3],"brake turn Drift contract")
-  b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==0 and latest()[2]==direction*.60,"brake release retains Drift steering without acceleration")
+  d=touch(drift);check(latest()[1]==-1 and latest()[2]==direction and latest()[3],"brake turn Drift contract")
+  b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==0 and latest()[2]==direction,"brake release retains Drift steering without acceleration")
   d.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[2]==direction and not latest()[3],"normal steering restored")
   steer.UserInputState=rb.Enum.UserInputState.Cancel;neutral("combined turn cancel neutral")
 

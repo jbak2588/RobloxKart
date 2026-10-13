@@ -30,9 +30,9 @@ check(heading.step(s,f,V.new(40,0,-50),1/60,true,false,config)==f,'combat/reset/
 check(s.offset==0 and s.velocityDirection==nil,'lifecycle discards old offset')
 check(heading.step(s,f,V.new(40,0,-50),.3,true,true,config)==f,'hitch safe fallback')
 for i=1,60 do check(heading.step(s,f,V.new(0,0,-70),1/60,false,true,config)==f,'normal chase unchanged')end
--- Actual mobile steering contract explains why full-PC fixtures cannot prove mobile 41 degrees.
+-- Digital mobile drift now requests the same full steering as PC.
 local mobile=luau.load(fs.readFile('src/client/TouchDrivingModel.luau'))()
 local b=balance.DRIFT.RearSlide
 local target=b.MinSlipDegrees+(b.MaxSlipDegrees-b.MinSlipDegrees)*(mobile.DIGITAL_DRIFT_STEERING-b.EntrySteer)/(1-b.EntrySteer)
-check(math.abs(target-20.181818)<.0001,'mobile target is about 20.18, not 42')
+check(math.abs(target-42)<.0001,'mobile full-speed target matches PC 42 degrees')
 print('PASS: '..n..' D4 heading checks; digital-mobile full-speed target '..target..' degrees')

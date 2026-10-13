@@ -2,7 +2,8 @@
 local Model = {}
 Model.__index = Model
 Model.DEAD_ZONE = 0.10
-Model.DIGITAL_DRIFT_STEERING = 0.60
+-- Same full digital steering as PC; server drift controls slip and speed limits.
+Model.DIGITAL_DRIFT_STEERING = 1.0
 -- Development-only rollback switch; no player-facing settings menu.
 Model.MobileDriveControlMode = "Buttons"
 
