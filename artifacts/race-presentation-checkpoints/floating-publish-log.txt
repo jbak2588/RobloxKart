@@ -1,0 +1,18 @@
+2026-10-14T08:47:06.713Z,4596.713379,564c,6,Info [FLog::StudioPublishService] publishAs: currentUniverse=0 currentPlace=0 -> targetUniverse=10768420544 targetPlace=127925465904803 isPublish=1 (crossUniverse=0)
+2026-10-14T08:47:51.124Z,4641.124023,0a10,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishInitiated state
+2026-10-14T08:47:51.124Z,4641.124023,0a10,6,Debug [FLog::PublishSessionStateController] Go to PublishGrantAssetsPermissions
+2026-10-14T08:47:51.377Z,4641.377441,0d74,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishGrantAssetsPermissions state
+2026-10-14T08:47:51.377Z,4641.377441,0d74,6,Debug [FLog::PublishSessionStateController] Go to PublishPreAssetsPublishing
+2026-10-14T08:47:51.377Z,4641.377441,0d74,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishPreAssetsPublishing state
+2026-10-14T08:47:51.377Z,4641.377441,0d74,6,Debug [FLog::PublishSessionStateController] Go to PublishInProgress
+2026-10-14T08:47:55.197Z,4645.197266,358c,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishInProgress state
+2026-10-14T08:47:55.197Z,4645.197266,358c,6,Debug [FLog::PublishSessionStateController] Go to PublishSuccessful
+2026-10-14T08:47:55.197Z,4645.197266,0a10,6,Info [FLog::StudioPublishStatusLabel] Publish succeeded for placeId 0; marking as published (refreshing menu label to "Publish latest version")
+2026-10-14T08:47:55.864Z,4645.864258,1220,6,Info [FLog::StudioPublishServiceDependencies] setComponents: called with no mediator
+2026-10-14T08:47:57.047Z,4647.047363,564c,6,Info [FLog::StudioPublishStatusLabel] Requesting publish-status for placeId 127925465904803
+2026-10-14T08:47:57.405Z,4647.405273,564c,6,Info [FLog::StudioPublishStatusLabel] publish-status for placeId 127925465904803: hasPublishedVersion=true
+2026-10-14T08:47:59.899Z,4649.899902,1220,6,Info [FLog::StudioPublishServiceDependencies] setComponents: called with a mediator
+2026-10-14T08:47:59.899Z,4649.899902,358c,6,Info [FLog::StudioPublishServiceDependencies] setComponents: handing a mediator to service
+2026-10-14T08:47:59.899Z,4649.899902,358c,6,Info [FLog::StudioPublishService] setComponents: given a mediator, keeping it
+2026-10-14T08:47:59.937Z,4649.937012,17b4,6,Info [FLog::StudioPublishStatusLabel] Resolved publish status on open for placeId 127925465904803: hasPublishedVersion=true (updating menu visibility/label)
+2026-10-14T08:48:00.211Z,4650.211914,1220,6,Info [FLog::PlaceVersionCheck] checkPlaceVersionRequest returned version 665

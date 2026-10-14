@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "version": 663,
+  "sources": 168,
+  "preservedEntries": 1093,
+  "cameraExcluded": true,
+  "sourceComparison": "actual version 663 download equals prior Native Sources after CRLF normalization"
+}

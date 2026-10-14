@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "approvedSourceSha": "705227548802ee0b7172f010c658671bbdef8754",
+  "experience": 10768420544,
+  "startPlace": 127925465904803,
+  "previousPublishedVersion": 663,
+  "publishedVersion": 665,
+  "publishRequests": 1,
+  "publishSuccessUtc": "2026-10-14T08:47:55.197Z",
+  "nativeSha256": "e337cbae697d7eb1986290a8b546aadecb876fe73fead6b1db10c7792082ec8e",
+  "publishedDownloadSha256": "5a27872ebd14285d698575e6b81844f814aad007b1e6f43d6180ef15456100c3",
+  "publishedDownloadUrl": "https://assetdelivery.roblox.com/v1/asset/?id=127925465904803&version=665",
+  "sourceContainers": 168,
+  "worldAssets": 1093,
+  "terrainGroups": 70,
+  "hudModified": false,
+  "productionSourceModified": false,
+  "dataReset": false,
+  "mainIntegrated": false,
+  "assetPermissionCompletedByUser": true
+}
