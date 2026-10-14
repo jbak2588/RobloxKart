@@ -1,0 +1,61 @@
+{
+  "pc": {
+    "enabled": 995,
+    "viewports": {
+      "2302.39990234375x684": true
+    },
+    "partialFade": 91,
+    "indexes": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true
+    },
+    "hiddenNear": 196,
+    "maxPinTipCanvasError": 0.00000762939453125,
+    "frames": 1206,
+    "visibleNear": 0
+  },
+  "mobile": {
+    "enabled": 373,
+    "viewports": {
+      "749x381": true
+    },
+    "partialFade": 9,
+    "indexes": {
+      "1": true,
+      "4": true,
+      "5": true,
+      "6": true
+    },
+    "hiddenNear": 20,
+    "maxPinTipCanvasError": 0.000005394796517066425,
+    "frames": 394,
+    "visibleNear": 0
+  },
+  "mobileEarly": {
+    "frames": 174,
+    "indexes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "visibleNear": 0,
+    "maxPinTipCanvasError": 0.000005394796517066425
+  },
+  "independentOwners": [
+    {
+      "owner": 11700555357,
+      "index": 1
+    },
+    {
+      "owner": 2002,
+      "index": 3
+    }
+  ],
+  "firstSeatAutomatic": true
+}

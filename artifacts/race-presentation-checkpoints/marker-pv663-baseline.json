@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "sources": 168,
+  "preservedEntries": 1093,
+  "sourceComparison": "all prior Native Sources equal PV663 edit-session snapshot after CRLF normalization",
+  "cameraExcluded": true
+}

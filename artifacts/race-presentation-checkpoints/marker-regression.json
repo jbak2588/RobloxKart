@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "baseline": "0cdf18e27720534dfac610bd9f48525b641b9254",
+  "tests": {
+    "checkpoint_marker_alignment": 1281,
+    "race_presentation": 6932,
+    "r8_d4_restore_camera": 3600,
+    "mobile_touch": 2805,
+    "two_player_race": 105,
+    "boost_flame_fade": 33,
+    "world_vfx_four_racers": 160,
+    "kart_visual": "PASS",
+    "luau_compile": 168,
+    "rojo": "PASS",
+    "diff_check": "PASS"
+  },
+  "native": "168 exact Sources; 1093 world/asset entries; 70 raw Terrain groups"
+}
