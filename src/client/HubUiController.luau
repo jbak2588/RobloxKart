@@ -56,7 +56,7 @@ function HubUiController.start()
  local previousRaceState = player:GetAttribute("RaceState")
  local function open(action)
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
-  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or player:GetAttribute('KDMProfileOpen')==true or (rooms and rooms.Enabled) then return end
+  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true) or (rooms and rooms.Enabled) then return end
   Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end
  local canvas = Instance.new("Frame")
@@ -86,7 +86,7 @@ function HubUiController.start()
   if prompt:IsA("ProximityPrompt") then promptEnabled[prompt] = prompt.Enabled end
  end
  local function update()
-  local overlay = player:GetAttribute("HubOverlayOpen") == true or player:GetAttribute('KDMProfileOpen')==true
+  local overlay = player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true)
   local raceState = player:GetAttribute("RaceState")
   local selectedId=player:GetAttribute("SelectedKartId")
   local kartCatalog=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
@@ -98,7 +98,7 @@ function HubUiController.start()
   if previousRaceState ~= "GARAGE" and raceState == "GARAGE" then GuidanceState.returned(state, "RACE_RETURN") end
   previousRaceState = raceState
   gui.Enabled = player:GetAttribute("RaceState") == "GARAGE"
-   and player:GetAttribute("HubOverlayOpen") ~= true and player:GetAttribute('KDMProfileOpen')~=true
+   and player:GetAttribute("HubOverlayOpen") ~= true and (player:GetAttribute('KDMProfileOpen')~=true and player:GetAttribute('KDMShopOpen')~=true)
    and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
   local modal = overlay or roomOwned or (rooms ~= nil and rooms.Enabled)
@@ -167,7 +167,7 @@ function HubUiController.start()
  table.insert(connections,player.CharacterAdded:Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(refreshDisplay))
  refreshDisplay()
- for _, attribute in {"RaceState", "HubOverlayOpen", "KDMProfileOpen", "KDMRoutePending", "LobbyDriveActive",
+ for _, attribute in {"RaceState", "HubOverlayOpen", "KDMProfileOpen", "KDMShopOpen", "KDMRoutePending", "LobbyDriveActive",
   "KartProfileLoadCompleted","KartProfileLoadResult","KartRestorationConfirmed","KartRestoredKartId","KartSaveState","SelectedKartId"} do
   table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(update))
  end

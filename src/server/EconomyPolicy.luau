@@ -6,6 +6,10 @@ function Policy.allowed(config,ctx,userId,kind)
  local race=ctx.role=='RACE' and ctx.privateServerId~='' and ctx.privateServerOwnerId==0
  if not hub and not race then return false end
  local storage=config.StoragePublicEnabled==true or config.AllowedUserIds[userId]==true
+ if kind=='shop' or kind=='voucher' then
+  return storage and (config.ShopTransactionsPublicEnabled==true or config.AllowedUserIds[userId]==true)
+   and (if kind=='voucher' then race else hub)
+ end
  if kind=='reward' then return race and storage and (config.RewardsPublicEnabled==true or config.AllowedUserIds[userId]==true) end
  return storage and (kind=='read' or hub)
 end

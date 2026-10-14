@@ -26,6 +26,7 @@ function Controller.start()
  local close=button(panel,'Close','CLOSE',302)
  local dismiss=button(gui,'Dismiss','×',0);dismiss.Size=UDim2.fromOffset(44,44);dismiss.Visible=false;dismiss.ZIndex=4
  local busy,passAvailable=false,false
+ local passPrice=nil
  local status=''
  local messages={FOUND='',SAVE_CONFIRMED='ACCOUNT SAVED',SAVE_UNCONFIRMED='Save not confirmed. Please try again.',
   INSUFFICIENT_FUNDS='You need K$3,000.',ALREADY_OWNED='Wing already owned.',NOT_OWNED='Unlock the Wing first.',
@@ -44,7 +45,8 @@ function Controller.start()
   buy.Text=if owned then 'KDM V2 WING · OWNED' else 'KDM V2 WING · K$3,000'
   equip.Active=not busy and owned;equip.Text=if player:GetAttribute('KDMWingEquipped')==true then 'UNEQUIP WING' else 'EQUIP WING'
   pass.Active=not busy and not owned and passAvailable
-  pass.Text=if passAvailable then 'PERMANENT WING · 50 Robux' else '50 Robux · COMING SOON'
+  pass.Text=if passAvailable and passPrice then 'PERMANENT WING · '..passPrice..' Robux' else '50 Robux target · COMING SOON'
+  pass.Active=pass.Active and passPrice~=nil
   for _,b in {buy,equip,pass} do b.TextTransparency=if b.Active then 0 else .5 end
  end
  local function invoke(action,value)
@@ -55,6 +57,10 @@ function Controller.start()
    local code=if ok and type(r)=='table' then (r.purchaseState or r.status) else 'SAVE_UNCONFIRMED'
    status=messages[code] or 'Account unavailable. Please try again.'
    if ok and type(r)=='table' and r.passAvailable~=nil then passAvailable=r.passAvailable end
+   if passAvailable and ok and type(r)=='table' and r.passId and r.passId>0 then
+    local loaded,info=pcall(function()return game:GetService('MarketplaceService'):GetProductInfoAsync(r.passId,Enum.InfoType.GamePass)end)
+    passPrice=if loaded and info.IsForSale and type(info.PriceInRobux)=='number' then info.PriceInRobux else nil
+   end
    busy=false;render()
   end)
  end
@@ -68,16 +74,17 @@ function Controller.start()
  badge.Activated:Connect(function()panel.Visible=not panel.Visible;player:SetAttribute('KDMProfileOpen',panel.Visible);if panel.Visible then invoke('PROFILE') end end)
  local function closeProfile()panel.Visible=false;player:SetAttribute('KDMProfileOpen',false)end
  close.Activated:Connect(closeProfile);dismiss.Activated:Connect(closeProfile)
- buy.Activated:Connect(function()if buy.Active then invoke('BUY_WING') end end)
+ buy.Activated:Connect(function()if buy.Active then closeProfile();require(script.Parent.GarageShopController).open() end end)
  equip.Activated:Connect(function()if equip.Active then invoke('EQUIP_WING',player:GetAttribute('KDMWingEquipped')~=true) end end)
  pass.Activated:Connect(function()if pass.Active then invoke('PASS') end end)
  local function update()
   gui.Enabled=player:GetAttribute('RaceState')=='GARAGE' and player:GetAttribute('HubOverlayOpen')~=true
+   and player:GetAttribute('KDMShopOpen')~=true
    and player:GetAttribute('LobbyDriveActive')~=true and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH'
   if not gui.Enabled then panel.Visible=false;player:SetAttribute('KDMProfileOpen',false) end
   render()
  end
- for _,name in {'RaceState','HubOverlayOpen','LobbyDriveActive','KDMRoutePending','KDMWalletCash','KDMLifetimeEarned','KDMWingOwned','KDMWingEquipped','SelectedKartId'} do
+ for _,name in {'RaceState','HubOverlayOpen','KDMShopOpen','LobbyDriveActive','KDMRoutePending','KDMWalletCash','KDMLifetimeEarned','KDMWingOwned','KDMWingEquipped','SelectedKartId'} do
   player:GetAttributeChangedSignal(name):Connect(update)
  end
  update()

@@ -71,32 +71,37 @@ end
 local function passVerified()
  if not Config.GamePassEnabled or Config.GamePassId<=0 then return false end
  local ok,info=pcall(function()return game:GetService('MarketplaceService'):GetProductInfoAsync(Config.GamePassId,Enum.InfoType.GamePass)end)
- return ok and info.IsForSale==true and info.PriceInRobux==Config.GamePassPrice
+ return ok and info.IsForSale==true and type(info.PriceInRobux)=='number' and info.PriceInRobux>0
 end
 local function grantPass(player)
- if not Service.allowed(player,'purchase') or not passVerified() then return {status='PASS_UNAVAILABLE'} end
+ if not Service.allowed(player,'purchase') or not Config.GamePassEnabled or Config.GamePassId<=0 then return {status='PASS_UNAVAILABLE'} end
  local ok,owned=pcall(function()return game:GetService('MarketplaceService'):UserOwnsGamePassAsync(player.UserId,Config.GamePassId)end)
  if not ok or not owned then return {status='PASS_NOT_OWNED'} end
  return transact(player,{kind='GRANT_PASS',userId=player.UserId,id=game:GetService('HttpService'):GenerateGUID(false),itemId=Config.WingId,passId=Config.GamePassId})
 end
+-- Internal server APIs; callers still pass through adapter authorization.
+function Service.accountAdapter(player,kind) return adapter(player,kind) end
+function Service.getProfile(player) return read(player) end
+function Service.passAvailable() return passVerified() end
 function Service.start()
  local storage=game:GetService('ReplicatedStorage')
  if storage:FindFirstChild('KDMEconomy') then return end
  local remote=Instance.new('RemoteFunction');remote.Name='KDMEconomy';remote.Parent=storage
  remote.OnServerInvoke=function(player,action,equipped)
-  if not Service.allowed(player,if action=='PROFILE' then 'read' else 'purchase') then return {status='ACCESS_BLOCKED'} end
+  if not Service.allowed(player,if action=='PROFILE' then 'read' elseif action=='BUY_WING' or action=='PASS' then 'shop' else 'purchase') then return {status='ACCESS_BLOCKED'} end
   if busy[player] or last[player] and os.clock()-last[player]<1 then return {status='RATE_LIMITED'} end
   if action~='PROFILE' and (player:GetAttribute('RaceState')~='GARAGE' or player:GetAttribute('LobbyDriveActive')==true
    or player:GetAttribute('KDMRoutePending')=='RACE_LAUNCH') then return {status='HUB_REQUIRED'} end
   busy[player]=true;last[player]=os.clock()
   local ok,value=pcall(function()
-   if action=='PROFILE' then local view=read(player);view.passAvailable=passVerified();return view end
+   if action=='PROFILE' then local view=read(player);view.passAvailable=passVerified();view.passId=Config.GamePassId;return view end
    if action=='BUY_WING' or action=='EQUIP_WING' and type(equipped)=='boolean' then
     return transact(player,{kind=action,userId=player.UserId,id=game:GetService('HttpService'):GenerateGUID(false),itemId=Config.WingId,equipped=equipped})
    end
-   if action=='PASS' and passVerified() then
+   if action=='PASS' and Config.GamePassEnabled and Config.GamePassId>0 then
     local owned=game:GetService('MarketplaceService'):UserOwnsGamePassAsync(player.UserId,Config.GamePassId)
     if owned then return grantPass(player) end
+    if not passVerified() then return {status='PASS_UNAVAILABLE'} end
     local view=read(player)
     if view.status~='FOUND' or view.wingOwned then return {status=if view.wingOwned then 'ALREADY_OWNED' else view.status} end
     game:GetService('MarketplaceService'):PromptGamePassPurchase(player,Config.GamePassId)

@@ -1,0 +1,2 @@
+PASS: 60 API-shape records runtime outage, replay, concurrent selection and index-repair checks
+PASS: 33 actual server service HUB/Reserved wiring checks with injected Roblox API mocks; live calls zero

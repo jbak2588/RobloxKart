@@ -1,0 +1,1 @@
+PASS: 211 wing visual, color, nonphysics and original geometry checks

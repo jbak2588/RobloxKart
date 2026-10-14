@@ -1119,6 +1119,15 @@ check(instances[#instances].bonusAwardCount==1 and items.grantBonusNitro(fourthR
 	and second:GetAttribute("RaceChargeNitro")==secondNitro,
 	"fourth racer Bonus Nitro remains independent and once per round")
 check(not items.grantBonusNitro(fourthRacer),"fourth racer cannot claim Bonus Nitro twice")
+local voucherGuid='12345678-1234-1234-1234-000000000701'
+thirdRacer:SetAttribute('OfficialRoundGuid',voucherGuid)
+check(items.voucherTarget(thirdRacer,'Nitro')==voucherGuid,'paid refill targets authoritative empty slot and round')
+local firstBeforeVoucher=player:GetAttribute('RaceChargeNitro')
+check(items.applyVoucher(thirdRacer,'Nitro',voucherGuid) and thirdRacer:GetAttribute('RaceChargeNitro')==1,'actual controller publishes one paid charge')
+check(not items.applyVoucher(thirdRacer,'Nitro',voucherGuid) and thirdRacer:GetAttribute('RaceChargeNitro')==1,'actual controller delivery retry cannot duplicate')
+check(player:GetAttribute('RaceChargeNitro')==firstBeforeVoucher,'paid refill stays player-local')
+check(items.voucherTarget(thirdRacer,'Smoke')==nil,'paid refill cannot add inactive slot')
+check(not items.applyVoucher(thirdRacer,'Nitro','12345678-1234-1234-1234-000000000702'),'stale round cannot deliver paid charge')
 local ownerBlocked, ownerBlockedReason=items.tryApplyOffensiveItem(fourthRacer,thirdRacer,"Slick")
 check(ownerBlocked and ownerBlockedReason=="blocked" and thirdRacer:GetAttribute("RaceCombatFeedbackCode")=="SLICK_BLOCKED"
 	and thirdRacer:GetAttribute("RaceCombatFeedbackTargetName")==fourthRacer.Name,

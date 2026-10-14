@@ -468,6 +468,9 @@ function GarageUiController.start()
 	end
 
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
+	local shopButton=makeButton(backdrop,'SHOP',UDim2.fromOffset(12,14))
+	shopButton.Size=UDim2.fromOffset(104,44)
+	shopButton.Activated:Connect(function()require(script.Parent.GarageShopController).open()end)
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
 	local inviteGui = Instance.new("ScreenGui")
@@ -1335,11 +1338,24 @@ function GarageUiController.start()
   chip.Activated:Connect(function() chooseKart(id) end)
  end
  local function layoutKartControls()
+  shopButton.Visible=step==STEP_KART
   kartControls.Visible=step==STEP_KART
   if not kartControls.Visible then presencePanel.Visible=true; return end
   local position=viewport.Position
   local size=viewport.Size
   local canvas=backdrop.AbsoluteSize
+  shopButton.AnchorPoint=Vector2.zero
+  local actionY=cycleButton.AbsolutePosition.Y-backdrop.AbsolutePosition.Y
+  if canvas.X<500 and canvas.Y>canvas.X then
+   local width=(canvas.X-32)/3
+   previousButton.Size,cycleButton.Size,shopButton.Size=UDim2.fromOffset(width,44),UDim2.fromOffset(width,44),UDim2.fromOffset(width,44)
+   previousButton.Position=UDim2.fromOffset(8,actionY)
+   cycleButton.Position=UDim2.fromOffset(16+width,actionY)
+   shopButton.Position=UDim2.fromOffset(24+width*2,actionY)
+  else
+   shopButton.Size=UDim2.fromOffset(104,44)
+   shopButton.Position=UDim2.fromOffset(math.min(canvas.X-116,cycleButton.AbsolutePosition.X-backdrop.AbsolutePosition.X+cycleButton.AbsoluteSize.X+12),actionY+(cycleButton.AbsoluteSize.Y-44)/2)
+  end
   local sideControls=mobileCompact and canvas.X>canvas.Y
   presencePanel.Visible=not sideControls
   local reserved=102

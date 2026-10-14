@@ -18,6 +18,18 @@ function RaceLoadout:clear()
 	self.bonusPending = false
 	self.bonusAwardCount = 0
 	self.bonusEverAwarded = false
+	self.voucherApplied = {}
+end
+-- A paid voucher only fills an empty existing slot. It never grants a fifth slot,
+-- starts an effect or settles earned Bonus Nitro.
+function RaceLoadout:creditVoucher(id,roundGuid)
+	local key=roundGuid..':'..id
+	if self.voucherApplied[key] then return true,'ALREADY_APPLIED' end
+	if not self:contains(id) or self.counts[id]~=0 then return false,'NOT_EMPTY' end
+	self.counts[id]=math.min(1,Catalog[id].MaxCharges)
+	self.voucherApplied[key]=true
+	if self.selected=='' then self.selected=id end
+	return true,'APPLIED'
 end
 function RaceLoadout:prepare(slotIds, preserveSelection)
 	local ids = if slotIds == nil then Slots.DEFAULT else slotIds

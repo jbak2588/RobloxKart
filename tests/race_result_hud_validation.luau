@@ -98,12 +98,13 @@ local services={Players={LocalPlayer=player,GetPlayers=function() return {player
  end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController","RacePresentationState"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat","KDMFinishPresentation"} do
  child(shared,"ModuleScript",name)
 end
 local format=luau.load(fs.readFile("src/shared/RaceResultFormat.luau"))()
 local modules={
+ RacePresentationState=luau.load(fs.readFile('src/client/RacePresentationState.luau'))(),
  KDMFinishPresentation=luau.load(fs.readFile("src/shared/KDMFinishPresentation.luau"))(),
  KartInputController={isTouchPreferred=function() return input.PreferredInput==rb.Enum.PreferredInput.Touch end,getEffectiveSteering=function() return 0 end},
  TrackMapRenderer={create=function() return {destroy=function() end,setRacerMarker=function() end,

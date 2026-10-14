@@ -1,0 +1,13 @@
+PASS: 93 contract cases (creation, malformed structures, Garage preview, nested MeshPart)
+PASS: 40 visible parts, six invisible pivots, all internal welds; no mesh/decal assets
+PASS: four original wheel anchors/radii/widths and three-part wheel assemblies
+PASS: two exhaust tips/anchors and unchanged chassis-local/steering origins
+PASS: catalog red/white palette compatibility
+PASS: 40 material assignments; color/material separation and dark metal engine
+PASS: 12 framing cases across sizes/aspects; invisible helpers ignored
+KART ORBIT aspect=0.9 width=0.7982983225307464
+KART ORBIT aspect=1.5 width=0.7980927656482318
+KART ORBIT aspect=2.4 width=0.6702291100611778
+PASS: 69120 production Kart full-orbit corner checks
+PASS: three enlarged track previews, Start/Finish orientation and unchanged racing minimap
+PASS: 173 Luau scripts compiled

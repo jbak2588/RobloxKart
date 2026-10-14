@@ -1,0 +1,5 @@
+PASS: 121 Slick/Shield/loadout integration checks
+PASS: 902 RaceItem/Nitro checks (production controllers under deterministic mocks)
+PASS: 1179 total production checks including NPC targeting/debuff/recovery
+PASS: 273 additional live-gated NPC physical integration checks
+PASS: 13 rear preview lifecycle checks

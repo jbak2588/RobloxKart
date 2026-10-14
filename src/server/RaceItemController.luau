@@ -75,6 +75,24 @@ local function publish(player)
 	for index=1,3 do player:SetAttribute("RaceTacticalItem"..index, choice[index+1]) end
 end
 -- RaceController alone advances this attribute after validated checkpoints/time.
+function RaceItemController.voucherTarget(player,id)
+	local session=RaceSession.forPlayer(player)
+	local loadout=loadouts[player]
+	local guid=player:GetAttribute('OfficialRoundGuid')
+	local kart=PrototypeWorld.getRaceKart(player)
+	if player:GetAttribute('IsBot')==true or player:GetAttribute('RaceState')~='RACING'
+		or not session or not session:contains(player) or not loadout or not loadout:contains(id)
+		or loadout.counts[id]~=0 or type(guid)~='string' or not kart
+		or kart:GetAttribute('RaceControlsLocked')==true then return nil end
+	if loadout.voucherApplied[guid..':'..id] then return nil end
+	return guid
+end
+function RaceItemController.applyVoucher(player,id,guid)
+	if RaceItemController.voucherTarget(player,id)~=guid then return false end
+	local accepted=loadouts[player]:creditVoucher(id,guid)
+	if accepted then publish(player) end
+	return accepted
+end
 -- Keep a high-water mark even when no charge changed or same-round recovery clears effects.
 local function refillCompletedLap(player)
 	local progress = lapRefillProgress[player]

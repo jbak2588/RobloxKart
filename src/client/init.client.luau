@@ -41,6 +41,7 @@ if role == "HUB" then GarageUiController.start(); MatchRoomUiController.start();
 if role == "HUB" then require(script:WaitForChild("LobbyTestDriveController")).start() end
 if role == "HUB" then require(script:WaitForChild("PersonalRecordsController")).start() end
 require(script:WaitForChild('EconomyController')).start()
+require(script:WaitForChild('GarageShopController')).start()
 KartVisualMotionController.start()
 KDMDriverGripController.start()
 KartEffectsController.start()

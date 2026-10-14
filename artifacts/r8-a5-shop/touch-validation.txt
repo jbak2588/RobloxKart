@@ -1,0 +1,38 @@
+[RobloxKart] Kart controller ready
+[KartInput] window focused
+[KartInput] window focused
+[KartInput] window focus released
+[KartInput] window focused
+[KartInput] window focused
+[KartInput] window focused
+[KartInput] window focus released
+[KartInput] window focused
+[KartInput] text box focused
+[CombatFeedbackView] victim=MISSILE_HIT
+[CombatFeedbackView] victim=SLICK_HIT
+[CombatFeedbackView] victim=BLOCKED
+[CombatFeedbackView] code=MISSILE_HIT serial=1
+[CombatFeedbackView] code=MISSILE_BLOCKED serial=2
+[CombatFeedbackView] code=SLICK_HIT serial=3
+[CombatFeedbackView] code=SLICK_BLOCKED serial=4
+[CombatFeedbackView] code=MISSILE_HIT serial=5
+[CombatFeedbackView] code=MISSILE_HIT serial=6
+[CombatFeedbackView] code=MISSILE_HIT serial=7
+[CombatFeedbackView] code=MISSILE_HIT serial=8
+[CombatFeedbackView] code=MISSILE_HIT serial=9
+[CombatFeedbackView] code=MISSILE_HIT serial=10
+[CombatFeedbackView] code=MISSILE_HIT serial=11
+[CombatFeedbackView] code=MISSILE_HIT serial=12
+[CombatFeedbackView] code=MISSILE_HIT serial=13
+[CombatFeedbackView] victim=BLOCKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=SMOKED
+[CombatFeedbackView] victim=THUNDER_HIT
+PASS: 2908 mobile input, lifecycle, transport and layout checks (mocked; no hardware multi-touch)

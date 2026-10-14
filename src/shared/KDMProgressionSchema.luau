@@ -237,6 +237,16 @@ function Schema.new(catalog, options)
    or type(s.lastOpId) ~= "string" or #s.lastOpId > 128 then return false, "CORRUPT_SELECTION" end
   if type(w) ~= "table" or not Schema.integer(w.cash,api.maxCash) or not Schema.integer(w.ledgerRevision) then return false, "CORRUPT_WALLET" end
   if w.lifetimeEarned~=nil and not Schema.integer(w.lifetimeEarned) then return false,'CORRUPT_WALLET' end
+  -- Optional additive field: old wallets/records/selections remain valid unchanged.
+  if profile.shopInventory~=nil then
+   local inv=profile.shopInventory
+   local ids={Nitro=true,Shield=true,Slick=true,Missile=true,Smoke=true,Thunder=true}
+   if type(inv)~='table' or type(inv.counts)~='table' or type(inv.autoRefill)~='boolean'
+    or not Schema.integer(inv.revision) then return false,'CORRUPT_SHOP_INVENTORY' end
+   for id,n in inv.counts do
+    if not ids[id] or not Schema.integer(n,1000000) then return false,'CORRUPT_SHOP_STOCK' end
+   end
+  end
   if type(c) ~= "table" or type(c.ownedPartIds) ~= "table" or type(c.equippedPartIdsBySlot) ~= "table" then return false, "CORRUPT_INVENTORY" end
   if Schema.count(c.ownedPartIds) > 256 or Schema.count(c.equippedPartIdsBySlot) > 16 then return false, "INVENTORY_CAPACITY" end
   for id, owned in c.ownedPartIds do
@@ -251,6 +261,13 @@ function Schema.new(catalog, options)
   if Schema.count(profile.pendingIndex) > 64 or Schema.count(profile.receipts) > api.maxReceipts then return false, "RECEIPT_CAPACITY" end
   for id, receipt in profile.receipts do
    if type(id) ~= "string" or #id > 512 or type(receipt) ~= "table" or type(receipt.signature) ~= "string" then return false, "CORRUPT_RECEIPT" end
+   if receipt.refill~=nil then
+    local f=receipt.refill
+    if type(f)~='table' or not Schema.guid(f.roundGuid) or type(f.itemId)~='string'
+     or id~='shop-refill:'..f.roundGuid..':'..f.itemId or type(f.jobId)~='string' or #f.jobId>128
+     or not Schema.integer(f.reservedAt) or (f.state~='RESERVED' and f.state~='DELIVERED')
+     or (receipt.refunded~=nil and type(receipt.refunded)~='boolean') then return false,'CORRUPT_REFILL_RECEIPT' end
+   end
    if receipt.money~=nil then
     local m=receipt.money
     if type(m)~='table' or not Schema.integer(m.base,35) or not Schema.integer(m.bestRace,10)

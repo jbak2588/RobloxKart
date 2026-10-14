@@ -1,0 +1,1 @@
+PASS: 126 shop transaction, inventory, voucher, preservation, timeout and safe-layout checks; mock accounts only
