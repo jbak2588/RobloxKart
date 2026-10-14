@@ -1,0 +1,50 @@
+{
+  "pc": {
+    "visible": 376,
+    "partialFade": 96,
+    "hiddenNear": 109,
+    "maxHeightRatioError": 0.0000013351440415476645,
+    "frames": 492,
+    "minGroundClearance": 12.239687442779541,
+    "maxGateCentreError": 0,
+    "viewport": [
+      1269.3333740234375,
+      600
+    ],
+    "maxPinBottomError": 0.00000762939453125,
+    "indexes": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true
+    },
+    "visibleNear": 0
+  },
+  "mobile": {
+    "visible": 2056,
+    "partialFade": 271,
+    "hiddenNear": 329,
+    "maxHeightRatioError": 0.0000013351440415476645,
+    "frames": 2400,
+    "minGroundClearance": 12.239687442779541,
+    "maxGateCentreError": 0,
+    "viewport": [
+      749,
+      381
+    ],
+    "maxPinBottomError": 0.000003814697265625,
+    "indexes": {
+      "0": true,
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true,
+      "5": true,
+      "6": true
+    },
+    "visibleNear": 0
+  }
+}

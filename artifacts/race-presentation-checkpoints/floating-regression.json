@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "baseline": "696a20e4a905ae99ff8aa936db41d2dae4226f76",
+  "scope": "floating marker only; user excluded mobile HUD fixes",
+  "tests": {
+    "marker": 1721,
+    "racePresentation": 6932,
+    "camera": 3600,
+    "mobileTouch": 2805,
+    "twoPlayer": 105,
+    "flame": 33,
+    "worldVfx": 160,
+    "compile": 168,
+    "kartVisual": "PASS",
+    "rojo": "PASS",
+    "diffCheck": "PASS"
+  },
+  "native": {
+    "sources": 168,
+    "worldAssets": 1093,
+    "terrainGroups": 70
+  }
+}

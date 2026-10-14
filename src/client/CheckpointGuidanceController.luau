@@ -7,13 +7,15 @@ local State=require(script.Parent.RacePresentationState)
 local Controller={}
 local active
 local renderSerial=0
--- SizeOffset anchors the bottom centre (pin tip) at the projected road point.
+-- SizeOffset anchors the bottom centre (pin tip) at the floating world point.
 -- Scale with perspective rather than drawing the same 210px sign at any depth.
 function Controller.markerMetrics(depth,viewportHeight,fov,distance)
  if depth<=0 or distance<=26 or distance>350 then return 0,0,0 end
  local focal=viewportHeight/(2*math.tan(math.rad(fov)*.5))
  local width=math.min(focal*24/depth,200,viewportHeight*.36)
- return width,width*7/16,math.clamp((distance-26)/24,0,1)
+ local nearAlpha=math.clamp((distance-26)/24,0,1)
+ local farAlpha=math.clamp((350-distance)/100,0,1)
+ return width,width*7/16,nearAlpha*farAlpha
 end
 function Controller.markerOverlaps(tipX,tipY,width,height,bounds)
  return bounds~=nil and tipX+width/2>bounds[1] and tipX-width/2<bounds[3]
@@ -65,11 +67,13 @@ function Controller.new(player,isDriving)
   local width=track:GetAttribute('RoadWidth') or math.max(8,gate.Size.X-20)
   local base=gate.CFrame;local y=surfaceY(road,base.Position.X,base.Position.Z)
   base=base+Vector3.new(0,y-base.Position.Y,0)
+  local bannerHeight=0
   for _,side in {-1,1} do
    local flag=resources[if index==0 then 'FinishFlag' else 'CheckpointFlag']:Clone()
    flag.Name=if side<0 then 'LeftBanner' else 'RightBanner';flag:ScaleTo(.65)
    for _,o in flag:GetDescendants() do if o:IsA('BasePart') then safe(o) elseif o:IsA('Light') then o.Enabled=false elseif o:IsA('TextLabel') then o.AutoLocalize=false end end
    local cf,bounds=flag:GetBoundingBox();local pivot=flag:GetPivot()
+   bannerHeight=math.max(bannerHeight,bounds.Y)
    local target=base*CFrame.new(side*(width/2+3),bounds.Y/2,0)
    flag:PivotTo(target*(cf:ToObjectSpace(pivot)));flag.Parent=folder
   end
@@ -82,7 +86,9 @@ function Controller.new(player,isDriving)
    part.Material=Enum.Material.SmoothPlastic;safe(part);part.Parent=folder
   end end
   local anchor=Instance.new('Part');anchor.Name='MarkerAnchor';anchor.Size=Vector3.one;anchor.Transparency=1
-  anchor.CFrame=base*CFrame.new(0,.075,0);safe(anchor);anchor.Parent=folder
+  -- Float the pin tip between the upper portions of the original banners.
+  -- Both banner sizes and the road surface determine height, including FINISH.
+  anchor.CFrame=base*CFrame.new(0,bannerHeight*.8,0);safe(anchor);anchor.Parent=folder
   local gui=Instance.new('BillboardGui');gui.Name='CheckpointMarker';gui.Size=UDim2.fromOffset(120,52.5);gui.MaxDistance=350
   gui.SizeOffset=Vector2.new(0,.5);gui.StudsOffset=Vector3.zero;gui.StudsOffsetWorldSpace=Vector3.zero
   gui.AlwaysOnTop=false;gui.LightInfluence=0;gui.Enabled=false;gui.Parent=anchor

@@ -16,6 +16,13 @@ for _,height in {390,430,600,900,1080}do
   for distance=27,50 do local _,_,alpha=C.markerMetrics(distance+18,height,fov,distance);check(alpha>=prior and alpha<=1,'smooth proximity fade');prior=alpha end
   local _,_,alpha=C.markerMetrics(-1,height,fov,100);check(alpha==0,'behind camera hidden')
   _,_,alpha=C.markerMetrics(400,height,fov,351);check(alpha==0,'distant marker hidden')
+  prior=1
+  for distance=250,350,5 do
+   local _,_,farAlpha=C.markerMetrics(distance+18,height,fov,distance)
+   check(farAlpha<=prior and farAlpha>=0,'distant approach fades in without a pop')
+   prior=farAlpha
+  end
+  check(prior==0,'visibility boundary fully transparent')
   for _,x in {200,500,850}do
    local w,h=C.markerMetrics(70,height,fov,52)
    local tipY=height*.5
