@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[{\"completed\":1,\"total\":2,\"visible\":true,\"text\":\"FINAL LAP\"},{\"completed\":1,\"total\":3,\"visible\":true,\"text\":\"2 LAPS TO GO\"},{\"completed\":2,\"total\":3,\"visible\":true,\"text\":\"FINAL LAP\"},{\"completed\":1,\"total\":4,\"visible\":true,\"text\":\"3 LAPS TO GO\"},{\"completed\":2,\"total\":4,\"visible\":true,\"text\":\"2 LAPS TO GO\"},{\"completed\":3,\"total\":4,\"visible\":true,\"text\":\"FINAL LAP\"},{\"checkerCount\":51,\"finishVisible\":true}]"
+    }
+  ],
+  "isError": false
+}

@@ -1,0 +1,14 @@
+{
+  "source": "C:\\Users\\OWNER\\Downloads\\Engine_sound_N_Nitro_vfx.rbxlx",
+  "sourceSha256": "784e04a5467f96f64c2cfd5013bdd3e7415ef78ad536dc47a39e28bd5a02d1fa",
+  "assetSha256": "488d003cfb9baf9ed284dc81991462c543c0b1e4f37a0b6cb9df1087d5c2f2fc",
+  "entries": 28,
+  "safeAssets": [
+    "CheckpointFlag",
+    "FinishFlag",
+    "CheckpointFrame",
+    "StartPlayer",
+    "TickPlayer"
+  ],
+  "scripts": 0
+}

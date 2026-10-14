@@ -1,0 +1,127 @@
+[
+  {
+    "exitCode": 0,
+    "output": "PASS: script-free original mesh/GUI/Nitro/audio asset contracts",
+    "test": "template_visual_asset"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: offline Studio guard, live rejection, TTL/update/remove/map isolation",
+    "test": "studio_offline_memory"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 855 actual shared solver training charge/boost/reentry/lifecycle checks",
+    "test": "lobby_training_drift"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 51 real service heartbeat cooldown, limit, safe fallback, steering and slide checks",
+    "test": "lobby_wall_service"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 39541 A2 speed, world-normal slide, footprint escape, real yielding exit checks",
+    "test": "lobby_driving_polish"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 814 Lobby surface / Drift-only / exact Barrier policy checks",
+    "test": "lobby_surface_drift"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 7796 Lobby mobile safe hitbox / paved interior checks",
+    "test": "lobby_drive_mobile_fix"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 1051 Lobby policy / speed / closed-loop footprint cases",
+    "test": "lobby_test_drive"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 1402 production world-VFX checks (4 racers, 20 repeated cycles)",
+    "test": "remote_world_vfx"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 121 Slick/Shield/loadout integration checks\nPASS: 896 RaceItem/Nitro checks (production controllers under deterministic mocks)\nPASS: 1173 total production checks including NPC targeting/debuff/recovery\nPASS: 273 additional live-gated NPC physical integration checks\nPASS: 13 rear preview lifecycle checks\nPASS: D3 production World angle, total speed, fresh press, charge zero, held/timeout, one-event and effect priorities",
+    "test": "r8_d3_world"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 298 production world-VFX checks (4 racers, 4 repeated cycles)\nPASS: D2 countersteer, grounded marks, four-racer bounded lifecycle and drift gain",
+    "test": "r8_d2_presentation"
+  },
+  {
+    "exitCode": 0,
+    "output": "[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\nPASS: 3600 exact production camera frames match PV633 across PC/mobile normal/drift/exit/boost",
+    "test": "r8_d4_restore_camera"
+  },
+  {
+    "exitCode": 0,
+    "output": "[RobloxKart] Kart controller ready\n[KartInput] window focus released\n[KartInput] window focused\n[KartInput] text box focused\n[CombatFeedbackView] victim=MISSILE_HIT\n[CombatFeedbackView] victim=SLICK_HIT\n[CombatFeedbackView] victim=BLOCKED\n[CombatFeedbackView] code=MISSILE_HIT serial=1\n[CombatFeedbackView] code=MISSILE_BLOCKED serial=2\n[CombatFeedbackView] code=SLICK_HIT serial=3\n[CombatFeedbackView] code=SLICK_BLOCKED serial=4\n[CombatFeedbackView] code=MISSILE_HIT serial=5\n[CombatFeedbackView] code=MISSILE_HIT serial=6\n[CombatFeedbackView] code=MISSILE_HIT serial=7\n[CombatFeedbackView] code=MISSILE_HIT serial=8\n[CombatFeedbackView] code=MISSILE_HIT serial=9\n[CombatFeedbackView] code=MISSILE_HIT serial=10\n[CombatFeedbackView] code=MISSILE_HIT serial=11\n[CombatFeedbackView] code=MISSILE_HIT serial=12\n[CombatFeedbackView] code=MISSILE_HIT serial=13\n[CombatFeedbackView] victim=BLOCKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=SMOKED\n[CombatFeedbackView] victim=THUNDER_HIT\nPASS: 2805 mobile input, lifecycle, transport and layout checks (mocked; no hardware multi-touch)",
+    "test": "mobile_touch"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 105 synchronized two-player race checks",
+    "test": "two_player_race"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 59 economy checks; 10000 retained receipts 2513408 JSON bytes",
+    "test": "r8_a4_economy"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 211 wing visual, color, nonphysics and original geometry checks",
+    "test": "r8_a4_wing"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 65 official category, fairness, min/max, receipt and preservation checks",
+    "test": "r8_a3_records"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 125 production Bot room authority, security, reusable NPC and lifecycle checks",
+    "test": "production_bot"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 33523 side-wing geometry / original apron / concave walls / paving / paired static skid checks; 608 marks; Practice road gap 161.0",
+    "test": "lobby_side_wings"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 14 MatchRoom registry checks",
+    "test": "garage_two_player"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 93 contract cases (creation, malformed structures, Garage preview, nested MeshPart)\nPASS: 40 visible parts, six invisible pivots, all internal welds; no mesh/decal assets\nPASS: four original wheel anchors/radii/widths and three-part wheel assemblies\nPASS: two exhaust tips/anchors and unchanged chassis-local/steering origins\nPASS: catalog red/white palette compatibility\nPASS: 40 material assignments; color/material separation and dark metal engine\nPASS: 12 framing cases across sizes/aspects; invisible helpers ignored\nKART ORBIT aspect=0.9 width=0.7982983225307464\nKART ORBIT aspect=1.5 width=0.7980927656482318\nKART ORBIT aspect=2.4 width=0.6702291100611778\nPASS: 69120 production Kart full-orbit corner checks\nPASS: three enlarged track previews, Start/Finish orientation and unchanged racing minimap\nPASS: 168 Luau scripts compiled",
+    "test": "kart_visual"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: Nitro launch cue, Mini Boost regression, both overlap orders, cleanup and reattachment\nPASS: engine loop NORMAL/FIXED/DYNAMIC modes, runtime regions, delayed load, timeout and production guard\nPASS: stopped PRESENT idle pitch/volume, stale velocity, ROLL and Rematch audio",
+    "test": "kart_audio"
+  },
+  {
+    "exitCode": 0,
+    "output": "[RobloxKart] Chase camera enabled\n[RobloxKart] Chase camera ready\n[RobloxKart] Chase camera disabled\n[RobloxKart] Chase camera enabled\nPASS: 29 production finish camera lifecycle checks",
+    "test": "finish_presentation"
+  },
+  {
+    "exitCode": 0,
+    "output": "PASS: 27 actual native world VFX budgets, block distinction, finite lifetime and cleanup checks",
+    "test": "item_world_vfx"
+  },
+  {
+    "exitCode": 0,
+    "output": "[KDMRoom] directory listing failed: C:\\dev\\RobloxKart\\tests/match_room_service_validation:211: directory unavailable\nPASS: 32 persistent MatchRoom service checks",
+    "test": "match_room_service"
+  }
+]

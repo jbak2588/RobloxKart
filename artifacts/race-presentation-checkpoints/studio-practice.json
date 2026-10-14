@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "[{\"index\":1,\"target\":1,\"marker\":\"CHECKPOINT\",\"unsafe\":0,\"parts\":41},{\"index\":2,\"target\":2,\"marker\":\"CHECKPOINT\",\"unsafe\":0,\"parts\":41},{\"index\":3,\"target\":3,\"marker\":\"CHECKPOINT\",\"unsafe\":0,\"parts\":41},{\"index\":4,\"target\":4,\"marker\":\"CHECKPOINT\",\"unsafe\":0,\"parts\":41},{\"index\":5,\"target\":5,\"marker\":\"CHECKPOINT\",\"unsafe\":0,\"parts\":41},{\"index\":6,\"target\":6,\"marker\":\"CHECKPOINT\",\"unsafe\":0,\"parts\":41},{\"index\":7,\"target\":0,\"marker\":\"FINISH\",\"unsafe\":0,\"parts\":43},{\"dnfClean\":true}]"
+    }
+  ],
+  "isError": false
+}
