@@ -7,6 +7,8 @@ function M.new(body,parent)
  local template=RS:WaitForChild('KDMTemplateResources'):WaitForChild('EngineAudio')
  local graph=template:Clone();graph.Name='StudioEngineAB';graph.Parent=body
  local player=graph.EngineLoopPlayer;local compressor=graph.EngineCompressor;local fader=graph.EngineFader
+ -- User-selected driving-loop candidate; keep the extracted original for rollback.
+ player.Asset='rbxassetid://79665698671262'
  local output=Instance.new('AudioDeviceOutput');output.Name='ListeningOutput';output.Parent=graph
  local function wire(a,b)local w=Instance.new('Wire');w.SourceInstance=a;w.TargetInstance=b;w.Parent=graph end
  wire(player,compressor);wire(compressor,fader);wire(fader,output)
