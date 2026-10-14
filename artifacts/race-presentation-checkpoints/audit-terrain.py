@@ -29,10 +29,3 @@ result={'status':'PASS','terrainGroups':len(t),'baselineSha256':hashlib.sha256(a
 result['materials']='identical 323 content bytes; SharedString index relocated by new assets'
 (root/'artifacts/race-presentation-checkpoints/native-terrain.json').write_text(json.dumps(result,indent=2))
 print(json.dumps(result))
-
-
-
-
-
-
-

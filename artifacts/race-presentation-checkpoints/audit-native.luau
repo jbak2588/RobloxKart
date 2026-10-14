@@ -47,12 +47,3 @@ local set={};for _,v in a do set[v]=true end;for _,v in b do if not set[v] then 
 for i,v in a do assert(b[i]==v,'world change '..v..' / '..tostring(b[i]))end
 fs.writeFile('artifacts/race-presentation-checkpoints/native-semantic.json',serde.encode('json',{status='PASS',sources=n,preservedEntries=#a,newSourceModules=4,cameraExcluded=true}))
 print('PASS: '..n..' exact sources, '..#a..' preserved Native world/asset entries')
-
-
-
-
-
-
-
-
-
