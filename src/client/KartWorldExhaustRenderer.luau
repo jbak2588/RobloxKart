@@ -31,7 +31,7 @@ local function makeSmoke(attachment: Attachment): ParticleEmitter
 	smoke.Texture = SMOKE_TEXTURE
 	smoke.Enabled = false
 	smoke.Rate = 0
-	smoke.Lifetime = NumberRange.new(.65, 1.1)
+	smoke.Lifetime = NumberRange.new(1.3, 2.2)
 	smoke.Speed = NumberRange.new(1, 3)
 	smoke.Acceleration = Vector3.new(0, 1, 0)
 	smoke.Drag = 1
