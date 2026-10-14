@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "terrainGroups": 70,
+  "baselineSha256": "03291340ae878522f57c3b006e56dac45e686abf60bed65d5e78537211e15137",
+  "candidateSha256": "5a0d422af8e249b03f2cb7f4bc32e098e2649169d16c819eb66284a3f8b795ad",
+  "candidateBytes": 686155,
+  "method": "raw binary read-only; Studio native Save As, no Lune reserialize",
+  "materials": "identical 323 content bytes; SharedString index relocated by new assets"
+}

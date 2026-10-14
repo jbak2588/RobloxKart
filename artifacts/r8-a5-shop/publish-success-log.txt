@@ -1,0 +1,11 @@
+2026-10-14T15:55:43.317Z,11300.317383,1088,6,Info [FLog::StudioPublishService] publishAs: currentUniverse=0 currentPlace=0 -> targetUniverse=10768420544 targetPlace=127925465904803 isPublish=1 (crossUniverse=0)
+2026-10-14T15:55:48.327Z,11305.327148,1220,6 [FLog::AssetPrivacyPermissionsManager] Setting 11 assets in asset privacy grant on publish cache
+2026-10-14T15:55:48.578Z,11305.578125,1088,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishInitiated state
+2026-10-14T15:55:48.578Z,11305.578125,1088,6,Debug [FLog::PublishSessionStateController] Go to PublishGrantAssetsPermissions
+2026-10-14T15:55:48.869Z,11305.869141,63d4,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishGrantAssetsPermissions state
+2026-10-14T15:55:48.870Z,11305.870117,1088,6,Debug [FLog::PublishSessionStateController] Go to PublishInProgress
+2026-10-14T15:55:52.170Z,11309.170898,1088,6,Debug [FLog::PublishSessionStateController] Processing task results for PublishInProgress state
+2026-10-14T15:55:52.170Z,11309.170898,1088,6,Debug [FLog::PublishSessionStateController] Go to PublishSuccessful
+2026-10-14T15:55:52.170Z,11309.170898,5ccc,6,Info [FLog::StudioPublishStatusLabel] Publish succeeded for placeId 0; marking as published (refreshing menu label to "Publish latest version")
+2026-10-14T15:55:52.428Z,11309.428711,1220,6 [FLog::Output] PublishToDifferentGame srcPlaceId=0, dstPlaceId=127925465904803, srcUniverse=0, dstUniverse=10768420544
+2026-10-14T15:55:59.202Z,11316.202148,1220,6,Info [FLog::PlaceVersionCheck] checkPlaceVersionRequest returned version 681
