@@ -6,7 +6,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AudioConfig = require(Shared:WaitForChild("AudioConfig"))
 local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local AudioRuntime = require(script.Parent:WaitForChild("AudioRuntime"))
-local RaceStartAudio = require(script.Parent:WaitForChild("RaceStartAudio"))
 
 local RaceAudioController = {}
 local started = false
@@ -19,13 +18,9 @@ function RaceAudioController.start()
 
 	local player = Players.LocalPlayer
 	local group = AudioRuntime.getGroup("RobloxKartSFX")
-	local startAudioOk, startAudio = pcall(RaceStartAudio.new)
-	if not startAudioOk then startAudio = nil end
 	local sounds: { [string]: Sound? } = {
 		Countdown = AudioRuntime.createSound("CountdownBeep", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.COUNTDOWN_VOLUME, false),
 		Go = AudioRuntime.createSound("RaceGoFirst", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
-		GoRepeat = AudioRuntime.createSound("RaceGoSecond", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
-		GoThird = AudioRuntime.createSound("RaceGoThird", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		Lap = AudioRuntime.createSound("LapComplete", AudioConfig.ASSETS.LAP_COMPLETE, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		FinalLap = AudioRuntime.createSound("FinalLapFirst", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
 		FinalLapRepeat = AudioRuntime.createSound("FinalLapSecond", AudioConfig.ASSETS.FINAL_LAP, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
@@ -34,13 +29,19 @@ function RaceAudioController.start()
 		Dnf = AudioRuntime.createSound("RaceDNF", AudioConfig.ASSETS.DNF, SoundService, group, false, AudioConfig.RACE.DNF_VOLUME, false),
 	}
 	if sounds.Go then
-		sounds.Go.PlaybackSpeed = 1.08
-	end
-	if sounds.GoRepeat then
-		sounds.GoRepeat.PlaybackSpeed = 1.08
-	end
-	if sounds.GoThird then
-		sounds.GoThird.PlaybackSpeed = 1.08
+		-- Slow the single existing beep to twice its duration. Compensate the
+		-- lowered pitch, then raise it independently; never loop/repeat GO.
+		sounds.Go.PlaybackSpeed = 1 / AudioConfig.RACE.GO_DURATION_MULTIPLIER
+		local compensate = Instance.new("PitchShiftSoundEffect")
+		compensate.Name = "GoDurationPitchCompensation"
+		compensate.Octave = AudioConfig.RACE.GO_DURATION_MULTIPLIER
+		compensate.Priority = 2
+		compensate.Parent = sounds.Go
+		local higher = Instance.new("PitchShiftSoundEffect")
+		higher.Name = "GoHigherPitch"
+		higher.Octave = AudioConfig.RACE.GO_PITCH_RATIO
+		higher.Priority = 1
+		higher.Parent = sounds.Go
 	end
 	AudioRuntime.preload(sounds)
 	for _, sound in { sounds.FinalLap, sounds.FinalLapRepeat, sounds.FinalLapThird } do
@@ -55,7 +56,6 @@ function RaceAudioController.start()
 	local finalLapPlayed = false
 
 	local function stopAll()
-		if startAudio then startAudio:stop() end
 		for _, sound in sounds do
 			AudioRuntime.stop(sound)
 		end
@@ -68,10 +68,10 @@ function RaceAudioController.start()
 		end
 	end
 
-	local function playBeepPattern(finalLap: boolean)
-		local first = if finalLap then sounds.FinalLap else sounds.Go
-		local second = if finalLap then sounds.FinalLapRepeat else sounds.GoRepeat
-		local third = if finalLap then sounds.FinalLapThird else sounds.GoThird
+	local function playFinalLapPattern()
+		local first = sounds.FinalLap
+		local second = sounds.FinalLapRepeat
+		local third = sounds.FinalLapThird
 		if not first or not second or not third then
 			return
 		end
@@ -97,7 +97,7 @@ function RaceAudioController.start()
 			and player:GetAttribute("RaceCompletedLaps") == total - 1
 			and player:GetAttribute("RaceCurrentLap") == total then
 			finalLapPlayed = true
-			playBeepPattern(true)
+			playFinalLapPattern()
 		end
 	end
 	player:GetAttributeChangedSignal("RaceCurrentLap"):Connect(checkFinalLap)
@@ -139,8 +139,7 @@ function RaceAudioController.start()
 		previousState = state
 		if state ~= "RACING" then
 			goSerial += 1
-			if startAudio then startAudio:stop() end
-			AudioRuntime.stop(sounds.Go);AudioRuntime.stop(sounds.GoRepeat);AudioRuntime.stop(sounds.GoThird)
+			AudioRuntime.stop(sounds.Go)
 			AudioRuntime.stop(sounds.FinalLap)
 			AudioRuntime.stop(sounds.FinalLapRepeat)
 			AudioRuntime.stop(sounds.FinalLapThird)
@@ -156,7 +155,7 @@ function RaceAudioController.start()
 			playCountdown(player:GetAttribute("RaceCountdown"))
 		elseif state == "RACING" and prior == "COUNTDOWN" then
 			AudioRuntime.stop(sounds.Countdown)
-			if not startAudio or not startAudio:play() then playBeepPattern(false) end
+			AudioRuntime.playOnce(sounds.Go)
 		elseif state == "FINISHING" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Finish)
 		elseif state == "DNF" and prior == "RACING" then
@@ -164,7 +163,7 @@ function RaceAudioController.start()
 		end
 	end)
 	player.AncestryChanged:Connect(function(_,parent)
-		if not parent then goSerial+=1;stopAll();if startAudio then startAudio:destroy();startAudio=nil end end
+		if not parent then goSerial+=1;stopAll() end
 	end)
 end
 
