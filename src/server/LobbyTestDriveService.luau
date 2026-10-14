@@ -294,7 +294,12 @@ function Service.start(driveZone,eligibility)
    local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)*math.clamp(math.abs(r.speed)/KartConfig.MAX_FORWARD_SPEED,0,1)
    local normalYaw=-r.training.steer*r.speed/radius
    if r.training.slide.active or r.training.slide.recovering then r.speed=math.min(physical.Magnitude,KartConfig.MINI_BOOST_MAX_SPEED) end
+   local wasBoost,boostEnd=r.training.boost,r.training.boostEnd
    local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,Policy.Forward)
+   if not wasBoost and r.training.boost then r.kart:SetAttribute('KartBoostEndReason','')
+   elseif wasBoost and not r.training.boost then
+    r.kart:SetAttribute('KartBoostEndReason',if now>=boostEnd and throttle>0 and not r.training.active then 'duration_complete' else 'cancelled')
+   end
    if budget then r.speed=budget end
    drifting=r.training.active
    local lateral=right*(slideLateral or (physical:Dot(right)*math.exp(-KartConfig.LATERAL_GRIP*dt)))

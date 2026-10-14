@@ -56,12 +56,13 @@ return function(racers,rounds,exercise)
  local rs=object("ReplicatedStorage");resources.Parent=rs
  local services={ReplicatedStorage=rs,Workspace=workspace,Players={LocalPlayer=players[1],GetPlayerByUserId=function(_,id)return players[id] end},RunService=run}
  local modules={}
- local parent={ShieldWorldRenderer="shield",KartWorldExhaustRenderer="exhaust",KartWorldSpeedRenderer="speed",KartWorldVFXController="observer"}
+ local parent={BoostFlameEnvelope="flameEnvelope",ShieldWorldRenderer="shield",KartWorldExhaustRenderer="exhaust",KartWorldSpeedRenderer="speed",KartWorldVFXController="observer"}
  local allocated=0
  local env={game={GetService=function(_,name)return services[name] end,ReplicatedStorage={Shared={KDMShieldGeometry="geometry",KDMSpeedSensation="speedProfile"}}},script={Parent=parent},require=function(k)return assert(modules[k],tostring(k)) end,
  Instance={new=function(class)allocated+=1;return object(class)end},RaycastParams={new=function()return {}end},Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,ColorSequenceKeypoint=rb.ColorSequenceKeypoint,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,NumberRange=rb.NumberRange,Enum=rb.Enum,time=function()return now end}
  local function load(path)return luau.load(fs.readFile(path),{environment=env})() end
  modules.geometry=load("src/shared/KDMShieldGeometry.luau")
+ modules.flameEnvelope=load("src/client/BoostFlameEnvelope.luau")
  modules.shield=load("src/client/ShieldWorldRenderer.luau")
  modules.exhaust=load("src/client/KartWorldExhaustRenderer.luau")
  modules.speedProfile=load("src/shared/KDMSpeedSensation.luau")

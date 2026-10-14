@@ -19,6 +19,7 @@ local TrackGeometry = requireModule(ReplicatedStorage:WaitForChild("Shared"):Wai
 local RaceResultFormat = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RaceResultFormat") :: ModuleScript)
 local FinishPresentation = requireModule(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMFinishPresentation") :: ModuleScript)
 local TrackMapRenderer = require(script.Parent:WaitForChild("TrackMapRenderer"))
+local PresentationState = require(script.Parent:WaitForChild("RacePresentationState"))
 local RaceMinimapRivals = require(script.Parent:WaitForChild("RaceMinimapRivals"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
 local RaceResultsCache = require(script.Parent:WaitForChild("RaceResultsCache"))
@@ -592,12 +593,25 @@ function RaceHudController.start()
 	finishBanner.Size = UDim2.fromOffset(400, 82)
 	finishBanner.BackgroundTransparency = 1
 	finishBanner.Font = Enum.Font.GothamBlack
-	finishBanner.Text = "FINISH!"
+	finishBanner.Text = ""
 	finishBanner.TextColor3 = Color3.fromRGB(255, 225, 70)
 	finishBanner.TextStrokeTransparency = 0.3
 	finishBanner.TextScaled = true
 	finishBanner.Visible = false
 	finishBanner.Parent = screenGui
+	-- Native checkers keep the reference's edge fade without another image download.
+	for row=0,2 do for column=0,15 do
+		local tile=Instance.new('Frame');tile.Name='FinishChecker';tile.BorderSizePixel=0
+		tile.Position=UDim2.fromScale(column/16,row/3);tile.Size=UDim2.fromScale(1/16,1/3)
+		tile.BackgroundColor3=if (row+column)%2==0 then Color3.new(1,1,1) else Color3.new(0,0,0)
+		tile.BackgroundTransparency=if column==0 or column==15 then .8 elseif column==1 or column==14 then .5 else .12
+		tile.ZIndex=2;tile.Parent=finishBanner
+	end end
+	local finishText=Instance.new('TextLabel');finishText.Name='FinishText';finishText.BackgroundTransparency=1
+	finishText.Size=UDim2.fromScale(1,1);finishText.Text='FINISH!';finishText.AutoLocalize=false
+	finishText.Font=Enum.Font.GothamBlack;finishText.TextColor3=Color3.new(1,1,1)
+	finishText.TextScaled=true;finishText.TextStrokeColor3=Color3.new(0,0,0);finishText.TextStrokeTransparency=0
+	finishText.ZIndex=3;finishText.Parent=finishBanner
 	local finishBannerScale = Instance.new("UIScale")
 	finishBannerScale.Parent = finishBanner
 	local finishPlace = Instance.new("TextLabel")
@@ -633,7 +647,7 @@ function RaceHudController.start()
 	resultsPanel.Position = UDim2.fromScale(0.5, 0.5)
 	resultsPanel.Size = UDim2.fromOffset(370, 340)
 	resultsPanel.BackgroundColor3 = Color3.fromRGB(16, 19, 24)
-	resultsPanel.BackgroundTransparency = 0.08
+	resultsPanel.BackgroundTransparency = 0.40
 	resultsPanel.BorderSizePixel = 0
 	resultsPanel.Visible = false
 	resultsPanel.Parent = screenGui
@@ -1133,6 +1147,7 @@ function RaceHudController.start()
 	local finalLapSerial = 0
 	local finishBannerSerial = 0
 	local finalLapShown = false
+	local lastNoticeCompleted = getNumberAttribute(player, "RaceCompletedLaps", 0)
 	local displayedRaceState = player:GetAttribute("RaceState")
 	local displayedCountdown = getNumberAttribute(player, "RaceCountdown", 0)
 	local displayedLap = getNumberAttribute(player, "RaceCurrentLap", 1)
@@ -1425,6 +1440,7 @@ function RaceHudController.start()
 				goDisplaySerial += 1
 				finalLapSerial += 1
 				finalLapShown = false
+				lastNoticeCompleted = 0
 				finalLapLabel.Visible = false
 			end
 			if countdown > 0 then
@@ -1458,9 +1474,11 @@ function RaceHudController.start()
 			countdownLabel.Visible = false
 		end
 
+		local lapNotice=PresentationState.lapNotice(totalLaps,completedLaps)
 		if raceState == "RACING" and previousRaceState == "RACING"
-			and not finalLapShown and totalLaps > 1 and displayedLap < totalLaps
-			and currentLap == totalLaps and completedLaps == totalLaps - 1 then
+			and completedLaps>lastNoticeCompleted and currentLap==completedLaps+1 and lapNotice then
+			lastNoticeCompleted=completedLaps
+			finalLapLabel.Text=lapNotice;finalLapLabel.AutoLocalize=false
 			finalLapShown = true
 			finalLapSerial += 1
 			local currentSerial = finalLapSerial
@@ -1477,6 +1495,7 @@ function RaceHudController.start()
 				end
 			end)
 		elseif raceState ~= "RACING" then
+			lastNoticeCompleted=completedLaps
 			finalLapSerial += 1
 			finalLapLabel.Visible = false
 		end

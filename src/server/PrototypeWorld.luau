@@ -407,6 +407,7 @@ function PrototypeWorld.start(options)
 
 		local function stopNitro(reason: string)
 			context.nitro:stop(reason)
+			kart:SetAttribute("KartNitroEndReason", reason)
 			kart:SetAttribute("KartNitroActive", false)
 		end
 		function context:activateNitro(player: Player)
@@ -424,7 +425,7 @@ function PrototypeWorld.start(options)
 			local control = context.control
 			if not control or time() - control.lastUpdate > KartConfig.INPUT_TIMEOUT then return false, "input_timeout" end
 			local accepted, reason = context.nitro:activate(player, time())
-			if accepted then kart:SetAttribute("KartNitroActive", true) end
+			if accepted then kart:SetAttribute("KartNitroEndReason", "");kart:SetAttribute("KartNitroActive", true) end
 			return accepted, reason
 		end
 		kart:GetAttributeChangedSignal("RaceControlsLocked"):Connect(function()
@@ -478,6 +479,7 @@ function PrototypeWorld.start(options)
 			context.boostActive = true
 			context.boostDriver = player
 			context.boostEndTime = now + KartConfig.MINI_BOOST_DURATION
+			kart:SetAttribute("KartBoostEndReason", "")
 			kart:SetAttribute("KartBoosting", true)
 			emitDriftOutcome(player, "BOOST")
 			if KartConfig.DEBUG_TELEMETRY then
@@ -504,6 +506,7 @@ function PrototypeWorld.start(options)
 			context.boostActive = false
 			context.boostDriver = nil
 			context.boostEndTime = 0
+			kart:SetAttribute("KartBoostEndReason", reason)
 			kart:SetAttribute("KartBoosting", false)
 			if KartConfig.DEBUG_TELEMETRY then
 				print(string.format("[KartBoost] END reason=%s", reason))
@@ -923,8 +926,12 @@ function PrototypeWorld.start(options)
 				steering = control.steering
 				driftRequested = control.driftRequested
 			end
+			local nitroWasActive = context.nitro.active
 			context.nitro:update(now, player, player ~= nil and player:GetAttribute("RaceState") == "RACING",
 				kart:GetAttribute("KartOffTrack") == true, context.crashActive, hasValidInput)
+			if nitroWasActive and not context.nitro.active then
+				kart:SetAttribute("KartNitroEndReason", if context.nitro.exiting then "duration_complete" else "safety")
+			end
 			kart:SetAttribute("KartNitroActive", context.nitro.active)
 
 			local assemblyVelocity = chassis.AssemblyLinearVelocity

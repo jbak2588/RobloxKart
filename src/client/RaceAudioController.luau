@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AudioConfig = require(Shared:WaitForChild("AudioConfig"))
 local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local AudioRuntime = require(script.Parent:WaitForChild("AudioRuntime"))
+local RaceStartAudio = require(script.Parent:WaitForChild("RaceStartAudio"))
 
 local RaceAudioController = {}
 local started = false
@@ -18,6 +19,8 @@ function RaceAudioController.start()
 
 	local player = Players.LocalPlayer
 	local group = AudioRuntime.getGroup("RobloxKartSFX")
+	local startAudioOk, startAudio = pcall(RaceStartAudio.new)
+	if not startAudioOk then startAudio = nil end
 	local sounds: { [string]: Sound? } = {
 		Countdown = AudioRuntime.createSound("CountdownBeep", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.COUNTDOWN_VOLUME, false),
 		Go = AudioRuntime.createSound("RaceGoFirst", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
@@ -52,6 +55,7 @@ function RaceAudioController.start()
 	local finalLapPlayed = false
 
 	local function stopAll()
+		if startAudio then startAudio:stop() end
 		for _, sound in sounds do
 			AudioRuntime.stop(sound)
 		end
@@ -135,6 +139,8 @@ function RaceAudioController.start()
 		previousState = state
 		if state ~= "RACING" then
 			goSerial += 1
+			if startAudio then startAudio:stop() end
+			AudioRuntime.stop(sounds.Go);AudioRuntime.stop(sounds.GoRepeat);AudioRuntime.stop(sounds.GoThird)
 			AudioRuntime.stop(sounds.FinalLap)
 			AudioRuntime.stop(sounds.FinalLapRepeat)
 			AudioRuntime.stop(sounds.FinalLapThird)
@@ -149,12 +155,16 @@ function RaceAudioController.start()
 			lastBeep = nil
 			playCountdown(player:GetAttribute("RaceCountdown"))
 		elseif state == "RACING" and prior == "COUNTDOWN" then
-			playBeepPattern(false)
+			AudioRuntime.stop(sounds.Countdown)
+			if not startAudio or not startAudio:play() then playBeepPattern(false) end
 		elseif state == "FINISHING" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Finish)
 		elseif state == "DNF" and prior == "RACING" then
 			AudioRuntime.playOnce(sounds.Dnf)
 		end
+	end)
+	player.AncestryChanged:Connect(function(_,parent)
+		if not parent then goSerial+=1;stopAll();if startAudio then startAudio:destroy();startAudio=nil end end
 	end)
 end
 

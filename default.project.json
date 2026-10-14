@@ -4,6 +4,9 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
+      "KDMRacePresentationResources": {
+        "$path": "src/assets/KDMRacePresentationResources.rbxmx"
+      },
       "KDMTemplateResources": {
         "$path": "src/assets/KDMTemplateResources.rbxmx"
       },

@@ -34,6 +34,7 @@ KartCameraController.start()
 KDMImpactCameraController.start()
 KDMItemVFXController.start()
 RaceHudController.start()
+require(script:WaitForChild('CheckpointGuidanceController')).start()
 TouchDrivingController.start()
 DriftChargeController.start()
 if role == "HUB" then GarageUiController.start(); MatchRoomUiController.start(); HubUiController.start(); HubArrivalCameraController.start() end

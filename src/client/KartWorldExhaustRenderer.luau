@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService('Workspace')
+local Envelope = require(script.Parent.BoostFlameEnvelope)
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local CRUISE_FLAME_INTERVAL = 0.45
@@ -185,6 +186,18 @@ function Renderer.new(kart)
  end
  if #smokes~=2 or #trails~=2 or #flames~= (if kart:GetAttribute("KDMUseLegacyExhaust")==true then 2 else 6) then record:destroy();return nil end
  local previousNitro, previousBoost, previousDrift = nil,nil,nil
+ local envelope=Envelope.new()
+ local flameStyles={}
+ for _,f in flames do
+  local sizes={}
+  for level=0,12 do
+   local points={}
+   for _,kp in f.Size.Keypoints do table.insert(points,NumberSequenceKeypoint.new(kp.Time,kp.Value*level/12,kp.Envelope*level/12)) end
+   sizes[level]=NumberSequence.new(points)
+  end
+  flameStyles[f]={sizes=sizes,brightness=f.Brightness or 1,emission=f.LightEmission}
+ end
+ local lightStyles={};for _,l in lights do lightStyles[l]={brightness=l.Brightness,range=l.Range}end
  local cruiseElapsed=0
  local groundElapsed=0
  local grounded={false,false}
@@ -222,18 +235,22 @@ function Renderer.new(kart)
   local boost=enabled and kart:GetAttribute("KartBoosting")==true
   local drift=enabled and not off and kart:GetAttribute("KartDrifting")==true
 
-  if nitro~=previousNitro or boost~=previousBoost then
-   for _,f in flames do
-    if not nitro and not boost then f:Clear() end
-   end
-  end
+  local velocity=chassis.AssemblyLinearVelocity
+  local planarSpeed=Vector3.new(velocity.X,0,velocity.Z).Magnitude
+  local naturalEnd=(previousNitro and not nitro and kart:GetAttribute('KartNitroEndReason')=='duration_complete')
+   or (previousBoost and not boost and kart:GetAttribute('KartBoostEndReason')=='duration_complete')
+  local unsafe=not enabled or off or drift or kart:GetAttribute('KartCrashActive')==true
+   or kart:GetAttribute('KartSlickActive')==true or kart:GetAttribute('KartMissileHitActive')==true
+   or kart:GetAttribute('KartThunderHitActive')==true
+  local oldWeight=envelope.weight
+  local flameWeight=Envelope.step(envelope,dt,planarSpeed,nitro,boost,naturalEnd,unsafe)
+  if oldWeight>0 and flameWeight==0 then for _,f in flames do f:Clear() end end
   if not enabled then
    if previousNitro or previousBoost or previousDrift then
     for _,list in {flames,smokes,trails,cruiseFlames} do for _,o in list do o.Enabled=false;o:Clear() end end
    end
   end
   previousNitro,previousBoost,previousDrift=nitro,boost,drift
-  local velocity=chassis.AssemblyLinearVelocity
   local forward=velocity:Dot(chassis.CFrame.LookVector)
   local cruising=visual:GetAttribute("VisualModelName")~="KDMV2" and enabled and not off and not drift and not boost and not nitro and forward>=CRUISE_MIN_SPEED
   if cruising then
@@ -247,10 +264,18 @@ function Renderer.new(kart)
   local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
   for _,f in flames do
    -- Full original template profile for Nitro; Mini Boost uses 70% density.
-   f.Rate=(f:GetAttribute('TemplateRate') or 30)*(if nitro then 1 else .7)*lod
-   f.Enabled=(nitro or boost) and lod>0
+   local style=flameStyles[f]
+   local alpha=if nitro or boost then 1 else flameWeight/math.max(envelope.mode,.01)
+   f.Size=style.sizes[math.clamp(math.ceil(alpha*12),0,12)]
+   f.Brightness=style.brightness*alpha;f.LightEmission=style.emission*alpha
+   f.Rate=(f:GetAttribute('TemplateRate') or 30)*flameWeight*lod
+   f.Enabled=flameWeight>0 and lod>0
   end
-  for _,l in lights do l.Enabled=(nitro or boost) and lod>0 end
+  for _,l in lights do
+   local alpha=if nitro or boost then 1 else flameWeight/math.max(envelope.mode,.01)
+   l.Brightness=lightStyles[l].brightness*alpha;l.Range=lightStyles[l].range*alpha
+   l.Enabled=flameWeight>0 and lod>0
+  end
   local rate=if drift then math.clamp((slip-8)*.8,0,28)*lod else 0
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
