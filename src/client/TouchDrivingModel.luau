@@ -23,12 +23,14 @@ end
 
 function Model.new(mode: string?)
 	return setmetatable({ mode = mode or Model.MobileDriveControlMode, buttons = {}, pressSerial = 0,
-		owner = nil, throttle = 0, steering = 0, knobX = 0, knobY = 0, driftOwners = {}, autoForward = false }, Model)
+		owner = nil, throttle = 0, steering = 0, knobX = 0, knobY = 0, driftOwners = {}, autoForward = false, autoBackward = false }, Model)
 end
 
 function Model:pressButton(id, action: string)
 	if self.mode ~= "Buttons" or self.owner == id or self.driftOwners[id] or self.buttons[id] then return false end
 	if action ~= "Forward" and action ~= "ForwardLeft" and action ~= "ForwardRight" and action ~= "BrakeReverse" then return false end
+	if action == "Forward" or action == "BrakeReverse" then self:clearAuto() end
+	if action == "BrakeReverse" then table.clear(self.driftOwners) end
 	self.pressSerial += 1
 	self.buttons[id] = { action = action, serial = self.pressSerial }
 	return true
@@ -40,7 +42,28 @@ function Model:isPressed(action: string): boolean
 end
 
 function Model:toggleAutoForward()
+	if self.mode == "Buttons" and (self:isPressed("Forward") or self:isPressed("BrakeReverse")) then return false end
 	self.autoForward = not self.autoForward
+	self.autoBackward = false
+	return true
+end
+
+function Model:toggleAutoBackward()
+	if self.mode ~= "Buttons" or self:isPressed("Forward") or self:isPressed("BrakeReverse") then return false end
+	self.autoBackward = not self.autoBackward
+	self.autoForward = false
+	table.clear(self.driftOwners)
+	return true
+end
+
+function Model:clearAuto()
+	self.autoForward, self.autoBackward = false, false
+end
+
+function Model:setMode(mode)
+	if mode ~= "Buttons" and mode ~= "Joystick" then return false end
+	if self.mode ~= mode then self:reset(); self.mode = mode end
+	return true
 end
 
 function Model:move(id, dx: number, dy: number, radius: number, deadZone: number?)
@@ -57,6 +80,7 @@ end
 
 function Model:pressDrift(id)
 	if self.owner == id or self.buttons[id] then return false end
+	if self.mode == "Buttons" and (self.autoBackward or self:isPressed("BrakeReverse")) then return false end
 	self.driftOwners[id] = true
 	return true
 end
@@ -71,7 +95,7 @@ function Model:release(id)
 end
 
 function Model:reset()
-	self.autoForward = false
+	self:clearAuto()
 	self.owner = nil
 	self.throttle, self.steering, self.knobX, self.knobY = 0, 0, 0, 0
 	table.clear(self.driftOwners)
@@ -92,8 +116,9 @@ function Model:actions(): (number, number, boolean)
 		local drifting = next(self.driftOwners) ~= nil
 		if drifting then steering *= Model.DIGITAL_DRIFT_STEERING end
 		local throttle = if self:isPressed("BrakeReverse") then -1
-			elseif self.autoForward or self:isPressed("Forward") then 1 else 0
-		return throttle, steering, drifting
+			elseif self:isPressed("Forward") then 1
+			elseif self.autoBackward then -1 elseif self.autoForward then 1 else 0
+		return throttle, steering, drifting and throttle >= 0
 	end
 	local throttle = if self.owner then self.throttle elseif self.autoForward then 1 else 0
 	return throttle, self.steering, next(self.driftOwners) ~= nil

@@ -30,7 +30,7 @@ function Controller.start()
  local feedback=nil
  local exhaust=nil
  local engineAB=nil
- local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,diagnostic=nil,nil
+ local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
  local boostCue=nil;local previousBoost=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
  local entryPrompt=driveZone:WaitForChild("LobbyFrontDriveEntry"):FindFirstChildOfClass("ProximityPrompt")
@@ -70,6 +70,8 @@ function Controller.start()
   if exhaust then exhaust:destroy();exhaust=nil end
   if feedback then feedback:destroy();feedback=nil end
   if engine then engine:Stop();engine:Destroy();engine=nil end
+  if engineSecondary then engineSecondary:Stop();engineSecondary:Destroy();engineSecondary=nil end
+  engineLooper=nil
   if diagnostic then diagnostic:destroy();diagnostic=nil end
   if cameraBody then
    local camera=Workspace.CurrentCamera;local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -159,6 +161,11 @@ function Controller.start()
    feedback=DriftFeedback.new(body,kart,driveZone)
    exhaust=Exhaust.new(kart)
    engine=Audio.createSound("LobbyEngineLoop",AudioConfig.ASSETS.ENGINE_LOOP,body,Audio.getGroup("RobloxKartEngine"),true,AudioConfig.ENGINE.IDLE_VOLUME,true)
+   if Audio.createEngineLooper then
+    engineSecondary=Audio.createSound("LobbyEngineLoopB",AudioConfig.ASSETS.ENGINE_LOOP,body,Audio.getGroup("RobloxKartEngine"),true,0,true)
+    if engineSecondary then engineSecondary.PlaybackSpeed=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED*AudioConfig.ENGINE.SECONDARY_DETUNE end
+    engineLooper=Audio.createEngineLooper(engine,engineSecondary)
+   end
    boostCue=Audio.createSound('LobbyBoostStart',AudioConfig.ASSETS.BOOST_START,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.BOOST.START_VOLUME,true)
    engineAB=EngineAB.new(body,canvas)
    if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
@@ -183,8 +190,15 @@ function Controller.start()
    local pitch=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*ratio+(AudioConfig.ENGINE.MAX_PLAYBACK_SPEED-AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED)*bonus+(if boosting then AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS else 0)
    local volume=AudioConfig.ENGINE.IDLE_VOLUME+(AudioConfig.ENGINE.NORMAL_VOLUME-AudioConfig.ENGINE.IDLE_VOLUME)*ratio+(AudioConfig.ENGINE.MAX_VOLUME-AudioConfig.ENGINE.NORMAL_VOLUME)*bonus
    local alpha=1-math.exp(-AudioConfig.ENGINE.RESPONSE*dt)
-   if not diagnostic or not diagnostic:isFixed() then engine.PlaybackSpeed+=(math.clamp(pitch,.7,1.55)-engine.PlaybackSpeed)*alpha end
-   engine.Volume+=(volume-engine.Volume)*alpha
+   local fixedPitch=diagnostic~=nil and diagnostic:isFixed()
+   local diagActive=player:GetAttribute("KartEngineLoopTestMode")~=nil and player:GetAttribute("KartEngineLoopTestMode")~="NORMAL"
+   if fixedPitch then engine.PlaybackSpeed=1 end
+   if engineLooper then
+    engineLooper:step(dt,if fixedPitch then 1 else math.clamp(pitch,.7,1.55),volume,alpha,diagActive or fixedPitch)
+   elseif not diagnostic or not diagnostic:isFixed() then
+    engine.PlaybackSpeed+=(math.clamp(pitch,.7,1.55)-engine.PlaybackSpeed)*alpha
+    engine.Volume+=(volume-engine.Volume)*alpha
+   end
    if engineAB then engineAB:update(engine,engine.PlaybackSpeed,engine.Volume) end
   end
  end)

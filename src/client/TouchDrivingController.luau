@@ -85,6 +85,12 @@ function Controller.start()
 		autoIcon=if state.mode == "Buttons" then IconView.new(auto,"AutoStart",cache,View) else View.icon(auto,"AutoForward")
 		if state.mode == "Joystick" then local scale=Instance.new("UIScale");scale.Scale=.85;scale.Parent=autoIcon.root end
 	end
+	local autoBackward,backwardStroke,backwardIcon
+	if state.mode == "Buttons" then
+		autoBackward,backwardStroke=button("AutoBackward")
+		autoBackward.AnchorPoint=Vector2.new(1,1)
+		backwardIcon=IconView.new(autoBackward,"AutoBackward",cache,View)
+	end
 	gui:SetAttribute("MobileDriveControlMode", state.mode)
 	joystick.Visible = state.mode == "Joystick"
 	local drivingButtons = {}
@@ -95,7 +101,8 @@ function Controller.start()
 		drivingButtons[action] = {button = b, outline = outline, icon = IconView.new(b,action,cache,View)}
 	end
 	local touches, connections, kartConnections = {}, {}, {}
-	local autoTouch=nil
+	local autoTouch,backwardTouch=nil,nil
+	local function ownsAuto(input) return input==autoTouch or input==backwardTouch end
 	local focused, removing = true, false
 	local currentKart, humanoidConnection, characterConnection = nil, nil, nil
 	local function connect(event, callback)
@@ -123,6 +130,14 @@ function Controller.start()
 			auto.BackgroundColor3=if state.autoForward then Color3.fromRGB(32,102,145) else Color3.fromRGB(19,39,54)
 			gui:SetAttribute("AutoForwardEnabled",state.autoForward)
 		end
+		if autoBackward then
+			local loaded=backwardIcon:update(controlsEnabled,state.autoBackward)
+			backwardStroke.Enabled=not loaded
+			backwardStroke.Thickness=if state.autoBackward then 4 else 1
+			autoBackward.BackgroundTransparency=if loaded then 1 elseif state.autoBackward then .08 else .65
+			autoBackward.BackgroundColor3=if state.autoBackward then Color3.fromRGB(32,102,145) else Color3.fromRGB(19,39,54)
+		end
+		gui:SetAttribute("AutoBackwardEnabled",state.autoBackward)
 		-- The visual thumb follows the clamped raw displacement; actions have a dead band.
 		local travel = math.max(1, (joystick.AbsoluteSize.X-thumb.AbsoluteSize.X)/2-4)
 		thumb.Position = UDim2.new(0.5, state.knobX*travel, 0.5, state.knobY*travel)
@@ -134,7 +149,7 @@ function Controller.start()
 		drift.BackgroundColor3 = if next(state.driftOwners) then Color3.fromRGB(36, 107, 137) else Color3.fromRGB(19, 39, 54)
 	end
 	local function reset()
-		autoTouch=nil
+		autoTouch,backwardTouch=nil,nil
 		for _, c in touches do c:Disconnect() end
 		table.clear(touches)
 		state:reset()
@@ -163,7 +178,11 @@ function Controller.start()
 	local function release(input)
 		if input.UserInputState ~= Enum.UserInputState.End and input.UserInputState ~= Enum.UserInputState.Cancel then return end
 		-- A cancelled joystick is not an intentional release of cruise control.
-		if (input == state.owner or state.buttons[input]) and input.UserInputState == Enum.UserInputState.Cancel then state.autoForward = false end
+		if input.UserInputState == Enum.UserInputState.Cancel then
+			if input == state.owner or state.buttons[input] or ownsAuto(input) then state:clearAuto() end
+			if input==autoTouch then autoTouch=nil end
+			if input==backwardTouch then backwardTouch=nil end
+		end
 		if touches[input] then touches[input]:Disconnect(); touches[input] = nil end
 		state:release(input)
 		publish()
@@ -175,7 +194,7 @@ function Controller.start()
 	end
 	for action, control in drivingButtons do
 		connect(control.button.InputBegan, function(input)
-			if input.UserInputType ~= Enum.UserInputType.Touch or not canDrive() or touches[input] then return end
+			if input.UserInputType ~= Enum.UserInputType.Touch or not canDrive() or touches[input] or ownsAuto(input) then return end
 			if state:pressButton(input, action) then watch(input); publish() end
 		end)
 		-- Release follows the owning InputObject globally, even outside the button.
@@ -193,7 +212,7 @@ function Controller.start()
 		if state:begin(input, displacement(input)) then watch(input); publish() end
 	end)
 	connect(drift.InputBegan, function(input)
-		if input.UserInputType ~= Enum.UserInputType.Touch or not canDrive() or touches[input] then return end
+		if input.UserInputType ~= Enum.UserInputType.Touch or not canDrive() or touches[input] or ownsAuto(input) then return end
 		if state:pressDrift(input) then watch(input); publish() end
 	end)
 	connect(joystick.InputEnded, release)
@@ -204,7 +223,7 @@ function Controller.start()
 	end)
 	if auto then
 		connect(auto.InputBegan,function(input)
-			if input.UserInputType==Enum.UserInputType.Touch and not touches[input] then autoTouch=input end
+			if input.UserInputType==Enum.UserInputType.Touch and canDrive() and not touches[input] and not ownsAuto(input) then autoTouch=input;watch(input) end
 		end)
 		connect(auto.Activated, function(input)
 			-- Only a touch that began on Auto may toggle it; an existing held
@@ -214,10 +233,21 @@ function Controller.start()
 			if canDrive() then state:toggleAutoForward(); publish() end
 		end)
 	end
+	if autoBackward then
+		connect(autoBackward.InputBegan,function(input)
+			if input.UserInputType==Enum.UserInputType.Touch and canDrive() and not touches[input] and not ownsAuto(input) then backwardTouch=input;watch(input) end
+		end)
+		connect(autoBackward.Activated,function(input)
+			if input and input~=backwardTouch then return end
+			backwardTouch=nil
+			if canDrive() then state:toggleAutoBackward();publish() end
+		end)
+	end
 	local function layout()
 		reset()
 		local l = View.layout(root.AbsoluteSize)
 		if Input.isLobbyDriving() then l=LobbyLayout.apply(l,root.AbsoluteSize) end
+		local backwardLayout=if autoBackward then View.autoBackwardLayout(l,root.AbsoluteSize) else nil
 		joystick.Size = UDim2.fromOffset(l.joystick, l.joystick)
 		joystick.Position = UDim2.new(1, -l.margin, 1, -l.margin)
 		if auto then auto.Size = UDim2.fromOffset(48, 48)
@@ -228,6 +258,11 @@ function Controller.start()
 			auto.Size=UDim2.fromOffset(l.autoHitSize,l.autoHitSize)
 			auto.Position=UDim2.new(0,left+l.autoRight,1,-top+l.autoTop+l.autoHitSize)
 			autoIcon:layout(l.autoVisualSize,l.autoVisualSize)
+			if backwardLayout then
+				autoBackward.Size=UDim2.fromOffset(backwardLayout.hit,backwardLayout.hit)
+				autoBackward.Position=UDim2.new(0,backwardLayout.right,1,-backwardLayout.bottom)
+				backwardIcon:layout(backwardLayout.visual,backwardLayout.visual)
+			end
 			local function place(action, x, bottom, width, height)
 				local b = drivingButtons[action].button
 				b.Size = UDim2.fromOffset(width, height or width)

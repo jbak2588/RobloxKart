@@ -73,6 +73,17 @@ function View.layout(size: Vector2)
 	}
 end
 
+-- Digital-only reverse AUTO occupies the unused lower-right pad corner.
+-- Keep normal geometry; reserve full hitboxes only when the safe bottom is short.
+function View.autoBackwardLayout(l, size)
+	local hit=math.max(44,l.autoHitSize)
+	l.padBottom=math.max(l.padBottom,8+math.max(0,(hit-l.brake)/2))
+	l.padHeight=math.max(l.padHeight,l.sideHeight+l.brake+hit+8)
+	local right=size.X-l.margin-l.padInset-(l.sideWidth-l.sideVisualWidth)/2+(hit-l.autoVisualSize)/2
+	right=math.min(size.X-8,right)
+	return {right=right,bottom=l.padBottom+(l.brake-hit)/2,hit=hit,visual=math.min(l.autoVisualSize,hit-4)}
+end
+
 -- Align the phone minimap with the speed HUD in the top-right band.
 function View.minimapLayout(size: Vector2, speedTop: number?)
 	local side = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
@@ -282,9 +293,11 @@ function View.icon(parent: Instance, kind: string, zIndex: number?)
 			line(12+offset,27,16+offset,31)
 			line(16+offset,31,7+offset,37)
 		end
-	elseif kind == "AutoForward" then
+	elseif kind == "AutoForward" or kind == "AutoBackward" then
 		-- Arrow plus visibly open/closed shackle; no text is needed.
-		line(12,30,12,7,4); line(12,7,4,15,4); line(12,7,20,15,4)
+		if kind == "AutoBackward" then
+			line(12,7,12,30,4);line(12,30,4,22,4);line(12,30,20,22,4)
+		else line(12,30,12,7,4); line(12,7,4,15,4); line(12,7,20,15,4) end
 		local lock = shape(29,27,15,14,0,false)
 		View.round(lock, UDim.new(0, 2))
 		lock.BackgroundTransparency = 1

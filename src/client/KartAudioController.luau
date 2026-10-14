@@ -42,6 +42,8 @@ function KartAudioController.start()
 	local kartConnections: { RBXScriptConnection } = {}
 	local sounds: { Sound } = {}
 	local engine: Sound? = nil
+	local engineSecondary: Sound? = nil
+	local engineLooper = nil
 	local engineDiagnostic = nil
 	local drift: Sound? = nil
 	local boostStart: Sound? = nil
@@ -63,6 +65,8 @@ function KartAudioController.start()
 		end
 		table.clear(sounds)
 		engine = nil
+		engineSecondary = nil
+		engineLooper = nil
 		drift = nil
 		boostStart = nil
 		boostLoop = nil
@@ -105,9 +109,16 @@ function KartAudioController.start()
 			return sound
 		end
 		engine = addSound("EngineLoop", AudioConfig.ASSETS.ENGINE_LOOP, engineGroup, true, AudioConfig.ENGINE.IDLE_VOLUME)
+		if AudioRuntime.createEngineLooper then
+			engineSecondary = addSound("EngineLoopB", AudioConfig.ASSETS.ENGINE_LOOP, engineGroup, true, 0)
+		end
 		if engine then
 			engine.PlaybackSpeed = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
 		end
+		if engineSecondary then
+			engineSecondary.PlaybackSpeed = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED * AudioConfig.ENGINE.SECONDARY_DETUNE
+		end
+		engineLooper = if AudioRuntime.createEngineLooper then AudioRuntime.createEngineLooper(engine, engineSecondary) else nil
 		drift = addSound("DriftLoop", AudioConfig.ASSETS.DRIFT_LOOP, sfxGroup, true, 0)
 		if drift then
 			drift.PlaybackRegionsEnabled = true
@@ -116,7 +127,7 @@ function KartAudioController.start()
 		end
 		boostStart = addSound("BoostStart", AudioConfig.ASSETS.BOOST_START, sfxGroup, false, AudioConfig.BOOST.START_VOLUME)
 		boostLoop = addSound("BoostLoop", AudioConfig.ASSETS.BOOST_LOOP, sfxGroup, true, AudioConfig.BOOST.LOOP_VOLUME)
-		AudioRuntime.preload({ Engine = engine, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
+		AudioRuntime.preload({ Engine = engine, EngineB = engineSecondary, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
 		if engine then
 			engineDiagnostic = EngineLoopDiagnostic.new(engine,
 				RunService:IsStudio() or KartConfig.DEBUG_TELEMETRY == true)
@@ -190,10 +201,20 @@ function KartAudioController.start()
 						+ (AudioConfig.ENGINE.NORMAL_VOLUME - AudioConfig.ENGINE.IDLE_VOLUME) * normalRatio
 						+ (AudioConfig.ENGINE.MAX_VOLUME - AudioConfig.ENGINE.NORMAL_VOLUME) * boostRatio
 					local alpha = 1 - math.exp(-AudioConfig.ENGINE.RESPONSE * deltaTime)
-					if not engineDiagnostic or not engineDiagnostic:isFixed() then
-						engine.PlaybackSpeed += (targetPitch - engine.PlaybackSpeed) * alpha
+					local fixedPitch = engineDiagnostic ~= nil and engineDiagnostic:isFixed()
+					local diagActive = player:GetAttribute("KartEngineLoopTestMode") ~= nil
+						and player:GetAttribute("KartEngineLoopTestMode") ~= "NORMAL"
+					if fixedPitch then
+						engine.PlaybackSpeed = 1
 					end
-					engine.Volume += (targetVolume - engine.Volume) * alpha
+					if engineLooper then
+						engineLooper:step(deltaTime, if fixedPitch then 1 else targetPitch, targetVolume, alpha, diagActive or fixedPitch)
+					else
+						if not fixedPitch then
+							engine.PlaybackSpeed += (targetPitch - engine.PlaybackSpeed) * alpha
+						end
+						engine.Volume += (targetVolume - engine.Volume) * alpha
+					end
 				end
 				if drift then
 					local validDrift = kart:GetAttribute("KartDrifting") == true

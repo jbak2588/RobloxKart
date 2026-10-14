@@ -2,6 +2,8 @@ local Catalog = require(script.Parent:WaitForChild("KDMIconCatalog"))
 local Assets = table.freeze({
 	AutoStart=Catalog.Actions.AutoStart,
 	AutoStartOn=Catalog.Actions.AutoStartOn,
+	AutoBackward=Catalog.Actions.AutoBackward,
+	AutoBackwardOn=Catalog.Actions.AutoBackwardOn,
 	Forward=Catalog.Drive.Forward, ForwardLeft=Catalog.Drive.ForwardLeft,
 	ForwardRight=Catalog.Drive.ForwardRight, BrakeReverse=Catalog.Drive.BrakeReverse,
 	DriftWide=Catalog.Actions.DriftWide, DriftSquare=Catalog.Actions.DriftSquare,
@@ -81,14 +83,14 @@ function View.new(button, key, cache, mobileView)
 	local self = {image=image, fallback=fallback, scale=scale}
 	function self:layout(width, height) image.Size=UDim2.fromOffset(width,height) end
 	function self:update(enabled, held)
-		local assetKey = if key == "AutoStart" and enabled and held then "AutoStartOn" else key
+		local assetKey = if (key == "AutoStart" or key == "AutoBackward") and enabled and held then key.."On" else key
 		local loaded = Assets[assetKey] ~= nil and cache:ready(assetKey)
 		image.Image = Assets[assetKey] or ""
 		image.Visible=loaded;fallback.root.Visible=not loaded
 		image.ImageTransparency=if enabled then 0 else .55
 		scale.Scale=1
 		image.ImageColor3=if held and enabled then Color3.fromRGB(255,255,255) else Color3.fromRGB(225,235,245)
-		fallback:setLatched(key == "AutoStart" and held == true)
+		fallback:setLatched((key == "AutoStart" or key == "AutoBackward") and held == true)
 		fallback:setEnabled(enabled)
 		return loaded
 	end

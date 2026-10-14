@@ -11,6 +11,8 @@ return table.freeze({
 	Actions = table.freeze({
 		AutoStart = "rbxassetid://86543823779198",
 		AutoStartOn = "rbxassetid://94676537813180",
+		AutoBackward = "rbxassetid://72068260330921",
+		AutoBackwardOn = "rbxassetid://139569165680720",
 		DriftWide = "rbxassetid://104706910388302",
 		DriftSquare = "rbxassetid://124990672172496",
 	}),

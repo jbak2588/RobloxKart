@@ -10,12 +10,14 @@ for key,id in {Forward="133764403498700",ForwardLeft="89268514038200",
 end
 check(rawCatalog.Actions.AutoStart=="rbxassetid://86543823779198","v3 Auto OFF")
 check(rawCatalog.Actions.AutoStartOn=="rbxassetid://94676537813180","v3 Auto ON")
+check(rawCatalog.Actions.AutoBackward=="rbxassetid://72068260330921","Backward OFF asset")
+check(rawCatalog.Actions.AutoBackwardOn=="rbxassetid://139569165680720","Backward ON asset")
 check(rawCatalog.Actions.DriftWide=="rbxassetid://104706910388302","v3 horizontal Drift")
 for key,id in {Nitro="80904195199672",Shield="133670688245113",Slick="99710951340190",
 	Missile="122668047956907",Thunder="105188481205755",Smoke="117693178629090"} do
 	check(rawCatalog.Items[key]=="rbxassetid://"..id,"item asset unchanged "..key)
 end
-local catalog = {Items={AutoStart=rawCatalog.Actions.AutoStart,AutoStartOn=rawCatalog.Actions.AutoStartOn,Forward=rawCatalog.Drive.Forward,ForwardLeft=rawCatalog.Drive.ForwardLeft,
+local catalog = {Items={AutoStart=rawCatalog.Actions.AutoStart,AutoStartOn=rawCatalog.Actions.AutoStartOn,AutoBackward=rawCatalog.Actions.AutoBackward,AutoBackwardOn=rawCatalog.Actions.AutoBackwardOn,Forward=rawCatalog.Drive.Forward,ForwardLeft=rawCatalog.Drive.ForwardLeft,
 	ForwardRight=rawCatalog.Drive.ForwardRight,BrakeReverse=rawCatalog.Drive.BrakeReverse,
 	DriftWide=rawCatalog.Actions.DriftWide,DriftSquare=rawCatalog.Actions.DriftSquare}}
 local function object(class)
@@ -30,7 +32,7 @@ local scheduler={spawn=function(cb) table.insert(jobs,cb) end,delay=function(sec
 	check(seconds==12,"bounded preload timeout");table.insert(timers,cb)
 end}
 local provider={PreloadAsync=function(_,assets,cb)
-	check(#assets==8,"seven controls plus Auto ON variant preloaded")
+	check(#assets==10,"eight controls plus two Auto ON variants preloaded")
 	for _,asset in assets do callbacks[asset.Image]=cb end
 end}
 local cache=view.cache(provider,scheduler)
@@ -62,11 +64,11 @@ for id in catalog.Items do
 	check(slot:update(true,false) and slot.image.Visible and not slot.fallback.root.Visible,"loaded control artwork replaces fallback")
 	check(slot:update(true,true) and slot.scale.Scale==1 and slot.image.ImageColor3==rb.Color3.fromRGB(255,255,255),"pressed feedback")
 	slot:update(true,false);check(slot.indicator==nil and slot.scale.Scale==1,"no synthetic lamp overlays v3 artwork")
-	if id=="AutoStart" then
-		check(slot.image.Image==rawCatalog.Actions.AutoStart,"Auto OFF artwork follows latch")
+	if id=="AutoStart" or id=="AutoBackward" then
+		check(slot.image.Image==rawCatalog.Actions[id],"Auto OFF artwork follows latch")
 		slot:update(true,true)
-		check(slot.image.Image==rawCatalog.Actions.AutoStartOn,"Auto ON artwork follows latch")
-		slot:update(false,true);check(slot.image.Image==rawCatalog.Actions.AutoStart,"disabled Auto renders OFF")
+		check(slot.image.Image==rawCatalog.Actions[id.."On"],"Auto ON artwork follows latch")
+		slot:update(false,true);check(slot.image.Image==rawCatalog.Actions[id],"disabled Auto renders OFF")
 	end
 	slot:update(false,false);check(slot.image.ImageTransparency==.55,"disabled image")
 end
@@ -104,8 +106,14 @@ state:pressButton("a","ForwardLeft");state:pressButton("b","ForwardRight")
 t,steer=state:actions();check(t==0 and steer==1,"last turn press wins without throttle")
 state:release("b");t,steer=state:actions();check(t==0 and steer==-1,"last turn release restores earlier owner without throttle")
 state:pressButton("c","BrakeReverse");state:pressDrift("d")
-t,steer=state:actions();check(t==-1 and steer==-.60,"brake and Drift preserve other directional owner")
+t,steer=state:actions();check(t==-1 and steer==-1 and not select(3,state:actions()),"reverse keeps full steering and suppresses Drift")
 state:reset();t,steer=state:actions();check(t==0 and steer==0,"reset clears every owner")
+state:toggleAutoBackward();state:setMode("Joystick")
+check(not state.autoBackward and not state.autoForward and not state:toggleAutoBackward(),"mode switch clears autos and Joystick rejects reverse AUTO")
+state:setMode("Buttons");check(state:actions()==0,"return to digital mode remains neutral")
+slot=view.new(object("TextButton"),"AutoBackward",failed,mobileView)
+check(not slot:update(true,true) and slot.fallback.latched and slot.fallback.root.Visible,"reverse fetch failure retains ON fallback")
+slot:update(true,false);check(not slot.fallback.latched,"reverse OFF fallback clears latch")
 local layout=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment={Color3=rb.Color3}})()
 local gauge=luau.load(fs.readFile("src/client/V2DonorGauge.luau"),{environment={script={Parent={WaitForChild=function()end}},require=function()return layout end}})()
 local function overlaps(a,b) return a[1]<b[3] and b[1]<a[3] and a[2]<b[4] and b[2]<a[4] end
@@ -152,5 +160,18 @@ check(insetLayout.direction==59 and insetLayout.autoVisualSize==52 and insetLayo
 check(280-insetItems.bottom-insetLayout.slot>=120,"device bottom compensation leaves room for LAP, Quit and both warnings")
 check(math.abs(insetLayout.padBottom+(insetLayout.brake-insetLayout.driveVisualSize)/2
 	+insetLayout.driveVisualSize*layout.artwork.driveBottom+22-10)<.001,"device inset compensated Brake shares physical gauge bottom")
+layout.setViewportBottomInset(338,338)
+for _,size in {{749,381},{844,390},{932,430},{685,280},{473,240},{1920,1080}} do
+	for _,inset in {0,20,40} do
+		layout.setViewportBottomInset(size[2]+inset,size[2])
+		local s={X=size[1],Y=size[2]};local l=layout.layout(s);local b=layout.autoBackwardLayout(l,s)
+		local r={b.right-b.hit,s.Y-b.bottom-b.hit,b.right,s.Y-b.bottom}
+		check(b.hit>=44 and r[1]>=0 and r[2]>=0 and r[3]<=s.X and r[4]<=s.Y-8,"reverse target stays fully inside inset safe rectangle")
+		local right=s.X-l.margin-l.padInset
+		local brake={right-l.padWidth/2-l.brake/2,s.Y-l.padBottom-l.brake,right-l.padWidth/2+l.brake/2,s.Y-l.padBottom}
+		local steer={right-l.sideWidth,s.Y-l.padBottom-l.padHeight+(l.padHeight-l.sideHeight)/2,right,s.Y-l.padBottom-l.padHeight+(l.padHeight+l.sideHeight)/2}
+		check(not overlaps(r,brake) and not overlaps(r,steer),"reverse target avoids Brake and right steering across insets")
+	end
+end
 layout.setViewportBottomInset(338,338)
 print("PASS: "..checks.." four-button ownership, asset lifecycle, feedback and hitbox geometry checks")

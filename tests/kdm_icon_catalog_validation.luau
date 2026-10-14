@@ -4,7 +4,7 @@ local function check(value, message) assert(value, message); checks += 1 end
 local catalog = luau.load(fs.readFile("src/client/KDMIconCatalog.luau"))()
 local expected = {
 	Items={Nitro="80904195199672",Shield="133670688245113",Slick="99710951340190",Missile="122668047956907",Thunder="105188481205755",Smoke="117693178629090"},
-	Actions={AutoStart="86543823779198",AutoStartOn="94676537813180",DriftWide="104706910388302",DriftSquare="124990672172496"},
+	Actions={AutoStart="86543823779198",AutoStartOn="94676537813180",AutoBackward="72068260330921",AutoBackwardOn="139569165680720",DriftWide="104706910388302",DriftSquare="124990672172496"},
 	Drive={Forward="133764403498700",ForwardLeft="89268514038200",ForwardRight="130561740072224",BrakeReverse="94445847645477"},
 }
 for group, entries in expected do
