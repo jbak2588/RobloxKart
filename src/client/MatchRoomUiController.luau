@@ -58,10 +58,11 @@ function MatchRoomUiController.start()
 	gui.Enabled = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 	local shade = Instance.new("Frame")
+	shade.Name = "Overlay"
 	shade.Active = true
 	shade.Size = UDim2.fromScale(1, 1)
 	shade.BackgroundColor3 = Theme.Background
-	shade.BackgroundTransparency = .82
+	shade.BackgroundTransparency = 0.80
 	shade.Parent = gui
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)

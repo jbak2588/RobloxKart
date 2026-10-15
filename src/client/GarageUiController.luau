@@ -358,11 +358,11 @@ function GarageUiController.start()
 	viewport.AnchorPoint = Vector2.new(0.5, 0)
 	viewport.Position = UDim2.fromScale(0.5, 0.265)
 	viewport.Size = UDim2.fromScale(0.52, 0.32)
-	viewport.BackgroundColor3 = Theme.Panel
+	viewport.BackgroundColor3 = Color3.fromRGB(38, 76, 132)
 	viewport.BackgroundTransparency = .12
 	viewport.BorderSizePixel = 0
-	viewport.Ambient = Color3.fromRGB(182, 189, 200)
-	viewport.LightColor = Color3.fromRGB(250, 244, 233)
+	viewport.Ambient = Color3.fromRGB(215, 225, 240)
+	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-1, -1, -0.6)
 	viewport.Parent = backdrop
 	viewport.ZIndex = 2
@@ -1494,6 +1494,14 @@ function GarageUiController.start()
 			tutorialSeenThisSession = true
 			tutorial.open()
 		end
+		local pgui = player:FindFirstChild("PlayerGui")
+		local otherOverlayOpen = player:GetAttribute("KDMShopOpen") == true or player:GetAttribute("KDMProfileOpen") == true
+			or (pgui and pgui:FindFirstChild("KDMMatchRooms") and pgui.KDMMatchRooms.Enabled)
+			or (pgui and pgui:FindFirstChild("KDMGarageShop") and pgui.KDMGarageShop.Enabled)
+			or (pgui and pgui:FindFirstChild("KDMCanaryPersonalRecords") and pgui.KDMCanaryPersonalRecords:FindFirstChild("SavedRecords", true) and pgui.KDMCanaryPersonalRecords.SavedRecords.Visible)
+			or (pgui and pgui:FindFirstChild("KDMLobbyCreate") and pgui.KDMLobbyCreate.Enabled)
+		title.Visible = not otherOverlayOpen
+		stepLabel.Visible = not otherOverlayOpen
 		stepLabel.Text = headings[step]
 		viewport.Visible = step <= STEP_KART
 		mapPanel.Visible = step == STEP_TRACK

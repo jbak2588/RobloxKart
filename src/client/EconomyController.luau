@@ -50,8 +50,11 @@ function Controller.start()
  end
  local badge = button(gui, 'Profile', 'MY PROFILE', 12); badge.AnchorPoint = Vector2.new(1, 0)
  badge.Size = UDim2.fromOffset(160, 44); badge.Position = UDim2.new(1, -156, 0, 12); badge.ZIndex = 1
+ badge.BackgroundColor3 = Color3.fromRGB(24, 48, 86); badge.TextColor3 = Color3.fromRGB(95, 248, 120)
+ local badgeStroke = badge:FindFirstChild('ArcadeStroke')
+ if badgeStroke then badgeStroke.Thickness = 2; badgeStroke.Color = Color3.fromRGB(255, 212, 42); badgeStroke.Transparency = 0 end
  local shade = Instance.new('TextButton'); shade.Name = 'Backdrop'; shade.Text = ''; shade.Position=UDim2.fromScale(-1,-1);shade.Size = UDim2.fromScale(3, 3)
- shade.BackgroundColor3 = Color3.fromRGB(3, 8, 15); shade.BackgroundTransparency = .12
+ shade.BackgroundColor3 = Color3.fromRGB(18, 34, 64); shade.BackgroundTransparency = .82
  shade.Visible = false; shade.Modal = true; shade.AutoButtonColor = false; shade.ZIndex = 9; shade.Parent = gui
  local panel = Instance.new('Frame'); panel.Name = 'DriverCard'; panel.AnchorPoint = Vector2.new(.5, .5)
  panel.Position = UDim2.fromScale(.5, .5); panel.Size = UDim2.fromScale(.92, .94)

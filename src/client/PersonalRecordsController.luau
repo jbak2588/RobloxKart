@@ -70,6 +70,11 @@ function Controller.createRecordsPanel(gui)
  panel.Active=true;panel.ScrollingEnabled=true;panel.ScrollingDirection=Enum.ScrollingDirection.Y
  panel.BackgroundColor3=Color3.fromRGB(20,30,44);panel.Visible=false;panel.Parent=gui
  local limit=Instance.new("UISizeConstraint");limit.MaxSize=Vector2.new(440,280);limit.Parent=panel
+ local close=Instance.new("TextButton");close.Name="Close";close.Text="×";close.Size=UDim2.fromOffset(32,32)
+ close.AnchorPoint=Vector2.new(1,0);close.Position=UDim2.new(1,-6,0,6);close.BackgroundColor3=Color3.fromRGB(238,64,64)
+ close.TextColor3=Color3.new(1,1,1);close.Font=Enum.Font.GothamBold;close.TextSize=20;close.ZIndex=15;close.Parent=panel
+ local closeCorner=Instance.new("UICorner");closeCorner.CornerRadius=UDim.new(0,6);closeCorner.Parent=close
+ close.Activated:Connect(function() panel.Visible=false end)
  local label=Instance.new("TextLabel")
  label.Name="ReadOnlyRecords";label.Position=UDim2.fromOffset(10,8);label.Size=UDim2.new(1,-28,0,0)
  label.AutomaticSize=Enum.AutomaticSize.None;label.TextWrapped=true;label.BackgroundTransparency=1
@@ -95,12 +100,19 @@ function Controller.start()
  local gui=Instance.new("ScreenGui")
  gui.Name="KDMCanaryPersonalRecords";gui.ResetOnSpawn=false;gui.DisplayOrder=25
  gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.Parent=player:WaitForChild("PlayerGui")
+ local overlay=Instance.new("Frame")
+ overlay.Name="Overlay";overlay.Size=UDim2.fromScale(1,1);overlay.BackgroundColor3=Color3.fromRGB(18,34,64)
+ overlay.BackgroundTransparency=0.80;overlay.BorderSizePixel=0;overlay.Visible=false;overlay.ZIndex=20;overlay.Parent=gui
  local button=Instance.new("TextButton")
  button.Name="Records";button.Text="MY RECORDS";button.Size=UDim2.fromOffset(132,44)
  button.AnchorPoint=Vector2.new(1,0);button.Position=UDim2.new(1,-12,0,12)
- button.BackgroundColor3=Color3.fromRGB(20,30,44);button.TextColor3=Color3.new(1,1,1)
+ button.BackgroundColor3=Color3.fromRGB(52,88,152);button.TextColor3=Color3.new(1,1,1)
  button.Font=Enum.Font.GothamBold;button.TextSize=14;button.Parent=gui
+ local buttonCorner=Instance.new("UICorner");buttonCorner.CornerRadius=UDim.new(0,6);buttonCorner.Parent=button
+ local buttonStroke=Instance.new("UIStroke");buttonStroke.Name="RecordsStroke";buttonStroke.Color=Color3.fromRGB(0,220,255)
+ buttonStroke.Thickness=2;buttonStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;buttonStroke.Parent=button
  local panel,label,resizeConnections=Controller.createRecordsPanel(gui)
+ panel:GetPropertyChangedSignal("Visible"):Connect(function() overlay.Visible=panel.Visible end)
  local busy=false;local last=-math.huge;local alive=true
  local click=button.Activated:Connect(function()
   panel.Visible=not panel.Visible

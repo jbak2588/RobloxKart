@@ -78,13 +78,13 @@ function HubUiController.start()
   local button = Instance.new("TextButton")
   button.Name, button.Text = action, action
   button.Size, button.Position = UDim2.new(1,-12,0,44), UDim2.fromOffset(6,6+(index-1)*48)
-  button.BackgroundColor3 = if action=='SHOP' then Color3.fromRGB(39,137,240) else Color3.fromRGB(27,52,75)
-  button.TextColor3 = Theme.TextPrimary
+  button.BackgroundColor3 = if action=='GARAGE' then Color3.fromRGB(36,138,242) elseif action=='TRACKS' then Color3.fromRGB(246,112,42) else Color3.fromRGB(42,198,102)
+  button.TextColor3 = Color3.fromRGB(255,255,255)
   button.Font, button.TextSize, button.BorderSizePixel = Enum.Font.GothamBold, 13, 0
   button.Parent = panel
   local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,6);corner.Parent=button
   button.Text=''
-  local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1;caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0);caption.Font=Enum.Font.GothamBold;caption.TextSize=13;caption.TextColor3=Theme.TextPrimary;caption.Parent=button
+  local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1;caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0);caption.Font=Enum.Font.GothamBold;caption.TextSize=13;caption.TextColor3=Color3.fromRGB(255,255,255);caption.TextStrokeTransparency=0.35;caption.Parent=button
   local mark=Instance.new('Frame');mark.Name='NavigationIcon';mark.Size=UDim2.fromOffset(12,14);mark.Position=UDim2.new(0,5,.5,-7);mark.BackgroundTransparency=1;mark.Parent=button
   local function piece(x,y,w,h,color)
    local f=Instance.new('Frame');f.Size=UDim2.fromOffset(w,h);f.Position=UDim2.fromOffset(x,y);f.BackgroundColor3=color;f.BorderSizePixel=0;f.Parent=mark
@@ -98,7 +98,7 @@ function HubUiController.start()
    piece(1,5,11,9,ink);piece(3,1,2,5,ink);piece(8,1,2,5,ink);piece(3,0,7,2,ink)
   end
   local stroke = Instance.new("UIStroke")
-  stroke.Color, stroke.ApplyStrokeMode, stroke.Parent = Color3.fromRGB(0,203,232), Enum.ApplyStrokeMode.Border, button
+  stroke.Color, stroke.Thickness, stroke.ApplyStrokeMode, stroke.Parent = Color3.fromRGB(0,220,255), 2, Enum.ApplyStrokeMode.Border, button
   table.insert(connections, button.Activated:Connect(function() open(action) end))
  end
  local promptEnabled = {}

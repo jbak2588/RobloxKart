@@ -5,8 +5,18 @@ local Theme=require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUi
 local View={}
 
 function View.new(panel,submit)
+ local overlay = Instance.new("Frame")
+ overlay.Name = "Overlay"
+ overlay.Size = UDim2.fromScale(1, 1)
+ overlay.BackgroundColor3 = Theme.Background
+ overlay.BackgroundTransparency = 0.80
+ overlay.BorderSizePixel = 0
+ overlay.ZIndex = 39
+ overlay.Visible = false
+ overlay.Parent = panel
  local frame=Instance.new("Frame")
  frame.Name="CreateLobbyModal";frame.Size=UDim2.fromScale(1,1);frame.BackgroundColor3=Theme.Panel;frame.BorderSizePixel=0;frame.ZIndex=40;frame.Visible=false;frame.Active=true;frame.Parent=panel
+ frame:GetPropertyChangedSignal("Visible"):Connect(function() overlay.Visible = frame.Visible end)
  local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(0,12);corner.Parent=frame
  local function text(name,value,y,height)
   local label=Instance.new("TextLabel");label.Name=name;label.Text=value;label.Font=Enum.Font.GothamBold;label.TextSize=14

@@ -1,14 +1,14 @@
 -- CoreUISafeInsets coordinates. Shared Garage/Profile visual tokens; no style framework.
 local Layout={}
 function Layout.colors()
- return {Background=Color3.fromRGB(16,27,45),Panel=Color3.fromRGB(18,34,54),Card=Color3.fromRGB(27,52,75),
-  Light=Color3.fromRGB(35,62,84),Cyan=Color3.fromRGB(0,203,232),Yellow=Color3.fromRGB(255,218,67),
-  Blue=Color3.fromRGB(39,137,240),White=Color3.fromRGB(240,245,252),Secondary=Color3.fromRGB(168,197,217)}
+ return {Background=Color3.fromRGB(18,34,64),Panel=Color3.fromRGB(32,60,108),Card=Color3.fromRGB(27,52,75),
+  Light=Color3.fromRGB(35,62,84),Cyan=Color3.fromRGB(0,220,255),Yellow=Color3.fromRGB(255,212,42),
+  Blue=Color3.fromRGB(39,137,240),White=Color3.fromRGB(255,255,255),Secondary=Color3.fromRGB(205,225,250)}
 end
 function Layout.style(object,kind)
  local c=Layout.colors();object.BackgroundColor3=c[kind or 'Card'];object.BorderSizePixel=0
  local corner=Instance.new('UICorner');corner.Name='ArcadeCorner';corner.CornerRadius=UDim.new(0,6);corner.Parent=object
- local stroke=Instance.new('UIStroke');stroke.Name='ArcadeStroke';stroke.Color=c.Secondary;stroke.Transparency=.7;stroke.Thickness=1
+ local stroke=Instance.new('UIStroke');stroke.Name='ArcadeStroke';stroke.Color=c.Secondary;stroke.Transparency=.7;stroke.Thickness=2
  stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;stroke.Parent=object
  return stroke
 end

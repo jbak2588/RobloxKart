@@ -1,4 +1,5 @@
 -- Client-only pit-lane signs, positioned from the existing spawn/prompt anchors.
+local Players = game:GetService("Players")
 local View = {}
 function View.create(hub, theme)
  local anchors, spawn = hub:FindFirstChild("Anchors") or hub:FindFirstChild("Stations"), hub:FindFirstChild("HubSpawn")
@@ -42,11 +43,54 @@ function View.create(hub, theme)
    end
   end
  end
+
+ local function isAnyModalOpen()
+  local player = Players.LocalPlayer
+  if not player then return false end
+  if player:GetAttribute("HubOverlayOpen") == true or player:GetAttribute("KDMProfileOpen") == true or player:GetAttribute("KDMShopOpen") == true then
+   return true
+  end
+  local pgui = player:FindFirstChild("PlayerGui")
+  if not pgui then return false end
+  local econ = pgui:FindFirstChild("KDMEconomyUi") or pgui:FindFirstChild("KDMGarageShop")
+  if econ and econ.Enabled then
+   local shopModal = econ:FindFirstChild("ShopModal", true) or econ:FindFirstChild("Shop", true)
+   if shopModal and shopModal.Visible then return true end
+  end
+  local rooms = pgui:FindFirstChild("RobloxKartMatchRooms") or pgui:FindFirstChild("KDMMatchRooms")
+  if rooms and rooms.Enabled then
+   local overlay = rooms:FindFirstChild("Overlay", true) or rooms:FindFirstChild("Backdrop", true)
+   if overlay and overlay.Visible then return true end
+  end
+  local create = pgui:FindFirstChild("KDMLobbyCreate")
+  if create and create.Enabled then
+   local overlay = create:FindFirstChild("Overlay", true) or create:FindFirstChild("CreateLobbyModal", true)
+   if overlay and overlay.Visible then return true end
+  end
+  local records = pgui:FindFirstChild("KDMPersonalRecords") or pgui:FindFirstChild("KDMCanaryPersonalRecords")
+  if records and records.Enabled then
+   local overlay = records:FindFirstChild("Overlay", true) or records:FindFirstChild("SavedRecords", true)
+   if overlay and overlay.Visible then return true end
+  end
+  return false
+ end
+
+ local function setKioskMarkersVisible(show)
+  for _, desc in hub:GetDescendants() do
+   if desc:IsA("BillboardGui") or (desc:IsA("SurfaceGui") and desc.Name ~= "Direction") then
+    desc.Enabled = show
+   end
+  end
+ end
+
  local view = {}
  function view.update(visible, active)
+  local modalOpen = isAnyModalOpen()
+  local effectiveVisible = visible and not modalOpen
+  setKioskMarkersVisible(effectiveVisible)
   for destination, entry in entries do
-   entry.plate.Transparency = if visible then .12 else 1
-   entry.surface.Enabled = visible
+   entry.plate.Transparency = if effectiveVisible then .12 else 1
+   entry.surface.Enabled = effectiveVisible
    entry.outline.Color = if destination == active then theme.Selection else theme.TextSecondary
    entry.text.TextColor3 = if destination == active then theme.PrimaryAction else theme.TextPrimary
    entry.arrow.TextColor3 = entry.text.TextColor3

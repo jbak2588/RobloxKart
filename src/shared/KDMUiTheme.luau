@@ -1,12 +1,12 @@
 -- Shared semantic colors; H1 applies these to Hub foundation only.
 return table.freeze({
- Background = Color3.fromRGB(10, 18, 30),
- Panel = Color3.fromRGB(29, 35, 44),
- Selection = Color3.fromRGB(0, 205, 255),
- PrimaryAction = Color3.fromRGB(255, 210, 55),
- PublicRace = Color3.fromRGB(245, 144, 42),
- Ready = Color3.fromRGB(154, 222, 65),
- Danger = Color3.fromRGB(218, 67, 67),
- TextPrimary = Color3.fromRGB(245, 248, 252),
- TextSecondary = Color3.fromRGB(151, 167, 185),
+ Background = Color3.fromRGB(18, 34, 64),
+ Panel = Color3.fromRGB(32, 60, 108),
+ Selection = Color3.fromRGB(0, 220, 255),
+ PrimaryAction = Color3.fromRGB(255, 212, 42),
+ PublicRace = Color3.fromRGB(255, 122, 38),
+ Ready = Color3.fromRGB(72, 228, 96),
+ Danger = Color3.fromRGB(238, 64, 64),
+ TextPrimary = Color3.fromRGB(255, 255, 255),
+ TextSecondary = Color3.fromRGB(205, 225, 250),
 })

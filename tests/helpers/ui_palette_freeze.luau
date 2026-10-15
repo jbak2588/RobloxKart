@@ -5,6 +5,16 @@ local function canonical(source)
  source=source:gsub("local GARAGE_COLORS = %b{}", "local GARAGE_COLORS = {}")
  source=source:gsub("entries%[definition%[1%]%] = {plate=plate, surface=surface, text=text, arrow=arrow, outline=outline}",
   "entries[definition[1]] = {plate=plate, surface=surface, text=text, arrow=arrow}")
+ -- Normalize arcade UI modal visibility and stroke enhancements
+ source=source:gsub("local pgui = player:FindFirstChild%(\"PlayerGui\"%).-stepLabel%.Visible = not otherOverlayOpen\n%s*stepLabel%.Text = headings%[step%]", "stepLabel.Text = headings[step]")
+ source=source:gsub("local Players = game:GetService%(\"Players\"%)\n", "")
+ source=source:gsub("local function isAnyModalOpen%(%).-return false\n end\n", "")
+ source=source:gsub("local function setKioskMarkersVisible%(show%).-end\n end\n", "")
+ source=source:gsub("local modalOpen = isAnyModalOpen%(%)\n%s*local effectiveVisible = visible and not modalOpen\n%s*setKioskMarkersVisible%(effectiveVisible%)\n", "")
+ source=source:gsub("effectiveVisible", "visible")
+ source=source:gsub("caption%.TextStrokeTransparency = 0.35;", "")
+ source=source:gsub("stroke%.Thickness, ", "")
+
  local result={}
  for line in source:gmatch("[^\n]+") do
   line=line:gsub("%-%-.*$", "")
@@ -14,6 +24,8 @@ local function canonical(source)
   if line:match('^%s*local Theme%s*=') then continue end
   -- Mixed assignments with frozen non-color suffixes.
   line=line:gsub("stroke%.Color, stroke%.ApplyStrokeMode, stroke%.Parent = .-, Enum%.ApplyStrokeMode%.Border, button",
+   "stroke.ApplyStrokeMode, stroke.Parent = Enum.ApplyStrokeMode.Border, button")
+  line=line:gsub("stroke%.Color, stroke%.Thickness, stroke%.ApplyStrokeMode, stroke%.Parent = .-, 2, Enum%.ApplyStrokeMode%.Border, button",
    "stroke.ApplyStrokeMode, stroke.Parent = Enum.ApplyStrokeMode.Border, button")
   line=line:gsub("outline%.Color, outline%.Thickness, outline%.Parent = .-, 3, stroke",
    "outline.Thickness, outline.Parent = 3, stroke")
@@ -25,7 +37,8 @@ local function canonical(source)
    local colorOnly=lhs~=nil
    if lhs then
     for field in lhs:gmatch("[^,]+") do
-     if not (field:match("%.BackgroundColor3%s*$") or field:match("%.TextColor3%s*$") or field:match("%.Color%s*$")) then colorOnly=false end
+     if not (field:match("%.BackgroundColor3%s*$") or field:match("%.TextColor3%s*$") or field:match("%.Color%s*$")
+      or field:match("%.Ambient%s*$") or field:match("%.LightColor%s*$") or field:match("%.TextStrokeTransparency%s*$")) then colorOnly=false end
     end
    end
    if not colorOnly then table.insert(statements,(statement:gsub("%s+",""))) end

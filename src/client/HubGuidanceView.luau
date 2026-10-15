@@ -26,6 +26,9 @@ function HubGuidanceView.create(parent, theme, onTrack)
  button.Size, button.BackgroundColor3 = UDim2.new(1, -24, 0, 44), theme.PrimaryAction
  button.TextColor3, button.TextSize, button.Font = theme.Background, 16, Enum.Font.GothamBold
  button.BorderSizePixel, button.Parent = 0, card
+ local buttonCorner = Instance.new("UICorner"); buttonCorner.CornerRadius = UDim.new(0, 6); buttonCorner.Parent = button
+ local buttonStroke = Instance.new("UIStroke"); buttonStroke.Name = "ActionStroke"; buttonStroke.Color = Color3.fromRGB(255, 255, 255)
+ buttonStroke.Thickness = 2; buttonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; buttonStroke.Parent = button
  local connection = button.Activated:Connect(onTrack)
  local view = { card = card, button = button }
  function view.update(presentation)

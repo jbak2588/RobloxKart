@@ -15,7 +15,7 @@ function Controller.start()
  local gui=Instance.new('ScreenGui');gui.Name='KDMGarageShop';gui.ResetOnSpawn=false;gui.DisplayOrder=35
  gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.Enabled=false;gui.Parent=playerGui
  local root=Instance.new('Frame');root.Name='SafeRoot';root.Size=UDim2.fromScale(1,1);root.BackgroundTransparency=1;root.Parent=gui
- local scrim=Instance.new('Frame');scrim.Name='ShopScrim';scrim.Position=UDim2.fromScale(-1,-1);scrim.Size=UDim2.fromScale(3,3);scrim.BackgroundColor3=colors.Background;scrim.BackgroundTransparency=.08;scrim.BorderSizePixel=0;scrim.Parent=root
+ local scrim=Instance.new('Frame');scrim.Name='ShopScrim';scrim.Position=UDim2.fromScale(-1,-1);scrim.Size=UDim2.fromScale(3,3);scrim.BackgroundColor3=colors.Background;scrim.BackgroundTransparency=.82;scrim.BorderSizePixel=0;scrim.Parent=root
  local panel=Instance.new('Frame');panel.Name='Shop';panel.BackgroundColor3=colors.Background;panel.Active=true;panel.Parent=root;Layout.style(panel,'Background')
  local function label(parent,name,text,y,height)
   local t=Instance.new('TextLabel');t.Name=name;t.Text=text;t.Position=UDim2.fromOffset(8,y);t.Size=UDim2.new(1,-16,0,height or 40)
@@ -27,6 +27,7 @@ function Controller.start()
  end
  local title=label(panel,'Wallet','GARAGE SHOP · K$ --',0,44);title.TextXAlignment=Enum.TextXAlignment.Left
  local close=button(panel,'Close','×',0);close.Size=UDim2.fromOffset(44,44);close.AnchorPoint=Vector2.new(1,0)
+ close.BackgroundColor3=Color3.fromRGB(238,64,64);close.TextSize=20;close.TextColor3=Color3.new(1,1,1)
  local tabs={};for _,name in {'WINGS','RACE ITEMS','MY INVENTORY'}do tabs[name]=button(panel,name,name,56)end
  local body=Instance.new('ScrollingFrame');body.Name='Products';body.BackgroundTransparency=1;body.BorderSizePixel=0
  body.ScrollBarThickness=6;body.CanvasSize=UDim2.new();body.Parent=panel
@@ -54,7 +55,7 @@ function Controller.start()
  local status=label(panel,'Status','',0,40)
  local confirmation=Instance.new('Frame');confirmation.Name='PurchaseConfirmation';confirmation.AnchorPoint=Vector2.new(.5,.5)
  confirmation.Position=UDim2.fromScale(.5,.5);confirmation.BackgroundColor3=colors.Panel;confirmation.Visible=false;confirmation.ZIndex=10;confirmation.Parent=root;Layout.style(confirmation,'Panel')
- local modal=Instance.new('TextButton');modal.Name='ConfirmationBackdrop';modal.Text='';modal.Size=UDim2.fromScale(1,1);modal.BackgroundColor3=colors.Background;modal.BackgroundTransparency=.15;modal.ZIndex=9;modal.Modal=true;modal.Visible=false;modal.Parent=root
+ local modal=Instance.new('TextButton');modal.Name='ConfirmationBackdrop';modal.Text='';modal.Size=UDim2.fromScale(1,1);modal.BackgroundColor3=colors.Background;modal.BackgroundTransparency=.82;modal.ZIndex=9;modal.Modal=true;modal.Visible=false;modal.Parent=root
  confirmation:GetPropertyChangedSignal('Visible'):Connect(function()modal.Visible=confirmation.Visible end)
  local confirmText=label(confirmation,'Description','',12,80);confirmText.ZIndex=11
  local yes=button(confirmation,'Confirm','CONFIRM',116);yes.ZIndex=11;yes.BackgroundColor3=colors.Yellow;yes.TextColor3=colors.Background
@@ -166,7 +167,7 @@ function Controller.start()
    viewport=Instance.new('ViewportFrame');viewport.Name='ActualWingPreview';viewport.Size=UDim2.new(1,-16,0,h);viewport.Position=UDim2.fromOffset(8,38)
    if mobile then viewport.Position=UDim2.fromOffset(8,4)end
    if wide then viewport.Size=UDim2.new(.60,-16,0,h)end
-   viewport.BackgroundColor3=colors.Panel;viewport.Ambient=Color3.new(.8,.8,.8);viewport.LightColor=Color3.new(1,1,1);viewport.Parent=f;Layout.style(viewport,'Panel')
+   viewport.BackgroundColor3=Color3.fromRGB(38,76,132);viewport.Ambient=Color3.fromRGB(215,225,240);viewport.LightColor=Color3.fromRGB(255,255,255);viewport.Parent=f;Layout.style(viewport,'Panel')
    camera=Instance.new('Camera');camera.FieldOfView=36;camera.Parent=viewport;viewport.CurrentCamera=camera
    local world=Instance.new('WorldModel');world.Parent=viewport
    preview=Factory.createVisual(Karts.Entries[variants[colorIndex]],previewWing)
@@ -180,7 +181,7 @@ function Controller.start()
    if data.wingOwned then
     buyButton(controls,'Equip',if data.wingEquipped then 'UNEQUIP' else 'EQUIP',(if mobile then y+26 else y+68),'EQUIP_WING',C.WingId,not data.wingEquipped).BackgroundColor3=colors.Blue
    else
-    local buy=buyButton(controls,'BuyWing','BUY · K$3,000',(if mobile then y+26 else y+68),'BUY_WING',C.WingId);buy.BackgroundColor3=if buy.Active then colors.Yellow else colors.Card;buy.TextColor3=if buy.Active then colors.Background else colors.Secondary
+    local buy=buyButton(controls,'BuyWing','BUY · K$3,000',(if mobile then y+26 else y+68),'BUY_WING',C.WingId);buy.BackgroundColor3=if buy.Active then Color3.fromRGB(72,228,96) else colors.Card;buy.TextColor3=if buy.Active then Color3.fromRGB(18,34,64) else colors.Secondary
    end
    local color=button(controls,'Color','COLOR · '..Karts.Entries[variants[colorIndex]].DisplayColorName,if mobile then y+76 else y+120)
    color.Activated:Connect(function()if os.clock()-draggedAt>.25 then colorIndex=colorIndex%#variants+1;render()end end)
@@ -217,7 +218,7 @@ function Controller.start()
    for index,id in C.Order do
     local f=Instance.new('TextButton');f.Name=id;f.Text='';f.LayoutOrder=index;f.Parent=gridFrame
     local border=Layout.style(f);local chosen=id==selectedItem
-    border.Color=if chosen then colors.Cyan else colors.Secondary;border.Transparency=if chosen then 0 else .7;border.Thickness=if chosen then 2 else 1
+    border.Color=if chosen then colors.Cyan else colors.Secondary;border.Transparency=if chosen then 0 else .7;border.Thickness=if chosen then 3 else 2
     local compact=gridConfig.height<100
     local inventory=tab=='MY INVENTORY'
     local iconSize=if compact then math.max(28,gridConfig.height-8) else math.min(104,gridConfig.height-58)
@@ -267,7 +268,8 @@ function Controller.start()
    else
     buy=buyButton(detail,'Buy','BUY 1 VOUCHER · K$'..C.Prices[selectedItem],y,'BUY_ITEM',selectedItem)
    end
-   buy.BackgroundColor3=if tab=='MY INVENTORY' then colors.Blue else colors.Yellow;buy.TextColor3=if tab=='MY INVENTORY' then colors.White else colors.Background
+   buy.BackgroundColor3=if tab=='MY INVENTORY' then colors.Blue elseif buy.Active then Color3.fromRGB(72,228,96) else colors.Card
+   buy.TextColor3=if tab=='MY INVENTORY' then colors.White elseif buy.Active then Color3.fromRGB(18,34,64) else colors.Secondary
    if not buy.Active then buy.BackgroundColor3=colors.Card;buy.TextColor3=colors.Secondary end
    if bottom then
     name.Size=UDim2.new(.45,-16,0,24);count.Position=UDim2.fromOffset(8,24);count.Size=UDim2.new(.45,-16,0,18)
