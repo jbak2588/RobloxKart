@@ -23,3 +23,7 @@
 See prompt-runtime-results.json, compile-result.json, release-source-comparison.json and regression-final-release/results.json. Historical local-only reports remain historical; publication outcome is recorded separately after Roblox confirms it.
 
 Final verification: the existing D2 trail lifetime assertion was updated from 2.5 to the current 6.0 second visual setting. Actual four-kart repeated lifecycle harness passes 298 checks including grounded projection, no per-frame allocation, release, out-of-road and airborne disable. Final result is 145 PASS / 21 unchanged failures after this focused rerun. Current pre-publish Native backup is local and hash-recorded in native-backup.json.
+
+## Publish outcome
+
+PUBLISHED CONFIRMED: Roblox Studio Output states the new changes were published successfully to the existing Kart Drift Masters place, with a v717 release-note link. PlaceId 127925465904803 / UniverseId 10768420544. Source snapshot commit eaff974e0ff663d1abe9f9fc9fa76bb41ba34f7d was pushed and matched origin before Publish. Two unchanged publish requests were acknowledged as the same version717; no code/world edit occurred between them. Native Output evidence is in publish-output.txt / publish-success.png. Main, public flags, payments, account balances and server-restart settings were not changed.

@@ -1,0 +1,78 @@
+23:55:42.768 Roblox에 저장하는 중... - Studio 23:55:45.021 플레이스 파일 다운로드 중… 다소 시간이 걸릴 수 있습니다. - Studio 23:55:45.080 '카트 드리프트 마스터'의 새 변경 사항을 Roblox에 저장했습니다. - Studio 23:55:45.481 Place file downloaded to 'C:\dev\RobloxKart\artifacts\lobby-vnext-02\PRE_PUBLISH_CURRENT_NATIVE.rbxl' - Studio 23:56:56.433 게시할 메시지를 서버로 전송했습니다. - Studio 23:56:59.819 '카트 드리프트 마스터'의 새 변경 사항을 Roblox에 게시했습니다. - Studio 23:56:59.833 플레이스가 게시되었습니다. 이제 요건을 충족하는 플레이어가 Roblox에서 이 플레이스를 플레이할 수 있습니다. - Studio 23:56:59.833 –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– - Studio 23:56:59.833 간편 링크: - Studio 23:56:59.833 → v717에 게시 노트 추가하기 - Studio 23:56:59.833 → 체험 세부 정보 및 대상 그룹 - Studio 23:56:59.833 → 성과 보기 - Studio 23:56:59.833 → 오류 보고서 보기 - Studio 23:57:24.932 게시할 메시지를 서버로 전송했습니다. - Studio 23:57:26.974 '카트 드리프트 마스터'의 새 변경 사항을 Roblox에 게시했습니다. - Studio 23:57:26.974 플레이스가 게시되었습니다. 이제 요건을 충족하는 플레이어가 Roblox에서 이 플레이스를 플레이할 수 있습니다. - Studio 23:57:26.974 –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– - Studio 23:57:26.974 간편 링크: - Studio 23:57:26.974 → v717에 게시 노트 추가하기 - Studio 23:57:26.974 → 체험 세부 정보 및 대상 그룹 - Studio 23:57:26.974 → 성과 보기 - Studio 23:57:26.974 → 오류 보고서 보기 - Studio
+											326 그룹 (settable, string) ID: qt_scrollarea_viewport
+											327 그룹 (settable, string) ID: qt_scrollarea_vcontainer
+												328 스크롤 막대 (settable, float) Value: 35
+										329 그룹 (settable, string)
+											330 사용자 지정 (settable, string)
+												331 사용자 지정 (settable, string)
+													332 그룹 (settable, string) ID: MessageTypeDropdown
+														333 사용자 지정 (settable, string)
+															334 단추 (settable, string) 모든 메시지 ID: OutputDropdown_MessageButton
+													335 그룹 (settable, string) ID: ScriptContextDropdown
+														336 사용자 지정 (settable, string)
+															337 단추 (settable, string) 모든 콘텍스트 ID: OutputDropdown_Data ModelButton
+												338 사용자 지정 (settable, string)
+													339 콤보 상자 (settable, string) ID: OutputFilterBar_ComboBox
+														340 LIST (settable, string)
+															341 목록 항목 (selectable, settable, string) 15424339197
+														342 편집 (settable, string) ID: OutputFilterBar_ComboBox.OutputFilterBar_FindLineEdit
+												343 단추 (settable, string) ID: ClearButton
+												344 그룹 (settable, string) ID: MoreDropdown
+													345 사용자 지정 (settable, string)
+														346 단추 (settable, string) ID: OutputDropdown_MoreButton
+						136 그룹 (settable, string) ID: RBXMainWindow.RootWidget.Layout0.Layout3.FixedSplitLayoutSouth0.Layout33
+							137 Tab (settable, string)
+					138 그룹 (settable, string) ID: RBXMainWindow.RootWidget.Layout0.Layout3.DockPanelSplitter_70
+
+Document text: ```
+23:41:06.256  [KDMRoute] resolve role=HUB reason=PUBLIC_SERVER private=false owner=0 sourcePlace=nil sourceGame=nil match=nil track=nil job=  -  서버 - Server:38
+  23:41:06.257  [KartWorld] ground=Baseplate size=(2048,20,2048) position=(0.0,-10.0,0.0)  -  서버 - PrototypeWorld:298
+  23:41:06.275  [RobloxKart] Practice Track ready  -  서버 - PrototypeWorld:316
+  23:41:06.277  [RobloxKart] Prototype world ready  -  서버 - PrototypeWorld:1456
+  23:41:06.278  [Race] bound track=Track01 minimumValidLapTime=13.94  -  서버 - RaceController:257
+  23:41:06.278  [Race] minimumValidLapTime=13.94  -  서버 - RaceController:1188
+  23:41:06.278  [RobloxKart] Race controller ready  -  서버 - RaceController:1189
+  23:41:06.493  RobloxKart CLIENT sync OK role=HUB  -  클라이언트 - Client:31
+  23:41:06.493  [RobloxKart] Kart controller ready  -  클라이언트 - KartInputController:241
+  23:41:06.493  [RobloxKart] Chase camera ready  -  클라이언트 - KartCameraController:347
+  23:41:06.818  [RobloxKart] Garage controller ready  -  서버 - GarageController:350
+  23:41:06.907  RobloxKart SERVER sync OK  -  서버 - Server:140
+  23:41:07.269  DataStoreService: StudioAccessToApisNotAllowed: Studio access to APIs is not allowed. API: GetAsync, Data Store: KDM_PlayerPrefs_v1  -  Studio
+  23:41:07.269  [PlayerPreferences] load failed: 502: API Services rejected request with error. Error code: 7 Reason: Studio access to APIs is not allowed.  -  서버 - PlayerPreferences:26
+  23:41:08.087  [KartInput] window focused  -  클라이언트 - KartInputController:213
+  23:41:08.273  [RobloxKart] Race HUD ready  -  클라이언트 - RaceHudController:1780
+  23:41:08.291  [RobloxKart] Garage UI ready  -  클라이언트 - GarageUiController:1703
+  23:41:08.341   ▶ [Roblox][CorePackages.Packages._Index.UIBlox.UIBlox.Logger] [UIBlox - Warning] - FoundationProvider not found. Please ensure that the FoundationProvider is present in the component tree. CorePackages.Packages._Index.UIBlox.UIBlox.App.Style.AppStyleProvider:178 function AppStyleProvider CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberHooks.new:3196 function renderWithHooks CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberBeginWork.new:209 function renderWithHooks CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberBeginWork.new:1577 function mountIndeterminateComponent CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberBeginWork.new:3485 function beginWork CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberWorkLoop.new:255 CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberWorkLoop.new:1977 CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberWorkLoop.new:1953 CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberWorkLoop.new:1896 CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberWorkLoop.new:915 CorePackages.Packages._Index.ReactReconciler.ReactReconciler.ReactFiberWorkLoop.new:860 CorePackages.Packages._Index.Scheduler.Scheduler.Scheduler:320 CorePackages.Packages._Index.Scheduler.Scheduler.Scheduler:268 CorePackages.Packages._Index.Scheduler.Scheduler.forks.SchedulerHostConfig.default:260 function doWork CorePackages.Packages._Index.Scheduler.Scheduler.forks.SchedulerHostConfig.default:296 function performWorkUntilDeadline  (x5)  -  클라이언트
+
+
+
+
+  23:41:48.405  [KartInput] window focus released  -  클라이언트 - KartInputController:206
+  23:51:05.703  [KartInput] window focused  -  클라이언트 - KartInputController:213
+  23:51:15.367   ▶ [KartInput] window focus released (x2)  -  클라이언트 - KartInputController:206
+
+  23:52:36.058   ▶ Disconnect from 127.0.0.1|56672 (x2)  -  Studio
+
+  23:55:42.768  Roblox에 저장하는 중...  -  Studio
+  23:55:45.021  플레이스 파일 다운로드 중… 다소 시간이 걸릴 수 있습니다.  -  Studio
+  23:55:45.080  '카트 드리프트 마스터'의 새 변경 사항을 Roblox에 저장했습니다.  -  Studio
+  23:55:45.481  Place file downloaded to 'C:\dev\RobloxKart\artifacts\lobby-vnext-02\PRE_PUBLISH_CURRENT_NATIVE.rbxl'  -  Studio
+  23:56:56.433  게시할 메시지를 서버로 전송했습니다.  -  Studio
+  23:56:59.819  '카트 드리프트 마스터'의 새 변경 사항을 Roblox에 게시했습니다.  -  Studio
+  23:56:59.833  플레이스가 게시되었습니다. 이제 요건을 충족하는 플레이어가 Roblox에서 이 플레이스를 플레이할 수 있습니다.  -  Studio
+  23:56:59.833  ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––  -  Studio
+  23:56:59.833  간편 링크:  -  Studio
+  23:56:59.833  → v717에 게시 노트 추가하기  -  Studio
+  23:56:59.833  → 체험 세부 정보 및 대상 그룹   -  Studio
+  23:56:59.833  → 성과 보기  -  Studio
+  23:56:59.833  → 오류 보고서 보기  -  Studio
+  23:57:24.932  게시할 메시지를 서버로 전송했습니다.  -  Studio
+  23:57:26.974  '카트 드리프트 마스터'의 새 변경 사항을 Roblox에 게시했습니다.  -  Studio
+  23:57:26.974  플레이스가 게시되었습니다. 이제 요건을 충족하는 플레이어가 Roblox에서 이 플레이스를 플레이할 수 있습니다.  -  Studio
+  23:57:26.974  ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––  -  Studio
+  23:57:26.974  간편 링크:  -  Studio
+  23:57:26.974  → v717에 게시 노트 추가하기  -  Studio
+  23:57:26.974  → 체험 세부 정보 및 대상 그룹   -  Studio
+  23:57:26.974  → 성과 보기  -  Studio
+  23:57:26.974  → 오류 보고서 보기  -  Studio
+```

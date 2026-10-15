@@ -1,0 +1,9 @@
+{
+  "placeId": 127925465904803,
+  "universeId": 10768420544,
+  "publishedVersion": 717,
+  "status": "PUBLISHED_CONFIRMED",
+  "evidence": "Roblox Studio Output confirms new changes published, place published and v717 release-note link at 23:56:59.833 and 23:57:26.974 on 2026-10-15",
+  "sourceCommit": "eaff974e0ff663d1abe9f9fc9fa76bb41ba34f7d",
+  "note": "Two identical publish requests were acknowledged for the same v717; no source edits between them. MCP console omitted Studio-origin publish lines; native Output UI provided confirmation."
+}
