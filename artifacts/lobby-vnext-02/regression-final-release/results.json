@@ -1,0 +1,832 @@
+[
+  {
+    "test": "active_match_directory_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "avatar_identity_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "boost_flame_fade_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.19
+  },
+  {
+    "test": "bot_curve_pursuit_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.34
+  },
+  {
+    "test": "bot_internal_control_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.12
+  },
+  {
+    "test": "bot_route_continuity_validation.luau",
+    "exit_code": 0,
+    "seconds": 64.38
+  },
+  {
+    "test": "camera_motion_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "checkpoint_marker_alignment_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "combat_feedback_view_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "compact_hub_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "drift_telemetry_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "driver_finish_celebration_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "economy_v2_arcade_shop_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "economy_v2_driver_card_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "economy_v2_shop_navigation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.89
+  },
+  {
+    "test": "economy_v2_visual_fidelity_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "finish_celebration_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "finish_outcome_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "finish_presentation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "finish_sequence_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "finish_source_freeze_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.12
+  },
+  {
+    "test": "four_player_race_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.42
+  },
+  {
+    "test": "gameplay_balance_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.11
+  },
+  {
+    "test": "garage_h2_flow_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "garage_h2_kart_display_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "garage_polish_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "garage_transition_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.7
+  },
+  {
+    "test": "garage_two_player_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "hub_next_action_guidance_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.78
+  },
+  {
+    "test": "hub_world_progression_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.77
+  },
+  {
+    "test": "impact_camera_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "item_aftershock_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.34
+  },
+  {
+    "test": "item_local_vfx_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "item_preparation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.16
+  },
+  {
+    "test": "item_vfx_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.14
+  },
+  {
+    "test": "item_world_vfx_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "kart_audio_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "kart_contact_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "kart_v2_production_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.2
+  },
+  {
+    "test": "kart_visual_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.53
+  },
+  {
+    "test": "kdm_control_icon_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "kdm_driver_grip_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "kdm_icon_catalog_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "lap_item_refill_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.19
+  },
+  {
+    "test": "lobby_create_security_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "lobby_create_ui_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "lobby_drive_mobile_fix_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "lobby_driving_polish_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.17
+  },
+  {
+    "test": "lobby_palette_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.16
+  },
+  {
+    "test": "lobby_showroom_test_drive_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "lobby_side_wings_validation.luau",
+    "exit_code": 0,
+    "seconds": 2.25
+  },
+  {
+    "test": "lobby_surface_drift_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "lobby_terminology_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.14
+  },
+  {
+    "test": "lobby_test_drive_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "lobby_title_persistence_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "lobby_title_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "lobby_training_drift_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "lobby_vnext_showroom_loop_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.53
+  },
+  {
+    "test": "lobby_wall_service_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "m3_a2_presence_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "m3_a2_room_display_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.08
+  },
+  {
+    "test": "match_room_service_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "match_room_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "missile_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.16
+  },
+  {
+    "test": "mobile_hud_polish_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "mobile_touch_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.45
+  },
+  {
+    "test": "multiplayer_foundation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "multiplayer_presentation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "persistent_room_race_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "pit_garage_art_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.16
+  },
+  {
+    "test": "player_preferences_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "practice_crossover_visual_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.16
+  },
+  {
+    "test": "practice_figure8_feasibility_validation.luau",
+    "exit_code": 0,
+    "seconds": 3.88
+  },
+  {
+    "test": "practice_figure8_geometry_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.38
+  },
+  {
+    "test": "practice_figure8_race_validation.luau",
+    "exit_code": 0,
+    "seconds": 26.0
+  },
+  {
+    "test": "practice_public_bot_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.09
+  },
+  {
+    "test": "practice_three_lap_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.16
+  },
+  {
+    "test": "production_bot_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.28
+  },
+  {
+    "test": "r8_a1_progression_mock_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.2
+  },
+  {
+    "test": "r8_a2_garage_binding_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "r8_a2_progression_runtime_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "r8_a2l1_canary_guidance_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "r8_a2l_datastore_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "r8_a3_boost_wire_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.06
+  },
+  {
+    "test": "r8_a3_controller_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.38
+  },
+  {
+    "test": "r8_a3_hud_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.2
+  },
+  {
+    "test": "r8_a3_personal_records_view_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.08
+  },
+  {
+    "test": "r8_a3_records_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.19
+  },
+  {
+    "test": "r8_a3_runtime_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "r8_a3_service_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "r8_a3b_eligibility_diagnostics_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "r8_a3b_full_race_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.16
+  },
+  {
+    "test": "r8_a3b_hud_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.22
+  },
+  {
+    "test": "r8_a3b_integration_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.52
+  },
+  {
+    "test": "r8_a3b_records_scroll_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "r8_a3b_route_anchor_validation.luau",
+    "exit_code": 0,
+    "seconds": 24.91
+  },
+  {
+    "test": "r8_a4_economy_validation.luau",
+    "exit_code": 0,
+    "seconds": 3.08
+  },
+  {
+    "test": "r8_a4_final_rank_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "r8_a4_hud_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.2
+  },
+  {
+    "test": "r8_a4_runtime_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.25
+  },
+  {
+    "test": "r8_a4_wing_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "r8_a5_shop_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "r8_a6_b_canary_grant_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "r8_a6_public_cash_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.44
+  },
+  {
+    "test": "r8_d1_slide_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.34
+  },
+  {
+    "test": "r8_d1_world_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.06
+  },
+  {
+    "test": "r8_d2_physics_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.22
+  },
+  {
+    "test": "r8_d2_presentation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "r8_d3_physics_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.22
+  },
+  {
+    "test": "r8_d3_world_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.31
+  },
+  {
+    "test": "r8_d4_camera_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "r8_d4_restore_camera_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.28
+  },
+  {
+    "test": "r8_p2b_record_diagnostics_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "r8_p2b_record_reset_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "r8_perf_display_lifecycle_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "r8_perf_gauge_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.08
+  },
+  {
+    "test": "r8_perf_monitors_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "r8_perf_p0_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.09
+  },
+  {
+    "test": "r8_perf_p1_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.16
+  },
+  {
+    "test": "r8_perf_p2_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.25
+  },
+  {
+    "test": "r8_perf_p2b_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.16
+  },
+  {
+    "test": "r8_perf_p2c_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.25
+  },
+  {
+    "test": "r8_perf_partner_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "race_audio_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "race_bot_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.25
+  },
+  {
+    "test": "race_item_reset_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "race_item_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.98
+  },
+  {
+    "test": "race_launch_routing_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "race_loadout_slots_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "race_mode_validation.luau",
+    "exit_code": 0,
+    "seconds": 8.75
+  },
+  {
+    "test": "race_presentation_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "race_result_hud_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.23
+  },
+  {
+    "test": "race_results_cache_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "race_room_coordinator_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "race_route_validation.luau",
+    "exit_code": 0,
+    "seconds": 37.03
+  },
+  {
+    "test": "remote_world_vfx_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.5
+  },
+  {
+    "test": "repeatable_nitro_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "reserved_arrival_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "reserved_match_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "route_continuity_validation.luau",
+    "exit_code": 0,
+    "seconds": 66.92
+  },
+  {
+    "test": "shield_restore_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.17
+  },
+  {
+    "test": "slick_spin_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.11
+  },
+  {
+    "test": "slick_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "smoke_effect_view_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "smoke_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "speed_sensation_camera_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "speed_sensation_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.11
+  },
+  {
+    "test": "speed_world_vfx_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.62
+  },
+  {
+    "test": "straight_speed_kart_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.08
+  },
+  {
+    "test": "straight_speed_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.27
+  },
+  {
+    "test": "studio_offline_memory_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.09
+  },
+  {
+    "test": "template_visual_asset_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.12
+  },
+  {
+    "test": "thunder_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.14
+  },
+  {
+    "test": "track02_barrier_safety_b_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.47
+  },
+  {
+    "test": "track02_published_binding_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.34
+  },
+  {
+    "test": "track02_raceability_b_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.62
+  },
+  {
+    "test": "track03_four_player_validation.luau",
+    "exit_code": 0,
+    "seconds": 14.56
+  },
+  {
+    "test": "track_diorama_orbit_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.5
+  },
+  {
+    "test": "track_diorama_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.81
+  },
+  {
+    "test": "track_environment_validation.luau",
+    "exit_code": 0,
+    "seconds": 6.55
+  },
+  {
+    "test": "track_h3_flow_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.16
+  },
+  {
+    "test": "track_v2_geometry_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.59
+  },
+  {
+    "test": "track_visual_standard_validation.luau",
+    "exit_code": 0,
+    "seconds": 1.48
+  },
+  {
+    "test": "two_player_race_validation.luau",
+    "exit_code": 0,
+    "seconds": 0.28
+  },
+  {
+    "test": "v2_gauge_v1_audio_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.12
+  },
+  {
+    "test": "v2_public_multiplayer_validation.luau",
+    "exit_code": 1,
+    "seconds": 0.09
+  }
+]

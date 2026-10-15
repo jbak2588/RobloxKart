@@ -1,0 +1,29 @@
+{
+  "total": 166,
+  "passed": 145,
+  "knownFailures": [
+    "bot_internal_control_validation.luau",
+    "finish_source_freeze_validation.luau",
+    "gameplay_balance_validation.luau",
+    "item_aftershock_validation.luau",
+    "item_vfx_validation.luau",
+    "lobby_palette_validation.luau",
+    "lobby_terminology_validation.luau",
+    "pit_garage_art_validation.luau",
+    "practice_figure8_geometry_validation.luau",
+    "practice_public_bot_validation.luau",
+    "r8_a3_hud_validation.luau",
+    "r8_a3_personal_records_view_validation.luau",
+    "r8_perf_p0_validation.luau",
+    "r8_perf_p1_validation.luau",
+    "speed_sensation_validation.luau",
+    "straight_speed_validation.luau",
+    "track02_raceability_b_validation.luau",
+    "track_h3_flow_validation.luau",
+    "track_v2_geometry_validation.luau",
+    "v2_gauge_v1_audio_validation.luau",
+    "v2_public_multiplayer_validation.luau"
+  ],
+  "newFailures": [],
+  "focusedRerun": "r8_d2_presentation_validation: finite trail lifetime snapshot updated 2.5 to 6.0; 298 world VFX lifecycle checks PASS"
+}

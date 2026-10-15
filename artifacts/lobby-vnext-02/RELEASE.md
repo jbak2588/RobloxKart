@@ -21,3 +21,5 @@
 - PC Studio sample: about 60 FPS over 180 frames. Real mobile performance, cold loading and concurrent two-human test driving are not independently established by this sample.
 
 See prompt-runtime-results.json, compile-result.json, release-source-comparison.json and regression-final-release/results.json. Historical local-only reports remain historical; publication outcome is recorded separately after Roblox confirms it.
+
+Final verification: the existing D2 trail lifetime assertion was updated from 2.5 to the current 6.0 second visual setting. Actual four-kart repeated lifecycle harness passes 298 checks including grounded projection, no per-frame allocation, release, out-of-road and airborne disable. Final result is 145 PASS / 21 unchanged failures after this focused rerun. Current pre-publish Native backup is local and hash-recorded in native-backup.json.
