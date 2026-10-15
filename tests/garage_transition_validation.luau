@@ -373,22 +373,38 @@ local stations=child(hub,"Folder","Stations")
 local station=child(stations,"Part","GarageStation");station:SetAttribute("HubAction","GARAGE")
 local prompt=child(station,"ProximityPrompt","HubPrompt")
 prompt.Enabled=true
+-- Hub shortcuts now consume the existing Lobby layout; inject real pure view modules.
+for _,name in {"LobbyDriveLayout","MobileControlView"} do
+ child(client,"ModuleScript",name)
+ modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=environment})()
+end
 local hubController=luau.load(fs.readFile("src/client/HubUiController.luau"),{environment=environment})()
 workspace:SetAttribute("KDMServerRole","RACE");hubController.start()
 check(not playerGui:FindFirstChild("KDMHubNavigation"),"RACE has no Hub shortcuts")
 workspace:SetAttribute("KDMServerRole","HUB");hubController.start();hubController.start()
 local hubGui=playerGui.KDMHubNavigation
 check(hubGui.Enabled and hubGui.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets,"Hub safe navigation enabled")
-check(hub.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart02","first Hub display uses committed selection")
-local firstDisplay=hub.KDMClientMyKartDisplay
+check(hub.KDMClientShowroom.ShowroomBay1.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart05" and player:GetAttribute("SelectedKartId")=="Kart02","Sprint selection preserved while V2 Cyan is exhibited")
+local firstDisplay=hub.KDMClientShowroom
 player:SetAttribute("SelectedKartId","Kart01")
-check(firstDisplay.Parent==nil and hub.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart01","attribute refresh destroys prior display")
+check(firstDisplay.Parent==nil and hub.KDMClientShowroom.ShowroomBay1.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart05" and player:GetAttribute("SelectedKartId")=="Kart01","attribute refresh replaces showroom without changing Sprint selection")
 player.CharacterAdded:Fire(player.Character)
 check(#hub:GetChildren()==5,"respawn has exactly one local display and world guidance")
 player:SetAttribute("RaceState","RACING")
-check(not hub:FindFirstChild("KDMClientMyKartDisplay"),"race transition removes Hub display")
+check(not hub:FindFirstChild("KDMClientShowroom"),"race transition removes Hub display")
 player:SetAttribute("RaceState","GARAGE")
-check(hub.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart01","Return Hub rebuilds committed display")
+check(hub.KDMClientShowroom.ShowroomBay1.KDMClientMyKartDisplay:GetAttribute("SelectedKartId")=="Kart05" and player:GetAttribute("SelectedKartId")=="Kart01","Return Hub preserves committed selection and V2 exhibit")
+local showroomIds={};local showroomCount=0
+for _,bay in hub.KDMClientShowroom:GetChildren() do
+ local kart=bay.KDMClientMyKartDisplay;local id=kart:GetAttribute("SelectedKartId")
+ check(not showroomIds[id] and kart:GetAttribute("ShowroomStatic"),"unique static exhibit")
+ showroomIds[id]=true;showroomCount+=1
+ local drivePrompt=kart:FindFirstChild("LobbyDisplayTestDrive",true)
+ check(drivePrompt and drivePrompt.Parent:GetAttribute("ShowroomKartId")==id,"every bay prompt requests its exhibited color")
+ check(drivePrompt.ObjectText==modules.KartCatalog.Entries[id].DisplayName,"every bay prompt names its exhibited kart")
+ for _,part in kart:GetDescendants()do if part:IsA("BasePart")then check(part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery,"exhibit has no active collision")end end
+end
+check(showroomCount==7,"exactly seven catalog V2 colors")
 local shortcuts=hubGui.Shortcuts
 shortcuts.GARAGE.Activated:Fire()
 check(gui.Enabled and not hubGui.Enabled and backdrop.GarageStep.Text=="KART GARAGE","Garage shortcut opens correct local step")
@@ -423,7 +439,7 @@ for _,resolution in resolutions do
  end
 end
 hubGui:Destroy()
-check(services.ProximityPromptService.PromptTriggered.count()==0 and not hub:FindFirstChild("KDMClientMyKartDisplay"),"Hub destruction cleans prompt and display")
+check(services.ProximityPromptService.PromptTriggered.count()==0 and not hub:FindFirstChild("KDMClientShowroom"),"Hub destruction cleans prompt and display")
 
 gui:Destroy()
 check(runService.RenderStepped.count()==0 and input.InputChanged.count()==0 and input.InputEnded.count()==0,"destroy disconnects render/global input")

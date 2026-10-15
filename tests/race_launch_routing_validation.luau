@@ -524,6 +524,9 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 		HttpService = { GenerateGUID = function() error("real JobId must not generate a GUID") end },
 		RunService = { IsStudio = function() return studio end } }
 	local startupModules = {
+		EconomyService = { start = function() calls.economy = true end },
+		ShopService = { start = function() calls.shop = true end },
+		RaceRecordService = { startQuery = function() calls.records = true end },
 		ServerRuntime = Runtime,
 		CompactHubBuilder = {build=function() calls.hub=true end},
 		RaceBotController = {start=function() calls.bot=true end},

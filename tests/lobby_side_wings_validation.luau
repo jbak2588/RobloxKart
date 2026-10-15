@@ -6,7 +6,7 @@ local patterns=pattern.paths()
 local n=0;local function check(v,label) assert(v,label);n+=1 end
 local function at(x,z,m) return g.inside(x-120,z-766,m or 0) end
 check(g.bounds.minX+120==-230 and g.bounds.maxX+120==450,'side bounds')
-check(math.abs(g.bounds.minZ+766-676)<1e-6 and math.abs(g.bounds.maxZ+766-990)<1e-6,'front preserved and rear bounded')
+check(math.abs(g.bounds.minZ+766-676)<1e-6 and math.abs(g.bounds.maxZ+766-1018)<1e-6,'front preserved and rear bounded')
 -- All safely interior points in the accepted front stadium remain usable.
 for z=-88,88,2 do for x=-208,208,2 do
  if p.inside(x,z,2) then check(g.inside(x,z,1),'original front apron preserved') end
@@ -34,14 +34,16 @@ for z=g.bounds.minZ+1,g.bounds.maxZ-1,2 do
 end
 check(split,'rear paving splits around building')
 -- Outward normals point through each wall, including concave inside corners.
-for i,a in g.points do
- local b=g.points[i%#g.points+1]
+for _,edge in g.boundaries do
+ local a,b=edge.a,edge.b
  local x,z=(a.x+b.x)/2,(a.z+b.z)/2
  local dx,dz=b.x-a.x,b.z-a.z;local len=math.sqrt(dx*dx+dz*dz)
  local nx,nz=dz/len,-dx/len
  local clearance,qx,qz=g.contact(x-nx*2,z-nz*2)
  check(clearance>1.9 and qx*nx+qz*nz>.98,'correct inward clearance and outward normal')
- check(not g.inside(x+nx*2,z+nz*2),'outside wall rejected')
+ -- Union intersections create short concave edges; a two-stud probe can
+ -- cross the neighboring boundary and re-enter. Probe the actual local exterior.
+ check(not g.inside(x+nx*.01,z+nz*.01),'local outside wall rejected')
  check(g.inside(x-nx*10,z-nz*10,7),'kart shoulder and recovery point inside each wall')
 end
 -- Fixed marks clip paired paths with a 12-stud margin; every requested pattern survives.

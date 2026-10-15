@@ -8,6 +8,7 @@ local Policy=require(script.Parent.EconomyPolicy)
 local Ops=require(script.Parent.EconomyOperations)
 local Adapter=require(script.Parent.ProgressionDataStoreAdapter)
 local busy,last={},{}
+local accountReads,joining,closing=0,0,false
 local function context()
  return {isStudio=game:GetService('RunService'):IsStudio(),role=workspace:GetAttribute('KDMServerRole'),
   experienceId=game.GameId,placeId=game.PlaceId,privateServerId=game.PrivateServerId,privateServerOwnerId=game.PrivateServerOwnerId}
@@ -38,17 +39,24 @@ local function publicProfile(p)
  return {status='FOUND',cash=p.wallet.cash,lifetimeEarned=p.wallet.lifetimeEarned or 0,kartId=p.selection.kartId,
   wingOwned=p.cosmetics.ownedPartIds[Config.WingId]==true,wingEquipped=p.cosmetics.equippedPartIdsBySlot.Wing==Config.WingId}
 end
-local function read(player)
+local function readAccount(player)
  if not Service.allowed(player,'read') then return {status='ACCESS_BLOCKED'} end
  local a=adapter(player,'read');local key=S.userKey(player.UserId);local r=a.read(key)
- if r.status=='ABSENT' and Service.allowed(player,'purchase') then
+ if r.status=='ABSENT' and Service.allowed(player,'initialize') then
   -- Create only on a confirmed absent read. UpdateAsync preserves a concurrently created profile.
-  a=adapter(player,'purchase')
-  a.commit(a.beginUpdate(key,function(previous)return previous or schema.default(player.UserId),'INITIALIZED'end))
+  a=adapter(player,'initialize')
+  local result=a.commit(a.beginUpdate(key,function(previous)return previous or schema.default(player.UserId),'INITIALIZED'end))
   r=a.read(key)
+  if r.status=='ABSENT' and (result.status=='PENDING' or result.status=='SAVED') then return {status='PENDING'} end
  end
  if r.status=='FOUND' and not r.value.deleted then Service.publishProfile(player,r.value);return publicProfile(r.value) end
  return {status=if r.status=='FOUND' then 'READ_ONLY' else r.status}
+end
+local function read(player)
+ accountReads+=1
+ local ok,value=pcall(readAccount,player)
+ accountReads-=1
+ return if ok then value else {status='ERROR'}
 end
 local function transact(player,op)
  local a=adapter(player,'purchase');local key=S.userKey(player.UserId)
@@ -88,6 +96,7 @@ function Service.start()
  if storage:FindFirstChild('KDMEconomy') then return end
  local remote=Instance.new('RemoteFunction');remote.Name='KDMEconomy';remote.Parent=storage
  remote.OnServerInvoke=function(player,action,equipped)
+  if closing then return {status='CLOSING'} end
   if not Service.allowed(player,if action=='PROFILE' then 'read' elseif action=='BUY_WING' or action=='PASS' then 'shop' else 'purchase') then return {status='ACCESS_BLOCKED'} end
   if busy[player] or last[player] and os.clock()-last[player]<1 then return {status='RATE_LIMITED'} end
   if action~='PROFILE' and (player:GetAttribute('RaceState')~='GARAGE' or player:GetAttribute('LobbyDriveActive')==true
@@ -114,21 +123,27 @@ function Service.start()
  end
  local players=game:GetService('Players')
  local function joined(p)
+  if closing then return end
+  joining+=1
   task.spawn(function()
-   for i=1,Config.RetryAttempts do
-    local ok,r=pcall(read,p)
-    if ok and r.status=='FOUND' then break end
-    if not Service.allowed(p,'read') then p:SetAttribute('KDMEconomyState','ACCESS_BLOCKED');return end
-    task.wait(i)
-   end
-   if Config.GamePassEnabled and Service.allowed(p,'purchase') and p:GetAttribute('KDMWingOwned')~=true then pcall(grantPass,p) end
+   pcall(function()
+    for i=1,Config.RetryAttempts do
+     local r=read(p)
+     if r.status=='FOUND' then break end
+     if not Service.allowed(p,'read') then p:SetAttribute('KDMEconomyState','ACCESS_BLOCKED');return end
+     if i<Config.RetryAttempts then task.wait(i) end
+    end
+    if Config.GamePassEnabled and Service.allowed(p,'purchase') and p:GetAttribute('KDMWingOwned')~=true then pcall(grantPass,p) end
+   end)
+   joining-=1
   end)
  end
  players.PlayerAdded:Connect(joined);for _,p in players:GetPlayers() do joined(p) end
  players.PlayerRemoving:Connect(function(p)last[p]=nil end)
  game:BindToClose(function()
+  closing=true
   local deadline=os.clock()+20
-  while next(busy) and os.clock()<deadline do task.wait(.1) end
+  while (next(busy) or accountReads>0 or joining>0) and os.clock()<deadline do task.wait(.1) end
  end)
  game:GetService('MarketplaceService').PromptGamePassPurchaseFinished:Connect(function(p,id,purchased)
   if purchased and id==Config.GamePassId and not busy[p] then

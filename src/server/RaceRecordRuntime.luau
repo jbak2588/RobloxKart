@@ -52,6 +52,12 @@ function Runtime.new(S,schema,Ops,deps)
   local adapter=deps.adapter(player);local key=S.userKey(player.UserId)
   -- A failed read must never be interpreted as an absent profile.
   local read=adapter.read(key)
+  if read.status=='ABSENT' and op.economy and deps.ensureProfile then
+   -- Only the guarded account facade may initialize a confirmed absent account.
+   -- Failed reads never enter this path; UpdateAsync keeps concurrent profiles.
+   local initialized=deps.ensureProfile(player)
+   read=if initialized.status=='FOUND' then adapter.read(key) else initialized
+  end
   local valid,validationReason=false,nil
   if read.status=='FOUND' then valid,validationReason=schema.validate(read.value,key) end
   trace(job,'READ',read.status,read.reason or validationReason,{deleted=read.status=='FOUND' and read.value.deleted==true,
@@ -82,7 +88,8 @@ function Runtime.new(S,schema,Ops,deps)
   end
   publish(player,op,"SAVE_PENDING")
   job.attempts+=1
-  if job.attempts<deps.retryAttempts and not closing then
+  -- Shutdown rejects new jobs, but lets accepted immutable jobs finish bounded retries.
+  if job.attempts<deps.retryAttempts then
    deps.delay(0.5*2^(job.attempts-1),function() job.running=true;local ok=pcall(attempt,job);job.running=false
     if not ok then trace(job,'EXCEPTION','SAVE_PENDING','RUNTIME_EXCEPTION');publish(player,op,"SAVE_PENDING");job.done=true end end)
   else trace(job,'FINAL','SAVE_PENDING','RETRY_EXHAUSTED');job.done=true end

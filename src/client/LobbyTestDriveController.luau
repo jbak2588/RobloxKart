@@ -33,6 +33,16 @@ function Controller.start()
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
  local boostCue=nil;local previousBoost=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
+ local hub=driveZone.Parent
+ local displayPrompts={}
+ local function cacheDisplayPrompts(model)
+  if model.Name~="KDMClientShowroom" then return end
+  table.clear(displayPrompts)
+  for _,node in model:GetDescendants()do if node:IsA("ProximityPrompt")and node.Name=="LobbyDisplayTestDrive"then table.insert(displayPrompts,node)end end
+ end
+ for _,model in hub:GetChildren()do cacheDisplayPrompts(model)end
+ hub.ChildAdded:Connect(cacheDisplayPrompts)
+ hub.ChildRemoved:Connect(function(model)if model.Name=="KDMClientShowroom"then table.clear(displayPrompts)end end)
  local entryPrompt=driveZone:WaitForChild("LobbyFrontDriveEntry"):FindFirstChildOfClass("ProximityPrompt")
  local gui=Instance.new("ScreenGui");gui.Name="KDMLobbyTestDrive";gui.ResetOnSpawn=false
  gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.DisplayOrder=21;gui.Parent=player:WaitForChild("PlayerGui")
@@ -79,11 +89,12 @@ function Controller.start()
   end
   cameraBody,previousTarget,savedFov=nil,nil,nil
  end
- local function request(action,callback)
+ local function request(action,callback,previewKartId)
   if pending then return false end
   token+=1;local id=token;pending={id=id,callback=callback,action=action}
   if action=="Stop" then neutral();detach() else suspended=false end
-  button.Active=false;remote:FireServer(action,id)
+  button.Active=false
+  if previewKartId then remote:FireServer(action,id,previewKartId) else remote:FireServer(action,id) end
   task.delay(5,function()
    if pending and pending.id==id then
     local stale=pending;pending=nil;neutral();detach();status.Text="PLEASE TRY AGAIN";button.Active=true
@@ -119,7 +130,13 @@ function Controller.start()
   request(if player:GetAttribute("LobbyDriveActive")==true then "Stop" else "Drive")
  end)
  PromptService.PromptTriggered:Connect(function(prompt,who)
-  if who==player and prompt.Parent and (prompt.Parent.Name=="LobbyFrontDriveEntry" or prompt.Name=="LobbyDisplayTestDrive") and not pending then request("Drive") end
+  if who~=player or not prompt.Parent or pending or not gui.Enabled or player:GetAttribute("LobbyDriveActive")==true then return end
+  if prompt==entryPrompt then request("Drive");return end
+  local showroom=hub:FindFirstChild("KDMClientShowroom")
+  if prompt.Name~="LobbyDisplayTestDrive"or not showroom or not prompt:IsDescendantOf(showroom)then return end
+  local previewKartId=prompt.Parent:GetAttribute("ShowroomKartId")
+  local entry=require(Shared:WaitForChild("KartCatalog")).Entries[previewKartId]
+  if entry and entry.VisualModelName=="KDMV2"then request("Drive",nil,previewKartId)end
  end)
  player.CharacterRemoving:Connect(function() neutral();detach();if pending and pending.callback then pending.callback(false) end;pending=nil;token+=1 end)
  player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(function()
@@ -134,7 +151,7 @@ function Controller.start()
   local active=player:GetAttribute("LobbyDriveActive")==true
   local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")
   gui.Enabled=player:GetAttribute("LobbyDriveAvailable")==true and player:GetAttribute("RaceState")=="GARAGE"
-   and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled)
+   and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled) and player:GetAttribute("KDMShopOpen")~=true and player:GetAttribute("KDMProfileOpen")~=true
   button.Visible=active
   button.Text=if pending then "PLEASE WAIT" else "EXIT KART"
   charge.Visible=active
@@ -148,9 +165,10 @@ function Controller.start()
    local bottom=driftButton.AbsolutePosition.Y-canvas.AbsolutePosition.Y-8
    button.Position=UDim2.fromOffset(12,bottom)
   else button.Position=UDim2.new(0,12,1,-(l.driftBottom+l.driftHitHeight+8)) end
-  local display=Workspace.KDMHub:FindFirstChild("KDMClientMyKartDisplay")
-  local displayPrompt=display and display:FindFirstChild("LobbyDisplayTestDrive",true)
-  if displayPrompt then displayPrompt.Enabled=gui.Enabled and not active and not pending end
+  local promptsEnabled=gui.Enabled and not active and not pending
+  for _,prompt in displayPrompts do
+   if prompt.Parent and prompt.Enabled~=promptsEnabled then prompt.Enabled=promptsEnabled end
+  end
   if entryPrompt then entryPrompt.Enabled=gui.Enabled and not active and not pending end
   status.Visible=status.Text~=""
   local kart,h=seatKart();local body=kart and kart:FindFirstChild("Chassis")

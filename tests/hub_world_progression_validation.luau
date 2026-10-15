@@ -20,7 +20,7 @@ check(S.prepHelper("PRE_RACE","WAITING",true)=="READY • WAITING FOR START","re
 for _,phase in {"COUNTDOWN","RACING","FINISHED","GARAGE"} do check(S.prepHelper(phase,"WAITING",false)==nil,"no racing prep overlay") end
 print("PASS: "..count.." world/race progression state contracts")
 local fixture=fs.readFile("tests/garage_transition_validation.luau")
-local marker="local firstDisplay=hub.KDMClientMyKartDisplay"
+local marker="local firstDisplay=hub.KDMClientShowroom"
 local injection=[[
 local card=hubGui.SafeCanvas.NextAction
 local world=hub.KDMClientWorldGuidance

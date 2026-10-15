@@ -25,6 +25,8 @@ local MobileTutorialView = require(script.Parent:WaitForChild("MobileTutorialVie
 local started = false
 local STEP_KART, STEP_TRACK, STEP_READY = 1, 2, 3
 local openOverlay, closeOverlay
+local shopContext
+function GarageUiController.shopContext() return if shopContext then shopContext() else nil end
 local openGate = nil
 function GarageUiController.setOpenGate(gate) openGate = gate end
 local navigationObservers = {}
@@ -38,6 +40,10 @@ end
 
 function GarageUiController.open(action: string, confirmedTrackId: string?)
  if openOverlay then openOverlay(action, confirmedTrackId) end
+end
+
+function GarageUiController.resumeAfterShop()
+ if openOverlay then openOverlay("SHOP_RETURN") end
 end
 
 function GarageUiController.close()
@@ -468,9 +474,10 @@ function GarageUiController.start()
 	end
 
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
-	local shopButton=makeButton(backdrop,'SHOP',UDim2.fromOffset(12,14))
+	local shopButton=makeButton(backdrop,'GO TO SHOP',UDim2.fromOffset(12,14))
 	shopButton.Size=UDim2.fromOffset(104,44)
-	shopButton.Activated:Connect(function()require(script.Parent.GarageShopController).open()end)
+	shopButton.BackgroundColor3=Theme.Panel;shopButton.TextSize=12
+	shopButton.Activated:Connect(function()require(script.Parent.GarageShopController).open('WINGS')end)
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
 	local inviteGui = Instance.new("ScreenGui")
@@ -1535,6 +1542,11 @@ function GarageUiController.start()
 	end
 
 
+ shopContext=function()
+  if localRouteRequested or selectionPending or routeOverlay.Visible then return nil end
+  if not overlayOpen then return 'LOBBY' end
+  return if step==STEP_KART then 'KART' else nil
+ end
  openOverlay = function(action, confirmedTrackId)
   if openGate and openGate(function() openOverlay(action, confirmedTrackId) end) then return end
   if player:GetAttribute("RaceState") ~= "GARAGE" or localRouteRequested
@@ -1547,16 +1559,16 @@ function GarageUiController.start()
    return
   end
   step = if action == "TRACK" or action == "TRACKS" or action == "RACE" or action == "ROOMS" then STEP_TRACK else STEP_KART
-  kartIndex = table.find(KartCatalog.Order, committedKartId()) or 1
+  if action~="SHOP_RETURN" then kartIndex = table.find(KartCatalog.Order, committedKartId()) or 1 end
   -- Open the showroom on V2; browsing still requires USE KART to commit a choice.
-  if step == STEP_KART and KartCatalog.Entries[KartCatalog.Order[kartIndex]].VisualModelName ~= "KDMV2" then
+  if action~="SHOP_RETURN" and step == STEP_KART and KartCatalog.Entries[KartCatalog.Order[kartIndex]].VisualModelName ~= "KDMV2" then
    for index, id in KartCatalog.Order do
     if KartCatalog.Entries[id].VisualModelName == "KDMV2" then kartIndex = index; break end
    end
   end
   selectionPending = nil
   viewport.BackgroundColor3=Theme.Panel:Lerp(KartCatalog.Entries[KartCatalog.Order[kartIndex]].DisplayColor or Theme.Selection,.18)
-  chipRow.CanvasPosition = Vector2.zero
+  if action~="SHOP_RETURN" then chipRow.CanvasPosition = Vector2.zero end
   overlayOpen = true
   player:SetAttribute("HubOverlayOpen", true)
   notifyNavigation("Opened", if step == STEP_KART then "GARAGE" else "TRACKS")

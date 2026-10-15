@@ -13,7 +13,7 @@ function Builder.build(hub,ground)
  local zone=Instance.new("Model");zone.Name="LobbyFrontTestDriveZone"
  zone:SetAttribute("ForwardMax",Policy.Forward);zone:SetAttribute("ReverseMax",Policy.Reverse)
  zone:SetAttribute("Center",center);zone:SetAttribute("OuterRadius",Policy.OuterRadius)
- zone:SetAttribute("FootprintVersion","SIDE_WINGS_V1")
+ zone:SetAttribute("FootprintVersion","BUILDING_LOOP_V1")
  local function part(name,size,frame,color,collide)
   local p=Instance.new("Part");p.Name=name;p.Size=size;p.CFrame=frame
   p.Anchored=true;p.CanCollide=collide;p.CanTouch=false;p.CanQuery=collide
@@ -22,8 +22,9 @@ function Builder.build(hub,ground)
  end
  local function frame(x,y,z) return CFrame.new(center+Vector3.new(x,y,z)) end
  local blockIndex=0
- local function strip(name,route,width,height,y,color,collide)
+ local function strip(name,route,width,height,y,color,collide,open)
   for i,a in route do
+   if open and i==#route then break end
    local b=route[i%#route+1]
    local first,last=center+Vector3.new(a.x,y,a.z),center+Vector3.new(b.x,y,b.z)
    local length=(last-first).Magnitude
@@ -65,15 +66,21 @@ function Builder.build(hub,ground)
  -- A single smooth collision plane avoids seam contacts from the decorative slices.
  local floor=part("LobbyFrontSmoothFloor",Vector3.new(bounds.maxX-bounds.minX,.5,bounds.maxZ-bounds.minZ),frame((bounds.minX+bounds.maxX)/2,-.07,(bounds.minZ+bounds.maxZ)/2),Color3.new(),true)
  floor.Transparency=1;floor.CustomPhysicalProperties=PhysicalProperties.new(1,.05,0,100,100)
- local kerbs={}
- for _,p in Geometry.points do
-  local _,nx,nz=Geometry.contact(p.x,p.z)
-  table.insert(kerbs,{x=p.x-nx*2,z=p.z-nz*2})
+ -- Independent union segments include the outer perimeter and building island.
+ -- Never close a segment list across a removed join or across the building.
+ for _,edge in Geometry.boundaries do
+  local a,b=edge.a,edge.b
+  local inv=1/math.sqrt(edge.length2)
+  local nx,nz=edge.dz*inv,-edge.dx*inv
+  -- Rear straight: 32-stud road plus 14-stud shoulders. A two-stud
+  -- kerb and two-stud wall leave 12 clear studs between their outer faces.
+  local rearEdge=math.abs(a.z-b.z)<.001 and (math.abs(a.z-Geometry.rear.minZ)<.001 or math.abs(a.z-Geometry.rear.maxZ)<.001)
+  local inset=if rearEdge then 14 else 2
+  local kerbs={{x=a.x-nx*inset,z=a.z-nz*inset},{x=b.x-nx*inset,z=b.z-nz*inset}}
+  strip("LobbyFrontInnerKerb",kerbs,2,.08,.22,Color3.fromRGB(230,240,244),false,true)
+  strip("LobbyFrontGuardrail",{a,b},3,2.4,1.2,Color3.fromRGB(246,194,36),false,true)
+  strip("LobbyFrontBarrier",{a,b},2,14,7,Color3.fromRGB(139,178,194),true,true)
  end
- strip("LobbyFrontInnerKerb",kerbs,2,.08,.22,Color3.fromRGB(230,240,244),false)
- -- The continuous invisible wall owns containment; decorative block seams cannot snag karts.
- strip("LobbyFrontGuardrail",Geometry.points,3,2.4,1.2,Color3.fromRGB(246,194,36),false)
- strip("LobbyFrontBarrier",Geometry.points,2,14,7,Color3.fromRGB(139,178,194),true)
  -- Static paired tire tracks sit above the asphalt, below live Drift marks.
  local marks=Instance.new("Folder");marks.Name="LobbyPermanentSkidMarks";marks.Parent=zone
  local count=0

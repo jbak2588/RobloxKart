@@ -132,10 +132,14 @@ local function createKart(player,definition,frame)
  kart.Parent=zone;body:SetNetworkOwner(nil)
  return kart,body,seat
 end
-local function drive(player)
+local function drive(player,previewKartId)
  if not started or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true)
   or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH"
   or player:GetAttribute("LobbyDrivePending")==true or (canEnter and not canEnter(player)) then return false,"DRIVE UNAVAILABLE" end
+ -- Showroom previews are temporary, free V2 visuals; selection/persistence is
+ -- still owned by Garage. Reject unknown ids, payloads and non-showroom families.
+ if previewKartId~=nil and (type(previewKartId)~="string" or not Catalog.Entries[previewKartId]
+  or Catalog.Entries[previewKartId].VisualModelName~="KDMV2")then return false,"SELECT A KART"end
  if records[player] then return true end
  local character=player.Character;local humanoid=character and character:FindFirstChildOfClass("Humanoid")
  local root=character and character:FindFirstChild("HumanoidRootPart")
@@ -143,6 +147,7 @@ local function drive(player)
  local hub=zone.Parent;local spawn=hub:FindFirstChild("HubSpawn")
  if not inside(root.Position,0) and (not spawn or (root.Position-spawn.Position).Magnitude>140) then return false,"RETURN TO LOBBY" end
  local definition=Catalog.Entries[player:GetAttribute("SelectedKartId") or Catalog.DefaultId]
+ if previewKartId then definition=Catalog.Entries[previewKartId] end
  if not definition then return false,"SELECT A KART" end
  local gen=generation(player);player:SetAttribute("LobbyDrivePending",true)
  local frame=zone.LobbyFrontDriveStart.CFrame
@@ -221,7 +226,7 @@ function Service.start(driveZone,eligibility)
   if type(id)~="number" or id~=id or id<0 or id>1e9 or id%1~=0 then return end
   if action=="Drive" then
    local now=os.clock();if now-(lastRequest[player] or -1e9)<.6 then remote:FireClient(player,"Reply",id,generations[player],false,"PLEASE WAIT");return end
-   lastRequest[player]=now;local ok,message=drive(player)
+   lastRequest[player]=now;local ok,message=drive(player,first)
    remote:FireClient(player,"Reply",id,generations[player],ok,message)
   elseif action=="Stop" then
    Service.stop(player,"exit",true)

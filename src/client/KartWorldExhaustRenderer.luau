@@ -32,23 +32,30 @@ local function makeSmoke(attachment: Attachment): ParticleEmitter
 	smoke.Texture = SMOKE_TEXTURE
 	smoke.Enabled = false
 	smoke.Rate = 0
-	smoke.Lifetime = NumberRange.new(1.3, 2.2)
-	smoke.Speed = NumberRange.new(1, 3)
-	smoke.Acceleration = Vector3.new(0, 1, 0)
-	smoke.Drag = 1
- smoke.RotSpeed=NumberRange.new(20,100)
- smoke.LightInfluence=0
+	smoke.Lifetime = NumberRange.new(6.5, 8.0)
+	smoke.Speed = NumberRange.new(4.5, 9.5)
+	smoke.SpreadAngle = Vector2.new(48, 28)
+	smoke.Acceleration = Vector3.new(0, 0.65, 0)
+	smoke.Drag = 1.65
+	smoke.Rotation = NumberRange.new(-180, 180)
+	smoke.RotSpeed = NumberRange.new(-28, 28)
+	smoke.LightInfluence = 0
 	smoke.VelocityInheritance = 0.15
 	smoke.EmissionDirection = Enum.NormalId.Top
-	smoke.SpreadAngle = Vector2.new(24, 24)
-	smoke.Color = ColorSequence.new(Color3.fromRGB(211, 211, 211), Color3.fromRGB(255, 255, 255))
+	smoke.Color = ColorSequence.new(Color3.fromRGB(248, 250, 255))
 	smoke.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, .55),
-		NumberSequenceKeypoint.new(.20, 1.8),
-		NumberSequenceKeypoint.new(1, 2.6),
+		NumberSequenceKeypoint.new(0, 1.2, 0.15),
+		NumberSequenceKeypoint.new(0.18, 3.4, 0.3),
+		NumberSequenceKeypoint.new(0.50, 6.8, 0.6),
+		NumberSequenceKeypoint.new(0.80, 9.6, 0.8),
+		NumberSequenceKeypoint.new(1, 11.5, 1.0),
 	})
 	smoke.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, .38),
+		NumberSequenceKeypoint.new(0, 0.06),
+		NumberSequenceKeypoint.new(0.18, 0.16),
+		NumberSequenceKeypoint.new(0.45, 0.48),
+		NumberSequenceKeypoint.new(0.75, 0.78),
+		NumberSequenceKeypoint.new(0.92, 0.92),
 		NumberSequenceKeypoint.new(1, 1),
 	})
 	smoke.Parent = attachment
@@ -61,7 +68,7 @@ local function makeTrail(parent: BasePart, first: Attachment, second: Attachment
 	trail.Attachment0 = first
 	trail.Attachment1 = second
 	trail.Enabled = false
-	trail.Lifetime = 2.5
+	trail.Lifetime = 6.0
 	trail.MaxLength = 180
 	trail.MinLength = 0.1
 	trail.Color = ColorSequence.new(Color3.fromRGB(8, 9, 11))
@@ -276,7 +283,7 @@ function Renderer.new(kart)
    l.Brightness=lightStyles[l].brightness*alpha;l.Range=lightStyles[l].range*alpha
    l.Enabled=flameWeight>0 and lod>0
   end
-  local rate=if drift then math.clamp((slip-8)*.8,0,28)*lod else 0
+  local rate=if drift then math.clamp(32+(slip-6)*2.0, 0, 68)*lod else 0
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
   if drift and slip>=5 and groundElapsed>=.04 then
