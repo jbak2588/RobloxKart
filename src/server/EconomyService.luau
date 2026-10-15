@@ -9,12 +9,32 @@ local Ops=require(script.Parent.EconomyOperations)
 local Adapter=require(script.Parent.ProgressionDataStoreAdapter)
 local busy,last={},{}
 local accountReads,joining,closing=0,0,false
+local studioData={}
+local studioAdapter={
+ read=function(key)
+  local val=studioData[key]
+  if val==nil then return {status='ABSENT',key=key} end
+  return {status='FOUND',key=key,value=S.clone(val)}
+ end,
+ beginUpdate=function(key,callback)
+  return {key=key,callback=callback,consumed=false}
+ end,
+ commit=function(tx)
+  tx.consumed=true
+  local nextVal,outcome=tx.callback(studioData[tx.key])
+  if nextVal~=nil then studioData[tx.key]=S.clone(nextVal) end
+  return {status='SAVED',value=studioData[tx.key],outcome=outcome}
+ end,
+}
 local function context()
  return {isStudio=game:GetService('RunService'):IsStudio(),role=workspace:GetAttribute('KDMServerRole'),
   experienceId=game.GameId,placeId=game.PlaceId,privateServerId=game.PrivateServerId,privateServerOwnerId=game.PrivateServerOwnerId}
 end
 function Service.allowed(player,kind) return Policy.allowed(Config,context(),player.UserId,kind) end
 local function adapter(player,kind)
+ if game:GetService('RunService'):IsStudio() then
+  return studioAdapter
+ end
  return Adapter.new({schema=schema,key=S.userKey(player.UserId),authorize=function()return Service.allowed(player,kind)end,
   getStore=function()return game:GetService('DataStoreService'):GetDataStore(Config.StoreName)end,
   getOptions=function()local o=Instance.new('DataStoreGetOptions');o.UseCache=false;return o end,
@@ -49,7 +69,23 @@ local function readAccount(player)
   r=a.read(key)
   if r.status=='ABSENT' and (result.status=='PENDING' or result.status=='SAVED') then return {status='PENDING'} end
  end
- if r.status=='FOUND' and not r.value.deleted then Service.publishProfile(player,r.value);return publicProfile(r.value) end
+ if r.status=='FOUND' and not r.value.deleted then
+  local p=r.value
+  local emptyHistory=(not p.purchaseHistory or next(p.purchaseHistory)==nil)
+   and (not p.receipts or next(p.receipts)==nil)
+   and (p.wallet.lifetimeEarned==nil or p.wallet.lifetimeEarned==0)
+  if p.wallet.cash==0 and p.wallet.ledgerRevision==0 and emptyHistory then
+   a=adapter(player,'initialize')
+   a.commit(a.beginUpdate(key,function(curr)
+    if not curr then return nil end
+    local cloned=S.clone(curr)
+    if cloned.wallet.cash==0 and cloned.wallet.ledgerRevision==0 then cloned.wallet.cash=5000 end
+    return cloned,'STARTER_CASH_GRANTED'
+   end))
+   r=a.read(key)
+  end
+  Service.publishProfile(player,r.value);return publicProfile(r.value)
+ end
  return {status=if r.status=='FOUND' then 'READ_ONLY' else r.status}
 end
 local function read(player)

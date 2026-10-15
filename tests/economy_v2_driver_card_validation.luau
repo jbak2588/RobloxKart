@@ -180,7 +180,7 @@ for _,value in {-1,math.huge,0/0,12.5,'940'}do
  player:SetAttribute('KDMWalletCash',value);check(body.Wallet.Text=='AVAILABLE K$\n--','malformed currency fails closed')
 end
 player:SetAttribute('KDMWalletCash',0);check(body.Wallet.Text=='AVAILABLE K$\n0','confirmed actual zero preserved')
-player:SetAttribute('KDMWalletCash',4000);check(body.BuyWing.Active,'existing Wing purchase route available')
+player:SetAttribute('KDMWalletCash',26000);check(body.BuyWing.Active,'existing Wing purchase route available')
 activate(body.BuyWing);check(shops==1 and not card.Visible,'buy routes to existing Shop confirmation')
 activate(gui.Profile);activate(body.OpenShop);check(shops==2 and not card.Visible,'shop preview independent of affordability')
 activate(gui.Profile)

@@ -176,12 +176,12 @@ function Controller.start()
    viewport:GetPropertyChangedSignal('AbsoluteSize'):Connect(fitPreview);task.defer(fitPreview)
    local y=if mobile then -38 else 0
    local state=if data.wingOwned then (if data.wingEquipped then 'OWNED · EQUIPPED' else 'OWNED · UNEQUIPPED') elseif data.status=='FOUND' then 'NOT OWNED' else 'UNAVAILABLE'
-   label(controls,'Owned',state..(if mobile then ' · K$3,000' else ''),y,if mobile then 22 else 28).TextColor3=colors.Cyan
-   local price=label(controls,'WingPrice','K$3,000 · PERMANENT',y+30,32);price.TextSize=20;price.TextColor3=colors.Yellow;price.Visible=not mobile
+   label(controls,'Owned',state..(if mobile then ' · K$25,000' else ''),y,if mobile then 22 else 28).TextColor3=colors.Cyan
+   local price=label(controls,'WingPrice','K$25,000 · PERMANENT',y+30,32);price.TextSize=20;price.TextColor3=colors.Yellow;price.Visible=not mobile
    if data.wingOwned then
     buyButton(controls,'Equip',if data.wingEquipped then 'UNEQUIP' else 'EQUIP',(if mobile then y+26 else y+68),'EQUIP_WING',C.WingId,not data.wingEquipped).BackgroundColor3=colors.Blue
    else
-    local buy=buyButton(controls,'BuyWing','BUY · K$3,000',(if mobile then y+26 else y+68),'BUY_WING',C.WingId);buy.BackgroundColor3=if buy.Active then Color3.fromRGB(72,228,96) else colors.Card;buy.TextColor3=if buy.Active then Color3.fromRGB(18,34,64) else colors.Secondary
+    local buy=buyButton(controls,'BuyWing','BUY · K$25,000',(if mobile then y+26 else y+68),'BUY_WING',C.WingId);buy.BackgroundColor3=if buy.Active then Color3.fromRGB(72,228,96) else colors.Card;buy.TextColor3=if buy.Active then Color3.fromRGB(18,34,64) else colors.Secondary
    end
    local color=button(controls,'Color','COLOR · '..Karts.Entries[variants[colorIndex]].DisplayColorName,if mobile then y+76 else y+120)
    color.Activated:Connect(function()if os.clock()-draggedAt>.25 then colorIndex=colorIndex%#variants+1;render()end end)

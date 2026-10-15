@@ -209,7 +209,7 @@ function Schema.new(catalog, options)
  function api.default(userId)
   Schema.userKey(userId)
   return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
-   wallet={cash=0,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
+   wallet={cash=5000,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
    records={scoped={}},daily={claimBuckets={}},receipts={},pendingIndex={},deleted=false}
  end
  function api.supportsKart(id) return type(id) == "string" and supported[id] == true end
@@ -270,9 +270,9 @@ function Schema.new(catalog, options)
    end
    if receipt.money~=nil then
     local m=receipt.money
-    if type(m)~='table' or not Schema.integer(m.base,35) or not Schema.integer(m.bestRace,10)
-     or not Schema.integer(m.bestLap,5) or not Schema.integer(m.total,50)
-     or m.total~=math.min(50,m.base+m.bestRace+m.bestLap) then return false,'CORRUPT_MONEY_RECEIPT' end
+    if type(m)~='table' or not Schema.integer(m.base,3500) or not Schema.integer(m.bestRace,1000)
+     or not Schema.integer(m.bestLap,500) or not Schema.integer(m.total,5000)
+     or m.total~=math.min(5000,m.base+m.bestRace+m.bestLap) then return false,'CORRUPT_MONEY_RECEIPT' end
    end
   end
   -- Numeric records remain compatible with A1/A2; A3 evidence is optional and separate.
@@ -360,6 +360,33 @@ function Schema.sha256(message)
   for i,v in {a,b,c,d,e,f,g,j} do h[i]=(h[i]+v)%4294967296 end
  end
  local out={} for _,v in h do table.insert(out,string.format('%08x',v)) end return table.concat(out)
+end
+
+function Schema.pruneAndCompressReceipts(profile, currentKey, maxReceipts)
+ if type(profile) ~= "table" or type(profile.receipts) ~= "table" then return end
+ for id, receipt in profile.receipts do
+  if type(receipt) == "table" and type(receipt.signature) == "string" and #receipt.signature > 128 then
+   receipt.signature = Schema.sha256(receipt.signature)
+  end
+ end
+ local limit = maxReceipts or 16384
+ if limit >= 1000 then
+  local total = 0
+  local candidates = {}
+  for id in profile.receipts do
+   total += 1
+   if id ~= currentKey then
+    table.insert(candidates, id)
+   end
+  end
+  if total > 40 then
+   table.sort(candidates)
+   local toRemove = total - 40
+   for i = 1, math.min(toRemove, #candidates) do
+    profile.receipts[candidates[i]] = nil
+   end
+  end
+ end
 end
 
 return table.freeze(Schema)

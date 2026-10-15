@@ -7,17 +7,17 @@ local G=load('artifacts/r8-a6-b-release-readiness/canary_grant_operation.luau')
 local grant=G.new(S,schema);local Adapter=load('src/server/ProgressionDataStoreAdapter.luau')
 local Economy=load('src/server/EconomyOperations.luau')
 local n=0;local function check(v,label)n+=1;assert(v,label)end
-local p=schema.default(G.UserId);p.wallet.cash=925;p.wallet.ledgerRevision=17;p.wallet.lifetimeEarned=925
+local p=schema.default(G.UserId);p.wallet.cash=22925;p.wallet.ledgerRevision=17;p.wallet.lifetimeEarned=925
 p.selection.kartId='Kart09';p.shopInventory={counts={Nitro=4,Thunder=2},autoRefill=false,revision=8}
 p.inventory={retained=true};p.purchaseHistory={old={preserved=true}};p.receipts.old={signature='unchanged'}
 local old=S.clone(p);local read={status='FOUND',value=p}
-local preflight,reason=grant.preflight(read);check(preflight and reason=='READY' and preflight.cash==925,'latest confirmed preflight, no assumed live balance')
+local preflight,reason=grant.preflight(read);check(preflight and reason=='READY' and preflight.cash==22925,'latest confirmed preflight, no assumed live balance')
 local value,status=grant.reduce(preflight)(p)
-check(status=='APPLIED' and value.wallet.cash==3925 and value.wallet.ledgerRevision==18,'exact +3000 and one revision')
+check(status=='APPLIED' and value.wallet.cash==25925 and value.wallet.ledgerRevision==18,'exact +3000 and one revision')
 check(value.wallet.lifetimeEarned==925,'test grant excluded from play earnings')
-local remainder=S.clone(value);remainder.wallet.cash=925;remainder.wallet.ledgerRevision=17;remainder.receipts[G.OperationId]=nil
+local remainder=S.clone(value);remainder.wallet.cash=22925;remainder.wallet.ledgerRevision=17;remainder.receipts[G.OperationId]=nil
 check(S.canonical(remainder)==S.canonical(old) and S.canonical(p)==S.canonical(old),'all other fields and input preserved')
-check(grant.confirm({status='FOUND',value=value}).afterCash==3925,'schema-compatible durable grant receipt')
+check(grant.confirm({status='FOUND',value=value}).afterCash==25925,'schema-compatible durable grant receipt')
 local again,why=grant.reduce(preflight)(value);check(why=='REPLAY' and S.canonical(again)==S.canonical(value),'identical operation cannot grant twice')
 check(select(2,grant.preflight({status='FOUND',value=value}))=='ALREADY_GRANTED','preflight stops repeat operation')
 for _,kind in {'ABSENT','ERROR','FUTURE','CORRUPT','ACCESS_BLOCKED'} do check(not grant.preflight({status=kind}),'no write from '..kind)end
@@ -51,7 +51,7 @@ check(result.status=='PENDING' and grant.confirm(a.read(S.userKey(G.UserId))),'l
 b.readFail=true;check(not grant.confirm(a.read(S.userKey(G.UserId))),'read failure is not grant success')
 b.readFail=false;b.ackLost=false
 result=a.commit(a.beginUpdate(S.userKey(G.UserId),grant.reduce(preflight)))
-check(b.value.wallet.cash==3925 and result.outcome=='REPLAY','reexecution has zero extra credit')
+check(b.value.wallet.cash==25925 and result.outcome=='REPLAY','reexecution has zero extra credit')
 -- Purchase uses the real existing economy reducer, not an ownership shortcut.
 local buy={kind='BUY_WING',id='12345678-1234-1234-1234-123456789099',userId=G.UserId,itemId='KDM_V2_WING'}
 local bought=Economy.reduce(S,schema,buy)(b.value)

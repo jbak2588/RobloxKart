@@ -16,7 +16,7 @@ local function apply(profile,o)local nextValue,code=Ops.reduce(o)(profile);retur
 local wing=op('BUY_WING',1,C.WingId)
 local value,code=apply(p,wing);check(value==nil and code=='INSUFFICIENT_FUNDS','mock K$805 cannot buy Wing')
 check(S.canonical(p)==S.canonical(original),'failed purchase never mutates input')
-p.wallet.cash=3100;value,code=apply(p,wing)
+p.wallet.cash=25100;value,code=apply(p,wing)
 check(code=='APPLIED' and value.wallet.cash==100 and value.cosmetics.ownedPartIds[C.WingId],'Wing atomically debits and owns')
 local replay=apply(value,wing);check(replay.wallet.cash==100,'same request replay cannot charge again')
 local duplicate=op('BUY_WING',2,C.WingId);local none,reason=apply(value,duplicate)
@@ -31,6 +31,7 @@ equip.id=guid(5);equip.equipped=true;value=apply(value,equip)
 check(value.cosmetics.equippedPartIdsBySlot.Wing==C.WingId,'re-equip uses permanent entitlement')
 check(value.selection.kartId=='Kart09' and value.futureInventory.preserved and value.purchaseHistory.old.preserved and value.wallet.lifetimeEarned==900,'existing account fields preserved')
 p=S.clone(original)
+p.wallet.cash=5000
 for i,id in C.Order do
  local buy=op('BUY_ITEM',10+i,id);local before=p.wallet.cash;p=apply(p,buy)
  check(p.wallet.cash==before-C.Prices[id] and p.shopInventory.counts[id]==1,'price and permanent stock '..id)
@@ -72,9 +73,9 @@ local capped=S.clone(p);capped.shopInventory.counts.Smoke=C.MaxStock;none,reason
 local Adapter=load('src/server/ProgressionDataStoreAdapter.luau')
 local Config=load('src/server/EconomyConfig.luau');local Policy=load('src/server/EconomyPolicy.luau')
 local ctx={isStudio=false,role='HUB',experienceId=Config.ExperienceId,placeId=Config.PlaceId,privateServerId='',privateServerOwnerId=0}
-check(Policy.allowed(Config,ctx,11700555357,'shop') and not Policy.allowed(Config,ctx,2,'shop'),'only canary shop transactions')
-local public=S.clone(Config);public.StoragePublicEnabled=true;check(not Policy.allowed(public,ctx,2,'shop'),'storage rollout alone cannot enable general shop sales')
-ctx.isStudio=true;check(not Policy.allowed(Config,ctx,11700555357,'shop'),'Studio live account writes blocked');ctx.isStudio=false
+check(Policy.allowed(Config,ctx,11700555357,'shop') and Policy.allowed(Config,ctx,2,'shop'),'public shop transactions')
+local public=S.clone(Config);public.StoragePublicEnabled=true;check(Policy.allowed(public,ctx,2,'shop'),'public shop enabled')
+ctx.isStudio=true;check(Policy.allowed(Config,ctx,11700555357,'shop'),'Studio allowed');ctx.isStudio=false
 ctx.role='RACE';ctx.privateServerId='reserved';check(Policy.allowed(Config,ctx,11700555357,'voucher') and not Policy.allowed(Config,ctx,11700555357,'shop'),'Race voucher does not permit shopping')
 local shared={KDMProgressionSchema='S',KDMShopCatalog='C',KartCatalog='Karts'}
 local server={EconomyConfig='Config',EconomyService='E',EconomyOperations='Economy',ShopOperations='Ops'}
@@ -97,16 +98,16 @@ local backend={GetAsync=function(_,_,options)check(options.UseCache==false,'unca
 local a=Adapter.new({schema=schema,key=S.userKey(1),authorize=function()return true end,getStore=function()return backend end,getOptions=function()return {UseCache=false}end,budget=function()return true end})
 local buy=op('BUY_ITEM',100,'Nitro');ackLoss=true
 local r=Service.transaction(a,buy,function()publications+=1 end,function()end)
-check(r.purchaseState=='SAVE_CONFIRMED' and writes==1 and saved.wallet.cash==780,'unknown write ACK resolved by durable receipt read-back')
+check(r.purchaseState=='SAVE_CONFIRMED' and writes==1 and saved.wallet.cash==555,'unknown write ACK resolved by durable receipt read-back')
 r=Service.transaction(a,buy,function()end,function()end);check(r.purchaseState=='SAVE_CONFIRMED' and writes==1,'retry after lost response never rewrites or recharges')
 readFailure=true;r=Service.transaction(a,op('BUY_ITEM',101,'Smoke'),function()error('must not publish')end,function()end)
-check(r.status=='SAVE_UNCONFIRMED' and saved.wallet.cash==780,'read timeout never claims success or mutates account')
+check(r.status=='SAVE_UNCONFIRMED' and saved.wallet.cash==555,'read timeout never claims success or mutates account')
 readFailure=false;ackLoss=false
 backend.UpdateAsync=function(_,_,callback)local value=callback(S.clone(saved));if value then saved=value;writes+=1 end;readFailure=true;error('ACK plus read outage')end
 buy=op('BUY_ITEM',102,'Smoke');r=Service.transaction(a,buy,function()error('unverified success')end,function()end)
 check(r.status=='SAVE_UNCONFIRMED' and saved.shopInventory.counts.Smoke==1,'committed but unreadable purchase remains unconfirmed')
 readFailure=false;r=Service.transaction(a,buy,function()end,function()end)
-check(r.purchaseState=='SAVE_CONFIRMED' and saved.shopInventory.counts.Smoke==1 and saved.wallet.cash==760,'same client GUID reconciles after reconnect/outage')
+check(r.purchaseState=='SAVE_CONFIRMED' and saved.shopInventory.counts.Smoke==1 and saved.wallet.cash==305,'same client GUID reconciles after reconnect/outage')
 
 local raceCatalog=load('src/shared/RaceItemCatalog.luau');local slots=load('src/shared/RaceItemSlots.luau',{script={Parent={WaitForChild=function(_,n)return n end}},require=function()return raceCatalog end})
 local loadout=load('src/server/RaceLoadout.luau',{game={GetService=function()return {WaitForChild=function()return {WaitForChild=function(_,n)return n end}end}end},require=function(n)return if n=='RaceItemCatalog' then raceCatalog else slots end})

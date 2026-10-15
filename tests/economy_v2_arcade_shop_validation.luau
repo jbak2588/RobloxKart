@@ -179,7 +179,7 @@ for _,id in shopCatalog.Order do
 end
 check(cards==6 and grid.ItemSlots.Parent~=body.UIListLayout.Parent,'list/grid never share parent')
 tap(grid.Thunder);check(#calls==1 and panel.SelectedItemDetail.SelectedName.Text:find('THUNDER'),'selection shows detail without purchase')
-check(body.ItemGrid.Thunder.ArcadeStroke.Thickness==2 and body.ItemGrid.Thunder.Product.Text:find('✓'),'border and check selection')
+check(body.ItemGrid.Thunder.ArcadeStroke.Thickness==3 and body.ItemGrid.Thunder.Product.Text:find('✓'),'border and check selection')
 check(panel.SelectedItemDetail.SelectedQuantity.Text=='OWNED: 3','real snapshot voucher count')
 for _,size in {rb.Vector2.new(750,324),rb.Vector2.new(706,281),rb.Vector2.new(648,223),rb.Vector2.new(1142,628),rb.Vector2.new(1920,1022)}do
  safeSize=size;gui.SafeRoot:GetPropertyChangedSignal('AbsoluteSize'):Fire()

@@ -43,6 +43,9 @@ function Operations.selection(S, schema, userId, operation)
   local nextValue = S.clone(previous)
   nextValue.selection = {kartId=op.kartId,revision=previous.selection.revision+1,lastOpId=op.operationId}
   nextValue.receipts[receiptKey] = {signature=signature}
+  if S.pruneAndCompressReceipts then
+   S.pruneAndCompressReceipts(nextValue, receiptKey, schema.maxReceipts)
+  end
   return nextValue,"APPLIED"
  end
 end

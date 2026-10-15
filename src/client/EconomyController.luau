@@ -139,9 +139,9 @@ function Controller.start()
  local selection = label(body, 'Selection', '', 358, 28, 13)
  surface('WingEquipmentCard',396,184)
  label(body,'WingEquipmentTitle','PERMANENT WING',402,24,16).Font=Enum.Font.GothamBold
- local wingPrice=label(body,'WingPrice','K$3,000 · ONE WING / ALL V2 COLORS',430,24,14);wingPrice.TextColor3=colors.Yellow
+ local wingPrice=label(body,'WingPrice','K$25,000 · ONE WING / ALL V2 COLORS',430,24,14);wingPrice.TextColor3=colors.Yellow
  local shop = button(body, 'OpenShop', 'GO TO SHOP', 464);shop.Size=UDim2.new(.5,-24,0,44)
- local buy = button(body, 'BuyWing', 'BUY · K$3,000', 464);buy.Position=UDim2.new(.5,0,0,464);buy.Size=UDim2.new(.5,-24,0,44)
+ local buy = button(body, 'BuyWing', 'BUY · K$25,000', 464);buy.Position=UDim2.new(.5,0,0,464);buy.Size=UDim2.new(.5,-24,0,44)
  buy.BackgroundColor3=colors.Yellow;buy.TextColor3=colors.Background
  local equip = button(body, 'EquipWing', 'EQUIP WING', 464);equip.Position=buy.Position;equip.Size=buy.Size
  equip.BackgroundColor3=colors.Blue
@@ -171,7 +171,7 @@ function Controller.start()
  layoutProfile()
  local busy, passAvailable, passPrice, status = false, false, nil, ''
  local messages = {FOUND = '', SAVE_CONFIRMED = 'ACCOUNT SAVED', SAVE_UNCONFIRMED = 'Save not confirmed. Please try again.',
-  INSUFFICIENT_FUNDS = 'You need K$3,000.', ALREADY_OWNED = 'Wing already owned.', NOT_OWNED = 'Unlock the Wing first.',
+  INSUFFICIENT_FUNDS = 'You need K$25,000.', ALREADY_OWNED = 'Wing already owned.', NOT_OWNED = 'Unlock the Wing first.',
   ACCESS_BLOCKED = 'Account unavailable. Shop preview is still available.', RATE_LIMITED = 'Please wait a moment.',
   PASS_PROMPTED = 'Complete the Roblox purchase prompt.', HUB_REQUIRED = 'Return to the Lobby to purchase.'}
  local attributes = {'KDMWalletCash', 'KDMLifetimeEarned', 'KDMWingOwned', 'KDMWingEquipped', 'KDMWalletRevision', 'KDMEconomyState', 'SelectedKartId'}
@@ -193,8 +193,8 @@ function Controller.start()
    v.border.Thickness=if selected then 2 else 1;v.border.Transparency=if selected then 0 else .7
    v.name.Text = (if selected then '✓ ' else '')..v.entry.DisplayColorName
   end
-  buy.Active = not busy and view.owned == false and view.cash ~= '--' and tonumber(view.cash) >= 3000
-  buy.Text = 'BUY · K$3,000'
+  buy.Active = not busy and view.owned == false and view.cash ~= '--' and tonumber(view.cash) >= 25000
+  buy.Text = 'BUY · K$25,000'
   buy.Visible=view.owned~=true;equip.Visible=view.owned==true
   equip.Active = not busy and view.owned == true and view.equipped ~= nil
   equip.Text = if view.equipped == true then 'UNEQUIP WING' else 'EQUIP WING'

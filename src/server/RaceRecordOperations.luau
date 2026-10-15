@@ -1,7 +1,7 @@
 -- Field-only min/max reducer. Receipts are retained; capacity exhaustion fails closed.
 local Ops={}
 function Ops.signature(S,op)
- return if op.economy then S.sha256(S.canonical(op)) else S.canonical(op)
+ return S.sha256(S.canonical(op))
 end
 function Ops.valid(S,op)
  if type(op)~="table" or op.kind~="OFFICIAL_RECORD" or not S.integer(op.userId) or op.userId==0
@@ -36,7 +36,8 @@ function Ops.reduce(S,schema,op)
   if previous.deleted then return nil,"DELETED" end
   local key=Ops.receiptKey(copy);local receipt=previous.receipts[key]
   if receipt then
-   if receipt.signature~=signature then return nil,"IDENTITY_MISMATCH" end
+   local canonical=S.canonical(copy)
+   if receipt.signature~=signature and receipt.signature~=canonical then return nil,"IDENTITY_MISMATCH" end
    return S.clone(previous),"REPLAY"
   end
   if S.count(previous.receipts)>=schema.maxReceipts then return nil,"RECEIPT_CAPACITY" end
@@ -80,17 +81,20 @@ function Ops.reduce(S,schema,op)
   if copy.economy then
    local money={base=0,bestRace=0,bestLap=0,total=0}
    if copy.race.eligible then
-    money.base=if copy.round.humanCount>=2 then ({35,25,20,15})[copy.economy.humanPosition]
-     elseif copy.round.botCount>0 then 15 else 10
-    money.bestRace=if raceImproved then 10 else 0
-    money.bestLap=if lapImproved then 5 else 0
-    money.total=math.min(50,money.base+money.bestRace+money.bestLap)
+    money.base=if copy.round.humanCount>=2 then ({3500,2500,2000,1500})[copy.economy.humanPosition]
+     elseif copy.round.botCount>0 then 1500 else 1000
+    money.bestRace=if raceImproved then 1000 else 0
+    money.bestLap=if lapImproved then 500 else 0
+    money.total=math.min(5000,money.base+money.bestRace+money.bestLap)
    end
    local earned=(nextValue.wallet.lifetimeEarned or 0)+money.total
    if nextValue.wallet.cash+money.total>schema.maxCash or not S.integer(earned)
     or not S.integer(nextValue.wallet.ledgerRevision+1) then return nil,'WALLET_CAPACITY' end
    nextValue.wallet.cash+=money.total;nextValue.wallet.lifetimeEarned=earned
    nextValue.wallet.ledgerRevision+=1;nextValue.receipts[key].money=money
+  end
+  if S.pruneAndCompressReceipts then
+   S.pruneAndCompressReceipts(nextValue,key,schema.maxReceipts)
   end
   if copy.round.botCount==0 then
    nextValue.pendingIndex[scope]={trackId=copy.round.TrackId,geometryId=copy.round.GeometryId,
@@ -103,7 +107,10 @@ end
 function Ops.confirm(S,schema,read,op)
  if read.status~="FOUND" or not schema.validate(read.value,S.userKey(op.userId)) or read.value.deleted then return nil end
  local receipt=read.value.receipts[Ops.receiptKey(op)]
- return if receipt and receipt.signature==Ops.signature(S,op) then receipt else nil
+ if not receipt then return nil end
+ local signature=Ops.signature(S,op)
+ local canonical=S.canonical(op)
+ return if receipt.signature==signature or receipt.signature==canonical then receipt else nil
 end
 function Ops.clearIndex(S,schema,userId,scope,expected)
  return function(previous)

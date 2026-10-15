@@ -240,10 +240,16 @@ function Renderer.new(kart)
   local off=kart:GetAttribute("KartOffTrack")==true
   local nitro=enabled and not off and kart:GetAttribute("KartNitroActive")==true
   local boost=enabled and kart:GetAttribute("KartBoosting")==true
-  local drift=enabled and not off and kart:GetAttribute("KartDrifting")==true
 
   local velocity=chassis.AssemblyLinearVelocity
   local planarSpeed=Vector3.new(velocity.X,0,velocity.Z).Magnitude
+  local forward=velocity:Dot(chassis.CFrame.LookVector)
+  local lateral=velocity:Dot(chassis.CFrame.RightVector)
+  local slip=if math.abs(forward)<5 then 0 else math.abs(math.deg(math.atan2(lateral,math.max(math.abs(forward),.01))))
+  local attributeDrift=kart:GetAttribute("KartDrifting")==true or kart:GetAttribute("LobbyDrifting")==true
+  local physicalDrift=planarSpeed>=12 and slip>=6.5
+  local drift=enabled and not off and (attributeDrift or physicalDrift)
+
   local naturalEnd=(previousNitro and not nitro and kart:GetAttribute('KartNitroEndReason')=='duration_complete')
    or (previousBoost and not boost and kart:GetAttribute('KartBoostEndReason')=='duration_complete')
   local unsafe=not enabled or off or drift or kart:GetAttribute('KartCrashActive')==true
@@ -258,14 +264,11 @@ function Renderer.new(kart)
    end
   end
   previousNitro,previousBoost,previousDrift=nitro,boost,drift
-  local forward=velocity:Dot(chassis.CFrame.LookVector)
   local cruising=visual:GetAttribute("VisualModelName")~="KDMV2" and enabled and not off and not drift and not boost and not nitro and forward>=CRUISE_MIN_SPEED
   if cruising then
    cruiseElapsed+=dt
    if cruiseElapsed>=CRUISE_FLAME_INTERVAL then cruiseElapsed%=CRUISE_FLAME_INTERVAL;for _,f in cruiseFlames do f:Emit(5) end end
   else cruiseElapsed=0 end
-  local lateral=velocity:Dot(chassis.CFrame.RightVector)
-  local slip=if math.abs(forward)<5 then 0 else math.abs(math.deg(math.atan2(lateral,math.max(math.abs(forward),.01))))
   local camera=Workspace.CurrentCamera
   local distance=if camera then (camera.CFrame.Position-chassis.Position).Magnitude else 0
   local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1

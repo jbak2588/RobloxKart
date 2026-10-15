@@ -25,22 +25,43 @@ function Controller.start()
   clear(r);records[k]=nil
  end
  local function bind(k)
-  if k:IsA("Model") and k:GetAttribute("PrototypeKart")==true and not records[k] then
+  if k:IsA("Model") and (k:GetAttribute("PrototypeKart")==true or k:GetAttribute("LobbyKart")==true) and not records[k] then
    records[k]={blocked=0}
   end
  end
- for _,o in prototype:GetDescendants() do bind(o) end
- table.insert(connections,prototype.DescendantAdded:Connect(bind))
- table.insert(connections,prototype.DescendantRemoving:Connect(function(o) if records[o] then remove(o) end end))
+ local function watchContainer(container)
+  if not container then return end
+  for _,o in container:GetDescendants() do bind(o) end
+  table.insert(connections,container.DescendantAdded:Connect(bind))
+  table.insert(connections,container.DescendantRemoving:Connect(function(o) if records[o] then remove(o) end end))
+ end
+ watchContainer(prototype)
+ local hub=Workspace:FindFirstChild("KDMHub")
+ if hub then
+  watchContainer(hub)
+ elseif Workspace.ChildAdded then
+  table.insert(connections,Workspace.ChildAdded:Connect(function(child)
+   if child.Name=="KDMHub" then watchContainer(child) end
+  end))
+ end
  local scan=0
  table.insert(connections,RunService.Heartbeat:Connect(function(dt)
   scan+=dt
   -- Model attributes/visual metadata may arrive after DescendantAdded.
-  if scan>=.25 then scan=0;for _,o in prototype:GetChildren() do bind(o) end end
+  if scan>=.25 then
+   scan=0
+   for _,o in prototype:GetChildren() do bind(o) end
+   local h=Workspace:FindFirstChild("KDMHub")
+   if h then
+    local zone=h:FindFirstChild("LobbyFrontTestDriveZone",true)
+    if zone then for _,o in zone:GetChildren() do bind(o) end end
+   end
+  end
   for kart,r in records do
    if not kart.Parent then remove(kart);continue end
    if paused then clear(r);continue end
-   local ownerId=kart:GetAttribute("KartOwnerUserId")
+   local ownerId=kart:GetAttribute("KartOwnerUserId") or kart:GetAttribute("LobbyOwnerUserId")
+   local isLobby=kart:GetAttribute("LobbyKart")==true
    local owner=if type(ownerId)=="number" then Players:GetPlayerByUserId(ownerId) else nil
    local seat=kart:FindFirstChild("Seat")
    local human=seat and seat.Occupant
@@ -50,8 +71,9 @@ function Controller.start()
     clear(r);r.owner,r.human,r.session,r.reset=owner,human,session,reset
     r.blocked=owner and owner:GetAttribute("RaceItemBlockedSerial") or 0
    end
+   if isLobby and owner==Players.LocalPlayer then continue end
    local enabled=human~=nil and human.Health>0 and kart:GetAttribute("RaceControlsLocked")~=true
-    and (not owner or owner:GetAttribute("RaceState")=="RACING")
+    and (isLobby or not owner or owner:GetAttribute("RaceState")=="RACING")
    local chassis=kart.PrimaryPart
    if not chassis then clear(r);continue end
    if r.chassis~=chassis then clear(r);r.chassis=chassis end

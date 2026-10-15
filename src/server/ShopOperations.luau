@@ -19,7 +19,8 @@ function Ops.new(S,schema,C,Economy)
   local receipt=r.value.receipts[api.key(op)]
   if op.kind=='REFUND_REFILL' or op.kind=='REFUND_UNUSED_REFILL' then return receipt and receipt.refunded==true end
   if op.kind=='FINALIZE_REFILL' then return receipt and receipt.refill and receipt.refill.state=='DELIVERED' and not receipt.refunded end
-  return receipt and receipt.signature==signature(op) and not receipt.refunded
+  local sig=signature(op)
+  return receipt and (receipt.signature==sig or receipt.signature==S.sha256(sig)) and not receipt.refunded
  end
  function api.reduce(op)
   local valid=type(op)=='table' and S.integer(op.userId) and op.userId>0 and S.guid(op.id)
@@ -35,8 +36,9 @@ function Ops.new(S,schema,C,Economy)
    local receipt=previous.receipts[key]
    if copy.kind~='REFUND_REFILL' and copy.kind~='REFUND_UNUSED_REFILL' and copy.kind~='FINALIZE_REFILL' and receipt then
     if receipt.refunded then return nil,'REFILL_CLOSED' end
-    return if receipt.signature==signed then S.clone(previous) else nil,
-     if receipt.signature==signed then 'REPLAY' else 'IDENTITY_MISMATCH'
+    local match = receipt.signature==signed or receipt.signature==S.sha256(signed)
+    return if match then S.clone(previous) else nil,
+     if match then 'REPLAY' else 'IDENTITY_MISMATCH'
    end
    local old=stock(previous);local amount=old.counts[copy.itemId] or 0
    if copy.kind=='BUY_ITEM' then
@@ -69,6 +71,9 @@ function Ops.new(S,schema,C,Economy)
    if copy.kind~='REFUND_REFILL' and copy.kind~='REFUND_UNUSED_REFILL' and copy.kind~='FINALIZE_REFILL' then
     p.receipts[key]={signature=signed}
     if copy.kind=='REFILL' then p.receipts[key].refill={roundGuid=copy.roundGuid,itemId=copy.itemId,state='RESERVED',jobId=copy.jobId or '',reservedAt=copy.reservedAt or 0} end
+   end
+   if S.pruneAndCompressReceipts then
+    S.pruneAndCompressReceipts(p, key, schema.maxReceipts)
    end
    return p,'APPLIED'
   end
