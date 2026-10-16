@@ -19,10 +19,11 @@ function Controller.start()
  local zone=hub:WaitForChild("LobbyFrontTestDriveZone",15)
  if not zone then return end
  local connections={}
- local model,render,state,audio
+ local model,render,state,audio,boostVisuals
  local function clear()
   if render then render:Disconnect();render=nil end
   if audio then audio:destroy();audio=nil end
+  if boostVisuals then boostVisuals:destroy();boostVisuals=nil end
   if model then model:Destroy();model=nil end
   state=nil
  end
@@ -72,6 +73,7 @@ function Controller.start()
    elseif v:IsA("LuaSourceContainer") or v:IsA("ProximityPrompt") then v:Destroy() end
   end
   audio=Feedback.new(root)
+  boostVisuals=Exhaust.createBoostVisuals(visual)
   local function step(dt)
    local elapsed=Workspace:GetServerTimeNow()-start
    local x,z,dx,dz,drift=Route.sample(elapsed)
@@ -86,6 +88,7 @@ function Controller.start()
    for _,emitter in smoke do emitter.Rate=rate;emitter.Enabled=rate>0 end
    local phase=math.max(0,elapsed)%Route.CycleSeconds
    local boosting=phase>=Route.DonutSeconds and phase<Route.DonutSeconds+KartConfig.MINI_BOOST_DURATION
+   boostVisuals:update(boosting,lod)
    audio:update(dt,drifting,boosting)
    model:SetAttribute("DemoDrifting",drifting)
    model:SetAttribute("DemoBoosting",boosting)

@@ -146,3 +146,29 @@ is `artifacts/lobby-demo-bot/DEMO_FEEDBACK_NATIVE_CANDIDATE.rbxl`.
 This release also includes the preceding Boost HUD and connected-player lifetime
 checkpoint. Studio remains in Edit. Published real-device listening, perceived
 distance balance and multi-human performance remain unverified.
+
+## Follow-up: Mini Boost flame and actual kart size check
+
+User authorized commit/push and Publish. `src/client/KartWorldExhaustRenderer.luau`
+provides a showcase adapter that clones the same two native exhaust attachments
+and six ParticleEmitters used by human karts. Active Mini Boost uses the same 70%
+template emission rate and observer LOD, original sizes/colors and PointLights.
+`src/client/LobbyDemoController.luau` drives these from the existing two-second
+shared-clock DemoBoosting phase, with existing audio timing and cleanup. The
+showcase continues on its existing route; racing/human physics are unchanged.
+At its normal 36-stud presentation speed, release clears flame particles instead
+of leaving a high-speed tail. No additional effects are allocated per lap.
+
+Actual Studio Kart05 comparison: both model scales are exactly 1. All 22 geometry
+BaseParts match by relative path, Size and MeshId; no mismatches. Human bounds
+6.902905 x 2.663242 x 9.324319 studs; bot bounds match within floating point
+rounding. Both use KartVisualFactory.createVisual. The actual kart is already
+the same size, so no artificial enlargement or geometry change was made.
+
+`tests/lobby_demo_boost_validation.luau`: 57 checks PASS for original template
+count, Mini Boost density, full/half/zero LOD, 100 repeated cycles, release and
+cleanup (plus 25 underlying production world-VFX checks). Existing feedback 77,
+remote world VFX 1,402, demo 25,895 and showroom 38 checks PASS. All 178 production
+sources compile; Rojo build/diff PASS. Actual Studio mobile view confirms twin
+blue-white flame plumes at donut release. The final runtime audit and release
+confirmation follow below after verification.

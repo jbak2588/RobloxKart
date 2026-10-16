@@ -161,6 +161,33 @@ end
 local Renderer = {}
 -- Shared by the ambient Lobby demo and human karts: one smoke profile/rate owner.
 Renderer.createDriftSmoke = makeSmoke
+-- Kinematic showcase adapter; clones the exact human exhaust templates and
+-- applies the same active Mini Boost density/LOD without requiring a human seat.
+function Renderer.createBoostVisuals(visual)
+ local flames,lights,attachments={},{},{}
+ for _,point in visual:GetDescendants() do
+  local role=point:GetAttribute("EffectRole")
+  if point:IsA("Attachment") and (role=="ExhaustLeft" or role=="ExhaustRight") then
+   local fs,ls,a=makeFlames(point,false)
+   for _,f in fs do table.insert(flames,f) end
+   for _,l in ls do table.insert(lights,l) end
+   table.insert(attachments,a)
+  end
+ end
+ local previous=false
+ local record={}
+ function record:update(active,lod)
+  for _,f in flames do
+   f.Rate=(f:GetAttribute("TemplateRate") or 30)*.7*lod
+   f.Enabled=active and lod>0
+   if previous and not active then f:Clear() end
+  end
+  for _,l in lights do l.Enabled=active and lod>0 end
+  previous=active
+ end
+ function record:destroy()for _,a in attachments do a:Destroy() end end
+ return record
+end
 function Renderer.driftSmokeRate(slip,isLobby,lod,drift)
  return if drift then (if isLobby then math.clamp(32+(slip-6)*2.0,0,68) else math.clamp(16+(slip-6)*1.0,0,34))*lod else 0
 end
