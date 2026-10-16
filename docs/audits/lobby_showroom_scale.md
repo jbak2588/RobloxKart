@@ -32,3 +32,9 @@ Validation:
 - Android/iPhone visual acceptance has not been performed for this enlargement.
 
 Baseline: `cc3e3451deceb936d6ecc10a95570a005b7786d6`, matching origin before work.
+
+Release: implementation `284811f6504e61c235ab838be651d28bab6d969a` committed
+and pushed to `origin/prototype/kart-physics`. Native Studio source exactly
+matched the committed candidate before publishing the requested Lobby exhibit.
+Studio confirmed successful publication to place `127925465904803` as **v767**
+on 2026-10-16 at 18:43:26. Real-device appearance remains pending user acceptance.
