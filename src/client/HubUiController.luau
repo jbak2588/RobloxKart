@@ -70,6 +70,7 @@ function HubUiController.start()
  canvas.Active, canvas.Parent = false, gui
  local guidance = GuidanceView.create(canvas, Theme, function() open(GuidanceState.nextAction(state)) end)
  local worldGuidance = WorldGuidance.create(hub, Theme)
+ local raceBoard=require(script.Parent:WaitForChild('HubRaceBoardView')).create(hub)
  local panel = Instance.new("Frame")
  panel.Name = "Shortcuts"
  panel.AnchorPoint, panel.Position = Vector2.new(1,1), UDim2.new(1,-12,1,-12)
@@ -240,6 +241,7 @@ function HubUiController.start()
  local roomRemote = ReplicatedStorage:WaitForChild("MatchRoomControl")
  table.insert(connections, roomRemote.OnClientEvent:Connect(function(action, snapshot)
   if action == "Snapshot" then
+   raceBoard.update(snapshot)
    roomOwned = snapshot.room ~= nil
    if snapshot.visible and snapshot.trackId then GuidanceState.confirmed(state, snapshot.trackId) end
   end

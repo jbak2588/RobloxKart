@@ -12,6 +12,7 @@ local ActiveMatchDirectory = require(script.Parent:WaitForChild("ActiveMatchDire
 local RoomSocialDirectory = require(script.Parent:WaitForChild("RoomSocialDirectory"))
 local RaceLaunchPayload = require(script.Parent:WaitForChild("RaceLaunchPayload"))
 local RaceLaunchService = require(script.Parent:WaitForChild("RaceLaunchService"))
+local Discovery = require(Shared:WaitForChild("RaceDiscovery"))
 
 local MatchRoomService = {}
 local function publicTrack(trackId)
@@ -24,6 +25,7 @@ local social = RoomSocialDirectory.new(
 	MemoryStoreService:GetHashMap(RoomSocialDirectory.INVITE_MAP))
 local browsing, selections, membership, launched, creating = {}, {}, {}, {}, {}
 local cachedRooms, remote, started, directoryStale = {}, nil, false, false
+local globalBrowsing,quickBusy={},{}
 
 local function eligible(player)
 	return player and player.Parent == Players and player:GetAttribute("RaceState") == "GARAGE"
@@ -58,7 +60,7 @@ local function snapshotFor(player)
 	local rooms = {}
 	local selected = selections[player.UserId]
 	for _, record in cachedRooms do
-		if selected and record.trackId == selected.trackId then table.insert(rooms, directory:display(record)) end
+		if selected and (globalBrowsing[player.UserId] or record.trackId == selected.trackId) then table.insert(rooms, directory:display(record)) end
 	end
 	local ownRoom
 	if own and own.kind == "QUEUED" then
@@ -70,7 +72,7 @@ local function snapshotFor(player)
 				if member.userId == player.UserId then ownRoom.queuePosition = index; break end
 			end
 			if not ownRoom.queuePosition then
-				for _, member in record.stagedMembers or {} do
+				for _, member in (if record.quickWarmup then record.pendingArrivals else record.stagedMembers)or {} do
 					if member.userId == player.UserId then ownRoom.nextRoundStarting = true; break end
 				end
 			end
@@ -78,7 +80,8 @@ local function snapshotFor(player)
 	end
 	return { visible = (browsing[player.UserId] == true or ownRoom ~= nil)
 		and not (own and own.kind == "STAGED"), rooms = rooms, room = ownRoom,
-		directoryStale = directoryStale, trackId = if selected then selected.trackId else nil,
+		directoryStale = directoryStale,featured=if cachedRooms[1]then directory:display(cachedRooms[1])else nil,
+		allTracks=globalBrowsing[player.UserId]==true, trackId = if selected then selected.trackId else nil,
 		trackName = if selected then TrackCatalog.Entries[selected.trackId].DisplayName else nil,
 		maxPlayers = if selected then TrackCatalog.Entries[selected.trackId].MaxPlayers else nil }
 end
@@ -96,9 +99,11 @@ local function refresh()
 		return
 	end
 	directoryStale = false
-	cachedRooms = records
+	cachedRooms = Discovery.sort(records)
 	for userId, own in membership do
 		if not findCached(own.roomId) then
+			local ok,private=pcall(function()return directory:get(own.roomId)end)
+			if not ok or (private and private.practiceOnly and private.hostUserId==userId)then continue end
 			membership[userId] = nil
 			launched[userId] = nil
 			local player = Players:GetPlayerByUserId(userId)
@@ -126,7 +131,7 @@ local function launchStaged(player, record, member)
 		end)
 		if not ok or not updated then return end
 		record = updated
-		for _, staged in record.stagedMembers do
+		for _, staged in (if record.quickWarmup then record.pendingArrivals else record.stagedMembers)or {} do
 			if staged.userId == player.UserId then member = staged; break end
 		end
 	end
@@ -174,6 +179,9 @@ local function stagePlayer(player, roomId)
 		return false
 	end
 	membership[player.UserId] = { roomId = roomId, kind = "STAGED" }
+	for _,m in (if record.quickWarmup then record.pendingArrivals else record.stagedMembers)or {}do
+		if m.userId==player.UserId then member=m end
+	end
 	pcall(function() social:remove(player.UserId) end)
 	refresh()
 	launchStaged(player, record, member)
@@ -199,7 +207,7 @@ local function queuePlayer(player, roomId, priority)
 	return true
 end
 
-local function createRoom(player,mode,value)
+local function createRoom(player,mode,value,privatePractice)
 	if not eligible(player) or membership[player.UserId] or not selections[player.UserId]
 		or creating[player.UserId] then return end
 	local selectedTrackId = selections[player.UserId].trackId
@@ -235,7 +243,7 @@ local function createRoom(player,mode,value)
 		directory:createPersistent({ id = roomId, matchId = HttpService:GenerateGUID(false),
 			trackId = selectedTrackId, hostUserId = player.UserId,
 			hostName = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
-			lobbyTitleKind=kind,lobbyTitle=title, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
+			lobbyTitleKind=kind,lobbyTitle=title,practiceOnly=privatePractice,quickMatch=privatePractice, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
 			code, privateId)
 	end)
 	if not created then
@@ -261,12 +269,98 @@ local function stopLobbyDrive(player, reason)
  local module = script.Parent:FindFirstChild("LobbyTestDriveService")
  if module then require(module).stop(player, reason, true) end
 end
-function MatchRoomService.openBrowser(player, driverId, kartId, trackId)
+function MatchRoomService.openBrowser(player, driverId, kartId, trackId,allTracks)
 	if not eligible(player) or membership[player.UserId] or creating[player.UserId] or not choose(player, driverId, kartId, trackId) then return false end
 	stopLobbyDrive(player, "browse")
 	browsing[player.UserId] = true
+	globalBrowsing[player.UserId]=allTracks==true
 	refresh()
 	return true
+end
+
+-- Cross-Hub allocation is serialized only through reservation. Teleport happens
+-- after releasing the lease, so a slow network transfer cannot block new users.
+local function quickPlay(player)
+ if not eligible(player)or membership[player.UserId]or quickBusy[player.UserId]or creating[player.UserId]then return end
+ local selected=selections[player.UserId];if not selected then return end
+ quickBusy[player.UserId]=true
+ local token=HttpService:GenerateGUID(false)
+ local Allocator=require(script.Parent:WaitForChild('GlobalRaceAllocator'))
+ local allocator=Allocator.new(MemoryStoreService:GetHashMap(Allocator.MAP_NAME))
+ local reservedRecord,reservedMember,queued,newRoom
+ local ok,reason=pcall(function()
+  local lease
+  for attempt=1,8 do
+   if not eligible(player)or membership[player.UserId]then return end
+   lease=allocator:acquire(token)
+   if lease then break end
+   task.wait(math.min(attempt,3))
+  end
+  if not lease then error('MATCHMAKING BUSY - PLEASE TRY AGAIN')end
+  local records=directory:list()
+  if lease.roomId then
+   local preferred=directory:get(lease.roomId)
+   if preferred and preferred.initializing then error('RACE IS OPENING - PLEASE TRY AGAIN')end
+   if preferred and not table.find(records,preferred)then
+    local seen=false;for _,r in records do if r.roomId==preferred.roomId then seen=true end end
+    if not seen then table.insert(records,preferred)end
+   end
+  end
+  Discovery.sort(records)
+  local candidate
+  for _,r in records do if publicTrack(r.trackId)and Discovery.rank(r)then candidate=r;break end end
+  if not eligible(player)then return end
+  if not candidate then
+   local trackId=Discovery.DefaultTrackId
+   local code,privateId=TeleportService:ReserveServerAsync(game.PlaceId)
+   if type(code)~='string'or code==''then error('RACE SERVER UNAVAILABLE')end
+   newRoom=HttpService:GenerateGUID(false)
+   candidate=directory:createPersistent({id=newRoom,matchId=HttpService:GenerateGUID(false),trackId=trackId,
+    hostUserId=player.UserId,hostName=player.DisplayName or player.Name,maxPlayers=TrackCatalog.Entries[trackId].MaxPlayers,
+    quickMatch=true,initializing=true},code,privateId)
+  end
+  if not eligible(player)then return end
+  selected.trackId=candidate.trackId
+  local member=memberFor(player)
+  if candidate.state=='WAITING' or candidate.quickWarmup then
+   reservedRecord=directory:stage(candidate.roomId,member,member.admissionToken,candidate.trackId)
+  else
+   reservedRecord=directory:queue(candidate.roomId,member,candidate.trackId);queued=true
+  end
+  if not reservedRecord then error('RACE CHANGED - PLEASE TRY AGAIN')end
+  reservedMember=member
+  for _,m in (if reservedRecord.quickWarmup then reservedRecord.pendingArrivals else reservedRecord.stagedMembers)or {}do
+   if m.userId==player.UserId then reservedMember=m end
+  end
+  if not allocator:finish(token,candidate.roomId)then error('RESERVATION EXPIRED - PLEASE TRY AGAIN')end
+  if newRoom then
+   reservedRecord=directory:update(newRoom,function(r)r.initializing=false;return r end)
+   if not reservedRecord then error('RACE SERVER UNAVAILABLE')end
+  end
+  membership[player.UserId]={roomId=candidate.roomId,kind=if queued then 'QUEUED'else 'STAGED'}
+ end)
+ pcall(function()allocator:finish(token)end)
+ quickBusy[player.UserId]=nil
+ if not ok or not membership[player.UserId]then
+  if reservedRecord then pcall(function()
+   if queued then directory:cancelQueue(reservedRecord.roomId,player.UserId)end
+   directory:removeStaged(reservedRecord.roomId,player.UserId)
+  end)end
+  if newRoom then pcall(function()
+   local abandoned=directory:update(newRoom,function(r)
+    if r.initializing or (#r.stagedMembers==0 and #r.currentRoundMembers==0 and #r.queued==0 and #(r.pendingArrivals or {})==0)then r.state='CLOSING';return r end
+    return nil
+   end)
+   if abandoned then directory:remove(newRoom)end
+  end)end
+  if not ok then warn('[KDMMatch] allocation failed: '..tostring(reason));errorTo(player,'MATCHMAKING UNAVAILABLE - PLEASE TRY AGAIN')end
+  return
+ end
+ pcall(function()social:remove(player.UserId)end)
+ print(string.format('[KDMMatch] assigned hub=%s user=%d room=%s track=%s action=%s',game.JobId,player.UserId,
+  reservedRecord.roomId,reservedRecord.trackId,if queued then 'NEXT'elseif reservedRecord.quickWarmup then 'WARMUP_JOIN'else 'JOIN'))
+ refresh()
+ if not queued then launchStaged(player,reservedRecord,reservedMember)end
 end
 
 function MatchRoomService.start()
@@ -280,19 +374,32 @@ function MatchRoomService.start()
 			stopLobbyDrive(player, "room_action")
 		end
 		local own = membership[player.UserId]
-		if action == "Browse" then
+		if quickBusy[player.UserId]then return end
+		if action == "BrowseAll" then
+			MatchRoomService.openBrowser(player,first,second,Discovery.DefaultTrackId,true)
+		elseif action == "QuickPlay" then
+			stopLobbyDrive(player,'quick_play');quickPlay(player)
+		elseif action == "Browse" then
 			MatchRoomService.openBrowser(player, first, second, third)
 		elseif action == "Back" then
 			if not own then browsing[player.UserId] = nil; broadcast() end
 		elseif action == "Create" then
 			createRoom(player,first,second)
+		elseif action=='Practice' then
+			stopLobbyDrive(player,'practice');createRoom(player,'DEFAULT',nil,true)
 		elseif action == "Join" and type(first) == "string" then
 			if eligible(player) and not own and selections[player.UserId] then
+				if globalBrowsing[player.UserId]then
+					local ok,r=pcall(function()return directory:get(first)end)
+					if not ok then errorTo(player,'RACE INFORMATION UNAVAILABLE - TRY AGAIN');return end
+					if r then selections[player.UserId].trackId=r.trackId end
+				end
 				stagePlayer(player, first)
 			end
 		elseif action == "Queue" and type(first) == "string" then
 			if eligible(player) and not own and selections[player.UserId] then
 				local ok, record = pcall(function() return directory:get(first) end)
+				if ok and record and globalBrowsing[player.UserId]then selections[player.UserId].trackId=record.trackId end
 				local priority = 3
 				if ok and record then
 					for _, userId in record.rivalUserIds or {} do
@@ -342,6 +449,7 @@ function MatchRoomService.start()
 		membership[player.UserId], browsing[player.UserId] = nil, nil
 		selections[player.UserId], launched[player.UserId] = nil, nil
 		creating[player.UserId] = nil
+		globalBrowsing[player.UserId]=nil
 	end)
 
 	task.spawn(function()
@@ -354,9 +462,10 @@ function MatchRoomService.start()
 				else pcall(function() social:remove(player.UserId) end) end
 				local own = membership[player.UserId]
 				if own and own.kind == "QUEUED" then
+					pcall(function()directory:renewQueue(own.roomId,player.UserId)end)
 					local record = findCached(own.roomId)
 					if record then
-						for _, member in record.stagedMembers or {} do
+						for _, member in (if record.quickWarmup then record.pendingArrivals else record.stagedMembers)or {} do
 							if member.userId == player.UserId and not member.arrived then
 								launchStaged(player, record, member)
 								break

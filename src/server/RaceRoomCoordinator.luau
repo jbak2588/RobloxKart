@@ -24,6 +24,8 @@ function RaceRoomCoordinator.start(payload)
 	local phase, racerCount = "WAITING", 0
 	local hostUserId = payload.participantUserIds[1]
 	local active = true
+	local quickMatch=false
+	local practiceOnly=false
 	local pendingInvites, sendingInvites = {}, {}
 	local botActionBusy, botActionAt = false, -math.huge
 	local connections = {}
@@ -48,6 +50,11 @@ function RaceRoomCoordinator.start(payload)
 	local function snapshot()
 		local record = directory:get(roomId)
 		if not record or record.matchId ~= matchId or record.state == "CLOSING" then stop(); return end
+		quickMatch=record.quickMatch==true
+		practiceOnly=record.practiceOnly==true
+		if record.state=='WAITING'and #(record.stagedBots or {})==0 and not botActionBusy and RaceBotController.hasProductionBot('Bot01')then
+			RaceBotController.removeProductionBot('Bot01')
+		end
 		local bots = if record.state == "WAITING" then record.stagedBots else record.currentRoundBots
 		if #(bots or {}) > 0 and not botActionBusy and not RaceBotController.hasProductionBot("Bot01") then
 			directory:clearBots(roomId, game.JobId)
@@ -81,11 +88,12 @@ function RaceRoomCoordinator.start(payload)
 			state = record.state, count = record.currentRacers,
 			maxPlayers = record.maxPlayers, queuedCount = #record.queued,
 			queued = queued, available = available }
+		if practiceOnly then safe.available={}end
 		safe.activeBots = {}
 		for _, bot in (if record.state == "WAITING" then record.stagedBots else record.currentRoundBots) or {} do
 			table.insert(safe.activeBots, {botId=bot.botId, name=bot.name})
 		end
-		safe.botCandidates = if RaceConfig.INVITEABLE_BOT_ENABLED and TrackCatalog.botAllowed(record.trackId) then {
+		safe.botCandidates = if not practiceOnly and RaceConfig.INVITEABLE_BOT_ENABLED and TrackCatalog.botAllowed(record.trackId) then {
 			{botId="Bot01", name="KDM Rookie [BOT]", available=record.state == "WAITING"
 				and #safe.activeBots == 0 and (#record.stagedMembers + #(record.stagedBots or {})) < record.maxPlayers}
 		} else {}
@@ -108,6 +116,7 @@ function RaceRoomCoordinator.start(payload)
 			return directory:startRound(roomId, hostUserId, expectedCount)
 		end)
 		if not ok or not record then return false end
+		quickMatch,practiceOnly=record.quickMatch==true,record.practiceOnly==true
 		phase, racerCount = "STARTING", record.currentRacers
 		pcall(snapshot)
 		return true
@@ -213,6 +222,25 @@ function RaceRoomCoordinator.start(payload)
 		pcall(snapshot)
 		return ok and accepted == true
 	end
+	local function warmupArrival(player,token)
+		local r=directory:get(roomId)
+		if not r or not r.quickWarmup or r.raceJobId~=game.JobId then return false end
+		local valid=false
+		for _,m in r.pendingArrivals or {}do if m.userId==player.UserId and m.admissionToken==token and m.admissionExpiresAt>os.time()then valid=true end end
+		if not valid or player.Parent~=Players or not player.Character then return false end
+		for _,p in Players:GetPlayers()do p:SetAttribute('RacePublicJoinNotice','NEW RACER ARRIVED · RESTARTING IN 5s')end
+		task.wait(5)
+		local ok,updated=pcall(function()
+			if player.Parent~=Players then return nil end
+			return directory:interruptWarmup(roomId,player.UserId,token,game.JobId)
+		end)
+		for _,p in Players:GetPlayers()do p:SetAttribute('RacePublicJoinNotice','')end
+		if not ok or not updated then return false end
+		RaceBotController.removeProductionBot('Bot01')
+		phase,racerCount='WAITING',updated.currentRacers
+		for _,p in Players:GetPlayers()do p:SetAttribute('RacePublicJoinNotice','')end
+		return true
+	end
 
 	local remoteConnection = remote.OnServerEvent:Connect(function(player, action, targetUserId, requestId, ...)
 		if action == "AddBot" or action == "RemoveBot" then
@@ -226,6 +254,7 @@ function RaceRoomCoordinator.start(payload)
 		local function fail() remote:FireClient(player,"InviteFailed",{targetUserId=targetUserId,requestId=requestId}) end
 		local ok, record = pcall(function() return directory:get(roomId) end)
 		if not ok or not record or record.matchId~=matchId or record.hostUserId ~= player.UserId then fail(); return end
+		if record.practiceOnly then fail();return end
 		for _, collection in { record.stagedMembers, record.currentRoundMembers, record.queued } do
 			for _, member in collection do if member.userId == targetUserId then fail(); return end end
 		end
@@ -252,6 +281,7 @@ function RaceRoomCoordinator.start(payload)
 	if remoteConnection then table.insert(connections, remoteConnection) end
 	if game.BindToClose then game:BindToClose(stop) end
 
+	pcall(snapshot)
 	task.spawn(function()
 		while active do
 			task.wait(5)
@@ -259,12 +289,31 @@ function RaceRoomCoordinator.start(payload)
 			if not ok then
 				warn("[KDMRoom] heartbeat lookup failed: " .. tostring(record))
 			elseif record and record.matchId == matchId then
+				if record.quickWarmup and record.state=='RACING'and #record.queued>0 then
+					pcall(function()directory:offerWarmupQueue(roomId,game.JobId)end)
+				end
 				publish(phase, racerCount)
+				if quickMatch and not practiceOnly and record.state=='WAITING'and #(record.stagedBots or {})==0 and #(record.stagedMembers or {})==1 then
+					local host=Players:GetPlayerByUserId(record.hostUserId)
+					if host and record.stagedMembers[1].arrived then botAction(host,'AddBot','Bot01')end
+				end
 			else stop() end
 		end
 	end)
 
 	return { onRoomPhase = publish, onRoundStart = startRound,
+		onWaitingArrival=function(player,token)
+			local r=directory:get(roomId)
+			if not r or r.state~='WAITING'or r.raceJobId~=game.JobId or #(r.stagedBots or {})>0 or player.Parent~=Players then return false end
+			for _,m in r.stagedMembers do
+				if m.userId==player.UserId and m.admissionToken==token and m.admissionExpiresAt>os.time()then
+					RaceBotController.removeProductionBot('Bot01');return true
+				end
+			end
+			return false
+		end,
+		isQuickMatch=function()return quickMatch end,onWarmupArrival=warmupArrival,
+		isPractice=function()return practiceOnly end,
 		getRoomHostUserId = function() return hostUserId end,
 		onRoundReady = nextRound, onRoomLeave = leave, stop = stop }
 end

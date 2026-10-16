@@ -1561,7 +1561,7 @@ function GarageUiController.start()
 			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
 		previousButton.Visible = true
-		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE LIST" else "SELECT"
+		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE THIS TRACK" else "SELECT"
 		cycleButton.Active = selectionPending == nil
 		cycleButton.Visible = step <= STEP_TRACK
 		nextButton.Visible = step == STEP_READY
@@ -1588,6 +1588,10 @@ function GarageUiController.start()
   if openGate and openGate(function() openOverlay(action, confirmedTrackId) end) then return end
   if player:GetAttribute("RaceState") ~= "GARAGE" or localRouteRequested
    or player:GetAttribute("KDMRoutePending") == "RACE_LAUNCH" then return end
+  if action=="RACE" or action=="ROOMS" then
+   ReplicatedStorage:WaitForChild("MatchRoomControl"):FireServer("BrowseAll",DriverCatalog.DefaultId,committedKartId())
+   return
+  end
   -- A browser acknowledgement can come from an Invite as well as Track Select.
   local roomsTrackId = confirmedTrackId or trackOrder[trackIndex]
   local roomsTrack = TrackCatalog.Entries[roomsTrackId]

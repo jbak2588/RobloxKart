@@ -374,7 +374,7 @@ local station=child(stations,"Part","GarageStation");station:SetAttribute("HubAc
 local prompt=child(station,"ProximityPrompt","HubPrompt")
 prompt.Enabled=true
 -- Hub shortcuts now consume the existing Lobby layout; inject real pure view modules.
-for _,name in {"LobbyDriveLayout","MobileControlView","KDMUiStyleHelper"} do
+for _,name in {"LobbyDriveLayout","MobileControlView","KDMUiStyleHelper","HubRaceBoardView"} do
  child(client,"ModuleScript",name)
  modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=environment})()
 end
@@ -428,7 +428,7 @@ services.ProximityPromptService.PromptTriggered:Fire(foreign,player)
 check(not gui.Enabled,"non-Hub prompt ignored")
 station:SetAttribute("HubAction","RACE")
 services.ProximityPromptService.PromptTriggered:Fire(prompt,player)
-check(backdrop.TrackPreview.Visible and remote.fireCount==sent,"Race bridge chooses Tracks; no automatic matchmaking")
+check(not gui.Enabled and replicated.MatchRoomControl.lastFire[1]=='BrowseAll',"Race station opens cross-track browser directly")
 controller.close()
 for _,resolution in resolutions do
  safeSize=rb.Vector2.new(resolution[1],resolution[2])

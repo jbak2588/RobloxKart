@@ -41,13 +41,31 @@ function ActiveMatchDirectory:update(roomId, mutate)
 	local result = self.map:UpdateAsync(roomId, function(old)
 		if type(old) ~= "table" or old.roomId ~= roomId then return nil end
 		local draft = table.clone(old)
-		for _, field in { "queued", "waitingMembers", "currentUserIds", "launchRoster", "stagedMembers", "currentRoundMembers", "rivalUserIds", "leftUserIds" } do
-			if type(old[field]) == "table" then draft[field] = table.clone(old[field]) end
+		for _, field in { "queued", "waitingMembers", "currentUserIds", "launchRoster", "stagedMembers", "currentRoundMembers", "rivalUserIds", "leftUserIds", "pendingArrivals" } do
+			if type(old[field]) == "table" then
+				draft[field]={}
+				for _,value in old[field]do table.insert(draft[field],if type(value)=="table" then table.clone(value)else value)end
+			end
 		end
 		for _, field in { "stagedBots", "currentRoundBots" } do
 			draft[field] = {}
 			for _, bot in old[field] or {} do table.insert(draft[field], table.clone(bot)) end
 		end
+		if draft.state=="WAITING" and draft.stagedMembers then
+			local retained={}
+			for _,m in draft.stagedMembers do
+				if m.arrived or type(m.admissionExpiresAt)~="number" or m.admissionExpiresAt>self.now()then table.insert(retained,m)end
+			end
+			draft.stagedMembers=retained
+		end
+		for _,field in {'queued','pendingArrivals'}do if draft[field]then
+			local retained={}
+			for _,m in draft[field]do
+				local expires=if field=='queued'then m.queueExpiresAt else m.admissionExpiresAt
+				if type(expires)~='number'or expires>self.now()then table.insert(retained,m)end
+			end
+			draft[field]=retained
+		end end
 		local changed = mutate(draft)
 		if not changed then return nil end
 		return stamp(self, changed), self.now()
@@ -62,8 +80,11 @@ function ActiveMatchDirectory:createPersistent(room, accessCode, privateServerId
 		hostUserId = room.hostUserId, hostName = room.hostName,
 		lobbyTitleKind=room.lobbyTitleKind, lobbyTitle=room.lobbyTitle,
 		maxPlayers = room.maxPlayers, currentRacers = 0,
+		quickMatch=room.quickMatch==true,initializing=room.initializing==true,createdAt=self.now(),
+		practiceOnly=room.practiceOnly==true,
 		stagedMembers = {}, currentRoundMembers = {}, rivalUserIds = {}, leftUserIds = {}, queued = {},
 		stagedBots = {}, currentRoundBots = {},
+		pendingArrivals={},
 		roundId = 0, matchId = room.matchId, raceJobId = "",
 		privateServerId = privateServerId, reservedServerAccessCode = accessCode,
 	})
@@ -90,7 +111,7 @@ function ActiveMatchDirectory:addBot(roomId, descriptor)
 	if type(descriptor) ~= "table" or descriptor.botId ~= "Bot01"
 		or descriptor.name ~= "KDM Rookie [BOT]" or descriptor.kartId ~= "Kart01" then return nil end
 	return self:update(roomId, function(record)
-		if record.state ~= "WAITING" or not TrackCatalog.botAllowed(record.trackId) or not record.stagedMembers
+		if record.practiceOnly or record.state ~= "WAITING" or not TrackCatalog.botAllowed(record.trackId) or not record.stagedMembers
 			or type(record.raceJobId) ~= "string" or record.raceJobId == "" or #record.stagedBots >= 1
 			or waitingCapacity(record) >= record.maxPlayers or descriptor.gridSlot ~= record.maxPlayers then return nil end
 		local hostPresent = false
@@ -137,15 +158,52 @@ end
 function ActiveMatchDirectory:stage(roomId, member, token, expectedTrackId)
 	return self:update(roomId, function(record)
 		if expectedTrackId and record.trackId ~= expectedTrackId then return nil end
+		if record.practiceOnly and (record.hostUserId~=member.userId or #(record.stagedMembers or {})>0)then return nil end
+		if record.quickWarmup and record.state=="RACING"then
+			local pending={}
+			for _,m in record.pendingArrivals or {}do if m.admissionExpiresAt>self.now()then table.insert(pending,m)end end
+			if #record.currentRoundMembers+#pending>=record.maxPlayers or contains(record.currentRoundMembers,member.userId)or contains(pending,member.userId)then return nil end
+			local copy=table.clone(member);copy.admissionToken=token;copy.admissionExpiresAt=self.now()+self.ADMISSION_SECONDS;copy.arrived=false
+			table.insert(pending,copy);record.pendingArrivals=pending;return record
+		end
+		-- Human seats take priority over optional staged bots.
+		if record.quickMatch and record.state=='WAITING'and #(record.stagedMembers or {})>=1 then record.stagedBots={}end
+		if record.state=="WAITING" and #(record.stagedMembers or {})<record.maxPlayers
+			and waitingCapacity(record)>=record.maxPlayers then record.stagedBots={} end
 		if record.state ~= "WAITING" or waitingCapacity(record) >= record.maxPlayers
 			or contains(record.stagedMembers, member.userId)
 			or contains(record.queued, member.userId) then return nil end
-		member.admissionToken = token
-		member.admissionExpiresAt = self.now() + self.ADMISSION_SECONDS
-		member.arrived = false
-		table.insert(record.stagedMembers, member)
+		local copy=table.clone(member)
+		copy.admissionToken = token
+		copy.admissionExpiresAt = self.now() + self.ADMISSION_SECONDS
+		copy.arrived = false
+		table.insert(record.stagedMembers, copy)
+		if not contains(record.stagedMembers,record.hostUserId)then
+			local host=record.stagedMembers[1];record.hostUserId=host.userId;record.hostName=host.name
+		end
+		record.currentRacers=waitingCount(record)
 		return record
 	end)
+end
+
+-- Only the destination server calls this after validating a real arriving
+-- human/token/character. A queue request alone never interrupts the host.
+function ActiveMatchDirectory:interruptWarmup(roomId,userId,token,raceJobId)
+ return self:update(roomId,function(r)
+  if not r.quickMatch or not r.quickWarmup or r.state~='RACING'or r.raceJobId~=raceJobId or #r.currentRoundMembers~=1 then return nil end
+  local incoming
+  for _,m in r.pendingArrivals or {}do
+   if m.userId==userId and m.admissionToken==token and m.admissionExpiresAt>self.now()then incoming=m end
+  end
+  if not incoming then return nil end
+  local staged={}
+  for _,m in r.currentRoundMembers do if not table.find(r.leftUserIds,m.userId)then local c=table.clone(m);c.arrived=true;table.insert(staged,c)end end
+  if #staged~=1 then return nil end
+  for _,m in r.pendingArrivals do if m.admissionExpiresAt>self.now()then table.insert(staged,m)end end
+  r.stagedMembers=staged;r.stagedBots={};r.currentRoundBots={};r.currentRoundMembers={};r.pendingArrivals={}
+  r.state='WAITING';r.currentRacers=1;r.quickWarmup=false;r.leftUserIds={}
+  return r
+ end)
 end
 
 function ActiveMatchDirectory:confirmArrival(roomId, userId, token, raceJobId)
@@ -175,8 +233,8 @@ end
 
 function ActiveMatchDirectory:renewAdmission(roomId, userId, oldToken, newToken)
 	return self:update(roomId, function(record)
-		if record.state ~= "WAITING" then return nil end
-		for _, member in record.stagedMembers do
+		if record.state ~= "WAITING"and not(record.quickWarmup and record.state=='RACING')then return nil end
+		for _, member in (if record.quickWarmup then record.pendingArrivals else record.stagedMembers)or {} do
 			if member.userId == userId and not member.arrived
 				and member.admissionToken == oldToken then
 				member.admissionToken = newToken
@@ -191,6 +249,10 @@ end
 function ActiveMatchDirectory:removeStaged(roomId, userId)
 	local hadBot = false
 	local result = self:update(roomId, function(record)
+		if record.quickWarmup and record.state=='RACING'then
+			for i,m in record.pendingArrivals or {}do if m.userId==userId then table.remove(record.pendingArrivals,i);return record end end
+			return nil
+		end
 		if record.state ~= "WAITING" then return nil end
 		hadBot = #record.stagedBots > 0
 		for index, member in record.stagedMembers do
@@ -216,6 +278,7 @@ function ActiveMatchDirectory:removeStaged(roomId, userId)
 		end
 		return record
 	end)
+	if result and result.quickWarmup then return result end
 	if result and #result.stagedMembers == 0 and #result.queued == 0 then
 		self:remove(roomId)
 	elseif result and hadBot then
@@ -267,6 +330,7 @@ function ActiveMatchDirectory:startRound(roomId, hostUserId, expectedCount)
 		end
 		if #roster + #record.stagedBots ~= record.currentRacers or #roster == 0 then return nil end
 		record.currentRoundMembers = roster
+		record.quickWarmup=record.quickMatch==true and #roster==1 and #record.stagedBots>0
 		record.currentRoundBots = record.stagedBots
 		record.stagedBots = {}
 		record.leftUserIds = {}
@@ -281,7 +345,7 @@ end
 function ActiveMatchDirectory:nextStaging(roomId, rematchMembers)
 	return self:update(roomId, function(record)
 		if record.state ~= "ROUND_COMPLETE" then return nil end
-		local bots = if #rematchMembers > 0 then record.currentRoundBots else {}
+		local bots = if #rematchMembers > 0 and #record.queued==0 and #(record.pendingArrivals or {})==0 then record.currentRoundBots else {}
 		local humanLimit = record.maxPlayers - #bots
 		local staged, seen = {}, {}
 		for _, member in rematchMembers do
@@ -297,6 +361,13 @@ function ActiveMatchDirectory:nextStaging(roomId, rematchMembers)
 			if a.queuedAt ~= b.queuedAt then return a.queuedAt < b.queuedAt end
 			return a.userId < b.userId
 		end)
+		-- Already travelling arrivals keep their reservations ahead of people
+		-- who are still waiting in a Hub.
+		for _,member in record.pendingArrivals or {}do
+			if #staged<record.maxPlayers and member.admissionExpiresAt>self.now()and not seen[member.userId]then
+				table.insert(staged,member);seen[member.userId]=true
+			end
+		end
 		local remaining = {}
 		for _, member in record.queued do
 			if #staged < humanLimit and not seen[member.userId] then
@@ -307,6 +378,7 @@ function ActiveMatchDirectory:nextStaging(roomId, rematchMembers)
 				table.insert(staged, member)
 			else table.insert(remaining, member) end
 		end
+		record.pendingArrivals={};record.quickWarmup=false
 		if #staged == 0 and #remaining == 0 then return nil end
 		record.stagedMembers = staged
 		record.stagedBots = bots
@@ -464,6 +536,7 @@ end
 
 function ActiveMatchDirectory:queue(roomId, member, expectedTrackId)
 	return self:update(roomId, function(record)
+		if record.practiceOnly then return nil end
 		if expectedTrackId and record.trackId ~= expectedTrackId then return nil end
 		if (record.state == "WAITING" and (not record.stagedMembers
 			or waitingCapacity(record) < record.maxPlayers)) or record.state == "CLOSING"
@@ -472,9 +545,28 @@ function ActiveMatchDirectory:queue(roomId, member, expectedTrackId)
 		for _, queued in record.queued do
 			if queued.userId == member.userId then return nil end
 		end
-		table.insert(record.queued, member)
+		local copy=table.clone(member);copy.queueExpiresAt=self.now()+60
+		table.insert(record.queued, copy)
 		return record
 	end)
+end
+
+function ActiveMatchDirectory:renewQueue(roomId,userId)
+ return self:update(roomId,function(r)
+  for _,m in r.queued do if m.userId==userId then m.queueExpiresAt=self.now()+60;return r end end
+  return nil
+ end)
+end
+function ActiveMatchDirectory:offerWarmupQueue(roomId,raceJobId)
+ return self:update(roomId,function(r)
+  if not r.quickWarmup or r.state~='RACING'or r.raceJobId~=raceJobId then return nil end
+  r.pendingArrivals=r.pendingArrivals or {}
+  while #r.pendingArrivals+#r.currentRoundMembers<r.maxPlayers and #r.queued>0 do
+   local m=table.remove(r.queued,1);m.admissionExpiresAt=self.now()+self.ADMISSION_SECONDS;m.arrived=false
+   table.insert(r.pendingArrivals,m)
+  end
+  return r
+ end)
 end
 
 function ActiveMatchDirectory:closeIfIdle(roomId, matchId)
@@ -548,7 +640,7 @@ function ActiveMatchDirectory:list()
 	while true do
 		local rows = self.map:GetRangeAsync(Enum.SortDirection.Ascending, 100, bound)
 		for _, row in rows do
-			if type(row.value) == "table" and row.value.state ~= "CLOSING" then
+			if type(row.value) == "table" and row.value.state ~= "CLOSING" and not row.value.initializing and not row.value.practiceOnly then
 				table.insert(records, row.value)
 			end
 		end
@@ -561,7 +653,17 @@ end
 
 function ActiveMatchDirectory:display(record)
 	local lobbyTitle,lobbyTitleKind=Titles.publicTitle(record)
+	local humans,reserved=0,0
+	local waiting=record.state=="WAITING" and record.stagedMembers~=nil
+	for _,m in (if waiting then record.stagedMembers else record.currentRoundMembers or record.waitingMembers)or {}do
+		if not table.find(record.leftUserIds or {},m.userId)then
+			if waiting and not m.arrived then reserved+=1 else humans+=1 end
+		end
+	end
+	local bots=#((if waiting then record.stagedBots else record.currentRoundBots)or {})
+	reserved+=#(record.pendingArrivals or {})
 	return { id = record.roomId, trackId = record.trackId, state = record.state,
+		humanCount=humans,botCount=bots,reservedCount=reserved,quickMatch=record.quickMatch==true,quickWarmup=record.quickWarmup==true,
 		lobbyTitle=lobbyTitle, lobbyTitleKind=lobbyTitleKind,
 		hostUserId = record.hostUserId, hostName = record.hostName,
 		count = if record.state == "WAITING" and record.stagedMembers

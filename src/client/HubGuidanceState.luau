@@ -29,9 +29,7 @@ end
 
 function HubGuidanceState.nextAction(state)
  -- Direct Track/Rooms entry stays free; onboarding never gates navigation.
- if state.trackConfirmed then return "ROOMS", "RACE" end
- if not state.garageDone then return "GARAGE", "GARAGE" end
- return "TRACKS", "TRACKS"
+ return "ROOMS", "RACE"
 end
 
 function HubGuidanceState.roomHelper(snapshot, userId)
@@ -54,7 +52,7 @@ function HubGuidanceState.presentation(state, safeSize, raceState, overlayOpen, 
  local heading = if state.context == "KART_READY" then "KART READY" elseif state.context == "NEXT_RACE" then "NEXT RACE" else "NEXT"
  local message = if state.context == "TRACK_RETURN" then "Choose a track and race again" elseif not state.visited then "Welcome to KDM Lobby" else "Choose a track and start racing"
  local action, destination = HubGuidanceState.nextAction(state)
- local button = if action == "GARAGE" then "CHOOSE KART" elseif action == "ROOMS" then "RACE LIST" else "SELECT TRACK"
+ local button = if action == "GARAGE" then "CHOOSE KART" elseif action == "ROOMS" then "PLAY TOGETHER" else "SELECT TRACK"
  message = if action == "GARAGE" then "Check your kart in Garage" elseif action == "ROOMS" then "Create or join a race" else message
  return {
   visible = raceState == "GARAGE" and not overlayOpen and not roomOwned

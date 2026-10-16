@@ -28,6 +28,10 @@ local rosterLocked = false
 function RaceController.isRosterLocked(): boolean
 	return rosterLocked
 end
+function RaceController.prepareQuickArrival(player,token)
+ local session=RaceSession.active()
+ return session and session.prepareQuickArrival and session:prepareQuickArrival(player,token)
+end
 
 local function initializePlayerAttributes(player: Player, checkpointCount: number, initialTrackId: string)
 	player:SetAttribute("RaceState", "GARAGE")
@@ -139,6 +143,7 @@ function RaceController.start(options)
 	local expectedParticipantCount = if preformedMatch then options.expectedParticipantCount else 0
 	local arrivalDeadline = 0
 	local nextRoundPending = false
+	local publicNextAt,lastPublicStart=0,-math.huge
 	local roomPresentationPhase = "STARTING"
 	local function publishRoomPhase(phase, count)
 		roomPresentationPhase = phase
@@ -147,12 +152,14 @@ function RaceController.start(options)
 		end
 	end
 	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
+	local publicWarmup=false
 	-- Optional server observer: persistence failure must never change race adjudication.
 	local recordModule = script.Parent:FindFirstChild("RaceRecordService")
 	local recordLoaded, records = false, nil
 	if recordModule then recordLoaded, records = pcall(require, recordModule) end
 	if not recordLoaded then records = nil end
 	local function record(method, ...)
+		if publicWarmup or (options and options.isPractice and options.isPractice())then return end
 		if records then
 			local ok = pcall(records[method], ...)
 			if not ok then
@@ -745,6 +752,8 @@ function RaceController.start(options)
 			if session:contains(player) then ready += 1 end
 		end
 		for player in session.participants do
+			setChanged(player,'RacePublicMatch',options and options.isQuickMatch and options.isQuickMatch()or false)
+			setChanged(player,'RacePrivatePractice',options and options.isPractice and options.isPractice()or false)
 			setChanged(player, "RaceItemsReadyCount", itemsReady)
 			setChanged(player, "RaceItemsRequiredCount", count)
 			setChanged(player, "RaceParticipantCount", if session.startingParticipantCount > 0 then session.startingParticipantCount else count)
@@ -799,6 +808,7 @@ function RaceController.start(options)
 			countdownStarting = false; return
 		end
 		rosterLocked = true
+		publicWarmup=options and options.isQuickMatch and options.isQuickMatch()and session:humanCount()==1 and session:count()>1 or false
 		session.roundId += 1
 		session.phase = "COUNTDOWN"
 		session.waitingReason = "NONE"
@@ -811,6 +821,11 @@ function RaceController.start(options)
 		table.clear(session.rematchVotes)
 		table.clear(session.terminal)
 		for place, player in session:orderedParticipants() do
+			setChanged(player,'RacePublicWarmup',publicWarmup)
+			if publicWarmup then
+				setChanged(player,'RaceRecordSaveState','WARMUP');setChanged(player,'RaceMoneyState','NONE')
+				setChanged(player,'OfficialRoundGuid',nil)
+			end
 			local racer = racers[player]
 			racer.targetLaps = session.targetLaps
 			setChanged(player, "RaceSessionId", session.roundId)
@@ -888,6 +903,7 @@ function RaceController.start(options)
 	end
 
 	local function enterWaitingLobby(now: number, reason: string)
+		publicNextAt=0
 		session.phase = "WAITING"
 		session.waitingReason = reason
 		if reason ~= "INITIAL" then
@@ -1127,6 +1143,29 @@ function RaceController.start(options)
 		if state:GetAttribute("IsBot")==true then removeRacer(state) end
 	end
 	session.removeServerBot=session.removeTestBot
+	local warmupTransition=false
+	function session:prepareQuickArrival(player,token)
+		if self.phase=='WAITING'and options and options.onWaitingArrival then
+			local ok,accepted=pcall(options.onWaitingArrival,player,token)
+			return ok and accepted==true
+		end
+		if not publicWarmup or self:humanCount()~=1 or self.phase~='RACING'or not options.onWarmupArrival then return false end
+		if warmupTransition then
+			local deadline=time()+8
+			while warmupTransition and time()<deadline do task.wait(.1)end
+			return not rosterLocked
+		end
+		warmupTransition=true
+		local ok,accepted=pcall(options.onWarmupArrival,player,token)
+		if ok and accepted then
+			rosterLocked=false;countdownStarting=false
+			enterWaitingLobby(time(),'PUBLIC_JOIN')
+			publicWarmup=false
+			for p in self.participants do setChanged(p,'RacePublicWarmup',false)end
+		end
+		warmupTransition=false
+		return ok and accepted==true
+	end
 	local rankElapsed = 0
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local diagnostic=PerformanceMonitor and PerformanceMonitor.active()
@@ -1157,7 +1196,11 @@ function RaceController.start(options)
 				end
 			end
 			publishSession(now)
-			if session:count() == session.maxPlayers and allItemsReady() then startSharedCountdown(now) end
+			local publicReady=options and options.isQuickMatch and options.isQuickMatch()
+				and ((options.isPractice and options.isPractice())or session:humanCount()>=2 or (session:humanCount()==1 and session:count()>1))
+			if (session:count() == session.maxPlayers or publicReady) and allItemsReady()and now-lastPublicStart>=1 then
+				lastPublicStart=now;startSharedCountdown(now)
+			end
 		end
 		if session.phase == "COUNTDOWN" then
 			local remaining = math.max(math.ceil(session.countdownEndTime - now), 0)
@@ -1175,6 +1218,10 @@ function RaceController.start(options)
 			end
 		end
 		updateComplete()
+		if session.phase=='COMPLETE'and options and options.isQuickMatch and options.isQuickMatch()and not warmupTransition then
+			if publicNextAt==0 then publicNextAt=now+(if publicWarmup then 1 else 8)end
+			if now>=publicNextAt then publicNextAt=now+5;prepareNextRoomRound()end
+		end
 		rankElapsed += deltaTime
 		if rankElapsed >= RaceConfig.RANK_UPDATE_INTERVAL then
 			rankElapsed = 0

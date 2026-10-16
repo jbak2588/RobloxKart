@@ -6,6 +6,8 @@ local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDM
 local Titles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LobbyTitleCatalog"))
 local LobbyCreateView = require(script.Parent:WaitForChild("LobbyCreateView"))
 local StyleHelper = require(script.Parent:WaitForChild("KDMUiStyleHelper"))
+local TrackCatalog=require(ReplicatedStorage.Shared:WaitForChild('TrackCatalog'))
+local BrowserLayout=require(script.Parent:WaitForChild('RaceBrowserLayout'))
 local MatchRoomUiController = {}
 local started = false
 
@@ -81,7 +83,7 @@ function MatchRoomUiController.start()
 	panelStroke.Color,panelStroke.Thickness,panelStroke.Transparency = Color3.fromRGB(60, 110, 180),3,0
 	panelStroke.ApplyStrokeMode,panelStroke.Parent = Enum.ApplyStrokeMode.Border,panel
 	local constraint = Instance.new("UISizeConstraint")
-	constraint.MaxSize = Vector2.new(650, 650)
+	constraint.MaxSize = Vector2.new(960, 700)
 	constraint.Parent = panel
 	local title = label(panel, "Title", UDim2.new(1, -32, 0, 36), UDim2.fromOffset(16, 4), "RACE LIST", 22)
 	title.TextColor3 = Theme.TextPrimary
@@ -111,9 +113,15 @@ function MatchRoomUiController.start()
 	layout.Parent = list
 	local primary = button(panel, "CREATE RACE", UDim2.new(0, 16, 1, -60), UDim2.new(0.48, -20, 0, 52), function() end)
 	local back = button(panel, "BACK", UDim2.new(0.52, 0, 1, -60), UDim2.new(0.48, -16, 0, 52), function() end)
+	local practice=button(panel,'PRACTICE SOLO',UDim2.new(1,-224,0,42),UDim2.fromOffset(160,44),function()end)
+	practice.Name='PracticeSolo'
+	practice.Font=Enum.Font.GothamBold;practice.TextStrokeTransparency=1
 	back.BackgroundColor3 = Theme.Panel
  primary.BackgroundColor3, primary.TextColor3 = Theme.PrimaryAction, Theme.Background
  local createView
+	local metrics=BrowserLayout.measure(shade.AbsoluteSize.X,shade.AbsoluteSize.Y)
+	panel.Size=UDim2.fromOffset(metrics.width,metrics.height)
+	local choosingTrack=false
 	local primaryConnection, backConnection
 	local function bindButtons(primaryText, primaryAction, backText, backAction)
 		if primaryConnection then primaryConnection:Disconnect() end
@@ -121,12 +129,9 @@ function MatchRoomUiController.start()
 		primary.Text = primaryText
 		back.Text = backText
   back.BackgroundColor3 = if backText == "LEAVE" then Theme.Danger else Theme.Panel
-		StyleHelper.apply3DButton(primary, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
-		if backText == "LEAVE" then
-			StyleHelper.apply3DButton(back, Color3.fromRGB(255, 85, 85), Color3.fromRGB(235, 55, 55), Color3.fromRGB(210, 35, 35), 12, 2.5)
-		else
-			StyleHelper.apply3DButton(back, Color3.fromRGB(120, 140, 170), Color3.fromRGB(70, 90, 120), Color3.fromRGB(40, 60, 90), 12, 2.5)
-		end
+		primary.BackgroundColor3=Theme.PrimaryAction
+		back.BackgroundColor3=if backText=='LEAVE'then Theme.Danger else Theme.Panel
+		for _,item in {primary,back}do item.Font=Enum.Font.GothamBold;item.TextStrokeTransparency=1 end
 		primaryConnection = primary.Activated:Connect(function()
    if createView and createView.isOpen() then return end
    primaryAction()
@@ -141,22 +146,39 @@ function MatchRoomUiController.start()
 			if child:IsA("GuiObject") then child:Destroy() end
 		end
 	end
-	local function row(text, actionText, callback, detail, identity)
+	local function row(text, actionText, callback, detail, identity,trackId,recommended,roomTitle)
 		local frame = Instance.new("Frame")
-		frame.Size = UDim2.new(1, -8, 0, 56)
+		frame.Name='RaceRow'
+		frame.Size = UDim2.new(1, -8, 0, metrics.row)
 		frame.BackgroundColor3 = Theme.Panel
 		frame.Parent = list
-		local name=label(frame,"Name",UDim2.new(0.63,-8,0,if detail then 26 else 56),UDim2.fromOffset(10,0),text,16)
+		local left=10
+		local track=trackId and TrackCatalog.Entries[trackId]
+		if track then
+			local icon=Instance.new('ImageLabel');icon.Name='TrackIcon';icon.Image=track.PreviewImageAssetId or ''
+			icon.Size=UDim2.fromOffset(metrics.thumb,metrics.thumb);icon.Position=UDim2.fromOffset(8,10)
+			icon.ScaleType=Enum.ScaleType.Fit;icon.BackgroundColor3=Theme.Background;icon.BorderSizePixel=0;icon.Parent=frame
+			left=metrics.thumb+20
+		end
+		local right=if metrics.stacked or not actionText then 12 else metrics.action+24
+		local name=label(frame,"Name",UDim2.new(1,-left-right,0,28),UDim2.fromOffset(left,8),text,metrics.body)
 		name.AutoLocalize=not identity;name.TextTruncate=Enum.TextTruncate.AtEnd
+		if recommended then name.TextColor3=Theme.PrimaryAction end
+		if roomTitle then
+			local identityLabel=label(frame,'RaceTitle',UDim2.new(1,-left-right,0,20),UDim2.fromOffset(left,34),roomTitle,metrics.detail)
+			identityLabel.AutoLocalize=false;identityLabel.TextTruncate=Enum.TextTruncate.AtEnd
+		end
 		if detail then
-			local metadata=label(frame,"Detail",UDim2.new(.63,-8,0,26),UDim2.fromOffset(10,26),detail,12)
-			metadata.TextColor3=Theme.TextSecondary;metadata.TextTruncate=Enum.TextTruncate.AtEnd
+			local metadata=label(frame,"Detail",UDim2.new(1,-left-right,0,if roomTitle then 44 else 60),UDim2.fromOffset(left,if roomTitle then 56 else 36),detail,metrics.detail)
+			metadata.AutoLocalize=not identity
+			metadata.TextColor3=Theme.TextSecondary;metadata.TextWrapped=true;metadata.TextYAlignment=Enum.TextYAlignment.Top
 		end
 		if actionText then
-			button(frame, actionText, UDim2.new(0.66, 0, 0, 5), UDim2.new(0.32, 0, 1, -10), function()
+			local action=button(frame, actionText, if metrics.stacked then UDim2.new(0,8,1,-52)else UDim2.new(1,-metrics.action-8,.5,-22), if metrics.stacked then UDim2.new(1,-16,0,44)else UDim2.fromOffset(metrics.action,44), function()
     if createView and createView.isOpen() then return end
     callback()
    end)
+			action.TextSize=metrics.button;action.Font=Enum.Font.GothamBold;action.TextStrokeTransparency=1
 		end
 	end
 	local invitation
@@ -180,6 +202,7 @@ function MatchRoomUiController.start()
 		end)
 	end
 	createView=LobbyCreateView.new(panel,function(mode,value) send("Create",mode,value) end)
+	practice.Activated:Connect(function()if not createView.isOpen()then send('Practice')end end)
 	render = function()
 		clearRows()
   status.TextColor3 = Theme.TextSecondary
@@ -190,9 +213,11 @@ function MatchRoomUiController.start()
 			and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
    and player:GetAttribute("RaceState") == "GARAGE"
 		if not gui.Enabled then createView.close();return end
+		practice.Visible=not pendingAction and not choosingTrack and snapshot and not snapshot.allTracks and not snapshot.room and not invitation
+		status.Size=UDim2.new(1,if practice.Visible then -260 else -32,0,44)
 		title.AutoLocalize=true
 		if pendingAction then
-			status.Text = ({ Create = "CREATING RACE...", Join = "ENTERING RACE...",
+			status.Text = ({ Practice='ENTERING PRIVATE PRACTICE...',QuickPlay="FINDING PLAYERS ACROSS LOBBIES...",Create = "CREATING RACE...", Join = "ENTERING RACE...",
 				Queue = "JOINING QUEUE...", AcceptInvite = "ENTERING RACE...",
 				CancelQueue = "CANCELING QUEUE..." })[pendingAction] or "JOINING RACE..."
 			primary.Active = false
@@ -244,20 +269,31 @@ function MatchRoomUiController.start()
 			bindButtons(if #room.members == 1 then "START SOLO" else "START RACE",
 				function() remote:FireServer("Start") end, "LEAVE", function() remote:FireServer("Leave") end)
 		else
-			title.Text = "RACE LIST"
-			status.Text = if snapshot.directoryStale then "RACE LIST UPDATING..." else string.format("CREATE OR JOIN A RACE • 1–%d RACERS", snapshot.maxPlayers or 1)
-			for _, room in snapshot.rooms do
+			title.Text = if choosingTrack then 'NEW RACE · CHOOSE TRACK'elseif snapshot.allTracks then "PLAY TOGETHER"else 'RACE THIS TRACK'
+			status.Text = if snapshot.directoryStale then "RACE INFORMATION UNAVAILABLE · RETRYING" elseif choosingTrack then 'Choose a track for your new race'elseif snapshot.allTracks then 'Join players across all lobbies and tracks'else snapshot.trackName or 'Choose a race'
+			if choosingTrack then
+				for _,id in TrackCatalog.Order do local track=TrackCatalog.Entries[id]
+					row(track.DisplayName,'SELECT',function()
+						choosingTrack=false;send('Browse',player:GetAttribute('SelectedDriverId'),player:GetAttribute('SelectedKartId'),id)
+						createView.open(track.DisplayName)
+					end,'Create a race on this track',false,id)
+				end
+			else for index, room in snapshot.rooms do
 				local waiting = RoomDisplay.canJoin(room)
-				row(Titles.publicTitle(room),
-					if waiting then "ENTER RACE" else "QUEUE NEXT",
+				local track=TrackCatalog.Entries[room.trackId]
+				row((if index==1 then '★ 'else '')..(track and track.DisplayName or Titles.publicTitle(room)),
+					if waiting then "JOIN RACE" else "NEXT RACE",
 					function() send(if waiting then "Join" else "Queue", room.id) end,
-					string.format("HOST: %s • %s • %d / %d",room.hostName,RoomDisplay.state(room.state),room.count,room.maxPlayers),true)
-			end
-			if #snapshot.rooms == 0 then row(if snapshot.directoryStale then "RACE LIST UPDATING..." else "NO ACTIVE RACES", nil, nil) end
+					string.format("%s · %d PLAYERS · %d BOT\n%d JOINING · %d NEXT",if room.quickWarmup then 'BOT WARM-UP'else RoomDisplay.state(room.state),room.humanCount or room.count,room.botCount or 0,room.reservedCount or 0,room.queuedCount or 0),true,room.trackId,index==1,Titles.publicTitle(room))
+			end end
+			if #snapshot.rooms == 0 and not choosingTrack then row(if snapshot.directoryStale then "CHECKING RACES..." else "BE THE FIRST RACER", nil, nil,'PLAY NOW opens a race for other players to join.') end
 			primary.Visible = true
 			back.Visible = true
-			bindButtons("CREATE RACE", function() createView.open() end,
-				"BACK", function() remote:FireServer("Back") end)
+			bindButtons(if choosingTrack then 'CANCEL'elseif snapshot.allTracks then 'PLAY NOW'else 'CREATE RACE', function()
+				if choosingTrack then choosingTrack=false;render()elseif snapshot.allTracks then send('QuickPlay')else createView.open()end
+			end,if snapshot.allTracks then "NEW RACE"else 'ALL RACES', function()
+				if snapshot.allTracks then choosingTrack=true;render()else send('BrowseAll',player:GetAttribute('SelectedDriverId'),player:GetAttribute('SelectedKartId'))end
+			end)
 		end
   status.TextColor3 = if errorMessage then Theme.Danger else status.TextColor3
 		if errorMessage then
@@ -267,9 +303,10 @@ function MatchRoomUiController.start()
  local remoteConnection = remote.OnClientEvent:Connect(function(action, data)
 		if action == "Snapshot" then
 			snapshot = data
-			local completed = (pendingAction == "Queue" and data.room ~= nil)
+			local completed = ((pendingAction == "Queue"or pendingAction=='QuickPlay') and (data.room ~= nil or data.visible==false))
+				or (pendingAction=='Browse'or pendingAction=='BrowseAll')
 				or (pendingAction == "CancelQueue" and data.room == nil)
-				or ((pendingAction == "Create" or pendingAction == "Join"
+				or ((pendingAction == "Create" or pendingAction == "Join"or pendingAction=='Practice'
 					or pendingAction == "AcceptInvite") and (data.visible == false or data.room ~= nil))
 			if completed then pendingAction = nil; pendingSerial += 1 end
 			render()
@@ -286,7 +323,28 @@ function MatchRoomUiController.start()
 		if player:GetAttribute("RaceState") ~= "GARAGE" then createView.close();gui.Enabled = false end
 	end)
  local routeConnection = player:GetAttributeChangedSignal("KDMRoutePending"):Connect(render)
+	closeBtn.Size=UDim2.fromOffset(44,44)
+	closeBtn.TextSize=20;closeBtn.TextStrokeTransparency=1
+	local closeGradient=closeBtn:FindFirstChildOfClass('UIGradient');if closeGradient then closeGradient:Destroy()end
+	closeBtn.Activated:Connect(function()
+		if pendingAction or (snapshot and snapshot.room)then return end
+		choosingTrack=false;remote:FireServer('Back')
+	end)
+	local function resize()
+		metrics=BrowserLayout.measure(shade.AbsoluteSize.X,shade.AbsoluteSize.Y)
+		panel.Size=UDim2.fromOffset(metrics.width,metrics.height)
+		if createView and createView.resize then createView.resize(panel.Size)end
+		title.Size=UDim2.new(1,-76,0,34);title.TextSize=metrics.title
+		status.Position=UDim2.fromOffset(16,40);status.Size=UDim2.new(1,-32,0,44);status.TextWrapped=true;status.TextSize=metrics.detail
+		guidance.Visible=false
+		list.Position=UDim2.fromOffset(16,metrics.listTop);list.Size=UDim2.new(1,-32,1,-metrics.listTop-metrics.listBottom)
+		primary.TextSize=metrics.button;back.TextSize=metrics.button
+		practice.TextSize=metrics.button
+		if snapshot then render()end
+	end
+	local resizeConnection=shade:GetPropertyChangedSignal('AbsoluteSize'):Connect(resize);resize()
  gui.Destroying:Connect(function()
+  resizeConnection:Disconnect()
   remoteConnection:Disconnect(); raceConnection:Disconnect(); routeConnection:Disconnect()
   if primaryConnection then primaryConnection:Disconnect() end
   if backConnection then backConnection:Disconnect() end

@@ -50,6 +50,7 @@ KartAudioController.start()
 RaceAudioController.start()
 RaceItemUiController.start()
 if role == "RACE" then TacticalLoadoutController.start() end
+if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).start() end
 SmokeEffectView.new(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),game:GetService("Players").LocalPlayer)
 ShieldEffectsController.start()
 DriverCelebrationController.start()

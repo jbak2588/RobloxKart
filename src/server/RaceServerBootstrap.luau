@@ -59,7 +59,7 @@ function RaceServerBootstrap.roomPlan(payload, arrivalPayload, record, userId, p
 		or arrivalPayload.roomId ~= payload.roomId or arrivalPayload.matchId ~= payload.matchId
 		or #arrivalPayload.participantUserIds ~= 1
 		or arrivalPayload.participantUserIds[1] ~= userId
-		or type(record) ~= "table" or record.state ~= "WAITING"
+		or type(record) ~= "table" or (record.state ~= "WAITING"and not(record.quickMatch and record.quickWarmup and record.state=='RACING'))
 		or record.trackId ~= payload.trackId
 		or record.maxPlayers ~= TrackCatalog.Entries[payload.trackId].MaxPlayers
 		or #(record.stagedMembers or {}) + #(record.stagedBots or {}) > TrackCatalog.Entries[payload.trackId].MaxPlayers
@@ -69,7 +69,9 @@ function RaceServerBootstrap.roomPlan(payload, arrivalPayload, record, userId, p
 			and record.currentRacers > 0) then return nil end
 	local token = arrivalPayload.admissionToken
 	if type(token) ~= "string" or #token < 8 then return nil end
-	for index, member in record.stagedMembers or {} do
+	local incoming=record.quickWarmup and record.state=='RACING'
+	if incoming and (#(record.currentRoundMembers or {})~=1 or #(record.pendingArrivals or {})+1>record.maxPlayers)then return nil end
+	for index, member in (if incoming then record.pendingArrivals else record.stagedMembers)or {} do
 		if member.userId == userId and member.admissionToken == token
 			and type(member.admissionExpiresAt) == "number"
 			and member.admissionExpiresAt > os.time()
@@ -77,8 +79,8 @@ function RaceServerBootstrap.roomPlan(payload, arrivalPayload, record, userId, p
 			and member.kartId == arrivalPayload.selections[tostring(userId)].kartId then
 			local plan = RaceArrivalPlan.forPlayer(arrivalPayload, userId)
 			if not plan then return nil end
-			plan.gridSlot = index
-			plan.readyOrder = index
+			plan.gridSlot = index+(if incoming then #record.currentRoundMembers else 0)
+			plan.readyOrder = plan.gridSlot
 			return plan
 		end
 	end
@@ -143,12 +145,6 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 			plan, reason = RaceServerBootstrap.checkArrival(payload, player, initialPlayer, game.GameId)
 		end
 		if not plan then reject(player, reason); return end
-		if roomDirectory and RaceController.isRosterLocked() then
-			local deadline = os.clock() + 10
-			while RaceController.isRosterLocked() and player.Parent == Players
-				and os.clock() < deadline do task.wait(0.1) end
-		end
-		if RaceController.isRosterLocked() then reject(player, "LATE_RACE_ARRIVAL"); return end
 		print(string.format("[KDMRoute] arrival user=%d", player.UserId))
 		local character = player.Character
 		local characterDeadline = os.clock() + 10
@@ -163,6 +159,17 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		root.Anchored = true
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if not humanoid or humanoid.Health <= 0 then reject(player, "HUMANOID_INVALID"); return end
+		if roomDirectory then
+			RaceController.prepareQuickArrival(player,admissionToken)
+			local deadline=os.clock()+10
+			while RaceController.isRosterLocked()and player.Parent==Players and os.clock()<deadline do task.wait(.1)end
+		end
+		if RaceController.isRosterLocked()then reject(player,'LATE_RACE_ARRIVAL');return end
+		if roomDirectory then
+			local refreshed,record=pcall(function()return roomDirectory:get(payload.roomId)end)
+			plan=refreshed and RaceServerBootstrap.roomPlan(payload,player:GetJoinData().TeleportData,record,player.UserId,game.PrivateServerId,game.JobId)
+			if not plan then reject(player,'ROOM_ADMISSION_CHANGED');return end
+		end
 		local spawnCFrame = CFrame.new(0, groundTop + 1.75, 0) * track.GridSlots[plan.gridSlot]
 		local context = PrototypeWorld.acquireKartContext(player, spawnCFrame, plan.kartId)
 		if not context then reject(player, "KART_CONTEXT_FAILED"); return end

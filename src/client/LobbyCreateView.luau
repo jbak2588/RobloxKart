@@ -88,6 +88,10 @@ function View.new(panel,submit)
  local key=UserInputService:GetPropertyChangedSignal("OnScreenKeyboardVisible"):Connect(keyboard)
  local position=UserInputService:GetPropertyChangedSignal("OnScreenKeyboardPosition"):Connect(keyboard)
  frame.Destroying:Connect(function() connection:Disconnect();visible:Disconnect();key:Disconnect();position:Disconnect() end)
- return {isOpen=function() return frame.Visible end,open=function() pending=false;create.Active=true;selected=nil;input.Text="";update();frame.Visible=true end,close=close}
+ return {isOpen=function() return frame.Visible end,open=function(trackName)
+  heading.Text=if trackName then 'NEW RACE · '..trackName else 'CREATE RACE'
+  heading.TextTruncate=Enum.TextTruncate.AtEnd
+  pending=false;create.Active=true;selected=nil;input.Text="";update();frame.Visible=true
+ end,close=close,resize=function(size)savedSize=size;keyboard()end}
 end
 return View

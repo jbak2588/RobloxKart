@@ -7,7 +7,7 @@ function RoomDisplay.state(state)
 end
 
 function RoomDisplay.canJoin(room)
-	return room.state == "WAITING" and room.count < room.maxPlayers
+	return (room.state == "WAITING"or room.quickWarmup==true) and (room.humanCount or room.count)+(room.reservedCount or 0)<room.maxPlayers
 end
 
 return RoomDisplay

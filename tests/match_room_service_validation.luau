@@ -71,11 +71,12 @@ local services = {
 }
 local launches, failLaunch = {}, false
 local modules = {
+ RaceDiscovery=luau.load(fs.readFile('src/shared/RaceDiscovery.luau'))(),
  LobbyTitleService=titleModules.service,
 	TrackCatalog = { Entries = { Track01Race = { MatchType="PUBLIC_RACE", MaxPlayers = 4 }, Track03={MatchType="PUBLIC_RACE",MaxPlayers=4}, Track02={MatchType="SOLO_PROTOTYPE",MaxPlayers=1} } },
 	DriverCatalog = { Entries = { Driver01 = {} } },
 	KartCatalog = { Entries = { Kart01 = {} } },
-	ActiveMatchDirectory = Directory,
+	ActiveMatchDirectory = setmetatable({new=function()return directory end},{__index=Directory}),
 	RoomSocialDirectory = setmetatable({ new = function() return social end }, { __index = Social }),
 	RaceLaunchPayload = { buildMatch = function(matchId, roomId, members, trackId)
 		return { matchId = matchId, roomId = roomId, trackId = trackId,

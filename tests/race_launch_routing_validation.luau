@@ -621,3 +621,11 @@ check(not Checker.roomPlan(hardPayload,hardArrival,badRecord,2,"hard-private","h
 badRecord=table.clone(hardRecord);badRecord.maxPlayers=8
 check(not Checker.roomPlan(hardPayload,hardArrival,badRecord,2,"hard-private","hard-job"),"forged room capacity rejects")
 print("PASS: "..count.." routing checks including Hard public reserved admission")
+local warm=table.clone(hardRecord)
+warm.state='RACING';warm.quickMatch=true;warm.quickWarmup=true
+warm.stagedMembers={};warm.currentRoundMembers={{userId=1}}
+warm.pendingArrivals={{userId=2,driverId='Driver01',kartId='Kart01',admissionToken=hardArrival.admissionToken,admissionExpiresAt=os.time()+60}}
+check(Checker.roomPlan(hardPayload,hardArrival,warm,2,'hard-private','hard-job')~=nil,'verified warm-up newcomer may arrive before handoff')
+warm.currentRoundMembers={{userId=1},{userId=3}}
+check(not Checker.roomPlan(hardPayload,hardArrival,warm,2,'hard-private','hard-job'),'two-human running race never admits as warm-up')
+print('PASS '..count..' routing checks including public warm-up token admission')

@@ -1424,6 +1424,9 @@ function RaceHudController.start()
 		lobbyStart.Visible = lobbyWaiting and isHost
 		lobbyStart.Text = if not allReady then string.format("WAIT ITEMS %d/%d",itemsReady,itemsRequired)
 			else if participantCount == 1 then "START SOLO" else "START RACE"
+		if player:GetAttribute('RacePublicMatch')==true then
+			lobbyStart.Active=false;lobbyStart.Text=if allReady then 'AUTO START'else 'SELECT ITEMS'
+		end
 		lobbyLeave.Visible = lobbyWaiting
 		lobbyLeave.Text = if participantCount == 1 and isHost then "CANCEL" else "LEAVE"
 		lobbyLeave.Position = UDim2.fromOffset(if isHost then 132 else 70, 34)
