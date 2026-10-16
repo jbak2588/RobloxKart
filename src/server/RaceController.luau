@@ -159,7 +159,9 @@ function RaceController.start(options)
 	if recordModule then recordLoaded, records = pcall(require, recordModule) end
 	if not recordLoaded then records = nil end
 	local function record(method, ...)
-		if publicWarmup or (options and options.isPractice and options.isPractice())then return end
+		-- Recruitment warm-ups are real full-length races when completed. A handoff
+		-- abandons the old round without a finish; only private practice is excluded.
+		if options and options.isPractice and options.isPractice()then return end
 		if records then
 			local ok = pcall(records[method], ...)
 			if not ok then
@@ -822,10 +824,6 @@ function RaceController.start(options)
 		table.clear(session.terminal)
 		for place, player in session:orderedParticipants() do
 			setChanged(player,'RacePublicWarmup',publicWarmup)
-			if publicWarmup then
-				setChanged(player,'RaceRecordSaveState','WARMUP');setChanged(player,'RaceMoneyState','NONE')
-				setChanged(player,'OfficialRoundGuid',nil)
-			end
 			local racer = racers[player]
 			racer.targetLaps = session.targetLaps
 			setChanged(player, "RaceSessionId", session.roundId)
@@ -1219,7 +1217,14 @@ function RaceController.start(options)
 		end
 		updateComplete()
 		if session.phase=='COMPLETE'and options and options.isQuickMatch and options.isQuickMatch()and not warmupTransition then
-			if publicNextAt==0 then publicNextAt=now+(if publicWarmup then 1 else 8)end
+			if publicNextAt==0 then
+				local humanFinished=false
+				for p in session.participants do
+					if p:GetAttribute('IsBot')~=true and p:GetAttribute('RaceState')=='FINISHED'then humanFinished=true;break end
+				end
+				-- A completed warm-up deserves the normal results/payment display window.
+				publicNextAt=now+(if publicWarmup and not humanFinished then 1 else 8)
+			end
 			if now>=publicNextAt then publicNextAt=now+5;prepareNextRoomRound()end
 		end
 		rankElapsed += deltaTime

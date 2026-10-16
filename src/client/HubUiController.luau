@@ -207,6 +207,7 @@ function HubUiController.start()
   local presentation = GuidanceState.presentation(state, canvas.AbsoluteSize, raceState, overlay,
    player:GetAttribute("KDMRoutePending"), roomOwned or (rooms ~= nil and rooms.Enabled))
   local driving = player:GetAttribute("LobbyDriveActive") == true
+  panel.Visible = not driving
   if driving then presentation.visible = false end
   local driveLayout=LobbyLayout.shortcuts(canvas.AbsoluteSize,MobileView)
   panel.AnchorPoint = if driving then Vector2.zero else Vector2.new(1,1)

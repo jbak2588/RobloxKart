@@ -19,6 +19,7 @@ local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
 local DriftFeedback=require(script.Parent:WaitForChild("LobbyDriftFeedback"))
 local Exhaust=require(script.Parent:WaitForChild('KartWorldExhaustRenderer'))
 local EngineAB=require(script.Parent:WaitForChild('LobbyEngineAB'))
+local StyleHelper=require(script.Parent:WaitForChild('KDMUiStyleHelper'))
 local Controller={}
 local started=false
 function Controller.start()
@@ -52,6 +53,12 @@ function Controller.start()
  button.BackgroundColor3=Color3.fromRGB(111,211,245);button.TextColor3=Color3.fromRGB(12,27,42)
  button.Font=Enum.Font.GothamBold;button.TextSize=17;button.BorderSizePixel=0;button.Text="DRIVE";button.Parent=canvas
  local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(0,8);corner.Parent=button
+ StyleHelper.apply3DButton(button,Color3.fromRGB(80,190,255),Color3.fromRGB(0,140,240),Color3.fromRGB(0,95,200),12,2.5)
+ button.Text=''
+ local returnLabel=Instance.new('TextLabel');returnLabel.Name='NavigationLabel'
+ returnLabel.Size=UDim2.fromScale(1,1);returnLabel.BackgroundTransparency=1
+ returnLabel.TextColor3=Color3.fromRGB(255,255,255);returnLabel.Font=Enum.Font.GothamBold
+ returnLabel.TextSize=16;returnLabel.Parent=button
  local charge=Instance.new('TextLabel');charge.Name='DriftCharge';charge.BackgroundTransparency=1
  charge.Position=UDim2.fromOffset(12,12);charge.Size=UDim2.fromOffset(260,28)
  charge.Font=Enum.Font.GothamBold;charge.TextSize=16;charge.TextColor3=Color3.fromRGB(235,246,250);charge.TextStrokeTransparency=.35;charge.Parent=canvas
@@ -154,7 +161,7 @@ function Controller.start()
   gui.Enabled=player:GetAttribute("LobbyDriveAvailable")==true and player:GetAttribute("RaceState")=="GARAGE"
    and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled) and player:GetAttribute("KDMShopOpen")~=true and player:GetAttribute("KDMProfileOpen")~=true
   button.Visible=active
-  button.Text=if pending then "PLEASE WAIT" else "EXIT KART"
+  returnLabel.Text=if pending then "PLEASE WAIT" else "RETURN LOBBY"
   charge.Visible=active
   gauge.Visible=active
   local touch=gui.Parent:FindFirstChild("RobloxKartTouchDriving")
@@ -173,10 +180,10 @@ function Controller.start()
   gauge.Position=UDim2.fromOffset(hud.x,hud.y+26);gauge.Size=UDim2.fromOffset(hud.width,9)
   local segmentWidth=(hud.width-16)/5
   for i,segment in segments do segment.Size=UDim2.fromOffset(segmentWidth,9);segment.Position=UDim2.fromOffset((i-1)*(segmentWidth+4),0) end
-  if driftButton and controls.Visible then
-   local bottom=driftButton.AbsolutePosition.Y-canvas.AbsolutePosition.Y-8
-   button.Position=UDim2.fromOffset(hud.exitX,bottom)
-  else button.Position=UDim2.new(0,hud.exitX,1,-(l.driftBottom+l.driftHitHeight+8)) end
+  local exit=LobbyLayout.shortcuts(canvas.AbsoluteSize,MobileView)
+  button.AnchorPoint=Vector2.zero
+  button.Position=UDim2.fromOffset(exit.x+6,exit.y+4)
+  button.Size=UDim2.fromOffset(exit.width-12,44)
   local promptsEnabled=gui.Enabled and not active and not pending
   for _,prompt in displayPrompts do
    if prompt.Parent and prompt.Enabled~=promptsEnabled then prompt.Enabled=promptsEnabled end

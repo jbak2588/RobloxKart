@@ -29,6 +29,7 @@ while role ~= "HUB" and role ~= "RACE" do
 end
 
 print("RobloxKart CLIENT sync OK role=" .. role)
+require(script:WaitForChild('RaceRouteTransitionView')).start()
 KartInputController.start()
 KartCameraController.start()
 KDMImpactCameraController.start()

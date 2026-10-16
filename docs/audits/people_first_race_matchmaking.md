@@ -20,8 +20,9 @@ v766 after explicit user approval; see the release record below.
   lets users choose a track and filtered custom/default title.
 - Public quick rooms automatically start after the existing per-human 10-second
   item preparation, with two humans or one human plus the existing supported bot.
-  Quick-room results return to staging after eight seconds; a completed warm-up
-  returns after one. Ordinary explicitly-created public rooms retain host start.
+  Quick-room results return to staging after eight seconds. The mobile/reward
+  follow-up also preserves eight seconds when a human completes a warm-up;
+  unfinished warm-ups retain one-second retry. Explicit rooms retain host start.
 - One-human bot rounds are marked BOT WARM-UP. A new user's destination token,
   actual arrival and character are checked before announcing a five-second
   transition. The bot is removed, the host returns to staging without a forfeit,
@@ -33,8 +34,10 @@ v766 after explicit user approval; see the release record below.
   is reconciled out before its replacement human is admitted by RaceController.
 - Private practice is hidden from public discovery, rejects other humans and
   queues, disables invitations/bots and starts one human after item preparation.
-  Warm-up and private practice do not submit official record/reward observations.
-  Human competitive racing retains existing record/reward behavior.
+  At v766, warm-up and private practice did not submit official record/reward
+  observations. The subsequent mobile/reward fix restores eligible completed
+  public warm-up rewards; private practice remains excluded. See
+  `mobile_race_status_rewards_return.md` for the superseding behavior.
 
 ## Shared allocation and lifecycle
 

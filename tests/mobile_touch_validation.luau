@@ -695,7 +695,7 @@ player:SetAttribute("DriftBonusNitroAwarded",false)
 player:SetAttribute("DriftBonusAwardCount",0)
 check(progressLabel.Text=="NITRO CHARGE  0/5" and not bonusLabel.Visible,
 	"new countdown clears previous reward presentation")
-for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
+for _,size in {V2.new(1024,461),V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430),V2.new(844,390),
 	V2.new(812,351),V2.new(724,311),V2.new(801,334),V2.new(749,303),V2.new(389,703)} do
 	safeSize=size;itemCamera.ViewportSize=size
 	itemHud:GetPropertyChangedSignal("AbsoluteSize"):Fire()
@@ -724,6 +724,9 @@ for _,size in {V2.new(750,283),V2.new(1600,739),V2.new(1280,720),V2.new(932,430)
 	check(bonusLabel.Parent==nitroProgress and progressLabel.Parent==nitroProgress,
 		"award and earned text share the progress rectangle")
 	local combat=rect(itemHud.MissileFeedback)
+	if size.X>=600 and size.X>size.Y then
+		check(itemHud.MissileFeedback.Position.Y.Offset==8,'Galaxy/iPhone warning shares one safe top lane at every height')
+	end
 	local result=rect(itemHud.CombatResult)
 	local lap={12,8,12+math.min(170,size.X*.28),if size.X>=600 and size.Y<360 then 78 else 163}
 	local driftRect={l.driftX,size.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,size.Y-l.driftBottom}
