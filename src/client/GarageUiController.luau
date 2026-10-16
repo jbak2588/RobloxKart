@@ -966,6 +966,11 @@ function GarageUiController.start()
 			end
 			mapPanel:SetAttribute("H3BCardBaselineWidth",baselineWidth)
 			cardHeight = cardWidth*941/1672+footer
+			-- The subtitle is hidden on Track. Start below the visible title in
+			-- the safe canvas, and keep the actions attached to the same card.
+			local titleBottom = title.AbsolutePosition.Y + title.AbsoluteSize.Y - backdrop.AbsolutePosition.Y
+			cardTop = math.max(8, math.min(cardTop, titleBottom+8))
+			actionTop = cardTop+cardHeight+8
 			local center = (left+right)*.5
 			mapSize.MaxSize = Vector2.new(1600,1200)
 			mapPanel.Position = UDim2.fromOffset(center,cardTop)
@@ -1126,11 +1131,14 @@ function GarageUiController.start()
 		applyVisualStage(backdrop.AbsoluteSize, viewportSizePixels)
 		choiceLabel.Visible = step ~= STEP_TRACK
 		detailLabel.Visible = step == STEP_READY
-		syncVisualShell()
 		-- Apply Garage/Track subtitle removal and upward layout shift
 		if step <= STEP_TRACK then
 			stepLabel.Visible = false
 			stepLabel.TextTransparency = 1
+		end
+		-- Track owns its card, arrows and actions above. Do not replace its
+		-- position with the differently sized Kart viewport after layout.
+		if step == STEP_KART then
 			local shift = if mobileCompact then 24 else 36
 			local pPos = viewport.Position
 			viewport.Position = UDim2.new(pPos.X.Scale, pPos.X.Offset, pPos.Y.Scale, pPos.Y.Offset - shift)
@@ -1146,6 +1154,7 @@ function GarageUiController.start()
 			end
 		end
 		-- End Layout Shift
+		syncVisualShell()
 		if GARAGE_LAYOUT_DEBUG then
 			task.defer(function()
 				if not gui.Parent then return end
