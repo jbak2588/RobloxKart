@@ -15,4 +15,10 @@ function Layout.shortcuts(size,view)
  local l=Layout.apply(view.layout(size),size)
  return {x=size.X-l.margin-l.padWidth,y=math.max(4,size.Y-l.padBottom-l.padHeight-88),width=l.padWidth,height=80}
 end
+-- Coordinates are relative to the same CoreUISafeInsets canvas as the wallet.
+function Layout.trainingHud(size,walletLeft,walletBottom,driftLeft,driftHitWidth,driftVisualWidth)
+ local x=walletLeft or 16
+ return {x=x,y=(walletBottom or 58)+12,width=math.min(230,size.X-x-12),
+  exitX=(driftLeft or 12)+math.max(0,((driftHitWidth or 0)-(driftVisualWidth or 0))/2)}
+end
 return Layout

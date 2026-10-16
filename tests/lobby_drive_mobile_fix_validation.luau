@@ -16,6 +16,10 @@ for _,size in {rb.Vector2.new(801,334),rb.Vector2.new(844,300),rb.Vector2.new(93
  local driftTop=size.Y-l.driftBottom-l.driftHitHeight
  check(driftTop-8-44>=0 and l.driftBottom>=0,'Exit and Drift fit safe height')
  check(l.driftX>=0 and l.driftX+l.driftHitWidth<=size.X,'complete Drift hitbox inside safe width')
+ local hud=layout.trainingHud(size,16,58,l.driftX,l.driftHitWidth,l.driftWidth)
+ check(hud.y>=58+12 and hud.x==16,'Boost label and bar below wallet')
+ check(hud.x+hud.width<=size.X-12,'Boost bar safe width')
+ check(math.abs(hud.exitX-l.driftX-(l.driftHitWidth-l.driftWidth)/2)<.01,'Exit aligned with visible Drift artwork')
  if l.driftX+l.driftHitWidth>left then check(size.Y-l.driftBottom<=shortcut.y,'portrait Drift above pad/shortcuts') end
  -- A Lobby layout must not mutate the shared race layout or inset behavior.
  check(view.layout(size).padBottom~=12,'race layout remains unchanged')

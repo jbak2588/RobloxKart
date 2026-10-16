@@ -24,7 +24,6 @@ function Controller.start()
  end
  local function refresh()
   local nextState=zone:FindFirstChild("LobbyDemoState")
-  if player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH" then nextState=nil end
   if nextState==state and model and model.Parent then return end
   clear()
   if not nextState then return end

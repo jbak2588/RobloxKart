@@ -55,6 +55,7 @@ function Controller.start()
  local charge=Instance.new('TextLabel');charge.Name='DriftCharge';charge.BackgroundTransparency=1
  charge.Position=UDim2.fromOffset(12,12);charge.Size=UDim2.fromOffset(260,28)
  charge.Font=Enum.Font.GothamBold;charge.TextSize=16;charge.TextColor3=Color3.fromRGB(235,246,250);charge.TextStrokeTransparency=.35;charge.Parent=canvas
+ charge.TextXAlignment=Enum.TextXAlignment.Left
  local gauge=Instance.new('Frame');gauge.Name='TrainingChargeGauge';gauge.BackgroundTransparency=1;gauge.Position=UDim2.fromOffset(12,44);gauge.Size=UDim2.fromOffset(230,9);gauge.Parent=canvas
  local segments={}
  for i=1,5 do local segment=Instance.new('Frame');segment.BorderSizePixel=0;segment.Size=UDim2.fromOffset(42,9);segment.Position=UDim2.fromOffset((i-1)*46,0);segment.Parent=gauge;segments[i]=segment end
@@ -161,10 +162,21 @@ function Controller.start()
   local driftButton=controls and controls:FindFirstChild("Drift")
   local size=if controls then controls.AbsoluteSize else Workspace.CurrentCamera.ViewportSize
   local l=LobbyLayout.apply(MobileView.layout(size),size)
+  local navigation=gui.Parent:FindFirstChild("KDMHubNavigation")
+  local wallet=navigation and navigation:FindFirstChild("WalletCapsule")
+  local walletLeft=if wallet then wallet.AbsolutePosition.X-canvas.AbsolutePosition.X else nil
+  local walletBottom=if wallet then wallet.AbsolutePosition.Y+wallet.AbsoluteSize.Y-canvas.AbsolutePosition.Y else nil
+  local driftLeft=if driftButton and controls.Visible then driftButton.AbsolutePosition.X-canvas.AbsolutePosition.X else l.driftX
+  local hud=LobbyLayout.trainingHud(canvas.AbsoluteSize,walletLeft,walletBottom,driftLeft,
+   if driftButton and controls.Visible then driftButton.AbsoluteSize.X else l.driftHitWidth,l.driftWidth)
+  charge.Position=UDim2.fromOffset(hud.x,hud.y);charge.Size=UDim2.fromOffset(hud.width,22)
+  gauge.Position=UDim2.fromOffset(hud.x,hud.y+26);gauge.Size=UDim2.fromOffset(hud.width,9)
+  local segmentWidth=(hud.width-16)/5
+  for i,segment in segments do segment.Size=UDim2.fromOffset(segmentWidth,9);segment.Position=UDim2.fromOffset((i-1)*(segmentWidth+4),0) end
   if driftButton and controls.Visible then
    local bottom=driftButton.AbsolutePosition.Y-canvas.AbsolutePosition.Y-8
-   button.Position=UDim2.fromOffset(12,bottom)
-  else button.Position=UDim2.new(0,12,1,-(l.driftBottom+l.driftHitHeight+8)) end
+   button.Position=UDim2.fromOffset(hud.exitX,bottom)
+  else button.Position=UDim2.new(0,hud.exitX,1,-(l.driftBottom+l.driftHitHeight+8)) end
   local promptsEnabled=gui.Enabled and not active and not pending
   for _,prompt in displayPrompts do
    if prompt.Parent and prompt.Enabled~=promptsEnabled then prompt.Enabled=promptsEnabled end
@@ -194,7 +206,7 @@ function Controller.start()
   if boosting and not previousBoost then Audio.playOnce(boostCue) end
   if not boosting and previousBoost then Audio.stop(boostCue) end
   previousBoost=boosting
-  charge.Text=if kart:GetAttribute('KartBoosting') then 'MINI BOOST' elseif kart:GetAttribute('LobbyDriftReady') then 'DRIFT READY • RELEASE' else string.format('DRIFT CHARGE %d%%',math.floor((kart:GetAttribute('LobbyDriftCharge') or 0)*100))
+  charge.Text=if kart:GetAttribute('KartBoosting') then 'MINI BOOST' elseif kart:GetAttribute('LobbyDriftReady') then 'BOOST READY • RELEASE' else string.format('BOOST CHARGE %d%%',math.floor((kart:GetAttribute('LobbyDriftCharge') or 0)*100))
   for i,segment in segments do segment.BackgroundColor3=if kart:GetAttribute('LobbyDriftReady') then Color3.fromRGB(255,218,67) elseif (kart:GetAttribute('LobbyDriftCharge') or 0)*5>=i then Color3.fromRGB(111,211,245) else Color3.fromRGB(26,40,56) end
   local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit
   local target=body.Position

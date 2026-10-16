@@ -7,8 +7,7 @@ Route.CycleSeconds = Route.DonutSeconds+Route.LapSeconds
 
 function Route.hasAudience(players, departing)
  for _,player in players do
-  if player~=departing and player:GetAttribute("RaceState")=="GARAGE"
-   and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" then return true end
+  if player~=departing then return true end
  end
  return false
 end
