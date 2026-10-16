@@ -792,6 +792,9 @@ function RaceController.start(options)
 			and session.phase ~= "ARRIVAL" and session.phase ~= "COMPLETE" and session.phase ~= "EMPTY") then return end
 		if session.phase == "WAITING" and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE"
 			and not allItemsReady() then return end
+  -- Event practice must wait for the actual admitted Bot, including retries.
+  if options and options.isFirstRace and options.isFirstRace()
+   and session:count()~=session:humanCount()+1 then return end
 		countdownStarting = true
 		if persistentRoom and options.getRoomHostUserId then
 			session.hostUserId = options.getRoomHostUserId()

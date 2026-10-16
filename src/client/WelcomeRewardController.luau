@@ -50,7 +50,7 @@ function Controller.start()
  end
  local start=button('StartFirstRace','START EVENT RACE',Color3.fromRGB(72,228,96))
  local later=button('Later','LATER',colors.Panel);later.TextColor3=colors.White
- local status=text('Status',panel,'3-LAP PRACTICE · SOLO · BONUS ON COMPLETION',colors.Secondary)
+ local status=text('Status',panel,'3-LAP PRACTICE · 1 BOT · BONUS ON COMPLETION',colors.Secondary)
  local busy=false;local dismissed=false;local starting=false
  local function layout()
   local w=math.min(860,math.max(220,root.AbsoluteSize.X-24));local h=math.min(530,math.max(220,root.AbsoluteSize.Y-16))

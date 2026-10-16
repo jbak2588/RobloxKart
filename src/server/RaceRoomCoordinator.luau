@@ -333,7 +333,7 @@ function RaceRoomCoordinator.start(payload)
 					pcall(function()directory:offerWarmupQueue(roomId,game.JobId)end)
 				end
 				publish(phase, racerCount)
-				if quickMatch and not practiceOnly and record.state=='WAITING'and #(record.stagedBots or {})==0 and #(record.stagedMembers or {})==1 then
+				if quickMatch and (not practiceOnly or firstRaceOnly) and record.state=='WAITING'and #(record.stagedBots or {})==0 and #(record.stagedMembers or {})==1 then
 					local host=Players:GetPlayerByUserId(record.hostUserId)
 					if host and record.stagedMembers[1].arrived then botAction(host,'AddBot','Bot01')end
 				end

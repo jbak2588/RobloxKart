@@ -111,7 +111,7 @@ function ActiveMatchDirectory:addBot(roomId, descriptor)
 	if type(descriptor) ~= "table" or descriptor.botId ~= "Bot01"
 		or descriptor.name ~= "KDM Rookie [BOT]" or descriptor.kartId ~= "Kart01" then return nil end
 	return self:update(roomId, function(record)
-		if record.practiceOnly or record.state ~= "WAITING" or not TrackCatalog.botAllowed(record.trackId) or not record.stagedMembers
+		if (record.practiceOnly and not record.firstRaceOnly) or record.state ~= "WAITING" or not TrackCatalog.botAllowed(record.trackId) or not record.stagedMembers
 			or type(record.raceJobId) ~= "string" or record.raceJobId == "" or #record.stagedBots >= 1
 			or waitingCapacity(record) >= record.maxPlayers or descriptor.gridSlot ~= record.maxPlayers then return nil end
 		local hostPresent = false
@@ -324,6 +324,7 @@ function ActiveMatchDirectory:startRound(roomId, hostUserId, expectedCount)
 			or record.currentRacers < 1
 			or waitingCapacity(record) ~= record.currentRacers
 			or (expectedCount and expectedCount ~= record.currentRacers) then return nil end
+		if record.firstRaceOnly and #(record.stagedBots or {})~=1 then return nil end
 		local roster = {}
 		for _, member in record.stagedMembers do
 			if member.arrived then table.insert(roster, member) end
