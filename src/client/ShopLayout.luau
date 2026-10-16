@@ -5,6 +5,8 @@ function Layout.colors()
   Light=Color3.fromRGB(35,62,84),Cyan=Color3.fromRGB(0,220,255),Yellow=Color3.fromRGB(255,212,42),
   Blue=Color3.fromRGB(39,137,240),White=Color3.fromRGB(255,255,255),Secondary=Color3.fromRGB(205,225,250)}
 end
+-- Direct UIGradients tint TextButton glyphs and ViewportFrame models as well as
+-- their backgrounds. Keep Shop surfaces flat so authored colors remain intact.
 function Layout.style(object,kind)
  local c=Layout.colors();object.BackgroundColor3=c[kind or 'Card'];object.BorderSizePixel=0
  local corner=Instance.new('UICorner');corner.Name='ArcadeCorner';corner.CornerRadius=UDim.new(0,12);corner.Parent=object
@@ -14,43 +16,9 @@ function Layout.style(object,kind)
  if kind == 'Background' or kind == 'Panel' then
   stroke.Thickness = 3
   stroke.Color = Color3.fromRGB(60, 110, 180)
-  local gradient = Instance.new('UIGradient')
-  gradient.Rotation = 45
-  pcall(function()
-   local CS, CSK = ColorSequence, ColorSequenceKeypoint
-   if CS and CSK then
-    gradient.Color = CS.new({
-     CSK.new(0, Color3.fromRGB(38, 70, 125)),
-     CSK.new(0.5, Color3.fromRGB(28, 52, 95)),
-     CSK.new(1, Color3.fromRGB(18, 34, 64)),
-    })
-   end
-  end)
-  gradient.Parent = object
  elseif object:IsA('TextButton') then
-  local gradient = Instance.new('UIGradient')
-  gradient.Rotation = 90
-  local top = Color3.fromRGB(48, 85, 125)
-  local mid = Color3.fromRGB(35, 65, 95)
-  local bot = Color3.fromRGB(22, 42, 65)
-  if kind == 'Yellow' or object.BackgroundColor3 == c.Yellow then
-   top, mid, bot = Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0)
-  elseif kind == 'Blue' or object.BackgroundColor3 == c.Blue then
-   top, mid, bot = Color3.fromRGB(80, 190, 255), Color3.fromRGB(0, 140, 240), Color3.fromRGB(0, 95, 200)
-  end
-  pcall(function()
-   local CS, CSK = ColorSequence, ColorSequenceKeypoint
-   if CS and CSK then
-    gradient.Color = CS.new({
-     CSK.new(0, top),
-     CSK.new(0.5, mid),
-     CSK.new(1, bot),
-    })
-   end
-  end)
-  gradient.Parent = object
   object.Font = Enum.Font.GothamBlack
-  object.TextStrokeTransparency = 0.15
+  object.TextStrokeTransparency = 0.8
   object.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
  end
  return stroke

@@ -30,7 +30,12 @@ function Controller.start()
  local close=button(panel,'Close','X',0);close.Size=UDim2.fromOffset(40,40);close.AnchorPoint=Vector2.new(1,0)
  close.Position=UDim2.new(1,-8,0,8)
  StyleHelper.applyCloseButton(close)
- local tabs={};for _,name in {'WINGS','RACE ITEMS','MY INVENTORY'}do tabs[name]=button(panel,name,name,56)end
+ local function flatButton(b,color)
+  for _,child in b:GetChildren()do if child:IsA('UIGradient') then child:Destroy()end end
+  b.BackgroundColor3=color
+ end
+ flatButton(close,Color3.fromRGB(255,55,55))
+ local tabs={};for _,name in {'WINGS','RACE ITEMS','MY INVENTORY'}do tabs[name]=button(panel,name,if name=='WINGS' then 'KART PARTS' else name,56)end
  local body=Instance.new('ScrollingFrame');body.Name='Products';body.BackgroundTransparency=1;body.BorderSizePixel=0
  body.ScrollBarThickness=6;body.CanvasSize=UDim2.new();body.Parent=panel
  body.Active=true;body.ScrollingDirection=Enum.ScrollingDirection.Y
@@ -64,6 +69,8 @@ function Controller.start()
  StyleHelper.apply3DButton(yes, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
  local no=button(confirmation,'Cancel','CANCEL',116);no.ZIndex=11
  StyleHelper.apply3DButton(no, Color3.fromRGB(120, 140, 170), Color3.fromRGB(70, 90, 120), Color3.fromRGB(40, 60, 90), 12, 2.5)
+ flatButton(yes,colors.Yellow);yes.TextColor3=colors.Background
+ flatButton(no,colors.Panel)
  local data={counts={},canPurchase=false};local busy=false;local pending=nil;local epoch=0;local tab='WINGS'
  local previewWing=true;local variants={};local colorIndex=1;local preview=nil;local viewport=nil;local camera=nil
  local passPrice=nil;local confirmAction=nil;local restoreGarage=false
