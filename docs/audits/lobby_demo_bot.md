@@ -172,3 +172,15 @@ remote world VFX 1,402, demo 25,895 and showroom 38 checks PASS. All 178 product
 sources compile; Rojo build/diff PASS. Actual Studio mobile view confirms twin
 blue-white flame plumes at donut release. The final runtime audit and release
 confirmation follow below after verification.
+
+Final runtime: 320 samples over 32 seconds, 114 enabled and 1,806 disabled emitter
+samples, stable 87 descendants, zero new client errors; both cloned template
+attachments are destroyed on zone teardown. All 178 Studio Edit source hashes
+match the committed tree. Implementation commit
+`7c6a7c52e696afdf8cd754ba70da5c1402659af3` was pushed and matched origin before
+Publish. Studio confirmed successful publication to the existing Kart Drift
+Masters place and linked **v751** (PlaceId 127925465904803, UniverseId 10768420544).
+Evidence: `artifacts/lobby-demo-bot/boost-publish-output.txt`. The existing native
+place was published directly; no Rojo validation scaffold was opened. Studio
+remains in Edit. Actual published multi-human/mobile visual acceptance remains
+unverified.
