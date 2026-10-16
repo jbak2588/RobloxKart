@@ -1,5 +1,12 @@
 -- R8-A1 pure contract. No service lookup; catalog and trusted mock inputs are injected.
 local Schema = {}
+-- Stable campaign identity: deployment/rejoin must never reset this event.
+Schema.FinishEventId = 'KDM_FINISH_EVENT_20261016'
+function Schema.finishEvent(profile)
+ local e=profile and profile.onboarding and profile.onboarding.finishEvent
+ return {id=Schema.FinishEventId,seen=e~=nil and e.id==Schema.FinishEventId and e.seen==true,
+  claimed=e~=nil and e.id==Schema.FinishEventId and e.claimed==true}
+end
 local MAX_INTEGER = 9007199254740991
 
 function Schema.integer(value, maximum)
@@ -209,7 +216,7 @@ function Schema.new(catalog, options)
  function api.default(userId)
   Schema.userKey(userId)
   return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
-   onboarding={welcomeSeen=false,firstFinishClaimed=false},wallet={cash=5000,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
+   onboarding={welcomeSeen=false,firstFinishClaimed=false,finishEvent=Schema.finishEvent(nil)},wallet={cash=5000,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
    records={scoped={}},daily={claimBuckets={}},receipts={},pendingIndex={},deleted=false}
  end
  function api.supportsKart(id) return type(id) == "string" and supported[id] == true end
@@ -240,6 +247,9 @@ function Schema.new(catalog, options)
   if profile.onboarding~=nil then
    local o=profile.onboarding
    if type(o)~='table' or type(o.welcomeSeen)~='boolean' or type(o.firstFinishClaimed)~='boolean' then return false,'CORRUPT_ONBOARDING' end
+   local e=o.finishEvent
+   if e~=nil and (type(e)~='table' or type(e.id)~='string' or #e.id==0 or #e.id>64
+    or type(e.seen)~='boolean' or type(e.claimed)~='boolean') then return false,'CORRUPT_FINISH_EVENT' end
   end
   -- Optional additive field: old wallets/records/selections remain valid unchanged.
   if profile.shopInventory~=nil then

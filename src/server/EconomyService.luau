@@ -53,8 +53,9 @@ function Service.publishProfile(player,p)
  player:SetAttribute('KDMLifetimeEarned',p.wallet.lifetimeEarned or 0)
  player:SetAttribute('KDMWingOwned',p.cosmetics.ownedPartIds[Config.WingId]==true)
  player:SetAttribute('KDMWingEquipped',p.cosmetics.equippedPartIdsBySlot.Wing==Config.WingId)
- player:SetAttribute('KDMWelcomeSeen',p.onboarding==nil or p.onboarding.welcomeSeen)
- player:SetAttribute('KDMFirstFinishClaimed',p.onboarding~=nil and p.onboarding.firstFinishClaimed==true)
+ local event=S.finishEvent(p)
+ player:SetAttribute('KDMWelcomeSeen',event.seen)
+ player:SetAttribute('KDMFirstFinishClaimed',event.claimed)
  player:SetAttribute('KDMEconomyState','FOUND')
 end
 local function publicProfile(p)
@@ -168,15 +169,12 @@ function Service.start()
     a.commit(a.beginUpdate(key,function(previous)
      if not previous or not schema.validate(previous,key) or previous.deleted then return nil,'READ_ONLY' end
      local copy=S.clone(previous)
-     if not copy.onboarding then
-      local finished=false
-      for _,entry in copy.records.races or {}do if entry.bestRace and entry.bestRace.eligible then finished=true;break end end
-      copy.onboarding={welcomeSeen=true,firstFinishClaimed=finished}
-     end
+     copy.onboarding=copy.onboarding or {welcomeSeen=true,firstFinishClaimed=false}
+     local event=S.finishEvent(copy);event.seen=true;copy.onboarding.finishEvent=event
      copy.onboarding.welcomeSeen=true;return copy,'WELCOME_SEEN'
     end))
     r=a.read(key)
-    if r.status=='FOUND' and r.value.onboarding and r.value.onboarding.welcomeSeen then
+    if r.status=='FOUND' and S.finishEvent(r.value).seen then
      Service.publishProfile(player,r.value);return {status='SAVE_CONFIRMED'}
     end
     return {status='SAVE_UNCONFIRMED'}

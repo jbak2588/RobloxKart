@@ -23,7 +23,7 @@ local function op(n,humans,bots,rank,ms)
  recordScope=round.recordScope,targetLaps=2,roundGuid=round.RoundGuid,userId=1,totalMilliseconds=ms*2,laps={ms,ms},finishPosition=rank+bots,
  startingHumans=humans,startingBots=bots,raceBoosts=2,finishedAt=1791650000000+n,eligible=true,reason='FULL_ROUTE_V1',serverAccepted=true,state='FINISHED',positionFinalized=true}}
 end
-local original=schema.default(1);original.onboarding.firstFinishClaimed=true;original.selection.kartId='Kart09';original.wallet.cash=25000
+local original=schema.default(1);original.onboarding.firstFinishClaimed=true;original.onboarding.finishEvent.claimed=true;original.selection.kartId='Kart09';original.wallet.cash=25000
 original.inventory={existing='preserved'};original.purchaseHistory={old={method='LEGACY'}}
 original.receipts.legacy={signature='unmodified'};original.cosmetics.ownedPartIds.Wheel=true
 for rank,base in {3500,2500,2000,1500} do
@@ -81,7 +81,7 @@ ctx.privateServerOwnerId=123;check(not Policy.allowed(public,ctx,1,'reward'),'VI
 ctx.role='HUB';ctx.privateServerId='';check(not Policy.allowed(public,ctx,1,'reward') and Policy.allowed(public,ctx,1,'purchase'),'hub only purchase')
 check(Config.GamePassId==0 and not Config.GamePassEnabled,'unverified Robux disabled')
 -- Repeated real callbacks, followed by a retained-receipt capacity fixture. No receipt eviction.
-local repeated=schema.default(1);repeated.onboarding.firstFinishClaimed=true
+local repeated=schema.default(1);repeated.onboarding.firstFinishClaimed=true;repeated.onboarding.finishEvent.claimed=true
 for n=1000,1249 do repeated=Records.reduce(S,schema,op(n,1,0,1,60000))(repeated) end
 check(repeated.wallet.cash==256500 and repeated.wallet.lifetimeEarned==251500,'250 repeated race credits')
 local receipt=S.clone(repeated.receipts[Records.receiptKey(op(1249,1,0,1))])
@@ -116,7 +116,23 @@ local overflow=S.clone(newcomer);overflow.wallet.cash=schema.maxCash-100
 check(select(2,Records.reduce(S,schema,debut)(overflow))=='WALLET_CAPACITY','bonus capacity failure awards nothing')
 local legacy=S.clone(firstPaid);legacy.onboarding=nil
 local legacyNext=Records.reduce(S,schema,op(904,1,1,1,65000))(legacy)
-check(legacyNext.receipts[Records.receiptKey(op(904,1,1,1,65000))].money.firstFinish==0,'legacy previous finisher excluded')
+check(legacyNext.receipts[Records.receiptKey(op(904,1,1,1,65000))].money.firstFinish==5000,'legacy previous finisher receives campaign bonus')
 local corrupt=S.clone(firstPaid);corrupt.receipts[Records.receiptKey(debut)].money.firstFinish=4999
 check(not schema.validate(corrupt,S.userKey(1)),'tampered bonus rejected')
 print('PASS first-finish bonus and economy '..checks..' checks')
+
+local previousBonus=S.clone(firstPaid)
+previousBonus.onboarding={welcomeSeen=true,firstFinishClaimed=true}
+local paidAgain=Records.reduce(S,schema,op(905,1,0,1,65000))(previousBonus)
+check(paidAgain.receipts[Records.receiptKey(op(905,1,0,1,65000))].money.firstFinish==5000,'old welcome bonus does not exclude campaign participation')
+check(paidAgain.onboarding.finishEvent.claimed and paidAgain.onboarding.finishEvent.id==S.FinishEventId,'stable campaign identity stored')
+local rejoin=S.clone(paidAgain)
+local afterRejoin=Records.reduce(S,schema,op(906,1,0,1,65000))(rejoin)
+check(afterRejoin.receipts[Records.receiptKey(op(906,1,0,1,65000))].money.firstFinish==0,'persisted campaign latch survives service restart/rejoin')
+check(S.finishEvent(previousBonus).seen==false and S.finishEvent(legacy).claimed==false,'all old account formats eligible for new campaign')
+check(S.finishEvent(paidAgain).seen and S.finishEvent(paidAgain).claimed,'claimed account suppresses campaign popup')
+local seenOnly=S.clone(previousBonus);seenOnly.onboarding.finishEvent=S.finishEvent(previousBonus);seenOnly.onboarding.finishEvent.seen=true
+check(not S.finishEvent(seenOnly).claimed and seenOnly.wallet.cash==previousBonus.wallet.cash,'acknowledgement neither claims nor credits')
+local corrupted=S.clone(paidAgain);corrupted.onboarding.finishEvent.claimed='true'
+check(not schema.validate(corrupted,S.userKey(1)),'malformed campaign state rejected')
+print('PASS campaign rollout economy '..checks..' checks')

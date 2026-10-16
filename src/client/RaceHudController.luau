@@ -1266,7 +1266,7 @@ function RaceHudController.start()
 					getNumberAttribute(player,'RaceMoney_total',0),getNumberAttribute(player,'RaceMoney_base',0),
 					getNumberAttribute(player,'RaceMoney_bestRace',0),getNumberAttribute(player,'RaceMoney_bestLap',0))
     if getNumberAttribute(player,'RaceMoney_firstFinish',0)>0 then
-     recordSaveLabel.Text=string.format('FIRST FINISH +K$5,000 · RACE +K$%d\nTOTAL +K$%d · PLAY TOGETHER NEXT!',getNumberAttribute(player,'RaceMoney_total',0)-5000,getNumberAttribute(player,'RaceMoney_total',0))
+     recordSaveLabel.Text=string.format('EVENT BONUS +K$5,000 · RACE +K$%d\nTOTAL +K$%d · PLAY TOGETHER NEXT!',getNumberAttribute(player,'RaceMoney_total',0)-5000,getNumberAttribute(player,'RaceMoney_total',0))
     end
 			else recordSaveLabel.Text ..= '\nK$ PAYMENT UNCONFIRMED' end
 		end

@@ -87,18 +87,16 @@ function Ops.reduce(S,schema,op)
     money.bestLap=if lapImproved then 500 else 0
     money.total=math.min(5000,money.base+money.bestRace+money.bestLap)
    end
-   -- Durable profile latch and payment share this UpdateAsync transaction.
-   -- Legacy accounts with a previous eligible finish do not receive a new first bonus.
-   local previousFinish=false
-   if not previous.onboarding then
-    for _,entry in previous.records.races or {} do if entry.bestRace and entry.bestRace.eligible then previousFinish=true;break end end
-   end
-   local onboarding=previous.onboarding or {welcomeSeen=true,firstFinishClaimed=previousFinish}
-   nextValue.onboarding=S.clone(onboarding)
+   -- This campaign is open to every account, independently of old finish history.
+   -- Event latch and money are persisted in the same authoritative transaction.
+   local onboarding=S.clone(previous.onboarding or {welcomeSeen=true,firstFinishClaimed=false})
+   local event=S.finishEvent(previous);onboarding.finishEvent=event
+   nextValue.onboarding=onboarding
    money.firstFinish=0
-   if copy.race.eligible and not onboarding.firstFinishClaimed then
+   if copy.race.eligible and not event.claimed then
     money.firstFinish=5000;money.total+=5000
-    nextValue.onboarding.firstFinishClaimed=true;nextValue.onboarding.welcomeSeen=true
+    event.claimed=true;event.seen=true
+    onboarding.firstFinishClaimed=true;onboarding.welcomeSeen=true
    end
    local earned=(nextValue.wallet.lifetimeEarned or 0)+money.total
    if nextValue.wallet.cash+money.total>schema.maxCash or not S.integer(earned)

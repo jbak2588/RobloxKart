@@ -23,10 +23,10 @@ function Controller.start()
   local t=Instance.new('TextLabel');t.Name=name;t.BackgroundTransparency=1;t.Text=value;t.TextColor3=color or colors.White
   t.Font=Enum.Font.GothamBold;t.TextWrapped=true;t.Parent=parent;return t
  end
- local title=text('Title',panel,'WELCOME TO KART DRIFT MASTERS!',colors.Yellow)
- local visit=text('VisitReward',panel,'THANKS FOR VISITING!  K$ 5,000 GRANTED',colors.Cyan)
- local bonus=text('FirstFinishBonus',panel,'FINISH YOUR FIRST RACE: +K$ 5,000',colors.Yellow)
- local explain=text('Explanation',panel,'PLUS your race completion reward! First-finish bonus: once per player.')
+ local title=text('Title',panel,'KDM RACE COMPLETION EVENT',colors.Yellow)
+ local visit=text('VisitReward',panel,'WELCOME, NEW & RETURNING RACERS!',colors.Cyan)
+ local bonus=text('FirstFinishBonus',panel,'COMPLETE A RACE: +K$ 5,000',colors.Yellow)
+ local explain=text('Explanation',panel,'PLUS your normal race reward! Once per account. Your existing K$ stays unchanged.')
  local parts=surface('KartParts',panel,colors.Panel)
  local items=surface('RaceItems',panel,colors.Panel)
  local partsText=text('Caption',parts,'CUSTOMIZE YOUR KART WITH K$',colors.White)
@@ -48,7 +48,7 @@ function Controller.start()
   b.TextWrapped=true;b.BackgroundColor3=color;b.Parent=panel
   local c=Instance.new('UICorner');c.CornerRadius=UDim.new(0,10);c.Parent=b;return b
  end
- local start=button('StartFirstRace','START FIRST RACE',Color3.fromRGB(72,228,96))
+ local start=button('StartFirstRace','START EVENT RACE',Color3.fromRGB(72,228,96))
  local later=button('Later','LATER',colors.Panel);later.TextColor3=colors.White
  local status=text('Status',panel,'3-LAP PRACTICE · SOLO · BONUS ON COMPLETION',colors.Secondary)
  local busy=false;local dismissed=false;local starting=false
