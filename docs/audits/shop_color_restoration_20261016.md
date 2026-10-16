@@ -9,3 +9,5 @@
 - Studio visual fixture only: profile response with owned wing and voucher counts; Garage context supplied to separately required test module. No persistent writes/purchases. Stopping Play removed all fixtures before Publish.
 - Existing arcade-shop and shop-navigation suites cannot initialize: their mock module map lacks KDMUiStyleHelper (GarageShopController line 12). Not reported as passing. Purchase/save logic was not changed.
 - Published mobile acceptance remains pending.
+
+- Release: implementation 18ce82399b7b920283b4406bd3b36bf7c7ad5aa5 pushed and remote HEAD verified. Explicitly authorized native Studio Publish succeeded at 23:05:46, place 127925465904803, version 778 (Studio success output).
