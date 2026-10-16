@@ -1,9 +1,10 @@
 -- Only exact R7-M1 display changes are reversed; unrelated edits remain detectable.
 return function(source)
+ source=source:gsub('"RACE THIS TRACK"', '"RACE LIST"')
  source=require('./l2_presentation_freeze')(source)
  source=source:gsub("\r\n","\n")
- do local current,prior=[====[		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "LOBBIES" else "SELECT"
-]====],[====[		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "ROOMS" else "SELECT"
+ do local current,prior=[====[		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE THIS TRACK" else "SELECT"
+]====],[====[		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "LOBBIES" else "SELECT"
 ]====]
  local start=source:find(current,1,true);if start then source=source:sub(1,start-1)..prior..source:sub(start+#current) end end
  do local current,prior=[====[			elseif raceState == "RACING" then string.format("LOBBY %d/%d  •  NEXT %d",

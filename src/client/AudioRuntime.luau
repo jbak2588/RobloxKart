@@ -166,4 +166,38 @@ function AudioRuntime.createEngineLooper(primary: Sound?, secondary: Sound?)
 	return looper
 end
 
+function AudioRuntime.playTireScreechSfx(pitch: number?)
+	task.spawn(function()
+		pcall(function()
+			local sound = Instance.new("Sound")
+			sound.Name = "SlickTireScreech"
+			sound.SoundId = AudioConfig.ASSETS.DRIFT_LOOP or "rbxassetid://9120397552"
+			sound.Volume = 0.85
+			sound.PlaybackSpeed = pitch or 1.2
+			sound.Parent = Workspace
+			sound:Play()
+			task.delay(1.5, function()
+				if sound and sound.Parent then sound:Destroy() end
+			end)
+		end)
+	end)
+end
+
+function AudioRuntime.playCombatHitConfirmedSfx()
+	task.spawn(function()
+		pcall(function()
+			local sound = Instance.new("Sound")
+			sound.Name = "HitConfirmedSfx"
+			sound.SoundId = AudioConfig.ASSETS.BOOST_START or "rbxassetid://83211426606907"
+			sound.Volume = 0.8
+			sound.PlaybackSpeed = 1.35
+			sound.Parent = Workspace
+			sound:Play()
+			task.delay(1.2, function()
+				if sound and sound.Parent then sound:Destroy() end
+			end)
+		end)
+	end)
+end
+
 return AudioRuntime

@@ -19,7 +19,29 @@ local function canonical(source)
  local skippingWallet = false
  local skippingDockGradients = false
  local skippingLayoutShift = false
+ local skippingBrowseAll = false
+ local skippingCompactShortcuts = false
  for line in source:gmatch("[^\n]+") do
+  if line:match("local compactShortcuts=canvas%.AbsoluteSize%.Y<440") then
+   skippingCompactShortcuts = true
+   continue
+  end
+  if skippingCompactShortcuts then
+   if line:match("^%s*end") and not line:match("then") then
+    skippingCompactShortcuts = false
+   end
+   continue
+  end
+  if line:match('if action=="RACE" or action=="ROOMS" then') then
+   skippingBrowseAll = true
+   continue
+  end
+  if skippingBrowseAll then
+   if line:match("^%s*end") and not line:match("then") then
+    skippingBrowseAll = false
+   end
+   continue
+  end
   if line:match("local walletCapsule%s*=%s*Instance%.new") then
    skippingWallet = true
    continue
@@ -51,7 +73,27 @@ local function canonical(source)
    continue
   end
   if line:match("StyleHelper") or line:match("dockGradients") or line:match("local g%s*=")
-   or line:match("if step <= STEP_TRACK then stepLabel%.Visible = false") then continue end
+   or line:match("if step <= STEP_TRACK then stepLabel%.Visible = false")
+   or line:match("The subtitle is hidden on Track") or line:match("local titleBottom%s*=")
+   or line:match("cardTop = math%.max%(8") or line:match("actionTop = cardTop%+cardHeight")
+   or line:match('if action%s*==%s*"RACE"')
+   or line:match("local SHOWROOM_VISUAL_SCALE")
+   or line:match("visual:ScaleTo")
+   or line:match("HubRaceBoardView")
+   or line:match("panel%.Visible%s*=%s*not%s*driving")
+   or line:match("presentation%.bottom%s*=")
+   or line:match("raceBoard%.update")
+   or line:match("LobbyDisplayDrivePoint")
+   or line:match("LobbyDisplayTestDrive")
+   or line:match("ShowroomColorLabel")
+   or line:match("ColorLabel")
+   or line:match("drive%.")
+   or line:match("prompt%.")
+   or line:match('local label=Instance%.new%("TextLabel"%)')
+   or line:match('label%.Text=catalog%.Entries%[kartId%]')
+   or line:match('label%.Parent=sign')
+   or line:match("point%.CFrame") or line:match("billboard") or line:match("ShowroomBillboard")
+   or line:match("^%s*do%s*$") then continue end
   line=line:gsub("%-%-.*$", "")
   line=line:gsub("Theme%.%w+", "PALETTE"):gsub("theme%.%w+", "PALETTE")
   -- Color gradients are palette statements; rotation and lifecycle stay compared.
