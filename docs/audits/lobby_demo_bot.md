@@ -134,3 +134,15 @@ one Boost cue, max smoke rate 68, stable 77 descendants and zero new client erro
 Native mobile view confirms dense smoke. Zone teardown stops and destroys all
 four sound voices, removes bot effects and produces no callback errors. All 178
 production sources compile and match Studio Edit; Rojo build/diff PASS.
+
+Release: implementation commit `6151c0f98454b1876f2f8f60fa4e46bba278d7a9` was
+pushed and matched origin before Publish. Native feedback candidate contains all
+178 exact committed production sources and no Play-only bot/audit objects; SHA256
+`1ef6a069eccd218db36eab75cf397a32b3ef0f9a63e0494e0c4c421829b130c6`.
+Studio confirmed successful publication of Kart Drift Masters, PlaceId
+127925465904803 / UniverseId 10768420544, and linked **v750**. Confirmation is in
+`artifacts/lobby-demo-bot/feedback-publish-output.txt`; the preserved native copy
+is `artifacts/lobby-demo-bot/DEMO_FEEDBACK_NATIVE_CANDIDATE.rbxl`.
+This release also includes the preceding Boost HUD and connected-player lifetime
+checkpoint. Studio remains in Edit. Published real-device listening, perceived
+distance balance and multi-human performance remain unverified.
