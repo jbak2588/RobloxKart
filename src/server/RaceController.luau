@@ -160,8 +160,9 @@ function RaceController.start(options)
 	if not recordLoaded then records = nil end
 	local function record(method, ...)
 		-- Recruitment warm-ups are real full-length races when completed. A handoff
-		-- abandons the old round without a finish; only private practice is excluded.
-		if options and options.isPractice and options.isPractice()then return end
+		-- abandons the old round without a finish. Welcome first races earn rewards;
+		-- ordinary private practice remains excluded.
+		if options and options.isPractice and options.isPractice() and not (options.isFirstRace and options.isFirstRace()) then return end
 		if records then
 			local ok = pcall(records[method], ...)
 			if not ok then
@@ -1217,7 +1218,8 @@ function RaceController.start(options)
 			end
 		end
 		updateComplete()
-		if session.phase=='COMPLETE'and options and options.isQuickMatch and options.isQuickMatch()and not warmupTransition then
+		if session.phase=='COMPLETE'and options and options.isQuickMatch and options.isQuickMatch()and not warmupTransition
+   and not (options.isFirstRace and options.isFirstRace()) then
 			if publicNextAt==0 then
 				local humanFinished=false
 				for p in session.participants do

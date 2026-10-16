@@ -23,7 +23,7 @@ local function op(n,humans,bots,rank,ms)
  recordScope=round.recordScope,targetLaps=2,roundGuid=round.RoundGuid,userId=1,totalMilliseconds=ms*2,laps={ms,ms},finishPosition=rank+bots,
  startingHumans=humans,startingBots=bots,raceBoosts=2,finishedAt=1791650000000+n,eligible=true,reason='FULL_ROUTE_V1',serverAccepted=true,state='FINISHED',positionFinalized=true}}
 end
-local original=schema.default(1);original.selection.kartId='Kart09';original.wallet.cash=25000
+local original=schema.default(1);original.onboarding.firstFinishClaimed=true;original.selection.kartId='Kart09';original.wallet.cash=25000
 original.inventory={existing='preserved'};original.purchaseHistory={old={method='LEGACY'}}
 original.receipts.legacy={signature='unmodified'};original.cosmetics.ownedPartIds.Wheel=true
 for rank,base in {3500,2500,2000,1500} do
@@ -81,7 +81,7 @@ ctx.privateServerOwnerId=123;check(not Policy.allowed(public,ctx,1,'reward'),'VI
 ctx.role='HUB';ctx.privateServerId='';check(not Policy.allowed(public,ctx,1,'reward') and Policy.allowed(public,ctx,1,'purchase'),'hub only purchase')
 check(Config.GamePassId==0 and not Config.GamePassEnabled,'unverified Robux disabled')
 -- Repeated real callbacks, followed by a retained-receipt capacity fixture. No receipt eviction.
-local repeated=schema.default(1)
+local repeated=schema.default(1);repeated.onboarding.firstFinishClaimed=true
 for n=1000,1249 do repeated=Records.reduce(S,schema,op(n,1,0,1,60000))(repeated) end
 check(repeated.wallet.cash==256500 and repeated.wallet.lifetimeEarned==251500,'250 repeated race credits')
 local receipt=S.clone(repeated.receipts[Records.receiptKey(op(1249,1,0,1))])
@@ -95,3 +95,28 @@ local max=S.new(catalog,{maxReceipts=1});local full=S.clone(original)
 check(select(2,Records.reduce(S,max,op(11001,1,0,1))(full))=='RECEIPT_CAPACITY','capacity fails closed without pruning')
 fs.writeFile('artifacts/r8-a4/economy-validation.json',serde.encode('json',{checks=checks,retainedReceipts=10000,jsonBytes=#encoded,liveDataStore=false}))
 print('PASS: '..checks..' economy checks; 10000 retained receipts '..#encoded..' JSON bytes')
+
+local newcomer=schema.default(1)
+local debut=op(900,1,0,1)
+local firstPaid=Records.reduce(S,schema,debut)(newcomer)
+local receipt=firstPaid.receipts[Records.receiptKey(debut)]
+check(receipt.money.firstFinish==5000 and receipt.money.total==7500,'first solo normal reward plus bonus')
+check(firstPaid.wallet.cash==12500 and firstPaid.onboarding.firstFinishClaimed,'first bonus durable wallet latch')
+check(schema.validate(firstPaid,S.userKey(1)),'new bonus receipt schema valid')
+check(S.canonical(Records.reduce(S,schema,debut)(firstPaid))==S.canonical(firstPaid),'lost ACK replay never awards twice')
+local again=op(901,1,1,1,65000)
+local secondPaid=Records.reduce(S,schema,again)(firstPaid)
+check(secondPaid.receipts[Records.receiptKey(again)].money.firstFinish==0,'new round no second first bonus')
+local botDebut=Records.reduce(S,schema,op(902,1,1,1))(newcomer)
+check(botDebut.wallet.cash==13000,'bot finish earns normal and first bonus')
+local badFinish=op(903,1,0,1);badFinish.race.eligible=false;badFinish.race.reason='INVALID_ROUTE_OR_TIMER_RESET'
+local rejected=Records.reduce(S,schema,badFinish)(newcomer)
+check(rejected.wallet.cash==5000 and not rejected.onboarding.firstFinishClaimed,'invalid finish retains eligibility without money')
+local overflow=S.clone(newcomer);overflow.wallet.cash=schema.maxCash-100
+check(select(2,Records.reduce(S,schema,debut)(overflow))=='WALLET_CAPACITY','bonus capacity failure awards nothing')
+local legacy=S.clone(firstPaid);legacy.onboarding=nil
+local legacyNext=Records.reduce(S,schema,op(904,1,1,1,65000))(legacy)
+check(legacyNext.receipts[Records.receiptKey(op(904,1,1,1,65000))].money.firstFinish==0,'legacy previous finisher excluded')
+local corrupt=S.clone(firstPaid);corrupt.receipts[Records.receiptKey(debut)].money.firstFinish=4999
+check(not schema.validate(corrupt,S.userKey(1)),'tampered bonus rejected')
+print('PASS first-finish bonus and economy '..checks..' checks')

@@ -26,6 +26,7 @@ function RaceRoomCoordinator.start(payload)
 	local active = true
 	local quickMatch=false
 	local practiceOnly=false
+ local firstRaceOnly=false
 	local pendingInvites, sendingInvites = {}, {}
 	local hostStartRequired=false
 	local invitationResponses={}
@@ -67,7 +68,7 @@ function RaceRoomCoordinator.start(payload)
 		local record = directory:get(roomId)
 		if not record or record.matchId ~= matchId or record.state == "CLOSING" then stop(); return end
 		quickMatch=record.quickMatch==true
-		practiceOnly=record.practiceOnly==true
+		practiceOnly=record.practiceOnly==true;firstRaceOnly=record.firstRaceOnly==true
 		if record.state=='WAITING'and #(record.stagedBots or {})==0 and not botActionBusy and RaceBotController.hasProductionBot('Bot01')then
 			RaceBotController.removeProductionBot('Bot01')
 		end
@@ -146,7 +147,7 @@ function RaceRoomCoordinator.start(payload)
 			return directory:startRound(roomId, hostUserId, expectedCount)
 		end)
 		if not ok or not record then return false end
-		quickMatch,practiceOnly=record.quickMatch==true,record.practiceOnly==true
+		quickMatch,practiceOnly,firstRaceOnly=record.quickMatch==true,record.practiceOnly==true,record.firstRaceOnly==true
 		phase, racerCount = "STARTING", record.currentRacers
 		pcall(snapshot)
 		return true
@@ -353,7 +354,7 @@ function RaceRoomCoordinator.start(payload)
 		end,
 		isQuickMatch=function()return quickMatch end,onWarmupArrival=warmupArrival,
 		requiresHostStart=function()return hostStartRequired end,
-		isPractice=function()return practiceOnly end,
+		isPractice=function()return practiceOnly end,isFirstRace=function()return firstRaceOnly end,
 		getRoomHostUserId = function() return hostUserId end,
 		onRoundReady = nextRound, onRoomLeave = leave, stop = stop }
 end

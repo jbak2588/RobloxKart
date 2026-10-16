@@ -209,7 +209,7 @@ function Schema.new(catalog, options)
  function api.default(userId)
   Schema.userKey(userId)
   return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
-   wallet={cash=5000,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
+   onboarding={welcomeSeen=false,firstFinishClaimed=false},wallet={cash=5000,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
    records={scoped={}},daily={claimBuckets={}},receipts={},pendingIndex={},deleted=false}
  end
  function api.supportsKart(id) return type(id) == "string" and supported[id] == true end
@@ -237,6 +237,10 @@ function Schema.new(catalog, options)
    or type(s.lastOpId) ~= "string" or #s.lastOpId > 128 then return false, "CORRUPT_SELECTION" end
   if type(w) ~= "table" or not Schema.integer(w.cash,api.maxCash) or not Schema.integer(w.ledgerRevision) then return false, "CORRUPT_WALLET" end
   if w.lifetimeEarned~=nil and not Schema.integer(w.lifetimeEarned) then return false,'CORRUPT_WALLET' end
+  if profile.onboarding~=nil then
+   local o=profile.onboarding
+   if type(o)~='table' or type(o.welcomeSeen)~='boolean' or type(o.firstFinishClaimed)~='boolean' then return false,'CORRUPT_ONBOARDING' end
+  end
   -- Optional additive field: old wallets/records/selections remain valid unchanged.
   if profile.shopInventory~=nil then
    local inv=profile.shopInventory
@@ -271,8 +275,9 @@ function Schema.new(catalog, options)
    if receipt.money~=nil then
     local m=receipt.money
     if type(m)~='table' or not Schema.integer(m.base,3500) or not Schema.integer(m.bestRace,1000)
-     or not Schema.integer(m.bestLap,500) or not Schema.integer(m.total,5000)
-     or m.total~=math.min(5000,m.base+m.bestRace+m.bestLap) then return false,'CORRUPT_MONEY_RECEIPT' end
+     or not Schema.integer(m.bestLap,500) or not Schema.integer(m.total,10000)
+     or (m.firstFinish~=nil and m.firstFinish~=0 and m.firstFinish~=5000)
+     or m.total~=math.min(5000,m.base+m.bestRace+m.bestLap)+(m.firstFinish or 0) then return false,'CORRUPT_MONEY_RECEIPT' end
    end
   end
   -- Numeric records remain compatible with A1/A2; A3 evidence is optional and separate.

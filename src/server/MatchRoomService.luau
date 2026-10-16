@@ -207,7 +207,7 @@ local function queuePlayer(player, roomId, priority)
 	return true
 end
 
-local function createRoom(player,mode,value,privatePractice)
+local function createRoom(player,mode,value,privatePractice,firstRaceOnly)
 	if not eligible(player) or membership[player.UserId] or not selections[player.UserId]
 		or creating[player.UserId] then return end
 	local selectedTrackId = selections[player.UserId].trackId
@@ -243,7 +243,7 @@ local function createRoom(player,mode,value,privatePractice)
 		directory:createPersistent({ id = roomId, matchId = HttpService:GenerateGUID(false),
 			trackId = selectedTrackId, hostUserId = player.UserId,
 			hostName = if player.DisplayName and player.DisplayName~="" then player.DisplayName else player.Name,
-			lobbyTitleKind=kind,lobbyTitle=title,practiceOnly=privatePractice,quickMatch=privatePractice, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
+			lobbyTitleKind=kind,lobbyTitle=title,practiceOnly=privatePractice,firstRaceOnly=firstRaceOnly==true,quickMatch=privatePractice, maxPlayers = TrackCatalog.Entries[selectedTrackId].MaxPlayers },
 			code, privateId)
 	end)
 	if not created then
@@ -385,6 +385,10 @@ function MatchRoomService.start()
 			if not own then browsing[player.UserId] = nil; broadcast() end
 		elseif action == "Create" then
 			createRoom(player,first,second)
+		elseif action=='FirstRace' then
+   if not eligible(player) or own or creating[player.UserId] then return end
+   if not choose(player,DriverCatalog.DefaultId,player:GetAttribute('SelectedKartId') or KartCatalog.DefaultId,'Track01') then return end
+   stopLobbyDrive(player,'first_race');createRoom(player,'DEFAULT',nil,true,true)
 		elseif action=='Practice' then
 			stopLobbyDrive(player,'practice');createRoom(player,'DEFAULT',nil,true)
 		elseif action == "Join" and type(first) == "string" then

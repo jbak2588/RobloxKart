@@ -81,7 +81,7 @@ function ActiveMatchDirectory:createPersistent(room, accessCode, privateServerId
 		lobbyTitleKind=room.lobbyTitleKind, lobbyTitle=room.lobbyTitle,
 		maxPlayers = room.maxPlayers, currentRacers = 0,
 		quickMatch=room.quickMatch==true,initializing=room.initializing==true,createdAt=self.now(),
-		practiceOnly=room.practiceOnly==true,
+		practiceOnly=room.practiceOnly==true,firstRaceOnly=room.firstRaceOnly==true,
 		stagedMembers = {}, currentRoundMembers = {}, rivalUserIds = {}, leftUserIds = {}, queued = {},
 		stagedBots = {}, currentRoundBots = {},
 		pendingArrivals={},

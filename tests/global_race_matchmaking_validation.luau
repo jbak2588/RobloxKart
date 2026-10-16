@@ -29,7 +29,7 @@ local launches={}
 local function node(name)return {Name=name,WaitForChild=function(_,n)return node(n)end}end
 local function guid()serial+=1;return 'request-aaaaaaaa-'..serial end
 local directory=Directory.new(rooms,function()return now end)
-local function hub(id,userId)
+local function hub(id,userId,noBrowser)
  local p={UserId=userId,Name='P'..userId,DisplayName='P'..userId,attrs={RaceState='GARAGE',SelectedDriverId='Driver01',SelectedKartId='Kart01'}}
  function p:GetAttribute(n)return self.attrs[n]end
  function p:SetAttribute(n,v)self.attrs[n]=v end
@@ -46,8 +46,8 @@ local function hub(id,userId)
    return 'secret-code-'..n,'private-'..n
   end}}
  local modules={RaceDiscovery=Discovery,LobbyTitleService=titles.service,
-  TrackCatalog={Entries={Track01Race={MatchType='PUBLIC_RACE',MaxPlayers=4},Track03={MatchType='PUBLIC_RACE',MaxPlayers=4}}},
-  DriverCatalog={Entries={Driver01={}}},KartCatalog={Entries={Kart01={}}},
+  TrackCatalog={Entries={Track01={MatchType='PUBLIC_RACE',MaxPlayers=4},Track01Race={MatchType='PUBLIC_RACE',MaxPlayers=4},Track03={MatchType='PUBLIC_RACE',MaxPlayers=4}}},
+  DriverCatalog={DefaultId='Driver01',Entries={Driver01={}}},KartCatalog={DefaultId='Kart01',Entries={Kart01={}}},
   ActiveMatchDirectory=setmetatable({new=function()return directory end},{__index=Directory}),
   GlobalRaceAllocator=setmetatable({new=function()return Allocator.new(allocation,function()return now end)end},{__index=Allocator}),
   RoomSocialDirectory=setmetatable({new=function()return Social.new(presence,invites,function()return now end)end},{__index=Social}),
@@ -63,7 +63,7 @@ local function hub(id,userId)
   task={spawn=function()end,wait=function()coroutine.yield('LEASE_WAIT')end},warn=function()end}
  local service=luau.load(fs.readFile('src/server/MatchRoomService.luau'),{environment=env})();service.start()
  local function action(name,...)remote.OnServerEvent:Fire(p,name,...)end
- action('BrowseAll','Driver01','Kart01')
+ if not noBrowser then action('BrowseAll','Driver01','Kart01')end
  return {p=p,remote=remote,action=action,service=service}
 end
 local a,b=hub('HUB-A',101),hub('HUB-B',102)
@@ -159,6 +159,17 @@ check(not directory:stage(training.roomId,{userId=302},'outsider-token','Track03
 check(not directory:queue(training.roomId,{userId=302},'Track03'),'private practice rejects public queue')
 local public=hub('HUB-PUBLIC',302);public.action('QuickPlay')
 check(launches[2].payload.roomId~=training.roomId and launches[2].payload.trackId=='Track01Race','public matching does not interrupt or recruit private practice')
+
+-- Welcome CTA needs no prior browser selection and always chooses Practice.
+rooms.values={};allocation.values={};launches={};holdReserve=false
+local newbie=hub('HUB-FIRST',401,true)
+newbie.action('FirstRace')
+local firstRoom=launches[1] and directory:get(launches[1].payload.roomId)
+check(firstRoom and firstRoom.trackId=='Track01' and firstRoom.practiceOnly and firstRoom.firstRaceOnly,'first CTA directly routes to isolated Practice')
+check(firstRoom.quickMatch and #firstRoom.stagedMembers==1,'first solo auto-start room contract')
+check(#directory:list()==0 and not directory:queue(firstRoom.roomId,{userId=402},'Track01'),'first race protected from discovery and mid-race arrivals')
+newbie.action('FirstRace')
+check(#launches==1,'double CTA creates no second room')
 
 local Layout=luau.load(fs.readFile('src/client/RaceBrowserLayout.luau'))()
 for _,size in {{375,700},{640,300},{749,302},{844,390},{932,430},{1366,768},{1920,1080}}do

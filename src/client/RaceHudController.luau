@@ -1243,7 +1243,8 @@ function RaceHudController.start()
 		end
 		local routeError = player:GetAttribute("RaceEntryError")
 		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
-			and type(routeError) == "string" and routeError ~= "" then "KDM LOBBY UNAVAILABLE\nRETRY" else "LOBBY"
+			and type(routeError) == "string" and routeError ~= "" then "KDM LOBBY UNAVAILABLE\nRETRY" else (if raceState=='FINISHED' and getNumberAttribute(player,'RaceMoney_firstFinish',0)>0 then "PLAY TOGETHER\nVIA LOBBY" else "LOBBY")
+  garageButton.BackgroundColor3=if raceState=='FINISHED' and getNumberAttribute(player,'RaceMoney_firstFinish',0)>0 then Color3.fromRGB(32,155,75) else Color3.fromRGB(75,80,90)
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
 		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
 		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"
@@ -1264,6 +1265,9 @@ function RaceHudController.start()
 				recordSaveLabel.Text ..= string.format('\nK$%d · BASE %d + RACE PB %d + LAP PB %d',
 					getNumberAttribute(player,'RaceMoney_total',0),getNumberAttribute(player,'RaceMoney_base',0),
 					getNumberAttribute(player,'RaceMoney_bestRace',0),getNumberAttribute(player,'RaceMoney_bestLap',0))
+    if getNumberAttribute(player,'RaceMoney_firstFinish',0)>0 then
+     recordSaveLabel.Text=string.format('FIRST FINISH +K$5,000 · RACE +K$%d\nTOTAL +K$%d · PLAY TOGETHER NEXT!',getNumberAttribute(player,'RaceMoney_total',0)-5000,getNumberAttribute(player,'RaceMoney_total',0))
+    end
 			else recordSaveLabel.Text ..= '\nK$ PAYMENT UNCONFIRMED' end
 		end
 		recordSaveLabel.Size=UDim2.new(1,-20,0,if moneyState and moneyState~='NONE' then 36 else 18)
@@ -1571,6 +1575,7 @@ function RaceHudController.start()
 		"RaceMoney_bestRace",
 		"RaceMoney_bestLap",
 		"RaceMoney_total",
+  "RaceMoney_firstFinish",
 		"RaceLap1Time",
 		"RaceLap2Time",
 		"RaceLap3Time",

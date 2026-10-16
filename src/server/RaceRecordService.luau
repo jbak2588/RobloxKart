@@ -124,7 +124,7 @@ function Service.begin(session,course,checkpointCount)
   p:SetAttribute("RaceRecordNewPB",false);p:SetAttribute("RaceRecordSaveState","NONE")
   p:SetAttribute("RaceRecordNewBestRace",false)
   p:SetAttribute('RaceMoneyState','NONE')
-  for _,field in {'base','bestRace','bestLap','total'} do p:SetAttribute('RaceMoney_'..field,0) end
+  for _,field in {'base','bestRace','bestLap','firstFinish','total'} do p:SetAttribute('RaceMoney_'..field,0) end
   p:SetAttribute('RaceRecordDiagnostic',nil);p:SetAttribute('RaceRecordDiagnosticRound',nil)
   p:SetAttribute('RaceRecordReceiptConfirmed',false)
  end

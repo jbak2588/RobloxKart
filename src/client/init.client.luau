@@ -44,6 +44,7 @@ if role == "HUB" then task.defer(require(script:WaitForChild("LobbyDemoControlle
 if role == "HUB" then require(script:WaitForChild("PersonalRecordsController")).start() end
 require(script:WaitForChild('EconomyController')).start()
 require(script:WaitForChild('GarageShopController')).start()
+if role=='HUB' then require(script:WaitForChild('WelcomeRewardController')).start() end
 KartVisualMotionController.start()
 KDMDriverGripController.start()
 KartEffectsController.start()

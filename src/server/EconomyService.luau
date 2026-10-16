@@ -53,6 +53,8 @@ function Service.publishProfile(player,p)
  player:SetAttribute('KDMLifetimeEarned',p.wallet.lifetimeEarned or 0)
  player:SetAttribute('KDMWingOwned',p.cosmetics.ownedPartIds[Config.WingId]==true)
  player:SetAttribute('KDMWingEquipped',p.cosmetics.equippedPartIdsBySlot.Wing==Config.WingId)
+ player:SetAttribute('KDMWelcomeSeen',p.onboarding==nil or p.onboarding.welcomeSeen)
+ player:SetAttribute('KDMFirstFinishClaimed',p.onboarding~=nil and p.onboarding.firstFinishClaimed==true)
  player:SetAttribute('KDMEconomyState','FOUND')
 end
 local function publicProfile(p)
@@ -159,6 +161,26 @@ function Service.start()
   busy[player]=true;last[player]=os.clock()
   local ok,value=pcall(function()
    if action=='PROFILE' then local view=read(player);view.passAvailable=passVerified();view.passId=Config.GamePassId;return view end
+   if action=='WELCOME_SEEN' then
+    local a=adapter(player,'purchase');local key=S.userKey(player.UserId)
+    local r=a.read(key)
+    if r.status~='FOUND' or not schema.validate(r.value,key) or r.value.deleted then return {status='READ_ONLY'} end
+    a.commit(a.beginUpdate(key,function(previous)
+     if not previous or not schema.validate(previous,key) or previous.deleted then return nil,'READ_ONLY' end
+     local copy=S.clone(previous)
+     if not copy.onboarding then
+      local finished=false
+      for _,entry in copy.records.races or {}do if entry.bestRace and entry.bestRace.eligible then finished=true;break end end
+      copy.onboarding={welcomeSeen=true,firstFinishClaimed=finished}
+     end
+     copy.onboarding.welcomeSeen=true;return copy,'WELCOME_SEEN'
+    end))
+    r=a.read(key)
+    if r.status=='FOUND' and r.value.onboarding and r.value.onboarding.welcomeSeen then
+     Service.publishProfile(player,r.value);return {status='SAVE_CONFIRMED'}
+    end
+    return {status='SAVE_UNCONFIRMED'}
+   end
    if action=='BUY_WING' or action=='EQUIP_WING' and type(equipped)=='boolean' then
     return transact(player,{kind=action,userId=player.UserId,id=game:GetService('HttpService'):GenerateGUID(false),itemId=Config.WingId,equipped=equipped})
    end

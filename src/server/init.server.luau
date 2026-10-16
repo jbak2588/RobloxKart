@@ -93,6 +93,7 @@ if ServerRuntime.isRace() then
 			isQuickMatch=if roomCoordinator then roomCoordinator.isQuickMatch else nil,
 			requiresHostStart=if roomCoordinator then roomCoordinator.requiresHostStart else nil,
 			isPractice=if roomCoordinator then roomCoordinator.isPractice else nil,
+			isFirstRace=if roomCoordinator then roomCoordinator.isFirstRace else nil,
 			onWarmupArrival=if roomCoordinator then roomCoordinator.onWarmupArrival else nil,
 			onWaitingArrival=if roomCoordinator then roomCoordinator.onWaitingArrival else nil,
 			onRoundReady = if roomCoordinator then roomCoordinator.onRoundReady else nil,
