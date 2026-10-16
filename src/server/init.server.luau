@@ -132,6 +132,7 @@ else
 		local ground = Workspace:FindFirstChild("Baseplate") or Workspace.Prototype:FindFirstChild("Ground")
 		local zone = CompactHubBuilder.buildFrontDriveZone(hub, ground)
 		drive.start(zone, MatchRoomService.canTestDrive)
+		require(script:WaitForChild("LobbyDemoService")).start(zone)
 	end
 	PlayerPreferences.start()
 	if botTest then require(script:WaitForChild("RaceBotController")).start() end
