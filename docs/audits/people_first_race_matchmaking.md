@@ -1,10 +1,11 @@
-# People-first public racing — implementation candidate
+# People-first public racing — published v766
 
 Requested outcome: two players arriving in different HUB jobs can press PLAY NOW
 and start together, without agreeing a track or exchanging invitations.
 Baseline: `632227e1e5a1e23605db7f546ec2fe5ce89081dc`, matching origin before work.
 Implementation/Studio validation below does **not** establish published two-job,
-two-human teleport acceptance. No Publish has been performed for this task.
+two-human teleport acceptance. The validated implementation was published as
+v766 after explicit user approval; see the release record below.
 
 ## Product behavior
 
@@ -110,13 +111,25 @@ Evidence: `artifacts/global-race-matching/studio-runtime-audit.json`,
 
 ## Published acceptance still required
 
-Publish requires the user's explicit approval under AGENTS.md. After approval,
-use two accounts in different live HUB jobs: simultaneous PLAY NOW, actual
+Use two accounts in different live HUB jobs: simultaneous PLAY NOW, actual
 same-room admission and shared countdown; repeat with a running bot warm-up,
 an existing human race, cancellation/failed transfer and private practice.
 Studio cannot establish the real TeleportAsync handoff or two-human driving.
 Main, racer capacity, track geometry, human physics and persistent inventory
 rules are unchanged.
+
+## Release record — 2026-10-16
+
+- User explicitly approved Publish after the implementation and validation report.
+- Published code: `9e918123881b2d9ef3560713838d5182fc7e6fab` on
+  `prototype/kart-physics`, with local and origin HEAD matching before release.
+- Rechecked all 183 native Studio source hashes against the validated candidate;
+  no Play-only demo bot remained in Edit.
+- Published the existing native Kart Drift Masters place `127925465904803`.
+  Studio confirmed successful Roblox publication at 17:56:22 and linked **v766**.
+- Evidence: `artifacts/global-race-matching/publish-output.txt`.
+- Real two-account, different-HUB admission and shared race acceptance remains
+  pending. Publish success does not establish that live multiplayer acceptance.
 
 Primary API references:
 - https://create.roblox.com/docs/reference/engine/classes/MemoryStoreHashMap
