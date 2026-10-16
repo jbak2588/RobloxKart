@@ -216,11 +216,17 @@ function HubUiController.start()
   local compactShortcuts=canvas.AbsoluteSize.Y<440
   if not driving then
    local width=math.min(300,canvas.AbsoluteSize.X-24)
-   panel.Size=if compactShortcuts then UDim2.fromOffset(width,56) else UDim2.fromOffset(150,152)
+   -- Reserve space for both 2.5px borders and the style helper's hover
+   -- expansion, including its Back easing overshoot, at every canvas width.
+   local padding, gap = 10, if compactShortcuts then 18 else 12
+   local buttonWidth = if compactShortcuts then (width-2*padding-2*gap)/3 else 150-2*padding
+   panel.Size=if compactShortcuts then UDim2.fromOffset(width,64) else UDim2.fromOffset(150,176)
    for index,name in {'GARAGE','TRACKS','SHOP'}do
-    if compactShortcuts then panel[name].Size=UDim2.fromOffset((width-24)/3,44);panel[name].Position=UDim2.fromOffset(6+(index-1)*(width-6)/3,6)end
+    panel[name].Size=UDim2.fromOffset(buttonWidth,44)
+    panel[name].Position=if compactShortcuts then UDim2.fromOffset(padding+(index-1)*(buttonWidth+gap),padding)
+     else UDim2.fromOffset(padding,padding+(index-1)*(44+gap))
    end
-   presentation.bottom=if compactShortcuts then 76 else 172
+   presentation.bottom=if compactShortcuts then 84 else 196
   end
   guidance.update(presentation)
   worldGuidance.update(raceState == "GARAGE", if presentation.visible then presentation.destination else nil)
