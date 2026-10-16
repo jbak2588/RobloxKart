@@ -42,3 +42,8 @@ Validation:
   This is UI/runtime evidence, not a two-human cross-server invitation test.
 - Rojo build and CRLF-aware diff check PASS. Studio returned to Edit;
   Play-only fixtures are discarded. Published two-account acceptance remains pending.
+
+Publication: implementation `aa8206bdc45b35f449cd6c92af019ccf818f5423` pushed to
+`origin/prototype/kart-physics`; local and remote HEADs matched. All six changed
+production sources exactly matched native Studio before Publish. Studio confirmed
+publication to place `127925465904803` as **v776** at 22:44:35 on 2026-10-16.
