@@ -273,3 +273,12 @@ samples correctly had smoke suppressed by existing distance LOD. The model staye
 bounded at 87 descendants; no bot-module runtime errors. Existing Studio API /
 Core UI warnings remain separate from this route change. Returned to Edit with
 no Play bot; all 178 production source hashes match the local files.
+
+Release: implementation commit `a4e8892ef28dcc8354cce0c5c7ca99a1b7c626ad` was
+pushed to `origin/prototype/kart-physics` with matching HEADs before Publish.
+Studio confirmed successful publication to the existing Kart Drift Masters
+place and linked **v755**, PlaceId 127925465904803 / UniverseId 10768420544.
+Evidence: `artifacts/lobby-demo-bot/side-publish-output.txt`. The existing native
+place was published directly; no Rojo validation scaffold was opened. Studio
+remains in Edit. Published mobile visual acceptance of the added side excursions
+remains unverified.
