@@ -7,3 +7,5 @@
 - PASS: event automatic production BOT 53 checks (real Directory/Coordinator/BotController with deterministic transport/physics mocks); event full three-lap controller 12; production BOT on Track01 125; global matching 68; coordinator 25; completed warm-up observer 13; economy/campaign 76.
 - RaceItem integration PASS: 1179 production checks including NPC target/debuff/recovery, 273 additional NPC physical integration checks, and 13 rear-preview lifecycle checks. Includes production BOT Missile/Thunder targeting; normal item rules remain unchanged (ahead-only attacks still require a target ahead).
 - Rojo build and whitespace checks PASS. Four changed scripts syntax-checked and exact-synced to original native Studio Edit place. Actual reserved-server event arrival and published two-kart start/item use require real-device validation; Studio cannot establish production teleport acceptance.
+
+Release: implementation 2cdcfc5180ebef0ded5c12cbe748d8a0997b78a8 pushed with local/remote HEAD equality verified. Native Studio Publish succeeded for place 127925465904803, version 783.
