@@ -159,6 +159,11 @@ local function makeFlames(point,legacy)
 end
 
 local Renderer = {}
+-- Shared by the ambient Lobby demo and human karts: one smoke profile/rate owner.
+Renderer.createDriftSmoke = makeSmoke
+function Renderer.driftSmokeRate(slip,isLobby,lod,drift)
+ return if drift then (if isLobby then math.clamp(32+(slip-6)*2.0,0,68) else math.clamp(16+(slip-6)*1.0,0,34))*lod else 0
+end
 function Renderer.new(kart)
  local chassis, visual = kart:FindFirstChild("Chassis"), kart:FindFirstChild("Visual")
  if not chassis or not visual then return nil end
@@ -300,7 +305,7 @@ function Renderer.new(kart)
    l.Brightness=lightStyles[l].brightness*alpha;l.Range=lightStyles[l].range*alpha
    l.Enabled=flameWeight>0 and lod>0
   end
-  local rate = if drift then (if isLobby then math.clamp(32+(slip-6)*2.0, 0, 68) else math.clamp(16+(slip-6)*1.0, 0, 34)) * lod else 0
+  local rate = Renderer.driftSmokeRate(slip,isLobby,lod,drift)
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
   if drift and slip>=5 and groundElapsed>=.04 then

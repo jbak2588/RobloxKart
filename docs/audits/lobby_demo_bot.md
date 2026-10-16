@@ -91,3 +91,46 @@ non-GARAGE connected state, then return to GARAGE. Studio returned to Edit.
 
 This follow-up is a Git checkpoint, not a new Publish. Physical-device visual
 acceptance remains unverified; published v748 remains the previous implementation.
+
+## Follow-up: shared human smoke and quiet spatial audio
+
+User explicitly authorized commit/push and Publish for this follow-up, including
+the preceding Boost HUD/server-occupancy checkpoint. The demo no longer constructs
+a separate short/faint particle profile. `src/client/KartWorldExhaustRenderer.luau`
+exports its unchanged human smoke constructor and density calculation;
+`src/client/LobbyDemoController.luau` consumes them with the same Lobby flag,
+32-degree visual slip and near/far/slow-frame LOD policy. Human and race settings
+are unchanged. Lobby smoke lifetime is 6.5-8.0 seconds, with the same white color,
+size/opacity evolution, velocity, drag and 68 particles/second per-emitter cap.
+Releasing the donut stops new emission while existing particles fade naturally.
+
+`src/client/LobbyDemoFeedback.luau` reuses approved engine, friction and Mini Boost
+audio assets from AudioConfig. Every connected client's shared-clock bot has four
+world-parented Sounds (two engine crossfade voices, one friction loop, one Boost
+cue); there is no server Sound pose stream and no global/2D announcement. Engine
+uses the existing crossfade looper; friction uses the same 5-8 second region as
+human training. Mini Boost fires once when the donut releases; late arrival during
+an already-active boost does not replay a stale cue. Demo volume is 30% of the
+corresponding direct training mix (engine .18, friction .18, Boost .225), with
+InverseTapered attenuation from 12 to 180 studs. Existing SoundGroups still apply.
+Destroying the bot stops/destroys all voices and disconnects its rendering.
+
+`tests/lobby_demo_feedback_validation.luau`: 77 checks PASS, covering shared smoke
+properties/rates, unchanged race density, relative volume, world parenting,
+attenuation bounds, one-shot edges, late joining and audio destruction. Existing
+remote world VFX 1,402, demo geometry/lifecycle 25,895, mobile/layout 7,814, Garage
+transition 6,384 and showroom 38 checks PASS. Kart audio validation PASS. The
+existing boost-flame-fade test fails its redrift residual-clear assertion; the
+exact pre-task renderer also reproduces that failure in an isolated fixture.
+
+Studio: real Kart05 human test drive and demo smoke match all 14 compared profile
+fields. All four demo Sounds load; engine and friction play at .18 with correct
+assets, spatial mode and distance limits. The full live cycle and final release
+outcome are recorded below after verification. Real-device listening/performance
+and published multi-human acceptance remain separate from this Studio evidence.
+
+Final live sample: 320 samples over 32 seconds, 43 drift / 277 cruise samples,
+one Boost cue, max smoke rate 68, stable 77 descendants and zero new client errors.
+Native mobile view confirms dense smoke. Zone teardown stops and destroys all
+four sound voices, removes bot effects and produces no callback errors. All 178
+production sources compile and match Studio Edit; Rojo build/diff PASS.

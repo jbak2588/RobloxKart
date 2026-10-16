@@ -6,6 +6,9 @@ local Shared=game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Route=require(Shared:WaitForChild("LobbyDemoRoute"))
 local Catalog=require(Shared:WaitForChild("KartCatalog"))
 local Factory=require(Shared:WaitForChild("KartVisualFactory"))
+local Exhaust=require(script.Parent:WaitForChild("KartWorldExhaustRenderer"))
+local Feedback=require(script.Parent:WaitForChild("LobbyDemoFeedback"))
+local KartConfig=require(Shared:WaitForChild("KartConfig"))
 local Controller={}
 local stopCurrent
 
@@ -16,9 +19,10 @@ function Controller.start()
  local zone=hub:WaitForChild("LobbyFrontTestDriveZone",15)
  if not zone then return end
  local connections={}
- local model,render,state
+ local model,render,state,audio
  local function clear()
   if render then render:Disconnect();render=nil end
+  if audio then audio:destroy();audio=nil end
   if model then model:Destroy();model=nil end
   state=nil
  end
@@ -61,28 +65,32 @@ function Controller.start()
   local smoke={}
   for _,side in {-1,1} do
    local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1,bottom+.25,2.2);attachment.Parent=root
-   local emitter=Instance.new("ParticleEmitter");emitter.Name="DemoDriftSmoke"
-   emitter.Texture="rbxasset://textures/particles/smoke_main.dds"
-   emitter.Color=ColorSequence.new(Color3.fromRGB(210,218,225))
-   emitter.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,1.2),NumberSequenceKeypoint.new(.6,4.5),NumberSequenceKeypoint.new(1,6)})
-   emitter.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.38),NumberSequenceKeypoint.new(.6,.65),NumberSequenceKeypoint.new(1,1)})
-   emitter.Lifetime=NumberRange.new(.65,1.1);emitter.Rate=18;emitter.Speed=NumberRange.new(1,3)
-   emitter.Acceleration=Vector3.new(0,2,0);emitter.SpreadAngle=Vector2.new(40,40)
-   emitter.Rotation=NumberRange.new(0,360);emitter.RotSpeed=NumberRange.new(-35,35)
-   emitter.LockedToPart=false;emitter.Enabled=false;emitter.Parent=attachment;table.insert(smoke,emitter)
+   table.insert(smoke,Exhaust.createDriftSmoke(attachment,true))
   end
   for _,v in model:GetDescendants() do
    if v:IsA("BasePart") then v.Anchored=true;v.CanCollide=false;v.CanTouch=false;v.CanQuery=false;v.CastShadow=false
    elseif v:IsA("LuaSourceContainer") or v:IsA("ProximityPrompt") then v:Destroy() end
   end
-  local function step()
-   local x,z,dx,dz,drift=Route.sample(Workspace:GetServerTimeNow()-start)
+  audio=Feedback.new(root)
+  local function step(dt)
+   local elapsed=Workspace:GetServerTimeNow()-start
+   local x,z,dx,dz,drift=Route.sample(elapsed)
    local position=center+Vector3.new(x,.22-bottom,z)
    model:PivotTo(CFrame.lookAt(position,position+Vector3.new(dx,0,dz))*CFrame.Angles(0,math.rad(32)*drift,0))
-   for _,emitter in smoke do emitter.Enabled=drift>.05 end
-   model:SetAttribute("DemoDrifting",drift>.05)
+   local slip=32*drift
+   local drifting=slip>=5
+   local camera=Workspace.CurrentCamera
+   local distance=if camera then (camera.CFrame.Position-position).Magnitude else 0
+   local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
+   local rate=Exhaust.driftSmokeRate(slip,true,lod,drifting)
+   for _,emitter in smoke do emitter.Rate=rate;emitter.Enabled=rate>0 end
+   local phase=math.max(0,elapsed)%Route.CycleSeconds
+   local boosting=phase>=Route.DonutSeconds and phase<Route.DonutSeconds+KartConfig.MINI_BOOST_DURATION
+   audio:update(dt,drifting,boosting)
+   model:SetAttribute("DemoDrifting",drifting)
+   model:SetAttribute("DemoBoosting",boosting)
   end
-  step();model.Parent=zone
+  step(0);model.Parent=zone
   render=RunService.RenderStepped:Connect(step)
  end
  stopCurrent=function()
