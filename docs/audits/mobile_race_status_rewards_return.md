@@ -65,3 +65,12 @@ not adjust torso/legs. Enlarging the shell alone cannot reproduce the reference
 driver posture across Roblox avatar proportions. A separate visual/seat-pose
 pass is recommended, first in test drive, then races with multiple avatars.
 No live kart scale, seat, avatar identity or driving physics changed in this task.
+
+## Publication
+
+Implementation `6da1be145f194cb1de043eab89a1289157ac34cb` committed and pushed
+to `origin/prototype/kart-physics`, with matching local/remote HEADs. All seven
+changed/new native production sources exactly matched local files before Publish.
+Studio confirmed Roblox publication to place `127925465904803` as **v772** on
+2026-10-16 at 20:32:27. User explicitly authorized Publish in this request.
+Physical Galaxy/iPhone rendering and published wallet acceptance remain pending.
