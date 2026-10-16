@@ -274,11 +274,6 @@ function HubUiController.start()
     local frame=offset*anchor.CFrame
     local kart=HubUiController.createDisplay(bay,{CFrame=frame},catalog.Entries[kartId],factory,player:GetAttribute('KDMWingEquipped')==true)
     kart:SetAttribute("ShowroomStatic",true)
-    local point=Instance.new("Part");point.Name="ShowroomColorLabel";point.Size=Vector3.one;point.Transparency=1;point.Anchored=true;point.CanCollide=false;point.CanTouch=false;point.CanQuery=false
-    point.CFrame=frame*CFrame.new(0,4,0);point.Parent=bay
-    local sign=Instance.new("BillboardGui");sign.Name="ColorLabel";sign.Size=UDim2.fromOffset(140,24);sign.MaxDistance=65;sign.AlwaysOnTop=false;sign.Parent=point
-    local label=Instance.new("TextLabel");label.Size=UDim2.fromScale(1,1);label.BackgroundColor3=Theme.Panel;label.BackgroundTransparency=.2;label.TextColor3=Theme.TextPrimary;label.Font=Enum.Font.GothamBold;label.TextSize=13
-    label.Text=catalog.Entries[kartId].DisplayColorName..(if kartId==id then "  ✓" else "");label.Parent=sign
     do
      local drive=Instance.new("Part");drive.Name="LobbyDisplayDrivePoint";drive.Size=Vector3.one;drive.Transparency=1;drive.Anchored=true;drive.CanCollide=false;drive.CanTouch=false;drive.CanQuery=false
      drive.CFrame=frame*CFrame.new(0,2,0);drive:SetAttribute("ShowroomKartId",kartId);drive.Parent=kart
