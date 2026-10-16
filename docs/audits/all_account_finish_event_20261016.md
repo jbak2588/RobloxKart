@@ -11,3 +11,5 @@ Supersedes the newcomer-only eligibility policy in welcome_first_race_20261016.m
 - Regression PASS: official records 65; progression mock 550 / runtime 76; first Practice controller 9; cross-HUB matchmaking 68; completed warm-up observer 13. Rojo build and whitespace checks PASS.
 - Native Studio iPhone landscape: Play-only old-account fixture with cash K$22,640 and historical welcome/bonus flags true receives campaign eligibility and visible updated popup; cash stays K$22,640. No persistent production account modifications. Stop Play removed fixture before Publish. Five changed source scripts exact-synced and compiled in original native place.
 - Published transport, real completion payment and persistent production rejoin require real-device acceptance. Join a new server running this release; old running servers retain their old code.
+
+Release: implementation d9604d3af9df385f6e22391fcc88ce9e0e3456b8 pushed and remote/local equality verified. Native Studio Publish succeeded for place 127925465904803, version 782 (Studio success output).
