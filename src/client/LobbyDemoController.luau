@@ -63,9 +63,14 @@ function Controller.start()
    driverPart("DriverArm",Vector3.new(.55,.55,1.5),Vector3.new(side*.95,.55,-.65),blue)
    driverPart("DriverLeg",Vector3.new(.65,.6,1.6),Vector3.new(side*.45,-.25,-.9),dark)
   end
+  -- Only the ambient bot is enlarged. Scale geometry/driver/exhaust anchors
+  -- before adding shared particles, so human smoke/flame profiles stay intact.
+  model:ScaleTo(Route.VisualScale)
+  model:SetAttribute("DemoVisualScale",Route.VisualScale)
+  bottom*=Route.VisualScale
   local smoke={}
   for _,side in {-1,1} do
-   local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1,bottom+.25,2.2);attachment.Parent=root
+   local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1*Route.VisualScale,bottom+.25*Route.VisualScale,2.2*Route.VisualScale);attachment.Parent=root
    table.insert(smoke,Exhaust.createDriftSmoke(attachment,true))
   end
   for _,v in model:GetDescendants() do
@@ -74,24 +79,26 @@ function Controller.start()
   end
   audio=Feedback.new(root)
   boostVisuals=Exhaust.createBoostVisuals(visual)
+  local visualDrift=0
   local function step(dt)
    local elapsed=Workspace:GetServerTimeNow()-start
-   local x,z,dx,dz,drift=Route.sample(elapsed)
+   local x,z,dx,dz,drift,_,pattern,boosting=Route.sample(elapsed,KartConfig.MINI_BOOST_DURATION)
+   visualDrift+=(drift-visualDrift)*(1-math.exp(-math.max(0,dt)*10))
    local position=center+Vector3.new(x,.22-bottom,z)
-   model:PivotTo(CFrame.lookAt(position,position+Vector3.new(dx,0,dz))*CFrame.Angles(0,math.rad(32)*drift,0))
-   local slip=32*drift
+   model:PivotTo(CFrame.lookAt(position,position+Vector3.new(dx,0,dz))*CFrame.Angles(0,math.rad(32)*visualDrift,0))
+   local slip=32*math.abs(drift)
    local drifting=slip>=5
    local camera=Workspace.CurrentCamera
    local distance=if camera then (camera.CFrame.Position-position).Magnitude else 0
    local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
    local rate=Exhaust.driftSmokeRate(slip,true,lod,drifting)
    for _,emitter in smoke do emitter.Rate=rate;emitter.Enabled=rate>0 end
-   local phase=math.max(0,elapsed)%Route.CycleSeconds
-   local boosting=phase>=Route.DonutSeconds and phase<Route.DonutSeconds+KartConfig.MINI_BOOST_DURATION
    boostVisuals:update(boosting,lod)
    audio:update(dt,drifting,boosting)
    model:SetAttribute("DemoDrifting",drifting)
    model:SetAttribute("DemoBoosting",boosting)
+   model:SetAttribute("DemoPattern",pattern)
+   model:SetAttribute("DemoDriftDirection",math.sign(drift))
   end
   step(0);model.Parent=zone
   render=RunService.RenderStepped:Connect(step)

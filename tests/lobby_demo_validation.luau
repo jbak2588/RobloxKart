@@ -6,20 +6,41 @@ local count=0
 local function check(v,label) assert(v,label);count+=1 end
 -- Sweep the real footprint through every pose, including sideways donut exits.
 local previous
+local seen,leftTurns,rightTurns={},0,0
+check(route.PatternCount==3 and #route.Patterns==3,'three shared patterns')
+check(route.VisualScale>=1.10 and route.VisualScale<=1.15,'bot-only approved enlargement range')
 for i=0,math.ceil(route.CycleSeconds*240) do
  local t=i/120
- local x,z,dx,dz,drift,phase=route.sample(t)
+ local x,z,dx,dz,drift,phase,pattern,boosting=route.sample(t)
+ seen[pattern]=true
  local a=math.atan2(dz,dx)-math.rad(32)*drift
  check(policy.fits(geometry,x,z,math.cos(a),math.sin(a)),"full kart stays inside existing apron")
+ -- Conservative 12% enlarged visual bounds, including sideways drift poses.
+ for _,front in {-6,6}do for _,side in {-4.2,4.2}do
+  check(geometry.inside(x+math.cos(a)*front-math.sin(a)*side,z+math.sin(a)*front+math.cos(a)*side,1.35),'enlarged full visual stays inside apron')
+ end end
  check(math.abs(dx*dx+dz*dz-1)<1e-8,"unit tangent")
  if previous then
   local distance=math.sqrt((x-previous[1])^2+(z-previous[2])^2)
   check(distance<=route.Speed/120+.0001,"continuous travel across donut and lap joins")
  end
  if phase=="DONUT" then
-  check(math.abs(math.sqrt((x+120)^2+(z-22)^2)-28)<1e-7,"circle is in front of Lobby exit")
- else check(drift==0,"no smoke while cruising") end
+  local radius=if pattern=='DOUBLE_DONUT'then 22 else 28
+  check(math.abs(math.sqrt((x+120)^2+(z-(50-radius))^2)-radius)<.01,"circle is in front of Lobby exit")
+ elseif phase=="TURN" then check(math.abs(drift)>=.2,'all left/right bends produce friction regardless of charge')
+ else check(drift==0,"no smoke while driving straight") end
+ if drift<0 then leftTurns+=1 elseif drift>0 then rightTurns+=1 end
+ check(type(boosting)=='boolean','explicit per-pattern boost phase')
  previous={x,z}
+end
+check(seen.WIDE_LOOP and seen.S_SLALOM and seen.DOUBLE_DONUT,'all three patterns mixed in a shared cycle')
+check(leftTurns>0 and rightTurns>0,'both steering directions drift')
+for _,pattern in route.Patterns do
+ local t=pattern.StartSeconds+route.CycleSeconds
+ local ax,az,adx,adz=route.sample(t-.001)
+ local bx,bz,bdx,bdz=route.sample(t+.001)
+ check(math.sqrt((ax-bx)^2+(az-bz)^2)<.073,'pattern switch has no position jump')
+ check(adx*bdx+adz*bdz>.999,'pattern switch keeps common forward tangent')
 end
 local function signal()
  local callbacks={}

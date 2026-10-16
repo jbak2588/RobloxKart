@@ -184,3 +184,47 @@ Evidence: `artifacts/lobby-demo-bot/boost-publish-output.txt`. The existing nati
 place was published directly; no Rojo validation scaffold was opened. Studio
 remains in Edit. Actual published multi-human/mobile visual acceptance remains
 unverified.
+
+## Follow-up: three mixed routes, corner friction and 12% showcase enlargement
+
+User confirmed published mobile v751 boost flames PASS and explicitly authorized
+three route variations, smoke/friction on all bot turns, 10-15% enlargement,
+commit/push and Publish. This supersedes the earlier single-loop/same-size bot
+presentation contract; human kart geometry and controls remain unchanged.
+
+`src/shared/LobbyDemoRoute.luau` now shares a deterministic 84-second sequence:
+WIDE_LOOP (one exit donut plus stadium loop), S_SLALOM (one donut plus left/right
+S-weaves), DOUBLE_DONUT (two tighter exit donuts plus loop). Durations are about
+26.95 / 27.31 / 29.74 seconds. Patterns share position and forward tangent at their
+joins; a startup arc-length table keeps the 36-stud/second presentation speed
+continuous, with binary sampling and no per-frame path allocations. Late joiners
+sample the same server timeline. Boost flame/audio windows remain two seconds
+after each pattern's exit donut.
+
+`src/client/LobbyDemoController.luau` uses the allowed bot-only visual steering
+fallback: every curved segment, in either direction, requests the shared human
+smoke and friction audio regardless of charge. Signed visual slip eases smoothly
+between directions. This is an ambient display, not human Drift-key automation;
+no Drift awards, RaceLoadout, Mini Boost physics or human steering rules change.
+Existing distance/frame-rate effect LOD still applies.
+
+The complete bot geometry/driver/anchors are scaled once by 1.12 before shared
+particles/flames are attached, preserving their human smoke/effect profiles.
+Actual Studio comparison against human Kart05: all 22 BaseParts are exactly 12%
+larger (within float rounding), bot model scale 1.120000005, human scale 1.
+Bot visual bounds are 7.725293 x 2.982832 x 10.443239 studs. Smoke still lasts
+6.5-8 seconds. No factory, catalog, race, human test-drive or track-geometry edits.
+
+`tests/lobby_demo_validation.luau` sweeps all patterns over two complete cycles,
+including conservative enlarged sideways footprint clearance, both steering
+directions, per-bend friction, constant speed, tangent-safe joins and audience
+lifecycle. Existing boost template 57, feedback 77, remote VFX 1,402, showroom 38,
+mobile/layout 7,814 and kart audio validations PASS. All 178 sources compile;
+Rojo build/diff PASS. Actual Studio runtime sequence and release follow below.
+
+Final automated route result: 181,460 PASS. Actual approximately 87-second Studio
+sample: 779 samples, all three patterns seen, 70 left / 473 right turn samples,
+1,086 active smoke-emitter samples and 64 Boost samples; model remains bounded at
+87 descendants, bot scale 1.120000005. Conservative enlarged footprint stays on
+the existing apron throughout; no new client errors. Real human Kart05 Drive/
+Stop still works alongside the demo. Enlarged bot/feedback teardown PASS.
