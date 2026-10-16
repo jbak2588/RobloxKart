@@ -39,5 +39,22 @@ non-querying. No purchase, persistent state, reward, new external asset or audio
 - Physical Android/iPhone and published multi-human acceptance are not established
   by this Studio run. The bot is an ambient visual demonstration, not a racer.
 
-Production source parity, compilation/build, Git checkpoint and Publish outcome
-are recorded after the final release checks.
+## Release
+
+All 177 production sources match between the local tree and Studio Edit. All 177
+compile; Rojo build and diff checks PASS. The native candidate copy is stored
+locally at `artifacts/lobby-demo-bot/PRE_PUBLISH_NATIVE_CANDIDATE.rbxl` with SHA256
+`a2c4ee5c309ff58108625eb266330278d355f58d1a2e6a7d5380b31285ba43a5`.
+It preserves the existing native place; the Rojo validation scaffold was never
+opened or published in its place.
+
+Implementation commit `bd6463bcb04c9bd1020b47d8b52543a598068068` was pushed and
+matched origin/prototype/kart-physics before Publish. Roblox Studio confirmed
+successful publication to Kart Drift Masters and linked release **v748**, for
+PlaceId **127925465904803** / UniverseId **10768420544**. The local publish log is
+`artifacts/lobby-demo-bot/publish-output.txt`. This is publication confirmation,
+not published multi-human/device acceptance. Studio was returned to Edit mode.
+
+The pre-existing Studio PlayerPreferences API-access warning and unrelated asset
+203785492 type warning were present; this task does not change either setting or
+asset. No new demo client errors were observed.
