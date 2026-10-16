@@ -428,12 +428,15 @@ function MatchRoomService.start()
 				errorTo(player, "INVITE EXPIRED"); return
 			end
 			if not choose(player, first, second, invite.trackId) then return end
-			pcall(function() social:clearInvite(player.UserId) end)
+			pcall(function() social:respondInvite(player.UserId,invite,'ACCEPTED') end)
 			if record.state == "WAITING" and #record.stagedMembers + #(record.stagedBots or {}) < record.maxPlayers then
 				stagePlayer(player, record.roomId)
 			else queuePlayer(player, record.roomId, 1) end
 		elseif action == "DeclineInvite" then
-			pcall(function() social:clearInvite(player.UserId) end)
+			pcall(function()
+				local invite=social:getInvite(player.UserId)
+				if invite then social:respondInvite(player.UserId,invite,'DECLINED')end
+			end)
 		end
 	end)
 

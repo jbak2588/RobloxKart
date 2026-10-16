@@ -162,3 +162,21 @@ local messagesBefore = #remote.messages
 remote.OnServerEvent:Fire(player, "Invite", 9, {})
 check(#remote.messages == messagesBefore, "invalid request token is rejected")
 print(string.format("PASS: %d persistent room coordinator checks", count))
+check(callbacks.requiresHostStart(),'host invitation latches manual start for this room')
+check(not callbacks.onRoundStart(1),'unanswered stored invitation blocks start')
+local invite=social:getInvite(10)
+social:respondInvite(10,invite,'DECLINED')
+check(not social:getInvite(10)and social:getInviteStatus(10).response=='DECLINED','decline is consumed but observable by host')
+callbacks.onRoomPhase('WAITING',3)
+local replies=remote.messages[#remote.messages][2]
+check(replies.invitationResponses['10'].state=='DECLINED'and not replies.pendingInvites['10'],'decline displayed and no longer pending')
+social:sendInvite(9,directory:get(roomId));remote.OnServerEvent:Fire(player,'Invite',9,20)
+local accepted=social:getInvite(9);social:respondInvite(9,accepted,'ACCEPTED')
+callbacks.onRoomPhase('WAITING',3)
+replies=remote.messages[#remote.messages][2]
+check(replies.invitationResponses['9'].state=='ACCEPTED'and replies.pendingInvites['9'],'accepted entrant remains guarded until admission')
+check(not callbacks.onRoundStart(1),'accepted but absent entrant cannot be skipped')
+directory:queue(roomId,member(9,1));callbacks.onRoomPhase('WAITING',3)
+replies=remote.messages[#remote.messages][2]
+check(not replies.pendingInvites['9']and replies.invitationResponses['9'].state=='ACCEPTED','accepted member no longer awaiting response')
+print('PASS '..count..' coordinator checks including invitation decisions')

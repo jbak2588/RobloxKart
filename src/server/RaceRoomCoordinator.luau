@@ -27,6 +27,22 @@ function RaceRoomCoordinator.start(payload)
 	local quickMatch=false
 	local practiceOnly=false
 	local pendingInvites, sendingInvites = {}, {}
+	local hostStartRequired=false
+	local invitationResponses={}
+	local function waitingForInvites()
+		if next(sendingInvites)then return true end
+		for _,invite in pendingInvites do if invite.hostUserId==hostUserId and invite.expiresAt>os.time()then return true end end
+		return false
+	end
+	local function reflectInviteGate()
+		local count=0
+		for _,invite in pendingInvites do if invite.hostUserId==hostUserId and invite.expiresAt>os.time()then count+=1 end end
+		for id in sendingInvites do if not pendingInvites[id]then count+=1 end end
+		for _,player in Players:GetPlayers()do
+			player:SetAttribute('RaceHostStartRequired',hostStartRequired)
+			player:SetAttribute('RaceInvitePendingCount',count)
+		end
+	end
 	local botActionBusy, botActionAt = false, -math.huge
 	local connections = {}
 	local function clearBot()
@@ -76,14 +92,23 @@ function RaceRoomCoordinator.start(payload)
 				kind = if member.priority == 1 then "INVITED" elseif member.priority == 2 then "RIVAL" else "PUBLIC" })
 		end
 		local pending = {}
+		for id,response in invitationResponses do if response.expiresAt<=os.time()then invitationResponses[id]=nil end end
 		for userId,cachedInvite in pendingInvites do
-			local ok,invite=pcall(function() return social:getInvite(userId) end)
+			local ok,invite=pcall(function() return social:getInviteStatus(userId) end)
 			if ok then
-				if invite and invite.hostUserId==record.hostUserId and invite.roomId==roomId and not excluded[userId] then pending[tostring(userId)]=invite.expiresAt
-				else pendingInvites[userId]=nil end
+				local same=invite and invite.hostUserId==record.hostUserId and invite.roomId==roomId and invite.expiresAt==cachedInvite.expiresAt
+				if same and invite.response then
+					invitationResponses[tostring(userId)]={name=cachedInvite.targetName or tostring(userId),state=invite.response,expiresAt=cachedInvite.expiresAt}
+				end
+				if same and invite.response~='DECLINED'and not excluded[userId] then pending[tostring(userId)]=invite.expiresAt
+				else
+					if excluded[userId]then invitationResponses[tostring(userId)]={name=cachedInvite.targetName or tostring(userId),state='ACCEPTED',expiresAt=cachedInvite.expiresAt}end
+					pendingInvites[userId]=nil
+				end
 			elseif cachedInvite.expiresAt>os.time() and cachedInvite.hostUserId==record.hostUserId and not excluded[userId] then pending[tostring(userId)]=cachedInvite.expiresAt end
 		end
-		local safe = { roomId=roomId, pendingInvites=pending, hostUserId = record.hostUserId, hostName = record.hostName,
+		local safe = { roomId=roomId, pendingInvites=pending, invitationResponses=invitationResponses, hostStartRequired=hostStartRequired,
+			hostUserId = record.hostUserId, hostName = record.hostName,
 			lobbyTitle=directory:display(record).lobbyTitle,lobbyTitleKind=directory:display(record).lobbyTitleKind,
 			state = record.state, count = record.currentRacers,
 			maxPlayers = record.maxPlayers, queuedCount = #record.queued,
@@ -97,7 +122,12 @@ function RaceRoomCoordinator.start(payload)
 			{botId="Bot01", name="KDM Rookie [BOT]", available=record.state == "WAITING"
 				and #safe.activeBots == 0 and (#record.stagedMembers + #(record.stagedBots or {})) < record.maxPlayers}
 		} else {}
-		for _, player in Players:GetPlayers() do remote:FireClient(player, "RoomSnapshot", safe) end
+		local pendingCount=0;for _ in pending do pendingCount+=1 end
+		for _, player in Players:GetPlayers() do
+			player:SetAttribute('RaceHostStartRequired',hostStartRequired)
+			player:SetAttribute('RaceInvitePendingCount',pendingCount)
+			remote:FireClient(player, "RoomSnapshot", safe)
+		end
 	end
 
 	local function publish(newPhase, count)
@@ -111,7 +141,7 @@ function RaceRoomCoordinator.start(payload)
 	end
 
 	local function startRound(hostUserId, expectedCount)
-		if botActionBusy then return false end
+		if botActionBusy or (hostStartRequired and waitingForInvites())then return false end
 		local ok, record = pcall(function()
 			return directory:startRound(roomId, hostUserId, expectedCount)
 		end)
@@ -251,7 +281,15 @@ function RaceRoomCoordinator.start(payload)
 		end
 		if action ~= "Invite" or type(targetUserId) ~= "number" or targetUserId%1~=0 or targetUserId<=0 then return end
 		if requestId ~= nil and (type(requestId) ~= "number" or requestId%1 ~= 0 or requestId <= 0) then return end
-		local function fail() remote:FireClient(player,"InviteFailed",{targetUserId=targetUserId,requestId=requestId}) end
+		local ownsSend=false
+		local function fail()
+			if ownsSend then sendingInvites[targetUserId]=nil end;reflectInviteGate()
+			remote:FireClient(player,"InviteFailed",{targetUserId=targetUserId,requestId=requestId})
+		end
+		if player.UserId~=hostUserId or practiceOnly then fail();return end
+		if sendingInvites[targetUserId]then return end
+		-- Pause auto-start before the first yielding directory/storage request.
+		hostStartRequired=true;sendingInvites[targetUserId]=true;ownsSend=true;reflectInviteGate()
 		local ok, record = pcall(function() return directory:get(roomId) end)
 		if not ok or not record or record.matchId~=matchId or record.hostUserId ~= player.UserId then fail(); return end
 		if record.practiceOnly then fail();return end
@@ -262,8 +300,6 @@ function RaceRoomCoordinator.start(payload)
 		if not present then fail(); return end
 		for _, entry in available do
 			if entry.userId == targetUserId then
-				if sendingInvites[targetUserId] then return end
-				sendingInvites[targetUserId]=true
 				local sent,invite=pcall(function()
 					local previous=social:getInvite(targetUserId)
 					if previous and previous.hostUserId==player.UserId and previous.roomId==roomId then return previous end
@@ -271,7 +307,10 @@ function RaceRoomCoordinator.start(payload)
 				end)
 				sendingInvites[targetUserId]=nil
 				if not sent or not invite then fail(); return end
+				invite=table.clone(invite);invite.targetName=entry.name
 				pendingInvites[targetUserId]=invite
+				invitationResponses[tostring(targetUserId)]=nil
+				pcall(snapshot)
 				remote:FireClient(player,"InviteSent",{targetUserId=targetUserId,requestId=requestId,roomId=roomId,expiresAt=invite.expiresAt})
 				return
 			end
@@ -313,6 +352,7 @@ function RaceRoomCoordinator.start(payload)
 			return false
 		end,
 		isQuickMatch=function()return quickMatch end,onWarmupArrival=warmupArrival,
+		requiresHostStart=function()return hostStartRequired end,
 		isPractice=function()return practiceOnly end,
 		getRoomHostUserId = function() return hostUserId end,
 		onRoundReady = nextRound, onRoomLeave = leave, stop = stop }

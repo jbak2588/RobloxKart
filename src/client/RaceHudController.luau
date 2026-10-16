@@ -490,6 +490,7 @@ function RaceHudController.start()
 	availabilityTitle.Size = UDim2.new(1, -16, 0, 20)
 	availabilityTitle.TextSize = 13
 	availabilityTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+	availabilityTitle.TextTruncate=Enum.TextTruncate.AtEnd
 	local availabilityRows = {}
 	local roomRacerRows = require(script.Parent:WaitForChild("RaceRoomRacerRows"))
 	local availableHasBot = false
@@ -1376,6 +1377,14 @@ function RaceHudController.start()
 			local botRowCount = if entries and entries[1] and entries[1].botId then 1 else 0
 			availabilityTitle.Text = if roomSnapshot then string.format("AVAILABLE RACERS  %d", availableCount+botRowCount)
 				else string.format("AVAILABLE IN SERVER  %d", availableCount)
+			if isHost and roomSnapshot and roomSnapshot.invitationResponses then
+				local responses={}
+				for _,response in roomSnapshot.invitationResponses do
+					table.insert(responses,response.state..': '..response.name)
+				end
+				table.sort(responses)
+				if #responses>0 then availabilityTitle.Text=table.concat(responses,' · ')end
+			end
 			for index, row in availabilityRows do
 				if entries then
 					local entry = entries[index]
@@ -1424,7 +1433,10 @@ function RaceHudController.start()
 		lobbyStart.Visible = lobbyWaiting and isHost
 		lobbyStart.Text = if not allReady then string.format("WAIT ITEMS %d/%d",itemsReady,itemsRequired)
 			else if participantCount == 1 then "START SOLO" else "START RACE"
-		if player:GetAttribute('RacePublicMatch')==true then
+		if player:GetAttribute('RaceHostStartRequired')==true then
+			local pendingInvites=getNumberAttribute(player,'RaceInvitePendingCount',0)
+			if pendingInvites>0 then lobbyStart.Active=false;lobbyStart.Text='WAIT REPLY'end
+		elseif player:GetAttribute('RacePublicMatch')==true then
 			lobbyStart.Active=false;lobbyStart.Text=if allReady then 'AUTO START'else 'SELECT ITEMS'
 		end
 		lobbyLeave.Visible = lobbyWaiting
@@ -1538,6 +1550,7 @@ function RaceHudController.start()
 	end)
 
 	for _, attributeName in {
+		'RaceHostStartRequired','RaceInvitePendingCount',
 		"RaceSessionId",
 		"RaceState",
 		"RaceFinishPhase",

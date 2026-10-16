@@ -52,10 +52,24 @@ function RoomSocialDirectory:sendInvite(targetUserId, room)
 end
 
 function RoomSocialDirectory:getInvite(userId)
+	local invite=self:getInviteStatus(userId)
+	return if invite and not invite.response then invite else nil
+end
+
+function RoomSocialDirectory:getInviteStatus(userId)
 	local invite = self.invites:GetAsync(tostring(userId))
 	if type(invite) ~= "table" or type(invite.expiresAt) ~= "number"
 		or invite.expiresAt <= self.now() then return nil end
 	return invite
+end
+
+function RoomSocialDirectory:respondInvite(userId,expected,response)
+	assert(response=='ACCEPTED'or response=='DECLINED','Invalid invite response')
+	return self.invites:UpdateAsync(tostring(userId),function(current)
+		if type(current)~='table'or current.roomId~=expected.roomId or current.hostUserId~=expected.hostUserId
+			or current.expiresAt~=expected.expiresAt or current.expiresAt<=self.now()or current.response then return nil end
+		local nextInvite=table.clone(current);nextInvite.response=response;return nextInvite
+	end,math.max(1,expected.expiresAt-self.now()))
 end
 
 function RoomSocialDirectory:clearInvite(userId)

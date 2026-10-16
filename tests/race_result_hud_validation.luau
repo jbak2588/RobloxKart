@@ -267,6 +267,13 @@ set("RaceState","PRE_RACE")
 check(string.find(lobby.Status.Text,"ITEMS READY  2 / 2",1,true),"notice expires without new attributes")
 lobby.StartRace.Activated:Fire()
 check(remote.lastFire[1]=="StartRace","host START RACE sends server action")
+set('RacePublicMatch',true);set('RaceHostStartRequired',true);set('RaceInvitePendingCount',1)
+check(not lobby.StartRace.Active and lobby.StartRace.Text=='WAIT REPLY','invited quick room waits for invitation response')
+set('RaceInvitePendingCount',0)
+check(lobby.StartRace.Active and lobby.StartRace.Text=='START RACE','responded invited room offers explicit host start')
+set('RaceHostStartRequired',false)
+check(not lobby.StartRace.Active and lobby.StartRace.Text=='AUTO START','ordinary quick matchmaking remains automatic')
+set('RacePublicMatch',false)
 for _,size in {rb.Vector2.new(932,430),rb.Vector2.new(844,390),rb.Vector2.new(748,303),rb.Vector2.new(724,311)} do
  safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
  local origin=lobby.AbsolutePosition-hud.AbsolutePosition

@@ -1081,7 +1081,7 @@ function RaceController.start(options)
 			else removeRacer(player) end
 		elseif (action == "StartRace" or (action == "StartSolo" and session:count() == 1))
 			and session.phase == "WAITING" and session:count() >= 1
-			and session:count() < session.maxPlayers
+			and (session:count() < session.maxPlayers or (options and options.requiresHostStart and options.requiresHostStart()))
 			and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE"
 			and (if persistentRoom and options.getRoomHostUserId
 				then options.getRoomHostUserId() else session.hostUserId) == player.UserId then
@@ -1196,7 +1196,8 @@ function RaceController.start(options)
 			publishSession(now)
 			local publicReady=options and options.isQuickMatch and options.isQuickMatch()
 				and ((options.isPractice and options.isPractice())or session:humanCount()>=2 or (session:humanCount()==1 and session:count()>1))
-			if (session:count() == session.maxPlayers or publicReady) and allItemsReady()and now-lastPublicStart>=1 then
+			local hostStart=options and options.requiresHostStart and options.requiresHostStart()
+			if not hostStart and (session:count() == session.maxPlayers or publicReady) and allItemsReady()and now-lastPublicStart>=1 then
 				lastPublicStart=now;startSharedCountdown(now)
 			end
 		end
