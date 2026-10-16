@@ -228,3 +228,12 @@ sample: 779 samples, all three patterns seen, 70 left / 473 right turn samples,
 87 descendants, bot scale 1.120000005. Conservative enlarged footprint stays on
 the existing apron throughout; no new client errors. Real human Kart05 Drive/
 Stop still works alongside the demo. Enlarged bot/feedback teardown PASS.
+
+Release: all 178 production source hashes match Studio Edit. Implementation
+commit `4811872c6bba354508f53050e9f4f783a9f3d1f3` was pushed and matched origin
+before publication. Studio confirmed successful publication to the existing
+Kart Drift Masters place and linked **v752**, PlaceId 127925465904803 / UniverseId
+10768420544. Evidence: `artifacts/lobby-demo-bot/patterns-publish-output.txt`.
+Existing native place published directly; Studio remains in Edit. User's mobile
+boost-flame acceptance applies to v751; the new three-pattern/12% presentation
+still requires published device acceptance.
