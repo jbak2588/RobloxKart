@@ -237,3 +237,39 @@ Kart Drift Masters place and linked **v752**, PlaceId 127925465904803 / Universe
 Existing native place published directly; Studio remains in Edit. User's mobile
 boost-flame acceptance applies to v751; the new three-pattern/12% presentation
 still requires published device acceptance.
+
+## Follow-up: one drift-only lap in each Lobby side wing
+
+User explicitly authorized implementation, commit/push and Publish after the
+side-space feasibility review. Baseline: `07a7f12`, matching origin before work.
+Only the shared presentation route changes; existing native building, paving,
+barriers, human controls/physics, effects and 1.12 bot scale are preserved.
+
+The shared sequence is now WIDE_LOOP, S_SLALOM, RIGHT_SIDE_DRIFT, DOUBLE_DONUT,
+LEFT_SIDE_DRIFT. One cycle lasts 153.18 seconds. The right excursion lasts 32.73
+seconds including approach/return, with one radius-50 circle centered at zone
+local (170,134). The left lasts 36.46 seconds, with one radius-35 circle at
+(-275,134). Curved entry/return paths share forward tangents at joins and keep
+the central building recess clear. Both complete side excursions explicitly
+return `boosting=false`: no flame or boost-launch sound, while turns use the
+existing human-profile drift smoke and quiet spatial friction audio.
+
+Automated validation: 391,410 route/footprint/continuity/audience/lifecycle checks
+PASS across two full cycles. Coverage includes one full revolution per side,
+no boost throughout entry/circle/return, continuous circle drift, conservative
+12%-enlarged sideways bounds and bounded heading changes across every sample.
+A 20 Hz clearance probe measured minimum enlarged-corner road-boundary clearance
+of 21.15 studs on the right excursion and 16.90 on the left. Shared boost 57,
+feedback 77, world VFX and kart audio checks PASS; all 178 production sources
+compile, Rojo build and diff check PASS. Studio/release evidence follows below.
+
+Actual Studio Play: 158.26 seconds / 1,899 samples, all five patterns observed,
+zero side boost violations and zero circle drift-state failures. Both side
+circles had playing spatial friction audio. The left circle recorded 150 active
+smoke-emitter samples at close range. Right-wing close-range replay: 96 samples,
+190 active smoke-emitter samples, 96 playing friction samples, no drift failures,
+no active boost flames and no boost-start sound. Earlier distant right-wing
+samples correctly had smoke suppressed by existing distance LOD. The model stayed
+bounded at 87 descendants; no bot-module runtime errors. Existing Studio API /
+Core UI warnings remain separate from this route change. Returned to Edit with
+no Play bot; all 178 production source hashes match the local files.

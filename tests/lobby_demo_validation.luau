@@ -7,7 +7,7 @@ local function check(v,label) assert(v,label);count+=1 end
 -- Sweep the real footprint through every pose, including sideways donut exits.
 local previous
 local seen,leftTurns,rightTurns={},0,0
-check(route.PatternCount==3 and #route.Patterns==3,'three shared patterns')
+check(route.PatternCount==5 and #route.Patterns==5,'three original patterns plus two side excursions')
 check(route.VisualScale>=1.10 and route.VisualScale<=1.15,'bot-only approved enlargement range')
 for i=0,math.ceil(route.CycleSeconds*240) do
  local t=i/120
@@ -23,19 +23,31 @@ for i=0,math.ceil(route.CycleSeconds*240) do
  if previous then
   local distance=math.sqrt((x-previous[1])^2+(z-previous[2])^2)
   check(distance<=route.Speed/120+.0001,"continuous travel across donut and lap joins")
+  check(dx*previous[3]+dz*previous[4]>=math.cos(math.rad(180)/120),'no abrupt heading change on entry, circle or return')
  end
  if phase=="DONUT" then
   local radius=if pattern=='DOUBLE_DONUT'then 22 else 28
   check(math.abs(math.sqrt((x+120)^2+(z-(50-radius))^2)-radius)<.01,"circle is in front of Lobby exit")
+ elseif phase=="SIDE_DRIFT" then
+  local meta
+  for _,v in route.Patterns do if v.Name==pattern then meta=v end end
+  check(meta and meta.Side~=nil,'side circle identity')
+  check(math.abs(math.sqrt((x-meta.SideCenterX)^2+(z-meta.SideCenterZ)^2)-meta.SideRadius)<.01,'exactly authored side circle')
+  check(math.abs(drift)>=.2 and not boosting,'side circle always drifts without boost')
  elseif phase=="TURN" then check(math.abs(drift)>=.2,'all left/right bends produce friction regardless of charge')
  else check(drift==0,"no smoke while driving straight") end
  if drift<0 then leftTurns+=1 elseif drift>0 then rightTurns+=1 end
  check(type(boosting)=='boolean','explicit per-pattern boost phase')
- previous={x,z}
+ if pattern=='RIGHT_SIDE_DRIFT' or pattern=='LEFT_SIDE_DRIFT' then check(not boosting,'entire side entry/circle/return has no boost') end
+ previous={x,z,dx,dz}
 end
 check(seen.WIDE_LOOP and seen.S_SLALOM and seen.DOUBLE_DONUT,'all three patterns mixed in a shared cycle')
+check(seen.RIGHT_SIDE_DRIFT and seen.LEFT_SIDE_DRIFT,'both side excursions appear every cycle')
 check(leftTurns>0 and rightTurns>0,'both steering directions drift')
 for _,pattern in route.Patterns do
+ if pattern.Side then
+  check(math.abs((pattern.SideEndSeconds-pattern.SideStartSeconds)*route.Speed-2*math.pi*pattern.SideRadius)<.01,'one full side revolution only')
+ end
  local t=pattern.StartSeconds+route.CycleSeconds
  local ax,az,adx,adz=route.sample(t-.001)
  local bx,bz,bdx,bdz=route.sample(t+.001)
