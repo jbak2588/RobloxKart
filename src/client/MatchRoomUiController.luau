@@ -5,6 +5,7 @@ local GuidanceState = require(script.Parent:WaitForChild("HubGuidanceState"))
 local Theme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KDMUiTheme"))
 local Titles = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LobbyTitleCatalog"))
 local LobbyCreateView = require(script.Parent:WaitForChild("LobbyCreateView"))
+local StyleHelper = require(script.Parent:WaitForChild("KDMUiStyleHelper"))
 local MatchRoomUiController = {}
 local started = false
 
@@ -32,12 +33,14 @@ local function button(parent, text, position, size, callback)
 	item.Text = text
 	item.TextColor3 = Theme.TextPrimary
 	item.TextSize = 19
-	item.Font = Enum.Font.GothamBold
+	item.Font = Enum.Font.GothamBlack
+	item.TextStrokeTransparency = 0.15
+	item.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 	item.Parent = parent
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0,8);corner.Parent = item
+	corner.CornerRadius = UDim.new(0,12);corner.Parent = item
 	local stroke = Instance.new("UIStroke")
-	stroke.Color,stroke.Thickness,stroke.Transparency = Theme.TextSecondary,1.5,.65
+	stroke.Color,stroke.Thickness = Color3.fromRGB(10, 15, 25), 2.5
 	stroke.ApplyStrokeMode,stroke.Parent = Enum.ApplyStrokeMode.Border,item
 	item.TextWrapped = true
 	item.Activated:Connect(callback)
@@ -71,10 +74,12 @@ function MatchRoomUiController.start()
 	panel.BackgroundColor3 = Theme.Panel
 	panel.BorderSizePixel = 0
 	panel.Parent = shade
+	StyleHelper.applyModalPanel(panel)
 	local panelCorner = Instance.new("UICorner")
-	panelCorner.CornerRadius = UDim.new(0,12);panelCorner.Parent = panel
+	panelCorner.CornerRadius = UDim.new(0,14);panelCorner.Parent = panel
 	local panelStroke = Instance.new("UIStroke")
-	panelStroke.Color,panelStroke.Transparency,panelStroke.Parent = Theme.TextSecondary,.65,panel
+	panelStroke.Color,panelStroke.Thickness,panelStroke.Transparency = Color3.fromRGB(60, 110, 180),3,0
+	panelStroke.ApplyStrokeMode,panelStroke.Parent = Enum.ApplyStrokeMode.Border,panel
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MaxSize = Vector2.new(650, 650)
 	constraint.Parent = panel
@@ -84,6 +89,13 @@ function MatchRoomUiController.start()
  local guidance = label(panel, "NextAction", UDim2.new(1,-32,0,24), UDim2.fromOffset(16,70), "", 12)
  guidance.AutoLocalize, guidance.TextWrapped, guidance.TextColor3 = true, true, Theme.TextSecondary
  status.TextColor3 = Theme.TextSecondary
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Name = "CloseButton"
+	closeBtn.Size = UDim2.fromOffset(36, 36)
+	closeBtn.AnchorPoint = Vector2.new(1, 0)
+	closeBtn.Position = UDim2.new(1, -12, 0, 10)
+	closeBtn.Parent = panel
+	StyleHelper.applyCloseButton(closeBtn)
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "RoomList"
 	list.Position = UDim2.new(0, 16, 0, 96)
@@ -109,6 +121,12 @@ function MatchRoomUiController.start()
 		primary.Text = primaryText
 		back.Text = backText
   back.BackgroundColor3 = if backText == "LEAVE" then Theme.Danger else Theme.Panel
+		StyleHelper.apply3DButton(primary, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
+		if backText == "LEAVE" then
+			StyleHelper.apply3DButton(back, Color3.fromRGB(255, 85, 85), Color3.fromRGB(235, 55, 55), Color3.fromRGB(210, 35, 35), 12, 2.5)
+		else
+			StyleHelper.apply3DButton(back, Color3.fromRGB(120, 140, 170), Color3.fromRGB(70, 90, 120), Color3.fromRGB(40, 60, 90), 12, 2.5)
+		end
 		primaryConnection = primary.Activated:Connect(function()
    if createView and createView.isOpen() then return end
    primaryAction()

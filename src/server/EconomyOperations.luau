@@ -6,12 +6,12 @@ function Ops.reduce(S,schema,op)
   and op.itemId=='KDM_V2_WING' and (op.kind~='EQUIP_WING' or type(op.equipped)=='boolean')
   and (op.kind~='GRANT_PASS' or S.integer(op.passId) and op.passId>0)
  if not valid then return function() return nil,'INVALID_OPERATION' end end
- local copy=S.freeze(S.clone(op));local signature=S.canonical(copy);local key='economy:'..copy.id
+ local copy=S.freeze(S.clone(op));local canonical=S.canonical(copy);local hash=S.sha256(canonical);local key='economy:'..copy.id
  return function(previous)
   if not previous or not schema.validate(previous,S.userKey(copy.userId)) or previous.deleted then return nil,'READ_ONLY' end
   local receipt=previous.receipts[key]
   if receipt then
-   local match = receipt.signature==signature or (type(receipt.signature)=='string' and receipt.signature==S.sha256(signature))
+   local match = receipt.signature==canonical or receipt.signature==hash
    return if match then S.clone(previous) else nil,
     if match then 'REPLAY' else 'IDENTITY_MISMATCH'
   end
@@ -30,7 +30,7 @@ function Ops.reduce(S,schema,op)
   p.cosmetics.equippedPartIdsBySlot.Wing=if copy.kind=='EQUIP_WING' and not copy.equipped then nil else copy.itemId
   if not S.integer(p.wallet.ledgerRevision+1) then return nil,'WALLET_CAPACITY' end
   p.wallet.ledgerRevision+=1
-  p.receipts[key]={signature=signature}
+  p.receipts[key]={signature=hash}
   if S.pruneAndCompressReceipts then
    S.pruneAndCompressReceipts(p, key, schema.maxReceipts)
   end

@@ -9,6 +9,7 @@ function Controller.start()
  local Factory=require(Shared.KartVisualFactory);local Framing=require(Shared.KartPreviewFraming)
  local Icons=require(script.Parent.KDMIconCatalog);local Layout=require(script.Parent.ShopLayout)
  local Garage=require(script.Parent.GarageUiController);local Http=game:GetService('HttpService')
+ local StyleHelper=require(script.Parent.KDMUiStyleHelper)
  local Market=game:GetService('MarketplaceService')
  local playerGui=p:WaitForChild('PlayerGui');if playerGui:FindFirstChild('KDMGarageShop') then return end
  local colors=Layout.colors()
@@ -26,8 +27,9 @@ function Controller.start()
   b.BackgroundColor3=colors.Card;b.TextColor3=Color3.new(1,1,1);b.Font=Enum.Font.GothamBold;b.TextSize=14;b.TextWrapped=true;b.Parent=parent;Layout.style(b);return b
  end
  local title=label(panel,'Wallet','GARAGE SHOP · K$ --',0,44);title.TextXAlignment=Enum.TextXAlignment.Left
- local close=button(panel,'Close','×',0);close.Size=UDim2.fromOffset(44,44);close.AnchorPoint=Vector2.new(1,0)
- close.BackgroundColor3=Color3.fromRGB(238,64,64);close.TextSize=20;close.TextColor3=Color3.new(1,1,1)
+ local close=button(panel,'Close','X',0);close.Size=UDim2.fromOffset(40,40);close.AnchorPoint=Vector2.new(1,0)
+ close.Position=UDim2.new(1,-8,0,8)
+ StyleHelper.applyCloseButton(close)
  local tabs={};for _,name in {'WINGS','RACE ITEMS','MY INVENTORY'}do tabs[name]=button(panel,name,name,56)end
  local body=Instance.new('ScrollingFrame');body.Name='Products';body.BackgroundTransparency=1;body.BorderSizePixel=0
  body.ScrollBarThickness=6;body.CanvasSize=UDim2.new();body.Parent=panel
@@ -58,8 +60,10 @@ function Controller.start()
  local modal=Instance.new('TextButton');modal.Name='ConfirmationBackdrop';modal.Text='';modal.Size=UDim2.fromScale(1,1);modal.BackgroundColor3=colors.Background;modal.BackgroundTransparency=.82;modal.ZIndex=9;modal.Modal=true;modal.Visible=false;modal.Parent=root
  confirmation:GetPropertyChangedSignal('Visible'):Connect(function()modal.Visible=confirmation.Visible end)
  local confirmText=label(confirmation,'Description','',12,80);confirmText.ZIndex=11
- local yes=button(confirmation,'Confirm','CONFIRM',116);yes.ZIndex=11;yes.BackgroundColor3=colors.Yellow;yes.TextColor3=colors.Background
+ local yes=button(confirmation,'Confirm','CONFIRM',116);yes.ZIndex=11
+ StyleHelper.apply3DButton(yes, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
  local no=button(confirmation,'Cancel','CANCEL',116);no.ZIndex=11
+ StyleHelper.apply3DButton(no, Color3.fromRGB(120, 140, 170), Color3.fromRGB(70, 90, 120), Color3.fromRGB(40, 60, 90), 12, 2.5)
  local data={counts={},canPurchase=false};local busy=false;local pending=nil;local epoch=0;local tab='WINGS'
  local previewWing=true;local variants={};local colorIndex=1;local preview=nil;local viewport=nil;local camera=nil
  local passPrice=nil;local confirmAction=nil;local restoreGarage=false

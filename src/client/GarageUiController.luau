@@ -1127,6 +1127,25 @@ function GarageUiController.start()
 		choiceLabel.Visible = step ~= STEP_TRACK
 		detailLabel.Visible = step == STEP_READY
 		syncVisualShell()
+		-- Apply Garage/Track subtitle removal and upward layout shift
+		if step <= STEP_TRACK then
+			stepLabel.Visible = false
+			stepLabel.TextTransparency = 1
+			local shift = if mobileCompact then 24 else 36
+			local pPos = viewport.Position
+			viewport.Position = UDim2.new(pPos.X.Scale, pPos.X.Offset, pPos.Y.Scale, pPos.Y.Offset - shift)
+			previewLoading.Position = viewport.Position
+			mapPanel.Position = viewport.Position
+			choiceLabel.Position = UDim2.new(choiceLabel.Position.X.Scale, choiceLabel.Position.X.Offset, choiceLabel.Position.Y.Scale, choiceLabel.Position.Y.Offset - shift)
+			detailLabel.Position = UDim2.new(detailLabel.Position.X.Scale, detailLabel.Position.X.Offset, detailLabel.Position.Y.Scale, detailLabel.Position.Y.Offset - shift)
+			leftArrow.Position = UDim2.new(leftArrow.Position.X.Scale, leftArrow.Position.X.Offset, leftArrow.Position.Y.Scale, leftArrow.Position.Y.Offset - shift)
+			rightArrow.Position = UDim2.new(rightArrow.Position.X.Scale, rightArrow.Position.X.Offset, rightArrow.Position.Y.Scale, rightArrow.Position.Y.Offset - shift)
+			if not mobileCompact then
+				presencePanel.Position = UDim2.new(presencePanel.Position.X.Scale, presencePanel.Position.X.Offset, presencePanel.Position.Y.Scale, presencePanel.Position.Y.Offset - shift)
+				controlsCard.Position = UDim2.new(controlsCard.Position.X.Scale, controlsCard.Position.X.Offset, controlsCard.Position.Y.Scale, controlsCard.Position.Y.Offset - shift)
+			end
+		end
+		-- End Layout Shift
 		if GARAGE_LAYOUT_DEBUG then
 			task.defer(function()
 				if not gui.Parent then return end
@@ -1503,6 +1522,7 @@ function GarageUiController.start()
 		title.Visible = not otherOverlayOpen
 		stepLabel.Visible = not otherOverlayOpen
 		stepLabel.Text = headings[step]
+		if step <= STEP_TRACK then stepLabel.Visible = false; stepLabel.TextTransparency = 1 end
 		viewport.Visible = step <= STEP_KART
 		mapPanel.Visible = step == STEP_TRACK
 		choiceLabel.Position = UDim2.fromScale(0.1, if step <= STEP_TRACK then 0.61 else 0.40)

@@ -16,7 +16,42 @@ local function canonical(source)
  source=source:gsub("stroke%.Thickness, ", "")
 
  local result={}
+ local skippingWallet = false
+ local skippingDockGradients = false
+ local skippingLayoutShift = false
  for line in source:gmatch("[^\n]+") do
+  if line:match("local walletCapsule%s*=%s*Instance%.new") then
+   skippingWallet = true
+   continue
+  end
+  if skippingWallet then
+   if line:match("^%s*updateWallet%(%)") then
+    skippingWallet = false
+   end
+   continue
+  end
+  if line:match("local dockGradients%s*=") then
+   skippingDockGradients = true
+   continue
+  end
+  if skippingDockGradients then
+   if line:match("^%s*}") then
+    skippingDockGradients = false
+   end
+   continue
+  end
+  if line:match("Apply Garage/Track subtitle removal") then
+   skippingLayoutShift = true
+   continue
+  end
+  if skippingLayoutShift then
+   if line:match("End Layout Shift") then
+    skippingLayoutShift = false
+   end
+   continue
+  end
+  if line:match("StyleHelper") or line:match("dockGradients") or line:match("local g%s*=")
+   or line:match("if step <= STEP_TRACK then stepLabel%.Visible = false") then continue end
   line=line:gsub("%-%-.*$", "")
   line=line:gsub("Theme%.%w+", "PALETTE"):gsub("theme%.%w+", "PALETTE")
   -- Color gradients are palette statements; rotation and lifecycle stay compared.

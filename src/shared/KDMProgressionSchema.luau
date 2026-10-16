@@ -363,30 +363,26 @@ function Schema.sha256(message)
 end
 
 function Schema.pruneAndCompressReceipts(profile, currentKey, maxReceipts)
- if type(profile) ~= "table" or type(profile.receipts) ~= "table" then return end
- for id, receipt in profile.receipts do
-  if type(receipt) == "table" and type(receipt.signature) == "string" and #receipt.signature > 128 then
-   receipt.signature = Schema.sha256(receipt.signature)
+if type(profile) ~= "table" or type(profile.receipts) ~= "table" then return end
+for id, receipt in profile.receipts do
+ if type(receipt) == "table" and type(receipt.signature) == "string" and #receipt.signature > 128 then
+  receipt.signature = Schema.sha256(receipt.signature)
+ end
+end
+local limit = maxReceipts or 16384
+if limit >= 1000 then
+ local candidates = {}
+ for id in profile.receipts do
+  if id ~= currentKey then
+   table.insert(candidates, id)
   end
  end
- local limit = maxReceipts or 16384
- if limit >= 1000 then
-  local total = 0
-  local candidates = {}
-  for id in profile.receipts do
-   total += 1
-   if id ~= currentKey then
-    table.insert(candidates, id)
-   end
-  end
-  if total > 40 then
-   table.sort(candidates)
-   local toRemove = total - 40
-   for i = 1, math.min(toRemove, #candidates) do
-    profile.receipts[candidates[i]] = nil
-   end
+ if #candidates > 0 then
+  for i = 1, #candidates do
+   profile.receipts[candidates[i]] = nil
   end
  end
+end
 end
 
 return table.freeze(Schema)

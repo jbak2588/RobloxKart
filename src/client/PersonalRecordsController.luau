@@ -63,17 +63,18 @@ function Controller.lines(response)
  return lines
 end
 function Controller.createRecordsPanel(gui)
+ local StyleHelper = require(script.Parent:WaitForChild("KDMUiStyleHelper"))
  local panel=Instance.new("ScrollingFrame")
  panel.Name="SavedRecords";panel.AnchorPoint=Vector2.new(1,0);panel.Position=UDim2.new(1,-12,0,60)
  panel.Size=UDim2.new(0.8,0,0.5,0);panel.AutomaticCanvasSize=Enum.AutomaticSize.None
  panel.CanvasSize=UDim2.new();panel.ScrollBarThickness=8
  panel.Active=true;panel.ScrollingEnabled=true;panel.ScrollingDirection=Enum.ScrollingDirection.Y
  panel.BackgroundColor3=Color3.fromRGB(20,30,44);panel.Visible=false;panel.Parent=gui
+ StyleHelper.applyModalPanel(panel)
  local limit=Instance.new("UISizeConstraint");limit.MaxSize=Vector2.new(440,280);limit.Parent=panel
- local close=Instance.new("TextButton");close.Name="Close";close.Text="×";close.Size=UDim2.fromOffset(32,32)
- close.AnchorPoint=Vector2.new(1,0);close.Position=UDim2.new(1,-6,0,6);close.BackgroundColor3=Color3.fromRGB(238,64,64)
- close.TextColor3=Color3.new(1,1,1);close.Font=Enum.Font.GothamBold;close.TextSize=20;close.ZIndex=15;close.Parent=panel
- local closeCorner=Instance.new("UICorner");closeCorner.CornerRadius=UDim.new(0,6);closeCorner.Parent=close
+ local close=Instance.new("TextButton");close.Name="Close";close.Text="X";close.Size=UDim2.fromOffset(36,36)
+ close.AnchorPoint=Vector2.new(1,0);close.Position=UDim2.new(1,-8,0,8);close.ZIndex=15;close.Parent=panel
+ StyleHelper.applyCloseButton(close)
  close.Activated:Connect(function() panel.Visible=false end)
  local label=Instance.new("TextLabel")
  label.Name="ReadOnlyRecords";label.Position=UDim2.fromOffset(10,8);label.Size=UDim2.new(1,-28,0,0)

@@ -29,6 +29,15 @@ function Controller.start()
  if playerGui:FindFirstChild('KDMMyProfile') then return end
  local catalog = require(game:GetService('ReplicatedStorage').Shared.KartCatalog)
  local Style = require(script.Parent.ShopLayout)
+ local StyleHelper = {
+  applyCloseButton = function() end,
+  apply3DButton = function() end,
+  applyModalPanel = function() end,
+ }
+ pcall(function()
+  local real = require(script.Parent.KDMUiStyleHelper)
+  if real then StyleHelper = real end
+ end)
  local colors = Style.colors()
  local gui = Instance.new('ScreenGui'); gui.Name = 'KDMMyProfile'; gui.ResetOnSpawn = false; gui.DisplayOrder = 26
  gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets; gui.Parent = playerGui
@@ -49,10 +58,11 @@ function Controller.start()
   return b
  end
  local badge = button(gui, 'Profile', 'MY PROFILE', 12); badge.AnchorPoint = Vector2.new(1, 0)
- badge.Size = UDim2.fromOffset(160, 44); badge.Position = UDim2.new(1, -156, 0, 12); badge.ZIndex = 1
- badge.BackgroundColor3 = Color3.fromRGB(24, 48, 86); badge.TextColor3 = Color3.fromRGB(95, 248, 120)
+ badge.Size = UDim2.fromOffset(132, 44); badge.Position = UDim2.new(1, -152, 0, 12); badge.ZIndex = 1
+ badge.BackgroundColor3 = Color3.fromRGB(52, 88, 152); badge.TextColor3 = Color3.new(1, 1, 1)
+ badge.Font = Enum.Font.GothamBold; badge.TextSize = 14
  local badgeStroke = badge:FindFirstChild('ArcadeStroke')
- if badgeStroke then badgeStroke.Thickness = 2; badgeStroke.Color = Color3.fromRGB(255, 212, 42); badgeStroke.Transparency = 0 end
+ if badgeStroke then badgeStroke.Thickness = 2; badgeStroke.Color = Color3.fromRGB(0, 220, 255); badgeStroke.Transparency = 0 end
  local shade = Instance.new('TextButton'); shade.Name = 'Backdrop'; shade.Text = ''; shade.Position=UDim2.fromScale(-1,-1);shade.Size = UDim2.fromScale(3, 3)
  shade.BackgroundColor3 = Color3.fromRGB(18, 34, 64); shade.BackgroundTransparency = .82
  shade.Visible = false; shade.Modal = true; shade.AutoButtonColor = false; shade.ZIndex = 9; shade.Parent = gui
@@ -64,8 +74,9 @@ function Controller.start()
  local title = label(panel, 'Title', 'MY PROFILE', 5, 26, 21); title.Font = Enum.Font.GothamBold
  title.Size = UDim2.new(1, -80, 0, 28)
  local subtitle = label(panel, 'Subtitle', 'DRIVER CARD  /  FREE COLOR COLLECTION', 30, 18, 11)
- local dismiss = button(panel, 'Dismiss', '×', 6); dismiss.AnchorPoint = Vector2.new(1, 0)
- dismiss.Position = UDim2.new(1, -8, 0, 6); dismiss.Size = UDim2.fromOffset(44, 44); dismiss.ZIndex = 12
+ local dismiss = button(panel, 'Dismiss', 'X', 6); dismiss.AnchorPoint = Vector2.new(1, 0)
+ dismiss.Position = UDim2.new(1, -8, 0, 6); dismiss.Size = UDim2.fromOffset(40, 40); dismiss.ZIndex = 12
+ StyleHelper.applyCloseButton(dismiss)
  local body = Instance.new('ScrollingFrame'); body.Name = 'Details'; body.Position = UDim2.fromOffset(0, 54)
  body.Size = UDim2.new(1, 0, 1, -114); body.BackgroundTransparency = 1; body.BorderSizePixel = 0
  body.CanvasSize = UDim2.fromOffset(0, 658); body.ScrollBarThickness = 6
@@ -142,15 +153,16 @@ function Controller.start()
  local wingPrice=label(body,'WingPrice','K$25,000 · ONE WING / ALL V2 COLORS',430,24,14);wingPrice.TextColor3=colors.Yellow
  local shop = button(body, 'OpenShop', 'GO TO SHOP', 464);shop.Size=UDim2.new(.5,-24,0,44)
  local buy = button(body, 'BuyWing', 'BUY · K$25,000', 464);buy.Position=UDim2.new(.5,0,0,464);buy.Size=UDim2.new(.5,-24,0,44)
- buy.BackgroundColor3=colors.Yellow;buy.TextColor3=colors.Background
+ StyleHelper.apply3DButton(buy, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
  local equip = button(body, 'EquipWing', 'EQUIP WING', 464);equip.Position=buy.Position;equip.Size=buy.Size
- equip.BackgroundColor3=colors.Blue
+ StyleHelper.apply3DButton(equip, Color3.fromRGB(80, 190, 255), Color3.fromRGB(0, 140, 240), Color3.fromRGB(0, 95, 200), 12, 2.5)
  local pass = button(body, 'GamePass', '50 Robux target · COMING SOON', 522)
  label(body, 'Career', 'CAREER · COMING SOON\nRanks and achievements are not active yet.', 596, 48, 13).TextColor3=colors.Secondary
  local statusLabel = label(panel, 'Status', '', 0, 48, 12)
  statusLabel.Position = UDim2.new(0, 16, 1, -56); statusLabel.Size = UDim2.new(1, -112, 0, 48)
  local close = button(panel, 'Close', 'CLOSE', 0); close.AnchorPoint = Vector2.new(1, 1)
- close.Position = UDim2.new(1, -12, 1, -10); close.Size = UDim2.fromOffset(80, 44)
+ close.Position = UDim2.new(1, -12, 1, -10); close.Size = UDim2.fromOffset(90, 44)
+ StyleHelper.apply3DButton(close, Color3.fromRGB(120, 140, 170), Color3.fromRGB(70, 90, 120), Color3.fromRGB(40, 60, 90), 12, 2.5)
  local function layoutProfile()
   local compact=panel.AbsoluteSize.Y<440
   body.Position=UDim2.fromOffset(0,if compact then 44 else 54)
@@ -178,7 +190,7 @@ function Controller.start()
  local function render()
   local a = {}; for _, name in attributes do a[name] = player:GetAttribute(name) end
   local view = Controller.presentation(a, catalog)
-  badge.Text = 'MY PROFILE\nK$ '..view.cash
+  badge.Text = 'MY PROFILE'
   driver.Text = player.DisplayName
   initials.Text=string.upper(string.sub(player.DisplayName,1,1))
   kart.Text = 'KART · '..view.kart

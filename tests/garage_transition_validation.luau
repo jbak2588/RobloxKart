@@ -374,7 +374,7 @@ local station=child(stations,"Part","GarageStation");station:SetAttribute("HubAc
 local prompt=child(station,"ProximityPrompt","HubPrompt")
 prompt.Enabled=true
 -- Hub shortcuts now consume the existing Lobby layout; inject real pure view modules.
-for _,name in {"LobbyDriveLayout","MobileControlView"} do
+for _,name in {"LobbyDriveLayout","MobileControlView","KDMUiStyleHelper"} do
  child(client,"ModuleScript",name)
  modules[name]=luau.load(fs.readFile("src/client/"..name..".luau"),{environment=environment})()
 end

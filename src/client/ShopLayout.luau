@@ -7,9 +7,52 @@ function Layout.colors()
 end
 function Layout.style(object,kind)
  local c=Layout.colors();object.BackgroundColor3=c[kind or 'Card'];object.BorderSizePixel=0
- local corner=Instance.new('UICorner');corner.Name='ArcadeCorner';corner.CornerRadius=UDim.new(0,6);corner.Parent=object
- local stroke=Instance.new('UIStroke');stroke.Name='ArcadeStroke';stroke.Color=c.Secondary;stroke.Transparency=.7;stroke.Thickness=2
+ local corner=Instance.new('UICorner');corner.Name='ArcadeCorner';corner.CornerRadius=UDim.new(0,12);corner.Parent=object
+ local stroke=Instance.new('UIStroke');stroke.Name='ArcadeStroke';stroke.Color=Color3.fromRGB(10,15,25);stroke.Transparency=0;stroke.Thickness=2.5
  stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;stroke.Parent=object
+
+ if kind == 'Background' or kind == 'Panel' then
+  stroke.Thickness = 3
+  stroke.Color = Color3.fromRGB(60, 110, 180)
+  local gradient = Instance.new('UIGradient')
+  gradient.Rotation = 45
+  pcall(function()
+   local CS, CSK = ColorSequence, ColorSequenceKeypoint
+   if CS and CSK then
+    gradient.Color = CS.new({
+     CSK.new(0, Color3.fromRGB(38, 70, 125)),
+     CSK.new(0.5, Color3.fromRGB(28, 52, 95)),
+     CSK.new(1, Color3.fromRGB(18, 34, 64)),
+    })
+   end
+  end)
+  gradient.Parent = object
+ elseif object:IsA('TextButton') then
+  local gradient = Instance.new('UIGradient')
+  gradient.Rotation = 90
+  local top = Color3.fromRGB(48, 85, 125)
+  local mid = Color3.fromRGB(35, 65, 95)
+  local bot = Color3.fromRGB(22, 42, 65)
+  if kind == 'Yellow' or object.BackgroundColor3 == c.Yellow then
+   top, mid, bot = Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0)
+  elseif kind == 'Blue' or object.BackgroundColor3 == c.Blue then
+   top, mid, bot = Color3.fromRGB(80, 190, 255), Color3.fromRGB(0, 140, 240), Color3.fromRGB(0, 95, 200)
+  end
+  pcall(function()
+   local CS, CSK = ColorSequence, ColorSequenceKeypoint
+   if CS and CSK then
+    gradient.Color = CS.new({
+     CSK.new(0, top),
+     CSK.new(0.5, mid),
+     CSK.new(1, bot),
+    })
+   end
+  end)
+  gradient.Parent = object
+  object.Font = Enum.Font.GothamBlack
+  object.TextStrokeTransparency = 0.15
+  object.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+ end
  return stroke
 end
 function Layout.gridForWidth(width,availableHeight)

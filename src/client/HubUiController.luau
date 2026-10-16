@@ -9,6 +9,7 @@ local GuidanceView = require(script.Parent:WaitForChild("HubGuidanceView"))
 local WorldGuidance = require(script.Parent:WaitForChild("HubWorldGuidanceView"))
 local LobbyLayout=require(script.Parent:WaitForChild("LobbyDriveLayout"))
 local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
+local StyleHelper = require(script.Parent:WaitForChild("KDMUiStyleHelper"))
 local HubUiController = {}
 local started = false
 
@@ -74,17 +75,25 @@ function HubUiController.start()
  panel.AnchorPoint, panel.Position = Vector2.new(1,1), UDim2.new(1,-12,1,-12)
  panel.Size, panel.BackgroundColor3, panel.BorderSizePixel = UDim2.fromOffset(150,152), Theme.Panel, 0
  panel.Parent = gui
+ StyleHelper.applyModalPanel(panel, Color3.fromRGB(45, 85, 150))
+
+ local dockGradients = {
+  GARAGE = { top = Color3.fromRGB(80, 190, 255), mid = Color3.fromRGB(0, 140, 240), bottom = Color3.fromRGB(0, 95, 200) },
+  TRACKS = { top = Color3.fromRGB(255, 140, 50), mid = Color3.fromRGB(255, 80, 20), bottom = Color3.fromRGB(210, 40, 0) },
+  SHOP   = { top = Color3.fromRGB(255, 235, 90), mid = Color3.fromRGB(255, 195, 25), bottom = Color3.fromRGB(215, 140, 0) },
+ }
+
  for index, action in {"GARAGE", "TRACKS", "SHOP"} do
   local button = Instance.new("TextButton")
   button.Name, button.Text = action, action
   button.Size, button.Position = UDim2.new(1,-12,0,44), UDim2.fromOffset(6,6+(index-1)*48)
   button.BackgroundColor3 = if action=='GARAGE' then Color3.fromRGB(36,138,242) elseif action=='TRACKS' then Color3.fromRGB(246,112,42) else Color3.fromRGB(42,198,102)
-  button.TextColor3 = Color3.fromRGB(255,255,255)
+  button.TextColor3 = Theme.TextPrimary
   button.Font, button.TextSize, button.BorderSizePixel = Enum.Font.GothamBold, 13, 0
   button.Parent = panel
   local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,6);corner.Parent=button
   button.Text=''
-  local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1;caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0);caption.Font=Enum.Font.GothamBold;caption.TextSize=13;caption.TextColor3=Color3.fromRGB(255,255,255);caption.TextStrokeTransparency=0.35;caption.Parent=button
+  local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1;caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0);caption.Font=Enum.Font.GothamBold;caption.TextSize=13;caption.TextColor3=Theme.TextPrimary;caption.Parent=button
   local mark=Instance.new('Frame');mark.Name='NavigationIcon';mark.Size=UDim2.fromOffset(12,14);mark.Position=UDim2.new(0,5,.5,-7);mark.BackgroundTransparency=1;mark.Parent=button
   local function piece(x,y,w,h,color)
    local f=Instance.new('Frame');f.Size=UDim2.fromOffset(w,h);f.Position=UDim2.fromOffset(x,y);f.BackgroundColor3=color;f.BorderSizePixel=0;f.Parent=mark
@@ -100,7 +109,72 @@ function HubUiController.start()
   local stroke = Instance.new("UIStroke")
   stroke.Color, stroke.Thickness, stroke.ApplyStrokeMode, stroke.Parent = Color3.fromRGB(0,220,255), 2, Enum.ApplyStrokeMode.Border, button
   table.insert(connections, button.Activated:Connect(function() open(action) end))
+
+  local g = dockGradients[action]
+  StyleHelper.apply3DButton(button, g.top, g.mid, g.bottom, 12, 2.5)
  end
+
+ local walletCapsule = Instance.new("Frame")
+ walletCapsule.Name = "WalletCapsule"
+ walletCapsule.Position = UDim2.fromOffset(16, 16)
+ walletCapsule.Size = UDim2.fromOffset(180, 42)
+ walletCapsule.BackgroundColor3 = Color3.fromRGB(15, 25, 45)
+ walletCapsule.BorderSizePixel = 0
+ walletCapsule.Parent = gui
+
+ local capsuleCorner = Instance.new("UICorner")
+ capsuleCorner.CornerRadius = UDim.new(0, 21)
+ capsuleCorner.Parent = walletCapsule
+
+ local capsuleStroke = Instance.new("UIStroke")
+ capsuleStroke.Thickness = 2.5
+ capsuleStroke.Color = Color3.fromRGB(35, 60, 100)
+ capsuleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+ capsuleStroke.Parent = walletCapsule
+
+ StyleHelper.applyGradient(walletCapsule, Color3.fromRGB(28, 48, 85), nil, Color3.fromRGB(15, 25, 45), 45)
+
+ local cashLabel = Instance.new("TextLabel")
+ cashLabel.Name = "CashLabel"
+ cashLabel.Text = "K$ 0"
+ cashLabel.Position = UDim2.fromOffset(14, 0)
+ cashLabel.Size = UDim2.new(1, -54, 1, 0)
+ cashLabel.BackgroundTransparency = 1
+ cashLabel.TextColor3 = Color3.fromRGB(85, 255, 100)
+ cashLabel.Font = Enum.Font.GothamBlack
+ cashLabel.TextSize = 16
+ cashLabel.TextStrokeTransparency = 0.15
+ cashLabel.TextStrokeColor3 = Color3.fromRGB(10, 40, 15)
+ cashLabel.TextXAlignment = Enum.TextXAlignment.Left
+ cashLabel.Parent = walletCapsule
+
+ local plusButton = Instance.new("TextButton")
+ plusButton.Name = "OpenShopBadge"
+ plusButton.Text = "+"
+ plusButton.Position = UDim2.new(1, -36, 0.5, -15)
+ plusButton.Size = UDim2.fromOffset(30, 30)
+ plusButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ plusButton.Font = Enum.Font.GothamBlack
+ plusButton.TextSize = 18
+ plusButton.Parent = walletCapsule
+
+ StyleHelper.apply3DButton(
+  plusButton,
+  Color3.fromRGB(255, 215, 40),
+  Color3.fromRGB(255, 175, 20),
+  Color3.fromRGB(220, 130, 0),
+  15,
+  2
+ )
+
+ table.insert(connections, plusButton.Activated:Connect(function() open("SHOP") end))
+
+ local function updateWallet()
+  local cash = player:GetAttribute("KDMWalletCash") or 0
+  cashLabel.Text = "K$ " .. StyleHelper.formatCash(cash)
+ end
+ table.insert(connections, player:GetAttributeChangedSignal("KDMWalletCash"):Connect(updateWallet))
+ updateWallet()
  local promptEnabled = {}
  for _, prompt in hub.Stations:GetDescendants() do
   if prompt:IsA("ProximityPrompt") then promptEnabled[prompt] = prompt.Enabled end

@@ -2,7 +2,7 @@ local fs,luau,rb,serde=require('@lune/fs'),require('@lune/luau'),require('@lune/
 local function load(path,env)return luau.load(fs.readFile(path),{environment=env or {},debugName=path})()end
 local S=load('src/shared/KDMProgressionSchema.luau')
 local catalog=load('src/shared/KartCatalog.luau',{Color3=rb.Color3,Enum=rb.Enum})
-local schema=S.new(catalog,{jsonEncode=function(v)return serde.encode('json',v)end})
+local schema=S.new(catalog,{jsonEncode=function(v)return serde.encode('json',v)end,maxReceipts=999})
 local C=load('src/shared/KDMShopCatalog.luau')
 local Economy=load('src/server/EconomyOperations.luau')
 local Ops=load('src/server/ShopOperations.luau').new(S,schema,C,Economy)

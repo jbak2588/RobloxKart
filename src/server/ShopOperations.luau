@@ -19,8 +19,8 @@ function Ops.new(S,schema,C,Economy)
   local receipt=r.value.receipts[api.key(op)]
   if op.kind=='REFUND_REFILL' or op.kind=='REFUND_UNUSED_REFILL' then return receipt and receipt.refunded==true end
   if op.kind=='FINALIZE_REFILL' then return receipt and receipt.refill and receipt.refill.state=='DELIVERED' and not receipt.refunded end
-  local sig=signature(op)
-  return receipt and (receipt.signature==sig or receipt.signature==S.sha256(sig)) and not receipt.refunded
+  local canonical=signature(op)
+  return receipt and (receipt.signature==canonical or receipt.signature==S.sha256(canonical)) and not receipt.refunded
  end
  function api.reduce(op)
   local valid=type(op)=='table' and S.integer(op.userId) and op.userId>0 and S.guid(op.id)
@@ -30,13 +30,13 @@ function Ops.new(S,schema,C,Economy)
    or (op.kind=='SET_AUTO_REFILL' and type(op.enabled)=='boolean')
    or ((op.kind=='REFILL' or op.kind=='REFUND_REFILL' or op.kind=='REFUND_UNUSED_REFILL' or op.kind=='FINALIZE_REFILL') and C.Prices[op.itemId]~=nil and S.guid(op.roundGuid))
   if not valid then return function()return nil,'INVALID_OPERATION'end end
-  local copy=S.freeze(S.clone(op));local key=api.key(copy);local signed=signature(copy)
+  local copy=S.freeze(S.clone(op));local key=api.key(copy);local canonical=signature(copy);local signed=S.sha256(canonical)
   return function(previous)
    if not previous or not schema.validate(previous,S.userKey(copy.userId)) or previous.deleted then return nil,'READ_ONLY' end
    local receipt=previous.receipts[key]
    if copy.kind~='REFUND_REFILL' and copy.kind~='REFUND_UNUSED_REFILL' and copy.kind~='FINALIZE_REFILL' and receipt then
     if receipt.refunded then return nil,'REFILL_CLOSED' end
-    local match = receipt.signature==signed or receipt.signature==S.sha256(signed)
+    local match = receipt.signature==canonical or receipt.signature==signed
     return if match then S.clone(previous) else nil,
      if match then 'REPLAY' else 'IDENTITY_MISMATCH'
    end

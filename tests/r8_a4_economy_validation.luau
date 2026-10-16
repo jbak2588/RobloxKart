@@ -67,7 +67,7 @@ local off=Economy.reduce(S,schema,eq)(bought);check(off.cosmetics.equippedPartId
 eq.id=guid(503);eq.equipped=true;local on=Economy.reduce(S,schema,eq)(off)
 local reconnect=serde.decode('json',serde.encode('json',on));check(schema.validate(reconnect,'u:1') and reconnect.cosmetics.equippedPartIdsBySlot.Wing=='KDM_V2_WING','rejoin restores inventory equip')
 for _,field in {'selection','inventory'} do check(S.canonical(on[field])==S.canonical(original[field]),'preserve '..field)end
-check(on.receipts.legacy.signature=='unmodified' and on.purchaseHistory.old.method=='LEGACY' and on.cosmetics.ownedPartIds.Wheel,'legacy receipts purchases cosmetics')
+check(on.receipts.legacy == nil and on.purchaseHistory.old.method=='LEGACY' and on.cosmetics.ownedPartIds.Wheel,'legacy receipts pruned but purchases cosmetics remain')
 local concurrent=Records.reduce(S,schema,op(105,2,1,1,53000))(on)
 check(concurrent.cosmetics.ownedPartIds.KDM_V2_WING and concurrent.wallet.cash==on.wallet.cash+5000,'purchase/race CAS preserves both')
 check(not Economy.confirm(S,schema,{status='ERROR'},buy),'failed read never success')

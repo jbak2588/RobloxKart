@@ -74,6 +74,25 @@ local function readAccount(player)
   local emptyHistory=(not p.purchaseHistory or next(p.purchaseHistory)==nil)
    and (not p.receipts or next(p.receipts)==nil)
    and (p.wallet.lifetimeEarned==nil or p.wallet.lifetimeEarned==0)
+  
+  if p.receipts and S.count(p.receipts) >= 3 then
+   local pa = adapter(player, 'purchase')
+   pa.commit(pa.beginUpdate(key, function(curr)
+    if not curr then return nil end
+    local cloned = S.clone(curr)
+    if cloned.receipts and S.count(cloned.receipts) >= 3 then
+     local candidates = {}
+     for id in cloned.receipts do table.insert(candidates, id) end
+     table.sort(candidates)
+     for i = 1, #candidates - 1 do cloned.receipts[candidates[i]] = nil end
+     return cloned, 'PRUNED_RECEIPTS'
+    end
+    return nil, 'NO_CHANGE'
+   end))
+   r = a.read(key)
+   p = r.value
+  end
+
   if p.wallet.cash==0 and p.wallet.ledgerRevision==0 and emptyHistory then
    a=adapter(player,'initialize')
    a.commit(a.beginUpdate(key,function(curr)
