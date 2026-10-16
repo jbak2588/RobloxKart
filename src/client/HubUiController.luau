@@ -12,6 +12,7 @@ local MobileView=require(script.Parent:WaitForChild("MobileControlView"))
 local StyleHelper = require(script.Parent:WaitForChild("KDMUiStyleHelper"))
 local HubUiController = {}
 local started = false
+local SHOWROOM_VISUAL_SCALE = 1.2
 
 -- Visual-only client ownership. Each client calls this with its own selection/parent.
 function HubUiController.createDisplay(parent, anchor, definition, factory,wingEquipped)
@@ -24,6 +25,9 @@ function HubUiController.createDisplay(parent, anchor, definition, factory,wingE
    or node:IsA("Sound") or node:IsA("BodyMover") or node:IsA("ProximityPrompt")
    or node:IsA("ParticleEmitter") or node:IsA("Trail") or node:IsA("Beam") then node:Destroy() end
  end
+ -- Enlarge only the static exhibit; ground the scaled tires below. Live karts
+ -- continue to use the original factory dimensions and driver seat contract.
+ visual:ScaleTo(visual:GetScale() * SHOWROOM_VISUAL_SCALE)
  for _,node in visual:GetDescendants() do
   if node:IsA("BasePart") then
    node.Anchored,node.CanCollide,node.CanTouch,node.CanQuery=true,false,false,false

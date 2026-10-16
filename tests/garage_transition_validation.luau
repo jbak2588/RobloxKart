@@ -99,6 +99,14 @@ function methods:GetDescendants()
 end
 function methods:HasAppearanceLoaded() return true end
 function methods:PivotTo() end
+function methods:GetScale() return self._modelScale or 1 end
+function methods:ScaleTo(scale)
+ local ratio=scale/self:GetScale()
+ for _,part in self:GetDescendants() do if part:IsA('BasePart') then
+  part.Size*=ratio;part.CFrame=rb.CFrame.new(part.CFrame.Position*ratio)*part.CFrame.Rotation
+ end end
+ self._modelScale=scale
+end
 function methods:GetBoundingBox()
  if self.Name=="PreviewKart" then return rb.CFrame.identity,rb.Vector3.new(8,2,10) end
  return rb.CFrame.new(0, -.4, 0), rb.Vector3.new(4, 6.5, 2) end

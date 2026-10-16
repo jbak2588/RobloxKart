@@ -1,4 +1,14 @@
 local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox')
+-- Lune does not implement native Model scaling; model it for this display fixture.
+local scales=setmetatable({},{__mode='k'})
+rb.implementMethod('Model','GetScale',function(model)return scales[model] or 1 end)
+rb.implementMethod('Model','ScaleTo',function(model,scale)
+ local ratio=scale/(scales[model] or 1)
+ for _,part in model:GetDescendants() do if part:IsA('BasePart') then
+  part.Size*=ratio;part.CFrame=rb.CFrame.new(part.CFrame.Position*ratio)*part.CFrame.Rotation
+ end end
+ scales[model]=scale
+end)
 local module={WaitForChild=function(self) return self end}
 local controller=luau.load(fs.readFile('src/client/HubUiController.luau'),{environment={game={GetService=function() return module end},script={Parent=module},require=function() return {} end,Vector3=rb.Vector3,CFrame=rb.CFrame}})()
 local n=0;local function check(v,s) assert(v,s);n+=1 end
