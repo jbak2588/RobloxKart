@@ -24,3 +24,7 @@ Approved by user: implement/test, commit/push and Publish. Baseline 74f0546341a5
 - Studio original native place retained. Play-only UI geometry probes removed by Stop before Publish. No live account purchases or persistent production writes were used for testing.
 - Historical practice_public_bot_validation stops on its old exact-byte TrackCatalog fixture; TrackCatalog is unchanged by this task. It is not reported as passing.
 - Rojo build and whitespace diff checks PASS. Real published teleport/first finish/persistent rejoin/mobile acceptance remain pending; Studio cannot validate reserved-server teleport.
+
+## Release
+
+Implementation 3dc0eb474debeb2d7312c5ea37148cbe7519d97d pushed to origin/prototype/kart-physics; remote/local HEAD equality verified. All 12 changed/new native Studio scripts exact-matched repository sources and compiled before release. Explicitly authorized native Studio Publish succeeded at 23:43:58, place 127925465904803, version 781.
