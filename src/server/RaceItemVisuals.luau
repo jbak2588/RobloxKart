@@ -273,11 +273,19 @@ function Visuals.thunderStrike(parent,chassis,blocked)
   for i=1,3 do model:FindFirstChild("Bolt"..i).Transparency=.75 end
  else
   rays(flash,Config.Thunder.ArcCount,3,Color3.fromRGB(100,235,255),"ElectricArc")
+  local burst=Visuals.missileImpact(model,chassis.Position,false)
+  burst.Name="ThunderExplosion"
+  local light=Instance.new("PointLight");light.Name="ImpactLight"
+  light.Range=Config.ThunderImpact.LightRange;light.Brightness=0;light.Enabled=false
+  light.Color=Color3.fromRGB(255,225,150);light.Shadows=false;light.Parent=burst
  end
+ Visuals.updateThunderStrike(model,0)
  return model
 end
 
-function Visuals.thunderStrikeLifetime() return Config.Thunder.StrikeLifetime end
+function Visuals.thunderStrikeLifetime(blocked)
+ return if blocked then Config.Thunder.StrikeLifetime else math.max(Config.Thunder.StrikeLifetime,Config.ThunderImpact.Delay+Config.Missile.ImpactLifetime)
+end
 function Visuals.updateThunderStrike(model, age)
 	local c=Config.Thunder
 	local t=math.clamp(age/c.StrikeLifetime,0,1)
@@ -285,11 +293,24 @@ function Visuals.updateThunderStrike(model, age)
 	local after=if age<c.AfterFlashDelay then 0 else c.AfterFlashScale*(1-math.clamp((age-c.AfterFlashDelay)/(c.StrikeLifetime-c.AfterFlashDelay),0,1))
 	local blocked=model.Name=="ThunderShieldImpact"
 	local intensity=if blocked then .20*(1-t) else math.max(primary,after)
-	for _,p in model:GetDescendants() do
-		if p:IsA("BasePart") then
+	local burst=model:FindFirstChild("ThunderExplosion")
+	for _,p in model:GetChildren() do
+		if p:IsA("BasePart") and p~=burst then
 			-- Fade the initial vertical strike; residual arcs/ground pulse remain lighter.
 			p.Transparency=1-intensity*(if p.Name:match("^Bolt") then .80 else .65)
+			for _,arc in p:GetChildren()do if arc:IsA("BasePart")then arc.Transparency=1-intensity*.65 end end
 		end
+	end
+	if burst then
+		local burstAge=age-Config.ThunderImpact.Delay
+		if burstAge<0 then
+			burst.Transparency=1
+			for _,p in burst:GetDescendants()do if p:IsA("BasePart")then p.Transparency=1 end end
+		else Visuals.updateMissileImpact(burst,burstAge) end
+		local fade=math.clamp(1-burstAge/Config.Missile.ImpactLifetime,0,1)
+		local light=burst.ImpactLight
+		light.Enabled=burstAge>=0 and fade>0
+		light.Brightness=if light.Enabled then Config.ThunderImpact.LightBrightness*fade*fade else 0
 	end
 end
 return Visuals

@@ -27,6 +27,29 @@ for _,blocked in {false,true} do
  local strike=v.thunderStrike(folder,chassis,blocked)
  check((strike.Impact:FindFirstChild("ElectricArc1")~=nil)==not blocked,"electric arcs only actual hit")
  check(strike.Bolt1.Color~=missile.Nose.Color,"electric/physical color languages differ")
+ local burst=strike:FindFirstChild('ThunderExplosion')
+ check((burst~=nil)==not blocked,'delayed explosion only for unshielded Thunder')
+ if burst then
+  local count=#strike:GetDescendants()
+  check(burst.Transparency==1 and not burst.ImpactLight.Enabled,'bolt appears before explosion or light')
+  for _,p in burst:GetDescendants()do if p:IsA('BasePart')then
+   check(p.Transparency==1 and p.Anchored and not p.CanCollide and not p.CanTouch and not p.CanQuery,'initial burst hidden and noninteractive')
+  end end
+  v.updateThunderStrike(strike,cfg.ThunderImpact.Delay-.001)
+  check(burst.Transparency==1 and burst.ImpactLight.Brightness==0,'no premature explosion')
+  v.updateThunderStrike(strike,cfg.ThunderImpact.Delay)
+  check(burst.Transparency<1 and burst.ImpactLight.Enabled,'explosion starts immediately after primary bolt')
+  check(burst.ImpactLight.Range==38 and burst.ImpactLight.Brightness==9 and not burst.ImpactLight.Shadows,'requested bounded world light, no shadow pass')
+  v.updateThunderStrike(strike,cfg.ThunderImpact.Delay+cfg.Missile.ImpactLifetime/2)
+  check(math.abs(burst.Size.X-16)<1e-5 and burst.Transparency<.7,'shared missile expansion remains visible halfway')
+  check(math.abs(burst.ImpactLight.Brightness-2.25)<1e-5,'light fades smoothly instead of staying at full brightness')
+  check(burst.Shockwave1.Transparency<.6 and not burst:FindFirstChild('Shockwave17'),'visible bounded sixteen-segment shockwave')
+  v.updateThunderStrike(strike,v.thunderStrikeLifetime())
+  check(burst.Size.X==28 and math.abs((burst.Shockwave1.CFrame.Position-burst.CFrame.Position).Magnitude-math.sqrt(18*18+.35*.35))<1e-4,'maximum explosion 28 and ring diameter 36')
+  check(burst.Transparency==1 and not burst.ImpactLight.Enabled and burst.ImpactLight.Brightness==0,'all explosion/light fades expire exactly')
+  check(strike.Bolt1.Transparency==1 and #strike:GetDescendants()==count,'bolt never extended; updates allocate no extra effects')
+  check(math.abs(v.thunderStrikeLifetime()-(.10+.85))<1e-5,'service owns the entire delayed explosion lifetime')
+ else check(v.thunderStrikeLifetime(true)==cfg.Thunder.StrikeLifetime,'blocked strike retains original short cleanup')end
  strike:Destroy()
 end
 local warning=v.thunderWarning(folder,chassis)

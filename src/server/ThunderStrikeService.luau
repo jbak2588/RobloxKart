@@ -73,7 +73,7 @@ function Service:update(now)
 			or not self:valid(f,f.owner,f.sourceKart,f.sourceReset) then
 			f.visual:Destroy();table.remove(self.flashes,i)
 		else
-			self.deps.visuals.updateThunderStrike(f.visual,now-(f.untilTime-self.deps.visuals.thunderStrikeLifetime()))
+			self.deps.visuals.updateThunderStrike(f.visual,now-f.born)
 		end
 	end
 	for i=#self.events,1,-1 do
@@ -93,7 +93,7 @@ function Service:update(now)
 					if #self.flashes >= 24 then self.flashes[1].visual:Destroy();table.remove(self.flashes,1) end
 					table.insert(self.flashes,{owner=event.owner,target=target.player,session=event.session,roundId=event.roundId,
 						kart=target.kart,reset=target.reset,sourceKart=event.kart,sourceReset=event.reset,
-						untilTime=now+self.deps.visuals.thunderStrikeLifetime(),visual=self.deps.visuals.thunderStrike(self.deps.parent,chassis,reason=="blocked")})
+						born=now,untilTime=now+self.deps.visuals.thunderStrikeLifetime(reason=="blocked"),visual=self.deps.visuals.thunderStrike(self.deps.parent,chassis,reason=="blocked")})
 				end
 				self:removeTarget(event,j)
 			end
