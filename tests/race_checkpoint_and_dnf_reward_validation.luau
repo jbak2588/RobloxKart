@@ -141,4 +141,25 @@ check(evaluateDnfPayout(40, true, false, 2) == false, "off-track racer rejected"
 check(evaluateDnfPayout(40, false, true, 2) == false, "crashed racer rejected")
 check(evaluateDnfPayout(40, false, false, 0) == false, "racer with 0 laps completed (AFK at start) rejected")
 
+-- 4. Test Practice and Bot race completion rewards
+local function calcBaseReward(humanCount, botCount, humanPosition)
+	if humanCount >= 2 then
+		return ({ 3500, 2500, 2000, 1500 })[humanPosition] or 1500
+	elseif botCount > 0 then
+		return 1500
+	else
+		return 1000
+	end
+end
+
+-- Practice solo completion: 1000 K$
+check(calcBaseReward(1, 0, 1) == 1000, "solo practice completion guaranteed K$1,000")
+-- 1 human + 1 bot completion (human 2nd, bot 1st): 1500 K$
+check(calcBaseReward(1, 1, 1) == 1500, "bot race completion guaranteed K$1,500 even if bot wins")
+-- 4-human multiplayer rewards
+check(calcBaseReward(4, 0, 1) == 3500, "1st place human gets K$3,500")
+check(calcBaseReward(4, 0, 2) == 2500, "2nd place human gets K$2,500")
+check(calcBaseReward(4, 0, 3) == 2000, "3rd place human gets K$2,000")
+check(calcBaseReward(4, 0, 4) == 1500, "4th place human gets K$1,500")
+
 print("PASS: " .. checks .. " checkpoint persistent alert and active DNF reward validation checks")

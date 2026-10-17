@@ -161,10 +161,6 @@ function RaceController.start(options)
 	if recordModule then recordLoaded, records = pcall(require, recordModule) end
 	if not recordLoaded then records = nil end
 	local function record(method, ...)
-		-- Recruitment warm-ups are real full-length races when completed. A handoff
-		-- abandons the old round without a finish. Welcome first races earn rewards;
-		-- ordinary private practice remains excluded.
-		if options and options.isPractice and options.isPractice() and not (options.isFirstRace and options.isFirstRace()) then return end
 		if records then
 			local ok = pcall(records[method], ...)
 			if not ok then
@@ -1270,12 +1266,8 @@ function RaceController.start(options)
 		if session.phase=='COMPLETE'and options and options.isQuickMatch and options.isQuickMatch()and not warmupTransition
    and not (options.isFirstRace and options.isFirstRace()) then
 			if publicNextAt==0 then
-				local humanFinished=false
-				for p in session.participants do
-					if p:GetAttribute('IsBot')~=true and p:GetAttribute('RaceState')=='FINISHED'then humanFinished=true;break end
-				end
-				-- A completed warm-up deserves the normal results/payment display window.
-				publicNextAt=now+(if publicWarmup and not humanFinished then 1 else 8)
+				-- Always provide the full 8-second window to view results and rewards.
+				publicNextAt = now + 8
 			end
 			if now>=publicNextAt then publicNextAt=now+5;prepareNextRoomRound()end
 		end

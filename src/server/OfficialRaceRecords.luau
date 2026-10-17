@@ -88,7 +88,7 @@ function Records.new(S, deps)
  function api.finish(player, result)
   local s=states[player]
   if not s or s.finished or player:GetAttribute("RaceState")~="FINISHED"
-   or s.lap~=s.targetLaps+1 or not s.start or not round or round.diagnostic then return nil end
+   or s.lap~=s.targetLaps+1 or not s.start or not round then return nil end
   local race=nil
   if result then
    if result.positionFinalized~=true then return nil end

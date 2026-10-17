@@ -80,13 +80,14 @@ function Ops.reduce(S,schema,op)
   if copy.race then nextValue.receipts[key].raceImproved=raceImproved end
   if copy.economy then
    local money={base=0,bestRace=0,bestLap=0,total=0}
-   if copy.race.eligible then
-    money.base=if copy.round.humanCount>=2 then ({3500,2500,2000,1500})[copy.economy.humanPosition]
+   -- Base completion reward is guaranteed for completing the race (minimum K$1,000)
+   money.base=if copy.round.humanCount>=2 then (({3500,2500,2000,1500})[copy.economy.humanPosition] or 1500)
      elseif copy.round.botCount>0 then 1500 else 1000
+   if copy.race and copy.race.eligible then
     money.bestRace=if raceImproved then 1000 else 0
     money.bestLap=if lapImproved then 500 else 0
-    money.total=math.min(5000,money.base+money.bestRace+money.bestLap)
    end
+   money.total=math.min(5000,money.base+money.bestRace+money.bestLap)
    -- This campaign is open to every account, independently of old finish history.
    -- Event latch and money are persisted in the same authoritative transaction.
    local onboarding=S.clone(previous.onboarding or {welcomeSeen=true,firstFinishClaimed=false})
