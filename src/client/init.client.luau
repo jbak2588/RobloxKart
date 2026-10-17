@@ -20,6 +20,7 @@ local TouchDrivingController = require(script:WaitForChild("TouchDrivingControll
 local DriftChargeController = require(script:WaitForChild("DriftChargeController"))
 local DriverCelebrationController = require(script:WaitForChild("DriverCelebrationController"))
 local FinishCelebrationController = require(script:WaitForChild("FinishCelebrationController"))
+local TrackHorizonController = require(script:WaitForChild("TrackHorizonController"))
 local Workspace = game:GetService("Workspace")
 
 local role = Workspace:GetAttribute("KDMServerRole")
@@ -58,3 +59,4 @@ SmokeEffectView.new(game:GetService("Players").LocalPlayer:WaitForChild("PlayerG
 ShieldEffectsController.start()
 DriverCelebrationController.start()
 FinishCelebrationController.start()
+TrackHorizonController.start()
