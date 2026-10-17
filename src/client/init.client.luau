@@ -50,6 +50,7 @@ KDMDriverGripController.start()
 KartEffectsController.start()
 KartAudioController.start()
 RaceAudioController.start()
+require(script:WaitForChild('CombatHitAudioController')).start()
 RaceItemUiController.start()
 if role == "RACE" then TacticalLoadoutController.start() end
 if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).start() end

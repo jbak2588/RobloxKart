@@ -45,7 +45,10 @@ function Combat.new(zone,records)
   getKart=function(a)if self:valid(a)then return a.record.kart,a.record.body end end,
   getSession=function(a)if self:valid(a)then return self.session end end,
   resolve=function(target,source,id)return self:resolve(target,source,id,os.clock())end,
-  result=function(source,hits,blocks)self:feedback(source,if hits>0 then 'THUNDER HIT '..hits elseif blocks>0 then 'THUNDER BLOCKED' else 'THUNDER NO HIT')end}
+  result=function(source,hits,blocks)
+   self:feedback(source,if hits>0 then 'THUNDER HIT '..hits elseif blocks>0 then 'THUNDER BLOCKED' else 'THUNDER NO HIT')
+   if hits>0 then self:hitSound(source,'Thunder')end
+  end}
  self.missiles=Missile.new(Config,deps);self.thunder=Thunder.new(Config,deps)
  local smokeDeps=table.clone(deps)
  smokeDeps.geometry={crosses=Geometry.crosses,smokeDropFrame=function(_,body,distance)return self:dropFrame(body,distance,Config.SMOKE_WIDTH,Config.SMOKE_LENGTH)end}
@@ -66,6 +69,15 @@ function Combat:feedback(a,message)
  a:SetAttribute('RacePracticeMessage',message)
  a:SetAttribute('RacePracticeMessageAt',Workspace:GetServerTimeNow())
  a:SetAttribute('RacePracticeMessageSerial',(a:GetAttribute('RacePracticeMessageSerial')or 0)+1)
+end
+function Combat:hitSound(a,id)
+ if not self:valid(a)or not a.owner then return end
+ local p=a.owner
+ p:SetAttribute('LobbyCombatHitItem',id)
+ p:SetAttribute('LobbyCombatHitSessionId',self.session.id)
+ p:SetAttribute('LobbyCombatHitGeneration',a.record.generation)
+ p:SetAttribute('LobbyCombatHitResetSerial',a.record.kart:GetAttribute('RaceResetSerial'))
+ p:SetAttribute('LobbyCombatHitSerial',(p:GetAttribute('LobbyCombatHitSerial')or 0)+1)
 end
 function Combat:publish(a,now)
  if not a.owner then return end
@@ -214,6 +226,7 @@ function Combat:resolve(target,source,id,now)
  target.immune=now+Config.RACE_ITEM_HIT_IMMUNITY
  self:feedback(target,if id=='Smoke'then 'SMOKED!'elseif id=='Thunder'then 'SHOCKED!'else string.upper(id)..' HIT!')
  if source~=target then self:feedback(source,string.upper(id)..' HIT: '..target.DisplayName)end
+ if id=='Missile'and source~=target then self:hitSound(source,id)end
  return true,'hit'
 end
 function Combat:motion(player,now,dt,f,right,velocity,yaw)

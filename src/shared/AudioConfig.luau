@@ -44,6 +44,11 @@ local AudioConfig = {
 		START_VOLUME = 0.75,
 		LOOP_VOLUME = 0.42,
 	},
+	-- Bundled Roblox explosion asset; no boost-start substitution or external upload.
+	COMBAT = {
+		Missile = { Asset = "rbxasset://sounds/impact_explosion_03.mp3", Volume = 0.8, Pitch = 1.0 },
+		Thunder = { Asset = "rbxasset://sounds/impact_explosion_03.mp3", Volume = 0.8, Pitch = 0.68 },
+	},
 	RACE = {
 		COUNTDOWN_VOLUME = 0.6,
 		GO_VOLUME = 0.85,

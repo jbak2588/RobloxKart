@@ -88,10 +88,14 @@ check(c:use(p,1,'Missile')and q:GetAttribute('LobbyMissileIncomingCount')==1,'re
 tick(.85);check(not s.kart:GetAttribute('KartMissileHitActive'),'no premature missile hit')
 tick(.8);check(not s.kart:GetAttribute('KartShieldActive')and not s.kart:GetAttribute('KartMissileHitActive'),'one-hit Shield blocks actual projectile')
 check(q:GetAttribute('LobbyMissileIncomingCount')==0,'incoming count balanced')
+check(not p:GetAttribute('LobbyCombatHitSerial'),'blocked practice Missile never emits hit audio')
 tick(5);check(p:GetAttribute('LobbyChargeMissile')==1 and q:GetAttribute('LobbyChargeShield')==1,'six-second tactical refill')
 c,p,q,r,s=fresh();tick(.01)
 check(c:use(p,1,'Missile'),'unshielded missile accepted');tick(1.5)
 check(s.kart:GetAttribute('KartMissileHitActive'),'actual projectile resolves human hit')
+check(p:GetAttribute('LobbyCombatHitItem')=='Missile'and p:GetAttribute('LobbyCombatHitSerial')==1,'actual Missile hit emits one attacker audio event')
+check(not q:GetAttribute('LobbyCombatHitSerial'),'victim does not receive attacker audio event')
+check(p:GetAttribute('LobbyCombatHitGeneration')==r.generation and p:GetAttribute('LobbyCombatHitResetSerial')==r.kart:GetAttribute('RaceResetSerial'),'audio event bound to drive and recovery generation')
 local victim=c.actors[q];local ended=victim.effect.untilTime
 while now<ended-.01 do
  local v=c:motion(q,now,.01,rb.Vector3.new(0,0,-1),rb.Vector3.xAxis,rb.Vector3.new(70,0,-100),0)
@@ -104,6 +108,7 @@ pose(s,0,740);check(c:use(p,1,'Thunder'),'Thunder fixed snapshot accepted')
 check(q:GetAttribute('LobbyThunderIncomingCount')==1,'Thunder incoming warning')
 tick(.95);check(not s.kart:GetAttribute('KartThunderHitActive'),'full warning retained')
 pose(s,30,750);tick(.1);check(s.kart:GetAttribute('KartThunderHitActive'),'snapshot follows moving seated target')
+check(p:GetAttribute('LobbyCombatHitItem')=='Thunder'and p:GetAttribute('LobbyCombatHitSerial')==1,'Thunder summary emits one attacker sound, not one per target')
 for i=1,150 do
  local v=c:motion(q,now,.01,rb.Vector3.new(0,0,-1),rb.Vector3.xAxis,rb.Vector3.new(0,0,-100),0)
  check(v.Magnitude<=60.00001,'Thunder cap while active');tick(.01)
@@ -144,6 +149,7 @@ pose(r,0,850);pose(s,100,850);tick(.3)
 local targets=c:targets(a);check(#targets>0 and targets[1].actor==c.bot,'server bot target')
 check(c:use(p,1,'Thunder'),'Thunder can target practice bot');tick(1.1)
 check(c.bot.record.kart:GetAttribute('KartThunderHitActive'),'bot hit shares actual warning/strike service')
+check(p:GetAttribute('LobbyCombatHitItem')=='Thunder'and (p:GetAttribute('LobbyCombatHitSerial')or 0)>0,'bot Thunder hit also confirms audio to human attacker')
 check(c.bot.speed<=cfg.THUNDER_SPEED_CAP,'bot route speed obeys Thunder cap')
 -- No walking/exited/other-session victim and no stale projectile can survive.
 tick(.3);c:recover(p);pose(r,0,780);pose(s,0,730)
@@ -161,6 +167,7 @@ c,p,q,r,s=fresh();c:remove(q);scene.records[q]=nil;pose(r,0,860);tick(.01)
 check(c:use(p,1,'Missile'),'actual missile launch against moving authoritative bot')
 while not c.bot.effect and now<8 do tick(.01)end
 check(c.bot.effect and c.bot.effect.kind=='Missile','real homing projectile hits moving bot')
+check(p:GetAttribute('LobbyCombatHitItem')=='Missile'and p:GetAttribute('LobbyCombatHitSerial')==1,'moving bot Missile hit confirms attacker explosion')
 tick(.01);check(c.bot.speed<=cfg.MISSILE_SPEED_CAP,'bot missile hit uses real speed cap')
 c:clearTransient(c.bot);c.bot.speed=70
 check(c:resolve(c.bot,c.actors[p],'Slick',now),'bot Slick accepted')
