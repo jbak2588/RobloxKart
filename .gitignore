@@ -9,3 +9,10 @@ sourcemap.json
 # OS temporary files
 Thumbs.db
 .DS_Store
+
+# Temporary artifacts, recordings, and audit traces
+artifacts/
+docs/audits/
+docs/handoffs/
+tools/prototypes/
+tests/public_autostart_gate_validation.luau
