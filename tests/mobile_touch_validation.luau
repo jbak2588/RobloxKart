@@ -354,9 +354,10 @@ else
   check(latest()[1]==1 and latest()[2]==direction,"Auto plus turn")
   local d=touch(drift);check(latest()[1]==1 and latest()[2]==direction and latest()[3],"Auto turn Drift")
   local brake=touch(root.BrakeReverse);check(latest()[1]==-1,"Brake overrides Auto")
-  brake.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==0 and not latest()[3] and not gui:GetAttribute("AutoForwardEnabled"),"Brake release cannot resume Auto or Drift")
+  brake.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1 and not latest()[3] and gui:GetAttribute("AutoForwardEnabled"),"Brake release resumes Auto with cleared Drift")
   d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End;tick()
-  check(latest()[1]==0 and latest()[2]==0 and not latest()[3],"manual brake permanently clears Auto")
+  check(latest()[1]==1 and latest()[2]==0 and not latest()[3],"releasing turn resumes straight Auto")
+  auto.Activated:Fire();tick();check(latest()[1]==0 and not gui:GetAttribute("AutoForwardEnabled"),"Auto button explicitly turns off Auto")
  end
  if gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end;neutral("Auto OFF coasts")
 
@@ -418,13 +419,19 @@ else
 		d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End
 		back.Activated:Fire();neutral("reverse OFF")
 	end
-	for _,manual in {root.Forward,root.BrakeReverse} do
-		back.Activated:Fire();tick();local held=touch(manual)
-		check(not gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==(if manual==root.Forward then 1 else -1),"manual cancels reverse")
-		back.Activated:Fire();auto.Activated:Fire();tick()
-		check(not gui:GetAttribute("AutoBackwardEnabled") and not gui:GetAttribute("AutoForwardEnabled"),"held manual throttle cannot arm hidden auto")
-		held.UserInputState=rb.Enum.UserInputState.End;neutral("manual release never resumes auto")
-	end
+	-- Forward manually overrides and cancels reverse Auto
+	back.Activated:Fire();tick();local heldForward=touch(root.Forward)
+	check(not gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==1,"manual forward cancels reverse")
+	back.Activated:Fire();auto.Activated:Fire();tick()
+	check(not gui:GetAttribute("AutoBackwardEnabled") and not gui:GetAttribute("AutoForwardEnabled"),"held forward cannot arm hidden auto")
+	heldForward.UserInputState=rb.Enum.UserInputState.End;neutral("forward release neutral")
+
+	-- BrakeReverse slows down/reverses without canceling AutoBackward or AutoForward
+	back.Activated:Fire();tick();local heldBrake=touch(root.BrakeReverse)
+	check(gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==-1,"brake priority preserves AutoBackward state")
+	heldBrake.UserInputState=rb.Enum.UserInputState.End;tick()
+	check(gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==-1,"brake release resumes AutoBackward")
+	back.Activated:Fire();neutral("reverse OFF")
 	local owned=touch(root.ForwardLeft);back.InputBegan:Fire(owned);back.Activated:Fire(owned)
 	check(not gui:GetAttribute("AutoBackwardEnabled"),"steering owner cannot slip into reverse toggle")
 	owned.UserInputState=rb.Enum.UserInputState.End

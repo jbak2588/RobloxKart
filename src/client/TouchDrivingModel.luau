@@ -29,7 +29,7 @@ end
 function Model:pressButton(id, action: string)
 	if self.mode ~= "Buttons" or self.owner == id or self.driftOwners[id] or self.buttons[id] then return false end
 	if action ~= "Forward" and action ~= "ForwardLeft" and action ~= "ForwardRight" and action ~= "BrakeReverse" then return false end
-	if action == "Forward" or action == "BrakeReverse" then self:clearAuto() end
+	if action == "Forward" then self:clearAuto() end
 	if action == "BrakeReverse" then table.clear(self.driftOwners) end
 	self.pressSerial += 1
 	self.buttons[id] = { action = action, serial = self.pressSerial }
@@ -42,14 +42,14 @@ function Model:isPressed(action: string): boolean
 end
 
 function Model:toggleAutoForward()
-	if self.mode == "Buttons" and (self:isPressed("Forward") or self:isPressed("BrakeReverse")) then return false end
+	if self.mode == "Buttons" and self:isPressed("Forward") then return false end
 	self.autoForward = not self.autoForward
 	self.autoBackward = false
 	return true
 end
 
 function Model:toggleAutoBackward()
-	if self.mode ~= "Buttons" or self:isPressed("Forward") or self:isPressed("BrakeReverse") then return false end
+	if self.mode ~= "Buttons" or self:isPressed("Forward") then return false end
 	self.autoBackward = not self.autoBackward
 	self.autoForward = false
 	table.clear(self.driftOwners)
