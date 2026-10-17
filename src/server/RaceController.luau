@@ -701,7 +701,21 @@ function RaceController.start(options)
 				local recoveredNext = RaceRouteProgress.step(racer.routeProgress, chassis.Position, nextCheckpoint, onRoadAtGate)
 				if recoveredNext > nextCheckpoint then
 					player:SetAttribute("RaceNextCheckpoint", recoveredNext)
+					player:SetAttribute("RaceCheckpointMissed", 0)
 					print(string.format("[Race] checkpoint route accepted from=%d next=%d lap=%d", nextCheckpoint, recoveredNext, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
+				elseif not onRoadAtGate and racer.routeProgress.previous then
+					local currentFraction = racer.routeProgress.previous
+					local cpSample = routeCourse and routeCourse.CheckpointSamples and routeCourse.CheckpointSamples[nextCheckpoint]
+					if cpSample and currentFraction then
+						local ahead = (currentFraction - cpSample.Fraction + 0.5) % 1 - 0.5
+						if ahead > 0.035 and ahead < 0.35 then
+							if player:GetAttribute("RaceCheckpointMissed") ~= nextCheckpoint then
+								player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
+								player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+								print(string.format("[Race] checkpoint bypassed off-road cp=%d ahead=%.3f", nextCheckpoint, ahead))
+							end
+						end
+					end
 				end
 			end
 			record("progress", player, now, Vector3.new(chassis.Position.X, 0, chassis.Position.Z),
