@@ -52,13 +52,34 @@ function Builder.build(hub,ground)
  -- A single smooth collision plane avoids seam contacts from the decorative slices.
  local floor=part("LobbyFrontSmoothFloor",Vector3.new(bounds.maxX-bounds.minX,.5,bounds.maxZ-bounds.minZ),frame((bounds.minX+bounds.maxX)/2,-.07,(bounds.minZ+bounds.maxZ)/2),Color3.new(),true)
  floor.Transparency=1;floor.CustomPhysicalProperties=PhysicalProperties.new(1,.05,0,100,100)
- -- Cyan road edges; grass shoulders separate them from invisible kart-only walls.
+ -- Cyan road edges; grass shoulders separate them from the restored guardrails.
  -- Both sides have 20 studs to the boundary (18.25 clear after kerb/wall widths).
  for _,loop in Geometry.roadLoops do
   strip("LobbyFrontInnerKerb",loop,1.5,.12,.23,Color3.fromRGB(111,211,245),false,false)
  end
+ local railSerial=0
  for _,edge in Geometry.boundaries do
-  strip("LobbyFrontBarrier",{edge.a,edge.b},2,14,7,Color3.fromRGB(139,178,194),true,true)
+  -- Overlap adjacent collision sections, including curved seams. There is no
+  -- kart gate: avatars pass through the LobbyBoundary collision group.
+  local a,b=edge.a,edge.b
+  local length=math.sqrt(edge.length2)
+  local first=center+Vector3.new(a.x,7,a.z)
+  local last=center+Vector3.new(b.x,7,b.z)
+  local wall=part("LobbyFrontBarrier",Vector3.new(2,14,length+2),CFrame.lookAt((first+last)/2,last),Color3.new(),true)
+  wall.CollisionGroup="LobbyBoundary";wall.Transparency=1
+  local count=math.ceil(length/8)
+  for i=1,count do
+   railSerial+=1
+   local from,to=(i-1)/count,i/count
+   local x,z=a.x+edge.dx*(from+to)/2,a.z+edge.dz*(from+to)/2
+   -- Keep the pedestrian bridge visually open; its kart wall stays continuous.
+   if not (math.abs(a.z-Geometry.island.minZ)<.001 and math.abs(b.z-a.z)<.001 and x>-126 and x<-114) then
+    local pos=center+Vector3.new(x,1.2,z)
+    local rail=part("LobbyFrontGuardrail",Vector3.new(3,2.4,length/count+.12),CFrame.lookAt(pos,pos+Vector3.new(edge.dx,0,edge.dz)),
+     if railSerial%2==0 then Color3.fromRGB(23,25,28) else Color3.fromRGB(246,194,36),false)
+    rail.Material=Enum.Material.Plastic;rail.CollisionGroup="LobbyBoundary"
+   end
+  end
  end
  zone:SetAttribute("SafetyShoulder",Geometry.roadMargin)
  zone:SetAttribute("PermanentSkidMarkCount",0)

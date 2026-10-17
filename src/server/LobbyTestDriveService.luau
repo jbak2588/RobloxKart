@@ -62,10 +62,10 @@ function Service.stop(player,reason,returnToHub)
  if pending then
   if not returnToHub then pending.returnToHub=false end
   while closing[player]==pending do RunService.Heartbeat:Wait() end
-  return true
+  return true,pending.returned==true
  end
  local record=records[player]
- if not record then return true end
+ if not record then return true,false end
  if practice then practice:remove(player)end
  record.returnToHub=returnToHub;closing[player]=record
  records[player]=nil;generation(player)
@@ -100,13 +100,14 @@ function Service.stop(player,reason,returnToHub)
    RunService.Heartbeat:Wait();RunService.Heartbeat:Wait()
    if root and root.Parent then root:SetNetworkOwnershipAuto() end
    if validReturn() then
+   record.returned=true
    player:SetAttribute("HubArrivalSerial",(player:GetAttribute("HubArrivalSerial") or 0)+1)
    end
   end
  end
  player:SetAttribute("LobbyDriveKartId",nil);player:SetAttribute("LobbyDrivePending",false)
  closing[player]=nil
- return true
+ return true,record.returned==true
 end
 local function createKart(player,definition,frame)
  local kart=Instance.new("Model");kart.Name="LobbyKart_"..player.UserId
@@ -162,7 +163,7 @@ local function drive(player,previewKartId)
  local ok,kart,body,seat=pcall(createKart,player,definition,frame)
  if not ok then player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
  local record={kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
-  throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,slot=slot,seated=false,training=Drift.new()}
+  throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,boundaryPrevious=frame.Position,slot=slot,seated=false,training=Drift.new()}
  records[player]=record
  record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
   local occupant=seat.Occupant
@@ -238,26 +239,33 @@ function Service.start(driveZone,eligibility)
    lastRequest[player]=now;local ok,message=drive(player,first)
    remote:FireClient(player,"Reply",id,generations[player],ok,message)
   elseif action=="Stop" then
-   Service.stop(player,"exit",true)
+   local _,returned=Service.stop(player,"exit",true)
    local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
    local deadline=os.clock()+.5
    while h and h.Parent and h.SeatPart and os.clock()<deadline do RunService.Heartbeat:Wait() end
-   remote:FireClient(player,"Reply",id,generations[player],h==nil or h.SeatPart==nil,"EXIT KART")
+   remote:FireClient(player,"Reply",id,generations[player],h==nil or h.SeatPart==nil,"EXIT KART",returned)
   end
+ end)
+ -- Keep containment and the existing barrier response independent of an item
+ -- update error. Roblox dispatches the driving listener separately.
+ RunService.Heartbeat:Connect(function(dt)
+  if started and practice then practice:update(os.clock(),math.min(dt,.05)) end
  end)
  RunService.Heartbeat:Connect(function(dt)
   dt=math.min(dt,.05)
   if not started or not practice then return end
-  practice:update(os.clock(),dt)
   for player,r in records do
    if not r.seated then continue end
    if not r.body.Parent or player.Character~=r.character or r.humanoid.Health<=0
     or r.humanoid.SeatPart~=r.seat or r.seat.Occupant~=r.humanoid then Service.stop(player,"seat_lost",true);continue end
    local body=r.body;local pos=body.Position;local c=zone:GetAttribute("Center")
-   if not inside(pos,0) or pos.Y<c.Y-4 or pos.Y>c.Y+18 or body.CFrame.UpVector.Y<.55 then
+   local previous=r.boundaryPrevious
+   local crossed=previous and Geometry.crossesBoundary(previous.X-c.X,previous.Z-c.Z,pos.X-c.X,pos.Z-c.Z)
+   r.boundaryPrevious=pos
+   if crossed or not inside(pos,0) or pos.Y<c.Y-4 or pos.Y>c.Y+18 or body.CFrame.UpVector.Y<.55 then
     practice:recover(player)
     body.AssemblyLinearVelocity=Vector3.zero;body.AssemblyAngularVelocity=Vector3.zero
-    r.kart:PivotTo(r.safe);r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
+    r.kart:PivotTo(r.safe);r.boundaryPrevious=r.safe.Position;r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
     player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1);continue
    end
    local throttle,steering=r.throttle,r.steering
@@ -352,7 +360,7 @@ function Service.start(driveZone,eligibility)
       r.kart:SetAttribute("LobbyEscapeDistance",distance)
      else
       practice:recover(player)
-      r.kart:PivotTo(r.safe);r.speed,r.yaw=0,0;velocity=Vector3.zero;r.escapeCount=Policy.EscapeLimit;Drift.clear(r.training)
+      r.kart:PivotTo(r.safe);r.boundaryPrevious=r.safe.Position;r.speed,r.yaw=0,0;velocity=Vector3.zero;r.escapeCount=Policy.EscapeLimit;Drift.clear(r.training)
       player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1)
      end
     end

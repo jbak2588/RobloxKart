@@ -68,6 +68,20 @@ function Geometry.create(_policy)
   if x<bounds.minX+m or x>bounds.maxX-m or z<bounds.minZ+m or z>bounds.maxZ-m then return false end
   return g.contact(x,z)>=m-1e-6
  end
+ -- Endpoint containment alone misses a jump across the non-drivable island.
+ function g.crossesBoundary(x,z,toX,toZ)
+  local dx,dz=toX-x,toZ-z
+  for _,e in edges do
+   local cross=dx*e.dz-dz*e.dx
+   if math.abs(cross)>1e-8 then
+    local ax,az=e.a.x-x,e.a.z-z
+    local t=(ax*e.dz-az*e.dx)/cross
+    local u=(ax*dz-az*dx)/cross
+    if t>1e-6 and t<=1 and u>=0 and u<=1 then return true end
+   end
+  end
+  return false
+ end
  function g.intervals(z,roadOnly)
   local hits={}
   for _,e in (if roadOnly then roadEdges else edges) do

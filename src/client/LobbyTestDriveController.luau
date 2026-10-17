@@ -22,6 +22,7 @@ local EngineAB=require(script.Parent:WaitForChild('LobbyEngineAB'))
 local StyleHelper=require(script.Parent:WaitForChild('KDMUiStyleHelper'))
 local PracticeView=require(script.Parent:WaitForChild('LobbyPracticeView'))
 local SmokeView=require(script.Parent:WaitForChild('SmokeEffectView'))
+local PostDriveView=require(script.Parent:WaitForChild('LobbyPostDriveView'))
 local Controller={}
 local started=false
 function Controller.start()
@@ -82,7 +83,15 @@ function Controller.start()
   return player:GetAttribute('LobbyDriveActive')==true and seatKart()~=nil and not suspended and focused and not pending
  end)
  local smokeView=SmokeView.new(player:WaitForChild('PlayerGui'),player,true)
- gui.Destroying:Connect(function()smokeView:destroy()end)
+ local postDrive=PostDriveView.new(gui.Parent,function()
+  local rooms=gui.Parent:FindFirstChild('KDMMatchRooms')
+  local h=player.Character and player.Character:FindFirstChildOfClass('Humanoid')
+  return h~=nil and h.Health>0 and not h.SeatPart and player:GetAttribute('RaceState')=='GARAGE'
+   and player:GetAttribute('LobbyDriveActive')~=true and player:GetAttribute('LobbyDrivePending')~=true
+   and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH' and player:GetAttribute('HubOverlayOpen')~=true
+   and player:GetAttribute('KDMShopOpen')~=true and player:GetAttribute('KDMProfileOpen')~=true and not (rooms and rooms.Enabled)
+ end,function() Garage.open('RACE') end)
+ gui.Destroying:Connect(function()smokeView:destroy();postDrive:destroy()end)
  local function neutral()
   if exhaust then exhaust:update(0,false) end
   if feedback then feedback:update(0,false) end
@@ -106,6 +115,7 @@ function Controller.start()
  end
  local function request(action,callback,previewKartId)
   if pending then return false end
+  postDrive:hide()
   token+=1;local id=token;pending={id=id,callback=callback,action=action}
   if action=="Stop" then neutral();detach() else suspended=false end
   button.Active=false
@@ -131,18 +141,35 @@ function Controller.start()
   if suspended or not focused or GuiService.MenuIsOpen or UIS:GetFocusedTextBox() then throttle,steering,drift=0,0,false end
   remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),throttle,steering,drift==true)
  end)
- remote.OnClientEvent:Connect(function(action,id,gen,ok,message)
+ remote.OnClientEvent:Connect(function(action,id,gen,ok,message,returned)
   if action~="Reply" or not pending or id~=pending.id then return end
   local current=player:GetAttribute("LobbyDriveGeneration") or 0
   if type(gen)~="number" or gen<current then return end
   local done=pending;pending=nil;button.Active=true
   status.Text=if ok then "" else (message or "DRIVE UNAVAILABLE")
   if not ok then neutral();detach() end
-  if done.callback then done.callback(ok) end
+  if done.callback then done.callback(ok,returned) end
  end)
  button.Activated:Connect(function()
   if pending then return end
-  request(if player:GetAttribute("LobbyDriveActive")==true then "Stop" else "Drive")
+  if player:GetAttribute('LobbyDriveActive')==true then
+   local character=player.Character;local requestToken=token+1
+   request('Stop',function(ok,returned)
+    if not ok or not returned then return end
+    -- The reply can arrive before replicated seat/attribute changes settle.
+    task.spawn(function()
+     local deadline=os.clock()+2
+     while token==requestToken and player.Character==character and os.clock()<deadline do
+      local h=character and character:FindFirstChildOfClass('Humanoid')
+      if not h or h.Health<=0 then return end
+      if not h.SeatPart and player:GetAttribute('LobbyDriveActive')~=true and player:GetAttribute('LobbyDrivePending')~=true then
+       postDrive:show();return
+      end
+      Run.RenderStepped:Wait()
+     end
+    end)
+   end)
+  else request('Drive') end
  end)
  PromptService.PromptTriggered:Connect(function(prompt,who)
   if who~=player or not prompt.Parent or pending or not gui.Enabled or player:GetAttribute("LobbyDriveActive")==true then return end
@@ -153,7 +180,7 @@ function Controller.start()
   local entry=require(Shared:WaitForChild("KartCatalog")).Entries[previewKartId]
   if entry and entry.VisualModelName=="KDMV2"then request("Drive",nil,previewKartId)end
  end)
- player.CharacterRemoving:Connect(function() neutral();detach();if pending and pending.callback then pending.callback(false) end;pending=nil;token+=1 end)
+ player.CharacterRemoving:Connect(function() postDrive:hide();neutral();detach();if pending and pending.callback then pending.callback(false) end;pending=nil;token+=1 end)
  player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(function()
   if player:GetAttribute("LobbyDriveActive")~=true then neutral();detach() else suspended=false end
  end)
@@ -163,6 +190,7 @@ function Controller.start()
  GuiService.MenuOpened:Connect(neutral)
  GuiService.MenuClosed:Connect(function() suspended=false end)
  Run.RenderStepped:Connect(function(dt)
+  postDrive:update()
   local active=player:GetAttribute("LobbyDriveActive")==true
   local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")
   gui.Enabled=player:GetAttribute("LobbyDriveAvailable")==true and player:GetAttribute("RaceState")=="GARAGE"
@@ -193,11 +221,11 @@ function Controller.start()
   button.AnchorPoint=Vector2.zero
   button.Position=UDim2.fromOffset(exit.x+6,exit.y+4)
   button.Size=UDim2.fromOffset(exit.width-12,44)
-  local promptsEnabled=gui.Enabled and not active and not pending
+  local promptsEnabled=gui.Enabled and not active and not pending and not postDrive.gui.Enabled
   for _,prompt in displayPrompts do
    if prompt.Parent and prompt.Enabled~=promptsEnabled then prompt.Enabled=promptsEnabled end
   end
-  if entryPrompt then entryPrompt.Enabled=gui.Enabled and not active and not pending end
+  if entryPrompt then entryPrompt.Enabled=promptsEnabled end
   status.Visible=status.Text~=""
   local kart,h=seatKart();local body=kart and kart:FindFirstChild("Chassis")
   if not active or not body or suspended then if feedback then feedback:update(dt,false) end;if not active then detach() end;return end

@@ -5,9 +5,14 @@ local geometry=luau.load(fs.readFile('src/shared/LobbyDriveGeometry.luau'))()
 local g=geometry.create(p)
 local modules={LobbyDrivePolicy=p,LobbyDriveGeometry=geometry}
 local node={WaitForChild=function(_,name)return name end}
+-- Lune 0.10.5 lookAt mirrors planar Z for non-axis directions. Use the
+-- equivalent yaw constructor so perimeter orientation matches Studio Roblox.
+local frames={new=rb.CFrame.new,Angles=rb.CFrame.Angles,lookAt=function(a,b)
+ local d=b-a;return rb.CFrame.new(a)*rb.CFrame.Angles(0,math.atan2(-d.X,-d.Z),0)
+end}
 local builder=luau.load(fs.readFile('src/server/LobbyFrontDriveZoneBuilder.luau'),{environment={
  game={GetService=function()return {WaitForChild=function()return node end}end},require=function(m)return modules[m]end,
- Instance=rb.Instance,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,Enum=rb.Enum,
+ Instance=rb.Instance,Vector3=rb.Vector3,CFrame=frames,Color3=rb.Color3,Enum=rb.Enum,
  PhysicalProperties=rb.PhysicalProperties,
 }})()
 local n=0;local function check(v,label)assert(v,label);n+=1 end
@@ -17,7 +22,7 @@ local ground=rb.Instance.new('Part');ground.Position=rb.Vector3.new(0,-1,850);gr
 local zone=builder.build(hub,ground)
 check(zone.Parent==hub and zone:GetAttribute('FootprintVersion')=='REFERENCE_OVAL_V2','production build revision')
 local center=zone:GetAttribute('Center')
-local roads,kerbs,barriers=0,0,0
+local roads,kerbs,barriers,rails=0,0,0,0
 for _,o in zone:GetChildren() do if o:IsA('BasePart') then
  local pos=o.CFrame.Position-center
  if o.Name=='LobbyFrontFreeDriveRoad' then
@@ -33,13 +38,30 @@ for _,o in zone:GetChildren() do if o:IsA('BasePart') then
   barriers+=1
   check(o.Transparency==1 and o.CanCollide and o.CollisionGroup=='LobbyBoundary','kart-only invisible boundary')
   check(math.abs(g.contact(pos.X,pos.Z))<1e-4,'actual collision wall matches admission outline')
+  check(o.Size.X==2 and o.Size.Y==14,'original tall kart-only collision wall dimensions')
+ elseif o.Name=='LobbyFrontGuardrail' then
+  rails+=1
+  check(o.Size.X==3 and math.abs(o.Size.Y-2.4)<1e-5 and o.Size.Z<=8.13,'original bounded guardrail dimensions')
+  check(o.Anchored and not o.CanCollide and not o.CanTouch and not o.CanQuery,'guardrail visuals do not snag chassis')
+  check(o.Color==rb.Color3.fromRGB(246,194,36) or o.Color==rb.Color3.fromRGB(23,25,28),'original yellow and black palette')
+  check(math.abs(g.contact(pos.X,pos.Z))<1e-4,'rail matches collision boundary beyond safety shoulder')
  end
 end end
 check(roads>150 and roads<350 and kerbs>100 and barriers>100,'bounded native part counts')
 local entry=zone.LobbyFrontDriveEntry
 check(entry.Size.X==12 and not entry.CanCollide and zone:GetAttribute('EntryRailLine')==836,'walkway reaches new inner cyan edge')
 check(g.inside(zone.LobbyFrontDriveStart.CFrame.Position.X-center.X,zone.LobbyFrontDriveStart.CFrame.Position.Z-center.Z,7),'unchanged start stays safe')
-check(not zone:FindFirstChild('LobbyFrontGuardrail') and zone:GetAttribute('PermanentSkidMarkCount')==0,'clean reference surface without old striped fence or baked skids')
+check(rails>300 and zone:GetAttribute('PermanentSkidMarkCount')==0,'guardrails restored around both perimeters, no baked skids')
+-- Every collision edge endpoint is covered, including the pedestrian bridge.
+local walls={};for _,o in zone:GetChildren()do if o.Name=='LobbyFrontBarrier'then table.insert(walls,o)end end
+for _,e in g.boundaries do for _,v in {e.a,e.b}do
+ local hits=0
+ for _,wall in walls do
+  local delta=center+rb.Vector3.new(v.x,7,v.z)-wall.CFrame.Position
+  if math.abs(delta:Dot(wall.CFrame.RightVector))<=wall.Size.X/2+.001 and math.abs(delta:Dot(wall.CFrame.LookVector))<=wall.Size.Z/2+.001 then hits+=1 end
+ end
+ check(hits>=2,'adjacent collision walls overlap at each perimeter seam '..v.x..','..v.z..' hits='..hits)
+end end
 check(zone.LobbyFrontSmoothFloor.CanCollide,'smooth collision support retained')
 -- Optional review artifacts derive from the actual builder and geometry.
 if require('@lune/process').env.KDM_EXPORT_OVAL=='1' then

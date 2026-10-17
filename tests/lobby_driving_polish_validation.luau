@@ -59,7 +59,8 @@ for _,mode in {'exit','unseated','duplicate','race','death','respawn','cancel'} 
  local body={Parent=true};local kart={Parent=true,Destroy=function(self)destroyed+=1;self.Parent=nil;humanoid.SeatPart=nil;seat.Occupant=nil;release=true end}
  local record={body=body,kart=kart,seat=seat,character=character,humanoid=humanoid}
  service.inject(player,record)
- local first=coroutine.create(function()service.stop(player,mode,true)end)
+ local returned
+ local first=coroutine.create(function()local _;_,returned=service.stop(player,mode,true)end)
  check(coroutine.resume(first),'exit starts')
  check(pivots==0 and destroyed==0 and attrs.LobbyDrivePending,'waits for release before return')
  local other
@@ -70,7 +71,8 @@ for _,mode in {'exit','unseated','duplicate','race','death','respawn','cancel'} 
  if other then while coroutine.status(other)~='dead' do check(coroutine.resume(other),'duplicate completes') end end
  local expected=if mode=='race' or mode=='death' or mode=='respawn' or mode=='cancel' then 0 else 1
  check(pivots==expected,'only live same-character normal exits return')
+ check(returned==(expected==1),'only settled actual Lobby return can authorize the post-drive popup')
  check(destroyed==1 and not attrs.LobbyDriveActive and not attrs.LobbyDrivePending,'one cleanup, settled flags')
- service.stop(player,'arbitrary',true);check(pivots==expected,'arbitrary Stop without valid session cannot teleport')
+ local _,again=service.stop(player,'arbitrary',true);check(pivots==expected and not again,'arbitrary Stop without session cannot teleport or prompt')
 end
 print('PASS: '..n..' A2 speed, world-normal slide, footprint escape, real yielding exit checks')

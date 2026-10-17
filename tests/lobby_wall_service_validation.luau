@@ -55,6 +55,7 @@ r.drift=true;r.yaw=0;training.input(r.training,true,now,true)
 for _=1,100 do now+=.05;r.lastInput=now;heartbeat(.05)end
 check(r.training.active and math.abs(body.AssemblyAngularVelocity.Y)<=config.ARCADE_DRIFT.MaxYawRate,'real shared slide active and yaw bounded')
 -- Real heartbeat shallow-contact projection: no crash, no outward command, no overspeed.
+r.boundaryPrevious=nil
 body.CFrame=rb.CFrame.new(120,1.75,683.5)*rb.CFrame.Angles(0,-math.pi/2+math.rad(20),0);body.Position=body.CFrame.Position
 body.AssemblyLinearVelocity=body.CFrame.LookVector*60;r.speed=60;r.steering=0;r.drift=false;r.yaw=0
 now+=.05;r.lastInput=now;heartbeat(.05)
@@ -62,6 +63,7 @@ check(body.AssemblyLinearVelocity.Z>=-1e-8 and body.AssemblyLinearVelocity.Magni
 check(not kartAttrs.LobbyBarrierSerial,'shallow contact emits no crash event')
 -- Execute the real heartbeat's combat branch: physical hits block Drift, not steering/throttle.
 modules.LobbyPracticeCombat.last.hit=true
+r.boundaryPrevious=nil
 body.CFrame=safe;body.Position=safe.Position;body.AssemblyLinearVelocity=rb.Vector3.new(0,0,-40)
 r.training=training.new();r.speed,r.yaw,r.throttle,r.steering=40,0,1,1
 for _=1,10 do
@@ -70,4 +72,23 @@ for _=1,10 do
 end
 check(math.abs(body.AssemblyAngularVelocity.Y)>.3 and r.training.steer>.5,'normal steering retained during hit effect')
 check(r.speed>40,'throttle continues to accelerate before the combat final cap')
+-- Head-on impact still uses the original race rebound/spin contract.
+modules.LobbyPracticeCombat.last.hit=false;r.boundaryPrevious=nil;r.training=training.new()
+body.CFrame=rb.CFrame.new(120,1.75,682);body.Position=body.CFrame.Position
+body.AssemblyLinearVelocity=rb.Vector3.new(0,0,-100);r.speed,r.throttle,r.steering=100,1,0
+now+=.05;r.lastInput=now;heartbeat(.05)
+check(kartAttrs.LobbyBarrierSerial==1 and r.crashEnd>now,'head-on contact emits original crash effect')
+check(kartAttrs.LobbyBarrierRebound==policy.barrierImpact(100,config).rebound,'original rebound strength retained')
+check(body.AssemblyLinearVelocity.Z>0 and math.abs(body.AssemblyAngularVelocity.Y)>0,'head-on crash rebounds inward and spins')
+-- Escape toward Practice, off the plate, or across the island must recover.
+for _,point in {rb.Vector3.new(120,1.75,660),rb.Vector3.new(600,1.75,900),rb.Vector3.new(120,-20,700)}do
+ r.boundaryPrevious=nil;body.Position=point;body.CFrame=rb.CFrame.new(point)
+ heartbeat(.05)
+ check(body.Position==r.safe.Position and body.AssemblyLinearVelocity.Magnitude==0,'out-of-domain/fall restored before driving')
+end
+r.boundaryPrevious=rb.Vector3.new(0,1.75,840)
+body.Position=rb.Vector3.new(0,1.75,960);body.CFrame=rb.CFrame.new(body.Position)
+check(geometry.inside(-120,74,0)and geometry.inside(-120,194,0),'island sweep endpoints individually inside')
+heartbeat(.05)
+check(body.Position==r.safe.Position,'cross-island jump detected even with legal endpoint')
 print('PASS: '..n..' real service heartbeat cooldown, limit, safe fallback, steering and slide checks')
