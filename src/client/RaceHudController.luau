@@ -629,22 +629,22 @@ function RaceHudController.start()
 	local finishMissLabel = Instance.new("TextLabel")
 	finishMissLabel.Name = "FinishMissWarning"
 	finishMissLabel.AnchorPoint = Vector2.new(0.5, 0)
-	finishMissLabel.Position = UDim2.new(0.5, 0, 0.16, 0)
-	finishMissLabel.Size = UDim2.fromOffset(360, 64)
+	finishMissLabel.Position = UDim2.new(0.5, 0, 0, 48)
+	finishMissLabel.Size = UDim2.fromOffset(400, 32)
 	finishMissLabel.BackgroundColor3 = Color3.fromRGB(180, 25, 25)
 	finishMissLabel.BackgroundTransparency = 0.12
 	finishMissLabel.BorderSizePixel = 0
-	finishMissLabel.Font = Enum.Font.GothamBlack
-	finishMissLabel.Text = "⚠️ CHECKPOINT MISSED! ⚠️\nTURN BACK AND CLEAR IT"
+	finishMissLabel.Font = Enum.Font.GothamBold
+	finishMissLabel.Text = "⚠️ CHECKPOINT MISSED · TURN BACK AND CLEAR IT ⚠️"
 	finishMissLabel.TextColor3 = Color3.fromRGB(255, 230, 80)
-	finishMissLabel.TextSize = 18
+	finishMissLabel.TextSize = 14
 	finishMissLabel.Visible = false
 	finishMissLabel.Parent = screenGui
-	addCorner(finishMissLabel, 10)
+	addCorner(finishMissLabel, 8)
 	local finishMissStroke = Instance.new("UIStroke")
 	finishMissStroke.Name = "Stroke"
 	finishMissStroke.Color = Color3.fromRGB(255, 220, 60)
-	finishMissStroke.Thickness = 2
+	finishMissStroke.Thickness = 1.5
 	finishMissStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	finishMissStroke.Parent = finishMissLabel
 
@@ -1182,9 +1182,9 @@ function RaceHudController.start()
 		if shouldWarnMissed then
 			finishMissLabel.Visible = true
 			if missedCheckpoint > 0 then
-				finishMissLabel.Text = string.format("⚠️ CHECKPOINT [%d] MISSED! ⚠️\nTURN BACK AND CLEAR IT", missedCheckpoint)
+				finishMissLabel.Text = string.format("⚠️ CHECKPOINT [%d] MISSED · TURN BACK AND CLEAR IT ⚠️", missedCheckpoint)
 			else
-				finishMissLabel.Text = "⚠️ FINISH LINE MISSED! ⚠️\nRETURN TO FINISH GATE"
+				finishMissLabel.Text = "⚠️ FINISH LINE MISSED · RETURN TO FINISH GATE ⚠️"
 			end
 			local flashPhase = math.floor(os.clock() * 3.5) % 2
 			finishMissLabel.BackgroundColor3 = if flashPhase == 0 then Color3.fromRGB(180, 25, 25) else Color3.fromRGB(48, 16, 16)

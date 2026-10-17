@@ -577,10 +577,6 @@ function RaceController.start(options)
 					player:SetAttribute("RaceNextCheckpoint", nextCheckpoint + 1)
 					player:SetAttribute("RaceCheckpointMissed", 0)
 					print(string.format("[Race] checkpoint accepted cp=%d next=%d lap=%d", nextCheckpoint, nextCheckpoint + 1, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
-				elseif type(checkpointIndex) == "number" and checkpointIndex > nextCheckpoint then
-					player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
-					player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
-					print(string.format("[Race] checkpoint order jumped current=%d expected=%d", checkpointIndex, nextCheckpoint))
 				end
 			elseif gateType == "StartFinish" and gate == startFinishGate then
 				print(string.format("[Race] finish crossed lap=%d nextCheckpoint=%d", (player:GetAttribute("RaceCurrentLap") :: number?) or 1, nextCheckpoint))
@@ -588,9 +584,14 @@ function RaceController.start(options)
 					player:SetAttribute("RaceCheckpointMissed", 0)
 					completeLap(player, now)
 				else
-					player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
-					player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
-					print(string.format("[Race] finish rejected reason=missing_checkpoint expected=%d total=%d", nextCheckpoint, checkpointCount))
+					local lapElapsed = now - racer.lapStartTime
+					local currentLap = (player:GetAttribute("RaceCurrentLap") :: number?) or 1
+					local isStartingLap = (currentLap == 1 and lapElapsed < 12.0) or (nextCheckpoint == 1 and lapElapsed < 6.0)
+					if not isStartingLap then
+						player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
+						player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+						print(string.format("[Race] finish rejected reason=missing_checkpoint expected=%d total=%d", nextCheckpoint, checkpointCount))
+					end
 				end
 			end
 		end
