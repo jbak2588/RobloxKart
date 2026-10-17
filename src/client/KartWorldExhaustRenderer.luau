@@ -1,5 +1,5 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local _Players = game:GetService("Players")
+local _RunService = game:GetService("RunService")
 local Workspace = game:GetService('Workspace')
 local Envelope = require(script.Parent.BoostFlameEnvelope)
 
@@ -7,7 +7,7 @@ local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local CRUISE_FLAME_INTERVAL = 0.45
 local CRUISE_MIN_SPEED = 10
 
-local function getKart(seatPart: BasePart?): Model?
+local function _getKart(seatPart: BasePart?): Model?
 	if not seatPart or seatPart:GetAttribute("PrototypeKartSeat") ~= true then
 		return nil
 	end
@@ -276,6 +276,7 @@ function Renderer.new(kart)
    if math.abs(p.X)<=box.half.X and math.abs(p.Z)<=box.half.Z then
     return box.frame:PointToWorldSpace(Vector3.new(p.X,box.half.Y,p.Z))+box.frame.UpVector*.04
    end
+   return nil
   end
   local previous=lastRoad[index]
   if previous then local surface=project(previous);if surface then return surface end end
