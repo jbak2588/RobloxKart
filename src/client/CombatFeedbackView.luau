@@ -89,81 +89,13 @@ function View.new(gui, player, onClear)
 	local function diagnostic(message)
 		if KartConfig.DEBUG_TELEMETRY then print("[CombatFeedbackView] "..message) end
 	end
-
-	local AudioRuntime = {
-		playTireScreechSfx = function() end,
-		playCombatHitConfirmedSfx = function() end,
-	}
-	pcall(function()
-		local real = require(script.Parent.AudioRuntime)
-		if real then AudioRuntime = real end
-	end)
-
-	local function showAttackerHitConfirmed(itemName)
-		local hitBadge = gui:FindFirstChild("HitConfirmedBadge")
-		if not hitBadge then
-			hitBadge = Instance.new("TextLabel")
-			hitBadge.Name = "HitConfirmedBadge"
-			hitBadge.AnchorPoint = Vector2.new(0.5, 0.5)
-			hitBadge.Size = UDim2.fromScale(0.24, 0.08)
-			hitBadge.Position = UDim2.fromScale(0.5, 0.42)
-			hitBadge.BackgroundColor3 = Color3.fromRGB(255, 65, 50)
-			hitBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
-			hitBadge.Text = "★ HIT CONFIRMED! ★"
-			hitBadge.Font = Enum.Font.GothamBlack
-			hitBadge.TextScaled = true
-			hitBadge.BackgroundTransparency = 0.15
-			hitBadge.ZIndex = 30
-			hitBadge.Parent = gui
-
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, 10)
-			corner.Parent = hitBadge
-
-			local stroke = Instance.new("UIStroke")
-			stroke.Name = "Stroke"
-			stroke.Thickness = 2.5
-			stroke.Color = Color3.fromRGB(255, 220, 50)
-			stroke.Parent = hitBadge
-
-			local scale = Instance.new("UIScale")
-			scale.Scale = 1.0
-			scale.Parent = hitBadge
-		end
-
-		AudioRuntime.playCombatHitConfirmedSfx()
-
-		hitBadge.Visible = true
-		local scale = hitBadge:FindFirstChildOfClass("UIScale") or hitBadge:FindFirstChild("UIScale")
-		if scale then
-			scale.Scale = 1.35
-			local TweenService = game:GetService("TweenService")
-			if TweenService and TweenService.Create then
-				pcall(function()
-					TweenService:Create(scale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-						Scale = 1.0,
-					}):Play()
-				end)
-			end
-		end
-
-		local delayFn = (task and task.delay) or function(d, fn) fn() end
-		delayFn(0.65, function()
-			if hitBadge and hitBadge.Parent then
-				hitBadge.Visible = false
-			end
-		end)
-	end
-
 	observeHits = function(current)
 		local missile = current:GetAttribute("KartMissileHitActive") == true
 		local slick = current:GetAttribute("KartSlickActive") == true
 		local shocked = current:GetAttribute("KartThunderHitActive") == true
 		local smoked = current:GetAttribute("KartSmokeObscuredActive") == true
 		if missile and not wasMissile then show("MISSILE HIT!", orange, 1.0, true); diagnostic("victim=MISSILE_HIT")
-		elseif slick and not wasSlick then
-			show("SLICK HIT!", purple, 1.0, true); diagnostic("victim=SLICK_HIT")
-			AudioRuntime.playTireScreechSfx(1.2)
+		elseif slick and not wasSlick then show("SLICK HIT!", purple, 1.0, true); diagnostic("victim=SLICK_HIT")
 		elseif shocked and not wasThunder then show("SHOCKED!", orange, 1.0, true); diagnostic("victim=THUNDER_HIT")
 		elseif smoked and not wasSmoke then show("SMOKED!", cyan, 1.0, true); diagnostic("victim=SMOKED") end
 		wasMissile, wasSlick, wasSmoke, wasThunder = missile, slick, smoked, shocked
@@ -175,17 +107,11 @@ function View.new(gui, player, onClear)
 			and code ~= "SMOKE_HIT" and code ~= "SMOKE_BLOCKED" then return end
 		diagnostic("code="..code.." serial="..tostring(player:GetAttribute("RaceCombatFeedbackSerial")))
 		if not sync() then diagnostic("suppressed=INACTIVE_KART"); return end
-		if code == "MISSILE_HIT" then
-			show("HIT: "..name, orange, 1.2, false)
-			showAttackerHitConfirmed("Missile")
+		if code == "MISSILE_HIT" then show("HIT: "..name, orange, 1.2, false)
 		elseif code == "MISSILE_BLOCKED" then show("SHIELD BLOCKED", cyan, 1.2, false)
-		elseif code == "SLICK_HIT" then
-			show("SLICK HIT: "..name, purple, 1.2, false)
-			showAttackerHitConfirmed("Slick")
+		elseif code == "SLICK_HIT" then show("SLICK HIT: "..name, purple, 1.2, false)
 		elseif code == "SLICK_BLOCKED" then show("SLICK BLOCKED", cyan, 1.2, false)
-		elseif code == "SMOKE_HIT" then
-			show("SMOKE HIT: "..name, cyan, 1.2, false)
-			showAttackerHitConfirmed("Smoke")
+		elseif code == "SMOKE_HIT" then show("SMOKE HIT: "..name, cyan, 1.2, false)
 		elseif code == "SMOKE_BLOCKED" then show("SMOKE BLOCKED", cyan, 1.2, false)
 		else return end
 	end))
@@ -196,9 +122,6 @@ function View.new(gui, player, onClear)
 		local text=if hits>0 then "THUNDER HIT "..hits..(if blocks>0 then " • BLOCK "..blocks else "")
 			elseif blocks>0 then "THUNDER BLOCKED "..blocks else "THUNDER NO HIT"
 		show(text,orange,1.2,false)
-		if hits > 0 then
-			showAttackerHitConfirmed("Thunder")
-		end
 	end))
 	table.insert(connections, player:GetAttributeChangedSignal("RaceItemBlockedSerial"):Connect(function()
 		if sync() then show("BLOCKED!", cyan, 1.0, true); diagnostic("victim=BLOCKED") end
@@ -240,9 +163,6 @@ function View.new(gui, player, onClear)
 		fallbackPosition, warning, speedPanel = position, incoming, speed
 		placeBadge()
 	end
-	function self.onSlickHitReceived()
-		AudioRuntime.playTireScreechSfx(1.2)
-	end
 	function self:destroy()
 		if stopped then return end
 		stopped=true; clear()
@@ -253,11 +173,4 @@ function View.new(gui, player, onClear)
 	table.insert(connections, gui.Destroying:Connect(function() self:destroy() end))
 	return self
 end
-
-function View.onSlickHitReceived()
-	local AudioRuntime = { playTireScreechSfx = function() end }
-	pcall(function() AudioRuntime = require(script.Parent.AudioRuntime) end)
-	AudioRuntime.playTireScreechSfx(1.2)
-end
-
 return View

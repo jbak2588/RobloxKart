@@ -7,7 +7,7 @@ local v=luau.load(fs.readFile("src/server/RaceItemVisuals.luau"),{environment={g
  Instance=rb.Instance,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence,Enum=rb.Enum}})()
 local motion=luau.load(fs.readFile("src/shared/KDMImpactCameraMotion.luau"),{environment={Vector3=rb.Vector3}})()
 local folder=rb.Instance.new("Folder");local chassis=rb.Instance.new("Part");chassis.CFrame=rb.CFrame.identity;chassis.Position=rb.Vector3.zero
-check(c.Missile.ImpactLifetime==.42 and c.Missile.SparkCount==12 and c.Missile.PuffScale==1.35,"requested bounded Missile tuning")
+check(c.Missile.ImpactLifetime==.85 and c.Missile.SparkCount==12 and c.Missile.PuffScale==1.35,"requested bounded Missile tuning")
 check(c.Thunder.StrikeLifetime==.46 and c.Thunder.ArcLifetime==.46,"requested Thunder residual")
 check(c.Camera.MaxPositionAmplitude==.06 and c.Camera.MaxRotationAmplitude==math.rad(1.8),"original camera ceilings")
 for round=1,20 do
@@ -23,7 +23,7 @@ for round=1,20 do
   check((flash:FindFirstChild("Burst12")~=nil)==not blocked and not flash:FindFirstChild("Burst13"),"spark budget and block distinction")
   check((flash:FindFirstChild("Aftershock")~=nil)==not blocked,"no ordinary residual on Shield")
   for i=13,43 do v.updateMissileImpact(flash,i/100);check(#flash:GetDescendants()==count,"updates allocate no extra waves") end
-  check(v.updateMissileImpact(flash,.42),"finite lifetime");flash:Destroy()
+  check(v.updateMissileImpact(flash,c.Missile.ImpactLifetime),"finite lifetime");flash:Destroy()
   local strike=v.thunderStrike(folder,chassis,blocked)
   local count2=#strike:GetDescendants()
   v.updateThunderStrike(strike,0);local primary=strike.Bolt1.Transparency

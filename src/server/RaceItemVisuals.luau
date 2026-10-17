@@ -171,16 +171,26 @@ function Visuals.missileImpact(parent, position, blocked)
 	flash.Shape, flash.Material, flash.Transparency = Enum.PartType.Ball, Enum.Material.Neon, .3
 	if not blocked then
 		rays(flash, Config.Missile.SparkCount, Config.Missile.BurstRadius, Color3.fromRGB(255, 225, 140), "Burst")
+		-- A real horizontal ring, visible to every racer through replication.
+		-- Reuse the service-owned flash lifetime; no particles, lights or UI washout.
+		for i = 1, Config.MissileImpact.RingSegments do
+			local segment = part(flash, "Shockwave"..i, Vector3.one, flash.CFrame, Color3.fromRGB(255, 160, 45))
+			segment.Material = Enum.Material.Neon
+		end
 		local puff = part(flash, "ImpactPuff", Vector3.one*2*Config.Missile.PuffScale, flash.CFrame, Color3.fromRGB(100, 105, 115))
 		puff.Shape, puff.Transparency = Enum.PartType.Ball, Config.Missile.PuffTransparency
 		local residual = part(flash, "Aftershock", Vector3.one, flash.CFrame, Color3.fromRGB(255, 205, 100))
 		residual.Shape, residual.Material, residual.Transparency = Enum.PartType.Ball, Enum.Material.Neon, 1
 	end
+	Visuals.updateMissileImpact(flash, 0)
 	return flash
 end
 function Visuals.updateMissileImpact(flash, age)
-	local t = math.clamp(age / Config.Missile.ImpactLifetime, 0, 1)
-	flash.Size, flash.Transparency = Vector3.one*(1+3*t), .3+.7*t
+	local blocked = flash.Name == "MissileShieldImpact"
+	local lifetime = if blocked then Config.Shield.MissileImpactLifetime else Config.Missile.ImpactLifetime
+	local t = math.clamp(age / lifetime, 0, 1)
+	flash.Size = Vector3.one * (if blocked then 1+3*t else 4+(Config.MissileImpact.Size-4)*t)
+	flash.Transparency = .3+.7*t
 	local delay = Config.Missile.AftershockDelay
 	local after = math.clamp((age-delay)/(Config.Missile.ImpactLifetime-delay),0,1)
 	local primary = math.max(0,1-age/delay)
@@ -188,7 +198,14 @@ function Visuals.updateMissileImpact(flash, age)
 	for _, child in flash:GetChildren() do
 		if child:IsA("BasePart") then
 			local index = tonumber(string.match(child.Name, "^Burst(%d+)$"))
-			if index then
+			local ringIndex = tonumber(string.match(child.Name, "^Shockwave(%d+)$"))
+			if ringIndex then
+				local radius = 2 + (Config.MissileImpact.ShockwaveSize/2-2)*t
+				local angle = ringIndex*math.pi*2/Config.MissileImpact.RingSegments
+				child.Size = Vector3.new(.55, .4, 2*radius*math.tan(math.pi/Config.MissileImpact.RingSegments))
+				child.CFrame = flash.CFrame*CFrame.Angles(0,angle,0)*CFrame.new(radius,.35,0)
+				child.Transparency = .15+.85*t
+			elseif index then
 				child.Transparency = 1-.85*intensity
 				local angle = index*math.pi*2/Config.Missile.SparkCount
 				child.CFrame = flash.CFrame*CFrame.Angles(0,angle,0)*CFrame.new(0,0,-Config.Missile.BurstRadius*(.3+.7*t))
@@ -196,7 +213,7 @@ function Visuals.updateMissileImpact(flash, age)
 				child.Size = Vector3.one*(2+2*t)*Config.Missile.PuffScale
 				child.Transparency = Config.Missile.PuffTransparency+(1-Config.Missile.PuffTransparency)*t
 			elseif child.Name == "Aftershock" then
-				child.Size = Vector3.one*(1+2*after)
+				child.Size = Vector3.one*(3+9*after)
 				child.Transparency = if age < delay then 1 else 1-Config.Missile.AftershockScale*(1-after)
 			end
 		end
@@ -227,9 +244,10 @@ end
 -- Bounded native cosmetics; every Part is anchored and noninteractive.
 function Visuals.thunderWarning(parent, chassis)
  local model=Instance.new("Model");model.Name="ThunderWarning";model.Parent=parent
+ local c=Config.ThunderWarning
  for i=1,3 do
-  local puff=part(model,"Cloud"..i,Vector3.new(2.5,1.8,2.3),CFrame.new(),Color3.fromRGB(45,49,60))
-  puff.Shape=Enum.PartType.Ball
+  local puff=part(model,"Cloud"..i,Vector3.new(c.Width*.56,c.Height,c.Depth),CFrame.new(),Color3.fromRGB(35,30,45))
+  puff.Shape,puff.Transparency=Enum.PartType.Ball,.12
  end
  local glow=part(model,"ElectricGlow",Vector3.new(.25,1.4,.25),CFrame.new(),Color3.fromRGB(90,230,255))
  glow.Material=Enum.Material.Neon
@@ -237,13 +255,15 @@ function Visuals.thunderWarning(parent, chassis)
  return model
 end
 function Visuals.updateThunderWarning(model,chassis)
- for i=1,3 do model:FindFirstChild("Cloud"..i).CFrame=CFrame.new(chassis.Position+Vector3.new((i-2)*1.5,6+ (if i==2 then .4 else 0),0)) end
- model.ElectricGlow.CFrame=CFrame.new(chassis.Position+Vector3.new(0,4.8,0))
+ local c=Config.ThunderWarning
+ for i=1,3 do model:FindFirstChild("Cloud"..i).CFrame=CFrame.new(chassis.Position+Vector3.new((i-2)*c.Width*.22,c.OffsetY+ (if i==2 then .4 else 0),0)) end
+ model.ElectricGlow.CFrame=CFrame.new(chassis.Position+Vector3.new(0,c.OffsetY-c.Height*.5,0))
 end
 function Visuals.thunderStrike(parent,chassis,blocked)
  local model=Instance.new("Model");model.Name=if blocked then "ThunderShieldImpact" else "ThunderStrike";model.Parent=parent
  for i=1,3 do
-  local bolt=part(model,"Bolt"..i,Vector3.new(.3,2.3,.3),CFrame.new(chassis.Position+Vector3.new(if i==2 then .4 else 0,7-i*2,0))*CFrame.Angles(0,0,if i==2 then .35 else -.18),Color3.fromRGB(210,250,255))
+  local height=Config.ThunderWarning.OffsetY/3
+  local bolt=part(model,"Bolt"..i,Vector3.new(.8,height+.5,.8),CFrame.new(chassis.Position+Vector3.new(if i==2 then .4 else 0,Config.ThunderWarning.OffsetY-(i-.5)*height,0))*CFrame.Angles(0,0,if i==2 then .35 else -.18),Color3.fromRGB(210,250,255))
   bolt.Material=Enum.Material.Neon
  end
  local flash=part(model,"Impact",Vector3.new(5,.25,5),CFrame.new(chassis.Position),Color3.fromRGB(65,225,255))

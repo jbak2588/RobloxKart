@@ -191,7 +191,8 @@ check(not hit and reason=="immune" and effectCount==1,"second Missile inside imm
 hit,reason=items.tryApplyOffensiveItem(target,source,"Slick")
 check(not hit and reason=="immune" and effectCount==1,"shared offensive immunity blocks Slick too")
 check(source:GetAttribute("RaceCombatFeedbackSerial")==combatSerial,"immune/rejected contacts cannot publish successful combat feedback")
-tick(.21);check(projectileCount()==0,"hit flash cleanup")
+tick(.21);check(projectileCount()>0,"expanded hit remains visible beyond the old flash lifetime")
+tick(.65);check(projectileCount()==0,"expanded hit flash cleanup after .85 seconds")
 
 -- Direct Shield uses the normal defense against a real service-owned Missile.
 reset();use(source,"Missile")

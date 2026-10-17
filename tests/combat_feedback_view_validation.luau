@@ -72,8 +72,9 @@ for _,pair in {{"MISSILE_HIT","HIT: RacerB"},{"MISSILE_BLOCKED","SHIELD BLOCKED"
 	tick(1.19);check(cue.Visible,"attacker readable for 1.2 seconds")
 	tick(.02);check(not cue.Visible,"attacker expires")
 end
+check(not gui:FindFirstChild("HitConfirmedBadge"),"single readable combat badge; no gold glyph stroke overlay")
 tick()
-for _,pair in {{"KartMissileHitActive","MISSILE HIT!"},{"KartSlickActive","SLICK HIT!"},{"KartSmokeObscuredActive","SMOKED!"}} do
+for _,pair in {{"KartMissileHitActive","MISSILE HIT!"},{"KartSlickActive","SLICK HIT!"},{"KartSmokeObscuredActive","SMOKED!"},{"KartThunderHitActive","SHOCKED!"}} do
 	kart:SetAttribute(pair[1],true)
 	check(cue.Visible and cue.Text==pair[2] and edge.Visible,"victim attribute renders without waiting for Heartbeat")
 	check(cue.Font==rb.Enum.Font.GothamBold and cue.TextSize==17 and cue.BackgroundTransparency==.25

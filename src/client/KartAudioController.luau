@@ -221,8 +221,13 @@ function KartAudioController.start()
 						and kart:GetAttribute("KartOffTrack") ~= true
 						and kart:GetAttribute("RaceControlsLocked") ~= true
 						and math.abs(forwardSpeed) >= AudioConfig.DRIFT.MIN_SPEED
-					local slipFactor = 0
-					if validDrift then
+					-- Slick cancels Drift in gameplay, so its skid must be driven by
+					-- the victim's own authoritative hit state, not KartDrifting.
+					local slickHit = kart:GetAttribute("KartSlickActive") == true
+						and player:GetAttribute("RaceState") == "RACING"
+						and kart:GetAttribute("RaceControlsLocked") ~= true
+					local slipFactor = if slickHit then 1 else 0
+					if validDrift and not slickHit then
 						local lateralSpeed = velocity:Dot(activeChassis.CFrame.RightVector)
 						local slip = math.abs(math.deg(math.atan2(lateralSpeed, math.max(math.abs(forwardSpeed), 0.01))))
 						slipFactor = math.clamp(

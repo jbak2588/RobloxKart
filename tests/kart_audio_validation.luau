@@ -1,6 +1,6 @@
 -- Executes production KartAudioController with mocked lifecycle/signals/audio transport.
 -- Validates cue dispatch, not audible playback or Roblox asset permissions.
-local fs,luau=require("@lune/fs"),require("@lune/luau")
+local fs,luau,rb=require("@lune/fs"),require("@lune/luau"),require("@lune/roblox")
 local function signal()
 	local listeners={}
 	return {Connect=function(_,fn)
@@ -37,19 +37,29 @@ local humanoid=node("Humanoid");humanoid.SeatPart=seat;humanoid.Seated=signal()
 local character=node("Model");character.children.Humanoid=humanoid;player.Character=character
 local clock,played,destroyed=0,0,0
 local config=luau.load(fs.readFile("src/shared/AudioConfig.luau"))()
+local skid
+kart.children.Chassis.CFrame=rb.CFrame.identity
+kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.zero
 local runtime={getGroup=function()return{}end,preload=function()end,playLoop=function()end,stop=function()end}
 function runtime.createSound(name,asset)
+	if name=="DriftLoop" then
+		assert(asset==config.ASSETS.DRIFT_LOOP and asset~=config.ASSETS.BOOST_START,"skid uses tire asset")
+		skid={Volume=0,PlaybackSpeed=1,IsPlaying=false,Stop=function(self)self.IsPlaying=false end,Destroy=function(self)self.Parent=nil end}
+		return skid
+	end
 	if name~="BoostStart"then return nil end
 	assert(asset==config.ASSETS.BOOST_START,"same existing launch asset")
 	return {Stop=function()end,Destroy=function()destroyed+=1 end}
 end
+function runtime.playLoop(sound) if sound then sound.IsPlaying=true end end
+function runtime.stop(sound) if sound then sound.IsPlaying=false end end
 function runtime.playOnce(sound)if sound then played+=1 end end
 local shared={WaitForChild=function(_,name)return name end}
 local services={Players={LocalPlayer=player},ReplicatedStorage={WaitForChild=function()return shared end},RunService={Heartbeat=signal()}}
 local modules={AudioRuntime=runtime,AudioConfig=config,KartConfig={}}
 local controller=luau.load(fs.readFile("src/client/KartAudioController.luau"),{environment={
 	game={GetService=function(_,n)return services[n]end},script={Parent=shared},require=function(n)return modules[n]end,
-	time=function()return clock end,task={spawn=function(f,...)f(...)end,delay=function()error("unexpected attach retry")end},
+	NumberRange=rb.NumberRange,time=function()return clock end,task={spawn=function(f,...)f(...)end,delay=function()error("unexpected attach retry")end},
 }})()
 controller.start()
 assert(played==0,"attachment does not invent an activation")
@@ -62,6 +72,24 @@ clock=2;kart:SetAttribute("KartBoosting",true);assert(played==2,"Mini Boost cue 
 clock=2.04;kart:SetAttribute("KartNitroActive",true);assert(played==2,"deduplicate in the opposite order too")
 clock=3;kart:SetAttribute("KartNitroActive",false)
 clock=4;kart:SetAttribute("KartNitroActive",true);assert(played==3,"later independent Nitro still sounds")
+-- A hit on another racer only publishes an attacker result, never a local skid.
+local launches=played
+player:SetAttribute("RaceCombatFeedbackCode","SLICK_HIT")
+player:SetAttribute("RaceCombatFeedbackSerial",1)
+services.RunService.Heartbeat:Fire(1)
+assert(not skid.IsPlaying and played==launches,"attacker hit confirmation has no boost or skid")
+-- Slick cancels normal Drift and can be slow/aligned: the victim still hears it.
+kart:SetAttribute("KartDrifting",false);kart:SetAttribute("KartSlickActive",true)
+services.RunService.Heartbeat:Fire(.1)
+assert(skid.IsPlaying and skid.Volume>.49 and skid.TimePosition==5,"victim skid starts in approved 5-8s tire region")
+assert(skid.PlaybackRegion.Min==5 and skid.PlaybackRegion.Max==8 and skid.LoopRegion.Min==5,"no unrelated intro audio")
+assert(played==launches,"Slick never dispatches booster onset")
+kart:SetAttribute("RaceControlsLocked",true);services.RunService.Heartbeat:Fire(1)
+assert(not skid.IsPlaying,"locked/reset kart stops skid")
+kart:SetAttribute("RaceControlsLocked",false);services.RunService.Heartbeat:Fire(.1)
+assert(skid.IsPlaying,"active victim resumes skid")
+kart:SetAttribute("KartSlickActive",false);services.RunService.Heartbeat:Fire(1)
+assert(not skid.IsPlaying,"effect expiry fades and stops skid")
 player:SetAttribute("RaceState","GARAGE");assert(destroyed==1,"garage cleans up attached audio")
 clock=5;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartNitroActive",true)
 assert(played==3,"detached kart cannot trigger sound")
