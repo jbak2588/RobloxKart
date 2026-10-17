@@ -33,7 +33,7 @@ local function actor(owner,record)
  return a
 end
 function Combat.new(zone,records)
- local self=setmetatable({zone=zone,records=records,actors={},hazards={},session={roundId=1,id='PRACTICE:'..tostring(os.clock())}},Combat)
+ local self=setmetatable({zone=zone,records=records,actors={},hazards={},shieldPulses={},session={roundId=1,id='PRACTICE:'..tostring(os.clock())}},Combat)
  self.folder=Instance.new('Folder');self.folder.Name='LobbyPracticeEffects';self.folder.Parent=zone
  local model=Instance.new('Model');model.Name='LobbyPracticeBot';model:SetAttribute('LobbyPracticeBot',true)
  local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
@@ -80,6 +80,10 @@ function Combat:hitSound(a,id)
  p:SetAttribute('LobbyCombatHitResetSerial',a.record.kart:GetAttribute('RaceResetSerial'))
  p:SetAttribute('LobbyCombatHitSerial',(p:GetAttribute('LobbyCombatHitSerial')or 0)+1)
 end
+function Combat:pulseShield(a,now)
+ if #self.shieldPulses>=32 then self.shieldPulses[1].visual:Destroy();table.remove(self.shieldPulses,1)end
+ table.insert(self.shieldPulses,{actor=a,kart=a.record.kart,born=now,visual=Visuals.shieldPulse(a.record.kart,a.record.body)})
+end
 function Combat:publish(a,now)
  if not a.owner then return end
  local p,l=a.owner,a.loadout
@@ -99,6 +103,7 @@ function Combat:add(player,record)
  self:feedback(a,'PRACTICE • ITEMS REFILL IN 6s')
 end
 function Combat:clearTransient(a)
+ for i=#self.shieldPulses,1,-1 do if self.shieldPulses[i].actor==a then self.shieldPulses[i].visual:Destroy();table.remove(self.shieldPulses,i)end end
  self.missiles:clearPlayer(a);self.thunder:clearPlayer(a);self.smoke:clearPlayer(a)
  for i=#self.hazards,1,-1 do if self.hazards[i].owner==a then self.hazards[i].model:Destroy();table.remove(self.hazards,i)end end
  if a.shield then a.shield:Destroy();a.shield=nil end
@@ -181,7 +186,7 @@ function Combat:use(player,generation,id,extra)
    if a.shieldEnd and now<a.shieldEnd then return false,'SHIELD ACTIVE'end
    if a.shield then a.shield:Destroy();a.shield=nil end
    a.shield=Visuals.shield(a.record.kart,a.record.body);a.shieldEnd=now+Config.SHIELD_DURATION
-   a.record.kart:SetAttribute('KartShieldActive',true);return true
+   a.record.kart:SetAttribute('KartShieldActive',true);self:pulseShield(a,now);return true
   elseif item=='Missile'or item=='Thunder'then
    local targets=self:targets(a);if #targets==0 then return false,'NO TARGET AHEAD'end
    if item=='Missile'then return self.missiles:launch(a,targets[1].actor,self.session,now)end
@@ -205,6 +210,8 @@ function Combat:resolve(target,source,id,now)
  if not self:valid(source)or not self:valid(target)or (source==target and id~='Slick'and id~='Smoke')then return false,'invalid_target'end
  if target.immune and now<target.immune then return false,'immune'end
  if target.shieldEnd and now<target.shieldEnd then
+  self:pulseShield(target,now)
+  if target.owner then target.owner:SetAttribute('LobbyItemBlockedSerial',(target.owner:GetAttribute('LobbyItemBlockedSerial')or 0)+1)end
   if target.shield then target.shield:Destroy();target.shield=nil end
   target.shieldEnd=nil;target.record.kart:SetAttribute('KartShieldActive',false)
   self:feedback(target,'BLOCKED!');if source~=target then self:feedback(source,string.upper(id)..' BLOCKED')end;return true,'blocked'
@@ -248,6 +255,15 @@ end
 function Combat:update(now,dt)
  if self.stopped then return end
  for p,a in self.actors do if not self:valid(a)then self:remove(p)end end
+ for i=#self.shieldPulses,1,-1 do
+  local p=self.shieldPulses[i];local age=now-p.born
+  if age>=.3 or not p.visual.Parent or not self:valid(p.actor)or p.actor.record.kart~=p.kart then
+   p.visual:Destroy();table.remove(self.shieldPulses,i)
+  else
+   p.visual.Size=Vector3.new(9,6.5,11)*(.9+age*1.5)
+   p.visual.Transparency=.45+age/.3*.55
+  end
+ end
  local state=self.zone:FindFirstChild('LobbyDemoState')
  if state then
   if not self.botElapsed then self.botElapsed=math.max(0,Workspace:GetServerTimeNow()-state:GetAttribute('StartedAt'))end

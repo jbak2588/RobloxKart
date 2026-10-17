@@ -65,23 +65,28 @@ function Controller.start()
    local owner=if type(ownerId)=="number" then Players:GetPlayerByUserId(ownerId) else nil
    local seat=kart:FindFirstChild("Seat")
    local human=seat and seat.Occupant
-   local session=owner and owner:GetAttribute("RaceSessionId")
+   local session=owner and owner:GetAttribute(if isLobby then "LobbyCombatSessionId" else "RaceSessionId")
+   local blockedAttribute=if isLobby then "LobbyItemBlockedSerial" else "RaceItemBlockedSerial"
    local reset=kart:GetAttribute("RaceResetSerial")
    if r.owner~=owner or r.human~=human or r.session~=session or r.reset~=reset then
     clear(r);r.owner,r.human,r.session,r.reset=owner,human,session,reset
-    r.blocked=owner and owner:GetAttribute("RaceItemBlockedSerial") or 0
+    r.blocked=owner and owner:GetAttribute(blockedAttribute) or 0
    end
-   if isLobby and owner==Players.LocalPlayer then continue end
+   local localLobby=isLobby and owner==Players.LocalPlayer
    local enabled=human~=nil and human.Health>0 and kart:GetAttribute("RaceControlsLocked")~=true
     and (isLobby or not owner or owner:GetAttribute("RaceState")=="RACING")
    local chassis=kart.PrimaryPart
    if not chassis then clear(r);continue end
    if r.chassis~=chassis then clear(r);r.chassis=chassis end
    if not enabled then clear(r);continue end
-   if not r.exhaust then r.exhaust=Exhaust.new(kart) end
-   if r.exhaust then r.exhaust:update(dt,true) end
-   if not r.speed then r.speed=Speed.new(kart) end
-   if r.speed then r.speed:update(dt,true) end
+   -- The local test-drive controller owns its exhaust; Shield stays common to
+   -- self/remote practice and race karts, using the exact same renderer.
+   if not localLobby then
+    if not r.exhaust then r.exhaust=Exhaust.new(kart) end
+    if r.exhaust then r.exhaust:update(dt,true) end
+    if not r.speed then r.speed=Speed.new(kart) end
+    if r.speed then r.speed:update(dt,true) end
+   end
    local shell=kart:FindFirstChild("RaceItemShield")
    local active=kart:GetAttribute("KartShieldActive")==true and shell~=nil
    if active and not r.shield then r.shield=Shield.new(kart,chassis,human.Parent) end
@@ -90,7 +95,7 @@ function Controller.start()
      if r.source and r.source.Parent then r.source.LocalTransparencyModifier=0 end
      r.source=shell;if shell then shell.LocalTransparencyModifier=1 end
     end
-    local serial=owner and owner:GetAttribute("RaceItemBlockedSerial") or r.blocked
+    local serial=owner and owner:GetAttribute(blockedAttribute) or r.blocked
     if not r.shield:update(time(),active,serial~=r.blocked) then
      r.shield:destroy();r.shield=nil
      if r.source and r.source.Parent then r.source.LocalTransparencyModifier=0 end;r.source=nil
