@@ -28,7 +28,8 @@ for _,id in policy.Items do player:SetAttribute('LobbyCharge'..id,1)end
 local sent={};local remote={FireServer=function(_,...)table.insert(sent,{...})end}
 local v=view.new(canvas,player,remote,function()return canUse end)
 local l=drive.apply(mobile.layout(canvas.bounds),canvas.bounds)
-v:update(true,l,58,nil)
+local actualLayout=v:update(true,l,58,nil)
+check(actualLayout.boostY>actualLayout.y+actualLayout.height and actualLayout.gaugeY>actualLayout.boostY,'production view returns item-relative Boost placement on compact mobile')
 local panel=canvas:FindFirstChild('PracticeItems');local info=canvas:FindFirstChild('PracticeFeedback')
 for _,id in policy.Items do
  local b=panel:FindFirstChild(id);check(b~=nil and b.Active,'visible direct practice item '..id)

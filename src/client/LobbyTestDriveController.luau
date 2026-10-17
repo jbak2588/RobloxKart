@@ -201,22 +201,18 @@ function Controller.start()
   gauge.Visible=active
   local touch=gui.Parent:FindFirstChild("RobloxKartTouchDriving")
   local controls=touch and touch:FindFirstChild("Controls")
-  local driftButton=controls and controls:FindFirstChild("Drift")
   local size=if controls then controls.AbsoluteSize else Workspace.CurrentCamera.ViewportSize
   local l=LobbyLayout.apply(MobileView.layout(size),size)
   local navigation=gui.Parent:FindFirstChild("KDMHubNavigation")
   local wallet=navigation and navigation:FindFirstChild("WalletCapsule")
-  local walletLeft=if wallet then wallet.AbsolutePosition.X-canvas.AbsolutePosition.X else nil
   local walletBottom=if wallet then wallet.AbsolutePosition.Y+wallet.AbsoluteSize.Y-canvas.AbsolutePosition.Y else nil
-  local driftLeft=if driftButton and controls.Visible then driftButton.AbsolutePosition.X-canvas.AbsolutePosition.X else l.driftX
-  local hud=LobbyLayout.trainingHud(canvas.AbsoluteSize,walletLeft,walletBottom,driftLeft,
-   if driftButton and controls.Visible then driftButton.AbsoluteSize.X else l.driftHitWidth,l.driftWidth)
-  local compactPractice=practiceView:update(active and gui.Enabled,l,walletBottom,seatKart())
-  charge.Visible=active and not compactPractice;gauge.Visible=active and not compactPractice
-  charge.Position=UDim2.fromOffset(hud.x,hud.y);charge.Size=UDim2.fromOffset(hud.width,22)
-  gauge.Position=UDim2.fromOffset(hud.x,hud.y+26);gauge.Size=UDim2.fromOffset(hud.width,9)
-  local segmentWidth=(hud.width-16)/5
-  for i,segment in segments do segment.Size=UDim2.fromOffset(segmentWidth,9);segment.Position=UDim2.fromOffset((i-1)*(segmentWidth+4),0) end
+  local practiceLayout=practiceView:update(active and gui.Enabled,l,walletBottom,seatKart())
+  charge.Visible=active;gauge.Visible=active
+  charge.TextSize=if practiceLayout.compact then 12 else 16
+  charge.Position=UDim2.fromOffset(practiceLayout.x,practiceLayout.boostY);charge.Size=UDim2.fromOffset(practiceLayout.width,practiceLayout.boostTextHeight)
+  gauge.Position=UDim2.fromOffset(practiceLayout.x,practiceLayout.gaugeY);gauge.Size=UDim2.fromOffset(practiceLayout.width,practiceLayout.gaugeHeight)
+  local segmentWidth=(practiceLayout.width-16)/5
+  for i,segment in segments do segment.Size=UDim2.fromOffset(segmentWidth,practiceLayout.gaugeHeight);segment.Position=UDim2.fromOffset((i-1)*(segmentWidth+4),0) end
   local exit=LobbyLayout.shortcuts(canvas.AbsoluteSize,MobileView)
   button.AnchorPoint=Vector2.zero
   button.Position=UDim2.fromOffset(exit.x+6,exit.y+4)
