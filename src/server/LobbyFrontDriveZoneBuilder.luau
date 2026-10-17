@@ -45,7 +45,7 @@ function Builder.build(hub,ground)
  local bounds=Geometry.bounds
  for z=bounds.minZ,bounds.maxZ-step,step do
   for _,span in Geometry.intervals(z+step/2,true) do
-   local road=part("LobbyFrontFreeDriveRoad",Vector3.new(span[2]-span[1],.18,step+.02),frame((span[1]+span[2])/2,.09,z+step/2),Color3.fromRGB(38,43,49),false)
+   local road=part("LobbyFrontFreeDriveRoad",Vector3.new(span[2]-span[1],.18,step+.02),frame((span[1]+span[2])/2,.09,z+step/2),Color3.fromRGB(62, 66, 73),false)
    road.Material=Enum.Material.Asphalt
   end
  end

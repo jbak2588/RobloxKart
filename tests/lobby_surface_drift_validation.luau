@@ -15,7 +15,7 @@ for speed=0,100,.5 do
 end
 local builder=fs.readFile('src/server/LobbyFrontDriveZoneBuilder.luau')
 check(builder:find('LobbyFrontSmoothFloor',1,true)~=nil,'single physical floor')
-check(builder:find('Color3.fromRGB(38,43,49),false',1,true)~=nil,'decorative asphalt slices cannot collide')
+check(builder:find('Color3.fromRGB(62, 66, 73),false',1,true)~=nil,'decorative asphalt slices cannot collide')
 check(builder:find('Color3.fromRGB(111,211,245),false',1,true)~=nil,'entry bridge cannot trip kart')
 check(builder:find('LobbyFrontInnerKerb',1,true)~=nil,'inner perimeter kerbs')
 check(builder:find('gateLeft,gateRight=-126,-114',1,true)~=nil,'rail opening aligns with 12 stud entry')

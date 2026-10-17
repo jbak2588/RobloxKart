@@ -79,7 +79,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local styleName = if isV2B then "V2B" elseif isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
 		elseif track.Id == "Track01Race" then "Base" else "Practice"
 	local style = TRACK_VISUAL_STYLE[styleName]
-	local environmentVersion = if isFigure8 then 4 elseif isHardCircuit then 6 else 1
+	local environmentVersion = if isFigure8 then 9 elseif isHardCircuit then 6 else 1
 	local previousTrack = prototype:FindFirstChild("TestTrack")
 	if previousTrack and previousTrack:IsA("Model")
 		and previousTrack:GetAttribute("GeometryId") == track.GeometryId
@@ -132,7 +132,10 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	raceTriggerFolder.Parent = testTrack
 
 	local partCount = 0
-	local roadColor = Color3.fromRGB(48, 51, 56)
+	local BASE_ROAD_COLOR = Color3.fromRGB(48, 51, 56)
+	local TRACK01_A_ROAD_COLOR = Color3.fromRGB(56, 59, 65)
+	-- Alternative candidate B: Color3.fromRGB(62, 66, 73) (documented for comparison, not active default)
+	local roadColor = if isFigure8 then TRACK01_A_ROAD_COLOR else BASE_ROAD_COLOR
 	local white = Color3.fromRGB(245, 245, 235)
 	local kerbRed = Color3.fromRGB(205, 48, 45)
 	local kerbWhite = Color3.fromRGB(238, 236, 229)
@@ -790,6 +793,206 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		testTrack:SetAttribute("PracticeTreeCount", trees)
 		testTrack:SetAttribute("PracticeBillboardPartCount", #PRACTICE_BILLBOARD_PARTS)
 		testTrack:SetAttribute("PracticeSignalPartCount", 0)
+
+		-- P1-A (SpeedCues) & P1-B (VisualRails) for Track01 (PracticeFigure8V1)
+		-- Non-colliding visual landmarks placed strictly clear of crossover (VisualHalfLength=110),
+		-- gates, and road edges (>= 16 studs bounding edge clearance).
+		local visualRailsFolder = Instance.new("Folder")
+		visualRailsFolder.Name = "VisualRails"
+		visualRailsFolder.Parent = environmentFolder
+
+		local crossing = definition.Crossover
+		local crossingPos = crossing.Position
+		local crossingClearDist = crossing.VisualHalfLength + 15
+
+		-- 1. P1-A: 8 Near SpeedCue Markers (Road edge + 18 studs offset)
+		local speedCueIndices = { 40, 50, 60, 70, 90, 100, 165, 175, 195, 205 }
+		for _, idx in speedCueIndices do
+			if speedCueObjects >= 8 then break end
+			local pos = samples[idx]
+			local tangent = directionAt(idx)
+			local deltaCross = pos - crossingPos
+			if Vector2.new(deltaCross.X, deltaCross.Z).Magnitude <= crossingClearDist then continue end
+
+			local gateClear = true
+			for _, cp in checkpointSamples do
+				if (pos - cp.Position).Magnitude < 32 then gateClear = false; break end
+			end
+			if not gateClear or (pos - course.StartPosition).Magnitude < 40 then continue end
+
+			local normal = Vector3.new(-tangent.Z, 0, tangent.X)
+			local center = pos + normal * (roadWidth * 0.5 + 18)
+
+			speedCueObjects += 1
+			local base = roadPoint(center, 0)
+			createVisualPart(speedCues, string.format("Cue%02dPole", speedCueObjects),
+				Vector3.new(1.0, 9.0, 1.0), CFrame.new(base + Vector3.new(0, 4.5, 0)),
+				Color3.fromRGB(65, 73, 80), Enum.Material.SmoothPlastic)
+			speedCueParts += 1
+			createVisualPart(speedCues, string.format("Cue%02dMarker", speedCueObjects),
+				Vector3.new(3.0, 1.6, 0.4), CFrame.lookAt(base + Vector3.new(0, 9.2, 0), base + Vector3.new(0, 9.2, 0) + tangent),
+				Color3.fromRGB(245, 205, 50), Enum.Material.SmoothPlastic)
+			speedCueParts += 1
+		end
+
+		-- 2. P1-B: Comprehensive Outer Circuit VisualRails with 4-rail straight blocks and curved sweeps
+		local straightBlocks = {
+			-- Segment 1 (Start straight): two 4-rail blocks
+			{ 10, 11, 12, 13 },
+			{ 15, 16, 17, 18 },
+			-- Segment 3 (North top main straight): four 4-rail blocks
+			{ 48, 49, 50, 51 },
+			{ 54, 55, 56, 57 },
+			{ 60, 61, 62, 63 },
+			{ 66, 67, 68, 69 },
+			-- Segment 5 (Mid diagonal straight): two 4-rail blocks
+			{ 104, 105, 106, 107 },
+			{ 110, 111, 112, 113 },
+			-- Segment 7 (South bottom straight): one 4-rail block
+			{ 180, 181, 182, 183 },
+			-- Segment 9 (Final return straight): two 4-rail blocks
+			{ 214, 215, 216, 217 },
+			{ 220, 221, 222, 223 },
+		}
+		local curveRails = {
+			-- North curve 1
+			26, 30, 34, 38, 42,
+			-- North curve 2
+			78, 82, 86, 90, 94,
+			-- South curve 1
+			166, 170, 174, 178,
+			-- South curve 2
+			192, 196, 200, 204, 208,
+		}
+
+		local plannedRails = {}
+		for _, block in straightBlocks do
+			for posInBlock, idx in block do
+				table.insert(plannedRails, { idx = idx, isStraight = true, posInBlock = posInBlock })
+			end
+		end
+		for _, idx in curveRails do
+			table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = 0 })
+		end
+
+		local visualRailParts = 0
+		local brandedRailParts = 0
+
+		local function attachKdmBranding(railPart: Part, normalVector: Vector3)
+			local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+			local gui = Instance.new("SurfaceGui")
+			gui.Name = "KDMBrandSurfaceGui"
+			gui.Face = inwardFace
+			gui.CanvasSize = Vector2.new(512, 128)
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+			gui.LightInfluence = 0
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.Parent = railPart
+
+			local panel = Instance.new("Frame")
+			panel.Name = "BrandPanel"
+			panel.Size = UDim2.new(0.82, 0, 0.72, 0)
+			panel.AnchorPoint = Vector2.new(0.5, 0.5)
+			panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+			panel.BackgroundColor3 = Color3.fromRGB(15, 18, 22)
+			panel.BorderSizePixel = 0
+			panel.Parent = gui
+
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 6)
+			corner.Parent = panel
+
+			local flag = Instance.new("Frame")
+			flag.Name = "CheckerFlag"
+			flag.Size = UDim2.new(0.20, 0, 0.74, 0)
+			flag.AnchorPoint = Vector2.new(0, 0.5)
+			flag.Position = UDim2.new(0.04, 0, 0.5, 0)
+			flag.BackgroundTransparency = 1
+			flag.BorderSizePixel = 0
+			flag.Parent = panel
+
+			local rows, cols = 3, 4
+			for r = 0, rows - 1 do
+				for c = 0, cols - 1 do
+					local cell = Instance.new("Frame")
+					cell.Name = string.format("Cell_%d_%d", r, c)
+					cell.Size = UDim2.new(1 / cols, 0, 1 / rows, 0)
+					cell.Position = UDim2.new(c / cols, 0, r / rows, 0)
+					cell.BackgroundColor3 = if (r + c) % 2 == 0 then Color3.fromRGB(250, 250, 250) else Color3.fromRGB(18, 20, 24)
+					cell.BorderSizePixel = 0
+					cell.Parent = flag
+				end
+			end
+
+			local label = Instance.new("TextLabel")
+			label.Name = "KDMText"
+			label.Size = UDim2.new(0.68, 0, 0.82, 0)
+			label.AnchorPoint = Vector2.new(0, 0.5)
+			label.Position = UDim2.new(0.28, 0, 0.5, 0)
+			label.BackgroundTransparency = 1
+			label.Text = "KDM"
+			label.Font = Enum.Font.GothamBold
+			label.TextColor3 = Color3.fromRGB(255, 255, 255)
+			label.TextScaled = true
+			label.TextXAlignment = Enum.TextXAlignment.Center
+			label.TextYAlignment = Enum.TextYAlignment.Center
+			label.Parent = panel
+		end
+
+		for _, item in plannedRails do
+			local idx = item.idx
+			local first = samples[idx]
+			local nextIdx = idx % #samples + 1
+			local second = samples[nextIdx]
+			local tangent = (second - first).Unit
+
+			local n1 = Vector3.new(-tangent.Z, 0, tangent.X)
+			local n2 = Vector3.new(tangent.Z, 0, -tangent.X)
+			local bestNormal = n1
+			local bestDist = -math.huge
+			for _, testN in { n1, n2 } do
+				local testPos = first + testN * (roadWidth * 0.5 + 18.5)
+				local minD = math.huge
+				for _, roadPt in samples do
+					local d = (Vector2.new(testPos.X - roadPt.X, testPos.Z - roadPt.Z)).Magnitude
+					if d < minD then minD = d end
+				end
+				if minD > bestDist then
+					bestDist = minD
+					bestNormal = testN
+				end
+			end
+
+			local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + 1.1, 0)
+			local railLook = CFrame.lookAt(railPos, railPos + tangent)
+
+			local isRed = true
+			local shouldBrand = false
+			if item.isStraight then
+				-- Red / White / Red / White 4-rail block pattern
+				isRed = (item.posInBlock % 2 == 1)
+				if item.posInBlock == 2 then
+					shouldBrand = true
+				end
+			else
+				isRed = (visualRailParts % 2 == 0)
+				if visualRailParts % 4 == 1 then
+					shouldBrand = true
+				end
+			end
+
+			local railColor = if isRed then kerbRed else kerbWhite
+			local railPart = createVisualPart(visualRailsFolder, "RailSegment" .. (visualRailParts + 1),
+				Vector3.new(0.4, 2.2, (second - first).Magnitude + 2), railLook,
+				railColor, Enum.Material.SmoothPlastic)
+			visualRailParts += 1
+			if shouldBrand then
+				attachKdmBranding(railPart, bestNormal)
+				brandedRailParts += 1
+			end
+		end
+		testTrack:SetAttribute("VisualRailPartCount", visualRailParts)
+		testTrack:SetAttribute("BrandedVisualRailCount", brandedRailParts)
 	end
 
 	local function createRaceGate(name: string, point: Vector3, direction: Vector3, gateType: string, checkpointIndex: number?)
@@ -844,7 +1047,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	testTrack:SetAttribute("VisualStyleProfile", styleName)
 	testTrack:SetAttribute("VisualStyleVersion", style.Version)
 	testTrack:SetAttribute("VisualPartCount", partCount)
-	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts + (if isFigure8 then 2 + #PRACTICE_BILLBOARD_PARTS + (testTrack:GetAttribute("PracticeTreeCount") or 0) * 4 else 0))
+	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts + (testTrack:GetAttribute("VisualRailPartCount") or 0) + (if isFigure8 then 2 + #PRACTICE_BILLBOARD_PARTS + (testTrack:GetAttribute("PracticeTreeCount") or 0) * 4 else 0))
 	testTrack:SetAttribute("EnvironmentCueVersion", environmentVersion)
 	if isHardCircuit or isFigure8 or isV2B then
 		testTrack:SetAttribute("CornerZoneCount", #cornerZones)

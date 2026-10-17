@@ -36,6 +36,8 @@ function Controller.start()
  local engineAB=nil
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
  local boostCue=nil;local previousBoost=false
+ local missileHitCue=nil;local previousMissileHit=false
+ local thunderHitCue=nil;local previousThunderHit=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
  local hub=driveZone.Parent
  local displayPrompts={}
@@ -101,6 +103,8 @@ function Controller.start()
  local function detach()
   if engineAB then engineAB:destroy();engineAB=nil end
   if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false
+  if missileHitCue then Audio.stop(missileHitCue);missileHitCue:Destroy();missileHitCue=nil end;previousMissileHit=false
+  if thunderHitCue then Audio.stop(thunderHitCue);thunderHitCue:Destroy();thunderHitCue=nil end;previousThunderHit=false
   if exhaust then exhaust:destroy();exhaust=nil end
   if feedback then feedback:destroy();feedback=nil end
   if engine then engine:Stop();engine:Destroy();engine=nil end
@@ -237,6 +241,10 @@ function Controller.start()
     engineLooper=Audio.createEngineLooper(engine,engineSecondary)
    end
    boostCue=Audio.createSound('LobbyBoostStart',AudioConfig.ASSETS.BOOST_START,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.BOOST.START_VOLUME,true)
+   missileHitCue=Audio.createSound('LobbyMissileHit',AudioConfig.COMBAT.Missile.Asset,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.COMBAT.Missile.Volume,true)
+   if missileHitCue then missileHitCue.PlaybackSpeed=AudioConfig.COMBAT.Missile.Pitch end
+   thunderHitCue=Audio.createSound('LobbyThunderHit',AudioConfig.COMBAT.Thunder.Asset,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.COMBAT.Thunder.Volume,true)
+   if thunderHitCue then thunderHitCue.PlaybackSpeed=AudioConfig.COMBAT.Thunder.Pitch end
    engineAB=EngineAB.new(body,canvas)
    if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
   end
@@ -246,6 +254,12 @@ function Controller.start()
   if boosting and not previousBoost then Audio.playOnce(boostCue) end
   if not boosting and previousBoost then Audio.stop(boostCue) end
   previousBoost=boosting
+  local missileHit=kart:GetAttribute('KartMissileHitActive')==true
+  if missileHit and not previousMissileHit then Audio.playOnce(missileHitCue) end
+  previousMissileHit=missileHit
+  local thunderHit=kart:GetAttribute('KartThunderHitActive')==true
+  if thunderHit and not previousThunderHit then Audio.playOnce(thunderHitCue) end
+  previousThunderHit=thunderHit
   charge.Text=if kart:GetAttribute('KartBoosting') then 'MINI BOOST' elseif kart:GetAttribute('LobbyDriftReady') then 'BOOST READY • RELEASE' else string.format('BOOST CHARGE %d%%',math.floor((kart:GetAttribute('LobbyDriftCharge') or 0)*100))
   for i,segment in segments do segment.BackgroundColor3=if kart:GetAttribute('LobbyDriftReady') then Color3.fromRGB(255,218,67) elseif (kart:GetAttribute('LobbyDriftCharge') or 0)*5>=i then Color3.fromRGB(111,211,245) else Color3.fromRGB(26,40,56) end
   local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit

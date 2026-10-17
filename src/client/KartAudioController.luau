@@ -127,7 +127,11 @@ function KartAudioController.start()
 		end
 		boostStart = addSound("BoostStart", AudioConfig.ASSETS.BOOST_START, sfxGroup, false, AudioConfig.BOOST.START_VOLUME)
 		boostLoop = addSound("BoostLoop", AudioConfig.ASSETS.BOOST_LOOP, sfxGroup, true, AudioConfig.BOOST.LOOP_VOLUME)
-		AudioRuntime.preload({ Engine = engine, EngineB = engineSecondary, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop })
+		local missileHit = addSound("VictimMissileHit", AudioConfig.COMBAT.Missile.Asset, sfxGroup, false, AudioConfig.COMBAT.Missile.Volume)
+		if missileHit then missileHit.PlaybackSpeed = AudioConfig.COMBAT.Missile.Pitch end
+		local thunderHit = addSound("VictimThunderHit", AudioConfig.COMBAT.Thunder.Asset, sfxGroup, false, AudioConfig.COMBAT.Thunder.Volume)
+		if thunderHit then thunderHit.PlaybackSpeed = AudioConfig.COMBAT.Thunder.Pitch end
+		AudioRuntime.preload({ Engine = engine, EngineB = engineSecondary, Drift = drift, BoostStart = boostStart, BoostLoop = boostLoop, MissileHit = missileHit, ThunderHit = thunderHit })
 		if engine then
 			engineDiagnostic = EngineLoopDiagnostic.new(engine,
 				RunService:IsStudio() or KartConfig.DEBUG_TELEMETRY == true)
@@ -139,6 +143,8 @@ function KartAudioController.start()
 
 		local wasBoosting = kart:GetAttribute("KartBoosting") == true
 		local wasNitroActive = kart:GetAttribute("KartNitroActive") == true
+		local wasMissileHit = kart:GetAttribute("KartMissileHitActive") == true
+		local wasThunderHit = kart:GetAttribute("KartThunderHitActive") == true
 		local lastBoostStartAt = -math.huge
 		local function playBoostStart()
 			local now = time()
@@ -168,6 +174,20 @@ function KartAudioController.start()
 				playBoostStart()
 			end
 			wasNitroActive = active
+		end))
+		table.insert(kartConnections, kart:GetAttributeChangedSignal("KartMissileHitActive"):Connect(function()
+			local active = kart:GetAttribute("KartMissileHitActive") == true
+			if active and not wasMissileHit and player:GetAttribute("RaceState") == "RACING" then
+				if missileHit then AudioRuntime.playOnce(missileHit) end
+			end
+			wasMissileHit = active
+		end))
+		table.insert(kartConnections, kart:GetAttributeChangedSignal("KartThunderHitActive"):Connect(function()
+			local active = kart:GetAttribute("KartThunderHitActive") == true
+			if active and not wasThunderHit and player:GetAttribute("RaceState") == "RACING" then
+				if thunderHit then AudioRuntime.playOnce(thunderHit) end
+			end
+			wasThunderHit = active
 		end))
 		table.insert(kartConnections, kart.Destroying:Connect(detach))
 
