@@ -22,7 +22,7 @@ local Config = {
 
 	-- Consumed by RaceItemVisuals, the replicated production service path.
 	MissileImpact = { Size = 28, ShockwaveSize = 36, RingSegments = 16 },
-	ThunderWarning = { Width = 12.5, Height = 4.5, Depth = 9.5, OffsetY = 7.8 },
+	ThunderWarning = { Width = 12.5, Height = 4.5, Depth = 9.5, OffsetY = 7.8, PuffCount = 7 },
 	-- After the primary bolt, reuse the live 28 / 36-stud Missile burst.
 	ThunderImpact = { Delay = 0.10, LightRange = 38, LightBrightness = 9 },
 

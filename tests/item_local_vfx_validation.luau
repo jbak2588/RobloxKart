@@ -48,5 +48,50 @@ k:SetAttribute("KartSlickActive",true);k:SetAttribute("RaceResetSerial",1);check
 k:SetAttribute("KartSlickActive",false);k:SetAttribute("RaceControlsLocked",true);k:SetAttribute("KartSlickActive",true);check(count()==0,"locked lifecycle suppresses cue")
 local bot=kart();prototype.DescendantAdded:Fire(bot);bot:SetAttribute("KartSlickActive",true);check(count()==1,"observer sees bot cue too")
 prototype.DescendantRemoving:Fire(bot);check(count()==0 and bot:GetAttributeChangedSignal("KartSlickActive").Count()==0,"removed kart disconnects")
+
+-- Damage smoke lifecycle validation under Missile and Thunder hits
+local function findDamageAttachment(target)
+	for _, child in target.PrimaryPart.children do
+		if child.Name == "KDMDamageSmokeAttachment" then return child end
+	end
+	return nil
+end
+
+-- 1. Missile hit spawns single damage smoke plume
+k:SetAttribute("RaceControlsLocked", false)
+k:SetAttribute("KartMissileHitActive", true)
+local missileAttach = findDamageAttachment(k)
+check(missileAttach ~= nil, "damage smoke attachment created on Missile hit")
+local smokeEmitter = nil
+for _, child in missileAttach.children do if child.Name == "DamageSmoke" then smokeEmitter = child end end
+check(smokeEmitter ~= nil, "damage smoke emitter exists")
+check(smokeEmitter.Enabled ~= false, "damage smoke emitter is actively enabled")
+
+-- 2. Missile recovery fades and queues debris cleanup
+k:SetAttribute("KartMissileHitActive", false)
+check(smokeEmitter.Enabled == false, "damage smoke disabled upon speed recovery")
+check(queue[#queue][1] == missileAttach and queue[#queue][2] == 2.5, "damage smoke queued for Debris fade cleanup")
+missileAttach:Destroy()
+
+-- 3. Thunder hit spawns damage smoke with electric spark
+k:SetAttribute("KartThunderHitActive", true)
+local thunderAttach = findDamageAttachment(k)
+check(thunderAttach ~= nil, "damage smoke attachment created on Thunder hit")
+local hasSpark = false
+for _, child in thunderAttach.children do if child.Name == "ElectricSpark" then hasSpark = true end end
+check(hasSpark, "thunder damage includes electric spark emitter")
+
+-- 4. RaceReset cancels damage smoke immediately
+k:SetAttribute("RaceResetSerial", 2)
+check(findDamageAttachment(k) == nil, "race reset cancels damage smoke immediately")
+
+-- 5. RaceControlsLocked suppresses damage smoke
+k:SetAttribute("KartThunderHitActive", false)
+k:SetAttribute("RaceControlsLocked", true)
+k:SetAttribute("KartThunderHitActive", true)
+check(findDamageAttachment(k) == nil, "locked controls suppress damage smoke")
+k:SetAttribute("KartThunderHitActive", false)
+k:SetAttribute("RaceControlsLocked", false)
+
 controller.destroy();check(count()==0 and prototype.DescendantAdded.Count()==0 and k:GetAttributeChangedSignal("KartSlickActive").Count()==0,"controller destroy zero objects/connections")
-print("PASS: "..n.." actual local Slick VFX repeated-round budget, bot visibility and lifecycle checks")
+print("PASS: "..n.." actual local Slick & Damage Smoke VFX repeated-round budget, bot visibility and lifecycle checks")

@@ -149,6 +149,33 @@ end
 function Service.accountAdapter(player,kind) return adapter(player,kind) end
 function Service.getProfile(player) return read(player) end
 function Service.passAvailable() return passVerified() end
+function Service.creditReward(player, amount, reason)
+	if not player or type(amount) ~= "number" or amount <= 0 or not Service.allowed(player, "reward") then return false end
+	local a = adapter(player, "reward")
+	local key = S.userKey(player.UserId)
+	local ok, result = pcall(function()
+		return a.commit(a.beginUpdate(key, function(curr)
+			if not curr then return nil end
+			local p = S.clone(curr)
+			local earned = (p.wallet.lifetimeEarned or 0) + amount
+			if p.wallet.cash + amount > schema.maxCash or not S.integer(earned) or not S.integer(p.wallet.ledgerRevision + 1) then
+				return nil, "WALLET_CAPACITY"
+			end
+			p.wallet.cash += amount
+			p.wallet.lifetimeEarned = earned
+			p.wallet.ledgerRevision += 1
+			return p, "REWARD_CREDITED"
+		end))
+	end)
+	if ok and result and result.status == "SAVED" and result.value then
+		Service.publishProfile(player, result.value)
+		player:SetAttribute("RaceMoneyState", "SAVE_CONFIRMED")
+		player:SetAttribute("RaceMoney_base", amount)
+		player:SetAttribute("RaceMoney_total", amount)
+		return true
+	end
+	return false
+end
 function Service.start()
  local storage=game:GetService('ReplicatedStorage')
  if storage:FindFirstChild('KDMEconomy') then return end

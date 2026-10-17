@@ -17,6 +17,7 @@ local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local RacerState = require(script.Parent:WaitForChild("RacerState"))
 local RaceRanking = require(script.Parent:WaitForChild("RaceRanking"))
+local EconomyService = require(script.Parent:WaitForChild("EconomyService"))
 
 local RaceController = {}
 
@@ -74,6 +75,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceCheckpointCount", checkpointCount)
 	player:SetAttribute("RaceOffTrackRemaining", 0)
 	player:SetAttribute("RaceFinishMissedSerial", 0)
+	player:SetAttribute("RaceCheckpointMissed", 0)
 end
 
 local function isInsideGate(gate: BasePart, worldPosition: Vector3): boolean
@@ -346,6 +348,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceFinalTime", 0)
 			player:SetAttribute("RaceDNFReason", "")
 			player:SetAttribute("RaceFinishMissedSerial", 0)
+			player:SetAttribute("RaceCheckpointMissed", 0)
 			racer.raceStartTime = 0
 			racer.lapStartTime = 0
 			racer.finishEndTime = 0
@@ -417,6 +420,7 @@ function RaceController.start(options)
 			))
 			player:SetAttribute("RaceCurrentLap", math.min(completedLaps + 1, racer.targetLaps))
 			player:SetAttribute("RaceNextCheckpoint", 1)
+			player:SetAttribute("RaceCheckpointMissed", 0)
 			racer.lapStartTime = now
 			resetOffTrackState(player)
 			clearGateState()
@@ -435,6 +439,13 @@ function RaceController.start(options)
 
 		function racer:timeoutRace()
 			if player:GetAttribute("RaceState") ~= "RACING" then return end
+			local velocity = chassis.AssemblyLinearVelocity
+			local planarSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+			local offTrack = racer.offTrackElapsed > 0 or kart:GetAttribute("KartOffTrack") == true
+			local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
+			local isCrashed = kart:GetAttribute("KartCrashActive") == true
+			local isActiveRacer = not offTrack and not isCrashed and planarSpeed >= 15 and completedLaps >= 1
+
 			kart:SetAttribute("RaceControlsLocked", true)
 			kart:SetAttribute("KartFinishRollActive", false)
 			chassis.AssemblyLinearVelocity = Vector3.zero
@@ -445,6 +456,16 @@ function RaceController.start(options)
 			player:SetAttribute("RaceMapActive", false)
 			setRaceState(player, "DNF")
 			session.terminal[player] = "RACE_TIMEOUT"
+
+			if isActiveRacer and EconomyService and EconomyService.creditReward then
+				task.spawn(function()
+					local credited = EconomyService.creditReward(player, 1500, "ACTIVE_DNF_COMPLETION")
+					if credited then
+						player:SetAttribute("RaceActiveDnfBonus", true)
+						print(string.format("[Race] active racer timeout rewarded user=%d amount=1500 speed=%.1f laps=%d", player.UserId, planarSpeed, completedLaps))
+					end
+				end)
+			end
 		end
 
 		function racer:forfeit()
@@ -466,6 +487,7 @@ function RaceController.start(options)
 		local function beginFinishSequence(player: Player, now: number)
 			player:SetAttribute("RaceCurrentLap", racer.targetLaps)
 			player:SetAttribute("RaceNextCheckpoint", 1)
+			player:SetAttribute("RaceCheckpointMissed", 0)
 			player:SetAttribute("RaceCountdown", 0)
 			local finalTime = now - racer.raceStartTime
 			player:SetAttribute("RaceFinalTime", finalTime)
@@ -534,6 +556,7 @@ function RaceController.start(options)
 			end
 			player:SetAttribute("RaceCompletedLaps", completedLaps)
 			player:SetAttribute("RaceNextCheckpoint", 1)
+			player:SetAttribute("RaceCheckpointMissed", 0)
 			print(string.format("[Race] Lap %d complete: %.2fs", completedLaps, lapTime))
 
 			if completedLaps >= racer.targetLaps then
@@ -556,13 +579,21 @@ function RaceController.start(options)
 				local checkpointIndex = gate:GetAttribute("CheckpointIndex")
 				if checkpointIndex == nextCheckpoint and checkpoints[nextCheckpoint] == gate then
 					player:SetAttribute("RaceNextCheckpoint", nextCheckpoint + 1)
+					player:SetAttribute("RaceCheckpointMissed", 0)
 					print(string.format("[Race] checkpoint accepted cp=%d next=%d lap=%d", nextCheckpoint, nextCheckpoint + 1, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
+				elseif type(checkpointIndex) == "number" and checkpointIndex > nextCheckpoint then
+					player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
+					player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+					print(string.format("[Race] checkpoint order jumped current=%d expected=%d", checkpointIndex, nextCheckpoint))
 				end
 			elseif gateType == "StartFinish" and gate == startFinishGate then
 				print(string.format("[Race] finish crossed lap=%d nextCheckpoint=%d", (player:GetAttribute("RaceCurrentLap") :: number?) or 1, nextCheckpoint))
 				if nextCheckpoint == checkpointCount + 1 then
+					player:SetAttribute("RaceCheckpointMissed", 0)
 					completeLap(player, now)
 				else
+					player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
+					player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
 					print(string.format("[Race] finish rejected reason=missing_checkpoint expected=%d total=%d", nextCheckpoint, checkpointCount))
 				end
 			end
@@ -710,6 +741,10 @@ function RaceController.start(options)
 	session.itemPrepareDeadlines = {}
 	session.itemsReady = {}
 	local countdownStarting = false
+	local lastStartRejection,lastStartRejectionAt=nil,-math.huge
+	local function setStartBlocked(reason)
+		for player in session.participants do setChanged(player,"RaceStartBlockedReason",reason or "")end
+	end
 	local function beginItemPrep(player, now)
 		session.itemPrepareDeadlines[player] = now + RaceConfig.ITEM_PREP_SECONDS
 		session.itemsReady[player] = nil
@@ -794,19 +829,26 @@ function RaceController.start(options)
 			and not allItemsReady() then return end
   -- Event practice must wait for the actual admitted Bot, including retries.
   if options and options.isFirstRace and options.isFirstRace()
-   and session:count()~=session:humanCount()+1 then return end
+   and session:count()~=session:humanCount()+1 then setStartBlocked("BOT_PREPARING");return end
 		countdownStarting = true
 		if persistentRoom and options.getRoomHostUserId then
 			session.hostUserId = options.getRoomHostUserId()
 		end
 		if persistentRoom and options.onRoundStart then
 			for player in session.participants do
-				if player:GetAttribute("KDMRoutePending") == "HUB_RETURN" then countdownStarting = false; return end
+				if player:GetAttribute("KDMRoutePending") == "HUB_RETURN" then countdownStarting = false;setStartBlocked("RACER_RETURNING");return end
 			end
-			local ok, accepted = pcall(options.onRoundStart, session.hostUserId, session:count())
+			local ok, accepted, reason, detail = pcall(options.onRoundStart, session.hostUserId, session:count())
 			if not ok or not accepted then
 				countdownStarting = false
-				warn("[KDMRoom] round start rejected")
+				reason=if not ok then "ROOM_STORAGE_UNAVAILABLE" else reason or "ROOM_START_REJECTED"
+				setStartBlocked(reason)
+				if reason~=lastStartRejection or now-lastStartRejectionAt>=5 then
+					lastStartRejection,lastStartRejectionAt=reason,now
+					warn(string.format("[KDMRoom] round start rejected reason=%s phase=%s localRacers=%d humans=%d storedState=%s arrived=%s reserved=%s bots=%s",
+						reason,session.phase,session:count(),session:humanCount(),tostring(detail and detail.state),
+						tostring(detail and detail.arrived),tostring(detail and detail.reserved),tostring(detail and detail.bots)))
+				end
 				return
 			end
 		end
@@ -814,6 +856,7 @@ function RaceController.start(options)
 			countdownStarting = false; return
 		end
 		rosterLocked = true
+		setStartBlocked("");lastStartRejection=nil
 		publicWarmup=options and options.isQuickMatch and options.isQuickMatch()and session:humanCount()==1 and session:count()>1 or false
 		session.roundId += 1
 		session.phase = "COUNTDOWN"
@@ -906,6 +949,7 @@ function RaceController.start(options)
 
 	local function enterWaitingLobby(now: number, reason: string)
 		publicNextAt=0
+		setStartBlocked("")
 		session.phase = "WAITING"
 		session.waitingReason = reason
 		if reason ~= "INITIAL" then
@@ -1201,6 +1245,8 @@ function RaceController.start(options)
 			local publicReady=options and options.isQuickMatch and options.isQuickMatch()
 				and ((options.isPractice and options.isPractice())or session:humanCount()>=2 or (session:humanCount()==1 and session:count()>1))
 			local hostStart=options and options.requiresHostStart and options.requiresHostStart()
+			if not allItemsReady()then setStartBlocked("")
+			elseif not hostStart and not publicReady and session:count()<session.maxPlayers then setStartBlocked("WAITING_FOR_RACERS")end
 			if not hostStart and (session:count() == session.maxPlayers or publicReady) and allItemsReady()and now-lastPublicStart>=1 then
 				lastPublicStart=now;startSharedCountdown(now)
 			end

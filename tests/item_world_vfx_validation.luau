@@ -54,13 +54,15 @@ for _,blocked in {false,true} do
 end
 local warning=v.thunderWarning(folder,chassis)
 local minX,maxX=math.huge,-math.huge
-for i=1,3 do
+local puffCount = cfg.ThunderWarning.PuffCount or 5
+for i=1,puffCount do
  local cloud=warning:FindFirstChild("Cloud"..i)
+ check(cloud~=nil,"cloud puff "..i.." exists")
  minX=math.min(minX,cloud.CFrame.Position.X-cloud.Size.X/2)
  maxX=math.max(maxX,cloud.CFrame.Position.X+cloud.Size.X/2)
- check(cloud.Size.Y==cfg.ThunderWarning.Height and cloud.Size.Z==cfg.ThunderWarning.Depth,"live cloud height/depth")
  check(cloud.Transparency<.2 and cloud.Anchored and not cloud.CanCollide and not cloud.CanQuery,"solid dark cosmetic cloud")
 end
+check(warning.Cloud2.Size.Y==cfg.ThunderWarning.Height and warning.Cloud2.Size.Z==cfg.ThunderWarning.Depth,"live center dome height/depth")
 check(math.abs(maxX-minX-cfg.ThunderWarning.Width)<1e-5,"full cloud width actually 12.5 studs")
 chassis.Position=rb.Vector3.new(100,10,30)
 v.updateThunderWarning(warning,chassis)

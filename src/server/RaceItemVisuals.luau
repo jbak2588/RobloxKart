@@ -241,12 +241,24 @@ function Visuals.smoke(parent, frame, config)
 	return model, trigger
 end
 
+local function thunderPuffSpecs(c)
+ return {
+  { name = "Cloud1", pos = Vector3.new(-c.Width*.16, c.OffsetY+.18, 1.1), size = Vector3.new(c.Width*.38, c.Height*.92, c.Depth*.85), color = Color3.fromRGB(78, 82, 92) },
+  { name = "Cloud2", pos = Vector3.new(0, c.OffsetY+.40, 0), size = Vector3.new(c.Width*.48, c.Height, c.Depth), color = Color3.fromRGB(68, 72, 80) },
+  { name = "Cloud3", pos = Vector3.new(c.Width*.16, c.OffsetY+.18, -1.0), size = Vector3.new(c.Width*.38, c.Height*.92, c.Depth*.85), color = Color3.fromRGB(78, 82, 92) },
+  { name = "Cloud4", pos = Vector3.new(-c.Width*.29, c.OffsetY-.12, -0.7), size = Vector3.new(c.Width*.30, c.Height*.80, c.Depth*.72), color = Color3.fromRGB(88, 93, 104) },
+  { name = "Cloud5", pos = Vector3.new(c.Width*.29, c.OffsetY-.12, 0.8), size = Vector3.new(c.Width*.30, c.Height*.80, c.Depth*.72), color = Color3.fromRGB(88, 93, 104) },
+  { name = "Cloud6", pos = Vector3.new(-c.Width*.40, c.OffsetY-.40, 0.4), size = Vector3.new(c.Width*.20, c.Height*.68, c.Depth*.60), color = Color3.fromRGB(98, 104, 116) },
+  { name = "Cloud7", pos = Vector3.new(c.Width*.40, c.OffsetY-.40, -0.4), size = Vector3.new(c.Width*.20, c.Height*.68, c.Depth*.60), color = Color3.fromRGB(98, 104, 116) },
+ }
+end
+
 -- Bounded native cosmetics; every Part is anchored and noninteractive.
 function Visuals.thunderWarning(parent, chassis)
  local model=Instance.new("Model");model.Name="ThunderWarning";model.Parent=parent
  local c=Config.ThunderWarning
- for i=1,3 do
-  local puff=part(model,"Cloud"..i,Vector3.new(c.Width*.56,c.Height,c.Depth),CFrame.new(),Color3.fromRGB(35,30,45))
+ for _, spec in thunderPuffSpecs(c) do
+  local puff=part(model,spec.name,spec.size,CFrame.new(),spec.color)
   puff.Shape,puff.Transparency=Enum.PartType.Ball,.12
  end
  local glow=part(model,"ElectricGlow",Vector3.new(.25,1.4,.25),CFrame.new(),Color3.fromRGB(90,230,255))
@@ -256,7 +268,10 @@ function Visuals.thunderWarning(parent, chassis)
 end
 function Visuals.updateThunderWarning(model,chassis)
  local c=Config.ThunderWarning
- for i=1,3 do model:FindFirstChild("Cloud"..i).CFrame=CFrame.new(chassis.Position+Vector3.new((i-2)*c.Width*.22,c.OffsetY+ (if i==2 then .4 else 0),0)) end
+ for _, spec in thunderPuffSpecs(c) do
+  local puff = model:FindFirstChild(spec.name)
+  if puff then puff.CFrame = CFrame.new(chassis.Position + spec.pos) end
+ end
  model.ElectricGlow.CFrame=CFrame.new(chassis.Position+Vector3.new(0,c.OffsetY-c.Height*.5,0))
 end
 function Visuals.thunderStrike(parent,chassis,blocked)

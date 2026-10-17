@@ -629,18 +629,24 @@ function RaceHudController.start()
 	local finishMissLabel = Instance.new("TextLabel")
 	finishMissLabel.Name = "FinishMissWarning"
 	finishMissLabel.AnchorPoint = Vector2.new(0.5, 0)
-	finishMissLabel.Position = UDim2.new(0.5, 0, 0.18, 0)
-	finishMissLabel.Size = UDim2.fromOffset(300, 58)
-	finishMissLabel.BackgroundColor3 = Color3.fromRGB(34, 28, 17)
-	finishMissLabel.BackgroundTransparency = 0.18
+	finishMissLabel.Position = UDim2.new(0.5, 0, 0.16, 0)
+	finishMissLabel.Size = UDim2.fromOffset(360, 64)
+	finishMissLabel.BackgroundColor3 = Color3.fromRGB(180, 25, 25)
+	finishMissLabel.BackgroundTransparency = 0.12
 	finishMissLabel.BorderSizePixel = 0
-	finishMissLabel.Font = Enum.Font.GothamBold
-	finishMissLabel.Text = "FINISH MISSED\nRETURN TO FINISH LINE"
-	finishMissLabel.TextColor3 = Color3.fromRGB(255, 205, 73)
+	finishMissLabel.Font = Enum.Font.GothamBlack
+	finishMissLabel.Text = "⚠️ CHECKPOINT MISSED! ⚠️\nTURN BACK AND CLEAR IT"
+	finishMissLabel.TextColor3 = Color3.fromRGB(255, 230, 80)
 	finishMissLabel.TextSize = 18
 	finishMissLabel.Visible = false
 	finishMissLabel.Parent = screenGui
-	addCorner(finishMissLabel, 8)
+	addCorner(finishMissLabel, 10)
+	local finishMissStroke = Instance.new("UIStroke")
+	finishMissStroke.Name = "Stroke"
+	finishMissStroke.Color = Color3.fromRGB(255, 220, 60)
+	finishMissStroke.Thickness = 2
+	finishMissStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	finishMissStroke.Parent = finishMissLabel
 
 	local resultsPanel = Instance.new("Frame")
 	resultsPanel.Name = "Results"
@@ -1171,15 +1177,19 @@ function RaceHudController.start()
 		quitRow.Visible = raceState == "RACING" and not returningToHub
 		if raceState ~= "RACING" or returningToHub then quitOverlay.Visible = false end
 		local finishMissSerial = getNumberAttribute(player, "RaceFinishMissedSerial", 0)
-		if raceState == "RACING" and finishMissSerial > displayedFinishMissSerial then
-			finishMissDisplayToken += 1
-			local token = finishMissDisplayToken
+		local missedCheckpoint = getNumberAttribute(player, "RaceCheckpointMissed", 0)
+		local shouldWarnMissed = raceState == "RACING" and (missedCheckpoint > 0 or finishMissSerial > displayedFinishMissSerial)
+		if shouldWarnMissed then
 			finishMissLabel.Visible = true
-			task.delay(1.8, function()
-				if token == finishMissDisplayToken then finishMissLabel.Visible = false end
-			end)
-		elseif raceState ~= "RACING" then
-			finishMissDisplayToken += 1
+			if missedCheckpoint > 0 then
+				finishMissLabel.Text = string.format("⚠️ CHECKPOINT [%d] MISSED! ⚠️\nTURN BACK AND CLEAR IT", missedCheckpoint)
+			else
+				finishMissLabel.Text = "⚠️ FINISH LINE MISSED! ⚠️\nRETURN TO FINISH GATE"
+			end
+			local flashPhase = math.floor(os.clock() * 3.5) % 2
+			finishMissLabel.BackgroundColor3 = if flashPhase == 0 then Color3.fromRGB(180, 25, 25) else Color3.fromRGB(48, 16, 16)
+			finishMissLabel.TextColor3 = if flashPhase == 0 then Color3.fromRGB(255, 230, 80) else Color3.fromRGB(255, 120, 120)
+		else
 			finishMissLabel.Visible = false
 		end
 		displayedFinishMissSerial = finishMissSerial
@@ -1269,10 +1279,12 @@ function RaceHudController.start()
      recordSaveLabel.Text=string.format('EVENT BONUS +K$5,000 · RACE +K$%d\nTOTAL +K$%d · PLAY TOGETHER NEXT!',getNumberAttribute(player,'RaceMoney_total',0)-5000,getNumberAttribute(player,'RaceMoney_total',0))
     end
 			else recordSaveLabel.Text ..= '\nK$ PAYMENT UNCONFIRMED' end
+		elseif raceState == "DNF" and moneyState == "SAVE_CONFIRMED" then
+			recordSaveLabel.Text = string.format("ACTIVE RACER COMPLETION · +K$%d EARNED!", getNumberAttribute(player, "RaceMoney_total", 1500))
 		end
-		recordSaveLabel.Size=UDim2.new(1,-20,0,if moneyState and moneyState~='NONE' then 36 else 18)
-		recordSaveLabel.Visible = raceState == "FINISHED" and (recordState == "SAVE_CONFIRMED" or recordState == "SAVE_PENDING"
-			or recordState == "SAVE_FAILED" or recordState == "READ_ONLY")
+		recordSaveLabel.Size=UDim2.new(1,-20,0,if (raceState=='FINISHED' and moneyState and moneyState~='NONE') or (raceState=='DNF' and moneyState=='SAVE_CONFIRMED') then 36 else 18)
+		recordSaveLabel.Visible = (raceState == "FINISHED" and (recordState == "SAVE_CONFIRMED" or recordState == "SAVE_PENDING"
+			or recordState == "SAVE_FAILED" or recordState == "READ_ONLY")) or (raceState == "DNF" and moneyState == "SAVE_CONFIRMED")
 		resultsBestLabel.Visible = raceState == "FINISHED"
 		local canRematch = (raceState == "FINISHED" or raceState == "DNF"
 			and player:GetAttribute("RaceDNFReason") ~= "FORFEIT")
@@ -1582,6 +1594,7 @@ function RaceHudController.start()
 		"RaceFinalTime",
 		"RaceOffTrackRemaining",
 		"RaceFinishMissedSerial",
+		"RaceCheckpointMissed",
 		"RaceParticipantCount",
 		"RaceMaxPlayers",
 		"RacePosition",
