@@ -43,6 +43,14 @@ function RaceLoadout:prepare(slotIds, preserveSelection)
 	if selected then self:select(selected) end
 	return true
 end
+-- Server-only practice preset. Race prepare()/client tactical validation stay four-slot.
+-- Reuses the single inventory/bonus owner and atomic consume/pending settlement.
+function RaceLoadout:preparePractice()
+	self:clear()
+	self.slots = {"Nitro", "Slick", "Shield", "Missile", "Smoke", "Thunder"}
+	for _, id in self.slots do self.counts[id] = Catalog[id].InitialCharges end
+	self.selected = "Nitro"
+end
 function RaceLoadout:contains(id)
 	return Slots.isImplemented(id) and table.find(self.slots, id) ~= nil
 end

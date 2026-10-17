@@ -1,0 +1,26 @@
+local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox')
+local mobile=luau.load(fs.readFile('src/client/MobileControlView.luau'),{environment={Color3=rb.Color3,Vector2=rb.Vector2}})()
+local drive=luau.load(fs.readFile('src/client/LobbyDriveLayout.luau'))()
+local layout=luau.load(fs.readFile('src/shared/LobbyPracticeLayout.luau'))()
+local n=0;local function check(v,label)assert(v,label);n+=1 end
+local function overlap(a,b)return a.x<b.x+b.w and b.x<a.x+a.w and a.y<b.y+b.h and b.y<a.y+a.h end
+for _,s in {{932,390},{844,300},{748,303},{724,311},{801,334},{667,250},{480,210},{390,780},{1920,1080},{1280,720}}do
+ local size=rb.Vector2.new(s[1],s[2]);local l=drive.apply(mobile.layout(size),size)
+ local a=layout.compute(size,l,58)
+ check(a.cell>=44,'touch targets at least 44px')
+ check(a.x>=0 and a.y>=0 and a.x+a.width<=size.X and a.y+a.height<=size.Y,'practice panel within safe area')
+ local panel={x=a.x,y=a.y,w=a.width,h=a.height}
+ local message={x=a.x,y=a.messageY,w=a.width,h=a.messageHeight}
+ check(message.y>=a.y+a.height and message.y+message.h<=size.Y,'message clear of item buttons')
+ local pad={x=size.X-l.margin-l.padWidth-l.padInset,y=size.Y-l.padBottom-l.padHeight,w=l.padWidth,h=l.padHeight}
+ local drift={x=l.driftX,y=size.Y-l.driftBottom-l.driftHitHeight,w=l.driftHitWidth,h=l.driftHitHeight}
+ check(not overlap(panel,pad)and not overlap(panel,drift),'item buttons clear all driving hitboxes')
+ check(not overlap(message,pad)and not overlap(message,drift),'feedback clears driving hitboxes')
+ local shortcuts=drive.shortcuts(size,mobile)
+ check(not overlap(panel,{x=shortcuts.x,y=shortcuts.y,w=shortcuts.width,h=shortcuts.height}),'items clear exit/shortcuts')
+ for i=1,6 do
+  local x=((i-1)%a.columns)*(a.cell+6);local y=math.floor((i-1)/a.columns)*(a.cell+6)
+  check(x>=0 and x+a.cell<=a.content and y+a.cell<=a.height,'all six buttons accessible in scroll content')
+ end
+end
+print('PASS: '..n..' practice six-button safe-area / touch / scroll / driving nonoverlap checks')

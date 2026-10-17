@@ -38,3 +38,14 @@ for _,forbidden in {'DataStore','RaceRecordService','EconomyService','RoundGuid'
  check(not source:find('require[^\n]*'..forbidden),'no economy/record owner imported')
 end
 print('PASS: '..checks..' actual shared solver training charge/boost/reentry/lifecycle checks')
+-- Practice Nitro uses the shared 100/75/3s tuning and smooth 15 exit decay.
+local nitro=adapter.new();local speed=60
+for i=1,60 do
+ local _,_,_,budget=adapter.step(nitro,i/60,1/60,speed,0,speed,1,0,true,0,0,60,true)
+ local expected=math.min(100,speed+config.NITRO_ACCELERATION/60)
+ check(math.abs(budget-expected)<1e-6,'Nitro ramps at 75 to at most 100');speed=budget
+end
+local _,_,_,exit=adapter.step(nitro,1.1,.05,100,0,100,1,0,true,0,0,60,false)
+check(math.abs(exit-(100-config.NITRO_EXIT_DECELERATION*.05))<1e-6,'Nitro exit decays at 15')
+check(config.NITRO_DURATION==3 and config.NITRO_MAX_SPEED==100,'same Nitro duration and maximum')
+print('PASS: practice Nitro ramp / maximum / smooth exit checks')

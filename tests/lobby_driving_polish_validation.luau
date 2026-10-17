@@ -40,12 +40,12 @@ local source=fs.readFile('src/server/LobbyTestDriveService.luau')
 source=source:gsub('return Service%s*$','Service.inject=function(player,record) records[player]=record end; return Service')
 local shared={WaitForChild=function(_,name)return {Name=name}end}
 local tick,service,scenario=0,nil,nil
-local modules={LobbyDrivePolicy=p,LobbyDriveGeometry={create=function()return geometry end},KartConfig={},KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
+local modules={LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=p,LobbyDriveGeometry={create=function()return geometry end},KartConfig={},KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
 local run={Heartbeat={Wait=function()tick+=1;coroutine.yield()end}}
 local spawn={CFrame=rb.CFrame.new(0,1,888)}
 local hub={FindFirstChild=function()return spawn end}
 local workspace={FindFirstChild=function()return hub end}
-service=luau.load(source,{environment={script={Parent={LobbyDriftSession={Name='LobbyDriftSession'}}},game={GetService=function(_,name)
+service=luau.load(source,{environment={script={Parent={LobbyDriftSession={Name='LobbyDriftSession'},LobbyPracticeCombat={Name='LobbyPracticeCombat'}}},game={GetService=function(_,name)
  if name=='ReplicatedStorage' then return {WaitForChild=function()return shared end} elseif name=='RunService' then return run elseif name=='Workspace' then return workspace else return {} end
 end},require=function(m)return modules[m.Name]end,Vector3=rb.Vector3,CFrame=rb.CFrame,Enum={HumanoidStateType={GettingUp='GettingUp'}}}})()
 for _,mode in {'exit','unseated','duplicate','race','death','respawn','cancel'} do

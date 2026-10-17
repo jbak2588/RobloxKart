@@ -13,8 +13,8 @@ local workspace={GetAttribute=function(_,k)return if k=='KDMServerRole' then 'HU
 local shared={WaitForChild=function(_,name)return {Name=name}end}
 local rs={WaitForChild=function()return shared end}
 local source=fs.readFile('src/server/LobbyTestDriveService.luau'):gsub('return Service%s*$','Service.inject=function(player,record) records[player]=record end;return Service')
-local modules={LobbyDrivePolicy=policy,LobbyDriveGeometry={create=function()return geometry end},KartConfig=config,KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
-local service=luau.load(source,{environment={script={Parent={LobbyDriftSession={Name='LobbyDriftSession'}}},game={PrivateServerId='',GetService=function(_,name)return ({Players=players,ReplicatedStorage=rs,RunService=run,PhysicsService=physics,Workspace=workspace})[name]end},require=function(m)return modules[m.Name]end,Instance={new=function()return {OnServerEvent=signal}end},Vector3=rb.Vector3,CFrame=rb.CFrame,os={clock=function()return now end}}})()
+local modules={LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=policy,LobbyDriveGeometry={create=function()return geometry end},KartConfig=config,KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
+local service=luau.load(source,{environment={script={Parent={LobbyDriftSession={Name='LobbyDriftSession'},LobbyPracticeCombat={Name='LobbyPracticeCombat'}}},game={PrivateServerId='',GetService=function(_,name)return ({Players=players,ReplicatedStorage=rs,RunService=run,PhysicsService=physics,Workspace=workspace})[name]end},require=function(m)return modules[m.Name]end,Instance={new=function()return {OnServerEvent=signal}end},Vector3=rb.Vector3,CFrame=rb.CFrame,os={clock=function()return now end}}})()
 local center=rb.Vector3.new(120,0,766)
 local zone={Destroying=signal,GetAttribute=function()return center end}
 service.start(zone)
@@ -60,4 +60,14 @@ body.AssemblyLinearVelocity=body.CFrame.LookVector*60;r.speed=60;r.steering=0;r.
 now+=.05;r.lastInput=now;heartbeat(.05)
 check(body.AssemblyLinearVelocity.Z>=-1e-8 and body.AssemblyLinearVelocity.Magnitude<=60,'real wall slide clamps outward velocity and speed')
 check(not kartAttrs.LobbyBarrierSerial,'shallow contact emits no crash event')
+-- Execute the real heartbeat's combat branch: physical hits block Drift, not steering/throttle.
+modules.LobbyPracticeCombat.last.hit=true
+body.CFrame=safe;body.Position=safe.Position;body.AssemblyLinearVelocity=rb.Vector3.new(0,0,-40)
+r.training=training.new();r.speed,r.yaw,r.throttle,r.steering=40,0,1,1
+for _=1,10 do
+ now+=.05;r.lastInput=now;training.input(r.training,true,now,true);heartbeat(.05)
+ check(not r.training.active and not r.training.boost,'hit branch cannot restart Drift or Boost')
+end
+check(math.abs(body.AssemblyAngularVelocity.Y)>.3 and r.training.steer>.5,'normal steering retained during hit effect')
+check(r.speed>40,'throttle continues to accelerate before the combat final cap')
 print('PASS: '..n..' real service heartbeat cooldown, limit, safe fallback, steering and slide checks')

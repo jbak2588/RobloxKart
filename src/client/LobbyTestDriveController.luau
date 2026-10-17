@@ -20,6 +20,8 @@ local DriftFeedback=require(script.Parent:WaitForChild("LobbyDriftFeedback"))
 local Exhaust=require(script.Parent:WaitForChild('KartWorldExhaustRenderer'))
 local EngineAB=require(script.Parent:WaitForChild('LobbyEngineAB'))
 local StyleHelper=require(script.Parent:WaitForChild('KDMUiStyleHelper'))
+local PracticeView=require(script.Parent:WaitForChild('LobbyPracticeView'))
+local SmokeView=require(script.Parent:WaitForChild('SmokeEffectView'))
 local Controller={}
 local started=false
 function Controller.start()
@@ -76,6 +78,11 @@ function Controller.start()
   if h and h.Health>0 and seat and seat:GetAttribute("LobbyKartSeat")==true and kart and kart:GetAttribute("LobbyOwnerUserId")==player.UserId then return kart,h end
   return nil,nil
  end
+ local practiceView=PracticeView.new(canvas,player,remote,function()
+  return player:GetAttribute('LobbyDriveActive')==true and seatKart()~=nil and not suspended and focused and not pending
+ end)
+ local smokeView=SmokeView.new(player:WaitForChild('PlayerGui'),player,true)
+ gui.Destroying:Connect(function()smokeView:destroy()end)
  local function neutral()
   if exhaust then exhaust:update(0,false) end
   if feedback then feedback:update(0,false) end
@@ -176,6 +183,8 @@ function Controller.start()
   local driftLeft=if driftButton and controls.Visible then driftButton.AbsolutePosition.X-canvas.AbsolutePosition.X else l.driftX
   local hud=LobbyLayout.trainingHud(canvas.AbsoluteSize,walletLeft,walletBottom,driftLeft,
    if driftButton and controls.Visible then driftButton.AbsoluteSize.X else l.driftHitWidth,l.driftWidth)
+  local compactPractice=practiceView:update(active and gui.Enabled,l,walletBottom,seatKart())
+  charge.Visible=active and not compactPractice;gauge.Visible=active and not compactPractice
   charge.Position=UDim2.fromOffset(hud.x,hud.y);charge.Size=UDim2.fromOffset(hud.width,22)
   gauge.Position=UDim2.fromOffset(hud.x,hud.y+26);gauge.Size=UDim2.fromOffset(hud.width,9)
   local segmentWidth=(hud.width-16)/5
@@ -207,9 +216,9 @@ function Controller.start()
    engineAB=EngineAB.new(body,canvas)
    if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
   end
-  if feedback then feedback:update(dt,kart:GetAttribute("LobbyDrifting")==true and not suspended and focused and not GuiService.MenuIsOpen) end
+  if feedback then feedback:update(dt,(kart:GetAttribute("LobbyDrifting")==true or kart:GetAttribute("KartSlickActive")==true) and not suspended and focused and not GuiService.MenuIsOpen) end
   if exhaust then exhaust:update(dt,not suspended and focused and not GuiService.MenuIsOpen) end
-  local boosting=kart:GetAttribute('KartBoosting')==true
+  local boosting=kart:GetAttribute('KartBoosting')==true or kart:GetAttribute('KartNitroActive')==true
   if boosting and not previousBoost then Audio.playOnce(boostCue) end
   if not boosting and previousBoost then Audio.stop(boostCue) end
   previousBoost=boosting

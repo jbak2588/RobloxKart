@@ -9,6 +9,8 @@ local Factory=require(Shared:WaitForChild("KartVisualFactory"))
 local Exhaust=require(script.Parent:WaitForChild("KartWorldExhaustRenderer"))
 local Feedback=require(script.Parent:WaitForChild("LobbyDemoFeedback"))
 local KartConfig=require(Shared:WaitForChild("KartConfig"))
+local ItemConfig=require(Shared:WaitForChild('RaceItemConfig'))
+local VFX=require(Shared:WaitForChild('KDMItemVFXConfig'))
 local Controller={}
 local stopCurrent
 
@@ -78,16 +80,30 @@ function Controller.start()
    elseif v:IsA("LuaSourceContainer") or v:IsA("ProximityPrompt") then v:Destroy() end
   end
   audio=Feedback.new(root)
+  local badge=Instance.new('BillboardGui');badge.Name='PracticeBotFeedback';badge.Size=UDim2.fromOffset(190,32);badge.StudsOffset=Vector3.new(0,6,0);badge.AlwaysOnTop=false;badge.Parent=root
+  local label=Instance.new('TextLabel');label.Size=UDim2.fromScale(1,1);label.BackgroundColor3=Color3.fromRGB(16,25,35);label.BackgroundTransparency=.15
+  label.TextColor3=Color3.fromRGB(65,225,245);label.TextSize=15;label.Font=Enum.Font.GothamBold;label.BorderSizePixel=0;label.Parent=badge
   boostVisuals=Exhaust.createBoostVisuals(visual)
   local visualDrift=0
   local function step(dt)
    local elapsed=Workspace:GetServerTimeNow()-start
+   local proxy=zone:FindFirstChild('LobbyPracticeBot')
+   local sampled=proxy and proxy:GetAttribute('SampledAt')
+   if type(sampled)=='number' and type(proxy:GetAttribute('RouteElapsed'))=='number' then
+    elapsed=proxy:GetAttribute('RouteElapsed')+math.clamp(Workspace:GetServerTimeNow()-sampled,0,.3)*(proxy:GetAttribute('RouteRate')or 1)
+   end
    local x,z,dx,dz,drift,_,pattern,boosting=Route.sample(elapsed,KartConfig.MINI_BOOST_DURATION)
    visualDrift+=(drift-visualDrift)*(1-math.exp(-math.max(0,dt)*10))
    local position=center+Vector3.new(x,.22-bottom,z)
-   model:PivotTo(CFrame.lookAt(position,position+Vector3.new(dx,0,dz))*CFrame.Angles(0,math.rad(32)*visualDrift,0))
-   local slip=32*math.abs(drift)
-   local drifting=slip>=5
+   local slick=proxy and proxy:GetAttribute('KartSlickActive')==true
+   local spin=if slick then math.rad(VFX.Slick.SpinDegrees)*math.clamp((Workspace:GetServerTimeNow()-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/ItemConfig.SLICK_EFFECT_DURATION,0,1)else 0
+   local hit=slick or (proxy and (proxy:GetAttribute('KartMissileHitActive')==true or proxy:GetAttribute('KartThunderHitActive')==true))
+   if hit then boosting=false;visualDrift=0 end
+   model:PivotTo(CFrame.lookAt(position,position+Vector3.new(dx,0,dz))*CFrame.Angles(0,if slick then spin else math.rad(32)*visualDrift,0))
+   badge.Enabled=proxy~=nil and Workspace:GetServerTimeNow()-(proxy:GetAttribute('LobbyPracticeMessageAt')or -math.huge)<1.2
+   if badge.Enabled then label.Text=proxy:GetAttribute('LobbyPracticeMessage')or ''end
+   local slip=if slick then 32 elseif hit then 0 else 32*math.abs(drift)
+   local drifting=slip>=5 or slick==true
    local camera=Workspace.CurrentCamera
    local distance=if camera then (camera.CFrame.Position-position).Magnitude else 0
    local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1

@@ -12,7 +12,7 @@ function Feedback.new(body,_kart,_zone)
  function self:update(_dt,active)
   if self.sound then
    self.sound.Volume=if active then Config.DRIFT.MAX_VOLUME*.75 else 0
-   if active then Audio.playLoop(self.sound) else Audio.stop(self.sound) end
+   if active then if not self.sound.IsPlaying then self.sound.TimePosition=5 end;Audio.playLoop(self.sound) else Audio.stop(self.sound) end
   end
 
  end

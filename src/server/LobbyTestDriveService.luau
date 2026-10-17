@@ -10,10 +10,12 @@ local KartConfig=require(Shared:WaitForChild("KartConfig"))
 local Catalog=require(Shared:WaitForChild("KartCatalog"))
 local Factory=require(Shared:WaitForChild("KartVisualFactory"))
 local Drift=require(script.Parent.LobbyDriftSession)
+local Practice=require(script.Parent.LobbyPracticeCombat)
 local Service={}
 local records,generations,bindings,lastRequest={},{},{},{}
 local closing={}
 local started,remote,zone,canEnter=false,nil,nil,nil
+local practice
 local function generation(player)
  generations[player]=(generations[player] or 0)+1
  player:SetAttribute("LobbyDriveGeneration",generations[player]);return generations[player]
@@ -64,6 +66,7 @@ function Service.stop(player,reason,returnToHub)
  end
  local record=records[player]
  if not record then return true end
+ if practice then practice:remove(player)end
  record.returnToHub=returnToHub;closing[player]=record
  records[player]=nil;generation(player)
  record.throttle,record.steering,record.speed=0,0,0
@@ -175,7 +178,7 @@ local function drive(player,previewKartId)
  if seat.Occupant~=humanoid or humanoid.SeatPart~=seat or player.Character~=character or humanoid.Health<=0 then
   Service.stop(player,"sit_failed",true);return false,"COULD NOT ENTER KART"
  end
- record.seated=true;player:SetAttribute("LobbyDriveKartId",definition.Id)
+ record.seated=true;if practice then practice:add(player,record)end;player:SetAttribute("LobbyDriveKartId",definition.Id)
  player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)
  return true
 end
@@ -184,6 +187,7 @@ function Service.start(driveZone,eligibility)
  if not driveZone or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true) then return end
  started,zone,canEnter=true,driveZone,eligibility
  Service.configureCollision()
+ practice=Practice.new(zone,records)
  remote=Instance.new("RemoteEvent");remote.Name="LobbyDriveControl";remote.Parent=ReplicatedStorage
  local connections={}
  zone.Destroying:Connect(function()
@@ -192,6 +196,7 @@ function Service.start(driveZone,eligibility)
    Service.stop(player,"zone_removed",false);restoreCharacter(player)
    player:SetAttribute("LobbyDriveAvailable",false)
   end
+  practice:destroy();practice=nil
  end)
  local function bind(player)
   generation(player);player:SetAttribute("LobbyDriveAvailable",true)
@@ -212,7 +217,11 @@ function Service.start(driveZone,eligibility)
   for _,c in connections[player] or {} do c:Disconnect() end
   connections[player],generations[player],lastRequest[player]=nil,nil,nil
  end)
- remote.OnServerEvent:Connect(function(player,action,id,first,second,drift)
+ remote.OnServerEvent:Connect(function(player,action,id,first,second,drift,...)
+  if action=='UseItem'then
+   if second~=nil or drift~=nil or select('#',...)>0 then return end
+   if practice then practice:use(player,id,first)end;return
+  end
   if action=="Input" then
    local r=records[player]
    if not r or not r.seated or id~=r.generation or not Policy.validAxes(first,second)
@@ -238,12 +247,15 @@ function Service.start(driveZone,eligibility)
  end)
  RunService.Heartbeat:Connect(function(dt)
   dt=math.min(dt,.05)
+  if not started or not practice then return end
+  practice:update(os.clock(),dt)
   for player,r in records do
    if not r.seated then continue end
    if not r.body.Parent or player.Character~=r.character or r.humanoid.Health<=0
     or r.humanoid.SeatPart~=r.seat or r.seat.Occupant~=r.humanoid then Service.stop(player,"seat_lost",true);continue end
    local body=r.body;local pos=body.Position;local c=zone:GetAttribute("Center")
    if not inside(pos,0) or pos.Y<c.Y-4 or pos.Y>c.Y+18 or body.CFrame.UpVector.Y<.55 then
+    practice:recover(player)
     body.AssemblyLinearVelocity=Vector3.zero;body.AssemblyAngularVelocity=Vector3.zero
     r.kart:PivotTo(r.safe);r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
     player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1);continue
@@ -283,6 +295,7 @@ function Service.start(driveZone,eligibility)
     end
    end
    if r.crashEnd then
+    practice:isNitro(player,now,throttle,true)
     local headingError=math.atan2(f:Cross(r.crashForward).Y,f:Dot(r.crashForward))
     if now>=r.crashEnd and (math.abs(headingError)<=math.rad(20) or now>=r.crashAlignDeadline) then
      r.crashEnd=nil;body.AssemblyLinearVelocity=Vector3.new(0,body.AssemblyLinearVelocity.Y,0);body.AssemblyAngularVelocity=Vector3.zero
@@ -300,7 +313,16 @@ function Service.start(driveZone,eligibility)
    local normalYaw=-r.training.steer*r.speed/radius
    if r.training.slide.active or r.training.slide.recovering then r.speed=math.min(physical.Magnitude,KartConfig.MINI_BOOST_MAX_SPEED) end
    local wasBoost,boostEnd=r.training.boost,r.training.boostEnd
-   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,Policy.Forward)
+   local hit=practice:physical(player,now)
+   if hit then
+    -- Combat cancels Drift/Boost, while normal steering/throttle stay available.
+    local steer=r.training.steer;Drift.clear(r.training);r.training.steer=steer
+   end
+   local nitro=practice:isNitro(player,now,throttle,clearance<=Policy.FootprintMargin)
+   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,Policy.Forward,nitro)
+   if r.training.boost and r.training.boostPress~=r.practiceBoostPress then
+    r.practiceBoostPress=r.training.boostPress;practice:boost(player)
+   end
    if not wasBoost and r.training.boost then r.kart:SetAttribute('KartBoostEndReason','')
    elseif wasBoost and not r.training.boost then
     r.kart:SetAttribute('KartBoostEndReason',if now>=boostEnd and throttle>0 and not r.training.active then 'duration_complete' else 'cancelled')
@@ -329,20 +351,22 @@ function Service.start(driveZone,eligibility)
       r.kart:SetAttribute("LobbyEscapeSerial",(r.kart:GetAttribute("LobbyEscapeSerial") or 0)+1)
       r.kart:SetAttribute("LobbyEscapeDistance",distance)
      else
+      practice:recover(player)
       r.kart:PivotTo(r.safe);r.speed,r.yaw=0,0;velocity=Vector3.zero;r.escapeCount=Policy.EscapeLimit;Drift.clear(r.training)
       player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1)
      end
     end
    else r.stuckTime=0 end
    if clearance>Policy.EscapeClearance+4 then r.escapeCount=0 end
-   body.AssemblyLinearVelocity=velocity+Vector3.new(0,body.AssemblyLinearVelocity.Y,0)
    local target=if math.abs(r.speed)>2 then -r.training.steer*math.abs(r.speed)/radius*math.sign(r.speed) else 0
    if nearWall and physical.Magnitude<Policy.EscapeSpeed and math.abs(steering)>.1 then
     local direction=if math.abs(r.speed)>.1 then math.sign(r.speed) elseif throttle<0 then -1 else 1
     local assist=Policy.escapeSteering(f.X,f.Z,nx,nz,steering,direction)
     if assist~=0 then target=assist end
    end
-   r.yaw=slideYaw or (r.yaw+math.clamp(target-r.yaw,-KartConfig.YAW_ACCELERATION*dt,KartConfig.YAW_ACCELERATION*dt));body.AssemblyAngularVelocity=Vector3.new(0,r.yaw,0)
+   r.yaw=slideYaw or (r.yaw+math.clamp(target-r.yaw,-KartConfig.YAW_ACCELERATION*dt,KartConfig.YAW_ACCELERATION*dt))
+   velocity,r.yaw=practice:motion(player,now,dt,f,right,velocity,r.yaw)
+   body.AssemblyLinearVelocity=velocity+Vector3.new(0,body.AssemblyLinearVelocity.Y,0);body.AssemblyAngularVelocity=Vector3.new(0,r.yaw,0)
    r.kart:SetAttribute("KartVisualSteering",steering)
    r.kart:SetAttribute("LobbyDrifting",drifting)
    r.kart:SetAttribute("KartDrifting",drifting);r.kart:SetAttribute("KartBoosting",r.training.boost)

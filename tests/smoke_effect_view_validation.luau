@@ -100,4 +100,20 @@ for _,boundary in {"FINISHED","FINISHING","DNF","GARAGE","COUNTDOWN","PRE_RACE",
  tick();check(not haze.Visible,"immediate lifecycle cleanup "..boundary)
 end
 view:destroy();check(not gui.Parent,"view destruction cleans native UI/connections")
+-- The same haze implementation has a separate practice context and GUI lifecycle.
+player.UserId=42;player.Character=character;human.SeatPart=seat;kart.Parent=world
+player:SetAttribute('RaceState','GARAGE');player:SetAttribute('LobbyDriveActive',true)
+player:SetAttribute('LobbyCombatSessionId','PRACTICE:1');player:SetAttribute('KDMRoutePending',nil)
+seat:SetAttribute('LobbyKartSeat',true);kart:SetAttribute('LobbyOwnerUserId',42)
+kart:SetAttribute('KartSmokeSessionId','PRACTICE:1');kart:SetAttribute('KartSmokeResetSerial',kart:GetAttribute('RaceResetSerial'))
+kart:SetAttribute('KartSmokeObscuredActive',true)
+local practice=View.new(playerGui,player,true)
+local practiceGui=playerGui:FindFirstChild('KDMLobbySmokeHaze');local practiceHaze=practiceGui:FindFirstChild('Haze')
+tick();tick(.12);check(practiceHaze.Visible and math.abs(practiceHaze.BackgroundTransparency-.55)<.001,'practice victim receives full identical haze below HUD')
+kart:SetAttribute('LobbyOwnerUserId',99);tick();check(not practiceHaze.Visible,'other driver seat cannot produce local haze')
+kart:SetAttribute('LobbyOwnerUserId',42);tick();tick(.12);check(practiceHaze.Visible,'correct seat restores active effect')
+player:SetAttribute('LobbyDriveActive',false);tick();check(not practiceHaze.Visible,'practice exit clears haze immediately')
+player:SetAttribute('LobbyDriveActive',true);tick();player:SetAttribute('KDMRoutePending','RACE_LAUNCH');tick()
+check(not practiceHaze.Visible,'race handoff cannot carry practice haze')
+practice:destroy();check(not practiceGui.Parent,'practice haze cleanup')
 print("PASS: "..count.." production SmokeEffectView checks (mocked; device visibility required)")

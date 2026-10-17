@@ -1,9 +1,9 @@
 -- Native local haze below every driving/HUD GUI; never changes camera or input.
 local RunService = game:GetService("RunService")
 local View = {}
-function View.new(playerGui, player)
+function View.new(playerGui, player, practice)
 	local gui=Instance.new("ScreenGui")
-	gui.Name,gui.ResetOnSpawn,gui.DisplayOrder="KDMSmokeHaze",false,2
+	gui.Name,gui.ResetOnSpawn,gui.DisplayOrder=if practice then "KDMLobbySmokeHaze" else "KDMSmokeHaze",false,2
 	gui.IgnoreGuiInset=true;gui.Parent=playerGui
 	local haze=Instance.new("Frame")
 	haze.Name="Haze";haze.Size=UDim2.fromScale(1,1)
@@ -31,10 +31,12 @@ function View.new(playerGui, player)
 		local human=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		local seat=human and human.SeatPart
 		local current=seat and seat.Parent
-		if player:GetAttribute("RaceState") ~= "RACING" or not human or human.Health<=0
-			or not seat or seat:GetAttribute("PrototypeKartSeat")~=true or not current or not current.Parent
+		local driving=if practice then player:GetAttribute('RaceState')=='GARAGE' and player:GetAttribute('LobbyDriveActive')==true and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH' else player:GetAttribute('RaceState')=='RACING'
+		if not driving or not human or human.Health<=0
+			or not seat or seat:GetAttribute(if practice then 'LobbyKartSeat' else 'PrototypeKartSeat')~=true or not current or not current.Parent
+			or (practice and current:GetAttribute('LobbyOwnerUserId')~=player.UserId)
 			or current:GetAttribute("RaceControlsLocked")==true then clear();kart=nil;return end
-		local nextSession,nextReset=player:GetAttribute("RaceSessionId"),current:GetAttribute("RaceResetSerial")
+		local nextSession,nextReset=player:GetAttribute(if practice then "LobbyCombatSessionId" else "RaceSessionId"),current:GetAttribute("RaceResetSerial")
 		if current:GetAttribute("KartSmokeSessionId") ~= nextSession
 			or current:GetAttribute("KartSmokeResetSerial") ~= nextReset then clear();return end
 		if current~=kart or nextSession~=session or nextReset~=reset then
@@ -52,7 +54,7 @@ function View.new(playerGui, player)
 		paint(strength)
 	end
 	table.insert(connections,RunService.Heartbeat:Connect(update))
-	for _,attribute in {"RaceState","RaceSessionId"} do
+	for _,attribute in (if practice then {"RaceState","LobbyCombatSessionId","LobbyDriveActive","LobbyDriveResetSerial","KDMRoutePending"} else {"RaceState","RaceSessionId"}) do
 		table.insert(connections,player:GetAttributeChangedSignal(attribute):Connect(clear))
 	end
 	table.insert(connections,player.CharacterRemoving:Connect(clear))

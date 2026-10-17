@@ -9,14 +9,14 @@ function Session.new()
  return {slide={},active=false,boost=false,boostEnd=0,duration=0,qualified=0,ready=false,press=0,boostPress=0,held=false,steer=0,reentry=false}
 end
 function Session.clear(s)
- Slide.clear(s.slide);s.active=false;s.boost=false;s.boostEnd=0;s.duration=0;s.qualified=0;s.ready=false;s.held=false;s.steer=0;s.reentry=false
+ Slide.clear(s.slide);s.active=false;s.boost=false;s.boostEnd=0;s.duration=0;s.qualified=0;s.ready=false;s.held=false;s.steer=0;s.reentry=false;s.nitroExit=false
  s.boostPress=s.press
 end
 function Session.input(s,held,now,fresh)
  if held and not s.held and fresh then s.press+=1;s.pressTime=now end
  s.held=held
 end
-function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,normalYaw,yaw,normalCap)
+function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,normalYaw,yaw,normalCap,nitro)
  if not valid or dt>Config.ARCADE_DRIFT.MaxStep then Session.clear(s);return nil end
  s.steer=toward(s.steer,steering,Config.STEERING_RESPONSE*dt)
  local entered=false
@@ -39,10 +39,11 @@ function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,nor
   s.ready=s.duration>=Config.DRIFT_CHARGE_MIN_DURATION and s.qualified>=Config.DRIFT_CHARGE_REQUIRED_TIME
  end
  if s.boost and (now>=s.boostEnd or throttle<=0) then s.boost=false;s.boostEnd=0 end
- local cap=if s.boost then Config.MINI_BOOST_MAX_SPEED elseif s.active then math.min(normalCap,Config.DRIFT_MAX_SPEED) else normalCap
- local accel=if s.boost then Config.MINI_BOOST_ACCELERATION else Config.ACCELERATION
+ s.nitroExit=nitro==true or (s.nitroExit and speed>normalCap)
+ local cap=if nitro then Config.NITRO_MAX_SPEED elseif s.boost then Config.MINI_BOOST_MAX_SPEED elseif s.active then math.min(normalCap,Config.DRIFT_MAX_SPEED) else normalCap
+ local accel=if nitro then Config.NITRO_ACCELERATION elseif s.boost then Config.MINI_BOOST_ACCELERATION else Config.ACCELERATION
  if throttle>0 then
-  local rate=if speed>cap then (if s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) else Config.BOOST_EXIT_DECELERATION) else accel*throttle
+  local rate=if speed>cap then (if s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) else Config.BOOST_EXIT_DECELERATION) else accel*throttle
   speed=toward(speed,cap,rate*dt)
  end
  local side,turn,_,projected=Slide.step(s.slide,Config.ARCADE_DRIFT,forward,lateral,s.steer,normalYaw,yaw,dt,s.active,throttle>0,speed)
