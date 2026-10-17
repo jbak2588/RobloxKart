@@ -1,7 +1,6 @@
 local Shared=game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Policy=require(Shared:WaitForChild("LobbyDrivePolicy"))
 local Geometry=require(Shared:WaitForChild("LobbyDriveGeometry")).create(Policy)
-local SkidPattern=require(Shared:WaitForChild("LobbySkidPattern"))
 local Builder={}
 function Builder.build(hub,ground)
  local spawn=hub:FindFirstChild("HubSpawn")
@@ -13,7 +12,7 @@ function Builder.build(hub,ground)
  local zone=Instance.new("Model");zone.Name="LobbyFrontTestDriveZone"
  zone:SetAttribute("ForwardMax",Policy.Forward);zone:SetAttribute("ReverseMax",Policy.Reverse)
  zone:SetAttribute("Center",center);zone:SetAttribute("OuterRadius",Policy.OuterRadius)
- zone:SetAttribute("FootprintVersion","BUILDING_LOOP_V1")
+ zone:SetAttribute("FootprintVersion","REFERENCE_OVAL_V2")
  local function part(name,size,frame,color,collide)
   local p=Instance.new("Part");p.Name=name;p.Size=size;p.CFrame=frame
   p.Anchored=true;p.CanCollide=collide;p.CanTouch=false;p.CanQuery=collide
@@ -21,91 +20,50 @@ function Builder.build(hub,ground)
   p.CastShadow=false;p.Material=Enum.Material.SmoothPlastic;p.Color=color;p.Parent=zone;return p
  end
  local function frame(x,y,z) return CFrame.new(center+Vector3.new(x,y,z)) end
- local blockIndex=0
  local function strip(name,route,width,height,y,color,collide,open)
   for i,a in route do
    if open and i==#route then break end
    local b=route[i%#route+1]
    local first,last=center+Vector3.new(a.x,y,a.z),center+Vector3.new(b.x,y,b.z)
-   local length=(last-first).Magnitude
    local function section(f,t,extension)
     if (t-f).Magnitude<.01 then return end
-    local steps=if name=="LobbyFrontGuardrail" or name=="LobbyFrontInnerKerb" then math.max(1,math.ceil((t-f).Magnitude/8)) else 1
-    for j=1,steps do
-     local start,finish=f:Lerp(t,(j-1)/steps),f:Lerp(t,j/steps)
-     local sectionColor=color
-     if name=="LobbyFrontGuardrail" then
-      blockIndex+=1;sectionColor=if blockIndex%2==0 then Color3.fromRGB(246,194,36) else Color3.fromRGB(23,25,28)
-     elseif name=="LobbyFrontInnerKerb" then sectionColor=if (i+j)%2==0 then Color3.fromRGB(20,22,25) else Color3.fromRGB(240,246,250) end
-     local extra=if name=="LobbyFrontGuardrail" then -.12 else extension
-     local p=part(name,Vector3.new(width,height,(finish-start).Magnitude+extra),CFrame.lookAt((start+finish)/2,finish),sectionColor,collide)
-     if name=="LobbyFrontGuardrail" or name=="LobbyFrontBarrier" then p.CollisionGroup="LobbyBoundary" end
-     if name=="LobbyFrontGuardrail" then p.Material=Enum.Material.Plastic end
-     if name=="LobbyFrontBarrier" then p.Transparency=1 end
-    end
+    local p=part(name,Vector3.new(width,height,(t-f).Magnitude+extension),CFrame.lookAt((f+t)/2,t),color,collide)
+    if name=="LobbyFrontBarrier" then p.CollisionGroup="LobbyBoundary";p.Transparency=1 end
    end
-   -- End visible rails and kerbs at the exact edges of the 12-stud Lobby entry.
+   -- End the island kerb at the 12-stud pedestrian entry.
    local gateLeft,gateRight=-126,-114
-   if (name=="LobbyFrontGuardrail" or name=="LobbyFrontInnerKerb") and math.abs(a.z-b.z)<.001 and a.z>0
+   if name=="LobbyFrontInnerKerb" and math.abs(a.z-b.z)<.001 and math.abs(a.z-(Geometry.island.minZ-Geometry.roadMargin))<.001
     and math.min(a.x,b.x)<gateRight and math.max(a.x,b.x)>gateLeft then
     local lo,hi=math.min(a.x,b.x),math.max(a.x,b.x)
     if lo<gateLeft then section(center+Vector3.new(lo,y,a.z),center+Vector3.new(gateLeft,y,a.z),0) end
     if hi>gateRight then section(center+Vector3.new(gateRight,y,a.z),center+Vector3.new(hi,y,a.z),0) end
-   else section(first,last,1.5) end
+   else section(first,last,.1) end
   end
  end
- -- Same front apron; scanline spans also pave both wings without covering the Lobby recess.
+ -- Smooth continuous ring around the unchanged building island.
  local step=2
  local bounds=Geometry.bounds
  for z=bounds.minZ,bounds.maxZ-step,step do
-  for _,span in Geometry.intervals(z+step/2) do
-   local road=part("LobbyFrontFreeDriveRoad",Vector3.new(span[2]-span[1],.18,step+.02),frame((span[1]+span[2])/2,.09,z+step/2),Color3.fromRGB(54,64,72),false)
+  for _,span in Geometry.intervals(z+step/2,true) do
+   local road=part("LobbyFrontFreeDriveRoad",Vector3.new(span[2]-span[1],.18,step+.02),frame((span[1]+span[2])/2,.09,z+step/2),Color3.fromRGB(38,43,49),false)
    road.Material=Enum.Material.Asphalt
   end
  end
  -- A single smooth collision plane avoids seam contacts from the decorative slices.
  local floor=part("LobbyFrontSmoothFloor",Vector3.new(bounds.maxX-bounds.minX,.5,bounds.maxZ-bounds.minZ),frame((bounds.minX+bounds.maxX)/2,-.07,(bounds.minZ+bounds.maxZ)/2),Color3.new(),true)
  floor.Transparency=1;floor.CustomPhysicalProperties=PhysicalProperties.new(1,.05,0,100,100)
- -- Independent union segments include the outer perimeter and building island.
- -- Never close a segment list across a removed join or across the building.
+ -- Cyan road edges; grass shoulders separate them from invisible kart-only walls.
+ -- Both sides have 20 studs to the boundary (18.25 clear after kerb/wall widths).
+ for _,loop in Geometry.roadLoops do
+  strip("LobbyFrontInnerKerb",loop,1.5,.12,.23,Color3.fromRGB(111,211,245),false,false)
+ end
  for _,edge in Geometry.boundaries do
-  local a,b=edge.a,edge.b
-  local inv=1/math.sqrt(edge.length2)
-  local nx,nz=edge.dz*inv,-edge.dx*inv
-  -- Rear straight: 32-stud road plus 14-stud shoulders. A two-stud
-  -- kerb and two-stud wall leave 12 clear studs between their outer faces.
-  local rearEdge=math.abs(a.z-b.z)<.001 and (math.abs(a.z-Geometry.rear.minZ)<.001 or math.abs(a.z-Geometry.rear.maxZ)<.001)
-  local inset=if rearEdge then 14 else 2
-  local kerbs={{x=a.x-nx*inset,z=a.z-nz*inset},{x=b.x-nx*inset,z=b.z-nz*inset}}
-  strip("LobbyFrontInnerKerb",kerbs,2,.08,.22,Color3.fromRGB(230,240,244),false,true)
-  strip("LobbyFrontGuardrail",{a,b},3,2.4,1.2,Color3.fromRGB(246,194,36),false,true)
-  strip("LobbyFrontBarrier",{a,b},2,14,7,Color3.fromRGB(139,178,194),true,true)
+  strip("LobbyFrontBarrier",{edge.a,edge.b},2,14,7,Color3.fromRGB(139,178,194),true,true)
  end
- -- Static paired tire tracks sit above the asphalt, below live Drift marks.
- local marks=Instance.new("Folder");marks.Name="LobbyPermanentSkidMarks";marks.Parent=zone
- local count=0
- for _,path in SkidPattern.paths() do
-  for i=1,#path.points-1 do
-   local a,b=path.points[i],path.points[i+1]
-   local dx,dz=b.x-a.x,b.z-a.z;local length=math.sqrt(dx*dx+dz*dz)
-   if length<.1 then continue end
-   for _,offset in {-2.1,2.1} do
-    local ax,az=SkidPattern.tirePoint(path,i,offset)
-    local bx,bz=SkidPattern.tirePoint(path,i+1,offset)
-    -- Clip the entire segment, including concave building corners.
-    local clear=true
-    for k=0,4 do if not Geometry.inside(ax+(bx-ax)*k/4,az+(bz-az)*k/4,12) then clear=false;break end end
-    if clear and count<640 then
-     local first,last=center+Vector3.new(ax,.196,az),center+Vector3.new(bx,.196,bz)
-     local mark=part("LobbyPermanentSkidMark",Vector3.new(path.width,.012,(last-first).Magnitude+.18),CFrame.lookAt((first+last)/2,last),Color3.fromRGB(12,14,16),false)
-     mark.Transparency=1-path.opacity;mark:SetAttribute("Pattern",path.kind);mark.Parent=marks;count+=1
-    end
-   end
-  end
- end
- zone:SetAttribute("PermanentSkidMarkCount",count)
+ zone:SetAttribute("SafetyShoulder",Geometry.roadMargin)
+ zone:SetAttribute("PermanentSkidMarkCount",0)
  -- Narrow shoulder/entry bridge; walkers pass the kart-only perimeter barrier.
- local railLine=center.Z+Policy.OuterRadius
+ local railLine=center.Z+Geometry.island.minZ-Geometry.roadMargin
  local lobbyLine=spawn.Position.Z-19
  local entryLength=math.max(1,lobbyLine-railLine)
  local entry=part("LobbyFrontDriveEntry",Vector3.new(12,.18,entryLength),CFrame.new(spawn.Position.X,top+.09,(railLine+lobbyLine)/2),Color3.fromRGB(111,211,245),false)

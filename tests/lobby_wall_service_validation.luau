@@ -21,7 +21,7 @@ service.start(zone)
 local attrs={};local player={GetAttribute=function(_,k)return attrs[k]end,SetAttribute=function(_,k,v)attrs[k]=v end}
 local character={};player.Character=character
 local humanoid={Health=100};local seat={Occupant=humanoid};humanoid.SeatPart=seat
-local body={Parent=true,CFrame=rb.CFrame.new(144,1.75,895.5),AssemblyLinearVelocity=rb.Vector3.zero,AssemblyAngularVelocity=rb.Vector3.zero}
+local body={Parent=true,CFrame=rb.CFrame.new(154.5,1.75,895.5),AssemblyLinearVelocity=rb.Vector3.zero,AssemblyAngularVelocity=rb.Vector3.zero}
 body.Position=body.CFrame.Position
 local pivots={};local kartAttrs={}
 local kart={SetAttribute=function(_,k,v)kartAttrs[k]=v end,GetAttribute=function(_,k)return kartAttrs[k]end,PivotTo=function(_,cf)
@@ -38,7 +38,7 @@ for _=1,10 do now+=.05;r.lastInput=now;heartbeat(.05) end
 check(#pivots==1,'cooldown prevents repeated corrections')
 -- Repeatedly obstruct the same contact to exercise the per-episode cap and fallback.
 while #pivots<4 do
- now+=.05;body.CFrame=rb.CFrame.new(144,1.75,895.5);body.Position=body.CFrame.Position
+ now+=.05;body.CFrame=rb.CFrame.new(154.5,1.75,895.5);body.Position=body.CFrame.Position
  body.AssemblyLinearVelocity=rb.Vector3.zero;r.lastInput=now;heartbeat(.05)
  check(now<10,'bounded progress')
 end
