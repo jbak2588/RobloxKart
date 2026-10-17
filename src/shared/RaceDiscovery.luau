@@ -1,5 +1,5 @@
 -- Cross-track public discovery. Human reservations count as people, never bots.
-local Discovery={DefaultTrackId="Track01Race"}
+local Discovery={DefaultTrackId="Track01"}
 function Discovery.counts(record)
  local humans,bots,reserved=0,0,0
  if record.state=="WAITING" and record.stagedMembers then

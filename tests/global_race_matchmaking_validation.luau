@@ -158,7 +158,7 @@ check(#directory:list()==0 and Discovery.rank(training)==nil,'private practice i
 check(not directory:stage(training.roomId,{userId=302},'outsider-token','Track03'),'private practice rejects another human even with room id')
 check(not directory:queue(training.roomId,{userId=302},'Track03'),'private practice rejects public queue')
 local public=hub('HUB-PUBLIC',302);public.action('QuickPlay')
-check(launches[2].payload.roomId~=training.roomId and launches[2].payload.trackId=='Track01Race','public matching does not interrupt or recruit private practice')
+check(launches[2].payload.roomId~=training.roomId and launches[2].payload.trackId=='Track01','public matching does not interrupt or recruit private practice')
 
 -- Welcome CTA needs no prior browser selection and always chooses Practice.
 rooms.values={};allocation.values={};launches={};holdReserve=false
