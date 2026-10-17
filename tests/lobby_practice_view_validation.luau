@@ -31,6 +31,14 @@ local l=drive.apply(mobile.layout(canvas.bounds),canvas.bounds)
 local actualLayout=v:update(true,l,58,nil)
 check(actualLayout.boostY>actualLayout.y+actualLayout.height and actualLayout.gaugeY>actualLayout.boostY,'production view returns item-relative Boost placement on compact mobile')
 local panel=canvas:FindFirstChild('PracticeItems');local info=canvas:FindFirstChild('PracticeFeedback')
+for index,id in {'Slick','Missile','Smoke','Thunder'}do
+ local position=panel:FindFirstChild(id).Position
+ check(position.Y.Offset==0 and position.X.Offset==(index-1)*(actualLayout.cell+6),'production attack row ordering '..id)
+end
+for index,id in {'Nitro','Shield'}do
+ local position=panel:FindFirstChild(id).Position
+ check(position.Y.Offset==actualLayout.cell+6 and position.X.Offset==(index-1)*(actualLayout.cell+6),'production utility row ordering '..id)
+end
 for _,id in policy.Items do
  local b=panel:FindFirstChild(id);check(b~=nil and b.Active,'visible direct practice item '..id)
  b.Activated:Fire();check(sent[#sent][1]=='UseItem'and sent[#sent][2]==7 and sent[#sent][3]==id and #sent[#sent]==3,'one generation-bound request per direct tap')

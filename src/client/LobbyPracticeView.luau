@@ -41,8 +41,9 @@ function View.new(canvas,player,remote,canUse)
   scroll.CanvasSize=UDim2.fromOffset(l.content,l.height)
   info.Position=UDim2.fromOffset(l.x,l.messageY);info.Size=UDim2.fromOffset(l.width,l.messageHeight);info.TextSize=if l.compact then 10 else 12
   local now=Workspace:GetServerTimeNow()
-  for i,c in cells do
-   c.button.Position=UDim2.fromOffset(((i-1)%l.columns)*(l.cell+6),math.floor((i-1)/l.columns)*(l.cell+6));c.button.Size=UDim2.fromOffset(l.cell,l.cell)
+  for _,c in cells do
+   local x,y=Layout.itemPosition(c.id,l.cell)
+   c.button.Position=UDim2.fromOffset(x,y);c.button.Size=UDim2.fromOffset(l.cell,l.cell)
    local count=player:GetAttribute('LobbyCharge'..c.id)or 0
    local wait=math.max(0,(player:GetAttribute('LobbyReadyAt'..c.id)or 0)-now)
    c.icon:update(true,count,false);c.button.Active=count>0

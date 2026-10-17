@@ -8,6 +8,7 @@ for _,s in {{932,390},{844,300},{748,303},{724,311},{801,334},{667,250},{480,210
  local size=rb.Vector2.new(s[1],s[2]);local l=drive.apply(mobile.layout(size),size)
  local a=layout.compute(size,l,58)
  check(a.cell>=44,'touch targets at least 44px')
+ check(a.columns==4 and a.height==a.cell*2+6,'always two rows with room for four attacks')
  check(a.x>=0 and a.y>=0 and a.x+a.width<=size.X and a.y+a.height<=size.Y,'practice panel within safe area')
  local panel={x=a.x,y=a.y,w=a.width,h=a.height}
  local message={x=a.x,y=a.messageY,w=a.width,h=a.messageHeight}
@@ -24,9 +25,10 @@ for _,s in {{932,390},{844,300},{748,303},{724,311},{801,334},{667,250},{480,210
  check(not overlap(boost,pad)and not overlap(boost,drift)and not overlap(gauge,pad)and not overlap(gauge,drift),'Boost text and gauge clear driving hitboxes')
  local shortcuts=drive.shortcuts(size,mobile)
  check(not overlap(panel,{x=shortcuts.x,y=shortcuts.y,w=shortcuts.width,h=shortcuts.height}),'items clear exit/shortcuts')
- for i=1,6 do
-  local x=((i-1)%a.columns)*(a.cell+6);local y=math.floor((i-1)/a.columns)*(a.cell+6)
+ for _,id in {'Slick','Missile','Smoke','Thunder','Nitro','Shield'}do
+  local x,y=layout.itemPosition(id,a.cell)
   check(x>=0 and x+a.cell<=a.content and y+a.cell<=a.height,'all six buttons accessible in scroll content')
+  check(y==(if id=='Nitro'or id=='Shield'then a.cell+6 else 0),'attacks top row, Nitro/Shield second row')
  end
 end
 print('PASS: '..n..' practice six-button safe-area / touch / scroll / driving nonoverlap checks')
