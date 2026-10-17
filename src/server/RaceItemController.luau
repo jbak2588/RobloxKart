@@ -324,6 +324,11 @@ function RaceItemController.start()
 	missileFolder.Parent = prototype
 	missiles = HomingMissileService.new(Config, { getKart = PrototypeWorld.getRaceKart,
 		getSession = RaceSession.forPlayer, resolve = RaceItemController.tryApplyOffensiveItem,
+		fired = function(owner,kart)
+			owner:SetAttribute("RaceMissileFiredSessionId",owner:GetAttribute("RaceSessionId"))
+			owner:SetAttribute("RaceMissileFiredResetSerial",kart:GetAttribute("RaceResetSerial"))
+			owner:SetAttribute("RaceMissileFiredSerial",(owner:GetAttribute("RaceMissileFiredSerial") or 0)+1)
+		end,
 		visuals = Visuals, parent = missileFolder })
 	smoke = SmokeHazardService.new(Config, {getKart=PrototypeWorld.getRaceKart, getSession=RaceSession.forPlayer,
 		resolve=RaceItemController.tryApplyOffensiveItem, geometry=Geometry, visuals=Visuals, parent=hazardFolder})

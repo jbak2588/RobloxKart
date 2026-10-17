@@ -102,6 +102,7 @@ function Service:update(now)
 			p.targetPrevious = targetPosition
 			p.lastUpdate, p.flightBorn, p.state = now, now, "FLYING"
 			p.visual = d.visuals.missile(d.parent, CFrame.lookAt(p.position, p.position + p.direction))
+			if d.fired then d.fired(p.owner,p.sourceKart,p.session) end
 		end
 		if now - p.flightBorn >= c.MISSILE_LIFETIME then self:remove(index); continue end
 		d.visuals.updateMissile(p.visual, now - p.flightBorn)

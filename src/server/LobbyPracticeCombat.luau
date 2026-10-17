@@ -45,6 +45,7 @@ function Combat.new(zone,records)
   getKart=function(a)if self:valid(a)then return a.record.kart,a.record.body end end,
   getSession=function(a)if self:valid(a)then return self.session end end,
   resolve=function(target,source,id)return self:resolve(target,source,id,os.clock())end,
+  fired=function(source)self:hitSound(source,'MissileLaunch')end,
   result=function(source,hits,blocks)
    self:feedback(source,if hits>0 then 'THUNDER HIT '..hits elseif blocks>0 then 'THUNDER BLOCKED' else 'THUNDER NO HIT')
    if hits>0 then self:hitSound(source,'Thunder')end

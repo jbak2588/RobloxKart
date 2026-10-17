@@ -1,4 +1,4 @@
--- Local attacker confirmation shared by races and Hub item practice.
+-- Local attacker launch and hit audio shared by races and Hub item practice.
 local RS=game:GetService('ReplicatedStorage')
 local SoundService=game:GetService('SoundService')
 local Config=require(RS:WaitForChild('Shared'):WaitForChild('AudioConfig'))
@@ -13,6 +13,7 @@ function Controller.new(player)
   local sound=Audio.createSound('Attacker'..kind..'Hit',c.Asset,SoundService,Audio.getGroup('RobloxKartSFX'),false,c.Volume,false)
   if sound then sound.PlaybackSpeed=c.Pitch;sounds[kind]=sound end
  end
+ sounds.MissileLaunch=Audio.createSound('AttackerMissileLaunch',Config.ASSETS.BOOST_START,SoundService,Audio.getGroup('RobloxKartSFX'),false,Config.BOOST.START_VOLUME,false)
  Audio.preload(sounds)
  local function stop()
   for _,sound in sounds do Audio.stop(sound)end
@@ -40,6 +41,11 @@ function Controller.new(player)
  end
  observe('RaceCombatFeedbackSerial',function()
   if kart(false)and player:GetAttribute('RaceCombatFeedbackCode')=='MISSILE_HIT'then Audio.playOnce(sounds.Missile)end
+ end)
+ observe('RaceMissileFiredSerial',function()
+  local model=kart(false)
+  if model and player:GetAttribute('RaceMissileFiredSessionId')==player:GetAttribute('RaceSessionId')
+   and player:GetAttribute('RaceMissileFiredResetSerial')==model:GetAttribute('RaceResetSerial')then Audio.playOnce(sounds.MissileLaunch)end
  end)
  observe('RaceThunderResultSerial',function()
   -- One sound for a whole Thunder event, even when several racers are hit.

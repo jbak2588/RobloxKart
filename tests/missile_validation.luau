@@ -149,6 +149,7 @@ for _, injected in {target,target.UserId,contexts[target].kart,V.new(0,0,0)} do 
 check(source:GetAttribute("RaceChargeMissile")==1 and (target:GetAttribute("RaceMissileIncomingCount") or 0)==0,"all client target injection rejected")
 use(source,"Missile")
 local warningStart=now
+local firedBefore=source:GetAttribute('RaceMissileFiredSerial')or 0
 check(config.MISSILE_WARNING_SECONDS==0.90,"R3 one-tap Shield pre-launch warning is 0.90 seconds")
 check(source:GetAttribute("RaceChargeMissile")==0 and source:GetAttribute("RaceMissileTargetName")==target.DisplayName
 	and source:GetAttribute("RaceMissileLaunchSerial")==1 and target:GetAttribute("RaceMissileIncomingCount")==1,"acceptance consumes only Missile and publishes lock/incoming")
@@ -158,8 +159,10 @@ check(projectileCount()==0 and effectCount==0 and target:GetAttribute("RaceMissi
 use(target,"Shield")
 tick(warningStart+config.MISSILE_WARNING_SECONDS-.001-now)
 check(projectileCount()==0 and contexts[target].kart:GetAttribute("KartShieldActive"),"Shield usable before full 0.90 pre-launch warning ends")
+check((source:GetAttribute('RaceMissileFiredSerial')or 0)==firedBefore,'warning does not emit flight-start audio')
 tick(.0011)
 check(projectileCount()==1 and contexts[target].kart:GetAttribute("KartShieldActive"),"target can Shield during warning")
+check(source:GetAttribute('RaceMissileFiredSerial')==firedBefore+1,'actual flight emits one source launch cue')
 local flightModel=prototype.RaceMissiles:GetChildren()[1]
 local trail=flightModel.Body:FindFirstChild("ExhaustTrail")
 check(flightModel:FindFirstChild("LaunchFlash") and trail and trail.Lifetime==.18
@@ -271,6 +274,7 @@ end
 for _, phase in {"WARNING","FLYING"} do
 for _, boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","occupant","lock","destroy","session","round","leave","owner_leave"} do
 	reset();use(source,"Missile");if phase=="FLYING" then tick(config.MISSILE_WARNING_SECONDS) end
+	local firedAtBoundary=source:GetAttribute('RaceMissileFiredSerial')or 0
 	if boundary=="reset" then contexts[target].kart:SetAttribute("RaceResetSerial",(contexts[target].kart:GetAttribute("RaceResetSerial") or 0)+1)
 	elseif boundary=="occupant" then contexts[target].seat.Occupant=nil
 	elseif boundary=="lock" then contexts[target].kart:SetAttribute("RaceControlsLocked",true)
@@ -282,6 +286,7 @@ for _, boundary in {"FINISHING","FINISHED","DNF","GARAGE","COUNTDOWN","reset","o
 	else target:SetAttribute("RaceState",boundary) end
 	tick(.01)
 	check(projectileCount()==0 and target:GetAttribute("RaceMissileIncomingCount")==0,"projectile/incoming cleanup "..phase.." "..boundary)
+	check((source:GetAttribute('RaceMissileFiredSerial')or 0)==firedAtBoundary,'cancellation never emits another launch cue '..phase..' '..boundary)
 	if boundary=="owner_leave" then check(source:GetAttribute("RaceCombatFeedbackCode")=="", "departed attacker feedback cleared") end
 	-- Rebind removed fixtures; a real departed player never rejoins this controller instance.
 	if boundary=="leave" then services.Players.PlayerAdded:Fire(target) end

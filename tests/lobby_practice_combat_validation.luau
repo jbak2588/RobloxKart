@@ -88,12 +88,12 @@ check(c:use(p,1,'Missile')and q:GetAttribute('LobbyMissileIncomingCount')==1,'re
 tick(.85);check(not s.kart:GetAttribute('KartMissileHitActive'),'no premature missile hit')
 tick(.8);check(not s.kart:GetAttribute('KartShieldActive')and not s.kart:GetAttribute('KartMissileHitActive'),'one-hit Shield blocks actual projectile')
 check(q:GetAttribute('LobbyMissileIncomingCount')==0,'incoming count balanced')
-check(not p:GetAttribute('LobbyCombatHitSerial'),'blocked practice Missile never emits hit audio')
+check(p:GetAttribute('LobbyCombatHitItem')=='MissileLaunch'and p:GetAttribute('LobbyCombatHitSerial')==1,'blocked practice Missile emits launch only, never hit audio')
 tick(5);check(p:GetAttribute('LobbyChargeMissile')==1 and q:GetAttribute('LobbyChargeShield')==1,'six-second tactical refill')
 c,p,q,r,s=fresh();tick(.01)
 check(c:use(p,1,'Missile'),'unshielded missile accepted');tick(1.5)
 check(s.kart:GetAttribute('KartMissileHitActive'),'actual projectile resolves human hit')
-check(p:GetAttribute('LobbyCombatHitItem')=='Missile'and p:GetAttribute('LobbyCombatHitSerial')==1,'actual Missile hit emits one attacker audio event')
+check(p:GetAttribute('LobbyCombatHitItem')=='Missile'and p:GetAttribute('LobbyCombatHitSerial')==2,'actual Missile emits one launch then one hit audio event')
 check(not q:GetAttribute('LobbyCombatHitSerial'),'victim does not receive attacker audio event')
 check(p:GetAttribute('LobbyCombatHitGeneration')==r.generation and p:GetAttribute('LobbyCombatHitResetSerial')==r.kart:GetAttribute('RaceResetSerial'),'audio event bound to drive and recovery generation')
 local victim=c.actors[q];local ended=victim.effect.untilTime
@@ -167,7 +167,7 @@ c,p,q,r,s=fresh();c:remove(q);scene.records[q]=nil;pose(r,0,860);tick(.01)
 check(c:use(p,1,'Missile'),'actual missile launch against moving authoritative bot')
 while not c.bot.effect and now<8 do tick(.01)end
 check(c.bot.effect and c.bot.effect.kind=='Missile','real homing projectile hits moving bot')
-check(p:GetAttribute('LobbyCombatHitItem')=='Missile'and p:GetAttribute('LobbyCombatHitSerial')==1,'moving bot Missile hit confirms attacker explosion')
+check(p:GetAttribute('LobbyCombatHitItem')=='Missile'and p:GetAttribute('LobbyCombatHitSerial')==2,'moving bot Missile emits launch and attacker explosion')
 tick(.01);check(c.bot.speed<=cfg.MISSILE_SPEED_CAP,'bot missile hit uses real speed cap')
 c:clearTransient(c.bot);c.bot.speed=70
 check(c:resolve(c.bot,c.actors[p],'Slick',now),'bot Slick accepted')

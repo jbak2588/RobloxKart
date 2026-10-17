@@ -39,3 +39,22 @@ playback, not human listening or published mobile acceptance. Existing running
 scripts were not replaced; no Roblox Publish was performed.
 
 Untracked logs/build: `artifacts/combat-hit-audio/`.
+
+## Missile launch follow-up
+
+User confirms impact sounds are audible. Follow-up baseline `50ea4dd` matches
+origin after fetch. No launch Sound was connected in either mode; the existing
+RaceMissileLaunchSerial reports accepted activation before the warning, so it is
+not used to time the new sound.
+
+HomingMissileService now exposes an optional fired callback at the transition to
+FLYING, after the visible projectile is created. Race publishes a session/reset
+bound fired serial; practice uses the existing typed local audio event with kind
+MissileLaunch. The client reuses the existing approved BOOST_START asset and
+volume, at normal pitch, once per actual flight. Rejected/no-target use and
+cancelled warnings produce no sound. No warning, flight, hit or gameplay timing
+changes. Confirmed impact audio remains distinct from launch audio.
+
+Follow-up validation: combat audio, Missile, practice combat, race items, recovery,
+Thunder and kart audio suites PASS; changed sources compile, Rojo build and diff
+checks PASS. Published launch timing/listening remains unverified. No Publish.
