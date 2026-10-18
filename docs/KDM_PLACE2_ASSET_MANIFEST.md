@@ -102,7 +102,9 @@ Ready-to-use Roblox `MaterialVariant`s extracted from Place2:
 |---|---|---|---|
 | **H1-C1 (Completed)** | Distant Horizon Mountains | `HorizonMountainA`, `HorizonMountainB` | +2 MeshParts |
 | **H1-C2 (Completed)** | Green Valley Ground Continuity | 6 non-colliding tiling BaseParts | +6 BaseParts |
-| **H1-C3 (Completed)** | Natural Deciduous Trees | 4 models (8 MeshParts) from `Foliage/Trees` | +8 MeshParts |
-| **H1-C4 (Candidate)** | Trackside Rural Fencing & Props | `OB_Fence_15_a` (10-16), `OB_Barrel_a` (4) | +14~20 MeshParts |
-| **H1-C5 (Candidate)** | Clubhouse & Pit Building | `OB_Building_A`, `OB_Building_B` | +14 MeshParts |
-| **H1-C6 (Candidate)** | Finish Gate Celebration VFX | `Confetti` particle system | 0 MeshParts (pure VFX) |
+| **H1-C3 (Completed)** | Natural Deciduous Trees (Trial) | 4 models (8 MeshParts) from `Foliage/Trees` | +8 MeshParts |
+| **H1-C4 (Completed)** | Full Natural Tree Replacement | 16 total models (32 MeshParts), legacy pines removed | +24 MeshParts (Net server -48 parts) |
+| **H1-D1 (Candidate)** | Track Sponsor Arch & Lighting Towers | KDM Sponsor Arch + 2 Spotlights towers | ~10-14 parts |
+| **H1-D2 (Candidate)** | Trackside Rural Fencing & Props | `OB_Fence_15_a` (10-16), `OB_Barrel_a` (4) | +14~20 MeshParts |
+| **H1-D3 (Candidate)** | Clubhouse & Pit Building | `OB_Building_A`, `OB_Building_B` | +14 MeshParts |
+| **H1-D4 (Candidate)** | Finish Gate Celebration VFX | `Confetti` particle system | 0 MeshParts (pure VFX) |

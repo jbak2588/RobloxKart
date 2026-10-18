@@ -88,13 +88,13 @@ local NATURAL_TREE_ORIGINAL_CONFIGS = {
 }
 
 -- H1-C4 12 Replacement Natural Trees (replacing PracticePine1..12)
--- Sourced from Place2.rbxlx, displaced outward with >= 25 studs crown clearance from road edge,
--- clear of Crossover (> 130 studs), and pairwise separated (> 40 studs).
+-- Sourced from Place2.rbxlx, displaced outward so exact Leaves OBB has >= 25 studs crown clearance
+-- from road edge, strictly outside Crossover (> 135 studs from Crossover center), and pairwise separated (> 40 studs).
 local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement01",
 		prefabName = "NaturalTreeA",
-		pos = Vector3.new(-324.9, 0, 296.1),
+		pos = Vector3.new(-332.6, 0, 293.7),
 		rotation = 25,
 		zone = "Northwest Straight Outer Flank",
 		legacyAnchor = Vector3.new(-319.2, 0, 297.9),
@@ -102,7 +102,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement02",
 		prefabName = "NaturalTreeB",
-		pos = Vector3.new(-225.6, 0, 546.7),
+		pos = Vector3.new(-226.6, 0, 548.5),
 		rotation = -15,
 		zone = "Northwest Loop Exit Outer",
 		legacyAnchor = Vector3.new(-222.7, 0, 541.5),
@@ -110,7 +110,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement03",
 		prefabName = "NaturalTreeA",
-		pos = Vector3.new(-41.1, 0, 401.0),
+		pos = Vector3.new(-41.0, 0, 401.0),
 		rotation = 190,
 		zone = "North Loop Inner Basin",
 		legacyAnchor = Vector3.new(-40.7, 0, 407.0),
@@ -118,7 +118,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement04",
 		prefabName = "NaturalTreeB",
-		pos = Vector3.new(198.2, 0, 565.5),
+		pos = Vector3.new(199.4, 0, 572.4),
 		rotation = 75,
 		zone = "Northeast Loop Entry Outer",
 		legacyAnchor = Vector3.new(197.1, 0, 559.6),
@@ -126,7 +126,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement05",
 		prefabName = "NaturalTreeA",
-		pos = Vector3.new(347.4, 0, 417.1),
+		pos = Vector3.new(355.3, 0, 418.4),
 		rotation = -60,
 		zone = "Northeast Sweep Outer Flank",
 		legacyAnchor = Vector3.new(341.5, 0, 416.1),
@@ -134,7 +134,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement06",
 		prefabName = "NaturalTreeB",
-		pos = Vector3.new(157.4, 0, 337.2),
+		pos = Vector3.new(156.6, 0, 337.8),
 		rotation = 135,
 		zone = "East Sweep Inner Basin",
 		legacyAnchor = Vector3.new(162.1, 0, 333.5),
@@ -142,7 +142,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement07",
 		prefabName = "NaturalTreeA",
-		pos = Vector3.new(-158.0, 0, -34.0),
+		pos = Vector3.new(-170.3, 0, -5.4),
 		rotation = 45,
 		zone = "West Crossover Approach Outer",
 		legacyAnchor = Vector3.new(-112.1, 0, -49.4),
@@ -150,7 +150,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement08",
 		prefabName = "NaturalTreeB",
-		pos = Vector3.new(-211.1, 0, -185.1),
+		pos = Vector3.new(-214.8, 0, -183.5),
 		rotation = -110,
 		zone = "Southwest Hairpin Entry Outer",
 		legacyAnchor = Vector3.new(-205.7, 0, -187.6),
@@ -158,7 +158,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement09",
 		prefabName = "NaturalTreeA",
-		pos = Vector3.new(-158.4, 0, -372.8),
+		pos = Vector3.new(-160.9, 0, -375.8),
 		rotation = 160,
 		zone = "South Hairpin Apex Outer",
 		legacyAnchor = Vector3.new(-154.6, 0, -368.1),
@@ -166,7 +166,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement10",
 		prefabName = "NaturalTreeB",
-		pos = Vector3.new(78.9, 0, -400.4),
+		pos = Vector3.new(80.5, 0, -408.2),
 		rotation = -45,
 		zone = "Southeast Hairpin Exit Outer",
 		legacyAnchor = Vector3.new(77.7, 0, -394.5),
@@ -174,7 +174,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement11",
 		prefabName = "NaturalTreeA",
-		pos = Vector3.new(210.1, 0, -268.5),
+		pos = Vector3.new(212.1, 0, -268.9),
 		rotation = 80,
 		zone = "Southeast Loop Outer Flank",
 		legacyAnchor = Vector3.new(204.3, 0, -267.2),
@@ -182,7 +182,7 @@ local NATURAL_TREE_REPLACEMENT_CONFIGS = {
 	{
 		id = "NaturalTreeReplacement12",
 		prefabName = "NaturalTreeB",
-		pos = Vector3.new(164.9, 0, -112.8),
+		pos = Vector3.new(169.1, 0, -110.0),
 		rotation = -95,
 		zone = "East Crossover Return Outer",
 		legacyAnchor = Vector3.new(160.0, 0, -116.2),

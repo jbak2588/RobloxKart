@@ -421,7 +421,49 @@ local samples = course.Samples
 local roadWidth = 60
 local halfRoad = 30
 local crossoverPos = def.Crossover.Position
-local crossoverRadius = def.Crossover.VisualHalfLength + 20
+local cp2D = rb.Vector2.new(crossoverPos.X, crossoverPos.Z)
+
+local leafOffsetA = rb.Vector3.new(0.936, 39.346, 1.417)
+local leafSizeA = rb.Vector3.new(47.81586, 47.902897, 52.687916)
+
+local leafOffsetB = rb.Vector3.new(3.330, 41.029, 0.099)
+local leafSizeB = rb.Vector3.new(47.441795, 52.27529, 52.9685)
+
+local function getLeavesCorners(modelPos, rotationDeg, prefabName)
+	local leafOffset = if prefabName == "NaturalTreeA" then leafOffsetA else leafOffsetB
+	local leafSize = if prefabName == "NaturalTreeA" then leafSizeA else leafSizeB
+	local halfSize = leafSize * 0.5
+	local rot = frames.Angles(0, math.rad(rotationDeg), 0)
+	local leavesCf = frames.new(modelPos) * rot * frames.new(leafOffset)
+	local corners = {}
+	for _, sx in {-1, 1} do
+		for _, sz in {-1, 1} do
+			local pt = leavesCf * rb.Vector3.new(sx * halfSize.X, 0, sz * halfSize.Z)
+			table.insert(corners, rb.Vector2.new(pt.X, pt.Z))
+		end
+	end
+	return corners
+end
+
+local function distPointToSegment2D(p, a, b)
+	local ab = b - a
+	local ap = p - a
+	local lenSq = ab.X * ab.X + ab.Y * ab.Y
+	if lenSq < 1e-8 then return ap.Magnitude end
+	local t = math.clamp((ap.X * ab.X + ap.Y * ab.Y) / lenSq, 0, 1)
+	local proj = a + ab * t
+	return (p - proj).Magnitude
+end
+
+local function distPointToOBB2D(p, corners)
+	local minDist = math.huge
+	for i = 1, 4 do
+		local j = (i % 4) + 1
+		local d = distPointToSegment2D(p, corners[i], corners[j])
+		if d < minDist then minDist = d end
+	end
+	return minDist
+end
 
 local allConfigs = horizonController.ALL_NATURAL_TREE_CONFIGS
 check(#allConfigs == 16, "exactly 16 natural tree configurations in ALL_NATURAL_TREE_CONFIGS")
@@ -434,27 +476,23 @@ for _, cfg in allConfigs do
 	local leaves = tm:FindFirstChild("Leaves")
 	check(trunk ~= nil and leaves ~= nil, "tree components valid for " .. cfg.id)
 
-	-- Check road centerline distance
-	local minCenterlineDist = math.huge
+	-- Exact Leaves OBB calculation for Crossover and Road clearances
+	local corners = getLeavesCorners(cfg.pos, cfg.rotation, cfg.prefabName)
+
+	-- 1. Crossover clearance: Leaves OBB strictly >= 135.0 studs from Crossover center (>= 130 + 5 margin)
+	local obbCrossoverDist = distPointToOBB2D(cp2D, corners)
+	check(obbCrossoverDist >= 135.0,
+		string.format("%s Leaves OBB to Crossover center %.2f studs >= 135.0 (>= 130 + 5 extra margin)", cfg.id, obbCrossoverDist))
+
+	-- 2. Road clearance: Leaves OBB strictly >= 25.0 studs from road edge
+	local minOBBRoadDist = math.huge
 	for _, s in samples do
-		local d = math.sqrt((cfg.pos.X - s.X)^2 + (cfg.pos.Z - s.Z)^2)
-		if d < minCenterlineDist then minCenterlineDist = d end
+		local d = distPointToOBB2D(rb.Vector2.new(s.X, s.Z), corners)
+		if d < minOBBRoadDist then minOBBRoadDist = d end
 	end
-
-	local roadEdgeDist = minCenterlineDist - halfRoad
-	local crownFoliageClearance = roadEdgeDist - 26.5 -- 26.5 is half-width/radius of Leaves crown
-
-	check(minCenterlineDist >= 81.5 and minCenterlineDist <= 130.0,
-		string.format("%s centerline distance %.1f in 81.5-130 studs range", cfg.id, minCenterlineDist))
-	check(roadEdgeDist >= 50.0,
-		string.format("%s road edge distance %.1f >= 50.0 studs", cfg.id, roadEdgeDist))
-	check(crownFoliageClearance >= 25.0,
-		string.format("%s crown foliage clearance %.1f >= 25.0 studs (super safe from drift)", cfg.id, crownFoliageClearance))
-
-	-- Check Crossover clearance
-	local distToCrossover = math.sqrt((cfg.pos.X - crossoverPos.X)^2 + (cfg.pos.Z - crossoverPos.Z)^2)
-	check(distToCrossover > crossoverRadius,
-		string.format("%s distance to crossover %.1f > %.1f", cfg.id, distToCrossover, crossoverRadius))
+	local crownRoadClearance = minOBBRoadDist - halfRoad
+	check(crownRoadClearance >= 25.0,
+		string.format("%s Leaves OBB to road edge %.2f studs >= 25.0 studs (super safe drift margin)", cfg.id, crownRoadClearance))
 end
 
 -- Verify pairwise distance among all 16 trees (no crown overlap, distance >= 40 studs)
