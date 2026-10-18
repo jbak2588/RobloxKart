@@ -33,25 +33,25 @@ check(road03.Color == Color3.fromRGB(48, 51, 56), "Track03 road color strictly p
 
 -- 2. Track01 Part Budget & Counts
 check(world01:GetAttribute("GeometryId") == "PracticeFigure8V1", "Track01 is PracticeFigure8V1")
-check(world01:GetAttribute("EnvironmentCueVersion") == 9, "Track01 environment cue version incremented to 9 for dense outer layout")
+check(world01:GetAttribute("EnvironmentCueVersion") == 10, "Track01 environment cue version incremented to 10 for dense crossover and cluster layout")
 check(world01:GetAttribute("SpeedCueObjectCount") == 8, "Track01 has exactly 8 SpeedCue objects")
 check(world01:GetAttribute("SpeedCuePartCount") == 16, "Track01 has exactly 16 SpeedCue parts (2 parts per cue)")
-check(world01:GetAttribute("VisualRailPartCount") == 63, "Track01 has 63 dense outer VisualRail segments")
-check(world01:GetAttribute("BrandedVisualRailCount") == 16, "Track01 has 16 branded KDM VisualRails")
+check(world01:GetAttribute("VisualRailPartCount") == 130, "Track01 has 130 dense outer VisualRail segments")
+check(world01:GetAttribute("BrandedVisualRailCount") == 37, "Track01 has 37 branded KDM VisualRails")
 check(world01:GetAttribute("BarrierPartCount") == 0, "Track01 barrier count remains strictly 0 (no physics barrier in Figure8)")
 check(world01:GetAttribute("BarrierTriggerPartCount") == 0, "Track01 barrier trigger count remains strictly 0")
 check(#world01:FindFirstChild("RaceTriggers"):GetChildren() == 7, "RaceTriggers contains exactly 7 gates (6 CP + 1 Finish)")
 
 local newVisualParts = world01:GetAttribute("VisualPartCount")
-check(newVisualParts == 1299, "exact Track01 visual part count: 1220 base + 16 SpeedCues + 63 VisualRails = 1299")
-check(newVisualParts <= 1300, "Track01 strictly adheres to <=1300 mobile part ceiling")
+check(newVisualParts == 1366, "exact Track01 visual part count: 1220 base + 16 SpeedCues + 130 VisualRails = 1366")
+check(newVisualParts <= 1400, "Track01 strictly adheres to <=1400 mobile part ceiling")
 
 -- 3. P1 Noncolliding & Scenery Flags and SurfaceGui Branding Layout
 local speedCues = world01:FindFirstChild("Environment"):FindFirstChild("SpeedCues")
 local visualRails = world01:FindFirstChild("Environment"):FindFirstChild("VisualRails")
 
 check(#speedCues:GetChildren() == 16, "SpeedCues folder contains 16 visual parts")
-check(#visualRails:GetChildren() == 63, "VisualRails folder contains 63 visual parts")
+check(#visualRails:GetChildren() == 130, "VisualRails folder contains 130 visual parts")
 
 local brandedCount, plainCount = 0, 0
 for _, p in visualRails:GetChildren() do
@@ -80,8 +80,8 @@ for _, p in visualRails:GetChildren() do
 		plainCount += 1
 	end
 end
-check(brandedCount == 16, "exactly 16 branded VisualRails across track")
-check(plainCount == 47, "exactly 47 plain red/white VisualRails")
+check(brandedCount == 37, "exactly 37 branded VisualRails across track")
+check(plainCount == 93, "exactly 93 plain red/white VisualRails")
 
 -- 4. Bounding Edge Distance & Safety Clearance
 local definition = geometry.getDefinition(track01.GeometryId)

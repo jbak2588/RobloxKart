@@ -79,7 +79,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local styleName = if isV2B then "V2B" elseif isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
 		elseif track.Id == "Track01Race" then "Base" else "Practice"
 	local style = TRACK_VISUAL_STYLE[styleName]
-	local environmentVersion = if isFigure8 then 9 elseif isHardCircuit then 6 else 1
+	local environmentVersion = if isFigure8 then 10 elseif isHardCircuit then 6 else 1
 	local previousTrack = prototype:FindFirstChild("TestTrack")
 	if previousTrack and previousTrack:IsA("Model")
 		and previousTrack:GetAttribute("GeometryId") == track.GeometryId
@@ -845,24 +845,46 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			{ 54, 55, 56, 57 },
 			{ 60, 61, 62, 63 },
 			{ 66, 67, 68, 69 },
-			-- Segment 5 (Mid diagonal straight): two 4-rail blocks
+			-- Segment 5 (Mid diagonal straight - long crossover approach and exit): six 4-rail blocks
 			{ 104, 105, 106, 107 },
 			{ 110, 111, 112, 113 },
-			-- Segment 7 (South bottom straight): one 4-rail block
+			{ 116, 117, 118, 119 },
+			{ 122, 123, 124, 125 },
+			{ 155, 156, 157, 158 },
+			{ 160, 161, 162, 163 },
+			-- Segment 7 (South bottom straight): two 4-rail blocks
 			{ 180, 181, 182, 183 },
-			-- Segment 9 (Final return straight): two 4-rail blocks
+			{ 185, 186, 187, 188 },
+			-- Segment 9 (Final return straight - long crossover approach and exit): five 4-rail blocks
+			{ 208, 209, 210, 211 },
 			{ 214, 215, 216, 217 },
 			{ 220, 221, 222, 223 },
+			{ 236, 237, 238, 239 },
+			{ 242, 243, 244, 245 },
 		}
 		local curveRails = {
-			-- North curve 1
-			26, 30, 34, 38, 42,
-			-- North curve 2
-			78, 82, 86, 90, 94,
-			-- South curve 1
-			166, 170, 174, 178,
-			-- South curve 2
-			192, 196, 200, 204, 208,
+			-- North curve 1: five 3-rail attached clusters
+			{ 25, 26, 27 },
+			{ 29, 30, 31 },
+			{ 33, 34, 35 },
+			{ 37, 38, 39 },
+			{ 41, 42, 43 },
+			-- North curve 2: five 3-rail attached clusters
+			{ 77, 78, 79 },
+			{ 81, 82, 83 },
+			{ 85, 86, 87 },
+			{ 89, 90, 91 },
+			{ 93, 94, 95 },
+			-- South curve 1: four 3-rail attached clusters
+			{ 165, 166, 167 },
+			{ 169, 170, 171 },
+			{ 173, 174, 175 },
+			{ 177, 178, 179 },
+			-- South curve 2: four 3-rail attached clusters
+			{ 191, 192, 193 },
+			{ 195, 196, 197 },
+			{ 199, 200, 201 },
+			{ 203, 204, 205 },
 		}
 
 		local plannedRails = {}
@@ -871,8 +893,10 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				table.insert(plannedRails, { idx = idx, isStraight = true, posInBlock = posInBlock })
 			end
 		end
-		for _, idx in curveRails do
-			table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = 0 })
+		for _, cluster in curveRails do
+			for posInCluster, idx in cluster do
+				table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = posInCluster })
+			end
 		end
 
 		local visualRailParts = 0
@@ -966,20 +990,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + 1.1, 0)
 			local railLook = CFrame.lookAt(railPos, railPos + tangent)
 
-			local isRed = true
-			local shouldBrand = false
-			if item.isStraight then
-				-- Red / White / Red / White 4-rail block pattern
-				isRed = (item.posInBlock % 2 == 1)
-				if item.posInBlock == 2 then
-					shouldBrand = true
-				end
-			else
-				isRed = (visualRailParts % 2 == 0)
-				if visualRailParts % 4 == 1 then
-					shouldBrand = true
-				end
-			end
+			local isRed = (item.posInBlock % 2 == 1)
+			local shouldBrand = (item.posInBlock == 2)
 
 			local railColor = if isRed then kerbRed else kerbWhite
 			local railPart = createVisualPart(visualRailsFolder, "RailSegment" .. (visualRailParts + 1),

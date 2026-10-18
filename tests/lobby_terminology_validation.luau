@@ -5,7 +5,7 @@ local current=luau.load(fs.readFile("src/shared/TrackCatalog.luau"),{environment
 local old=process.exec("git",{"show","f21c65370079033c72602e63cc40b79306e99236:src/shared/TrackCatalog.luau"})
 check(old.ok,"review baseline available")
 local baseline=luau.load(old.stdout,{environment={CFrame=rb.CFrame}})()
-local names={Track01="Practice Track",Track01Race="Base Track",Track02="Prototype V2 Track",Track03="KDM Hard Track"}
+local names={Track01="Figure 8 Racing Track",Track01Race="Base Track",Track02="Prototype V2B TEST",Track03="KDM Hard Track"}
 local function equal(a,b)
  if type(a)~="table" or type(b)~="table" then return a==b end
  for k,v in a do if not equal(v,b[k])then return false end end

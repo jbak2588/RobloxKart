@@ -1,6 +1,6 @@
 -- Canary read-only viewer. All authorization and profile reads remain server-owned.
 local Controller = {}
-local names={Track01="Practice Circuit",Track01Race="Base Circuit",Track02="Prototype Circuit V2B",Track03="KDM Hard Circuit"}
+local names={Track01="Figure 8 Racing Track",Track01Race="Base Circuit",Track02="Prototype Circuit V2B",Track03="KDM Hard Circuit"}
 local categories={SOLO_1H_0B="Solo",BOT_1H_1B="1 driver + 1 bot",HUMAN_2H_0B="2 drivers",HUMAN_3H_0B="3 drivers",HUMAN_4H_0B="4 drivers"}
 local function title(evidence)
  return (names[evidence.trackId] or "Track").." / "..(categories[evidence.category] or "Bot-assisted race")

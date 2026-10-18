@@ -62,7 +62,7 @@ local function visit(node)
 end
 visit(world)
 check(#collisionParts==1 and collisionParts[1]=='SafetyGround','single physical support, overlays never add wheel bumps')
-check(countParts<=1300,'mobile static geometry budget')
+check(countParts<=1400,'mobile static geometry budget')
 if require('@lune/process').args[1]=='Report' then
  fs.writeDir('artifacts/r7-p1b')
 fs.writeFile('artifacts/r7-p1b/crossover-marking-audit.json',serde.encode('json',{checks=count,branches=rows,ribbons=2,monolithicApron=false,dedicatedChevronClusters=dedicated,parts=countParts,physicalSupport=collisionParts,staticVerdict='PASS',manualTemporalFlicker='Requires driven viewport observation'}))

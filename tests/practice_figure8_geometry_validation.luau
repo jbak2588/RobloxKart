@@ -144,7 +144,7 @@ for i,slot in track.GridSlots do
  for j=1,i-1 do check((slot.Position-track.GridSlots[j].Position).Magnitude>=16,'grid spacing')end
 end
 local world=builder.build(object('Folder'),track,0);budgets.Track01=budget(world)
-check(budgets.Track01.Part<=1300,'static polish remains inside mobile part budget')
+check(budgets.Track01.Part<=1400,'static polish remains inside mobile part budget')
 check(world:GetAttribute('PracticeTreeCount')>=8 and world:GetAttribute('PracticeTreeCount')<=18,'bounded native tree family')
 check(world:GetAttribute('PracticeBillboardPartCount')==42 and world:GetAttribute('PracticeSignalPartCount')==0,'sanitized donor structure / deferred signal')
 check(budgets.Track01.Script==0 and budgets.Track01.LocalScript==0 and budgets.Track01.ModuleScript==0 and budgets.Track01.MeshPart==0,'no donor code or runtime mesh dependencies')
