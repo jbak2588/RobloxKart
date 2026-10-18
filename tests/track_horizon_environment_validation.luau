@@ -50,13 +50,18 @@ for _, tm in treePrefabs do
 	assert(tm:FindFirstChild("Leaves") ~= nil, "tree model has Leaves: " .. tm.Name)
 end
 
+-- H1-C4-R2 XML Integrity checks for Rojo 7.7.1
+assert(treeRbxmx:find("<SharedString", 1, true) == nil, "tree rbxmx has 0 unresolved SharedString references")
+assert(treeRbxmx:find('name="AeroMeshData"', 1, true) == nil, "tree rbxmx has 0 corrupt AeroMeshData references")
+assert(treeRbxmx:find('name="PhysicalConfigData"', 1, true) == nil, "tree rbxmx has 0 unneeded PhysicalConfigData references")
+
 local source = fs.readFile("tests/track_environment_validation.luau")
 local prefix = source:sub(1, assert(source:find('local prototype=object("Folder")', 1, true)) - 1)
 
 luau.load(prefix .. [====[
 local Color3 = rb.Color3
 local Vector2 = rb.Vector2
-local checks = 16 -- include the 16 static rbxmx checks above
+local checks = 19 -- include the 19 static rbxmx checks above
 local function check(value, label) assert(value, label); checks += 1 end
 
 local workspace = object("Workspace")

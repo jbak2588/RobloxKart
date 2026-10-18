@@ -1,4 +1,4 @@
-<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="4"><External>null</External><External>nil</External><Item class="Folder" referent="RBX_KDMHorizonTreePrefabs"><Properties><string name="Name">KDMHorizonTreePrefabs</string></Properties><Item class="Model" referent="RBX_NaturalTreeA"><Properties><string name="Name">NaturalTreeA</string><Ref name="PrimaryPart">RBX_NaturalTreeA_Trunk</Ref></Properties><Item class="MeshPart" referent="RBX_NaturalTreeA_Trunk">
+<roblox version="4"><External>null</External><External>nil</External><Item class="Folder" referent="RBX_KDMHorizonTreePrefabs"><Properties><string name="Name">KDMHorizonTreePrefabs</string></Properties><Item class="Model" referent="RBX_NaturalTreeA"><Properties><string name="Name">NaturalTreeA</string><Ref name="PrimaryPart">RBX_NaturalTreeA_Trunk</Ref></Properties><Item class="MeshPart" referent="RBX_NaturalTreeA_Trunk">
 						<Properties>
 							<bool name="DoubleSided">false</bool>
 							<bool name="HasJointOffset">false</bool>
@@ -14,14 +14,11 @@
 								<Z>0</Z>
 							</Vector3>
 							<Content name="MeshId"><url>rbxassetid://15547670463</url></Content>
-							<BinaryString name="PhysicsData" />
 							<token name="RenderFidelity">1</token>
 							<Content name="TextureID"><null /></Content>
 							<int name="VertexCount">991</int>
-							<SharedString name="AeroMeshData">7z8hmsBCUMpbJ2jY+rSpaA==</SharedString>
 							<token name="FluidFidelityInternal">0</token>
 							<bool name="InertiaMigrated">true</bool>
-							<SharedString name="PhysicalConfigData">UpnIxSuWzgJIJ5aQR5OOoQ==</SharedString>
 							<Vector3 name="UnscaledCofm">
 								<X>0.190681785</X>
 								<Y>-2.6213994</Y>
@@ -130,9 +127,7 @@
 							<bool name="DefinesCapabilities">false</bool>
 							<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 							<string name="Name">Trunk</string>
-							<BinaryString name="SerializedOverrides" />
 							<int64 name="SourceAssetId">-1</int64>
-							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 							<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001ba2</UniqueId>
 						</Properties>
 						<Item class="SurfaceAppearance" referent="RBX9E53BE97404247A09F65DB1EC0D01040">
@@ -164,9 +159,7 @@
 								<bool name="DefinesCapabilities">false</bool>
 								<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 								<string name="Name">SA_OB_Bark_a</string>
-								<BinaryString name="SerializedOverrides" />
 								<int64 name="SourceAssetId">-1</int64>
-								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 								<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001ba3</UniqueId>
 							</Properties>
 						</Item>
@@ -187,14 +180,11 @@
 								<Z>0</Z>
 							</Vector3>
 							<Content name="MeshId"><url>rbxassetid://14824442818</url></Content>
-							<BinaryString name="PhysicsData" />
 							<token name="RenderFidelity">0</token>
 							<Content name="TextureID"><null /></Content>
 							<int name="VertexCount">0</int>
-							<SharedString name="AeroMeshData">olmZITi+l9WUWLW8TsImFw==</SharedString>
 							<token name="FluidFidelityInternal">0</token>
 							<bool name="InertiaMigrated">true</bool>
-							<SharedString name="PhysicalConfigData">NUR/ZE4eDzriEYhGbWtJZA==</SharedString>
 							<Vector3 name="UnscaledCofm">
 								<X>0.178518549</X>
 								<Y>0.0982799754</Y>
@@ -303,9 +293,7 @@
 							<bool name="DefinesCapabilities">false</bool>
 							<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 							<string name="Name">Leaves</string>
-							<BinaryString name="SerializedOverrides" />
 							<int64 name="SourceAssetId">-1</int64>
-							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 							<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001ba4</UniqueId>
 						</Properties>
 						<Item class="SurfaceAppearance" referent="RBX62C3C4AB2BFA4B74A8C8F262AE4E86D9">
@@ -337,9 +325,7 @@
 								<bool name="DefinesCapabilities">false</bool>
 								<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 								<string name="Name">SA_OB_TreeLeaves_a</string>
-								<BinaryString name="SerializedOverrides" />
 								<int64 name="SourceAssetId">-1</int64>
-								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 								<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001ba5</UniqueId>
 							</Properties>
 						</Item>
@@ -360,14 +346,11 @@
 								<Z>0</Z>
 							</Vector3>
 							<Content name="MeshId"><url>rbxassetid://15547670463</url></Content>
-							<BinaryString name="PhysicsData" />
 							<token name="RenderFidelity">1</token>
 							<Content name="TextureID"><null /></Content>
 							<int name="VertexCount">991</int>
-							<SharedString name="AeroMeshData">7z8hmsBCUMpbJ2jY+rSpaA==</SharedString>
 							<token name="FluidFidelityInternal">0</token>
 							<bool name="InertiaMigrated">true</bool>
-							<SharedString name="PhysicalConfigData">UpnIxSuWzgJIJ5aQR5OOoQ==</SharedString>
 							<Vector3 name="UnscaledCofm">
 								<X>0.190681785</X>
 								<Y>-2.6213994</Y>
@@ -476,9 +459,7 @@
 							<bool name="DefinesCapabilities">false</bool>
 							<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 							<string name="Name">Trunk</string>
-							<BinaryString name="SerializedOverrides" />
 							<int64 name="SourceAssetId">-1</int64>
-							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 							<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001bc5</UniqueId>
 						</Properties>
 						<Item class="SurfaceAppearance" referent="RBX3B72FD61EC65420F8BC133E33E7BEF88">
@@ -510,9 +491,7 @@
 								<bool name="DefinesCapabilities">false</bool>
 								<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 								<string name="Name">SA_OB_Bark_a</string>
-								<BinaryString name="SerializedOverrides" />
 								<int64 name="SourceAssetId">-1</int64>
-								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 								<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001bc6</UniqueId>
 							</Properties>
 						</Item>
@@ -533,14 +512,11 @@
 								<Z>0</Z>
 							</Vector3>
 							<Content name="MeshId"><url>rbxassetid://89914475582080</url></Content>
-							<BinaryString name="PhysicsData" />
 							<token name="RenderFidelity">0</token>
 							<Content name="TextureID"><null /></Content>
 							<int name="VertexCount">1802</int>
-							<SharedString name="AeroMeshData">olmZITi+l9WUWLW8TsImFw==</SharedString>
 							<token name="FluidFidelityInternal">0</token>
 							<bool name="InertiaMigrated">true</bool>
-							<SharedString name="PhysicalConfigData">4SWu9PZP0SRg59KpjMNVgg==</SharedString>
 							<Vector3 name="UnscaledCofm">
 								<X>-0.184433013</X>
 								<Y>0.250152975</Y>
@@ -649,9 +625,7 @@
 							<bool name="DefinesCapabilities">false</bool>
 							<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 							<string name="Name">Leaves</string>
-							<BinaryString name="SerializedOverrides" />
 							<int64 name="SourceAssetId">-1</int64>
-							<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 							<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001bc7</UniqueId>
 						</Properties>
 						<Item class="SurfaceAppearance" referent="RBX5B46669C04A549DB93281A46F28BBE2F">
@@ -683,9 +657,7 @@
 								<bool name="DefinesCapabilities">false</bool>
 								<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
 								<string name="Name">SA_OB_TreeLeaves_a</string>
-								<BinaryString name="SerializedOverrides" />
 								<int64 name="SourceAssetId">-1</int64>
-								<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 								<UniqueId name="UniqueId">598adc41d5bae7340ae601b500001bc8</UniqueId>
 							</Properties>
 						</Item>
