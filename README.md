@@ -49,6 +49,14 @@ Track03 itself is the public track; do not create a separate Track03Race.
 Legacy V2 remains preserved as Track02. Room / Invite / Queue / Launch are
 track-aware; retain selected-track identity throughout routing and Rematch.
 
+### Track01 (Figure 8) Natural Horizon & Place2 Asset Manifest
+
+Track01 uses a multi-tiered visual environment pipeline maintaining server VisualPartCount = 1,366 invariant:
+- **H1-C1 Distant Mountains:** 2 template mountain ranges (HorizonMountainA, HorizonMountainB) from Place2.rbxlx.
+- **H1-C2 Ground Continuity:** 6 non-colliding tiling BaseParts (GroundTransition) eliminating grey Baseplate exposure with 2-stud perimeter underlap.
+- **H1-C3 Natural Trees:** 4 mature deciduous trees (NaturalTrees: 2 on straights, 2 on curves, 8 MeshParts) cloned from KDMHorizonTreePrefabs.rbxmx.
+- **Detailed Asset Manifest:** Complete technical catalog of all 30 available assets extracted from Place2.rbxlx (foliage, fencing, paddock props, carnival landmarks, lighting, and PBR terrain materials) is recorded in [docs/KDM_PLACE2_ASSET_MANIFEST.md](docs/KDM_PLACE2_ASSET_MANIFEST.md).
+
 ## Current R7-A1-R4 Contract and Acceptance
 
 These current rules take precedence over historical milestone descriptions below.

@@ -4,6 +4,12 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
+      "KDMHorizonMountainPrefabs": {
+        "$path": "src/assets/KDMHorizonMountainPrefabs.rbxmx"
+      },
+      "KDMHorizonTreePrefabs": {
+        "$path": "src/assets/KDMHorizonTreePrefabs.rbxmx"
+      },
       "KDMRacePresentationResources": {
         "$path": "src/assets/KDMRacePresentationResources.rbxmx"
       },

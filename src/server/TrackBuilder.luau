@@ -80,10 +80,16 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		elseif track.Id == "Track01Race" then "Base" else "Practice"
 	local style = TRACK_VISUAL_STYLE[styleName]
 	local environmentVersion = if isFigure8 then 10 elseif isHardCircuit then 6 else 1
+	local currentWorkspace = if prototype and prototype.Parent then prototype.Parent else nil
+	local serverRole = if currentWorkspace and currentWorkspace.GetAttribute then currentWorkspace:GetAttribute("KDMServerRole") else nil
+	local isRaceTrack01 = isFigure8 and track.Id == "Track01" and serverRole == "RACE"
+	local expectedTreeCount = if isRaceTrack01 then 0 else 12
+
 	local previousTrack = prototype:FindFirstChild("TestTrack")
 	if previousTrack and previousTrack:IsA("Model")
 		and previousTrack:GetAttribute("GeometryId") == track.GeometryId
 		and previousTrack:GetAttribute("TrackId") == track.Id
+		and (if isFigure8 and track.Id == "Track01" then previousTrack:GetAttribute("PracticeTreeCount") == expectedTreeCount else true)
 		and previousTrack:FindFirstChild("Road")
 		and previousTrack:FindFirstChild("RaceTriggers")
 		and previousTrack:FindFirstChild("BarrierTriggers")
@@ -759,7 +765,12 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				end
 			end
 		end
+		local currentWorkspace = if prototype and prototype.Parent then prototype.Parent else nil
+		local serverRole = if currentWorkspace and currentWorkspace.GetAttribute then currentWorkspace:GetAttribute("KDMServerRole") else nil
+		local isRaceTrack01 = isFigure8 and track.Id == "Track01" and serverRole == "RACE"
 		local trees = 0
+		local legacyAnchorCount = 0
+
 		for _, fraction in { .09, .16, .22, .31, .36, .41, .60, .66, .70, .77, .81, .85, .27, .55, .95, .04 } do
 			if trees >= 12 then break end
 			local point = TrackGeometry.getSampleAtFraction(samples, fraction)
@@ -776,21 +787,27 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				end
 				if not clear then continue end
 				trees += 1
-				local tree = Instance.new("Model")
-				tree.Name = "PracticePine" .. trees
-				tree.Parent = decor
-				-- Audited PineTree trunk dimensions/colors, with three native canopy
-				-- tiers replacing its 44 nonportable UnionOperations. No donor mesh.
-				createVisualPart(tree, "Trunk", Vector3.new(2, 34, 2), CFrame.new(roadPoint(center, 17)),
-					Color3.fromRGB(108, 88, 75), Enum.Material.SmoothPlastic)
-				for tier, spec in { {18, 22}, {14, 28}, {10, 34} } do
-					createVisualPart(tree, "Canopy" .. tier, Vector3.new(spec[1], 7, spec[1]),
-						CFrame.new(roadPoint(center, spec[2])), Color3.fromRGB(80, 109, 84), Enum.Material.SmoothPlastic)
+				legacyAnchorCount += 1
+				testTrack:SetAttribute(string.format("NaturalTreeLegacyAnchor%02d", legacyAnchorCount), center)
+
+				if not isRaceTrack01 then
+					local tree = Instance.new("Model")
+					tree.Name = "PracticePine" .. trees
+					tree.Parent = decor
+					-- Audited PineTree trunk dimensions/colors, with three native canopy
+					-- tiers replacing its 44 nonportable UnionOperations. No donor mesh.
+					createVisualPart(tree, "Trunk", Vector3.new(2, 34, 2), CFrame.new(roadPoint(center, 17)),
+						Color3.fromRGB(108, 88, 75), Enum.Material.SmoothPlastic)
+					for tier, spec in { {18, 22}, {14, 28}, {10, 34} } do
+						createVisualPart(tree, "Canopy" .. tier, Vector3.new(spec[1], 7, spec[1]),
+							CFrame.new(roadPoint(center, spec[2])), Color3.fromRGB(80, 109, 84), Enum.Material.SmoothPlastic)
+					end
 				end
 				break
 			end
 		end
-		testTrack:SetAttribute("PracticeTreeCount", trees)
+		testTrack:SetAttribute("NaturalTreeLegacyAnchorCount", legacyAnchorCount)
+		testTrack:SetAttribute("PracticeTreeCount", if isRaceTrack01 then 0 else trees)
 		testTrack:SetAttribute("PracticeBillboardPartCount", #PRACTICE_BILLBOARD_PARTS)
 		testTrack:SetAttribute("PracticeSignalPartCount", 0)
 

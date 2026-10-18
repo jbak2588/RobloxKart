@@ -20,6 +20,7 @@ local TouchDrivingController = require(script:WaitForChild("TouchDrivingControll
 local DriftChargeController = require(script:WaitForChild("DriftChargeController"))
 local DriverCelebrationController = require(script:WaitForChild("DriverCelebrationController"))
 local FinishCelebrationController = require(script:WaitForChild("FinishCelebrationController"))
+local TrackHorizonController = require(script:WaitForChild("TrackHorizonController"))
 local Workspace = game:GetService("Workspace")
 
 local role = Workspace:GetAttribute("KDMServerRole")
@@ -54,6 +55,7 @@ require(script:WaitForChild('CombatHitAudioController')).start()
 RaceItemUiController.start()
 if role == "RACE" then TacticalLoadoutController.start() end
 if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).start() end
+if role == "RACE" then TrackHorizonController.start() end
 SmokeEffectView.new(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),game:GetService("Players").LocalPlayer)
 ShieldEffectsController.start()
 DriverCelebrationController.start()
