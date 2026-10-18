@@ -10,6 +10,9 @@
       "KDMHorizonTreePrefabs": {
         "$path": "src/assets/KDMHorizonTreePrefabs.rbxmx"
       },
+      "KDMTrackLightingPrefabs": {
+        "$path": "src/assets/KDMTrackLightingPrefabs.rbxmx"
+      },
       "KDMRacePresentationResources": {
         "$path": "src/assets/KDMRacePresentationResources.rbxmx"
       },

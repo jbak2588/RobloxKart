@@ -21,6 +21,7 @@ local DriftChargeController = require(script:WaitForChild("DriftChargeController
 local DriverCelebrationController = require(script:WaitForChild("DriverCelebrationController"))
 local FinishCelebrationController = require(script:WaitForChild("FinishCelebrationController"))
 local TrackHorizonController = require(script:WaitForChild("TrackHorizonController"))
+local TrackCircuitStructuresController = require(script:WaitForChild("TrackCircuitStructuresController"))
 local Workspace = game:GetService("Workspace")
 
 local role = Workspace:GetAttribute("KDMServerRole")
@@ -56,6 +57,12 @@ RaceItemUiController.start()
 if role == "RACE" then TacticalLoadoutController.start() end
 if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).start() end
 if role == "RACE" then TrackHorizonController.start() end
+if role == "RACE" then TrackCircuitStructuresController.start() end
+Workspace:GetAttributeChangedSignal("KDMServerRole"):Connect(function()
+	if Workspace:GetAttribute("KDMServerRole") == "RACE" then
+		TrackCircuitStructuresController.start()
+	end
+end)
 SmokeEffectView.new(game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),game:GetService("Players").LocalPlayer)
 ShieldEffectsController.start()
 DriverCelebrationController.start()
