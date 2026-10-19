@@ -220,11 +220,12 @@ function RaceItemUiController.start()
 		else gui.IgnoreGuiInset = not (size.Y > 0 and size.Y <= 650) end
 		-- Lower left keeps the road center clear. Compact layout reserves the
 		-- bottom 100 px for future steering controls, within the safe GUI area.
-		label.Position = UDim2.new(0, if compact then 16 else 24, 1, if compact then -100 else -30)
+		label.Position = UDim2.new(0, if compact then 16 else 24, 1, if compact then -100 else -70)
 		label.Size = UDim2.fromOffset(if compact then 218 else 272, if compact then 40 else 48)
 		local width = if compact then 70 else 88
 		for index, button in buttons do
-			button.Position = label.Position + UDim2.fromOffset((index-1)*(width+4), 0)
+			local column = if index <= 4 then index-1 else index-5
+			button.Position = label.Position + UDim2.fromOffset(column*(width+4), if index<=4 then -54 else 0)
 			button.Size = UDim2.fromOffset(width, if compact then 40 else 48)
 		end
 		label.TextSize = if compact then 14 else 18
@@ -239,7 +240,9 @@ function RaceItemUiController.start()
 			local groupWidth = items.width
 			local progressHeight = items.progressHeight
 			for index, button in buttons do
-				button.Position = UDim2.new(0, items.x+(index-1)*(l.slot+l.gap), 1, -items.bottom)
+				local column=if index<=4 then index-1 else index-5
+				button.Position = UDim2.fromOffset(items.x+column*(l.slot+l.gap),
+					(if index<=4 then items.top else items.secondTop)+l.slot)
 				button.Size = UDim2.fromOffset(l.slot, l.slot)
 			end
 			label.Position = UDim2.new(0, items.x, 1, -items.bottom)
@@ -255,9 +258,8 @@ function RaceItemUiController.start()
 				combat.Size = UDim2.fromOffset(math.min(300, gui.AbsoluteSize.X-24), 40)
 			end
 		else
-			nitroProgress.Position = UDim2.new(label.Position.X.Scale, label.Position.X.Offset,
-				label.Position.Y.Scale, label.Position.Y.Offset - (if compact then 40 else 48) - 38)
-			nitroProgress.Size = UDim2.fromOffset(width * #buttons + 4 * (#buttons-1), 32)
+			nitroProgress.Position = label.Position + UDim2.fromOffset(0, 4)
+			nitroProgress.Size = UDim2.fromOffset(width * 4 + 4 * 3, 32)
 			progressLabel.TextSize = 13
 		end
 		local topHud = gui.Parent:FindFirstChild("RobloxKartMobileTopHud")

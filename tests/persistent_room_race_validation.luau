@@ -223,8 +223,8 @@ ready(c);ready(d)
 check(session.phase=="WAITING" and session:count()==3 and starts==1,
  "three staged racers wait for host")
 ready(e)
-check(session.phase=="WAITING" and starts==1,"four seated racers wait for new player preparation")
-tick(raceConfig.ITEM_PREP_SECONDS)
+check(session.phase=="COUNTDOWN" and starts==2,"full room starts without item preparation")
+tick(.1)
 check(session.phase=="COUNTDOWN" and session:count()==4 and starts==2,
  "four seated racers auto-start next round")
 print(string.format("PASS: %d persistent room race checks",count))

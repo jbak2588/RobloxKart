@@ -116,8 +116,8 @@ local function choose(p,ids)
 	remote.OnServerEvent:Fire(p,"SetTacticalLoadout",ids)
 	return remote.reply[2]
 end
-check(choose(owner,{"Shield","Missile","Smoke"}),"valid server-local Smoke swap")
-check(owner:GetAttribute("RaceTacticalItem3")=="Smoke","approved choice published for modal")
+check(not choose(owner,{"Shield","Missile","Smoke"}),"retired tactical swap rejected")
+check(owner:GetAttribute("RaceTacticalItem3")=="Thunder","fixed loadout compatibility mirror")
 session.itemsReady[owner]=nil
 for _,ids in {{"Smoke","Smoke","Shield"},{"Nitro","Shield","Smoke"},{"Unknown","Shield","Smoke"},
 	{"Shield","Smoke"},{"Slick","Shield","Missile","Smoke"},{"Shield","Smoke","Missile",extra="Nitro"}} do
@@ -128,8 +128,8 @@ owner:SetAttribute("RaceState","PRE_RACE");session.phase="RACING"
 check(not choose(owner,{"Slick","Shield","Missile"}),"stale PRE_RACE client cannot change started session")
 session.phase="WAITING"
 for _,p in players do p:SetAttribute("RaceState","COUNTDOWN");p:SetAttribute("RaceState","RACING") end
-check(owner:GetAttribute("RaceItemSlot1")=="Nitro" and owner:GetAttribute("RaceItemSlot2")=="Shield"
-	and owner:GetAttribute("RaceItemSlot4")=="Smoke" and owner:GetAttribute("RaceChargeSmoke")==1,"Nitro core plus chosen three refills")
+check(owner:GetAttribute("RaceItemSlot5")=="Nitro" and owner:GetAttribute("RaceItemSlot6")=="Shield"
+	and owner:GetAttribute("RaceItemSlot3")=="Smoke" and owner:GetAttribute("RaceChargeSmoke")==1,"Nitro core plus chosen three refills")
 local function cloud() return services.Workspace.Prototype.RaceItemHazards:FindFirstChild("SmokeHazard") end
 contexts[owner].chassis.CFrame=CF.new(0,1,0)
 remote.OnServerEvent:Fire(owner,"UseItem","Smoke")
@@ -182,7 +182,7 @@ tick(.1);check(not contexts[b].kart:GetAttribute("KartSmokeObscuredActive") and 
 owner:SetAttribute("RaceState","FINISHED")
 check(not cloud(),"owner finish removes own cloud")
 owner:SetAttribute("RaceState","PRE_RACE");session.phase="WAITING"
-check(owner:GetAttribute("RaceTacticalItem3")=="Smoke","Rematch staging retains chosen tactical IDs")
+check(owner:GetAttribute("RaceTacticalItem3")=="Thunder","Rematch staging retains chosen tactical IDs")
 owner:SetAttribute("RaceState","COUNTDOWN");owner:SetAttribute("RaceState","RACING")
 check(owner:GetAttribute("RaceChargeSmoke")==1 and owner:GetAttribute("RaceChargeNitro")==1,"Rematch refills chosen loadout")
 contexts[owner].chassis.CFrame=CF.new(100,1,0);tick(.21);remote.OnServerEvent:Fire(owner,"UseItem","Smoke")
@@ -203,7 +203,7 @@ contexts[owner].seat.Occupant=nil;tick()
 check(not cloud(),"owner seat loss removes world cloud")
 contexts[owner].seat.Occupant={};sessions[d]=session
 owner:SetAttribute("RaceState","GARAGE");owner:SetAttribute("RaceState","COUNTDOWN");owner:SetAttribute("RaceState","RACING")
-check(owner:GetAttribute("RaceItemSlot4")=="Missile" and owner:GetAttribute("RaceChargeSmoke")==0,"leaving to Garage restores safe production default")
+check(owner:GetAttribute("RaceItemSlot2")=="Missile" and owner:GetAttribute("RaceChargeSmoke")==1,"leaving to Garage restores six-item production default")
 -- Execute swept math at realistic speeds, including entire-volume fast crossings.
 for _,speed in {55,70,100} do
 	local ch=object("Part");ch.Size=V.new(4,2,6);ch.CFrame=CF.new(0,0,-speed*.25)

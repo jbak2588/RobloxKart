@@ -144,13 +144,15 @@ function RaceHudController.start()
 	quitButton.Position = UDim2.new(1, 0, 0, 0)
 	quitButton.Size = UDim2.fromOffset(72, 23)
 	quitButton.BackgroundColor3 = Color3.fromRGB(196, 112, 120)
-	quitButton.BackgroundTransparency = 0.65
+	quitButton.BackgroundTransparency = 1
 	quitButton.TextColor3 = Color3.fromRGB(255, 230, 230)
-	quitButton.Text = "QUIT RACE"
+	quitButton.Text = "QUIT"
 	quitButton.TextSize = 11
 	quitButton.Font = Enum.Font.GothamBold
 	quitButton.Parent = quitRow
 	addCorner(quitButton, 5)
+	local quitOutline=Instance.new("UIStroke");quitOutline.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+	quitOutline.Color=quitButton.TextColor3;quitOutline.Thickness=1;quitOutline.Parent=quitButton
 	local quitOverlay = Instance.new("Frame")
 	quitOverlay.Name = "QuitConfirmation"
 	quitOverlay.Size = UDim2.fromScale(1, 1)
@@ -846,7 +848,7 @@ function RaceHudController.start()
 		quitRow.Parent=frame
 		quitRow.Position=UDim2.fromOffset(0,0)
 		quitRow.Size = UDim2.new(1, -20, 0, quitHeight)
-		quitButton.Size = UDim2.fromOffset(if touchTarget then 120 else 72, if touchTarget then 40 else 23)
+		quitButton.Size = UDim2.fromOffset(if touchTarget then 64 else 56, if touchTarget then 40 else 23)
 		quitButton.TextSize = if touchTarget then 14 else 11
 		miniMapPanel.Visible = player:GetAttribute("RaceState") == "COUNTDOWN" or player:GetAttribute("RaceState") == "RACING"
 			or (player:GetAttribute("RaceState") == "FINISHED"
@@ -1006,6 +1008,10 @@ function RaceHudController.start()
 			local items = MobileView.itemLayout(safeSize, 4)
 			quitRow.Parent = frame
 			quitRow.Size = UDim2.fromOffset(math.min(150, items.width - 16), quitHeight)
+			-- Compact outlined Quit sits beside LAP rows, freeing the second item row.
+			quitRow.Parent=screenGui
+			quitRow.Position=frame.Position+UDim2.fromOffset(110,0)
+			quitRow.Size=UDim2.fromOffset(64,40)
 			local titleHeight, lineHeight = if shortLap then 16 else 25, if shortLap then 10 else 20
 			padding.PaddingTop = UDim.new(0, if shortLap then 0 else 6)
 			padding.PaddingBottom = UDim.new(0, if shortLap then 0 elseif quitRow.Visible then 4 else 6)
@@ -1018,7 +1024,7 @@ function RaceHudController.start()
 				padding.PaddingTop.Offset + titleHeight + lineHeight*2
 				+ (if offTrackLabel.Visible then lineHeight else 0)
 				+ (if raceEndLabel.Visible then lineHeight else 0)
-				+ (if quitRow.Visible then quitHeight else 0) + padding.PaddingBottom.Offset)
+				+ padding.PaddingBottom.Offset)
 			-- TopbarInset is the dynamic space clear of Roblox controls and cutouts.
 			-- Keep the speed readout centered when it fits, or shift it into that space.
 			local speedPosition = MobileView.speedTopbarPosition(mobileTopGui.AbsoluteSize,
@@ -1428,32 +1434,17 @@ function RaceHudController.start()
 		end
 		lobbyStatus.Text = string.format("RACERS  %d / %d", participantCount,
 			getNumberAttribute(player, "RaceMaxPlayers", 4))
-		local itemsReady=getNumberAttribute(player,"RaceItemsReadyCount",0)
-		local itemsRequired=getNumberAttribute(player,"RaceItemsRequiredCount",0)
-		local allReady=itemsRequired>0 and itemsReady==itemsRequired
-		local nextSerial=getNumberAttribute(player,"RaceItemsAutoReadySerial",0)
-		if nextSerial~=autoReadySerial then autoReadySerial=nextSerial;autoReadyNoticeUntil=time()+1.4 end
-		if lobbyWaiting then
-			local prepText=if isHost and time()<autoReadyNoticeUntil then
-				string.sub(player:GetAttribute("RaceItemsAutoReadyName") or "RACER",1,24).." AUTO READY"
-				else string.format("ITEMS READY  %d / %d",itemsReady,itemsRequired)
-			lobbyStatus.Text..="\n"..prepText
-		elseif raceState~="COUNTDOWN" then autoReadyNoticeUntil=0 end
-		autoReadyNotice.Visible=isHost and raceState=="COUNTDOWN" and time()<autoReadyNoticeUntil
-		autoReadyNotice.Text=string.sub(player:GetAttribute("RaceItemsAutoReadyName") or "RACER",1,20).." AUTO READY"
-		autoReadyNotice.AnchorPoint=Vector2.new(1,0)
-		autoReadyNotice.Position=if screenGui.AbsoluteSize.X>=600 then UDim2.new(1,-12,0,8) else UDim2.new(1,-12,0,56)
-		lobbyStart.Active=lobbyWaiting and isHost and allReady
+		autoReadyNotice.Visible=false
+		lobbyStart.Active=lobbyWaiting and isHost
 		lobbyStart.AutoButtonColor=lobbyStart.Active
 		lobbyStart.BackgroundTransparency=if lobbyStart.Active then 0 else .55
-		lobbyStart.Visible = lobbyWaiting and isHost
-		lobbyStart.Text = if not allReady then string.format("WAIT ITEMS %d/%d",itemsReady,itemsRequired)
-			else if participantCount == 1 then "START SOLO" else "START RACE"
+		lobbyStart.Visible=lobbyWaiting and isHost
+		lobbyStart.Text=if participantCount==1 then "START SOLO" else "START RACE"
 		if player:GetAttribute('RaceHostStartRequired')==true then
 			local pendingInvites=getNumberAttribute(player,'RaceInvitePendingCount',0)
 			if pendingInvites>0 then lobbyStart.Active=false;lobbyStart.Text='WAIT REPLY'end
 		elseif player:GetAttribute('RacePublicMatch')==true then
-			lobbyStart.Active=false;lobbyStart.Text=if allReady then 'AUTO START'else 'SELECT ITEMS'
+			lobbyStart.Active=false;lobbyStart.Text='AUTO START'
 		end
 		lobbyLeave.Visible = lobbyWaiting
 		lobbyLeave.Text = if participantCount == 1 and isHost then "CANCEL" else "LEAVE"

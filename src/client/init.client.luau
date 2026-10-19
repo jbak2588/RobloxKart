@@ -13,7 +13,6 @@ local KartEffectsController = require(script:WaitForChild("KartEffectsController
 local KartAudioController = require(script:WaitForChild("KartAudioController"))
 local RaceAudioController = require(script:WaitForChild("RaceAudioController"))
 local RaceItemUiController = require(script:WaitForChild("RaceItemUiController"))
-local TacticalLoadoutController = require(script:WaitForChild("TacticalLoadoutController"))
 local SmokeEffectView = require(script:WaitForChild("SmokeEffectView"))
 local ShieldEffectsController = require(script:WaitForChild("ShieldEffectsController"))
 local TouchDrivingController = require(script:WaitForChild("TouchDrivingController"))
@@ -55,7 +54,7 @@ KartAudioController.start()
 RaceAudioController.start()
 require(script:WaitForChild('CombatHitAudioController')).start()
 RaceItemUiController.start()
-if role == "RACE" then TacticalLoadoutController.start() end
+-- Race loadouts are now fixed; there is no item-selection/preparation overlay.
 if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).start() end
 if role == "RACE" then TrackHorizonController.start() end
 if role == "RACE" then TrackCircuitStructuresController.start() end

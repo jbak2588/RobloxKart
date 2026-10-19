@@ -30,7 +30,7 @@ local function charges(expected,label)
 end
 for _,nitro in {0,1,2} do
  start("Track01Race")
- actualLoadout:prepare({"Nitro","Shield","Missile","Thunder"})
+ assert(actualLoadout:prepare())
  actualLoadout.counts.Nitro=nitro;empty({"Shield","Missile"})
  actualLoadout.bonusProgress=5;actualLoadout.bonusPending=true
  actualLoadout.bonusAwardCount=3;actualLoadout.bonusEverAwarded=true
@@ -38,9 +38,9 @@ for _,nitro in {0,1,2} do
  cross(checkpoints[2]);cross(finish)
  check(serial()==before and player:GetAttribute("RaceCompletedLaps")==0,"missing checkpoint no refill")
  lap()
- charges({Nitro=nitro,Shield=1,Missile=1,Thunder=1,Slick=0,Smoke=0},"valid 1/2")
+ charges({Nitro=nitro,Shield=1,Missile=1,Thunder=1,Slick=1,Smoke=1},"valid 1/2")
  check(serial()==before+1 and player:GetAttribute("RaceItemRefillCount")==2
-  and player:GetAttribute("RaceItemRefillItems")=="Shield,Missile","one diagnostic for changed slots")
+  and player:GetAttribute("RaceItemRefillItems")=="Missile,Shield","one diagnostic for changed slots")
  check(player:GetAttribute("RaceChargeShield")==1 and player:GetAttribute("RaceChargeNitro")==nitro,"authoritative HUD mirrors")
  check(actualLoadout.selected==selected,"valid selection preserved")
  check(actualLoadout.bonusProgress==5 and actualLoadout.bonusPending and actualLoadout.bonusAwardCount==3
@@ -56,12 +56,12 @@ for _,nitro in {0,1,2} do
  charges({Nitro=0,Shield=0,Missile=0,Thunder=0},"existing finish teardown")
 end
 start("Track02")
-actualLoadout:prepare({"Nitro","Slick","Smoke","Thunder"});empty({"Nitro","Slick","Smoke","Thunder"})
+assert(actualLoadout:prepare());empty({"Nitro","Slick","Smoke","Thunder","Shield","Missile"})
 lap(.01)
 check(player:GetAttribute("RaceCompletedLaps")==0 and actualLoadout.counts.Smoke==0,"too-fast rejected lap no refill")
 local before=serial()
 lap()
-charges({Nitro=0,Slick=1,Smoke=1,Thunder=1,Shield=0,Missile=0},"V2 first transition")
+charges({Nitro=0,Slick=1,Smoke=1,Thunder=1,Shield=1,Missile=1},"V2 first transition")
 check(actualLoadout.selected=="Slick","empty selection chooses first available slot")
 empty({"Slick","Smoke","Thunder"});lap()
 check(serial()==before+1 and player:GetAttribute("RaceCompletedLaps")==2
@@ -91,7 +91,7 @@ end}})()
 local combat = fs.readFile("tests/race_item_reset_validation.luau")
 combat = string.sub(combat, 1, assert(string.find(combat, "-- A: untouched production defaults.", 1, true)) - 1)
 combat ..= [=[
-prepare(owner,{"Shield","Missile","Thunder"})
+prepare(owner)
 owner:SetAttribute("RaceTotalLaps",3);owner:SetAttribute("RaceCompletedLaps",0)
 owner:SetAttribute("RacePosition",1)
 use(owner,"Nitro");use(owner,"Shield")

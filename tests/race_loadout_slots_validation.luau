@@ -13,25 +13,25 @@ local slots = luau.load(fs.readFile("src/shared/RaceItemSlots.luau"),{environmen
 modules.RaceItemSlots = slots
 local Loadout = luau.load(fs.readFile("src/server/RaceLoadout.luau"),{environment=env})()
 local l = Loadout.new()
-check(l:prepare() and #l.slots==4 and slots.RACE_ITEM_SLOT_COUNT==4, "catalog expansion keeps exactly four slots")
-for index,id in {"Nitro","Slick","Shield","Missile"} do
+check(l:prepare() and #l.slots==6 and slots.RACE_ITEM_SLOT_COUNT==6, "all six items are active")
+for index,id in slots.DEFAULT do
  check(l.slots[index]==id and l.counts[id]==1, "default slot/charge "..index)
 end
-check(l.counts.Smoke==0 and catalog.Smoke.Implemented==true, "implemented Smoke is still absent from default")
+check(l.counts.Smoke==1 and catalog.Smoke.Implemented==true, "Smoke is available by default")
 check(not l:prepare(false) and not l:prepare("Nitro"), "non-table explicit loadouts reject instead of silently defaulting")
 for _,ids in {{"Nitro","Slick","Shield"}, {"Nitro","Slick","Shield","Missile","TestItem"},
  {"Nitro","Nitro","Shield","Missile"}, {"Nitro","Deferred","Shield","Missile"},
  {"Nitro","Unknown","Shield","Missile"}, {[1]="Nitro",[2]="Slick",[4]="Missile"},
  {"Nitro","Slick","Shield","Missile",extra="TestItem"}} do
- check(not l:prepare(ids) and l.slots[2]=="Slick" and l.counts.Nitro==1,
+ check(not l:prepare(ids) and l.slots[2]=="Missile" and l.counts.Nitro==1,
   "invalid preparation is atomic and retains existing loadout")
 end
-for _,id in {"Smoke","Unknown","TestItem"} do
+for _,id in {"Unknown","TestItem"} do
  check(not l:select(id) and not l:useItem(id,function() error("inactive activation") end)
   and l.counts.Nitro==1, "catalog existence never authorizes inactive item "..id)
 end
-local order={"Shield","Nitro","Missile","Slick"}
-check(l:prepare(order), "different valid four-item ordering")
+local order={"Shield","Nitro","Missile","Slick","Smoke","Thunder"}
+check(l:prepare(order), "different valid six-item ordering")
 order[1]="Smoke"
 check(l.slots[1]=="Shield", "caller cannot mutate prepared slots")
 check(l:select("Missile") and l:prepare(l.slots,true) and l.selected=="Missile", "GO refill preserves active order and desktop selection")
@@ -40,11 +40,11 @@ check(l:useItem("Shield",function(id) return id=="Shield" end) and l.counts.Shie
 check(not l:useItem("Shield",function() error("duplicate") end), "duplicate use consumes no extra charge")
 for _=1,5 do l:recordBoost(5) end
 check(l.bonusAwardCount==1 and l.counts.Nitro==2 and not l:grantBonusNitro(), "default Nitro bonus cap remains two, once")
-check(l:prepare({"Shield","TestItem","Missile","Slick"}) and not l:grantBonusNitro()
+check(l:prepare({"Shield","TestItem","Missile","Slick","Smoke","Thunder"}) and not l:grantBonusNitro()
  and l.counts.Nitro==0, "future loadout without Nitro cannot create hidden charge")
 l:clear()
 check(#l.slots==0 and l.selected=="" and l.counts.TestItem==0 and not l:grantBonusNitro(), "clear removes slots and all temporary charges")
-check(l:prepare() and l.slots[1]=="Nitro" and l.counts.Nitro==1, "next race/rematch restores production default")
+check(l:prepare() and l.slots[1]=="Slick" and l.counts.Nitro==1, "next race/rematch restores production default")
 catalog.TestItem.InitialCharges=nil
-check(not l:prepare({"Shield","TestItem","Missile","Slick"}), "missing initial charge configuration rejects preparation")
-print("PASS: "..count.." four-slot loadout checks")
+check(not l:prepare({"Shield","TestItem","Missile","Slick","Smoke","Thunder"}), "missing initial charge configuration rejects preparation")
+print("PASS: "..count.." six-slot loadout checks")

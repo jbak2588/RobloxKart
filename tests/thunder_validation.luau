@@ -130,7 +130,7 @@ local function prepare(p,ids)
  contexts[p].kart.Parent=prototype;p.Parent=services.Players;contexts[p].seat.Occupant={}
  p:SetAttribute("RaceState","GARAGE");contexts[p].kart:SetAttribute("KartThunderHitActive",false);contexts[p].kart:SetAttribute("KartOffTrack",false);session.phase="WAITING"
  p:SetAttribute("RaceState","PRE_RACE");session.itemsReady[p]=nil;session.itemPrepareDeadlines[p]=now+10
- if ids then tick(.21);assert(choose(p,ids)) end
+ if ids then tick(.21);assert(not choose(p,ids)) end
  p:SetAttribute("RaceState","COUNTDOWN");p:SetAttribute("RaceState","RACING")
 end
 local function snapshot(p)
@@ -163,8 +163,8 @@ end
 local function warnings() local n=0;for _,m in prototype.RaceMissiles:GetChildren() do if m.Name=="ThunderWarning" then n+=1 end end;return n end
 check(config.THUNDER_EFFECT_DURATION==2.00 and config.THUNDER_SPEED_CAP==60 and config.THUNDER_WARNING_SECONDS==1.00,"R1 duration 2.00; warning/cap frozen")
 check(modules.RaceItemCatalog.Thunder.TargetMode=="AllAhead" and modules.RaceItemCatalog.Thunder.MaxCharges==1,"implemented AllAhead catalog")
-check(#Slots.TACTICAL==5 and Slots.tactical({"Shield","Smoke","Thunder"})[4]=="Thunder","five candidates / exactly three tactical")
-local l=Loadout.new();l:prepare();check(l.counts.Thunder==0 and #l.slots==4,"default stays Nitro Slick Shield Missile")
+check(#Slots.TACTICAL==5 and Slots.tactical({"Shield","Smoke","Thunder"})==nil,"retired tactical request rejected")
+local l=Loadout.new();l:prepare();check(l.counts.Thunder==1 and #l.slots==6,"all six default items including Thunder")
 for n=2,4 do
  reset()
  for i,p in players do sessions[p]=if i<=n then session else nil end
@@ -190,7 +190,7 @@ local began=now
 check(d:GetAttribute("RaceChargeThunder")==0 and warnings()==3,"one charge for three warnings")
 remote.OnServerEvent:Fire(d,"UseItem","Thunder")
 check(warnings()==3 and d:GetAttribute("RaceChargeThunder")==0,"duplicate cannot create another admission/event")
-check(session.itemsReady[d] and d:GetAttribute("RaceTacticalItem3")=="Thunder","Thunder confirmed through existing ready gate")
+check(d:GetAttribute("RaceItemSlot4")=="Thunder","Thunder supplied without preparation gate")
 for _,model in prototype.RaceMissiles:GetChildren() do
  for _,part in model:GetChildren() do check(part.Anchored and not part.CanCollide and not part.CanTouch and not part.CanQuery,"warning parts are visual only") end
 end

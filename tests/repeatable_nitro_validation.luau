@@ -25,7 +25,7 @@ boost(l,5)
 check(l.bonusProgress==5 and l.bonusPending and l.counts.Nitro==2 and l.bonusAwardCount==awards,"full stores pending without prematurely recording an award")
 boost(l,20)
 check(l.bonusProgress==5 and l.bonusPending and l.bonusAwardCount==awards,"pending freezes all further successes")
-for _,badId in {"Unknown","Smoke",""} do
+for _,badId in {"Unknown","Deferred",""} do
  check(not l:useItem(badId,function() error("bad selection reached activation") end),"invalid selection rejects")
 end
 for _=1,3 do check(not use(l,false) and l.counts.Nitro==2 and l.bonusPending and l.bonusProgress==5
@@ -47,6 +47,6 @@ for _,racer in racers do
  and not racer.bonusEverAwarded and racer.counts.Nitro==0,"teardown resets all authoritative bonus state")
  racer:prepare();check(racer.counts.Nitro==1 and racer.bonusAwardCount==0,"rematch restores initial Nitro")
 end
-l:prepare({"Shield","Slick","Missile","Smoke"})
+l:clear()
 boost(l,20);check(l.counts.Nitro==0 and l.bonusProgress==0 and not l.bonusPending,"no hidden reward without Nitro slot")
 print("PASS: "..checks.." repeated Nitro transaction checks")

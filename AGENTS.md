@@ -2,6 +2,21 @@
 
 Read this before editing the project.
 
+## Current race items / launch override — 2026-10-19
+
+The user-approved six-item flow supersedes historical four-slot/tactical-prep
+requirements below. Race loadouts contain Slick / Missile / Smoke / Thunder
+on row one and Nitro / Shield on row two. Desktop keys 1–6 select those slots;
+Q uses the selected item. Mobile taps use the exact item directly.
+There is no tactical-selection UI, item-prep countdown, or item-ready start gate.
+Host Start immediately begins the normal race countdown. Play Together waits
+6 seconds for initial arrivals, then auto-starts with at least one human, subject
+to authoritative cross-server reservation/admission checks. Explicit invitations
+retain response waiting and the host's start decision.
+The existing non-final-lap empty-only refill to 1 applies to all five non-Nitro
+items. Nitro keeps the five-successful-BOOST repeatable award/pending contract.
+Physics, combat effect tuning, and race capacity are unchanged by this override.
+
 ## Mission
 
 Commercial mobile-first Roblox arcade kart racing game.

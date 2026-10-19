@@ -141,6 +141,13 @@ end
 -- Keep the complete group in the left HUD lane, including short safe viewports.
 function View.itemLayout(size: Vector2, slotCount: number)
 	local l = View.layout(size)
+	if slotCount == 6 then
+		local top = if size.Y < 360 then 60 else 100
+		local rowGap = 6
+		local secondTop = top + l.slot + rowGap
+		return {x=12, width=l.slot*4+l.gap*3, bottom=size.Y-secondTop-l.slot,
+			top=top, secondTop=secondTop, progressTop=secondTop+l.slot+4, progressHeight=24}
+	end
 	local width = l.slot * slotCount + l.gap * (slotCount - 1)
 	local x = 12
 	local bottom = l.loadoutBottom

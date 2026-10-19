@@ -6,9 +6,7 @@ function Service.new(getSession)
 	return setmetatable({getSession=getSession, choices={}, lastChange={}}, Service)
 end
 function Service:get(player)
-	local choice=self.choices[player]
-	if choice and choice.session ~= self.getSession(player) then self.choices[player]=nil;choice=nil end
-	return if choice then choice.slots else Slots.DEFAULT
+	return Slots.DEFAULT
 end
 function Service:set(player, tactical, now)
 	local session=self.getSession(player)

@@ -185,6 +185,8 @@ function KartInputController.start()
 			elseif input.KeyCode == Enum.KeyCode.Two then 2
 			elseif input.KeyCode == Enum.KeyCode.Three then 3
 			elseif input.KeyCode == Enum.KeyCode.Four then 4 else nil
+		if input.KeyCode == Enum.KeyCode.Five then slot = 5
+		elseif input.KeyCode == Enum.KeyCode.Six then slot = 6 end
 		if slot then
 			local selection = Slots.get(Players.LocalPlayer, slot)
 			if selection and not gameProcessed then KartInputController.selectRaceItem(selection) end

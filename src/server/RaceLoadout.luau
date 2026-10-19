@@ -43,7 +43,7 @@ function RaceLoadout:prepare(slotIds, preserveSelection)
 	if selected then self:select(selected) end
 	return true
 end
--- Server-only practice preset. Race prepare()/client tactical validation stay four-slot.
+-- Practice shares the same six items and authoritative inventory/bonus owner.
 -- Reuses the single inventory/bonus owner and atomic consume/pending settlement.
 function RaceLoadout:preparePractice()
 	self:clear()

@@ -805,36 +805,14 @@ function RaceController.start(options)
 	local function setStartBlocked(reason)
 		for player in session.participants do setChanged(player,"RaceStartBlockedReason",reason or "")end
 	end
-	local function beginItemPrep(player, now)
-		session.itemPrepareDeadlines[player] = now + RaceConfig.ITEM_PREP_SECONDS
-		session.itemsReady[player] = nil
-		setChanged(player, "RaceItemsReady", false)
-		setChanged(player, "RaceItemsAutoReady", false)
-		setChanged(player, "RaceItemsPrepareRemaining", RaceConfig.ITEM_PREP_SECONDS)
-	end
-	local function allItemsReady()
-		if session:count() == 0 then return false end
-		for player in session.participants do
-			if not session.itemsReady[player] then return false end
-		end
-		return true
-	end
-	local function markItemsReady(player, automatic)
+	-- Compatibility mirrors only: item selection and preparation are retired.
+	local quickStartAt = 0
+	local function readyLoadout(player)
 		session.itemsReady[player] = true
 		session.itemPrepareDeadlines[player] = nil
-		setChanged(player, "RaceItemsAutoReady", automatic)
-		setChanged(player, "RaceItemsPrepareRemaining", 0)
 		setChanged(player, "RaceItemsReady", true)
-		if automatic then
-			local hostId = if persistentRoom and options.getRoomHostUserId
-				then options.getRoomHostUserId() else session.hostUserId
-			for host in session.participants do
-				if host:GetAttribute("IsBot")~=true and host.UserId == hostId then
-					setChanged(host, "RaceItemsAutoReadyName", player.DisplayName or player.Name)
-					host:SetAttribute("RaceItemsAutoReadySerial", (host:GetAttribute("RaceItemsAutoReadySerial") or 0) + 1)
-				end
-			end
-		end
+		setChanged(player, "RaceItemsAutoReady", false)
+		setChanged(player, "RaceItemsPrepareRemaining", 0)
 	end
 
 	publishSession = function(now: number)
@@ -873,21 +851,11 @@ function RaceController.start(options)
 		end
 	end
 
-	-- Invoked after validated choice storage, without yielding. Clients cannot declare ready.
-	session.confirmItems = function(player, now)
-		local deadline = session.itemPrepareDeadlines[player]
-		if session.phase ~= "WAITING" or not session:contains(player) or countdownStarting
-			or session.itemsReady[player] or not deadline or now >= deadline then return false end
-		markItemsReady(player, false)
-		publishSession(now)
-		return true
-	end
+	session.confirmItems = function() return false end
 
 	local function startSharedCountdown(now: number)
 		if countdownStarting or session:count() == 0 or (session.phase ~= "WAITING"
 			and session.phase ~= "ARRIVAL" and session.phase ~= "COMPLETE" and session.phase ~= "EMPTY") then return end
-		if session.phase == "WAITING" and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE"
-			and not allItemsReady() then return end
   -- Event practice must wait for the actual admitted Bot, including retries.
   if options and options.isFirstRace and options.isFirstRace()
    and session:count()~=session:humanCount()+1 then setStartBlocked("BOT_PREPARING");return end
@@ -913,7 +881,7 @@ function RaceController.start(options)
 				return
 			end
 		end
-		if session:count() == 0 or (session.phase == "WAITING" and not allItemsReady()) then
+		if session:count() == 0 then
 			countdownStarting = false; return
 		end
 		rosterLocked = true
@@ -1032,13 +1000,8 @@ function RaceController.start(options)
 				setChanged(player, "RaceMapActive", false)
 			end
 		end
-		for player in session.participants do
-			if reason ~= "INITIAL" or (not session.itemsReady[player] and not session.itemPrepareDeadlines[player]) then
-				if player:GetAttribute("IsBot")==true then
-					session.itemsReady[player]=true;setChanged(player,"RaceItemsReady",true)
-				else beginItemPrep(player, now) end
-			end
-		end
+		if quickStartAt == 0 or reason ~= "INITIAL" then quickStartAt = now + RaceConfig.QUICK_RACE_ARRIVAL_WAIT_SECONDS end
+		for player in session.participants do readyLoadout(player) end
 		publishSession(now)
 	end
 
@@ -1101,6 +1064,7 @@ function RaceController.start(options)
 			session.hostUserId = if remaining[1] then remaining[1]:GetAttribute("IsBot")==true and 0 or remaining[1].UserId else 0
 		end
 		if session:count() == 0 then
+			quickStartAt = 0
 			session.phase = "EMPTY"
 			if persistentRoom and previousPhase ~= "WAITING" then
 				publishRoomPhase("ROUND_COMPLETE", 0)
@@ -1146,6 +1110,7 @@ function RaceController.start(options)
 				player:SetAttribute("RaceState", "GARAGE")
 				return
 			end
+			quickStartAt = now + RaceConfig.QUICK_RACE_ARRIVAL_WAIT_SECONDS
 			session.trackId = trackId
 			session.maxPlayers = track.MaxPlayers
 			session.mode = RaceMode.resolve(trackId)
@@ -1192,7 +1157,6 @@ function RaceController.start(options)
 			else removeRacer(player) end
 		elseif (action == "StartRace" or (action == "StartSolo" and session:count() == 1))
 			and session.phase == "WAITING" and session:count() >= 1
-			and (session:count() < session.maxPlayers or (options and options.requiresHostStart and options.requiresHostStart()))
 			and TrackCatalog.Entries[session.trackId].MatchType == "PUBLIC_RACE"
 			and (if persistentRoom and options.getRoomHostUserId
 				then options.getRoomHostUserId() else session.hostUserId) == player.UserId then
@@ -1297,19 +1261,11 @@ function RaceController.start(options)
 			startSharedCountdown(now)
 		end
 		if session.phase == "WAITING" then
-			for player in session.participants do
-				local deadline = session.itemPrepareDeadlines[player]
-				if deadline then
-					if now >= deadline then markItemsReady(player, true)
-					else setChanged(player, "RaceItemsPrepareRemaining", math.ceil(deadline - now)) end
-				end
-			end
-			local publicReady=options and options.isQuickMatch and options.isQuickMatch()
-				and ((options.isPractice and options.isPractice())or session:humanCount()>=2 or (session:humanCount()==1 and session:count()>1))
-			local hostStart=options and options.requiresHostStart and options.requiresHostStart()
-			if not allItemsReady()then setStartBlocked("")
-			elseif not hostStart and not publicReady and session:count()<session.maxPlayers then setStartBlocked("WAITING_FOR_RACERS")end
-			if not hostStart and (session:count() == session.maxPlayers or publicReady) and allItemsReady()and now-lastPublicStart>=1 then
+			local quick = options and options.isQuickMatch and options.isQuickMatch()
+			local hostStart = options and options.requiresHostStart and options.requiresHostStart()
+			local publicReady = quick and session:humanCount() >= 1 and now >= quickStartAt
+			if quick and not publicReady then setStartBlocked("WAITING_FOR_RACERS") end
+			if not hostStart and (session:count() == session.maxPlayers or publicReady) and now-lastPublicStart>=1 then
 				lastPublicStart=now;startSharedCountdown(now)
 			end
 		end
