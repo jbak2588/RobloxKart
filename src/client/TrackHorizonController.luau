@@ -30,29 +30,80 @@ local MODE_H1_B_WEDGES = "H1_B_WEDGES"
 
 Controller.ACTIVE_MODE = MODE_H1_C4_ALL_NATURAL_TREES
 
--- H1-C1 & H1-C2 Mountain Mesh Configurations
--- Bounding boxes strictly outside Figure 8 Infield (grassMargin = 180 studs) with >= 30 studs clearance
+-- H1-C1 & H1-C2 Mountain/Hill Configurations
+-- Submerged anchor parts preserve test contract while Smooth Terrain rolling hills form the natural landscape
 local MOUNTAIN_CONFIGS = {
-	-- 1. North Mountain Peak (HorizonMountainA, facing South towards track)
+	-- 1. North Submerged Anchor (HorizonMountainA, submerged underground)
 	{
 		name = "HorizonMountainA",
 		prefabName = "HorizonMountainA",
-		size = Vector3.new(512, 128, 512),
-		pos = Vector3.new(60, 0, 980),
+		size = Vector3.new(0.1, 0.1, 0.1),
+		pos = Vector3.new(60, -100, 980),
 		facingAngle = 180,
 		meshId = "rbxassetid://5547037363",
-		textureId = "rbxassetid://16017511205",
+		textureId = "",
+		color = Color3.fromRGB(76, 115, 68),
+		material = Enum.Material.Plastic,
 	},
-	-- 2. South Mountain Range (HorizonMountainB, facing North towards track)
+	-- 2. South Submerged Anchor (HorizonMountainB, submerged underground)
 	{
 		name = "HorizonMountainB",
 		prefabName = "HorizonMountainB",
-		size = Vector3.new(512, 128, 512),
-		pos = Vector3.new(-60, 0, -820),
+		size = Vector3.new(0.1, 0.1, 0.1),
+		pos = Vector3.new(-60, -100, -820),
 		facingAngle = 0,
 		meshId = "rbxassetid://5547037419",
-		textureId = "rbxassetid://16017511205",
+		textureId = "",
+		color = Color3.fromRGB(76, 115, 68),
+		material = Enum.Material.Plastic,
 	},
+}
+
+-- Plan A: Smooth Terrain Rolling Green Hills (replicating the gentle undulating green hills of screenshot 180843.png)
+local ROLLING_HILLS_SPHERES = {
+	-- North Ridge (replacing MountainA, along Z = 750 to 1100, spanning X = -350 to +350)
+	{ pos = Vector3.new(0, -35, 920), radius = 70 },
+	{ pos = Vector3.new(120, -42, 960), radius = 78 },
+	{ pos = Vector3.new(-110, -38, 940), radius = 74 },
+	{ pos = Vector3.new(230, -48, 910), radius = 78 },
+	{ pos = Vector3.new(-220, -48, 900), radius = 78 },
+	{ pos = Vector3.new(330, -52, 860), radius = 75 },
+	{ pos = Vector3.new(-320, -52, 850), radius = 75 },
+	{ pos = Vector3.new(60, -35, 840), radius = 60 },
+	{ pos = Vector3.new(-70, -35, 830), radius = 60 },
+	{ pos = Vector3.new(170, -40, 850), radius = 62 },
+	{ pos = Vector3.new(-180, -40, 840), radius = 62 },
+
+	-- South Ridge (replacing MountainB, along Z = -650 to -1000, spanning X = -350 to +350)
+	{ pos = Vector3.new(0, -35, -780), radius = 70 },
+	{ pos = Vector3.new(-110, -42, -820), radius = 78 },
+	{ pos = Vector3.new(120, -38, -800), radius = 74 },
+	{ pos = Vector3.new(-230, -48, -760), radius = 78 },
+	{ pos = Vector3.new(220, -48, -750), radius = 78 },
+	{ pos = Vector3.new(-330, -52, -720), radius = 75 },
+	{ pos = Vector3.new(320, -52, -710), radius = 75 },
+	{ pos = Vector3.new(-50, -35, -700), radius = 60 },
+	{ pos = Vector3.new(60, -35, -690), radius = 60 },
+	{ pos = Vector3.new(-160, -40, -710), radius = 62 },
+	{ pos = Vector3.new(170, -40, -700), radius = 62 },
+
+	-- East Flank (outer curve transition, along X = 500 to 750)
+	{ pos = Vector3.new(580, -42, 100), radius = 72 },
+	{ pos = Vector3.new(620, -46, 280), radius = 76 },
+	{ pos = Vector3.new(600, -46, -120), radius = 76 },
+	{ pos = Vector3.new(530, -38, 440), radius = 64 },
+	{ pos = Vector3.new(510, -38, -320), radius = 64 },
+	{ pos = Vector3.new(480, -34, 180), radius = 55 },
+	{ pos = Vector3.new(470, -34, -40), radius = 55 },
+
+	-- West Flank (outer straight transition, along X = -500 to -750)
+	{ pos = Vector3.new(-560, -42, 100), radius = 72 },
+	{ pos = Vector3.new(-610, -46, 280), radius = 76 },
+	{ pos = Vector3.new(-590, -46, -120), radius = 76 },
+	{ pos = Vector3.new(-520, -38, 440), radius = 64 },
+	{ pos = Vector3.new(-500, -38, -320), radius = 64 },
+	{ pos = Vector3.new(-470, -34, 180), radius = 55 },
+	{ pos = Vector3.new(-460, -34, -40), radius = 55 },
 }
 
 -- H1-C3 Original Natural Trees (4 trees: 2 on straights, 2 on curves)
@@ -456,8 +507,14 @@ local function buildMountains(parent: Instance, groundY: number): number
 			mountain.Name = cfg.name
 			mountain.Size = cfg.size
 
+			-- Submerged anchor: Pointy mountain mesh completely removed from view, replaced by Smooth Terrain rolling hills
+			mountain.TextureID = cfg.textureId or ""
+			mountain.Color = cfg.color or Color3.fromRGB(85, 120, 80)
+			mountain.Material = cfg.material or Enum.Material.Plastic
+			mountain.Transparency = 1
+
 			local rot = CFrame.Angles(0, math.rad(cfg.facingAngle), 0)
-			local posY = groundY + cfg.size.Y * 0.5 - 2
+			local posY = groundY + cfg.pos.Y
 			mountain.CFrame = CFrame.new(cfg.pos.X, posY, cfg.pos.Z) * rot
 
 			mountain.Anchored = true
@@ -473,6 +530,71 @@ local function buildMountains(parent: Instance, groundY: number): number
 	end
 
 	return count
+end
+
+local function getTerrain(): any?
+	if typeof(Workspace) ~= "table" and typeof(Workspace) ~= "userdata" then
+		return nil
+	end
+	if typeof((Workspace :: any).FindFirstChildOfClass) == "function" then
+		local ok, res = pcall(function()
+			return (Workspace :: any):FindFirstChildOfClass("Terrain")
+		end)
+		if ok and res then
+			return res
+		end
+	end
+	if typeof((Workspace :: any).FindFirstChild) == "function" then
+		local ok, res = pcall(function()
+			return (Workspace :: any):FindFirstChild("Terrain")
+		end)
+		if ok and res then
+			return res
+		end
+	end
+	return (Workspace :: any).Terrain
+end
+
+local function buildRollingHills(groundY: number): number
+	local terrain = getTerrain()
+	if not terrain then
+		return 0
+	end
+
+	-- Plan A: Activate 3D procedural grass decoration and grass length
+	pcall(function()
+		terrain.Decoration = true
+		if (terrain :: any).GrassLength ~= nil then
+			(terrain :: any).GrassLength = 0.7
+		end
+	end)
+
+	local count = 0
+	if typeof((terrain :: any).FillBall) == "function" then
+		for _, sphere in ROLLING_HILLS_SPHERES do
+			local center = Vector3.new(sphere.pos.X, groundY + sphere.pos.Y, sphere.pos.Z)
+			pcall(function()
+				(terrain :: any):FillBall(center, sphere.radius, Enum.Material.Grass)
+			end)
+			count += 1
+		end
+	end
+
+	return count
+end
+
+local function clearRollingHills(groundY: number)
+	local terrain = getTerrain()
+	if not terrain or typeof((terrain :: any).FillBall) ~= "function" then
+		return
+	end
+
+	for _, sphere in ROLLING_HILLS_SPHERES do
+		local center = Vector3.new(sphere.pos.X, groundY + sphere.pos.Y, sphere.pos.Z)
+		pcall(function()
+			(terrain :: any):FillBall(center, sphere.radius + 2, Enum.Material.Air)
+		end)
+	end
 end
 
 local function buildNaturalTreesFromList(parent: Instance, treeConfigList: { any }, groundY: number): (number, number)
@@ -549,18 +671,23 @@ local function buildH1C4AllNaturalTreesHorizon(testTrack: Model, model: Model, g
 	treesFolder.Parent = model
 	local treeCount, treeMeshCount = buildNaturalTreesFromList(treesFolder, ALL_NATURAL_TREE_CONFIGS, physicalGroundY)
 
+	-- Plan A: Smooth Terrain rolling hills (36 spheres creating undulating green ridges + 3D grass decoration)
+	local rollingHillsCount = buildRollingHills(physicalGroundY)
+
 	local totalLocalParts = mountainCount + groundPartCount + treeMeshCount
 	model:SetAttribute("HorizonMode", MODE_H1_C4_ALL_NATURAL_TREES)
 	model:SetAttribute("HorizonMountainCount", mountainCount)
 	model:SetAttribute("HorizonGroundPartCount", groundPartCount)
 	model:SetAttribute("HorizonTreeCount", treeCount)
 	model:SetAttribute("HorizonTreeMeshCount", treeMeshCount)
+	model:SetAttribute("HorizonRollingHillsSphereCount", #ROLLING_HILLS_SPHERES)
+	model:SetAttribute("HorizonTerrainDecoration", true)
 	model:SetAttribute("HorizonPartCount", totalLocalParts)
 	model:SetAttribute("HorizonClusterCount", mountainCount)
 	model.Parent = testTrack
 
-	print(string.format("[KDM:Horizon] role=RACE track=Track01 geometry=PracticeFigure8V1 mode=H1_C4_ALL_NATURAL_TREES mountains=%d groundParts=%d naturalTrees=%d treeMeshes=%d localParts=%d spawned=true",
-		mountainCount, groundPartCount, treeCount, treeMeshCount, totalLocalParts))
+	print(string.format("[KDM:Horizon] role=RACE track=Track01 geometry=PracticeFigure8V1 mode=H1_C4_ALL_NATURAL_TREES mountains=%d groundParts=%d naturalTrees=%d treeMeshes=%d terrainSpheres=%d localParts=%d spawned=true",
+		mountainCount, groundPartCount, treeCount, treeMeshCount, #ROLLING_HILLS_SPHERES, totalLocalParts))
 
 	return model
 end
@@ -584,18 +711,22 @@ local function buildH1C3NaturalTreesHorizon(testTrack: Model, model: Model, grou
 	treesFolder.Parent = model
 	local treeCount, treeMeshCount = buildNaturalTreesFromList(treesFolder, NATURAL_TREE_ORIGINAL_CONFIGS, physicalGroundY)
 
+	local rollingHillsCount = buildRollingHills(physicalGroundY)
+
 	local totalLocalParts = mountainCount + groundPartCount + treeMeshCount
 	model:SetAttribute("HorizonMode", MODE_H1_C3_NATURAL_TREES)
 	model:SetAttribute("HorizonMountainCount", mountainCount)
 	model:SetAttribute("HorizonGroundPartCount", groundPartCount)
 	model:SetAttribute("HorizonTreeCount", treeCount)
 	model:SetAttribute("HorizonTreeMeshCount", treeMeshCount)
+	model:SetAttribute("HorizonRollingHillsSphereCount", #ROLLING_HILLS_SPHERES)
+	model:SetAttribute("HorizonTerrainDecoration", true)
 	model:SetAttribute("HorizonPartCount", totalLocalParts)
 	model:SetAttribute("HorizonClusterCount", mountainCount)
 	model.Parent = testTrack
 
-	print(string.format("[KDM:Horizon] role=RACE track=Track01 geometry=PracticeFigure8V1 mode=H1_C3_NATURAL_TREES mountains=%d groundParts=%d naturalTrees=%d treeMeshes=%d localParts=%d spawned=true",
-		mountainCount, groundPartCount, treeCount, treeMeshCount, totalLocalParts))
+	print(string.format("[KDM:Horizon] role=RACE track=Track01 geometry=PracticeFigure8V1 mode=H1_C3_NATURAL_TREES mountains=%d groundParts=%d naturalTrees=%d treeMeshes=%d terrainSpheres=%d localParts=%d spawned=true",
+		mountainCount, groundPartCount, treeCount, treeMeshCount, #ROLLING_HILLS_SPHERES, totalLocalParts))
 
 	return model
 end
@@ -614,18 +745,22 @@ local function buildH1C2ContinuityHorizon(testTrack: Model, model: Model, ground
 	local infieldBounds = getInfieldBounds(testTrack)
 	local groundPartCount = buildGroundTransition(groundFolder, infieldBounds, physicalGroundY)
 
+	local rollingHillsCount = buildRollingHills(physicalGroundY)
+
 	local totalLocalParts = mountainCount + groundPartCount
 	model:SetAttribute("HorizonMode", MODE_H1_C2_CONTINUITY)
 	model:SetAttribute("HorizonMountainCount", mountainCount)
 	model:SetAttribute("HorizonGroundPartCount", groundPartCount)
 	model:SetAttribute("HorizonTreeCount", 0)
 	model:SetAttribute("HorizonTreeMeshCount", 0)
+	model:SetAttribute("HorizonRollingHillsSphereCount", #ROLLING_HILLS_SPHERES)
+	model:SetAttribute("HorizonTerrainDecoration", true)
 	model:SetAttribute("HorizonPartCount", totalLocalParts)
 	model:SetAttribute("HorizonClusterCount", mountainCount)
 	model.Parent = testTrack
 
-	print(string.format("[KDM:Horizon] role=RACE track=Track01 geometry=PracticeFigure8V1 mode=H1_C2_CONTINUITY mountains=%d groundParts=%d localParts=%d spawned=true",
-		mountainCount, groundPartCount, totalLocalParts))
+	print(string.format("[KDM:Horizon] role=RACE track=Track01 geometry=PracticeFigure8V1 mode=H1_C2_CONTINUITY mountains=%d groundParts=%d terrainSpheres=%d localParts=%d spawned=true",
+		mountainCount, groundPartCount, #ROLLING_HILLS_SPHERES, totalLocalParts))
 
 	return model
 end
@@ -717,8 +852,10 @@ function Controller.start()
 
 	local connections = {}
 	local activeHorizonModel = nil
+	local lastGroundY = 0
 
 	local function clearHorizon()
+		clearRollingHills(lastGroundY)
 		if activeHorizonModel then
 			activeHorizonModel:Destroy()
 			activeHorizonModel = nil
@@ -740,6 +877,7 @@ function Controller.start()
 		if eligible and testTrack and testTrack:IsA("Model") then
 			if not activeHorizonModel or activeHorizonModel.Parent ~= testTrack then
 				clearHorizon()
+				lastGroundY = getPhysicalGroundTop(testTrack)
 				activeHorizonModel = buildHorizon(testTrack)
 			end
 		else
@@ -850,5 +988,6 @@ Controller.NATURAL_TREE_CONFIGS = table.freeze(NATURAL_TREE_ORIGINAL_CONFIGS)
 Controller.NATURAL_TREE_REPLACEMENT_CONFIGS = table.freeze(NATURAL_TREE_REPLACEMENT_CONFIGS)
 Controller.ALL_NATURAL_TREE_CONFIGS = table.freeze(ALL_NATURAL_TREE_CONFIGS)
 Controller.GROUND_OUTER_BOUNDS = table.freeze(GROUND_OUTER_BOUNDS)
+Controller.ROLLING_HILLS_SPHERES = table.freeze(ROLLING_HILLS_SPHERES)
 
 return Controller

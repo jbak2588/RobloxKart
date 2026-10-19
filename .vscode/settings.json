@@ -1,3 +1,15 @@
 {
-    "markdown.validate.enabled": true
+    "markdown.validate.enabled": true,
+    "luau-lsp.require.fileAliases": {
+        "@lune/datetime": "~/.lune/.typedefs/0.10.5/datetime.luau",
+        "@lune/fs": "~/.lune/.typedefs/0.10.5/fs.luau",
+        "@lune/luau": "~/.lune/.typedefs/0.10.5/luau.luau",
+        "@lune/net": "~/.lune/.typedefs/0.10.5/net.luau",
+        "@lune/process": "~/.lune/.typedefs/0.10.5/process.luau",
+        "@lune/regex": "~/.lune/.typedefs/0.10.5/regex.luau",
+        "@lune/roblox": "~/.lune/.typedefs/0.10.5/roblox.luau",
+        "@lune/serde": "~/.lune/.typedefs/0.10.5/serde.luau",
+        "@lune/stdio": "~/.lune/.typedefs/0.10.5/stdio.luau",
+        "@lune/task": "~/.lune/.typedefs/0.10.5/task.luau"
+    }
 }

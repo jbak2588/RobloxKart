@@ -609,5 +609,53 @@ check(initClientSource:find('require(script:WaitForChild("TrackHorizonController
 check(initClientSource:find('if role == "RACE" then TrackHorizonController.start() end', 1, true) ~= nil, "init.client strictly starts TrackHorizonController only when role == 'RACE'")
 check(initClientSource:find('if role == "HUB" then TrackHorizonController.start() end', 1, true) == nil, "init.client NEVER starts TrackHorizonController in HUB")
 
-print("PASS: " .. checks .. " TrackHorizonController H1-C4 full 16 natural trees + H1-C3 + H1-C2 + H1-C1 + H1-B modes verified")
+-- 15. Plan A: Smooth Terrain Rolling Green Hills & Submerged Pointy Mountain Verification
+workspace:SetAttribute("KDMServerRole", "RACE")
+local worldPlanA = builder.build(prototypeFolder, track01, 0)
+horizonController.start()
+local planAModel = worldPlanA:FindFirstChild("ClientHorizonEnvironment")
+check(planAModel ~= nil, "ClientHorizonEnvironment spawned for Plan A validation")
+check(planAModel:GetAttribute("HorizonRollingHillsSphereCount") == 36, "HorizonRollingHillsSphereCount is exactly 36")
+check(planAModel:GetAttribute("HorizonTerrainDecoration") == true, "HorizonTerrainDecoration is true")
+
+-- Verify pointy mountain meshes are completely removed from screen (submerged underground & transparent)
+local planAMountains = planAModel:FindFirstChild("Mountains")
+check(planAMountains ~= nil, "Mountains folder present")
+for _, mtn in planAMountains:GetChildren() do
+	check(mtn.Transparency == 1, "pointy mountain mesh is 100% transparent: " .. mtn.Name)
+	check(mtn.CFrame.Position.Y < 0, "pointy mountain mesh is submerged underground: " .. mtn.Name)
+	check(mtn.Size.X <= 0.2 and mtn.Size.Y <= 0.2 and mtn.Size.Z <= 0.2, "pointy mountain mesh size is negligible: " .. mtn.Name)
+end
+
+-- Verify all 36 spheres in Controller.ROLLING_HILLS_SPHERES
+local spheres = horizonController.ROLLING_HILLS_SPHERES
+check(spheres ~= nil, "ROLLING_HILLS_SPHERES exported")
+check(#spheres == 36, "ROLLING_HILLS_SPHERES has exactly 36 spheres")
+
+for i, s in spheres do
+	local topY = s.pos.Y + s.radius
+	check(topY >= 15 and topY <= 40, string.format("Sphere %d top Y (%f) is in gentle rolling hill elevation 15..40", i, topY))
+
+	-- Verify minimum safety clearance from track road samples (>= 50 studs)
+	local baseRadius = if s.radius > math.abs(s.pos.Y) then math.sqrt(s.radius * s.radius - s.pos.Y * s.pos.Y) else 0
+	local spherePos2D = rb.Vector2.new(s.pos.X, s.pos.Z)
+	local minSampleDist = math.huge
+	for _, sample in samples do
+		local sampPos2D = rb.Vector2.new(sample.X, sample.Z)
+		local d = (spherePos2D - sampPos2D).Magnitude - (baseRadius + halfRoad)
+		if d < minSampleDist then
+			minSampleDist = d
+		end
+	end
+	check(minSampleDist >= 50, string.format("Sphere %d clearance (%f) is >= 50 studs from track road", i, minSampleDist))
+end
+
+-- Verify default.project.json configuration for Terrain Decoration
+local projJson = fs.readFile("default.project.json")
+check(projJson:find('"Decoration": true', 1, true) ~= nil, "default.project.json has Terrain.Decoration = true")
+check(projJson:find('"GrassLength": 0.7', 1, true) ~= nil, "default.project.json has Terrain.GrassLength = 0.7")
+
+horizonController.destroy()
+
+print("PASS: " .. checks .. " TrackHorizonController H1-C4 full 16 natural trees + Plan A Smooth Terrain rolling hills + H1-C3 + H1-C2 + H1-C1 + H1-B modes verified")
 ]====])()

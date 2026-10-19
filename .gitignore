@@ -2,6 +2,7 @@
 RobloxKart.rbxlx
 RobloxKart.rbxlx.lock
 *.test.rbxlx
+*.rbxl
 
 # Generated Rojo artifacts
 sourcemap.json
