@@ -156,7 +156,16 @@ function Monitor.receive(row)
    local began=os.clock()
    if mode=='DETAIL' then warn('[KDMPerfPairClient] '..HttpService:JSONEncode(row)) end
    Monitor.metric('pairCallback',(os.clock()-began)*1000)
-  else latest=row end
+  else
+   latest=row
+   if player:GetAttribute('RaceState')=='RACING' and row.round==(player:GetAttribute('OfficialRoundGuid') or player:GetAttribute('RaceSessionId')) then
+    if type(row.dt)=='number' then Monitor.metric('serverFrame',row.dt*1000) end
+    if type(row.ms)=='number' then Monitor.metric('serverKartStep',row.ms) end
+    if type(row.raceLoopMs)=='number' then Monitor.metric('serverRaceLoop',row.raceLoopMs) end
+    if type(row.inputAge)=='number' then Monitor.metric('serverInputAge',row.inputAge*1000) end
+    if type(row.t)=='number' then Monitor.metric('snapshotAge',math.max(0,workspace:GetServerTimeNow()-row.t)*1000) end
+   end
+  end
  end
 end
 if enabled then
@@ -327,17 +336,17 @@ if enabled and workspace:GetAttribute('KDMPerfCanaryUI')==true and RunService.He
    summaryLabel.TextColor3=Color3.new(1,1,1);summaryLabel.TextSize=12;summaryLabel.TextWrapped=true
    summaryLabel.Text='Canary A/B: choose a mode before each race.';summaryLabel.Parent=summaryScroll
   end
-  controls.Enabled=state=='WAITING' or state=='FINISHED' or state=='PRE_RACE'
+  controls.Enabled=state=='WAITING' or state=='FINISHED' or state=='DNF' or state=='PRE_RACE'
   -- Staging needs only the mode buttons; keep invite/Bot/item controls clear.
   -- The full measured summary remains available on the result screen.
-  local showSummary=state=='FINISHED'
+  local showSummary=state=='FINISHED' or state=='DNF'
   summaryScroll.Visible=showSummary
   local panelHeight=if showSummary then math.min(230,math.max(90,controls.AbsoluteSize.Y-42)) else 36
   if panel.Size.Y.Offset~=panelHeight then panel.Size=UDim2.fromOffset(320,panelHeight) end
   if lastState=='RACING' and state~='RACING' and frames>0 then
    local result=Monitor.summary();result.round=player:GetAttribute('OfficialRoundGuid')
-   local lines={mode..' / '..Monitor.gaugeMode()..' | >33ms '..over33..' >50ms '..over50..' gaps '..gaps..' / '..frames}
-   for _,name in {'frameInterval','callbackTotal','hudEvent','eventCollect','eventResults','eventLayout','botResults','minimap','gauge','otherHud','diagnostics'} do
+   local lines={'KDM PERF | '..player.Name..' | v'..tostring(game.PlaceVersion),mode..' / '..Monitor.gaugeMode()..' | >33ms '..over33..' >50ms '..over50..' gaps '..gaps..' / '..frames}
+   for _,name in {'frameInterval','serverFrame','serverKartStep','serverRaceLoop','serverInputAge','snapshotAge','callbackTotal','hudEvent','eventCollect','eventResults','eventLayout','botResults','minimap','gauge','otherHud','diagnostics'} do
     local m=result.sections[name]
     if m then table.insert(lines,string.format('%s p50/p95/max %.2f/%.2f/%.2fms',name,m.p50,m.p95,m.max)) end
    end

@@ -7,8 +7,15 @@ function RaceRouteProgress.new(course, roadWidth: number)
 end
 
 local function project(samples, position: Vector3, previous, length, limit, corridor)
-	local bestDistance, fraction, bestDelta = math.huge, nil, math.huge
-	for index, point in samples do
+	local bestDistance, fraction, bestDelta, bestIndex = math.huge, nil, math.huge, math.huge
+	local count=#samples
+	local radius=if previous then math.ceil(limit*count/length)+2 else count
+	local bounded=previous~=nil and radius*2+1<count
+	local first,last=if bounded then -radius else 0,if bounded then radius else count-1
+	local center=if bounded then math.floor(previous*count) else 0
+	for offset=first,last do
+		local index=(center+offset)%count+1
+		local point=samples[index]
 		local edge = samples[index % #samples + 1] - point
 		local edgeLengthSquared = edge:Dot(edge)
 		if edgeLengthSquared > 0 then
@@ -20,8 +27,8 @@ local function project(samples, position: Vector3, previous, length, limit, corr
 			if previous == nil or delta * length <= limit then
 				local distance = (offset - edge * alpha).Magnitude
 				if (previous == nil or distance <= corridor)
-					and (distance < bestDistance or (distance == bestDistance and delta < bestDelta)) then
-					bestDistance, fraction, bestDelta = distance, candidate, delta
+					and (distance < bestDistance or (distance == bestDistance and (delta < bestDelta or (delta == bestDelta and index < bestIndex)))) then
+					bestDistance, fraction, bestDelta, bestIndex = distance, candidate, delta, index
 				end
 			end
 		end

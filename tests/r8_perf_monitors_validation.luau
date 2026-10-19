@@ -30,6 +30,7 @@ function kart:FindFirstChild(name)return if name=='Seat' then {Occupant={}} else
 function kart:FindFirstChildWhichIsA()return nil end
 local c={owner=player,chassis={AssemblyLinearVelocity=rb.Vector3.new(70,0,0),Position=rb.Vector3.zero,GetNetworkOwner=function()return nil end},seat={Occupant={}},kart=kart,
  commandedSpeed=70,control={lastUpdate=0,throttle=1,steering=0},slick={active=false}}
+server.route(.016,.3,1)
 server.observe(c,.016,.2);check(memoryCalls==0 and #logs==0,'normal frames avoid memory probes and logs')
 now=4;c.chassis.AssemblyLinearVelocity=rb.Vector3.zero
 server.observe(c,4,.2)
@@ -43,6 +44,8 @@ c.owner=oldOwner;c.botParticipant=nil;c.chassis.Parent=kart
 local client=luau.load(fs.readFile('src/client/RacePerformanceMonitor.luau'),{environment=env})();client.configure('LIGHT')
 -- Production now receives server measurements through the snapshot transport.
 client.receive(latestServerSnapshot)
+local sections=client.summary().sections
+check(sections.serverFrame and sections.serverKartStep and sections.serverRaceLoop and sections.serverInputAge and sections.snapshotAge,'published summary includes correlated server measurements')
 client.observe(c.chassis,70,.016,.1);client.observe(c.chassis,70,.016,.1)
 now=6;client.observe(c.chassis,0,4,.1)
 check(encoded.event=='ZERO_SPEED' and encoded.sample.auto==true,'client AUTO and zero observation')

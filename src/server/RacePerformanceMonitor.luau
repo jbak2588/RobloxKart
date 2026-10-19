@@ -98,6 +98,7 @@ function Monitor.observe(context,dt,stepMs,before)
   speed=speed,preSpeed=preSpeed,preVertical=pre.Y,vertical=velocity.Y,command=context.commandedSpeed,
   inputAge=age,inputTimeout=age==nil or age>Config.INPUT_TIMEOUT,throttle=control and control.throttle,
   steering=control and control.steering,seat=context.seat.Occupant~=nil,
+  raceLoopMs=Monitor.lastRouteMs,
   ownerSeated=context.botParticipant~=nil and context.seat.Occupant~=nil or
    (context.seat.Occupant~=nil and owner.Character~=nil and context.seat.Occupant.Parent==owner.Character),
   networkOwner=networkOwner and networkOwner.UserId or 'SERVER',reset=context.kart:GetAttribute('RaceResetSerial'),
@@ -122,6 +123,7 @@ function Monitor.observe(context,dt,stepMs,before)
  end
 end
 function Monitor.route(dt,ms,count)
+ Monitor.lastRouteMs=ms
  local now=os.clock()
  if ms>=8 or now-(Monitor.lastRoute or -math.huge)>=.1 then
   Monitor.lastRoute=now;Monitor.buffer:push({t=workspace:GetServerTimeNow(),kind='RACE_LOOP',dt=dt,ms=ms,racers=count})

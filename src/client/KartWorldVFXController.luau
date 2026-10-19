@@ -12,6 +12,7 @@ function Controller.start()
  if stop then return end
  local prototype=Workspace:WaitForChild("Prototype")
  local records,connections={},{}
+ local candidates={}
  local paused=false
  local function clear(r)
   if r.shield then r.shield:destroy();r.shield=nil end
@@ -29,11 +30,27 @@ function Controller.start()
    records[k]={blocked=0}
   end
  end
+ local function watchNode(k)
+  if not k:IsA("Model") then return end
+  bind(k)
+  -- Track only potential kart roots, including attributes arriving after parenting.
+  if records[k] or candidates[k] or not k.Parent then return end
+  if k.Parent~=prototype and k.Parent.Name~="LobbyFrontTestDriveZone" then return end
+  local list={};candidates[k]=list
+  for _,name in {"PrototypeKart","LobbyKart"} do
+   table.insert(list,k:GetAttributeChangedSignal(name):Connect(function() bind(k) end))
+  end
+ end
+ local function unwatchNode(k)
+  remove(k)
+  for _,c in candidates[k] or {} do c:Disconnect() end
+  candidates[k]=nil
+ end
  local function watchContainer(container)
   if not container then return end
-  for _,o in container:GetDescendants() do bind(o) end
-  table.insert(connections,container.DescendantAdded:Connect(bind))
-  table.insert(connections,container.DescendantRemoving:Connect(function(o) if records[o] then remove(o) end end))
+  for _,o in container:GetDescendants() do watchNode(o) end
+  table.insert(connections,container.DescendantAdded:Connect(watchNode))
+  table.insert(connections,container.DescendantRemoving:Connect(unwatchNode))
  end
  watchContainer(prototype)
  local hub=Workspace:FindFirstChild("KDMHub")
@@ -44,26 +61,7 @@ function Controller.start()
    if child.Name=="KDMHub" then watchContainer(child) end
   end))
  end
- local scan=0
- local cachedDriveZone = nil
  table.insert(connections,RunService.Heartbeat:Connect(function(dt)
-  scan+=dt
-  -- Model attributes/visual metadata may arrive after DescendantAdded.
-  if scan>=.25 then
-   scan=0
-   for _,o in prototype:GetChildren() do bind(o) end
-   local h=Workspace:FindFirstChild("KDMHub")
-   if h then
-    if not cachedDriveZone or cachedDriveZone.Parent == nil then
-     cachedDriveZone = h:FindFirstChild("LobbyFrontTestDriveZone") or h:FindFirstChild("LobbyFrontTestDriveZone", true)
-    end
-    if cachedDriveZone then
-     for _,o in cachedDriveZone:GetChildren() do bind(o) end
-    end
-   else
-    cachedDriveZone = nil
-   end
-  end
   for kart,r in records do
    if not kart.Parent then remove(kart);continue end
    if paused then clear(r);continue end
@@ -113,6 +111,7 @@ function Controller.start()
  end))
  stop=function()
   for k in records do remove(k) end
+  for k in candidates do unwatchNode(k) end
   for _,c in connections do c:Disconnect() end
   stop=nil
  end

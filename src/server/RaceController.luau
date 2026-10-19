@@ -87,27 +87,48 @@ local function isInsideGate(gate: BasePart, worldPosition: Vector3): boolean
 		and math.abs(localPosition.Z) <= halfSize.Z
 end
 
+-- Static track roads share a spatial index. Sloped pieces retain the original
+-- unbounded-local-Y semantics through the fallback list.
+local roadIndexes = setmetatable({}, {__mode="k"})
+local ROAD_CELL = 64
+local function roadIndex(parts)
+ local cached=roadIndexes[parts];if cached then return cached end
+ local cells,fallback={},{}
+ for index,part in parts do
+  local frame,half=part.CFrame,part.Size*.5
+  if math.abs(frame.RightVector.Y)>.0001 or math.abs(frame.LookVector.Y)>.0001 then
+   table.insert(fallback,index)
+  else
+   local x,z=half.X+RaceConfig.ROAD_CORRIDOR_MARGIN,half.Z+RaceConfig.ROAD_CORRIDOR_MARGIN
+   local ex=math.abs(frame.RightVector.X)*x+math.abs(frame.LookVector.X)*z
+   local ez=math.abs(frame.RightVector.Z)*x+math.abs(frame.LookVector.Z)*z
+   for cx=math.floor((part.Position.X-ex)/ROAD_CELL),math.floor((part.Position.X+ex)/ROAD_CELL) do
+    for cz=math.floor((part.Position.Z-ez)/ROAD_CELL),math.floor((part.Position.Z+ez)/ROAD_CELL) do
+     local key=cx..":"..cz;local bucket=cells[key]
+     if not bucket then bucket={};cells[key]=bucket end
+     table.insert(bucket,index)
+    end
+   end
+  end
+ end
+ cached={cells=cells,fallback=fallback};roadIndexes[parts]=cached;return cached
+end
 local function isInsideRoadCorridor(roadParts: { BasePart }, worldPosition: Vector3, lastIndexHint: number?): (boolean, number?)
-	if lastIndexHint and roadParts[lastIndexHint] then
-		local roadPart = roadParts[lastIndexHint]
-		local localPosition = roadPart.CFrame:PointToObjectSpace(worldPosition)
-		local halfSize = roadPart.Size * 0.5
-		if math.abs(localPosition.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
-			and math.abs(localPosition.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
-		then
-			return true, lastIndexHint
-		end
-	end
-	for index, roadPart in roadParts do
-		local localPosition = roadPart.CFrame:PointToObjectSpace(worldPosition)
-		local halfSize = roadPart.Size * 0.5
-		if math.abs(localPosition.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
-			and math.abs(localPosition.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
-		then
-			return true, index
-		end
-	end
-	return false, nil
+ local function inside(index)
+  local part=roadParts[index];if not part then return false end
+  local p=part.CFrame:PointToObjectSpace(worldPosition);local half=part.Size*.5
+  return math.abs(p.X)<=half.X+RaceConfig.ROAD_CORRIDOR_MARGIN
+   and math.abs(p.Z)<=half.Z+RaceConfig.ROAD_CORRIDOR_MARGIN
+ end
+ if lastIndexHint and inside(lastIndexHint) then return true,lastIndexHint end
+ local index=roadIndex(roadParts)
+ local candidates=index.cells[math.floor(worldPosition.X/ROAD_CELL)..":"..math.floor(worldPosition.Z/ROAD_CELL)]
+ local found=nil
+ for _,i in candidates or {} do if i~=lastIndexHint and inside(i) then found=i;break end end
+ for _,i in index.fallback do
+  if (not found or i<found) and i~=lastIndexHint and inside(i) then found=i;break end
+ end
+ return found~=nil,found
 end
 
 local function isMovingThroughGate(chassis: BasePart, gate: BasePart): boolean
@@ -261,6 +282,7 @@ function RaceController.start(options)
 		routeRoadWidth = definition.RoadWidth
 		checkpointCount = newCheckpointCount
 		roadParts = newRoadParts
+		roadIndex(roadParts) -- Build once at track binding, never during a driving frame.
 		finishRoadWidth = definition.RoadWidth
 		gates = newGates
 		checkpoints = newCheckpoints
@@ -562,6 +584,11 @@ function RaceController.start(options)
 
 			local completedLaps = (player:GetAttribute("RaceCompletedLaps") :: number?) or 0
 			completedLaps += 1
+			if racer.lastProgressRecordAt ~= now then
+				record("progress", player, now, Vector3.new(chassis.Position.X,0,chassis.Position.Z),
+					if racer.routeProgress then racer.routeProgress.previous else nil, player:GetAttribute("RaceNextCheckpoint"))
+			end
+			racer.progressRecordElapsed, racer.lastProgressRecordAt = 0, now
 			record("checkpoints", player, player:GetAttribute("RaceNextCheckpoint"))
 			record("lap", player, now, lapTime)
 			local bestLap = (player:GetAttribute("RaceBestLapTime") :: number?) or 0
@@ -629,6 +656,7 @@ function RaceController.start(options)
 			local sampleElapsed = racer.offTrackSampleElapsed
 			racer.offTrackSampleElapsed = 0
 			local inside, hitIndex = isInsideRoadCorridor(roadParts, chassis.Position, racer.lastRoadIndex)
+			racer.roadSamplePosition, racer.roadSampleInside = chassis.Position, inside
 			if inside then
 				racer.lastRoadIndex = hitIndex
 				if racer.offTrackElapsed > 0 then
@@ -721,24 +749,13 @@ function RaceController.start(options)
 			end
 
 			local onRoadAtGate
-			if racer.lastRoadIndex and roadParts[racer.lastRoadIndex] then
-				local roadPart = roadParts[racer.lastRoadIndex]
-				local localPos = roadPart.CFrame:PointToObjectSpace(chassis.Position)
-				local halfSize = roadPart.Size * 0.5
-				if math.abs(localPos.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
-					and math.abs(localPos.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
-				then
-					onRoadAtGate = true
-				end
-			end
-			if onRoadAtGate == nil then
+			if racer.roadSamplePosition == chassis.Position then
+				onRoadAtGate = racer.roadSampleInside
+			else
 				local inside, hitIdx = isInsideRoadCorridor(roadParts, chassis.Position, racer.lastRoadIndex)
 				onRoadAtGate = inside
-				if inside then
-					racer.lastRoadIndex = hitIdx
-				else
-					racer.lastRoadIndex = nil
-				end
+				racer.lastRoadIndex = hitIdx
+				racer.roadSamplePosition, racer.roadSampleInside = chassis.Position, inside
 			end
 
 			if racer.routeProgress then
@@ -766,6 +783,7 @@ function RaceController.start(options)
 			racer.progressRecordElapsed = (racer.progressRecordElapsed or 0) + deltaTime
 			if racer.progressRecordElapsed >= 0.2 then
 				racer.progressRecordElapsed = 0
+				racer.lastProgressRecordAt = now
 				record("progress", player, now, Vector3.new(chassis.Position.X, 0, chassis.Position.Z),
 					if racer.routeProgress then racer.routeProgress.previous else nil,
 					player:GetAttribute("RaceNextCheckpoint"))

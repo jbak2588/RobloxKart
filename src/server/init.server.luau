@@ -3,6 +3,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+-- Client and server probes remain restricted by KDMPerformanceBuffer.allowed.
+-- Ordinary players never receive the diagnostic UI or performance snapshots.
+Workspace:SetAttribute("KDMPerfInternalEnabled", true)
+Workspace:SetAttribute("KDMPerfCanaryUI", true)
+
 local ServerRuntime = require(script:WaitForChild("ServerRuntime"))
 local RaceLaunchService = require(script:WaitForChild("RaceLaunchService"))
 local PrototypeWorld = require(script:WaitForChild("PrototypeWorld"))

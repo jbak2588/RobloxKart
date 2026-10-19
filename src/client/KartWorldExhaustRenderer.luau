@@ -206,7 +206,19 @@ function Renderer.new(kart)
  local attachments, smokes, trails, flames, cruiseFlames = {}, {}, {}, {}, {}
  local lights={}
  local contacts={}
- local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude;params.FilterDescendantsInstances={kart}
+ local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Include
+ local surfaceRoot=nil
+ local function updateSurfaceFilter()
+  if surfaceRoot and surfaceRoot.Parent then return true end
+  local parent=kart.Parent
+  if isLobby then surfaceRoot=parent and parent:FindFirstChild("LobbyFrontSmoothFloor")
+  else
+   local track=parent and parent:FindFirstChild("TestTrack")
+   surfaceRoot=track and track:FindFirstChild("Road")
+  end
+  params.FilterDescendantsInstances=if surfaceRoot then {surfaceRoot} else {}
+  return surfaceRoot~=nil
+ end
  for _, wheel in visual:GetDescendants() do
   if wheel:IsA("BasePart") and wheel:GetAttribute("VisualMotionRole") == "RearWheel" then
    local motor, radius, width = wheel:FindFirstChild("VisualMotor"), wheel:GetAttribute("WheelRadius"), wheel:GetAttribute("WheelWidth")
@@ -253,13 +265,15 @@ function Renderer.new(kart)
  local lightStyles={};for _,l in lights do lightStyles[l]={brightness=l.Brightness,range=l.Range}end
  local cruiseElapsed=0
  local groundElapsed=0
+ local farElapsed=0
+ local wasCulled=false
  local grounded={false,false}
 
  local function checkIsLocalKart(): boolean
   local lp = _Players.LocalPlayer
   if not lp then return false end
   if kart:GetAttribute("LocalKart") == true then return true end
-  if kart:GetAttribute("OwnerUserId") == lp.UserId then return true end
+  if (kart:GetAttribute("KartOwnerUserId") or kart:GetAttribute("LobbyOwnerUserId")) == lp.UserId then return true end
   local char = lp.Character
   if char then
    local hum = if typeof(char.FindFirstChildOfClass) == "function" then char:FindFirstChildOfClass("Humanoid") else char:FindFirstChild("Humanoid")
@@ -270,6 +284,23 @@ function Renderer.new(kart)
  end
 
  function record:update(dt,enabled)
+  local camera=Workspace.CurrentCamera
+  local distance=if camera then (camera.CFrame.Position-chassis.Position).Magnitude else 0
+  local isLocal=checkIsLocalKart()
+  if not isLocal and distance>160 then
+   if not wasCulled then
+    for _,list in {flames,smokes,cruiseFlames} do for _,effect in list do effect.Enabled=false;effect:Clear() end end
+    for _,trail in trails do trail.Enabled=false;trail:Clear() end
+    for _,light in lights do light.Enabled=false end
+    grounded={false,false};groundElapsed=0;wasCulled=true
+   end
+   return
+  end
+  if wasCulled then wasCulled=false;previousNitro,previousBoost,previousDrift=nil,nil,nil end
+  if not isLocal and distance>90 then
+   farElapsed+=dt;if farElapsed<.12 then return end
+   dt=farElapsed;farElapsed=0
+  else farElapsed=0 end
   local off=kart:GetAttribute("KartOffTrack")==true
   local nitro=enabled and not off and kart:GetAttribute("KartNitroActive")==true
   local boost=enabled and kart:GetAttribute("KartBoosting")==true
@@ -302,8 +333,6 @@ function Renderer.new(kart)
    cruiseElapsed+=dt
    if cruiseElapsed>=CRUISE_FLAME_INTERVAL then cruiseElapsed%=CRUISE_FLAME_INTERVAL;for _,f in cruiseFlames do f:Emit(5) end end
   else cruiseElapsed=0 end
-  local camera=Workspace.CurrentCamera
-  local distance=if camera then (camera.CFrame.Position-chassis.Position).Magnitude else 0
   local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
   for _,f in flames do
    -- Full original template profile for Nitro; Mini Boost uses 70% density.
@@ -322,13 +351,12 @@ function Renderer.new(kart)
   local rate = Renderer.driftSmokeRate(slip,isLobby,lod,drift)
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
-  local isLocal = checkIsLocalKart()
   local raycastInterval = if (not isLocal and distance > 90) then 0.12 else 0.04
   if drift and slip>=5 and groundElapsed>=raycastInterval then
    groundElapsed=0
    for i,contact in contacts do
     local origin=chassis.CFrame:PointToWorldSpace(contact.position)+Vector3.yAxis*2
-    local hit=Workspace:Raycast(origin,-Vector3.yAxis*6,params)
+    local hit=if updateSurfaceFilter() then Workspace:Raycast(origin,-Vector3.yAxis*6,params) else nil
     grounded[i]=hit~=nil and hit.Normal.Y>.55
     if grounded[i] then
      local surface=hit.Position+hit.Normal*.04

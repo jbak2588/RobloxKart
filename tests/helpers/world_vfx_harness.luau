@@ -9,7 +9,16 @@ local methods={}
 local function object(class)
  local props={ClassName=class,Name=class,Destroying=signal(),DescendantAdded=signal(),DescendantRemoving=signal()}
  return setmetatable({props=props,children={},signals={},attrs={}}, {__index=function(self,k)return methods[k] or props[k] end,
- __newindex=function(self,k,v)if k=="Parent" then if props.Parent then local i=table.find(props.Parent.children,self);if i then table.remove(props.Parent.children,i) end end;if v then table.insert(v.children,self) end end;props[k]=v end})
+ __newindex=function(self,k,v)
+  if k=="Parent" and props.Parent~=v then
+   local ancestor=props.Parent
+   while ancestor do ancestor.DescendantRemoving:Fire(self);ancestor=ancestor.Parent end
+   if props.Parent then local i=table.find(props.Parent.children,self);if i then table.remove(props.Parent.children,i) end end
+   props[k]=v
+   if v then table.insert(v.children,self) end
+   ancestor=v;while ancestor do ancestor.DescendantAdded:Fire(self);ancestor=ancestor.Parent end
+  else props[k]=v end
+ end})
 end
 function methods:IsA(c)return self.ClassName==c or c=="BasePart" and self.ClassName=="Part" end
 function methods:GetAttribute(k)return self.attrs[k] end
@@ -40,6 +49,7 @@ end
 return function(racers,rounds,exercise)
  local workspace=object("Workspace")
  function workspace:Raycast(origin,_direction,_params)
+  self.rayCount=(self.rayCount or 0)+1;self.lastRayParams=_params
   if self.noGround then return nil end
   return {Position=rb.Vector3.new(origin.X,0,origin.Z),Normal=rb.Vector3.yAxis,
    Instance={FindFirstAncestor=function(_,name)return if name=='Road' then {} else nil end}}

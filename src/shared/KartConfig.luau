@@ -86,7 +86,7 @@ local KartConfig = {
 	INPUT_SEND_INTERVAL = 0.1,
 	INPUT_TIMEOUT = 0.5,
 	REMOTE_EVENT_NAME = "KartControl",
-	DEBUG_TELEMETRY = true,
+	DEBUG_TELEMETRY = false,
 	DEBUG_DRIFT_HUD = false,
 	DEBUG_LOG_INTERVAL = 0.5,
 }

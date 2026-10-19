@@ -241,8 +241,8 @@ check(session.phase=="EMPTY","three-racer cleanup leaves no session")
 ready(a);ready(b);ready(c)
 check(session.phase=="WAITING" and session:count()==3,"fourth racer has not joined yet")
 ready(d)
-check(session.phase=="WAITING" and not d:GetAttribute("RaceItemsReady"),"fourth admission waits for item preparation")
-tick(raceConfig.ITEM_PREP_SECONDS)
+check(session.phase=="COUNTDOWN" and d:GetAttribute("RaceItemsReady"),"fourth admission starts without item preparation")
+tick(.1)
 check(session.phase=="COUNTDOWN" and session:count()==4 and session.startingParticipantCount==4,
  "fourth READY alone triggers full-lobby countdown")
 check(a:GetAttribute("RaceSessionId")==d:GetAttribute("RaceSessionId")
@@ -303,8 +303,8 @@ check(session.phase=="COMPLETE" and b:GetAttribute("RaceFinishPosition")==1
 remote:Fire(a,"Rematch");remote:Fire(b,"Rematch");remote:Fire(c,"Rematch")
 check(session.phase=="COMPLETE","three votes do not start a full four-racer rematch")
 remote:Fire(d,"Rematch")
-check(session.phase=="WAITING" and not d:GetAttribute("RaceItemsReady"),"full Rematch opens fresh item prep")
-tick(raceConfig.ITEM_PREP_SECONDS)
+check(session.phase=="WAITING" and d:GetAttribute("RaceItemsReady"),"full Rematch has no item-preparation gate")
+tick(.1)
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==4,
  "four-of-four rematch automatically starts shared countdown")
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
@@ -336,8 +336,8 @@ ready(a)
 check(session.phase=="WAITING" and session:count()==3,
  "Garage racer rejoins sub-full rematch without auto-start")
 ready(c)
-check(session.phase=="WAITING","rejoining fourth racer receives item prep")
-tick(raceConfig.ITEM_PREP_SECONDS)
+check(session.phase=="COUNTDOWN" and c:GetAttribute("RaceItemsReady")==true,"rejoining fourth racer starts without item prep")
+tick(0.1)
 check(session.phase=="COUNTDOWN" and session:count()==4
  and session.startingParticipantCount==4,
  "fourth ready racer fills rematch lobby and auto-starts")
