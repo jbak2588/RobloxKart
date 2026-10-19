@@ -224,7 +224,7 @@ function Controller.start()
   button.AnchorPoint=Vector2.zero
   button.Position=UDim2.fromOffset(exit.x+6,exit.y+4)
   button.Size=UDim2.fromOffset(exit.width-12,44)
-  local promptsEnabled=gui.Enabled and not active and not pending and not postDrive.gui.Enabled
+  local promptsEnabled=gui.Enabled and not active and not pending
   for _,prompt in displayPrompts do
    if prompt.Parent and prompt.Enabled~=promptsEnabled then prompt.Enabled=promptsEnabled end
   end
