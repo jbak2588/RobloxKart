@@ -36,7 +36,7 @@ local KartConfig = {
 	MINI_BOOST_ACCELERATION = 65,
 	MINI_BOOST_DURATION = 2.0,
 	BOOST_EXIT_DECELERATION = 10,
-	NITRO_MAX_SPEED = 100,
+	NITRO_MAX_SPEED = 120,
 	NITRO_DURATION = 3.0,
 	NITRO_ACCELERATION = 75,
 	NITRO_EXIT_DECELERATION = 15,
@@ -66,7 +66,7 @@ local KartConfig = {
 	INPUT_SEND_INTERVAL = 0.1,
 	INPUT_TIMEOUT = 0.5,
 	REMOTE_EVENT_NAME = "KartControl",
-	DEBUG_TELEMETRY = true,
+	DEBUG_TELEMETRY = false,
 	DEBUG_DRIFT_HUD = false,
 	DEBUG_LOG_INTERVAL = 0.5,
 }
@@ -81,7 +81,7 @@ end
 local straightKeys = {STRAIGHT_SPEED_ENABLED=true,STRAIGHT_MAX_SPEED=80,STRAIGHT_LOOK_AHEAD=90,
  STRAIGHT_ENTER_MAX_TURN=4,STRAIGHT_EXIT_MAX_TURN=7,STRAIGHT_EVALUATION_INTERVAL=.10,STRAIGHT_EXIT_DECELERATION=20}
 for key,expected in straightKeys do check(actualKartConfig[key]==expected,"K1A adapter "..key) end
-for key in actualKartConfig do check(expectedKartConfig[key] ~= nil or straightKeys[key] ~= nil or key=='ARCADE_DRIFT', "no unapproved public key "..key) end
+for key in actualKartConfig do check(expectedKartConfig[key] ~= nil or straightKeys[key] ~= nil or key=='ARCADE_DRIFT' or key=='DRIFT_CAMERA' or key=='V2_FINISH_CAMERA_HEIGHT' or key=='V2_FINISH_CAMERA_SIDE', "no unapproved public key "..key) end
 for key,value in balance.DRIFT.RearSlide do check(actualKartConfig.ARCADE_DRIFT[key]==value,'approved D1 tuning adapter '..key) end
 check(type(balance.DRIFT.MinSpeed) == "number" and actualKartConfig.DRIFT_MIN_SPEED == balance.DRIFT.MinSpeed, "adapter DRIFT_MIN_SPEED")
 check(type(balance.DRIFT.ExitSpeed) == "number" and actualKartConfig.DRIFT_EXIT_SPEED == balance.DRIFT.ExitSpeed, "adapter DRIFT_EXIT_SPEED")

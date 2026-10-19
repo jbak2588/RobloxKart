@@ -30,7 +30,7 @@ local Balance = {
 	},
 	ITEMS = {
 		Nitro = {
-			MaxSpeed = 100,
+			MaxSpeed = 120,
 			Duration = 3.0,
 			Acceleration = 75,
 			ExitDeceleration = 15,

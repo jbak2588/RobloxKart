@@ -106,11 +106,11 @@ load('src/shared/KDMV2WingDefinition.luau',shared,'KDMV2WingDefinition')
 config=table.clone(config); config.DEBUG_TELEMETRY=false; modules.KartConfig=config
 local catalog=load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 for _, id in {"Nitro","Slick","Shield","Smoke"} do check(catalog[id].Id==id,"stable ID "..id) end
-check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.NITRO_ACCELERATION==75 and config.NITRO_EXIT_DECELERATION==15,"Nitro configuration")
+check(config.NITRO_MAX_SPEED==120 and config.NITRO_DURATION==3 and config.NITRO_ACCELERATION==75 and config.NITRO_EXIT_DECELERATION==15,"Nitro configuration")
 check(config.MAX_FORWARD_SPEED==70 and config.MINI_BOOST_MAX_SPEED==100
 	and config.MINI_BOOST_DURATION==2.0 and config.MINI_BOOST_ACCELERATION==65,
 	"approved Mini Boost Beta 2 tuning preserves normal speed and acceleration")
-check(config.NITRO_MAX_SPEED==100 and config.NITRO_DURATION==3 and config.OFF_TRACK_MAX_SPEED==50,
+check(config.NITRO_MAX_SPEED==120 and config.NITRO_DURATION==3 and config.OFF_TRACK_MAX_SPEED==50,
 	"Nitro identity and off-track safety remain unchanged")
 local slots=load("src/shared/RaceItemSlots.luau",shared,"RaceItemSlots")
 local loadoutType=load("src/server/RaceLoadout.luau",server,"RaceLoadout")
@@ -172,8 +172,8 @@ load("src/server/SmokeHazardService.luau",server,"SmokeHazardService")
 load("src/server/TacticalLoadoutService.luau",server,"TacticalLoadoutService")
 local overlap=Nitro.new(config)
 overlap:activate("driver",0)
-check(overlap:forwardSpeed(95,true,1,1/60)>95 and overlap:forwardSpeed(95,true,1,1/60)<100,"Mini Boost to Nitro ramp")
-check(overlap:forwardSpeed(100,true,1,1/60)==100,"no additive stacking")
+check(overlap:forwardSpeed(95,true,1,1/60)>95 and overlap:forwardSpeed(95,true,1,1/60)<120,"Mini Boost to Nitro ramp")
+check(overlap:forwardSpeed(120,true,1,1/60)==120,"no additive stacking")
 overlap:update(3,"driver",true,false,false,true)
 check(overlap:forwardSpeed(100,true,1,1/60)==100,"expired Nitro keeps equal-speed active Mini Boost")
 check(overlap:forwardSpeed(95,true,1,1/60)>95,"active Mini Boost accelerates toward 100")
@@ -277,11 +277,11 @@ check(speed>70 and speed<72,"real movement branch ramps first frame")
 for _=1,30 do speed=step(1) end
 check(math.abs(speed-100)<0.001,"100 reached")
 check(not world.activateNitro(player),"duplicate rejected")
-local activationEnd=now+(3-31/60)
+local activationEnd=now+(3-46/60)
 while now+1/60 < activationEnd-0.00001 do step(1) end
 check(kart:GetAttribute("KartNitroActive"),"active before 3 seconds")
 step(1); speed=step(1)
-check(not kart:GetAttribute("KartNitroActive") and speed>99 and speed<100,"expires and decays without snap")
+check(not kart:GetAttribute("KartNitroActive") and speed>119 and speed<120,"expires and decays without snap")
 for _=1,120 do speed=step(1) end
 check(math.abs(speed-70)<0.001,"smooth exit reaches 70 in about 2 seconds")
 check(world.activateNitro(player),"server bridge accepts valid driver")
