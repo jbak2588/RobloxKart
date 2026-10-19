@@ -159,6 +159,13 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		root.Anchored = true
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if not humanoid or humanoid.Health <= 0 then reject(player, "HUMANOID_INVALID"); return end
+		-- Server-side seat protection before admission waits or seat:Sit().
+		-- State enablement is process-local, so ReplicatedFirst also locks the client.
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+		humanoid.JumpPower = 0
+		humanoid.JumpHeight = 0
+		humanoid.AutoJumpEnabled = false
+		humanoid.Jump = false
 		if roomDirectory then
 			RaceController.prepareQuickArrival(player,admissionToken)
 			local deadline=os.clock()+10

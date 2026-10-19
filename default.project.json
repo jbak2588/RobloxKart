@@ -3,6 +3,10 @@
   "tree": {
     "$className": "DataModel",
 
+    "ReplicatedFirst": {
+      "$path": "src/replicatedFirst"
+    },
+
     "ReplicatedStorage": {
       "KDMHorizonMountainPrefabs": {
         "$path": "src/assets/KDMHorizonMountainPrefabs.rbxmx"
