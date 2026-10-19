@@ -24,6 +24,8 @@ local PracticeView=require(script.Parent:WaitForChild('LobbyPracticeView'))
 local SmokeView=require(script.Parent:WaitForChild('SmokeEffectView'))
 local PostDriveView=require(script.Parent:WaitForChild('LobbyPostDriveView'))
 local Controller={}
+local requestDrive
+function Controller.requestDrive()return if requestDrive then requestDrive()else false end
 local started=false
 function Controller.start()
  if started or Workspace:GetAttribute("KDMServerRole")~="HUB"
@@ -133,6 +135,7 @@ function Controller.start()
   end)
   return true
  end
+ requestDrive=function()return request('Drive')end
  Garage.setOpenGate(function(resume)
   if handoffComplete then handoffComplete=false;return false end
   if player:GetAttribute("LobbyDriveActive")~=true and player:GetAttribute("LobbyDrivePending")~=true and not pending then return false end

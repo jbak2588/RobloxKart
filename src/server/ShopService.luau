@@ -46,6 +46,7 @@ function Service.deliverReserved(op,save,eligible,apply)
 end
 local function profile(player)
  local r=Economy.accountAdapter(player,'read').read(S.userKey(player.UserId))
+ if r.status=='ABSENT' then return {status='GUEST',cash=0,counts={},canPurchase=false,wingOwned=false,wingEquipped=false,autoRefill=false,passAvailable=false}end
  if r.status~='FOUND' or r.value.deleted then return {status=if r.status=='FOUND' then 'READ_ONLY' else r.status} end
  -- A previous server can leave a confirmed debit without a confirmed delivery.
  -- Only expired reservations from a different job are compensated in the Hub;

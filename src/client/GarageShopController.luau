@@ -130,10 +130,10 @@ function Controller.start()
    local ok,r=pcall(function()return remote:InvokeServer(action,item,if op then op.id else nil,value)end)
    if current~=epoch then return end
    busy=false
-   if ok and type(r)=='table' and r.status=='FOUND' then
+   if ok and type(r)=='table' and (r.status=='FOUND' or r.status=='GUEST') then
     for key,v in r do data[key]=v end
     if action=='PROFILE' or r.purchaseState=='SAVE_CONFIRMED' then
-     if r.purchaseState=='SAVE_CONFIRMED' then pending=nil;status.Text=if action=='BUY_ITEM' or action=='BUY_WING' then 'PURCHASE COMPLETE' else 'ACCOUNT SAVED' else status.Text=''end
+     if r.purchaseState=='SAVE_CONFIRMED' then pending=nil;status.Text=if action=='BUY_ITEM' or action=='BUY_WING' then 'PURCHASE COMPLETE' else 'ACCOUNT SAVED' else status.Text=if r.status=='GUEST' then 'COMPLETE TEST DRIVE TO EARN K$5,000' else ''end
     end
    else
     local code=if ok and type(r)=='table' then r.status else 'SAVE_UNCONFIRMED'

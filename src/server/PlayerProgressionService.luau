@@ -54,6 +54,9 @@ function Service.new(deps)
  function api.flush(player)
   local session = sessions[player]
   if not session or session.locked or session.blocked or not session.profile or not session.desired then return false end
+  if session.absent and deps.initializeAbsent==false and player:GetAttribute('KDMAccountQualified')~=true then
+   publish(player,session,'READY','SESSION_ONLY');return false
+  end
   if not session.request then
    local operation = {kind="SELECT_KART",kartId=session.desired,expectedSelectionRevision=session.profile.selection.revision,
     operationId=deps.newOperationId()}
@@ -65,7 +68,10 @@ function Service.new(deps)
   publish(player,session,"SAVING")
   local reducer = Ops.selection(S,schema,session.userId,request.operation)
   local function callback(previous)
-   if previous == nil and session.absent then previous = schema.default(session.userId) end
+   if previous == nil and session.absent then
+    if deps.initializeAbsent==false then return nil,'ACTIVITY_REQUIRED' end
+    previous = schema.default(session.userId)
+   end
    return reducer(previous)
   end
   local prepared, transaction = pcall(store.beginUpdate,session.key,callback)

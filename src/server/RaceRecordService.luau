@@ -58,9 +58,9 @@ local function live()
  runtime=Runtime.new(S,schema,Ops,{allowed=allowed,retryAttempts=Config.RetryAttempts,
   spawn=task.spawn,delay=task.delay,clock=os.clock,wait=task.wait,shutdownSeconds=Config.ShutdownSeconds,
   diagnostic=diagnostic,profileConfirmed=Economy.publishProfile,
-  ensureProfile=function(player)
+  ensureProfile=function(player,op)
    if not Economy.allowed(player,'initialize') then return {status='ACCESS_BLOCKED'} end
-   return Economy.getProfile(player)
+   return Economy.qualifyActivity(player,'RACE_FINISH',op)
   end,
   adapter=function(player)
    return Adapter.new({schema=schema,key=S.userKey(player.UserId),authorize=function() return allowed(player,"read") end,

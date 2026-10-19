@@ -85,7 +85,14 @@ function Controller.start()
    or (p:GetAttribute('KDMRoutePending')~=nil and p:GetAttribute('KDMRoutePending')~='')
  end
  local function update()
-  gui.Enabled=not dismissed and p:GetAttribute('KDMEconomyState')=='FOUND' and p:GetAttribute('KDMWelcomeSeen')==false
+  local guest=p:GetAttribute('KDMEconomyState')=='GUEST'
+  title.Text=if guest then 'WELCOME TO KART DRIFT MASTERS!' else 'KDM RACE COMPLETION EVENT'
+  visit.Text=if guest then 'TRY A KART - EARN YOUR STARTER K$!' else 'WELCOME, NEW & RETURNING RACERS!'
+  bonus.Text=if guest then 'COMPLETE TEST DRIVE: +K$ 5,000' else 'COMPLETE A RACE: +K$ 5,000'
+  explain.Text=if guest then 'Drive for 30 moving seconds and travel 300 studs. Starter reward: once per account.' else 'PLUS your normal race reward! Once per account. Your existing K$ stays unchanged.'
+  start.Text=if guest then 'START TEST DRIVE' else 'START EVENT RACE'
+  status.Text=if guest then 'ACTUAL DRIVING REQUIRED - PARKED TIME DOES NOT COUNT' else '3-LAP PRACTICE - 1 BOT - BONUS ON COMPLETION'
+  gui.Enabled=not dismissed and (p:GetAttribute('KDMEconomyState')=='FOUND' or guest) and p:GetAttribute('KDMWelcomeSeen')==false
    and p:GetAttribute('KDMFirstFinishClaimed')~=true and p:GetAttribute('RaceState')=='GARAGE' and not blocked()
   if gui.Enabled then layout() end
  end
@@ -99,6 +106,11 @@ function Controller.start()
  end
  start.Activated:Connect(function()
   if busy then return end
+  if p:GetAttribute('KDMEconomyState')=='GUEST' then
+   dismissed=true;gui.Enabled=false
+   if not require(script.Parent.LobbyTestDriveController).requestDrive() then dismissed=false;update()end
+   return
+  end
   busy=true;start.Active=false;later.Active=false;status.Text='ENTERING PRACTICE RACE...'
   task.spawn(function()
    -- A failed acknowledgement must not prevent trying the race or grant any money.

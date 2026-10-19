@@ -56,6 +56,7 @@ function Service.publishProfile(player,p)
  local event=S.finishEvent(p)
  player:SetAttribute('KDMWelcomeSeen',event.seen)
  player:SetAttribute('KDMFirstFinishClaimed',event.claimed)
+ player:SetAttribute('KDMAccountQualified',true)
  player:SetAttribute('KDMEconomyState','FOUND')
 end
 local function publicProfile(p)
@@ -65,47 +66,17 @@ end
 local function readAccount(player)
  if not Service.allowed(player,'read') then return {status='ACCESS_BLOCKED'} end
  local a=adapter(player,'read');local key=S.userKey(player.UserId);local r=a.read(key)
- if r.status=='ABSENT' and Service.allowed(player,'initialize') then
-  -- Create only on a confirmed absent read. UpdateAsync preserves a concurrently created profile.
-  a=adapter(player,'initialize')
-  local result=a.commit(a.beginUpdate(key,function(previous)return previous or schema.default(player.UserId),'INITIALIZED'end))
-  r=a.read(key)
-  if r.status=='ABSENT' and (result.status=='PENDING' or result.status=='SAVED') then return {status='PENDING'} end
+ if r.status=='ABSENT' and player:GetAttribute('KDMAccountQualified')==true then return {status='PENDING'} end
+ if r.status=='ABSENT' then
+  -- Confirmed absence is a guest, never permission to create an account on read.
+  player:SetAttribute('KDMWalletCash',0);player:SetAttribute('KDMWalletRevision',0)
+  player:SetAttribute('KDMLifetimeEarned',0);player:SetAttribute('KDMWingOwned',false);player:SetAttribute('KDMWingEquipped',false)
+  player:SetAttribute('KDMAccountQualified',false);player:SetAttribute('KDMFirstFinishClaimed',false)
+  if player:GetAttribute('KDMWelcomeSeen')==nil then player:SetAttribute('KDMWelcomeSeen',false)end
+  player:SetAttribute('KDMEconomyState','GUEST')
+  return {status='GUEST',cash=0,wingOwned=false,wingEquipped=false}
  end
  if r.status=='FOUND' and not r.value.deleted then
-  local p=r.value
-  local emptyHistory=(not p.purchaseHistory or next(p.purchaseHistory)==nil)
-   and (not p.receipts or next(p.receipts)==nil)
-   and (p.wallet.lifetimeEarned==nil or p.wallet.lifetimeEarned==0)
-  
-  if p.receipts and S.count(p.receipts) >= 3 then
-   local pa = adapter(player, 'purchase')
-   pa.commit(pa.beginUpdate(key, function(curr)
-    if not curr then return nil end
-    local cloned = S.clone(curr)
-    if cloned.receipts and S.count(cloned.receipts) >= 3 then
-     local candidates = {}
-     for id in cloned.receipts do table.insert(candidates, id) end
-     table.sort(candidates)
-     for i = 1, #candidates - 1 do cloned.receipts[candidates[i]] = nil end
-     return cloned, 'PRUNED_RECEIPTS'
-    end
-    return nil, 'NO_CHANGE'
-   end))
-   r = a.read(key)
-   p = r.value
-  end
-
-  if p.wallet.cash==0 and p.wallet.ledgerRevision==0 and emptyHistory then
-   a=adapter(player,'initialize')
-   a.commit(a.beginUpdate(key,function(curr)
-    if not curr then return nil end
-    local cloned=S.clone(curr)
-    if cloned.wallet.cash==0 and cloned.wallet.ledgerRevision==0 then cloned.wallet.cash=5000 end
-    return cloned,'STARTER_CASH_GRANTED'
-   end))
-   r=a.read(key)
-  end
   Service.publishProfile(player,r.value);return publicProfile(r.value)
  end
  return {status=if r.status=='FOUND' then 'READ_ONLY' else r.status}
@@ -148,6 +119,48 @@ end
 -- Internal server APIs; callers still pass through adapter authorization.
 function Service.accountAdapter(player,kind) return adapter(player,kind) end
 function Service.getProfile(player) return read(player) end
+-- Called only by server-owned driving/official-finish observers. Never exposed as a remote action.
+local qualifying={}
+function Service.qualifyActivity(player,kind,proof)
+ if kind~='TEST_DRIVE' and kind~='RACE_FINISH' then return {status='INVALID_ACTIVITY'} end
+ if kind=='TEST_DRIVE' and (type(proof)~='table' or proof.complete~=true or not S.integer(proof.movingMilliseconds)
+  or proof.movingMilliseconds<30000 or type(proof.distance)~='number' or proof.distance<300 or proof.distance~=proof.distance or proof.distance==math.huge) then return {status='INVALID_ACTIVITY'} end
+ if kind=='RACE_FINISH' then
+  local records=require(script.Parent.RaceRecordOperations)
+  if not records.valid(S,proof) or proof.userId~=player.UserId or not proof.race or not proof.race.eligible then return {status='INVALID_ACTIVITY'} end
+ end
+ if not Service.allowed(player,'initialize') or qualifying[player] then return {status='PENDING'} end
+ qualifying[player]=true
+ local ok,result=pcall(function()
+  local a=adapter(player,'initialize');local key=S.userKey(player.UserId)
+  local before=a.read(key)
+  if before.status~='FOUND' and before.status~='ABSENT' then return {status=before.status} end
+  if before.status=='FOUND' and schema.validate(before.value,key) and not before.value.deleted and before.value.activity then
+   Service.publishProfile(player,before.value);return publicProfile(before.value)
+  end
+  local qualifiedAt=DateTime.now().UnixTimestampMillis
+  local selected=player:GetAttribute('SelectedKartId')
+  a.commit(a.beginUpdate(key,function(previous)
+   if previous and (not schema.validate(previous,key) or previous.deleted) then return nil,'READ_ONLY' end
+   local nextValue=if previous then S.clone(previous) else schema.default(player.UserId)
+   -- Existing users keep their existing starter cash; no second grant.
+   if not previous and schema.supportsKart(selected) then nextValue.selection.kartId=selected end
+   if not nextValue.activity then
+    nextValue.activity={version=1,kind=kind,qualifiedAt=qualifiedAt,starterGranted=previous==nil,
+     movingMilliseconds=if kind=='TEST_DRIVE' then proof.movingMilliseconds else 0,
+     distance=if kind=='TEST_DRIVE' then math.floor(proof.distance) else 0}
+   end
+   return nextValue,'ACTIVITY_QUALIFIED'
+  end))
+  local saved=a.read(key)
+  if saved.status~='FOUND' or not schema.validate(saved.value,key) or saved.value.deleted or not saved.value.activity then return {status='SAVE_UNCONFIRMED'} end
+  Service.publishProfile(player,saved.value)
+  if before.status=='ABSENT' then player:SetAttribute('KDMStarterRewardConfirmed',true)end
+  return publicProfile(saved.value)
+ end)
+ qualifying[player]=nil
+ return if ok then result else {status='SAVE_UNCONFIRMED'}
+end
 function Service.passAvailable() return passVerified() end
 function Service.creditReward(player, amount, reason)
 	if not player or type(amount) ~= "number" or amount <= 0 or not Service.allowed(player, "reward") then return false end
@@ -192,6 +205,7 @@ function Service.start()
    if action=='WELCOME_SEEN' then
     local a=adapter(player,'purchase');local key=S.userKey(player.UserId)
     local r=a.read(key)
+    if r.status=='ABSENT' then player:SetAttribute('KDMWelcomeSeen',true);return {status='SAVE_CONFIRMED'} end
     if r.status~='FOUND' or not schema.validate(r.value,key) or r.value.deleted then return {status='READ_ONLY'} end
     a.commit(a.beginUpdate(key,function(previous)
      if not previous or not schema.validate(previous,key) or previous.deleted then return nil,'READ_ONLY' end
@@ -231,7 +245,7 @@ function Service.start()
    pcall(function()
     for i=1,Config.RetryAttempts do
      local r=read(p)
-     if r.status=='FOUND' then break end
+     if r.status=='FOUND' or r.status=='GUEST' then break end
      if not Service.allowed(p,'read') then p:SetAttribute('KDMEconomyState','ACCESS_BLOCKED');return end
      if i<Config.RetryAttempts then task.wait(i) end
     end

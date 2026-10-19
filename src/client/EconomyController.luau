@@ -2,7 +2,7 @@ local Controller = {}
 -- Presentation only: values remain authoritative server attributes, never client balances.
 function Controller.presentation(attributes, catalog)
  local revision = attributes.KDMWalletRevision
- local confirmed = attributes.KDMEconomyState == 'FOUND' and type(revision) == 'number'
+ local confirmed = (attributes.KDMEconomyState == 'FOUND' or attributes.KDMEconomyState == 'GUEST') and type(revision) == 'number'
   and revision >= 0 and revision < math.huge and revision % 1 == 0
  local function amount(value)
   return if confirmed and type(value) == 'number' and value >= 0 and value < math.huge and value % 1 == 0 then tostring(value) else '--'
@@ -182,7 +182,7 @@ function Controller.start()
  panel:GetPropertyChangedSignal('AbsoluteSize'):Connect(layoutProfile)
  layoutProfile()
  local busy, passAvailable, passPrice, status = false, false, nil, ''
- local messages = {FOUND = '', SAVE_CONFIRMED = 'ACCOUNT SAVED', SAVE_UNCONFIRMED = 'Save not confirmed. Please try again.',
+ local messages = {GUEST='Complete Test Drive to earn your starter K$5,000.', FOUND = '', SAVE_CONFIRMED = 'ACCOUNT SAVED', SAVE_UNCONFIRMED = 'Save not confirmed. Please try again.',
   INSUFFICIENT_FUNDS = 'You need K$25,000.', ALREADY_OWNED = 'Wing already owned.', NOT_OWNED = 'Unlock the Wing first.',
   ACCESS_BLOCKED = 'Account unavailable. Shop preview is still available.', RATE_LIMITED = 'Please wait a moment.',
   PASS_PROMPTED = 'Complete the Roblox purchase prompt.', HUB_REQUIRED = 'Return to the Lobby to purchase.'}

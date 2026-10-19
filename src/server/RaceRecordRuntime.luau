@@ -52,10 +52,10 @@ function Runtime.new(S,schema,Ops,deps)
   local adapter=deps.adapter(player);local key=S.userKey(player.UserId)
   -- A failed read must never be interpreted as an absent profile.
   local read=adapter.read(key)
-  if read.status=='ABSENT' and op.economy and deps.ensureProfile then
+  if read.status=='ABSENT' and op.economy and op.race and op.race.eligible and deps.ensureProfile then
    -- Only the guarded account facade may initialize a confirmed absent account.
    -- Failed reads never enter this path; UpdateAsync keeps concurrent profiles.
-   local initialized=deps.ensureProfile(player)
+   local initialized=deps.ensureProfile(player,op)
    read=if initialized.status=='FOUND' then adapter.read(key) else initialized
   end
   local valid,validationReason=false,nil

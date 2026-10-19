@@ -47,6 +47,7 @@ if role == "HUB" then require(script:WaitForChild("PersonalRecordsController")).
 require(script:WaitForChild('EconomyController')).start()
 require(script:WaitForChild('GarageShopController')).start()
 if role=='HUB' then require(script:WaitForChild('WelcomeRewardController')).start() end
+if role=='HUB' then require(script:WaitForChild('ActivityRewardView')).start() end
 KartVisualMotionController.start()
 KDMDriverGripController.start()
 KartEffectsController.start()
