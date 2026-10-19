@@ -1144,7 +1144,8 @@ function PrototypeWorld.start(options)
 			-- While angled, acceleration/deceleration acts on total planar speed.
 			-- Store commandedSpeed as the projected forward component after the solver.
 			if angled and rearSlide.planarSpeed and (rearSlide.active or rearSlide.recovering) then
-				context.commandedSpeed=math.min(planarVelocity.Magnitude,KartConfig.MINI_BOOST_MAX_SPEED)
+				local slideCap = if context.nitro.active or context.nitro.exiting then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
+				context.commandedSpeed = math.min(planarVelocity.Magnitude, slideCap)
 			end
 
 			if throttle > 0 then
@@ -1217,9 +1218,10 @@ function PrototypeWorld.start(options)
 			end
 			local verticalSpeed = assemblyVelocity.Y
 			local outputPlanar = forward * context.commandedSpeed + right * lateralSpeed
-			if angled and outputPlanar.Magnitude>KartConfig.MINI_BOOST_MAX_SPEED then
-				outputPlanar=outputPlanar.Unit*KartConfig.MINI_BOOST_MAX_SPEED
-				context.commandedSpeed=outputPlanar:Dot(forward)
+			local maxPlanarCap = if nitroSpeed then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
+			if angled and outputPlanar.Magnitude > maxPlanarCap then
+				outputPlanar = outputPlanar.Unit * maxPlanarCap
+				context.commandedSpeed = outputPlanar:Dot(forward)
 			end
 			if context.thunderHitActive and outputPlanar.Magnitude > RaceItemConfig.THUNDER_SPEED_CAP then
 				outputPlanar = outputPlanar.Unit * RaceItemConfig.THUNDER_SPEED_CAP

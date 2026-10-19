@@ -44,8 +44,8 @@ resetAt(cornerIndex);for _=1,160 do drive(1/60) end
 check(ctx.commandedSpeed==70,"corner 70")
 for _,index in {straightIndex,cornerIndex} do
  resetAt(index);drive(1/60);local accepted,reason=world.activateNitro(player);check(accepted,"Nitro activation "..tostring(reason))
- for _=1,90 do drive(1/60) end
- check(ctx.commandedSpeed==100,"Nitro 100 both contexts")
+ for _=1,110 do drive(1/60) end
+ check(ctx.commandedSpeed==120,"Nitro 120 both contexts")
  resetAt(index);successfulDrift();for _=1,60 do drive(1/60) end
  check(ctx.commandedSpeed==100,"Mini Boost 100 both contexts")
  resetAt(index);ctx.commandedSpeed=64
@@ -73,7 +73,7 @@ check(ctx.boostActive and ctx.commandedSpeed==100,"Boost before boundary expiry"
 ctx.boostEndTime=now;place(cornerIndex);ctx.straightLastEvaluation=nil
 local priorSpeed=ctx.commandedSpeed;drive(1/60)
 check(not ctx.boostActive and math.abs(priorSpeed-ctx.commandedSpeed-10/60)<.001,"Mini Boost expiry + straight exit retains deceleration10")
-resetAt(straightIndex);drive(1/60);assert(world.activateNitro(player));for _=1,90 do drive(1/60) end
+resetAt(straightIndex);drive(1/60);assert(world.activateNitro(player));for _=1,110 do drive(1/60) end
 ctx.nitro.endTime=now;place(cornerIndex);ctx.straightLastEvaluation=nil
 priorSpeed=ctx.commandedSpeed;drive(1/60)
 check(ctx.nitro.exiting and math.abs(priorSpeed-ctx.commandedSpeed-15/60)<.001,"Nitro expiry + straight exit retains deceleration15")

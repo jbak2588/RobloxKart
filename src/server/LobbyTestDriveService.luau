@@ -332,7 +332,8 @@ function Service.start(driveZone,eligibility)
    -- Use the approved race slide solver; training owns only transient charge.
    local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)*math.clamp(math.abs(r.speed)/KartConfig.MAX_FORWARD_SPEED,0,1)
    local normalYaw=-r.training.steer*r.speed/radius
-   if r.training.slide.active or r.training.slide.recovering then r.speed=math.min(physical.Magnitude,KartConfig.MINI_BOOST_MAX_SPEED) end
+   local slideCap = if nitro then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
+   if r.training.slide.active or r.training.slide.recovering then r.speed=math.min(physical.Magnitude,slideCap) end
    local wasBoost,boostEnd=r.training.boost,r.training.boostEnd
    local hit=practice:physical(player,now)
    if hit then
@@ -356,7 +357,8 @@ function Service.start(driveZone,eligibility)
    if nearWall and math.abs(f:Dot(normal))<=Policy.GlancingNormal then
     local x,z=Policy.slide(velocity.X,velocity.Z,nx,nz);velocity=Vector3.new(x,0,z)
    end
-   if velocity.Magnitude>KartConfig.MINI_BOOST_MAX_SPEED then velocity=velocity.Unit*KartConfig.MINI_BOOST_MAX_SPEED end
+   local maxCap = if nitro then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
+   if velocity.Magnitude>maxCap then velocity=velocity.Unit*maxCap end
    -- At most three small server corrections per contact episode. Every proposed
    -- position clears the complete rectangular chassis and the concave outline.
    if nearWall and physical.Magnitude<Policy.EscapeSpeed and (math.abs(throttle)>.1 or math.abs(steering)>.1) then
