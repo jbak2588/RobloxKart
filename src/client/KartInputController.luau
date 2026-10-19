@@ -130,6 +130,9 @@ function KartInputController.start()
 	local timeSinceSend = KartConfig.INPUT_SEND_INTERVAL
 	local wasDriving = false
 
+	local MIN_SEND_INTERVAL = 0.05
+	local KEEP_ALIVE_INTERVAL = 0.25
+
 	local function sendInput(force: boolean, neutral: boolean?)
 		if lobbySender and KartInputController.isLobbyDriving() then
 			if force then
@@ -152,7 +155,20 @@ function KartInputController.start()
 			or steering ~= lastSteering
 			or driftRequested ~= lastDriftRequested
 			or driving ~= wasDriving
-		if changed or (force and driving) then
+
+		local sendInterval = math.max(KartConfig.INPUT_SEND_INTERVAL or MIN_SEND_INTERVAL, MIN_SEND_INTERVAL)
+		local keepAlive = driving and timeSinceSend >= KEEP_ALIVE_INTERVAL
+
+		local shouldSend = false
+		if neutral then
+			shouldSend = true
+		elseif changed then
+			shouldSend = force or timeSinceSend >= sendInterval
+		elseif keepAlive then
+			shouldSend = true
+		end
+
+		if shouldSend then
 			remoteEvent:FireServer(throttle, steering, driftRequested)
 			if PerformanceMonitor then PerformanceMonitor.inputSent(throttle, steering, driftRequested) end
 			lastThrottle = throttle
@@ -231,9 +247,8 @@ function KartInputController.start()
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		if touchUpdate then touchUpdate(deltaTime) end
 		timeSinceSend += deltaTime
-		if timeSinceSend >= KartConfig.INPUT_SEND_INTERVAL then
-			sendInput(true)
-		else
+		local sendInterval = math.max(KartConfig.INPUT_SEND_INTERVAL or MIN_SEND_INTERVAL, MIN_SEND_INTERVAL)
+		if timeSinceSend >= sendInterval then
 			sendInput(false)
 		end
 	end)

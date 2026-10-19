@@ -17,7 +17,8 @@ local PrototypeWorld = require(script.Parent:WaitForChild("PrototypeWorld"))
 local RaceSession = require(script.Parent:WaitForChild("RaceSession"))
 local RacerState = require(script.Parent:WaitForChild("RacerState"))
 local RaceRanking = require(script.Parent:WaitForChild("RaceRanking"))
-local EconomyService = require(script.Parent:WaitForChild("EconomyService"))
+local economyModule = script.Parent:FindFirstChild("EconomyService")
+local EconomyService = if economyModule then require(economyModule) else nil
 
 local RaceController = {}
 
@@ -86,17 +87,27 @@ local function isInsideGate(gate: BasePart, worldPosition: Vector3): boolean
 		and math.abs(localPosition.Z) <= halfSize.Z
 end
 
-local function isInsideRoadCorridor(roadParts: { BasePart }, worldPosition: Vector3): boolean
-	for _, roadPart in roadParts do
+local function isInsideRoadCorridor(roadParts: { BasePart }, worldPosition: Vector3, lastIndexHint: number?): (boolean, number?)
+	if lastIndexHint and roadParts[lastIndexHint] then
+		local roadPart = roadParts[lastIndexHint]
 		local localPosition = roadPart.CFrame:PointToObjectSpace(worldPosition)
 		local halfSize = roadPart.Size * 0.5
 		if math.abs(localPosition.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
 			and math.abs(localPosition.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
 		then
-			return true
+			return true, lastIndexHint
 		end
 	end
-	return false
+	for index, roadPart in roadParts do
+		local localPosition = roadPart.CFrame:PointToObjectSpace(worldPosition)
+		local halfSize = roadPart.Size * 0.5
+		if math.abs(localPosition.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
+			and math.abs(localPosition.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
+		then
+			return true, index
+		end
+	end
+	return false, nil
 end
 
 local function isMovingThroughGate(chassis: BasePart, gate: BasePart): boolean
@@ -289,12 +300,16 @@ function RaceController.start(options)
 	local raceRemote = remoteEvent :: RemoteEvent
 
 	local racers = {}
+	local sessionElapsed = 0
+	local publishSession: (now: number) -> ()
 
 	local function createRacer(player: Player, context)
 		local kart, chassis, seat = context.kart, context.chassis, context.seat
 		local racer = RacerState.new(player, context,
 			if routeCourse then RaceRouteProgress.new(routeCourse, routeRoadWidth) else nil)
 		racer.targetLaps = RaceMode.targetLaps(RaceMode.resolve(initialTrackId), initialTrackId)
+		racer.lastRoadIndex = nil
+		racer.progressRecordElapsed = 0
 		local function clearGateState()
 			table.clear(racer.insideGate)
 			racer.previousChassisPosition = nil
@@ -306,6 +321,7 @@ function RaceController.start(options)
 		local function resetOffTrackState(player: Player)
 			racer.offTrackSampleElapsed = 0
 			racer.offTrackElapsed = 0
+			racer.lastRoadIndex = nil
 			kart:SetAttribute("KartOffTrack", false)
 			player:SetAttribute("RaceOffTrackRemaining", 0)
 		end
@@ -349,6 +365,8 @@ function RaceController.start(options)
 			racer.lapStartTime = 0
 			racer.finishEndTime = 0
 			racer.finishRollEndTime = 0
+			racer.lastRoadIndex = nil
+			racer.progressRecordElapsed = 0
 			player:SetAttribute("RaceFinishPhase", "NONE")
 			kart:SetAttribute("KartFinishRollActive", false)
 			resetOffTrackState(player)
@@ -431,6 +449,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceMapActive", false)
 			setRaceState(player, "DNF")
 			session.terminal[player] = "DNF"
+			publishSession(time())
 		end
 
 		function racer:timeoutRace()
@@ -452,6 +471,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceMapActive", false)
 			setRaceState(player, "DNF")
 			session.terminal[player] = "RACE_TIMEOUT"
+			publishSession(time())
 
 			if isActiveRacer and EconomyService and EconomyService.creditReward then
 				task.spawn(function()
@@ -477,6 +497,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceMapActive", false)
 			setRaceState(player, "DNF")
 			session.terminal[player] = "FORFEIT"
+			publishSession(time())
 			return true
 		end
 
@@ -529,6 +550,7 @@ function RaceController.start(options)
 			session.terminal[player] = "FINISHED"
 			local officialResult = session:finalizedFinish(player, now)
 			if officialResult then record("finish", player, officialResult) end
+			publishSession(now)
 		end
 
 		local function completeLap(player: Player, now: number)
@@ -606,7 +628,9 @@ function RaceController.start(options)
 
 			local sampleElapsed = racer.offTrackSampleElapsed
 			racer.offTrackSampleElapsed = 0
-			if isInsideRoadCorridor(roadParts, chassis.Position) then
+			local inside, hitIndex = isInsideRoadCorridor(roadParts, chassis.Position, racer.lastRoadIndex)
+			if inside then
+				racer.lastRoadIndex = hitIndex
 				if racer.offTrackElapsed > 0 then
 					print(string.format("[Race] back_on_track after=%.2fs lap=%d nextCheckpoint=%d", racer.offTrackElapsed, (player:GetAttribute("RaceCurrentLap") :: number?) or 1, (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1))
 				end
@@ -616,6 +640,7 @@ function RaceController.start(options)
 				return
 			end
 
+			racer.lastRoadIndex = nil
 			if racer.offTrackElapsed == 0 then
 				print(string.format("[Race] off_track lap=%d nextCheckpoint=%d x=%.1f z=%.1f", (player:GetAttribute("RaceCurrentLap") :: number?) or 1, (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1, chassis.Position.X, chassis.Position.Z))
 				kart:SetAttribute("KartOffTrack", true)
@@ -695,7 +720,27 @@ function RaceController.start(options)
 				return
 			end
 
-			local onRoadAtGate = isInsideRoadCorridor(roadParts, chassis.Position)
+			local onRoadAtGate
+			if racer.lastRoadIndex and roadParts[racer.lastRoadIndex] then
+				local roadPart = roadParts[racer.lastRoadIndex]
+				local localPos = roadPart.CFrame:PointToObjectSpace(chassis.Position)
+				local halfSize = roadPart.Size * 0.5
+				if math.abs(localPos.X) <= halfSize.X + RaceConfig.ROAD_CORRIDOR_MARGIN
+					and math.abs(localPos.Z) <= halfSize.Z + RaceConfig.ROAD_CORRIDOR_MARGIN
+				then
+					onRoadAtGate = true
+				end
+			end
+			if onRoadAtGate == nil then
+				local inside, hitIdx = isInsideRoadCorridor(roadParts, chassis.Position, racer.lastRoadIndex)
+				onRoadAtGate = inside
+				if inside then
+					racer.lastRoadIndex = hitIdx
+				else
+					racer.lastRoadIndex = nil
+				end
+			end
+
 			if racer.routeProgress then
 				local nextCheckpoint = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
 				local recoveredNext = RaceRouteProgress.step(racer.routeProgress, chassis.Position, nextCheckpoint, onRoadAtGate)
@@ -718,9 +763,13 @@ function RaceController.start(options)
 					end
 				end
 			end
-			record("progress", player, now, Vector3.new(chassis.Position.X, 0, chassis.Position.Z),
-				if racer.routeProgress then racer.routeProgress.previous else nil,
-				player:GetAttribute("RaceNextCheckpoint"))
+			racer.progressRecordElapsed = (racer.progressRecordElapsed or 0) + deltaTime
+			if racer.progressRecordElapsed >= 0.2 then
+				racer.progressRecordElapsed = 0
+				record("progress", player, now, Vector3.new(chassis.Position.X, 0, chassis.Position.Z),
+					if racer.routeProgress then racer.routeProgress.previous else nil,
+					player:GetAttribute("RaceNextCheckpoint"))
+			end
 			for _, gate in gates do
 				local inside = isInsideGate(gate, chassis.Position)
 				if inside and not racer.insideGate[gate] then
@@ -788,7 +837,8 @@ function RaceController.start(options)
 		end
 	end
 
-	local function publishSession(now: number)
+	publishSession = function(now: number)
+		sessionElapsed = 0
 		if persistentRoom and options.getRoomHostUserId then
 			session.hostUserId = options.getRoomHostUserId()
 		end
@@ -904,6 +954,7 @@ function RaceController.start(options)
 		for _, player in session:orderedParticipants() do
 			racers[player]:startRace(session.startTime)
 		end
+		publishSession(session.startTime)
 		publishRoomPhase("RACING", session:count())
 	end
 
@@ -922,6 +973,7 @@ function RaceController.start(options)
 				and (state ~= "FINISHING" or session.startingParticipantCount == 1) then return end
 		end
 		session.phase = "COMPLETE"
+		publishSession(time())
 		publishRoomPhase("ROUND_COMPLETE", session:count())
 	end
 
@@ -1252,7 +1304,6 @@ function RaceController.start(options)
 					else setChanged(player, "RaceItemsPrepareRemaining", math.ceil(deadline - now)) end
 				end
 			end
-			publishSession(now)
 			local publicReady=options and options.isQuickMatch and options.isQuickMatch()
 				and ((options.isPractice and options.isPractice())or session:humanCount()>=2 or (session:humanCount()==1 and session:count()>1))
 			local hostStart=options and options.requiresHostStart and options.requiresHostStart()
@@ -1292,7 +1343,10 @@ function RaceController.start(options)
 			updateRanking()
 			publishMapPositions()
 		end
-		publishSession(now)
+		sessionElapsed += deltaTime
+		if sessionElapsed >= 0.2 then
+			publishSession(now)
+		end
 		if diagnostic then PerformanceMonitor.route(deltaTime,(os.clock()-loopStarted)*1000,session:count()) end
 	end)
 

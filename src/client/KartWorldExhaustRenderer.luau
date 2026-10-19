@@ -254,35 +254,21 @@ function Renderer.new(kart)
  local cruiseElapsed=0
  local groundElapsed=0
  local grounded={false,false}
- local roadFolder=nil
- local roadBoxes={}
- local lastRoad={}
- local function roadSurface(point,index)
-  if kart:GetAttribute('LobbyKart')==true then
-   local floor=kart.Parent and kart.Parent:FindFirstChild('LobbyFrontSmoothFloor')
-   if floor then local p=floor.CFrame:PointToObjectSpace(point);if math.abs(p.X)<=floor.Size.X/2 and math.abs(p.Z)<=floor.Size.Z/2 then return floor.CFrame:PointToWorldSpace(Vector3.new(p.X,floor.Size.Y/2,p.Z))+Vector3.yAxis*.04 end end
-   return nil
+
+ local function checkIsLocalKart(): boolean
+  local lp = _Players.LocalPlayer
+  if not lp then return false end
+  if kart:GetAttribute("LocalKart") == true then return true end
+  if kart:GetAttribute("OwnerUserId") == lp.UserId then return true end
+  local char = lp.Character
+  if char then
+   local hum = if typeof(char.FindFirstChildOfClass) == "function" then char:FindFirstChildOfClass("Humanoid") else char:FindFirstChild("Humanoid")
+   local seatPart = hum and hum.SeatPart
+   if seatPart and seatPart.Parent == kart then return true end
   end
-  local track=kart.Parent and kart.Parent:FindFirstChild('TestTrack')
-  local folder=track and track:FindFirstChild('Road')
-  if folder~=roadFolder then
-   roadFolder=folder;table.clear(roadBoxes);table.clear(lastRoad)
-   if folder then for _,part in folder:GetChildren() do if part:IsA('BasePart') then
-    table.insert(roadBoxes,{frame=part.CFrame,half=part.Size*.5})
-   end end end
-  end
-  local function project(box)
-   local p=box.frame:PointToObjectSpace(point)
-   if math.abs(p.X)<=box.half.X and math.abs(p.Z)<=box.half.Z then
-    return box.frame:PointToWorldSpace(Vector3.new(p.X,box.half.Y,p.Z))+box.frame.UpVector*.04
-   end
-   return nil
-  end
-  local previous=lastRoad[index]
-  if previous then local surface=project(previous);if surface then return surface end end
-  for _,box in roadBoxes do local surface=project(box);if surface then lastRoad[index]=box;return surface end end
-  lastRoad[index]=nil;return nil
+  return false
  end
+
  function record:update(dt,enabled)
   local off=kart:GetAttribute("KartOffTrack")==true
   local nitro=enabled and not off and kart:GetAttribute("KartNitroActive")==true
@@ -336,14 +322,16 @@ function Renderer.new(kart)
   local rate = Renderer.driftSmokeRate(slip,isLobby,lod,drift)
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
-  if drift and slip>=5 and groundElapsed>=.04 then
+  local isLocal = checkIsLocalKart()
+  local raycastInterval = if (not isLocal and distance > 90) then 0.12 else 0.04
+  if drift and slip>=5 and groundElapsed>=raycastInterval then
    groundElapsed=0
    for i,contact in contacts do
     local origin=chassis.CFrame:PointToWorldSpace(contact.position)+Vector3.yAxis*2
     local hit=Workspace:Raycast(origin,-Vector3.yAxis*6,params)
-    local surface=roadSurface(origin,i)
-    grounded[i]=hit~=nil and hit.Normal.Y>.55 and surface~=nil and math.abs(hit.Position.Y-surface.Y)<.6
+    grounded[i]=hit~=nil and hit.Normal.Y>.55
     if grounded[i] then
+     local surface=hit.Position+hit.Normal*.04
      local right=chassis.CFrame.RightVector
      local tangent=(right-hit.Normal*right:Dot(hit.Normal)).Unit*contact.width
      contact.a.WorldPosition=surface-tangent

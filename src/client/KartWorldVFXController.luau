@@ -45,6 +45,7 @@ function Controller.start()
   end))
  end
  local scan=0
+ local cachedDriveZone = nil
  table.insert(connections,RunService.Heartbeat:Connect(function(dt)
   scan+=dt
   -- Model attributes/visual metadata may arrive after DescendantAdded.
@@ -53,8 +54,14 @@ function Controller.start()
    for _,o in prototype:GetChildren() do bind(o) end
    local h=Workspace:FindFirstChild("KDMHub")
    if h then
-    local zone=h:FindFirstChild("LobbyFrontTestDriveZone",true)
-    if zone then for _,o in zone:GetChildren() do bind(o) end end
+    if not cachedDriveZone or cachedDriveZone.Parent == nil then
+     cachedDriveZone = h:FindFirstChild("LobbyFrontTestDriveZone") or h:FindFirstChild("LobbyFrontTestDriveZone", true)
+    end
+    if cachedDriveZone then
+     for _,o in cachedDriveZone:GetChildren() do bind(o) end
+    end
+   else
+    cachedDriveZone = nil
    end
   end
   for kart,r in records do
