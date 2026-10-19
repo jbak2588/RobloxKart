@@ -1054,6 +1054,43 @@ beforeTap=#item._p.calls;itemHud.Smoke.Activated:Fire()
 check(#item._p.calls==beforeTap+1 and item._p.calls[#item._p.calls][1]=="UseItem" and item._p.calls[#item._p.calls][2]=="Smoke","loaded image preserves atomic direct-use")
 itemHud:Destroy();player:SetAttribute("RaceCombatFeedbackSerial",1000);tick()
 check(not result.Parent and not edge.Parent,"HUD destruction disconnects result and effect listeners")
+-- Exercise the real Lobby branch through the real digital-pad adapter, not
+-- just Race KartControl: periodic sends must survive the .5s Lobby timeout.
+if not legacy then
+ui.TouchEnabled=true;ui.PreferredInput=rb.Enum.PreferredInput.Touch
+focused=nil;services.GuiService.MenuIsOpen=false
+ui.WindowFocused:Fire()
+player:SetAttribute("RaceState","GARAGE")
+player.UserId=123;humanoid.Health=100;humanoid.SeatPart=seat
+seat:SetAttribute("PrototypeKartSeat",false);seat:SetAttribute("LobbyKartSeat",true)
+kart:SetAttribute("LobbyOwnerUserId",123);kart:SetAttribute("RaceControlsLocked",false)
+player:SetAttribute("LobbyDriveActive",true)
+local lobbyCalls={}
+input.setLobbyInputSender(function(...)table.insert(lobbyCalls,table.pack(...))end)
+player.CharacterAdded:Fire(character)
+tick()
+local heldForward=touch(root.Forward)
+local function lobbyLatest()return lobbyCalls[#lobbyCalls]end
+check(lobbyLatest() and lobbyLatest()[1]==1,"Lobby digital Forward reaches Lobby transport")
+for i=1,24 do
+ local previous=#lobbyCalls;tick()
+ check(#lobbyCalls==previous+1 and lobbyLatest()[1]==1,"held Lobby throttle refreshed past server timeout")
+end
+local heldTurn=touch(root.ForwardLeft);local heldDrift=touch(drift)
+check(lobbyLatest()[1]==1 and lobbyLatest()[2]==-1 and lobbyLatest()[3],"Lobby turn and Drift transported")
+heldDrift.UserInputState=rb.Enum.UserInputState.End;tick()
+check(not lobbyLatest()[3] and lobbyLatest()[2]==-1,"Lobby Drift release preserves steering")
+heldTurn.UserInputState=rb.Enum.UserInputState.End;heldForward.UserInputState=rb.Enum.UserInputState.End;tick()
+check(lobbyLatest()[1]==0 and lobbyLatest()[2]==0,"Lobby pad release sends neutral")
+local heldBrake=touch(root.BrakeReverse)
+check(lobbyLatest()[1]==-1,"Lobby reverse transported")
+ui.WindowFocusReleased:Fire()
+check(lobbyLatest()[1]==0 and lobbyLatest()[2]==0 and not lobbyLatest()[3],"Lobby focus loss forces neutral")
+heldBrake.UserInputState=rb.Enum.UserInputState.End
+player:SetAttribute("LobbyDriveActive",false);input.setLobbyInputSender(nil)
+seat:SetAttribute("PrototypeKartSeat",true);seat:SetAttribute("LobbyKartSeat",false)
+player:SetAttribute("RaceState","RACING");ui.WindowFocused:Fire()
+end
 player.CharacterAdded:Fire(character)
 hold(); gui:Destroy(); sharedGui:Destroy(); neutral("destroyed GUI"); check(defaultGui.Enabled,"destroy restores stock controls")
 check(not gauge.Visible and not diagnostic.Visible,"GUI destruction clears charge display")

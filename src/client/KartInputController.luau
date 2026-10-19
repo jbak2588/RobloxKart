@@ -135,11 +135,11 @@ function KartInputController.start()
 
 	local function sendInput(force: boolean, neutral: boolean?)
 		if lobbySender and KartInputController.isLobbyDriving() then
-			if force then
-				local throttle, steering, drift = getInputAxes()
-				lobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift)
-				timeSinceSend = 0
-			end
+			-- Lobby has its own timeout-based transport. Heartbeat calls are not
+			-- forced: still send held touch/keyboard axes before the server timeout.
+			local throttle, steering, drift = getInputAxes()
+			lobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift)
+			timeSinceSend = 0
 			return
 		end
 		local driving = isDrivingPrototypeKart()
