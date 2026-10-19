@@ -92,6 +92,13 @@ local modules = {
 	end },
 }
 local background = {}
+local driveStops, onDriveStop = {}, nil
+modules.LobbyTestDriveService = {stop=function(player,reason,returnToHub)
+	table.insert(driveStops,{player=player,reason=reason,returnToHub=returnToHub})
+	if onDriveStop then onDriveStop(player) end
+	player:SetAttribute('LobbyDriveActive',false);player:SetAttribute('LobbyDrivePending',false)
+	return true,false
+end}
 local waits = 0
 local environment = {
 	game = { JobId = "hub-job", PlaceId = 123,
@@ -108,7 +115,8 @@ local environment = {
 		end
 		return remote
 	end },
-	script = { Parent = { WaitForChild = function(_, name) return { Name = name } end } },
+	script = { Parent = { WaitForChild = function(_, name) return { Name = name } end,
+		FindFirstChild=function(_,name)return if name=='LobbyTestDriveService'then {Name=name}else nil end } },
 	require = function(module) return assert(modules[module.Name], module.Name) end,
 	warn = print,
 }
@@ -257,4 +265,39 @@ check(nextHard.trackId=="Track03" and nextHard.roomId==hardRoom and nextHard.sta
  and nextHard.stagedMembers[3].userId==k.UserId,"Hard rematch preserves room and invited/public queue ordering")
 waits=0;pcall(background[1])
 check(launches[#launches].payload.trackId=="Track03","promoted Hard queue retains authoritative track at launch")
+-- One acceptance must survive seat cleanup without a Lobby arrival or second click.
+local inviteHost,drivingGuest=racer(30),racer(31)
+browse(inviteHost);action(inviteHost,'Create')
+local inviteRoom=launches[#launches].payload.roomId
+social:sendInvite(drivingGuest.UserId,directory:get(inviteRoom))
+drivingGuest:SetAttribute('LobbyDriveActive',true)
+drivingGuest:SetAttribute('HubArrivalSerial',4)
+local launchBefore=#launches
+onDriveStop=function(player)
+ check(not Service.canTestDrive(player),'in-flight invitation cannot restart Test Drive')
+ action(player,'AcceptInvite','Driver01','Kart01') -- reentrant while stop is yielding
+ check(#launches==launchBefore,'duplicate Join waits for in-flight cleanup')
+end
+action(drivingGuest,'AcceptInvite','Driver01','Kart01');onDriveStop=nil
+check(#driveStops==1 and driveStops[1].returnToHub==false,'invited Test Drive exits without Lobby return')
+check(#launches==launchBefore+1 and launches[#launches].payload.roomId==inviteRoom,'single Join launches exact invited room')
+check(drivingGuest:GetAttribute('HubArrivalSerial')==4,'invite handoff does not create another Lobby arrival')
+check(drivingGuest:GetAttribute('KDMRoutePending')=='RACE_LAUNCH','single acceptance enters transport state')
+local expired=racer(32);expired:SetAttribute('LobbyDriveActive',true)
+action(expired,'AcceptInvite','Driver01','Kart01')
+check(#driveStops==1 and expired:GetAttribute('LobbyDriveActive'),'missing invitation does not eject Test Drive')
+local lateGuest=racer(33);lateGuest:SetAttribute('LobbyDriveActive',true)
+social:sendInvite(lateGuest.UserId,directory:get(inviteRoom))
+onDriveStop=function()
+	local record=directory:get(inviteRoom)
+	for _,m in record.stagedMembers do
+		directory:confirmArrival(inviteRoom,m.userId,m.admissionToken,'invite-race-job')
+	end
+	assert(directory:startRound(inviteRoom,inviteHost.UserId))
+end
+action(lateGuest,'AcceptInvite','Driver01','Kart01');onDriveStop=nil
+local changedRoom=directory:get(inviteRoom)
+check(changedRoom.state=='STARTING'and #changedRoom.queued==1
+	and changedRoom.queued[1].userId==lateGuest.UserId and changedRoom.queued[1].priority==1,
+	'host start during cleanup automatically queues accepted invite without second Join')
 print(string.format("PASS: %d persistent MatchRoom service checks", count))

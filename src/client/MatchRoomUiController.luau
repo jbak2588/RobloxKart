@@ -209,7 +209,7 @@ function MatchRoomUiController.start()
   guidance.Text = GuidanceState.roomHelper(snapshot, player.UserId)
   guidance.Visible = pendingAction == nil and invitation == nil and snapshot ~= nil and snapshot.room ~= nil
    and player:GetAttribute("RaceState") == "GARAGE"
-		gui.Enabled = ((snapshot and snapshot.visible == true) or invitation ~= nil)
+		gui.Enabled = ((snapshot and snapshot.visible == true) or invitation ~= nil or pendingAction ~= nil)
 			and player:GetAttribute("KDMRoutePending") ~= "RACE_LAUNCH"
    and player:GetAttribute("RaceState") == "GARAGE"
 		if not gui.Enabled then createView.close();return end
@@ -228,12 +228,11 @@ function MatchRoomUiController.start()
 		back.Active = true
 		if invitation and (not snapshot or not snapshot.room) then
 			title.Text = "RACE INVITE"
-			status.Text = string.format("%s invited you to",invitation.hostName)
+			status.Text = errorMessage or string.format("%s invited you to",invitation.hostName)
 			row(Titles.publicTitle(invitation),nil,nil,string.format("RACERS %d / %d",invitation.count,invitation.maxPlayers),true)
 			bindButtons(if invitation.state == "WAITING" and invitation.count < invitation.maxPlayers
 				then "JOIN" else "QUEUE NEXT", function()
 				send("AcceptInvite", player:GetAttribute("SelectedDriverId"), player:GetAttribute("SelectedKartId"))
-				invitation = nil
 			end, "DECLINE", function() remote:FireServer("DeclineInvite"); invitation = nil; render() end)
 			return
 		end
@@ -306,11 +305,15 @@ function MatchRoomUiController.start()
 			local completed = ((pendingAction == "Queue"or pendingAction=='QuickPlay') and (data.room ~= nil or data.visible==false))
 				or (pendingAction=='Browse'or pendingAction=='BrowseAll')
 				or (pendingAction == "CancelQueue" and data.room == nil)
-				or ((pendingAction == "Create" or pendingAction == "Join"or pendingAction=='Practice'
-					or pendingAction == "AcceptInvite") and (data.visible == false or data.room ~= nil))
-			if completed then pendingAction = nil; pendingSerial += 1 end
+				or ((pendingAction == "Create" or pendingAction == "Join"or pendingAction=='Practice') and (data.visible == false or data.room ~= nil))
+				or (pendingAction == "AcceptInvite" and data.room ~= nil)
+			if completed then
+				if pendingAction == "AcceptInvite" then invitation = nil end
+				pendingAction = nil; pendingSerial += 1
+			end
 			render()
-		elseif action == "Invite" then invitation = data; render()
+		elseif action == "Invite" then
+			if pendingAction ~= "AcceptInvite" then invitation = data; render() end
 		elseif action == "Error" then
 			pendingAction = nil; pendingSerial += 1
 			errorMessage = tostring(data)

@@ -26,6 +26,7 @@ local social = RoomSocialDirectory.new(
 local browsing, selections, membership, launched, creating = {}, {}, {}, {}, {}
 local cachedRooms, remote, started, directoryStale = {}, nil, false, false
 local globalBrowsing,quickBusy={},{}
+local acceptingInvite = {}
 
 local function eligible(player)
 	return player and player.Parent == Players and player:GetAttribute("RaceState") == "GARAGE"
@@ -262,12 +263,12 @@ local function createRoom(player,mode,value,privatePractice,firstRaceOnly)
 end
 
 function MatchRoomService.canTestDrive(player)
- return eligible(player) and not browsing[player.UserId] and not membership[player.UserId] and not creating[player.UserId]
+ return eligible(player) and not acceptingInvite[player.UserId] and not browsing[player.UserId] and not membership[player.UserId] and not creating[player.UserId]
 end
-local function stopLobbyDrive(player, reason)
+local function stopLobbyDrive(player, reason, returnToHub)
  if player:GetAttribute("LobbyDriveActive") ~= true and player:GetAttribute("LobbyDrivePending") ~= true then return end
  local module = script.Parent:FindFirstChild("LobbyTestDriveService")
- if module then require(module).stop(player, reason, true) end
+ if module then return require(module).stop(player, reason, returnToHub ~= false) end
 end
 function MatchRoomService.openBrowser(player, driverId, kartId, trackId,allTracks)
 	if not eligible(player) or membership[player.UserId] or creating[player.UserId] or not choose(player, driverId, kartId, trackId) then return false end
@@ -370,7 +371,8 @@ function MatchRoomService.start()
 	remote.Name = "MatchRoomControl"
 	remote.Parent = ReplicatedStorage
 	remote.OnServerEvent:Connect(function(player, action, first, second, third)
-		if action == "Create" or action == "Join" or action == "Queue" or action == "AcceptInvite" then
+		if acceptingInvite[player.UserId] then return end
+		if action == "Create" or action == "Join" or action == "Queue" then
 			stopLobbyDrive(player, "room_action")
 		end
 		local own = membership[player.UserId]
@@ -424,18 +426,36 @@ function MatchRoomService.start()
 			refresh()
 		elseif action == "AcceptInvite" then
 			if own or creating[player.UserId] or not eligible(player) then return end
-			local ok, invite = pcall(function() return social:getInvite(player.UserId) end)
-			if not ok or not invite then errorTo(player, "INVITE EXPIRED"); return end
-			local found, record = pcall(function() return directory:get(invite.roomId) end)
-			if not found or not record or record.hostUserId ~= invite.hostUserId
-				or record.trackId ~= invite.trackId or not publicTrack(invite.trackId) then
-				errorTo(player, "INVITE EXPIRED"); return
+			acceptingInvite[player.UserId] = true
+			local processed, failure = pcall(function()
+				local ok, invite = pcall(function() return social:getInvite(player.UserId) end)
+				if not ok or not invite then errorTo(player, "INVITE EXPIRED"); return end
+				local found, record = pcall(function() return directory:get(invite.roomId) end)
+				if not found or not record or record.hostUserId ~= invite.hostUserId
+					or record.trackId ~= invite.trackId or not publicTrack(invite.trackId) then
+					errorTo(player, "INVITE EXPIRED"); return
+				end
+				if not choose(player, first, second, invite.trackId) then errorTo(player, "KART SELECTION UNAVAILABLE");return end
+				-- Release the kart/seat once, without a Lobby spawn or arrival popup.
+				-- This yields while seat ownership settles, so retain the acceptance lock.
+				local stopped = stopLobbyDrive(player, "accept_invite", false)
+				if stopped == false or not eligible(player) then
+					errorTo(player, "COULD NOT LEAVE TEST DRIVE - PLEASE TRY AGAIN");return
+				end
+				-- The host may have started or filled the room during seat cleanup.
+				found, record = pcall(function() return directory:get(invite.roomId) end)
+				if not found or not record or record.hostUserId ~= invite.hostUserId
+					or record.trackId ~= invite.trackId then errorTo(player, "INVITE EXPIRED");return end
+				pcall(function() social:respondInvite(player.UserId,invite,'ACCEPTED') end)
+				if record.state == "WAITING" and #record.stagedMembers + #(record.stagedBots or {}) < record.maxPlayers then
+					stagePlayer(player, record.roomId)
+				else queuePlayer(player, record.roomId, 1) end
+			end)
+			acceptingInvite[player.UserId] = nil
+			if not processed then
+				warn("[KDMRoom] invite acceptance failed: " .. tostring(failure))
+				errorTo(player, "RACE ENTRY UNAVAILABLE - PLEASE TRY AGAIN")
 			end
-			if not choose(player, first, second, invite.trackId) then return end
-			pcall(function() social:respondInvite(player.UserId,invite,'ACCEPTED') end)
-			if record.state == "WAITING" and #record.stagedMembers + #(record.stagedBots or {}) < record.maxPlayers then
-				stagePlayer(player, record.roomId)
-			else queuePlayer(player, record.roomId, 1) end
 		elseif action == "DeclineInvite" then
 			pcall(function()
 				local invite=social:getInvite(player.UserId)
@@ -457,6 +477,7 @@ function MatchRoomService.start()
 		selections[player.UserId], launched[player.UserId] = nil, nil
 		creating[player.UserId] = nil
 		globalBrowsing[player.UserId]=nil
+		acceptingInvite[player.UserId]=nil
 	end)
 
 	task.spawn(function()
@@ -481,7 +502,7 @@ function MatchRoomService.start()
 					end
 				end
 				local ok, invite = pcall(function() return social:getInvite(player.UserId) end)
-				if ok and invite and not membership[player.UserId] and eligible(player) then
+				if ok and invite and not acceptingInvite[player.UserId] and not membership[player.UserId] and eligible(player) then
 					local record = findCached(invite.roomId)
 					if record and record.hostUserId == invite.hostUserId then
 						remote:FireClient(player, "Invite", { roomId = invite.roomId,
