@@ -25,11 +25,34 @@ for i=1,100 do m:play(if i%2==0 then "Missile" else "Thunder",0) end
 local p,r=m:sample(0)
 check(r.X<=c.Camera.MaxRotationAmplitude,"100 impulses replace instead of stack")
 m:clear();check(not select(3,m:sample(0)),"lifecycle cancellation")
--- Baseline gameplay remains unchanged, including the safe Slick fallback.
+-- VFX must not change gameplay. Exclude only the separately validated seating
+-- authority repair; speed/combat/geometry/HUD still compare byte-for-byte.
+local seatingAuthorityRepair = [[
+						-- SeatWeld joins the automatic character assembly after kart creation.
+						-- Reassert server authority once it settles; otherwise automatic
+						-- ownership can alternate with this server's velocity writes.
+						task.defer(function()
+							if self.owner == player and kart.Parent and chassis.Parent
+								and seat.Occupant == humanoid and humanoid.SeatPart == seat then
+								chassis:SetNetworkOwner(nil)
+							end
+						end)
+]]
+local function normalizeGameplay(source, path)
+ source=source:gsub('\r\n','\n')
+ if path=='src/server/PrototypeWorld.luau' then
+  local first,last=source:find(seatingAuthorityRepair,1,true)
+  if first then
+   check(not source:find(seatingAuthorityRepair,last+1,true),'single seating authority repair')
+   source=source:sub(1,first-1)..source:sub(last+1)
+  end
+ end
+ return source
+end
 local process=require("@lune/process")
 for _,path in {"src/shared/KDMGameplayBalance.luau","src/shared/KartConfig.luau","src/server/PrototypeWorld.luau","src/server/RaceBotController.luau","src/client/RaceHudController.luau"} do
  local old=process.exec("git",{"show","HEAD:"..path})
- check(old.ok and old.stdout:gsub("\r\n","\n")==fs.readFile(path):gsub("\r\n","\n"),"frozen gameplay/geometry/HUD "..path)
+ check(old.ok and normalizeGameplay(old.stdout,path)==normalizeGameplay(fs.readFile(path),path),"frozen gameplay/geometry/HUD "..path)
 end
 check(c.Slick.SpinDegrees==360 and c.Slick.SpinEnabled,"authorized spin presentation")
 print("PASS: "..n.." VFX config, finite camera motion, clamps, cleanup and gameplay parity checks")

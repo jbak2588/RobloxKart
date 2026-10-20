@@ -90,6 +90,7 @@ services.HttpService={GenerateGUID=function()
  identitySerial+=1;return string.format("12345678-1234-1234-1234-%012d",identitySerial)
 end}
 local environment={
+	task={defer=function(callback, ...) callback(...) end},
 	Instance={new=object}, Vector2=rb.Vector2, Vector3=V, CFrame=CF, Color3=rb.Color3, Enum=rb.Enum,
 	PhysicalProperties={new=function() return {} end},
 	game={GetService=function(_,name) return assert(services[name]) end},

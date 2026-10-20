@@ -85,6 +85,7 @@ local server=object("Folder","Server")
 local modules={}
 local now=0
 local environment={
+	task={defer=function(callback, ...) callback(...) end},
 	Vector2=rb.Vector2,
 	Instance={new=object}, Vector3=V, CFrame=CF, Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence, Enum=rb.Enum,
 	PhysicalProperties={new=function() return {} end},

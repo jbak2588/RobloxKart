@@ -1317,6 +1317,15 @@ function PrototypeWorld.start(options)
 					local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 					if humanoid and seat.Occupant == humanoid then
 						if not driverCollisionBinding then bindDriverCollision(player) end
+						-- SeatWeld joins the automatic character assembly after kart creation.
+						-- Reassert server authority once it settles; otherwise automatic
+						-- ownership can alternate with this server's velocity writes.
+						task.defer(function()
+							if self.owner == player and kart.Parent and chassis.Parent
+								and seat.Occupant == humanoid and humanoid.SeatPart == seat then
+								chassis:SetNetworkOwner(nil)
+							end
+						end)
 					else
 						restoreDriverCollision()
 					end
