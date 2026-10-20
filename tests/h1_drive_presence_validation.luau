@@ -4,17 +4,12 @@ local nodes=require('./helpers/practice_ui_nodes')
 local checks=0
 local function check(v,m) checks+=1;assert(v,m) end
 local zone=nodes.object('Model')
-local sign=nodes.object('Part');sign.Name='LobbyDriveDiscovery';sign.Parent=zone
-local labels={nodes.object('TextLabel'),nodes.object('TextLabel'),nodes.object('TextLabel'),nodes.object('TextLabel')}
-for i,label in labels do label.Name=if i%2==1 then 'DrivingCount' else 'DriveHint' end
-function sign:GetDescendants() return labels end
-for _,label in labels do function label:IsA(c)return c=='TextLabel' end end
 local writes=0;local set=zone.SetAttribute
 function zone:SetAttribute(k,v) writes+=1;set(self,k,v) end
 local records={}
 local view=Presence.new(zone,records)
 check(zone:GetAttribute('LobbyDrivePlayerCount')==0,'empty HUB publishes zero')
-check(labels[1].Text=='LIVE TEST DRIVE' and labels[2].Text=='WATCH THE DEMO · TRY DRIVING','zero shows demo without counting bot')
+check(Presence.count(records,zone)==0,'demo and showroom models are not service records')
 local players={}
 for i=1,4 do
  local p=nodes.object('Player');p.Parent=nodes.object('Players');p.Character={Parent={}}
@@ -24,7 +19,7 @@ for i=1,4 do
  players[i]=p;records[p]=r;view:refresh()
  check(zone:GetAttribute('LobbyDrivePlayerCount')==i,'independent human admission '..i)
 end
-check(labels[1].Text=='4 PLAYERS DRIVING' and labels[2].Text=='JOIN THE ACTION','plural and joining cue')
+check(Presence.count(records,zone)==4,'four authoritative humans remain counted without a sign')
 local stableWrites=writes
 local begin=os.clock()
 for _=1,10000 do view:refresh() end
@@ -48,7 +43,7 @@ for _,invalidate in {
  restore();view:refresh();check(zone:GetAttribute('LobbyDrivePlayerCount')==4,'valid re-entry counted')
 end
 for i=4,2,-1 do records[players[i]]=nil;view:refresh()end
-check(labels[3].Text=='1 PLAYER DRIVING' and labels[4].Text=='JOIN THE ACTION','late observer receives current singular state on both replicated sign faces')
+check(zone:GetAttribute('LobbyDrivePlayerCount')==1,'remaining authoritative human count is preserved')
 records[p]=nil;view:refresh()
 check(zone:GetAttribute('LobbyDrivePlayerCount')==0,'all departures return zero')
 local service=fs.readFile('src/server/LobbyTestDriveService.luau')

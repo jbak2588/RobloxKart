@@ -91,32 +91,6 @@ function Builder.build(hub,ground)
  zone:SetAttribute("EntryRailLine",railLine);zone:SetAttribute("EntryLobbyLine",lobbyLine)
  local prompt=Instance.new("ProximityPrompt");prompt.ActionText="TEST DRIVE";prompt.ObjectText=""
  prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
- -- Freestanding two-sided wayfinding beside the ramp, outside its 12-stud opening.
- local signFrame=CFrame.new(spawn.Position.X-11,top+4.9,lobbyLine-19)
- part("LobbyDriveSignFrame",Vector3.new(9.04,3.54,.18),signFrame,Color3.fromRGB(65,117,129),false)
- part("LobbyDriveSignPost",Vector3.new(.3,3.35,.3),
-  CFrame.new(spawn.Position.X-11,top+1.675,lobbyLine-19),Color3.fromRGB(65,77,82),false)
- part("LobbyDriveSignBase",Vector3.new(1.6,.15,1),
-  CFrame.new(spawn.Position.X-11,top+.075,lobbyLine-19),Color3.fromRGB(65,77,82),false)
- local discovery=part("LobbyDriveDiscovery",Vector3.new(8.8,3.3,.24),signFrame,Color3.fromRGB(16,25,35),false)
- discovery.Transparency=.08
- for _,face in {Enum.NormalId.Front,Enum.NormalId.Back} do
-  local surface=Instance.new("SurfaceGui");surface.Name="DrivePresence"
-  surface.Face=face;surface.CanvasSize=Vector2.new(640,240);surface.LightInfluence=0
-  surface.AlwaysOnTop=false;surface.MaxDistance=100;surface.Parent=discovery
-  local label=Instance.new("TextLabel");label.Name="DrivingCount"
-  label.Size=UDim2.fromScale(.94,.48);label.Position=UDim2.fromScale(.03,.13)
-  label.BackgroundTransparency=1;label.BorderSizePixel=0
-  label.Text="LIVE TEST DRIVE"
-  label.TextColor3=Color3.fromRGB(111,211,245);label.Font=Enum.Font.GothamBold
-  label.TextSize=58;label.AutoLocalize=false;label.Parent=surface
-  local hint=label:Clone();hint.Name="DriveHint";hint.Position=UDim2.fromScale(.03,.62)
-  hint.Size=UDim2.fromScale(.94,.24);hint.TextSize=34;hint.Font=Enum.Font.GothamMedium
-  hint.TextColor3=Color3.fromRGB(239,245,247);hint.Text="WATCH THE DEMO · TRY DRIVING";hint.Parent=surface
-  local accent=Instance.new("Frame");accent.Name="CyanAccent";accent.BorderSizePixel=0
-  accent.Size=UDim2.fromScale(.88,.018);accent.Position=UDim2.fromScale(.06,.06)
-  accent.BackgroundColor3=Color3.fromRGB(111,211,245);accent.Parent=surface
- end
  local anchor=part("LobbyFrontDriveStart",Vector3.one,frame(-100,1.75,Policy.Radius)*CFrame.Angles(0,-math.pi/2,0),Color3.new(),false)
  anchor.Transparency=1
  -- Back-up protection of nearby plate edges affects Lobby karts only, not race vehicles/walkers.

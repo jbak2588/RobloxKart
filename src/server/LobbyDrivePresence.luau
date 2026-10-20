@@ -23,17 +23,6 @@ function Presence.new(zone, records)
   if count == last then return end
   last = count
   zone:SetAttribute("LobbyDrivePlayerCount", count)
-  local sign = zone:FindFirstChild("LobbyDriveDiscovery")
-  if sign then
-   for _, label in sign:GetDescendants() do
-    if label:IsA("TextLabel") and label.Name == "DrivingCount" then
-     label.Text = if count == 0 then "LIVE TEST DRIVE" else string.format("%d %s DRIVING", count,
-      if count == 1 then "PLAYER" else "PLAYERS")
-    elseif label:IsA("TextLabel") and label.Name == "DriveHint" then
-     label.Text = if count == 0 then "WATCH THE DEMO · TRY DRIVING" else "JOIN THE ACTION"
-    end
-   end
-  end
  end
  view:refresh()
  return view

@@ -49,25 +49,9 @@ for _,o in zone:GetChildren() do if o:IsA('BasePart') then
 end end
 check(roads>150 and roads<350 and kerbs>100 and barriers>100,'bounded native part counts')
 local entry=zone.LobbyFrontDriveEntry
-local sign=zone.LobbyDriveDiscovery
-check((sign.Size-rb.Vector3.new(8.8,3.3,.24)).Magnitude<1e-5,'physical two-line sign dimensions')
-check(sign.CFrame.Position.X+sign.Size.X/2<entry.CFrame.Position.X-entry.Size.X/2,'sign leaves full 12-stud pedestrian passage clear')
-check(sign.CFrame.Position.Z==spawn.Position.Z-38 and sign.CFrame.Position.Y>4,'standing sign beside ramp instead of low garage opening')
 for _,name in {'LobbyDriveDiscovery','LobbyDriveSignFrame','LobbyDriveSignPost','LobbyDriveSignBase'} do
- local o=zone:FindFirstChild(name)
- check(o.Anchored and not o.CanCollide and not o.CanTouch and not o.CanQuery and not o.CastShadow,'noninteractive sign assembly '..name)
+ check(zone:FindFirstChild(name)==nil,'server-local discovery sign removed: '..name)
 end
-local faces=0
-for _,surface in sign:GetChildren() do
- if surface:IsA('SurfaceGui') then
-  faces+=1
-  check(not surface.AlwaysOnTop and surface.MaxDistance==100,'bounded physical surface rendering')
-  check(surface.DrivingCount.Text=='LIVE TEST DRIVE' and surface.DriveHint.Text=='WATCH THE DEMO · TRY DRIVING','initial zero title and demo invitation on both faces')
-  check(surface.DrivingCount.TextSize>=58 and surface.DriveHint.TextSize>=34,'separate readable title and subtitle typography')
-  check(surface.DrivingCount.AutoLocalize==false and surface.DriveHint.AutoLocalize==false,'approved English wayfinding')
- end
-end
-check(faces==2,'interior and exterior faces present')
 check(entry.Size.X==12 and not entry.CanCollide and zone:GetAttribute('EntryRailLine')==836,'walkway reaches new inner cyan edge')
 check(g.inside(zone.LobbyFrontDriveStart.CFrame.Position.X-center.X,zone.LobbyFrontDriveStart.CFrame.Position.Z-center.Z,7),'unchanged start stays safe')
 check(rails>300 and zone:GetAttribute('PermanentSkidMarkCount')==0,'guardrails restored around both perimeters, no baked skids')

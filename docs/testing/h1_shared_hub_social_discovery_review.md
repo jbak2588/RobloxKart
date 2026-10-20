@@ -1,5 +1,9 @@
 # H1-FINAL Shared HUB Test Drive Social Discovery — final review
 
+> **사용자 후속 수정 — 2026-10-20:** 현재 공유 시승장은 같은 HUB 서버에 연결된 이용자만 공유하며, 여러 HUB 서버의 이용자를 한곳에 모으는 구조가 아니다. 요청에 따라 `DEMO · NOT A PLAYER` 배지와 `LIVE TEST DRIVE` 안내판 전체(판면·프레임·기둥·받침), 안내판 텍스트 갱신을 제거했다. 기존 시승·내부 인원 집계·카메라·데모 주행·효과 메시지·키오스크·TEST DRIVE 버튼은 보존했다. 아래 표지/배지 설명과 캡처는 제거 전 검증 이력이다. `C:/dev/KDM_H1_Final.rbxl` 및 `.rbxlx`는 제거된 상태로 다시 생성한다. Publish는 수행하지 않는다.
+
+후속 제거 검증: Presence 33, 서비스 통합 27, builder 4593, demo 391410, driving polish 39551, showroom 38, wall/qualification 73 checks PASS. Production 197개 컴파일, Rojo 두 형식 빌드, diff 검사 PASS. 격리 Studio(GameId/PlaceId=0)에서 안내판 네 부품 및 DemoIdentity 미생성, 데모 모델·기존 TEST DRIVE Prompt 유지 확인. 이번 제거에서는 관련 7 suites를 재실행했으며, 아래 204 suites 결과는 직전 H1-FINAL 전체 실행 이력이다.
+
 기준: `prototype/kart-physics`, Local/Origin HEAD 모두 `fbf334e15aec62d8d3834c2d5589c43e30fee235`. 최종 작업 시작 시 origin을 fetch하고 HEAD 일치를 확인했다. 기존 H1 미커밋 파일 12개를 ZIP으로 보존한 뒤 최소 수정했다. 사용자는 검증 후 H1만 Commit / Push하도록 승인했다. **Roblox Publish는 금지되어 수행하지 않는다.**
 
 ## 구현
