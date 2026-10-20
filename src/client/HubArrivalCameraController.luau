@@ -25,7 +25,10 @@ function HubArrivalCameraController.start()
     local camera = Workspace.CurrentCamera
     if spawn and root and humanoid and camera and not humanoid.SeatPart
      and (root.Position - (spawn.Position + Vector3.new(0, 3, 0))).Magnitude < 5 then
-     local forward = spawn.CFrame.LookVector
+     local zone = hub:FindFirstChild("LobbyFrontTestDriveZone")
+     local entry = zone and zone:FindFirstChild("LobbyFrontDriveEntry")
+     local toward = entry and Vector3.new(entry.Position.X-root.Position.X, 0, entry.Position.Z-root.Position.Z)
+     local forward = if toward and toward.Magnitude > 1 then toward.Unit else spawn.CFrame.LookVector
      local focus = root.Position + forward * 20 + Vector3.new(0, 1, 0)
      camera.CameraType = Enum.CameraType.Custom
      camera.CameraSubject = humanoid

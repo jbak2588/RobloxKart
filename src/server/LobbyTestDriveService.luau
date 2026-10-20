@@ -12,11 +12,13 @@ local Factory=require(Shared:WaitForChild("KartVisualFactory"))
 local Drift=require(script.Parent.LobbyDriftSession)
 local Practice=require(script.Parent.LobbyPracticeCombat)
 local Qualification=require(script.Parent.TestDriveQualification)
+local Presence=require(script.Parent.LobbyDrivePresence)
 local Service={}
 local records,generations,bindings,lastRequest={},{},{},{}
 local closing={}
 local started,remote,zone,canEnter=false,nil,nil,nil
 local practice
+local presence
 local function generation(player)
  generations[player]=(generations[player] or 0)+1
  player:SetAttribute("LobbyDriveGeneration",generations[player]);return generations[player]
@@ -72,6 +74,7 @@ function Service.stop(player,reason,returnToHub)
  records[player]=nil;generation(player)
  record.throttle,record.steering,record.speed=0,0,0
  player:SetAttribute("LobbyDrivePending",true);player:SetAttribute("LobbyDriveActive",false)
+ if presence then presence:refresh() end
  if record.destroying then record.destroying:Disconnect() end
  if record.occupantConnection then record.occupantConnection:Disconnect() end
  if record.kart.Parent then
@@ -182,12 +185,14 @@ local function drive(player,previewKartId)
  end
  record.seated=true;if practice then practice:add(player,record)end;player:SetAttribute("LobbyDriveKartId",definition.Id)
  player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)
+ if presence then presence:refresh() end
  return true
 end
 function Service.start(driveZone,eligibility)
  if started then return end
  if not driveZone or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true) then return end
  started,zone,canEnter=true,driveZone,eligibility
+ presence=Presence.new(zone,records)
  Service.configureCollision()
  practice=Practice.new(zone,records)
  remote=Instance.new("RemoteEvent");remote.Name="LobbyDriveControl";remote.Parent=ReplicatedStorage

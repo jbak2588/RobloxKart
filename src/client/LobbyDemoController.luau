@@ -83,6 +83,11 @@ function Controller.start()
   local badge=Instance.new('BillboardGui');badge.Name='PracticeBotFeedback';badge.Size=UDim2.fromOffset(190,32);badge.StudsOffset=Vector3.new(0,6,0);badge.AlwaysOnTop=false;badge.Parent=root
   local label=Instance.new('TextLabel');label.Size=UDim2.fromScale(1,1);label.BackgroundColor3=Color3.fromRGB(16,25,35);label.BackgroundTransparency=.15
   label.TextColor3=Color3.fromRGB(65,225,245);label.TextSize=15;label.Font=Enum.Font.GothamBold;label.BorderSizePixel=0;label.Parent=badge
+  local demoBadge=badge:Clone();demoBadge.Name='DemoIdentity'
+  -- Fixed screen-space gap keeps identity above effect feedback at every distance.
+  demoBadge.SizeOffset=Vector2.new(0,1.125)
+  demoBadge.MaxDistance=100;demoBadge.Parent=root
+  demoBadge:FindFirstChildOfClass('TextLabel').Text='DEMO · NOT A PLAYER'
   boostVisuals=Exhaust.createBoostVisuals(visual)
   local visualDrift=0
   local function step(dt)
