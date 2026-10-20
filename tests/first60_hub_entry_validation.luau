@@ -22,7 +22,7 @@ check(not state.visited, "1. Initial session is not visited")
 local p = stateModule.presentation(state, rb.Vector2.new(1280, 720), "GARAGE", false, nil, false)
 check(p.visible == true, "1. Guidance card visible on initial HUB entry")
 check(p.button == "RACE NOW", "1. Primary CTA is RACE NOW")
-check(p.secondaryButton == "TEST DRIVE" or p.secondaryButton == "FREE TEST DRIVE", "2. Secondary CTA is TEST DRIVE")
+check(p.secondaryButton == "TEST DRIVE", "2. Secondary CTA is TEST DRIVE")
 check(p.heading == "YOUR KART IS READY!", "1. Heading is YOUR KART IS READY!")
 check(p.message == "Race against real players or a rookie bot.", "1. Subtitle clarifies real players or rookie bot")
 
@@ -81,7 +81,7 @@ check(view.testDriveButton ~= nil, "2. Secondary button exists")
 
 view.update(p)
 check(view.button.Text == "RACE NOW", "1. Primary button displays RACE NOW")
-check(view.testDriveButton.Text == "TEST DRIVE" or view.testDriveButton.Text == "FREE TEST DRIVE", "2. Secondary button displays TEST DRIVE")
+check(view.testDriveButton.Text == "TEST DRIVE", "2. Secondary button displays TEST DRIVE")
 
 -- Test activations
 view.button.Activated:Fire()
@@ -150,8 +150,8 @@ check(view.testDriveButton.TextColor3 == rb.Color3.fromRGB(111, 211, 245), "T4. 
 -- Compact layout text sizes
 local compactPres = stateModule.presentation(state, rb.Vector2.new(640, 230), "GARAGE", false, nil, false)
 view.update(compactPres)
-check(view.button.TextSize == 14, "T4. Compact RACE NOW uses 14px legible text")
-check(view.testDriveButton.TextSize >= 12 and view.testDriveButton.TextSize <= 14, "T4. Compact TEST DRIVE uses legible text")
+check(view.button.TextSize == 16, "T4. Compact RACE NOW uses 16px legible text")
+check(view.testDriveButton.TextSize == 16, "T4. Compact TEST DRIVE uses legible text")
 check(view.button.TextStrokeTransparency == 1 and view.testDriveButton.TextStrokeTransparency == 1, "T4. Compact mode retains clean unoutlined text")
 
 -- TASK 5: Scenario tests (1-12)
@@ -163,7 +163,7 @@ check(schemaModule ~= nil, "T5. Progression schema loaded")
 local unactivatedState = stateModule.new()
 check(unactivatedState.context == "HUB", "T5. Unactivated returning user starts with HUB context")
 local unactivatedPres = stateModule.presentation(unactivatedState, rb.Vector2.new(1280, 720), "GARAGE", false, nil, false)
-check(unactivatedPres.button == "RACE NOW" and (unactivatedPres.secondaryButton == "TEST DRIVE" or unactivatedPres.secondaryButton == "FREE TEST DRIVE"), "T5. Unactivated returning user sees RACE NOW and TEST DRIVE")
+check(unactivatedPres.button == "RACE NOW" and unactivatedPres.secondaryButton == "TEST DRIVE", "T5. Unactivated returning user sees RACE NOW and TEST DRIVE")
 
 -- S6: Returning active user (restored profile)
 local activeState = stateModule.new()

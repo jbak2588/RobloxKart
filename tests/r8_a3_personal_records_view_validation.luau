@@ -13,7 +13,7 @@ local response={status='FOUND',records={scoped={a={bestLapMilliseconds=73245,bes
 local text=table.concat(C.lines(response),'\n')
 check(text:find('PB LAP 1:13.245',1,true)~=nil,'milliseconds formatted accurately')
 check(text:find('BEST BOOSTS 8',1,true)~=nil and text:find('TOTAL OFFICIAL BOOSTS 19',1,true)~=nil,'separate best/lifetime counts')
-check(text:find('Track02 / PrototypeCircuitV2B / SOLO_1H_0B',1,true)~=nil,'scope identity visible')
+check(text:find('Prototype Circuit V2B / Solo',1,true)~=nil,'scope identity visible')
 response.records.scoped.a.bestLapMilliseconds=nil
 check(table.concat(C.lines(response),'\n'):find('PB LAP --',1,true)~=nil,'invalid lap not fabricated')
 print('PASS personal records viewer: 12 checks')

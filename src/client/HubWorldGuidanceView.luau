@@ -78,7 +78,17 @@ function View.create(hub, theme)
  local function setKioskMarkersVisible(show)
   for _, desc in hub:GetDescendants() do
    if desc:IsA("BillboardGui") or (desc:IsA("SurfaceGui") and desc.Name ~= "Direction") then
-    desc.Enabled = show
+    local owner=desc.Parent
+    local navigationMarker=false
+    while owner and owner~=hub do
+     if owner.Name=='GarageStationKiosk' or owner.Name=='RaceStationKiosk' or owner.Name=='TrackStationKiosk' then
+      navigationMarker=desc:IsA('BillboardGui');break
+     end
+     owner=owner.Parent
+    end
+    -- Floating navigation titles duplicate the edge buttons. Native nearby
+    -- prompts and their contextual explanation now own kiosk guidance.
+    desc.Enabled = show and not navigationMarker
    end
   end
  end

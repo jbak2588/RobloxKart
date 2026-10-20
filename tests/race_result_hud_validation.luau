@@ -236,7 +236,7 @@ set("RaceMatchStatus","WAITING");set("RaceMatchWaitRemaining",0);set("RaceState"
 local lobby=hud:FindFirstChild("RaceLobbyHost")
 local availability=hud:FindFirstChild("AvailableRacers")
 check(not hud.Countdown.Visible and lobby.Visible and not results.Visible
- and lobby.Status.Text=="RACERS  2 / 4\nITEMS READY  2 / 2" and lobby.StartRace.Text=="START RACE"
+ and lobby.Status.Text=="RACERS  2 / 4" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE",
  "host lobby waits without timer or result overlay")
 check(availability.Visible and availability.WaitingTitle.Text=="WAITING FOR RACERS"
@@ -247,24 +247,23 @@ availability.Invite1.Activated:Fire()
 check(garageRemote.lastFire[1]=="Invite" and garageRemote.lastFire[2]==2,
  "invite control sends target user ID")
 set("RaceParticipantCount",1);set("RaceItemsRequiredCount",1);set("RaceItemsReadyCount",1)
-check(lobby.Status.Text=="RACERS  1 / 4\nITEMS READY  1 / 1" and lobby.StartRace.Text=="START SOLO"
+check(lobby.Status.Text=="RACERS  1 / 4" and lobby.StartRace.Text=="START SOLO"
  and lobby.Cancel.Text=="CANCEL","solo host sees one-of-four choice")
 set("RaceParticipantCount",3);set("RaceItemsRequiredCount",3);set("RaceItemsReadyCount",3)
-check(lobby.Status.Text=="RACERS  3 / 4\nITEMS READY  3 / 3" and lobby.StartRace.Text=="START RACE"
+check(lobby.Status.Text=="RACERS  3 / 4" and lobby.StartRace.Text=="START RACE"
  and lobby.Cancel.Text=="LEAVE","three-racer host may start or leave")
 set("RaceParticipantCount",2);set("RaceItemsRequiredCount",2);set("RaceItemsReadyCount",1)
-check(not lobby.StartRace.Active and lobby.StartRace.Text=="WAIT ITEMS 1/2","host button gated on replicated readiness")
-local oldAction=remote.lastFire
-lobby.StartRace.Activated:Fire();check(remote.lastFire==oldAction,"disabled start sends no duplicate action")
+check(lobby.StartRace.Active and lobby.StartRace.Text=="START RACE","obsolete item readiness does not gate host start")
+lobby.StartRace.Activated:Fire();check(remote.lastFire[1]=="StartRace","host starts immediately without item preparation")
 set("RaceItemsReadyCount",2)
 set("RaceItemsAutoReadyName","Available Racer");set("RaceItemsAutoReadySerial",1)
-check(string.find(lobby.Status.Text,"Available Racer AUTO READY",1,true),"host sees compact authored auto-ready notice")
+check(lobby.Status.Text=="RACERS  2 / 4","obsolete auto-ready attributes do not add preparation text")
 set("RaceState","COUNTDOWN")
-check(hud.ItemsAutoReadyNotice.Visible and not lobby.Visible,"auto-ready notice survives automatic Countdown without staging panel")
+check(not hud.ItemsAutoReadyNotice.Visible and not lobby.Visible,"Countdown has no obsolete auto-ready notice")
 now=1.5;services.RunService.RenderStepped:Fire(.1)
 check(not hud.ItemsAutoReadyNotice.Visible,"Countdown notice expires after 1.4 seconds")
 set("RaceState","PRE_RACE")
-check(string.find(lobby.Status.Text,"ITEMS READY  2 / 2",1,true),"notice expires without new attributes")
+check(lobby.Status.Text=="RACERS  2 / 4","waiting status remains racer count only")
 lobby.StartRace.Activated:Fire()
 check(remote.lastFire[1]=="StartRace","host START RACE sends server action")
 set('RacePublicMatch',true);set('RaceHostStartRequired',true);set('RaceInvitePendingCount',1)
@@ -330,24 +329,17 @@ input:GetPropertyChangedSignal("PreferredInput"):Fire()
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 local quitPanel=hud.Panel
 local quitButton=(hud.QuitRow or quitPanel.QuitRow).QuitRace
-local panelPadding=quitPanel:FindFirstChildOfClass("UIPadding")
-local function quitBottomSpace()
-	return quitPanel.Size.Y.Offset-panelPadding.PaddingTop.Offset-quitPanel.Lap.Size.Y.Offset
-		-quitPanel.Checkpoint.Size.Y.Offset-quitPanel.Best.Size.Y.Offset
-		-(if quitPanel.OffTrack.Visible then quitPanel.OffTrack.Size.Y.Offset else 0)
-		-quitButton.Size.Y.Offset
-end
-check(quitButton.Size.X.Offset>=110 and quitButton.Size.Y.Offset>=36
- and quitBottomSpace()>=4 and quitBottomSpace()<=8,
-	"mobile Quit button meets touch target with 4-8px bottom space")
+check(quitButton.Size.X.Offset==64 and quitButton.Size.Y.Offset==40 and quitButton.Text=="QUIT",
+ "mobile Quit uses the approved compact outlined 64x40 target")
 local function checkTouchQuitRect(label)
  local buttonPosition,buttonSize=quitButton.AbsolutePosition,quitButton.AbsoluteSize
- local panelPosition,panelSize=quitPanel.AbsolutePosition,quitPanel.AbsoluteSize
+ local panelPosition=quitPanel.AbsolutePosition
  check(hud.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets
-  and buttonPosition.X>=panelPosition.X and buttonPosition.X+buttonSize.X<=panelPosition.X+panelSize.X
+  and buttonPosition.X==panelPosition.X+110
+  and buttonPosition.Y==panelPosition.Y
   and buttonPosition.Y>=guiService.TopbarInset.Max.Y+8
-  and buttonPosition.Y+buttonSize.Y<=panelPosition.Y+panelSize.Y,
-  label.." Quit hit rectangle stays in LAP panel below Core UI")
+  and buttonPosition.Y+buttonSize.Y<=hud.AbsolutePosition.Y+safeSize.Y,
+  label.." compact Quit sits beside LAP inside safe bounds")
 end
 checkTouchQuitRect("phone landscape 844x390")
 safeSize=rb.Vector2.new(1600,680);camera.ViewportSize=rb.Vector2.new(1600,739)
@@ -361,11 +353,11 @@ camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 checkTouchQuitRect("narrow tablet landscape 1280x800")
 input.TouchEnabled=true;input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 input:GetPropertyChangedSignal("PreferredInput"):Fire()
-check(quitButton.Size.X.Offset>=110 and quitButton.Size.Y.Offset>=36,
+check(quitButton.Size.X.Offset==64 and quitButton.Size.Y.Offset==40,
  "touch-enabled tablet keeps a large Quit target even with keyboard preferred")
 checkTouchQuitRect("touch tablet with keyboard preferred")
 check(quitPanel.Size.X.Offset<=170 and quitPanel.BackgroundTransparency==1
- and quitButton.BackgroundTransparency==.65,'transparent LAP overlay and soft translucent Quit after preferred-input switch')
+ and quitButton.BackgroundTransparency==1,'transparent LAP overlay and outlined Quit after preferred-input switch')
 check(quitButton.BackgroundColor3==rb.Color3.fromRGB(196,112,120)
  and quitPanel.Lap.TextStrokeTransparency==.6,'soft danger tone and readable overlay text')
 local safeView=luau.load(fs.readFile('src/client/MobileControlView.luau'),{environment={Vector2=rb.Vector2,Color3=rb.Color3}})()
@@ -386,8 +378,8 @@ input:GetPropertyChangedSignal("PreferredInput"):Fire()
 safeSize=rb.Vector2.new(844,390);camera.ViewportSize=rb.Vector2.new(844,390)
 camera:GetPropertyChangedSignal("ViewportSize"):Fire()
 set("RaceOffTrackRemaining",10)
-check(quitPanel.OffTrack.Visible and quitBottomSpace()>=4 and quitBottomSpace()<=8,
-	"off-track warning and Quit button fit in panel")
+check(quitPanel.OffTrack.Visible,"off-track warning remains visible beside compact Quit")
+checkTouchQuitRect("off-track warning")
 set("RaceOffTrackRemaining",0)
 input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 camera.ViewportSize=rb.Vector2.new(1280,720)
@@ -481,11 +473,11 @@ for _,size in {rb.Vector2.new(750,282),rb.Vector2.new(812,351),rb.Vector2.new(80
  local items=modules.MobileControlView.itemLayout(size,4)
  check(items.x==hud.Panel.Position.X.Offset and math.abs(l.driftX+(l.driftHitWidth-l.driftWidth)/2-items.x)<.001,
   "Item and visible Drift artwork align with LAP left edge")
- check(hud.Panel.Size.Y.Offset==96 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
+ check(hud.Panel.Size.Y.Offset==56 and hud.Panel.Position.Y.Offset+hud.Panel.Size.Y.Offset
   <=size.Y-items.bottom-l.slot-3,"short safe LAP with both warnings clears left loadout "..tostring(size).." height="..hud.Panel.Size.Y.Offset.." itemTop="..(size.Y-items.bottom-l.slot))
- check(activeQuitRow().Parent==hud.Panel
+ check(activeQuitRow().Parent==hud
   and activeQuitRow().QuitRace.AbsolutePosition.X+activeQuitRow().QuitRace.AbsoluteSize.X<=hud.AbsolutePosition.X+items.x+items.width,
-  "Quit stays under LAP inside the item group right edge")
+  "Quit stays beside LAP inside the item group right edge")
  check(activeQuitRow().Size.Y.Offset==40 and activeQuitRow().QuitRace.Size.Y.Offset==40,
   "compact LAP retains full Quit touch target")
  check(hud.Panel.OffTrack.Visible and hud.Panel.RaceEndWarning.Visible,

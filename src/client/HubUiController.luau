@@ -14,6 +14,30 @@ local HubUiController = {}
 local started = false
 local SHOWROOM_VISUAL_SCALE = 1.2
 
+-- Reuse the yellow stand between the exterior bollards; keep the entry prompt.
+function HubUiController.createTestDriveKiosk(hub)
+ local zone=hub:FindFirstChild('LobbyFrontTestDriveZone')
+ local entry=zone and zone:FindFirstChild('LobbyFrontDriveEntry')
+ local source=hub:FindFirstChild('RaceStationKiosk',true)
+ if not entry or not source then return nil end
+ local kiosk=source:Clone();kiosk.Name='TestDriveEntryKiosk'
+ for _,d in kiosk:GetDescendants() do
+  if d:IsA('BillboardGui') or d:IsA('ProximityPrompt') or d:IsA('LuaSourceContainer') then d:Destroy()
+  elseif d:IsA('BasePart') then
+   d.Anchored=true;d.CanCollide=false;d.CanTouch=false;d.CanQuery=false;d.CastShadow=false
+  end
+ end
+ local old=kiosk:GetPivot()
+ -- The source stand's visible screen faces the exterior track (-Z);
+ -- its rear edge stays just outside the wall, between the two bollards.
+ kiosk:PivotTo(CFrame.new(entry.Position.X+4.65,old.Position.Y,entry.Position.Z+9.4)*old.Rotation)
+ local box,size=kiosk:GetBoundingBox()
+ local top=entry.Position.Y+entry.Size.Y/2
+ kiosk:PivotTo(kiosk:GetPivot()+Vector3.new(0,top-(box.Position.Y-size.Y/2),0))
+ kiosk.Parent=hub
+ return kiosk
+end
+
 -- Visual-only client ownership. Each client calls this with its own selection/parent.
 function HubUiController.createDisplay(parent, anchor, definition, factory,wingEquipped)
  local visual = factory.createVisual(definition,wingEquipped)
@@ -96,39 +120,28 @@ function HubUiController.start()
  panel.Name = "Shortcuts"
  panel.AnchorPoint, panel.Position = Vector2.new(1,1), UDim2.new(1,-12,1,-12)
  panel.Size, panel.BackgroundColor3, panel.BorderSizePixel = UDim2.fromOffset(150,152), Color3.fromRGB(14, 22, 35), 0
- panel.BackgroundTransparency = 0.35
+ panel.BackgroundTransparency = 1
  panel.Parent = gui
 
  local panelCorner = Instance.new("UICorner")
  panelCorner.CornerRadius = UDim.new(0, 10)
  panelCorner.Parent = panel
 
- local panelStroke = Instance.new("UIStroke")
- panelStroke.Thickness = 1
- panelStroke.Color = Color3.fromRGB(40, 60, 90)
- panelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
- panelStroke.Parent = panel
-
  for index, action in {"GARAGE", "TRACKS", "SHOP"} do
   local button = Instance.new("TextButton")
   button.Name, button.Text = action, ""
   button.Size, button.Position = UDim2.new(1,-12,0,44), UDim2.fromOffset(6,6+(index-1)*48)
   button.BackgroundColor3 = Color3.fromRGB(24, 36, 52)
-  button.BackgroundTransparency = 0.35
+  button.BackgroundTransparency = .58
   button.TextColor3 = Color3.fromRGB(225, 235, 245)
   button.Font, button.TextSize, button.BorderSizePixel = Enum.Font.GothamBold, 13, 0
   button.Parent = panel
   local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,6);corner.Parent=button
 
-  local stroke = Instance.new("UIStroke")
-  stroke.Color = Color3.fromRGB(45, 65, 95)
-  stroke.Thickness = 1
-  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-  stroke.Parent = button
-
   local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1
   caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0)
   caption.Font=Enum.Font.GothamBold;caption.TextSize=13
+  caption.TextXAlignment=Enum.TextXAlignment.Left
   caption.TextColor3=Color3.fromRGB(225, 235, 245)
   caption.TextStrokeTransparency = 1
   caption.Parent=button
@@ -138,7 +151,7 @@ function HubUiController.start()
   local function piece(x,y,w,h,color)
    local f=Instance.new('Frame');f.Size=UDim2.fromOffset(w,h);f.Position=UDim2.fromOffset(x,y);f.BackgroundColor3=color;f.BorderSizePixel=0;f.Parent=mark
   end
-  local ink=Color3.fromRGB(225, 235, 245)
+  local ink=if action=='GARAGE' then Color3.fromRGB(135,205,255) elseif action=='TRACKS' then Color3.fromRGB(255,170,125) else Color3.fromRGB(140,230,165)
   if action=='GARAGE' then
    piece(3,2,6,10,ink);for _,x in {0,10}do piece(x,2,2,4,ink);piece(x,9,2,4,ink)end
   elseif action=='TRACKS' then
@@ -246,24 +259,21 @@ function HubUiController.start()
   panel.Size = if driving then UDim2.fromOffset(driveLayout.width,driveLayout.height) else UDim2.fromOffset(150,152)
   for index, name in {"GARAGE","TRACKS","SHOP"} do
    local button = panel[name]
+   button.NavigationLabel.TextSize=if canvas.AbsoluteSize.X>=1200 then 15 else 13
    button.Visible=name~='SHOP' or not driving
    button.Size = if driving then UDim2.new(1,-12,0,34) else UDim2.new(1,-12,0,44)
    button.Position = if driving then UDim2.fromOffset(6,4+(index-1)*38) else UDim2.fromOffset(6,6+(index-1)*48)
   end
-  local compactShortcuts=canvas.AbsoluteSize.Y<440
   if not driving then
-   local width=math.min(300,canvas.AbsoluteSize.X-24)
-   -- Reserve space for both 2.5px borders and the style helper's hover
-   -- expansion, including its Back easing overshoot, at every canvas width.
-   local padding, gap = 10, if compactShortcuts then 18 else 12
-   local buttonWidth = if compactShortcuts then (width-2*padding-2*gap)/3 else 150-2*padding
-   panel.Size=if compactShortcuts then UDim2.fromOffset(width,64) else UDim2.fromOffset(150,176)
-   for index,name in {'GARAGE','TRACKS','SHOP'}do
-    panel[name].Size=UDim2.fromOffset(buttonWidth,44)
-    panel[name].Position=if compactShortcuts then UDim2.fromOffset(padding+(index-1)*(buttonWidth+gap),padding)
-     else UDim2.fromOffset(padding,padding+(index-1)*(44+gap))
+   -- Wallet ends at y=58. Keep 12px clearance and three 44px rows,
+   -- leaving the native joystick's lower-left corner available.
+   panel.AnchorPoint = Vector2.zero
+   panel.Position = UDim2.fromOffset(16,70)
+   panel.Size = UDim2.fromOffset(if canvas.AbsoluteSize.X>=1200 then 150 else 132,144)
+   for index,name in {'GARAGE','TRACKS','SHOP'} do
+    panel[name].Size=UDim2.new(1,0,0,44)
+    panel[name].Position=UDim2.fromOffset(0,(index-1)*50)
    end
-   presentation.bottom=if compactShortcuts then 84 else 196
   end
   guidance.update(presentation)
   worldGuidance.update(raceState == "GARAGE", if presentation.visible then presentation.destination else nil)
@@ -315,7 +325,9 @@ function HubUiController.start()
     local bay=Instance.new("Model");bay.Name="ShowroomBay"..index;bay.Parent=showroom
     local location=bays[index]
     local offset=CFrame.new(location[1],0,location[2]-904)
-    local frame=offset*anchor.CFrame
+    -- Spawn camera faces +Z: positive X bays are screen-left.
+    -- Factory front wheels/nose face +X here; only these three face out.
+    local frame=offset*anchor.CFrame*(if location[1]>0 then CFrame.Angles(0,math.pi,0) else CFrame.identity)
     local kart=HubUiController.createDisplay(bay,{CFrame=frame},catalog.Entries[kartId],factory,player:GetAttribute('KDMWingEquipped')==true)
     kart:SetAttribute("ShowroomStatic",true)
     do
@@ -335,6 +347,7 @@ function HubUiController.start()
  table.insert(connections,player.CharacterAdded:Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(refreshDisplay))
  refreshDisplay()
+ local entryKiosk=HubUiController.createTestDriveKiosk(hub)
  for _, attribute in {"RaceState", "HubOverlayOpen", "KDMProfileOpen", "KDMShopOpen", "KDMRoutePending", "LobbyDriveActive",
   "KartProfileLoadCompleted","KartProfileLoadResult","KartRestorationConfirmed","KartRestoredKartId","KartSaveState","SelectedKartId"} do
   table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(update))
@@ -350,6 +363,7 @@ function HubUiController.start()
   for _, connection in connections do connection:Disconnect() end
   guidance.destroy()
   worldGuidance.destroy()
+  if entryKiosk then entryKiosk:Destroy() end
   disconnectNavigation()
   if display then display:Destroy();display=nil end
   started = false

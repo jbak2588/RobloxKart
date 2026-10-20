@@ -6,7 +6,7 @@ local function signal()
  return s
 end
 local function object(class)
- local props={ClassName=class,Text='Label',AbsoluteSize=rb.Vector2.new(440,195)};local signals={}
+ local props={ClassName=class,Text='Label',AbsoluteSize=rb.Vector2.new(440,195),Activated=signal()};local signals={}
  local methods={GetPropertyChangedSignal=function(_,name) signals[name]=signals[name] or signal();return signals[name] end}
  return setmetatable({}, {__index=function(_,k)return methods[k] or props[k] end,__newindex=function(_,k,v) props[k]=v;if signals[k] then signals[k]:Fire() end end})
 end
@@ -16,7 +16,7 @@ local textService={GetTextSize=function(_,text,size,font,bounds)
  for line in (text..'\n'):gmatch('(.-)\n') do lines+=math.max(1,math.ceil(#line*7/bounds.X)) end
  return rb.Vector2.new(bounds.X,lines*size)
 end}
-local C=luau.load(fs.readFile('src/client/PersonalRecordsController.luau'),{environment={game={GetService=function(_,name) assert(name=='TextService','unexpected service or live access');return textService end},Instance={new=object},Enum=rb.Enum,UDim2=rb.UDim2,Vector2=rb.Vector2,Color3=rb.Color3}})()
+local C=luau.load(fs.readFile('src/client/PersonalRecordsController.luau'),{environment={game={GetService=function(_,name) assert(name=='TextService','unexpected service or live access');return textService end},script={Parent={WaitForChild=function()return 'STYLE'end}},require=function()return {applyModalPanel=function()end,applyCloseButton=function()end}end,Instance={new=object},Enum=rb.Enum,UDim2=rb.UDim2,Vector2=rb.Vector2,Color3=rb.Color3}})()
 local checks=0;local function check(v,s) checks+=1;assert(v,s) end
 local p,l,connections=C.createRecordsPanel({})
 l.Text=string.rep('Starting Racers 1 drivers + 1 bots | Boosts 11\n',35)..'LAST RACE\nLap 2 0:53.700\nFinish Position 1 / 1'

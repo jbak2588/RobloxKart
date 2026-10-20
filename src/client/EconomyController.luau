@@ -1,4 +1,11 @@
 local Controller = {}
+-- Header uses the device-safe canvas; the modal retains CoreUISafeInsets.
+function Controller.profileHeaderLayout(size, origin, topbar, coreInset)
+ coreInset=coreInset or Vector2.zero
+ local right=math.min(size.X-12,topbar.Max.X-coreInset.X-origin.X-8)
+ local y=topbar.Min.Y+(topbar.Max.Y-topbar.Min.Y-44)*.5-coreInset.Y-origin.Y
+ return math.max(104,right),math.clamp(y,0,math.max(0,size.Y-44))
+end
 -- Presentation only: values remain authoritative server attributes, never client balances.
 function Controller.presentation(attributes, catalog)
  local revision = attributes.KDMWalletRevision
@@ -41,6 +48,10 @@ function Controller.start()
  local colors = Style.colors()
  local gui = Instance.new('ScreenGui'); gui.Name = 'KDMMyProfile'; gui.ResetOnSpawn = false; gui.DisplayOrder = 26
  gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets; gui.Parent = playerGui
+ local headerGui=Instance.new('ScreenGui');headerGui.Name='KDMProfileHeader';headerGui.ResetOnSpawn=false;headerGui.DisplayOrder=26
+ headerGui.ScreenInsets=Enum.ScreenInsets.DeviceSafeInsets;headerGui.Parent=playerGui
+ local headerCanvas=Instance.new('Frame');headerCanvas.Name='DeviceSafeCanvas';headerCanvas.Size=UDim2.fromScale(1,1)
+ headerCanvas.BackgroundTransparency=1;headerCanvas.BorderSizePixel=0;headerCanvas.Parent=headerGui
  local function label(parent, name, text, y, height, size)
   local t = Instance.new('TextLabel'); t.Name = name; t.Text = text
   t.Position = UDim2.fromOffset(16, y); t.Size = UDim2.new(1, -40, 0, height)
@@ -57,12 +68,12 @@ function Controller.start()
   Style.style(b)
   return b
  end
- -- F60-A-B2: MY PROFILE as clean transparent text button on top-right edge (>=44x44 touch target)
+ -- Align with the native TopBar row without changing the profile modal's insets.
  local badge = Instance.new('TextButton')
  badge.Name = 'Profile'
  badge.Text = 'MY PROFILE'
  badge.AnchorPoint = Vector2.new(1, 0)
- badge.Position = UDim2.new(1, -12, 0, 12)
+ badge.Position = UDim2.fromOffset(0, 0)
  badge.Size = UDim2.fromOffset(104, 44)
  badge.BackgroundTransparency = 1
  badge.BorderSizePixel = 0
@@ -72,7 +83,20 @@ function Controller.start()
  badge.TextSize = 13
  badge.TextStrokeTransparency = 1
  badge.ZIndex = 1
- badge.Parent = gui
+ badge.Parent = headerCanvas
+ local guiService=game:GetService('GuiService')
+ local function layoutHeader()
+  local x,y=Controller.profileHeaderLayout(headerCanvas.AbsoluteSize,headerCanvas.AbsolutePosition,guiService.TopbarInset,guiService:GetGuiInset())
+  badge.Position=UDim2.fromOffset(x,y)
+  badge.TextSize=if headerCanvas.AbsoluteSize.X>=1200 then 15 else 13
+ end
+ local headerConnections={headerCanvas:GetPropertyChangedSignal('AbsoluteSize'):Connect(layoutHeader),
+  headerCanvas:GetPropertyChangedSignal('AbsolutePosition'):Connect(layoutHeader),guiService:GetPropertyChangedSignal('TopbarInset'):Connect(layoutHeader)}
+ gui.Destroying:Connect(function()
+  for _,c in headerConnections do c:Disconnect() end
+  headerGui:Destroy()
+ end)
+ layoutHeader()
  local shade = Instance.new('TextButton'); shade.Name = 'Backdrop'; shade.Text = ''; shade.Position=UDim2.fromScale(-1,-1);shade.Size = UDim2.fromScale(3, 3)
  shade.BackgroundColor3 = Color3.fromRGB(18, 34, 64); shade.BackgroundTransparency = .82
  shade.Visible = false; shade.Modal = true; shade.AutoButtonColor = false; shade.ZIndex = 9; shade.Parent = gui
@@ -263,6 +287,7 @@ function Controller.start()
   gui.Enabled = player:GetAttribute('RaceState') == 'GARAGE' and player:GetAttribute('HubOverlayOpen') ~= true
    and player:GetAttribute('KDMShopOpen') ~= true and player:GetAttribute('LobbyDriveActive') ~= true
    and player:GetAttribute('KDMRoutePending') ~= 'RACE_LAUNCH'
+  headerGui.Enabled=gui.Enabled
   if not gui.Enabled then closeProfile() end
   render()
  end

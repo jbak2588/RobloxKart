@@ -62,7 +62,7 @@ for _,size in {{706,281},{750,324},{648,223},{1142,628},{1280,662},{1920,1022}}d
  check(b.AbsoluteSize.Y>=44 and b.AbsoluteSize.X>=44,'44px Lobby Shop touch target')
  check(b.AbsolutePosition.X>=0 and b.AbsolutePosition.Y>=0 and b.AbsolutePosition.X+b.AbsoluteSize.X<=safeSize.X and b.AbsolutePosition.Y+b.AbsoluteSize.Y<=safeSize.Y,'Lobby Shop safe bounds')
  local guide=hubGui.SafeCanvas.NextAction
- check(guide.AbsolutePosition.Y+guide.AbsoluteSize.Y+8<=shortcuts.AbsolutePosition.Y,'guidance preserved above shortcuts')
+ check(guide.AbsolutePosition.X>=shortcuts.AbsolutePosition.X+shortcuts.AbsoluteSize.X+8,'guidance clears left navigation')
 end
 ]]
 assert(fixture:find('hubGui:Destroy()',1,true))

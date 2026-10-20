@@ -54,7 +54,7 @@ for _,resolution in {{932,342},{844,302},{640,230},{751,244},{390,786},{1920,102
  safeSize=rb.Vector2.new(unpack(resolution));hubGui.SafeCanvas:GetPropertyChangedSignal("AbsoluteSize"):Fire()
  local p,s=guidance.AbsolutePosition,guidance.AbsoluteSize
  check(p.X>=0 and p.Y>=0 and p.X+s.X<=safeSize.X and p.Y+s.Y<=safeSize.Y,"runtime layout within safe bounds")
- check(p.Y+s.Y+8<=shortcuts.AbsolutePosition.Y,"no overlap with shortcuts")
+ check(p.X>=shortcuts.AbsolutePosition.X+shortcuts.AbsoluteSize.X+8,"no overlap with shortcuts")
  check(guidance.SelectTrack.AbsoluteSize.Y>=44,"44px touch target")
  local b=guidance.SelectTrack
  check(b.AbsolutePosition.Y+b.AbsoluteSize.Y<=p.Y+s.Y,"CTA unclipped")
@@ -70,7 +70,7 @@ check(shortcuts.TRACKS.Activated.count()==0 and playerGui.ChildAdded.count()==0,
 hubController.start();hubController.start()
 hubGui=playerGui.KDMHubNavigation
 check(#hubGui.SafeCanvas:GetChildren()==1 and roomRemote.OnClientEvent.count()==1,"destroy/restart idempotent")
-check(hubGui.SafeCanvas.NextAction.Message.Visible,"fresh controller has expanded guidance")
+check(not hubGui.SafeCanvas.NextAction.Message.Visible and hubGui.SafeCanvas.NextAction.SelectTrack.Visible,"fresh controller has minimal actionable guidance")
 hubGui:Destroy()
 ]]
 assert(fixture:find(marker,1,true))

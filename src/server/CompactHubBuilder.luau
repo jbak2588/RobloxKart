@@ -246,7 +246,13 @@ function CompactHubBuilder.build(workspace, playerSpawn)
   -- Local fixtures only; never replace global race Lighting.
   for _,z in {-20,0,20} do
    local fixture=part(visuals,"ShowroomLight",Vector3.new(3,.2,6),CFrame.new(0,23,z),Theme.TextPrimary,false)
-   local light=Instance.new("PointLight");light.Brightness,light.Range,light.Shadows=1,30,false;light.Parent=fixture
+   local light=Instance.new("PointLight");light.Brightness,light.Range,light.Shadows=.25,50,false;light.Parent=fixture
+  end
+  -- Shadow-free doorway fill; global Lighting and RACE environments are untouched.
+  for _,z in {-22,22} do
+   local fixture=part(visuals,"DoorwayFill",Vector3.one,CFrame.new(-29,10,z),Theme.TextPrimary,false)
+   fixture.Transparency=1
+   local light=Instance.new("PointLight");light.Brightness,light.Range,light.Shadows=.25,30,false;light.Parent=fixture
   end
  end)
  if not ok then root:Destroy(); warn("[Hub] Pit Garage unavailable; H1 fallback: "..tostring(failure)); return buildFallback(workspace,playerSpawn) end

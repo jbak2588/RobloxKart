@@ -72,9 +72,14 @@ function Controller.createRecordsPanel(gui)
  panel.BackgroundColor3=Color3.fromRGB(20,30,44);panel.Visible=false;panel.Parent=gui
  StyleHelper.applyModalPanel(panel)
  local limit=Instance.new("UISizeConstraint");limit.MaxSize=Vector2.new(440,280);limit.Parent=panel
- local close=Instance.new("TextButton");close.Name="Close";close.Text="X";close.Size=UDim2.fromOffset(36,36)
- close.AnchorPoint=Vector2.new(1,0);close.Position=UDim2.new(1,-8,0,8);close.ZIndex=15;close.Parent=panel
+ local close=Instance.new("TextButton");close.Name="Close";close.Text="X";close.Size=UDim2.fromOffset(44,44)
+ close.AnchorPoint=Vector2.new(1,0);close.Position=UDim2.new(1,-8,0,8);close.ZIndex=22;close.Parent=panel
  StyleHelper.applyCloseButton(close)
+ -- UIGradient also tints TextButton glyphs; draw the caption on a child instead.
+ close.Text=""
+ local dismissLabel=Instance.new("TextLabel");dismissLabel.Name="DismissLabel";dismissLabel.Text="X"
+ dismissLabel.Size=UDim2.fromScale(1,1);dismissLabel.BackgroundTransparency=1;dismissLabel.TextColor3=Color3.new(1,1,1)
+ dismissLabel.Font=Enum.Font.GothamBold;dismissLabel.TextSize=18;dismissLabel.TextStrokeTransparency=1;dismissLabel.ZIndex=23;dismissLabel.Parent=close
  close.Activated:Connect(function() panel.Visible=false end)
  local label=Instance.new("TextLabel")
  label.Name="ReadOnlyRecords";label.Position=UDim2.fromOffset(10,8);label.Size=UDim2.new(1,-28,0,0)
@@ -95,26 +100,37 @@ function Controller.createRecordsPanel(gui)
  resize()
  return panel,label,connections
 end
-function Controller.start()
+-- Mounted only inside the existing profile. No standalone TopBar entry.
+function Controller.attachProfile(gui)
  local player=game:GetService("Players").LocalPlayer
  if player.UserId~=11700555357 then return end
- local gui=Instance.new("ScreenGui")
- gui.Name="KDMCanaryPersonalRecords";gui.ResetOnSpawn=false;gui.DisplayOrder=25
- gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.Parent=player:WaitForChild("PlayerGui")
- local overlay=Instance.new("Frame")
- overlay.Name="Overlay";overlay.Size=UDim2.fromScale(1,1);overlay.BackgroundColor3=Color3.fromRGB(18,34,64)
- overlay.BackgroundTransparency=0.80;overlay.BorderSizePixel=0;overlay.Visible=false;overlay.ZIndex=20;overlay.Parent=gui
+ local profile=gui:WaitForChild("DriverCard")
+ profile:WaitForChild("Close")
+ if profile:FindFirstChild("Records") then return end
+ local StyleHelper=require(script.Parent:WaitForChild("KDMUiStyleHelper"))
  local button=Instance.new("TextButton")
- button.Name="Records";button.Text="MY RECORDS";button.Size=UDim2.fromOffset(104,44)
- button.AnchorPoint=Vector2.new(1,0);button.Position=UDim2.new(1,-124,0,12)
- button.BackgroundTransparency=1;button.BorderSizePixel=0
- button.TextColor3=Color3.fromRGB(200,215,230)
- button.Font=Enum.Font.GothamBold;button.TextSize=13;button.TextStrokeTransparency=1
- button.Parent=gui
- local panel,label,resizeConnections=Controller.createRecordsPanel(gui)
- panel:GetPropertyChangedSignal("Visible"):Connect(function() overlay.Visible=panel.Visible end)
+ button.Name="Records";button.Text="MY RECORDS";button.Size=UDim2.fromOffset(120,44)
+ button.AnchorPoint=Vector2.new(1,1);button.Position=UDim2.new(1,-112,1,-10)
+ button.TextColor3=Color3.new(1,1,1);button.Font=Enum.Font.GothamBold;button.TextSize=13
+ button.ZIndex=12;button.Parent=profile
+ button.BackgroundColor3=Color3.new(1,1,1)
+ StyleHelper.apply3DButton(button,Color3.fromRGB(80,140,195),Color3.fromRGB(40,80,125),Color3.fromRGB(25,50,85),8,1)
+ button.Text=""
+ local caption=Instance.new("TextLabel");caption.Name="RecordsLabel";caption.Text="MY RECORDS";caption.Size=UDim2.fromScale(1,1)
+ caption.BackgroundTransparency=1;caption.TextColor3=Color3.new(1,1,1);caption.TextStrokeTransparency=1
+ caption.Font=Enum.Font.GothamBold;caption.TextSize=13;caption.ZIndex=13;caption.Parent=button
+ local status=profile:FindFirstChild("Status");if status then status.Size=UDim2.new(1,-248,0,48) end
+ local panel,label,connections=Controller.createRecordsPanel(profile)
+ panel.AnchorPoint=Vector2.new(.5,.5);panel.Position=UDim2.fromScale(.5,.5)
+ panel.Size=UDim2.new(1,-24,1,-24);panel.ZIndex=20;label.ZIndex=21
+ local overlay=Instance.new("Frame");overlay.Name="RecordsBackdrop";overlay.Size=UDim2.fromScale(1,1)
+ overlay.BackgroundColor3=Color3.fromRGB(18,34,64);overlay.BackgroundTransparency=.2
+ overlay.BorderSizePixel=0;overlay.Visible=false;overlay.Active=true;overlay.ZIndex=19;overlay.Parent=profile
  local busy=false;local last=-math.huge;local alive=true
- local click=button.Activated:Connect(function()
+ table.insert(connections,panel:GetPropertyChangedSignal("Visible"):Connect(function()overlay.Visible=panel.Visible end))
+ table.insert(connections,profile:GetPropertyChangedSignal("Visible"):Connect(function()if not profile.Visible then panel.Visible=false end end))
+ table.insert(connections,button.Activated:Connect(function()
+  if not gui.Enabled or not profile.Visible then return end
   panel.Visible=not panel.Visible
   if not panel.Visible or busy or os.clock()-last<4 then return end
   busy=true;last=os.clock();label.Text="Loading saved records..."
@@ -123,18 +139,18 @@ function Controller.start()
    local ok,result=pcall(function() assert(remote,"records_unavailable");return remote:InvokeServer() end)
    if alive then label.Text="PV "..tostring(game.PlaceVersion).."\n"..table.concat(Controller.lines(if ok then result else {status="ERROR"}),"\n");busy=false end
   end)
- end)
- local function update()
-  gui.Enabled=player:GetAttribute("RaceState")=="GARAGE" and player:GetAttribute("HubOverlayOpen")~=true and player:GetAttribute('KDMProfileOpen')~=true
-   and player:GetAttribute("LobbyDriveActive")~=true and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH"
-  if not gui.Enabled then panel.Visible=false end
- end
- local connections={click}
- for _,c in resizeConnections do table.insert(connections,c) end
- for _,name in {"RaceState","HubOverlayOpen","KDMProfileOpen","LobbyDriveActive","KDMRoutePending"} do
-  table.insert(connections,player:GetAttributeChangedSignal(name):Connect(update))
- end
- gui.Destroying:Connect(function() alive=false;for _,c in connections do c:Disconnect() end end)
- update()
+ end))
+ profile.Destroying:Connect(function()alive=false;for _,c in connections do c:Disconnect() end end)
+end
+local started=false
+function Controller.start()
+ local player=game:GetService("Players").LocalPlayer
+ if player.UserId~=11700555357 or started then return end
+ started=true
+ local pg=player:WaitForChild("PlayerGui")
+ local function watch(gui)if gui.Name=="KDMMyProfile" then Controller.attachProfile(gui) end end
+ local connection=pg.ChildAdded:Connect(watch)
+ local existing=pg:FindFirstChild("KDMMyProfile");if existing then watch(existing) end
+ pg.Destroying:Connect(function()connection:Disconnect();started=false end)
 end
 return Controller

@@ -141,16 +141,16 @@ function remote:InvokeServer(action,value)table.insert(calls,{action,value});ret
 local catalog=luau.load(fs.readFile('src/shared/KartCatalog.luau'),{environment={Color3=rb.Color3,Enum=rb.Enum}})()
 local style=luau.load(fs.readFile('src/client/ShopLayout.luau'),{environment={Instance={new=object},Color3=rb.Color3,UDim=rb.UDim,Enum=rb.Enum}})()
 local controller=luau.load(fs.readFile('src/client/EconomyController.luau'),{environment={
- game={GetService=function(_,name)if name=='Players' then return {LocalPlayer=player} elseif name=='ReplicatedStorage' then return rs elseif name=='UserInputService' then return input else error(name)end end},
+ game={GetService=function(_,name)if name=='Players' then return {LocalPlayer=player} elseif name=='ReplicatedStorage' then return rs elseif name=='UserInputService' then return input elseif name=='GuiService' then return {TopbarInset=rb.Rect.new(208,0,750,58),GetGuiInset=function()return rb.Vector2.new(0,58)end,GetPropertyChangedSignal=function()return signal()end} else error(name)end end},
  workspace=ws,Instance={new=object},Color3=rb.Color3,Vector2=rb.Vector2,UDim2=rb.UDim2,Enum=rb.Enum,
  script={Parent={GarageShopController='SHOP',ShopLayout='STYLE'}},require=function(mod)if mod==token then return catalog elseif mod=='STYLE' then return style elseif mod=='SHOP' then return {open=function()shops+=1 end} else error(tostring(mod))end end,
  task={spawn=function(fn)fn()end},
 }})()
-controller.start();local gui=pg.KDMMyProfile;local card=gui.DriverCard;local body=card.Details
+controller.start();local gui=pg.KDMMyProfile;local card=gui.DriverCard;local body=card.Details;local header=pg.KDMProfileHeader;local profileButton=header.DeviceSafeCanvas.Profile
 check(gui.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets,'one safe-area coordinate system')
 check(body.Active and body.ScrollingDirection==rb.Enum.ScrollingDirection.Y,'native vertical touch scrolling')
 local function activate(b)b.Activated:Fire()end
-activate(gui.Profile)
+activate(profileButton)
 check(card.Visible and player:GetAttribute('KDMProfileOpen'),'open profile')
 check(body.Wallet.Text=='AVAILABLE K$\n--' and body.LifetimeRaceEarnings.Text:find('K%$ %-%-'),'missing attributes never become zero')
 check(body.Wing.Text:find('UNAVAILABLE') and not body.EquipWing.Active and not body.BuyWing.Active,'unknown ownership fails closed')
@@ -182,8 +182,8 @@ end
 player:SetAttribute('KDMWalletCash',0);check(body.Wallet.Text=='AVAILABLE K$\n0','confirmed actual zero preserved')
 player:SetAttribute('KDMWalletCash',26000);check(body.BuyWing.Active,'existing Wing purchase route available')
 activate(body.BuyWing);check(shops==1 and not card.Visible,'buy routes to existing Shop confirmation')
-activate(gui.Profile);activate(body.OpenShop);check(shops==2 and not card.Visible,'shop preview independent of affordability')
-activate(gui.Profile)
+activate(profileButton);activate(body.OpenShop);check(shops==2 and not card.Visible,'shop preview independent of affordability')
+activate(profileButton)
 player:SetAttribute('KDMWingOwned',true);check(body.EquipWing.Active and not body.BuyWing.Active,'owned Wing enables equip only')
 check(body.EquipWing.Visible and not body.BuyWing.Visible,'owned equipment action replaces purchase')
 activate(body.EquipWing);check(calls[#calls][1]=='EQUIP_WING' and calls[#calls][2]==true,'existing server equip request')
@@ -192,13 +192,13 @@ player:SetAttribute('KDMWingEquipped',true);activate(body.EquipWing)
 check(calls[#calls][2]==false and body.Wing.Text:find('OWNED / EQUIPPED'),'server equipped state / unequip request')
 player:SetAttribute('KDMWingEquipped',nil);check(not body.EquipWing.Active and body.Wing.Text:find('UNKNOWN'),'missing equipment not inferred false')
 local listeners=player:GetAttributeChangedSignal('KDMWalletCash'):count()
-controller.start();check(#pg:GetChildren()==1 and player:GetAttributeChangedSignal('KDMWalletCash'):count()==listeners,'idempotent startup')
+controller.start();check(#pg:GetChildren()==2 and player:GetAttributeChangedSignal('KDMWalletCash'):count()==listeners,'idempotent startup')
 local before=#calls
-for _=1,20 do activate(card.Close);activate(gui.Profile)end
+for _=1,20 do activate(card.Close);activate(profileButton)end
 check(#calls==before+20,'one PROFILE request per open, no duplicate handlers')
 for _,gate in {{'RaceState','RACING','GARAGE'},{'HubOverlayOpen',true,false},{'KDMShopOpen',true,false},{'LobbyDriveActive',true,false},{'KDMRoutePending','RACE_LAUNCH',''}}do
  player:SetAttribute(gate[1],gate[2]);check(not gui.Enabled and not card.Visible and not player:GetAttribute('KDMProfileOpen'),'auto-close '..gate[1])
- player:SetAttribute(gate[1],gate[3]);activate(gui.Profile)
+ player:SetAttribute(gate[1],gate[3]);activate(profileButton)
 end
 activate(card.Dismiss);check(not card.Visible,'fixed dismiss works')
 local function within(a,b)
@@ -217,7 +217,7 @@ for _,size in {rb.Vector2.new(750,382),rb.Vector2.new(706,339),rb.Vector2.new(64
  table.insert(layouts,{safe={size.X,size.Y},panel={card.AbsoluteSize.X,card.AbsoluteSize.Y},scrollHeight=body.AbsoluteSize.Y})
 end
 local serde=require('@lune/serde')
-activate(gui.Profile)
+activate(profileButton)
 body.CanvasPosition=rb.Vector2.zero;body.AbsoluteCanvasSize=rb.Vector2.new(560,706);body.AbsoluteWindowSize=rb.Vector2.new(560,138)
 local touch={UserInputType=rb.Enum.UserInputType.Touch,Position=rb.Vector3.new(200,180,0)}
 body.InputBegan:Fire(touch);touch.Position=rb.Vector3.new(200,88,0);input.InputChanged:Fire(touch)
