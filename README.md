@@ -21,6 +21,23 @@ Initial commercial target: **USD 500/month**.
 - Branch: `prototype/kart-physics`
 - Review baseline: current `origin/prototype/kart-physics` HEAD
 
+## Studio tooling troubleshooting
+
+Rojo 7.7.1's local managed plugin can request its notification audio
+`203785492` as an image during generic asset preloading. The guarded local repair
+loads audio through temporary `Sound` instances and preserves the original
+plugin in `artifacts/studio-open-errors/`:
+
+```powershell
+lune run tools/maintenance/repair_rojo_asset_preload.luau
+```
+
+Open a new Studio instance afterward. Reinstalling/updating Rojo may replace the
+local fix; the repair refuses unknown preloader versions instead of overwriting
+them. This changes Studio tooling only and requires no Roblox Publish.
+`StudioService` has a `ClassName` property, not a `GetClassName()` method.
+See [the diagnosis and verification](docs/testing/studio_startup_error_review.md).
+
 ## Game Flow
 
 **CURRENT IMPLEMENTED FLOW (R7-H1 local candidate):** Compact Hub →
