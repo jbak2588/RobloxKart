@@ -188,7 +188,7 @@ case('L19','actual Coordinator hierarchy / user isolation / runtime restore',fun
  local approved=11700555357;p.UserId=approved
  local cfg=table.clone(Config);cfg.Enabled=true
  local actualSchema={default=function(_) return schema.default(1) end,validate=function(value,_) return schema.validate(value,'u:1') end,
-  supportsKart=schema.supportsKart,maxReceipts=schema.maxReceipts}
+  supportsKart=schema.supportsKart,maxReceipts=schema.maxReceipts,prepare=schema.prepare,stamp=schema.stamp,issueTransaction=schema.issueTransaction}
  local tools=table.clone(S);tools.userKey=function(_) return 'u:1' end
  local modules={ProgressionCanaryConfig=cfg,ProgressionCanaryPolicy=Policy,KDMProgressionSchema=tools,KartCatalog={},
   ProgressionOperations=Ops,ProgressionDataStoreAdapter=Adapter,PlayerProgressionService=Service,ProgressionLiveRuntime=Runtime}

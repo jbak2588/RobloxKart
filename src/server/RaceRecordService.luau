@@ -2,7 +2,7 @@
 local Service={}
 local Shared=game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local S=require(Shared:WaitForChild("KDMProgressionSchema"))
-local schema=S.new(require(Shared:WaitForChild("KartCatalog")),{jsonEncode=function(value)
+local schema=S.new(require(Shared:WaitForChild("KartCatalog")),{utcMs=function()return DateTime.now().UnixTimestampMillis end,jsonEncode=function(value)
  return game:GetService('HttpService'):JSONEncode(value)
 end})
 local Config=require(script.Parent.RaceRecordConfig)
@@ -109,18 +109,20 @@ local function live()
  return runtime
 end
 local collector=Collector.new(S,{utcMs=function() return DateTime.now().UnixTimestampMillis end})
-function Service.begin(session,course,checkpointCount)
+function Service.begin(session,course,checkpointCount,identity)
+ assert(type(identity)=="table" and S.guid(identity.RoundGuid) and S.integer(identity.IssuedAt),"server_round_identity_required")
  local participants=session:orderedParticipants();local roster={}
  for _,p in participants do
   table.insert(roster,if p:GetAttribute("IsBot")==true then {IsBot=true,BotId=p:GetAttribute("BotId")}
    else {IsBot=false,UserId=p.UserId})
  end
- local round=collector.begin({RoundGuid=game:GetService("HttpService"):GenerateGUID(false),
+ local round=collector.begin({RoundGuid=identity.RoundGuid,
   TrackId=session.trackId,GeometryId=require(Shared:WaitForChild("TrackCatalog")).Entries[session.trackId].GeometryId,
   RulesetId=Config.RulesetId,diagnostic=game:GetService("RunService"):IsStudio(),roster=roster},
   participants,checkpointCount,session.targetLaps,course.CenterlineLength)
  for _,p in participants do
-  p:SetAttribute("OfficialRoundGuid",round.RoundGuid);p:SetAttribute("RaceRecordCategory",round.RaceCategory)
+  assert(p:GetAttribute("OfficialRoundGuid")==identity.RoundGuid and p:GetAttribute("OfficialRoundIssuedAt")==identity.IssuedAt,"server_round_identity_mismatch")
+  p:SetAttribute("RaceRecordCategory",round.RaceCategory)
   p:SetAttribute("RaceRecordNewPB",false);p:SetAttribute("RaceRecordSaveState","NONE")
   p:SetAttribute("RaceRecordNewBestRace",false)
   p:SetAttribute('RaceMoneyState','NONE')
@@ -142,6 +144,7 @@ function Service.finish(player,result)
  if op and Economy.allowed(player,'reward') and result and result.humanPosition then
   op=S.clone(op);op.economy={version=1,humanPosition=result.humanPosition};op=S.freeze(op)
  end
+ if op then op=S.clone(op);op.transaction={version=1,issuedAt=op.achievedAt};op=S.freeze(op) end
  local guid=player:GetAttribute('OfficialRoundGuid')
  local race=op and op.race
  pcall(diagnostic,player,'FINISH',guid,{stage='FINISH',status=if not op then 'NO_OPERATION' elseif allowed(player,'write') then 'WRITE_ALLOWED' else 'ACCESS_BLOCKED',

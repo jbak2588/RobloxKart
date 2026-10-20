@@ -2,7 +2,7 @@
 local Service={}
 local Shared=game:GetService('ReplicatedStorage'):WaitForChild('Shared')
 local S=require(Shared.KDMProgressionSchema)
-local schema=S.new(require(Shared.KartCatalog),{jsonEncode=function(v)return game:GetService('HttpService'):JSONEncode(v)end})
+local schema=S.new(require(Shared.KartCatalog),{utcMs=function()return DateTime.now().UnixTimestampMillis end,jsonEncode=function(v)return game:GetService('HttpService'):JSONEncode(v)end})
 local Config=require(script.Parent.EconomyConfig)
 local Policy=require(script.Parent.EconomyPolicy)
 local Ops=require(script.Parent.EconomyOperations)
@@ -88,6 +88,7 @@ local function read(player)
  return if ok then value else {status='ERROR'}
 end
 local function transact(player,op)
+ op=S.clone(op);op.transaction=op.transaction or schema.issueTransaction()
  local a=adapter(player,'purchase');local key=S.userKey(player.UserId)
  for attempt=1,Config.RetryAttempts do
   local r=a.read(key)
@@ -162,29 +163,25 @@ function Service.qualifyActivity(player,kind,proof)
  return if ok then result else {status='SAVE_UNCONFIRMED'}
 end
 function Service.passAvailable() return passVerified() end
-function Service.creditReward(player, amount, reason)
+function Service.creditReward(player, amount, reason, identity)
 	if not player or type(amount) ~= "number" or amount <= 0 or not Service.allowed(player, "reward") then return false end
 	local a = adapter(player, "reward")
 	local key = S.userKey(player.UserId)
-	local ok, result = pcall(function()
-		return a.commit(a.beginUpdate(key, function(curr)
-			if not curr then return nil end
-			local p = S.clone(curr)
-			local earned = (p.wallet.lifetimeEarned or 0) + amount
-			if p.wallet.cash + amount > schema.maxCash or not S.integer(earned) or not S.integer(p.wallet.ledgerRevision + 1) then
-				return nil, "WALLET_CAPACITY"
-			end
-			p.wallet.cash += amount
-			p.wallet.lifetimeEarned = earned
-			p.wallet.ledgerRevision += 1
-			return p, "REWARD_CREDITED"
-		end))
-	end)
+ local op={userId=player.UserId,roundGuid=if identity then identity.RoundGuid else player:GetAttribute('OfficialRoundGuid'),amount=amount,reason=reason,
+  transaction={version=1,issuedAt=if identity then identity.IssuedAt else player:GetAttribute('OfficialRoundIssuedAt')}}
+ local ok,result=pcall(function()
+  local result=a.commit(a.beginUpdate(key,Ops.dnf(S,schema,op)))
+  local read=a.read(key);local receipt=read.status=='FOUND' and read.value.receipts['dnf:'..tostring(op.roundGuid)]
+  if receipt and S.signatureMatches(receipt,S.transactionCanonical(op)) then return {status='SAVED',value=read.value} end
+  return result.status=='SAVED' and {status='SAVE_UNCONFIRMED'} or result
+ end)
 	if ok and result and result.status == "SAVED" and result.value then
 		Service.publishProfile(player, result.value)
-		player:SetAttribute("RaceMoneyState", "SAVE_CONFIRMED")
-		player:SetAttribute("RaceMoney_base", amount)
-		player:SetAttribute("RaceMoney_total", amount)
+		if player:GetAttribute("OfficialRoundGuid")==op.roundGuid then
+			player:SetAttribute("RaceMoneyState", "SAVE_CONFIRMED")
+			player:SetAttribute("RaceMoney_base", amount)
+			player:SetAttribute("RaceMoney_total", amount)
+		end
 		return true
 	end
 	return false

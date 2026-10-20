@@ -80,7 +80,7 @@ ctx.role='RACE';ctx.privateServerId='reserved';check(Policy.allowed(Config,ctx,1
 local shared={KDMProgressionSchema='S',KDMShopCatalog='C',KartCatalog='Karts'}
 local server={EconomyConfig='Config',EconomyService='E',EconomyOperations='Economy',ShopOperations='Ops'}
 local mods={S=S,C=C,Karts=catalog,Config=Config,E={},Economy=Economy,Ops=load('src/server/ShopOperations.luau')}
-local Service=load('src/server/ShopService.luau',{game={GetService=function()return {Shared=shared}end,HttpService={JSONEncode=function(_,v)return serde.encode('json',v)end}},script={Parent=server},require=function(id)return mods[id]end})
+local Service=load('src/server/ShopService.luau',{DateTime={now=function()return {UnixTimestampMillis=1791650100000}end},game={GetService=function()return {Shared=shared}end,HttpService={JSONEncode=function(_,v)return serde.encode('json',v)end}},script={Parent=server},require=function(id)return mods[id]end})
 local trace={};local granted=0
 local function saveDelivery(op)table.insert(trace,op.kind);return {purchaseState='SAVE_CONFIRMED'}end
 check(Service.deliverReserved(S.clone(delivered),saveDelivery,function()return true end,function()granted+=1;return true end),'confirmed consume permits one runtime grant')
@@ -96,7 +96,7 @@ local saved=S.clone(original);local ackLoss=false;local readFailure=false;local 
 local backend={GetAsync=function(_,_,options)check(options.UseCache==false,'uncached read-back');if readFailure then error('timeout')end return S.clone(saved)end,
  UpdateAsync=function(_,_,callback)local value=callback(S.clone(saved));if value then saved=value;writes+=1 end;if ackLoss then error('lost ACK')end return value end}
 local a=Adapter.new({schema=schema,key=S.userKey(1),authorize=function()return true end,getStore=function()return backend end,getOptions=function()return {UseCache=false}end,budget=function()return true end})
-local buy=op('BUY_ITEM',100,'Nitro');ackLoss=true
+local buy=op('BUY_ITEM',100,'Nitro');buy.transaction={version=1,issuedAt=1791650100000};ackLoss=true
 local r=Service.transaction(a,buy,function()publications+=1 end,function()end)
 check(r.purchaseState=='SAVE_CONFIRMED' and writes==1 and saved.wallet.cash==555,'unknown write ACK resolved by durable receipt read-back')
 r=Service.transaction(a,buy,function()end,function()end);check(r.purchaseState=='SAVE_CONFIRMED' and writes==1,'retry after lost response never rewrites or recharges')
@@ -104,7 +104,7 @@ readFailure=true;r=Service.transaction(a,op('BUY_ITEM',101,'Smoke'),function()er
 check(r.status=='SAVE_UNCONFIRMED' and saved.wallet.cash==555,'read timeout never claims success or mutates account')
 readFailure=false;ackLoss=false
 backend.UpdateAsync=function(_,_,callback)local value=callback(S.clone(saved));if value then saved=value;writes+=1 end;readFailure=true;error('ACK plus read outage')end
-buy=op('BUY_ITEM',102,'Smoke');r=Service.transaction(a,buy,function()error('unverified success')end,function()end)
+buy=op('BUY_ITEM',102,'Smoke');buy.transaction={version=1,issuedAt=1791650100000};r=Service.transaction(a,buy,function()error('unverified success')end,function()end)
 check(r.status=='SAVE_UNCONFIRMED' and saved.shopInventory.counts.Smoke==1,'committed but unreadable purchase remains unconfirmed')
 readFailure=false;r=Service.transaction(a,buy,function()end,function()end)
 check(r.purchaseState=='SAVE_CONFIRMED' and saved.shopInventory.counts.Smoke==1 and saved.wallet.cash==305,'same client GUID reconciles after reconnect/outage')

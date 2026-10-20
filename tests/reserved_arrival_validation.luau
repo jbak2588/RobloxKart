@@ -85,11 +85,16 @@ local shared=child(services.ReplicatedStorage,"Folder","Shared")
 local server=object("Folder","Server")
 local modules={}
 local now=0
+local identitySerial=0
+services.HttpService={GenerateGUID=function()
+ identitySerial+=1;return string.format("12345678-1234-1234-1234-%012d",identitySerial)
+end}
 local environment={
 	Instance={new=object}, Vector2=rb.Vector2, Vector3=V, CFrame=CF, Color3=rb.Color3, Enum=rb.Enum,
 	PhysicalProperties={new=function() return {} end},
 	game={GetService=function(_,name) return assert(services[name]) end},
 	time=function() return now end,
+	DateTime={now=function()return {UnixTimestampMillis=1792471213000+math.floor(now*1000)}end},
 	print=function() end,
 	warn=function() end,
 }

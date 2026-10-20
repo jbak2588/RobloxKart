@@ -21,7 +21,7 @@ end
 
 function Operations.selection(S, schema, userId, operation)
  -- Copy/freeze once: caller mutation cannot alter a transaction waiting for commit.
- local ok, signature = pcall(S.canonical,operation)
+ local ok, signature = pcall(S.transactionCanonical,operation)
  if not ok then return function() return nil,"INVALID_OPERATION" end end
  local op = S.freeze(S.clone(operation))
  return function(previous)
@@ -34,15 +34,19 @@ function Operations.selection(S, schema, userId, operation)
   local receiptKey = "selection:" .. op.operationId
   local receipt = previous.receipts[receiptKey]
   if receipt then
-   if receipt.signature ~= signature then return nil,"IDENTITY_MISMATCH" end
+   if not S.signatureMatches(receipt,signature) then return nil,"IDENTITY_MISMATCH" end
    return S.clone(previous),"REPLAY"
   end
+  local prepared,reason=schema.prepare(previous,op.transaction)
+  if not prepared then return nil,reason end
+  previous=prepared
   if previous.selection.revision ~= op.expectedSelectionRevision then return nil,"CONFLICT" end
   if previous.selection.revision >= 9007199254740991 then return nil,"REVISION_CAPACITY" end
   if S.count(previous.receipts) >= schema.maxReceipts then return nil,"RECEIPT_CAPACITY" end
   local nextValue = S.clone(previous)
   nextValue.selection = {kartId=op.kartId,revision=previous.selection.revision+1,lastOpId=op.operationId}
-  nextValue.receipts[receiptKey] = {signature=signature}
+  nextValue.receipts[receiptKey] = {signature=S.sha256(signature)}
+  schema.stamp(nextValue.receipts[receiptKey],op.transaction)
   if S.pruneAndCompressReceipts then
    S.pruneAndCompressReceipts(nextValue, receiptKey, schema.maxReceipts)
   end
@@ -54,7 +58,7 @@ function Operations.resolveSelection(S, schema, read, userId, operation)
  local loaded = Operations.load(S,schema,read,userId)
  if loaded.state ~= "READY" then return {state="PENDING",reason=loaded.reason} end
  local receipt = loaded.profile.receipts["selection:" .. operation.operationId]
- if receipt and receipt.signature == S.canonical(operation) then return {state="SAVED",profile=loaded.profile} end
+ if receipt and S.signatureMatches(receipt,S.transactionCanonical(operation)) then return {state="SAVED",profile=loaded.profile} end
  if receipt then return {state="READ_ONLY",reason="IDENTITY_MISMATCH"} end
  return {state="PENDING",reason="NO_COMMIT_RECEIPT"}
 end

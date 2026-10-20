@@ -5,8 +5,9 @@ local S=require(RS.Shared.KDMProgressionSchema)
 local C=require(RS.Shared.KDMShopCatalog)
 local Config=require(script.Parent.EconomyConfig)
 local Economy=require(script.Parent.EconomyService)
-local schema=S.new(require(RS.Shared.KartCatalog),{jsonEncode=function(v)return game.HttpService:JSONEncode(v)end})
+local schema=S.new(require(RS.Shared.KartCatalog),{utcMs=function()return DateTime.now().UnixTimestampMillis end,jsonEncode=function(v)return game.HttpService:JSONEncode(v)end})
 local Ops=require(script.Parent.ShopOperations).new(S,schema,C,require(script.Parent.EconomyOperations))
+local tickets=S.newTicketBook(function()return DateTime.now().UnixTimestampMillis end,function()return game:GetService('HttpService'):GenerateGUID(false)end)
 local busy,last,refillAttempted={},{},{}
 local queued,pumping={},{}
 -- Injected coordinator is used by mock-account tests and the live authorized adapter.
@@ -81,7 +82,7 @@ local function tryRefill(player,id)
   if r.status~='FOUND' or not Ops.view(r.value).autoRefill or (Ops.view(r.value).counts[id] or 0)<1 then return end
   -- Durable identity comes from the server's globally unique official round,
   -- never a local session counter or a client-supplied identity.
-  local op={kind='REFILL',id=guid,userId=player.UserId,itemId=id,roundGuid=guid,jobId=game.JobId,reservedAt=os.time()}
+  local op={kind='REFILL',id=guid,userId=player.UserId,itemId=id,roundGuid=guid,jobId=game.JobId,reservedAt=os.time(),transaction={version=1,issuedAt=player:GetAttribute('OfficialRoundIssuedAt')}}
   local result=transact(player,'voucher',op)
   if result.purchaseState~='SAVE_CONFIRMED' then return end
   refillAttempted[player]=refillAttempted[player] or {};refillAttempted[player][key]=true
@@ -103,6 +104,16 @@ function Service.start()
   if busy[player] or last[player] and os.clock()-last[player]<.75 then return {status='RATE_LIMITED'} end
   if action~='PROFILE' and (player:GetAttribute('RaceState')~='GARAGE' or player:GetAttribute('LobbyDriveActive')==true
    or player:GetAttribute('KDMRoutePending')=='RACE_LAUNCH') then return {status='HUB_REQUIRED'} end
+  if action=='PREPARE' then
+   local body=itemId
+   if type(body)~='table' or (body.action~='BUY_WING' and body.action~='BUY_ITEM' and body.action~='EQUIP_WING' and body.action~='SET_AUTO_REFILL') then return {status='INVALID_OPERATION'} end
+   if body.action=='BUY_ITEM' and (type(body.itemId)~='string' or not C.Prices[body.itemId]) then return {status='INVALID_OPERATION'} end
+   if (body.action=='EQUIP_WING' or body.action=='SET_AUTO_REFILL') and type(body.value)~='boolean' then return {status='INVALID_OPERATION'} end
+   local op={kind=body.action,userId=player.UserId,itemId=if body.action=='BUY_WING' or body.action=='EQUIP_WING' then C.WingId else body.itemId}
+   if body.action=='EQUIP_WING' then op.equipped=body.value end
+   if body.action=='SET_AUTO_REFILL' then op.itemId=nil;op.enabled=body.value end
+   return {status='PREPARED',id=tickets.issue(player,op)}
+  end
   if action~='PROFILE' and (not S.guid(requestId) or (action~='BUY_WING' and action~='BUY_ITEM' and action~='EQUIP_WING' and action~='SET_AUTO_REFILL')) then return {status='INVALID_OPERATION'} end
   busy[player]=true;last[player]=os.clock()
   local ok,r=pcall(function()
@@ -110,7 +121,17 @@ function Service.start()
    local op={kind=action,id=requestId,userId=player.UserId,itemId=if action=='BUY_WING' or action=='EQUIP_WING' then C.WingId else itemId}
    if action=='EQUIP_WING' then op.equipped=value end
    if action=='SET_AUTO_REFILL' then op.itemId=nil;op.enabled=value end
-   return transact(player,'shop',op)
+   local authorized,reason=tickets.resolve(player,op)
+   if not authorized then
+    -- A restart/evicted ticket may still confirm an existing receipt, but
+    -- absence must NEVER mint fresh authority or run a debit reducer.
+    local read=Economy.accountAdapter(player,'read').read(S.userKey(player.UserId))
+    if Ops.confirm(read,op) then
+     publish(player,read.value);local view=Ops.view(read.value);view.purchaseState='SAVE_CONFIRMED';return view
+    end
+    return {status=reason}
+   end
+   return transact(player,'shop',authorized)
   end)
   busy[player]=nil;return if ok then r else {status='SAVE_UNCONFIRMED'}
  end
@@ -142,6 +163,6 @@ function Service.start()
  end
  local players=game:GetService('Players')
  players.PlayerAdded:Connect(joined);for _,p in players:GetPlayers()do joined(p)end
- players.PlayerRemoving:Connect(function(p)last[p]=nil;refillAttempted[p]=nil;queued[p]=nil end)
+ players.PlayerRemoving:Connect(function(p)last[p]=nil;tickets.remove(p);refillAttempted[p]=nil;queued[p]=nil end)
 end
 return Service

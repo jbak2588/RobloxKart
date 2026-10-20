@@ -496,9 +496,10 @@ function RaceController.start(options)
 			publishSession(time())
 
 			if isActiveRacer and EconomyService and EconomyService.creditReward then
+				local identity=racer.transactionIdentity -- Capture before a queued task or Rematch.
 				task.spawn(function()
-					local credited = EconomyService.creditReward(player, 1500, "ACTIVE_DNF_COMPLETION")
-					if credited then
+					local credited = EconomyService.creditReward(player, 1500, "ACTIVE_DNF_COMPLETION",identity)
+					if credited and identity and player:GetAttribute("OfficialRoundGuid")==identity.RoundGuid then
 						player:SetAttribute("RaceActiveDnfBonus", true)
 						print(string.format("[Race] active racer timeout rewarded user=%d amount=1500 speed=%.1f laps=%d", player.UserId, planarSpeed, completedLaps))
 					end
@@ -933,10 +934,18 @@ function RaceController.start(options)
 	end
 
 	local function startSharedRace()
+		-- Gameplay owns economic identity even when the optional records observer fails.
+		local identity=table.freeze({RoundGuid=game:GetService("HttpService"):GenerateGUID(false),
+		 IssuedAt=DateTime.now().UnixTimestampMillis})
+		for _,player in session:orderedParticipants() do
+			racers[player].transactionIdentity=identity
+			player:SetAttribute("OfficialRoundGuid",identity.RoundGuid)
+			player:SetAttribute("OfficialRoundIssuedAt",identity.IssuedAt)
+		end
 		session.phase = "RACING"
 		session.startTime = session.countdownEndTime
 		-- Freeze the actual GO roster; a departure during COUNTDOWN is not a starter.
-		record("begin", session, routeCourse, checkpointCount)
+		record("begin", session, routeCourse, checkpointCount, identity)
 		for _, player in session:orderedParticipants() do
 			racers[player]:startRace(session.startTime)
 		end

@@ -1,7 +1,7 @@
 -- Field-only min/max reducer. Receipts are retained; capacity exhaustion fails closed.
 local Ops={}
 function Ops.signature(S,op)
- return S.sha256(S.canonical(op))
+ return S.sha256(S.transactionCanonical(op))
 end
 function Ops.valid(S,op)
  if type(op)~="table" or op.kind~="OFFICIAL_RECORD" or not S.integer(op.userId) or op.userId==0
@@ -36,10 +36,15 @@ function Ops.reduce(S,schema,op)
   if previous.deleted then return nil,"DELETED" end
   local key=Ops.receiptKey(copy);local receipt=previous.receipts[key]
   if receipt then
-   local canonical=S.canonical(copy)
+   local canonical=S.transactionCanonical(copy)
    if receipt.signature~=signature and receipt.signature~=canonical then return nil,"IDENTITY_MISMATCH" end
    return S.clone(previous),"REPLAY"
   end
+  -- Completion time is immutable collector evidence, never the retry time.
+  if copy.transaction and copy.transaction.issuedAt~=copy.achievedAt then return nil,'TRANSACTION_TIME_MISMATCH' end
+  local prepared,reason=schema.prepare(previous,copy.transaction)
+  if not prepared then return nil,reason end
+  previous=prepared
   if S.count(previous.receipts)>=schema.maxReceipts then return nil,"RECEIPT_CAPACITY" end
   local scope=copy.round.recordScope
   if not previous.records.scoped[scope] and S.count(previous.records.scoped)>=64 then return nil,"RECORD_CAPACITY" end
@@ -77,6 +82,7 @@ function Ops.reduce(S,schema,op)
    end
   end
   nextValue.receipts[key]={signature=signature,lapImproved=lapImproved,boostImproved=boostImproved}
+  schema.stamp(nextValue.receipts[key],copy.transaction)
   if copy.race then nextValue.receipts[key].raceImproved=raceImproved end
   if copy.economy then
    local money={base=0,bestRace=0,bestLap=0,total=0}
@@ -121,7 +127,7 @@ function Ops.confirm(S,schema,read,op)
  local receipt=read.value.receipts[Ops.receiptKey(op)]
  if not receipt then return nil end
  local signature=Ops.signature(S,op)
- local canonical=S.canonical(op)
+ local canonical=S.transactionCanonical(op)
  return if receipt.signature==signature or receipt.signature==canonical then receipt else nil
 end
 function Ops.clearIndex(S,schema,userId,scope,expected)

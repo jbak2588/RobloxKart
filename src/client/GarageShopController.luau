@@ -123,11 +123,18 @@ function Controller.start()
  request=function(action,item,value)
   if busy then return end
   if pending and (pending.action~=action or pending.item~=item or pending.value~=value) then status.Text='Retry the pending purchase first.';return end
-  if action~='PROFILE' and not pending then pending={action=action,item=item,value=value,id=Http:GenerateGUID(false)}end
+  if action~='PROFILE' and not pending then pending={action=action,item=item,value=value}end
   local op=pending;busy=true;epoch+=1;local current=epoch;status.Text=if action=='PROFILE' then 'Loading inventory...' else 'Saving...'
   task.delay(12,function()if current==epoch and busy then busy=false;status.Text='Save not confirmed. Retry the same purchase.';render()end end)
   task.spawn(function()
-   local ok,r=pcall(function()return remote:InvokeServer(action,item,if op then op.id else nil,value)end)
+   local ok,r=pcall(function()
+    if op and not op.id then
+     local ticket=remote:InvokeServer('PREPARE',{action=op.action,itemId=op.item,value=op.value})
+     if type(ticket)~='table' or ticket.status~='PREPARED' then return ticket end
+     op.id=ticket.id
+    end
+    return remote:InvokeServer(action,item,if op then op.id else nil,value)
+   end)
    if current~=epoch then return end
    busy=false
    if ok and type(r)=='table' and (r.status=='FOUND' or r.status=='GUEST') then

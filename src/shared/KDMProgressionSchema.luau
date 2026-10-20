@@ -211,8 +211,38 @@ function Schema.new(catalog, options)
  options = options or {}
  local supported = {}
  for id in catalog.Entries do supported[id] = true end
- -- Leave >1 MB below the platform limit; never prune receipts or reset an account.
+ -- Leave >1 MB below the platform limit; expiry GC never resets an account.
  local api = {maxCash=2147483647, maxReceipts=options.maxReceipts or 16384, maxBytes=options.maxBytes or 3000000}
+ -- Pure offline legacy callers have no trusted clock and therefore NEVER GC.
+ -- All production bindings supply utcMs; missing authority then fails closed.
+ api.transactionLifetimeMs=86400000
+ function api.issueTransaction()
+  return if options.utcMs then {version=1,issuedAt=options.utcMs()} else nil
+ end
+ function api.prepare(previous,transaction)
+  local p=Schema.clone(previous)
+  if not options.utcMs then return p end
+  local now=options.utcMs()
+  if not Schema.integer(now) then return nil,'INVALID_SERVER_CLOCK' end
+  local policy=p.receiptPolicy
+  if not policy then
+   policy={version=1,floor=math.max(0,now-api.transactionLifetimeMs),migratedAt=now};p.receiptPolicy=policy
+   -- Unknown legacy age: one full retry window, then reject unstamped requests.
+   for _,r in p.receipts do r.issuedAt=r.issuedAt or now end
+  end
+  policy.floor=math.max(policy.floor,now-api.transactionLifetimeMs)
+  if type(transaction)~='table' or transaction.version~=1 or not Schema.integer(transaction.issuedAt)
+   or transaction.issuedAt>now+30000 then return nil,'TRANSACTION_AUTHORITY_REQUIRED' end
+  if transaction.issuedAt<=policy.floor then return nil,'TRANSACTION_EXPIRED' end
+  Schema.pruneAndCompressReceipts(p)
+  return p
+ end
+ function api.settle(receipt)
+  if options.utcMs then receipt.settledAt=options.utcMs() end
+ end
+ function api.stamp(receipt,transaction)
+  if transaction then receipt.issuedAt=transaction.issuedAt end
+ end
  function api.default(userId)
   Schema.userKey(userId)
   return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
@@ -279,8 +309,13 @@ function Schema.new(catalog, options)
    or type(profile.daily) ~= "table" or type(profile.daily.claimBuckets) ~= "table"
    or type(profile.receipts) ~= "table" or type(profile.pendingIndex) ~= "table" then return false, "CORRUPT_FIELDS" end
   if Schema.count(profile.pendingIndex) > 64 or Schema.count(profile.receipts) > api.maxReceipts then return false, "RECEIPT_CAPACITY" end
+  if profile.receiptPolicy~=nil then
+   local p=profile.receiptPolicy
+   if type(p)~='table' or p.version~=1 or not Schema.integer(p.floor) or not Schema.integer(p.migratedAt) then return false,'CORRUPT_RECEIPT_POLICY' end
+  end
   for id, receipt in profile.receipts do
    if type(id) ~= "string" or #id > 512 or type(receipt) ~= "table" or type(receipt.signature) ~= "string" then return false, "CORRUPT_RECEIPT" end
+   if (receipt.issuedAt~=nil and not Schema.integer(receipt.issuedAt)) or (receipt.settledAt~=nil and not Schema.integer(receipt.settledAt)) then return false,'CORRUPT_RECEIPT_TIME' end
    if receipt.refill~=nil then
     local f=receipt.refill
     if type(f)~='table' or not Schema.guid(f.roundGuid) or type(f.itemId)~='string'
@@ -383,27 +418,53 @@ function Schema.sha256(message)
  local out={} for _,v in h do table.insert(out,string.format('%08x',v)) end return table.concat(out)
 end
 
-function Schema.pruneAndCompressReceipts(profile, currentKey, maxReceipts)
-if type(profile) ~= "table" or type(profile.receipts) ~= "table" then return end
-for id, receipt in profile.receipts do
- if type(receipt) == "table" and type(receipt.signature) == "string" and #receipt.signature > 128 then
-  receipt.signature = Schema.sha256(receipt.signature)
- end
-end
-local limit = maxReceipts or 16384
-if limit >= 1000 then
- local candidates = {}
- for id in profile.receipts do
-  if id ~= currentKey then
-   table.insert(candidates, id)
-  end
- end
- if #candidates > 0 then
-  for i = 1, #candidates do
-   profile.receipts[candidates[i]] = nil
+-- Compression never grants permission to forget a transaction. Only the
+-- persisted floor established by server-issued transaction lifetimes permits GC.
+function Schema.pruneAndCompressReceipts(profile, _currentKey, _maxReceipts)
+ if type(profile)~='table' or type(profile.receipts)~='table' then return end
+ for id,receipt in profile.receipts do
+  if #receipt.signature>128 then receipt.signature=Schema.sha256(receipt.signature) end
+  local pending=receipt.refill and receipt.refill.state=='RESERVED' and not receipt.refunded
+  local retryTime=receipt.settledAt or receipt.issuedAt
+  if profile.receiptPolicy and retryTime and retryTime<=profile.receiptPolicy.floor and not pending then
+   profile.receipts[id]=nil
   end
  end
 end
+
+-- Lifetime metadata is server authority, separate from the legacy business
+-- signature. Existing canonical and hashed receipts use the same identity.
+function Schema.transactionCanonical(op)
+ local copy=Schema.clone(op);copy.transaction=nil
+ return Schema.canonical(copy)
+end
+function Schema.signatureMatches(receipt,canonical)
+ return receipt and (receipt.signature==canonical or receipt.signature==Schema.sha256(canonical))
+end
+
+-- Server-local ticket book. Unknown/evicted tickets are refused, never reissued
+-- with a fresh time. Client UUIDs and client clocks cannot authorize a debit.
+function Schema.newTicketBook(clock,newId)
+ local owners={};local api={}
+ function api.issue(owner,body)
+  local entries=owners[owner] or {};owners[owner]=entries
+  local now=clock();local oldest,oldestAt
+  for id,entry in entries do
+   if now-entry.transaction.issuedAt>=600000 then entries[id]=nil
+   elseif not oldestAt or entry.transaction.issuedAt<oldestAt then oldest,oldestAt=id,entry.transaction.issuedAt end
+  end
+  if Schema.count(entries)>=32 then entries[oldest]=nil end
+  local op=Schema.clone(body);op.id=newId();op.transaction={version=1,issuedAt=now};entries[op.id]=Schema.freeze(op)
+  return op.id
+ end
+ function api.resolve(owner,body)
+  local op=owners[owner] and owners[owner][body.id]
+  if not op or clock()-op.transaction.issuedAt>=600000 then return nil,'TRANSACTION_EXPIRED' end
+  if Schema.transactionCanonical(op)~=Schema.transactionCanonical(body) then return nil,'IDENTITY_MISMATCH' end
+  return Schema.clone(op)
+ end
+ function api.remove(owner) owners[owner]=nil end
+ return api
 end
 
 return table.freeze(Schema)

@@ -59,7 +59,7 @@ function Service.new(deps)
   end
   if not session.request then
    local operation = {kind="SELECT_KART",kartId=session.desired,expectedSelectionRevision=session.profile.selection.revision,
-    operationId=deps.newOperationId()}
+    operationId=deps.newOperationId(),transaction=if schema.issueTransaction then schema.issueTransaction() else nil}
    session.request = {operation=operation,generation=session.generation}
   end
   local request = session.request

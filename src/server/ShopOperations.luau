@@ -7,7 +7,7 @@ function Ops.new(S,schema,C,Economy)
  end
  local function signature(op)
   if op.kind=='REFILL' then return S.canonical({kind=op.kind,id=op.id,userId=op.userId,itemId=op.itemId,roundGuid=op.roundGuid})end
-  return S.canonical(op)
+  return S.transactionCanonical(op)
  end
  function api.key(op)
   return if op.kind=='REFILL' or op.kind=='REFUND_REFILL' or op.kind=='REFUND_UNUSED_REFILL' or op.kind=='FINALIZE_REFILL' then 'shop-refill:'..tostring(op.roundGuid)..':'..tostring(op.itemId)
@@ -40,6 +40,13 @@ function Ops.new(S,schema,C,Economy)
     return if match then S.clone(previous) else nil,
      if match then 'REPLAY' else 'IDENTITY_MISMATCH'
    end
+   local recovery=copy.kind=='REFUND_REFILL' or copy.kind=='REFUND_UNUSED_REFILL' or copy.kind=='FINALIZE_REFILL'
+   -- Recovery requires the retained reservation, never a new admission.
+   if not recovery then
+    local prepared,reason=schema.prepare(previous,copy.transaction)
+    if not prepared then return nil,reason end
+    previous=prepared
+   end
    local old=stock(previous);local amount=old.counts[copy.itemId] or 0
    if copy.kind=='BUY_ITEM' then
     if previous.wallet.cash<C.Prices[copy.itemId] then return nil,'INSUFFICIENT_FUNDS' end
@@ -70,8 +77,10 @@ function Ops.new(S,schema,C,Economy)
    p.wallet.ledgerRevision+=1;p.shopInventory.revision+=1
    if copy.kind~='REFUND_REFILL' and copy.kind~='REFUND_UNUSED_REFILL' and copy.kind~='FINALIZE_REFILL' then
     p.receipts[key]={signature=signed}
+    schema.stamp(p.receipts[key],copy.transaction)
     if copy.kind=='REFILL' then p.receipts[key].refill={roundGuid=copy.roundGuid,itemId=copy.itemId,state='RESERVED',jobId=copy.jobId or '',reservedAt=copy.reservedAt or 0} end
    end
+   if recovery then schema.settle(p.receipts[key]) end
    if S.pruneAndCompressReceipts then
     S.pruneAndCompressReceipts(p, key, schema.maxReceipts)
    end
