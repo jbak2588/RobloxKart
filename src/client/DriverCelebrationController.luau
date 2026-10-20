@@ -72,7 +72,9 @@ function DriverCelebrationController.start()
 		end
 		elapsed += deltaTime
 		local alpha = math.clamp(elapsed / 0.25, 0, 1)
-		local wave = if elapsed >= 0.25 and elapsed <= profile.WaveSeconds then
+		local waitingForRunnerUp = profile == Finish.Profiles.WINNER
+			and player:GetAttribute("RaceWinnerAwaitingRunnerUp") == true
+		local wave = if elapsed >= 0.25 and (elapsed <= profile.WaveSeconds or waitingForRunnerUp) then
 			math.sin((elapsed - 0.25) * math.pi * 4) * math.rad(profile.WaveDegrees) else 0
 		joint.Transform = originalTransform * CFrame.Angles(math.rad(profile.RaiseX) * alpha, wave, math.rad(profile.RaiseZ) * alpha)
 	end)

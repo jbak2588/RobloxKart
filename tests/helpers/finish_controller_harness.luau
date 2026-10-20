@@ -45,14 +45,26 @@ return function()
  local kart=object('Model','Kart');kart.Parent=object('Folder','World')
  local chassis=child(kart,'Part','Chassis');kart.PrimaryPart=chassis
  local seat=child(kart,'VehicleSeat','Seat');seat:SetAttribute('PrototypeKartSeat',true)
- local pre=signal();local timers={}
+ local pre=signal();local timers={};local clock=0
+ local function advance(seconds)
+  local untilTime=clock+seconds
+  while true do
+   local nextTimer=nil
+   for _,timer in timers do
+    if not timer.ran and timer.at<=untilTime and (not nextTimer or timer.at<nextTimer.at) then nextTimer=timer end
+   end
+   if not nextTimer then break end
+   clock=nextTimer.at;nextTimer.ran=true;nextTimer.fn()
+  end
+  clock=untilTime
+ end
  local finish=luau.load(fs.readFile('src/shared/KDMFinishPresentation.luau'))()
  local shared={WaitForChild=function(_,name)return name end}
  local services={Players={LocalPlayer=player},RunService={PreSimulation=pre},ReplicatedStorage={WaitForChild=function()return shared end}}
  local env={game={GetService=function(_,name)return assert(services[name],name)end},require=function()return finish end,
   Instance={new=object},Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,Enum=rb.Enum,
   Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence,NumberSequenceKeypoint=rb.NumberSequenceKeypoint,NumberRange=rb.NumberRange,
-  task={delay=function(seconds,fn)table.insert(timers,{seconds=seconds,fn=fn})end}}
+  task={delay=function(seconds,fn)table.insert(timers,{seconds=seconds,at=clock+seconds,fn=fn})end}}
  local function character(rig,shoulder,jointClass,armParent)
   local model=object('Model','Character')
   local humanoid=child(model,'Humanoid','Humanoid');humanoid.SeatPart=seat
@@ -66,6 +78,6 @@ return function()
  player:SetAttribute('RaceFinishPhase','NONE');player:SetAttribute('RaceFinishPosition',1);player:SetAttribute('RaceParticipantCount',2)
  local model,joint,humanoid=character('UpperTorso','RightShoulder')
  return {player=player,gui=gui,kart=kart,chassis=chassis,seat=seat,pre=pre,timers=timers,object=object,child=child,
-  character=character,joint=joint,humanoid=humanoid,finish=finish,rb=rb,
+  character=character,joint=joint,humanoid=humanoid,finish=finish,rb=rb,advance=advance,
   allocated=function()return allocated end,load=function(path)return luau.load(fs.readFile(path),{environment=env})()end}
 end

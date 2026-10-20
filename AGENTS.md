@@ -17,6 +17,30 @@ The existing non-final-lap empty-only refill to 1 applies to all five non-Nitro
 items. Nitro keeps the five-successful-BOOST repeatable award/pending contract.
 Physics, combat effect tuning, and race capacity are unchanged by this override.
 
+## Server kart authority principle — accepted on mobile 2026-10-21
+
+Published PV931 (`0e50d51`) fixes recurring motion stalls by retaining **manual
+server network ownership after human seating**. Creating the kart with
+`SetNetworkOwner(nil)` alone is insufficient: SeatWeld can join the automatic
+character assembly afterward. PrototypeWorld reasserts server ownership in a
+deferred Occupant callback after verifying the current owner, live kart/chassis
+and both sides of the Seat/Humanoid relationship. Keep this lifecycle guard on
+every seating; do not replace it with automatic/client ownership or repeated
+per-frame ownership writes while the server commands kart velocities.
+
+The defect reproduced with one human + bot: approximately three-second ownership
+pulses and 0.17–0.20-second client position stalls despite normal rendering FPS.
+After repair, matched local 40-second bot and bot-free solo runs had zero motion
+stalls or client ownership pulses. This timing is diagnostic evidence, not a
+universal Roblox handoff interval or a guarantee of zero network jitter.
+
+**User-confirmed published mobile acceptance:** driving is now natural and very
+smooth, described as "like watching HD video." Preserve this accepted feel as a
+server-driving invariant. Do not trade it away when changing seating, recovery,
+respawn, kart creation, bot integration or network ownership. Physics tuning,
+items and economy were not changed by this repair. See
+[the investigation](docs/testing/race_network_ownership_hitch_review.md).
+
 ## Mission
 
 Commercial mobile-first Roblox arcade kart racing game.

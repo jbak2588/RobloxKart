@@ -301,7 +301,15 @@ check(b:GetAttribute("RaceFinishPosition")==1 and b:GetAttribute("RaceState")=="
  and a:GetAttribute("RaceState")=="RACING" and c:GetAttribute("RaceState")=="RACING"
  and d:GetAttribute("RaceState")=="RACING" and session.phase=="RACING",
  "first finisher leaves three rivals driving")
-finishRacer(ca);finishRacer(cd);finishRacer(cc)
+check(b:GetAttribute("RaceWinnerAwaitingRunnerUp")==true
+ and a:GetAttribute("RaceWinnerAwaitingRunnerUp")==false
+ and c:GetAttribute("RaceWinnerAwaitingRunnerUp")==false,
+ "only the first finisher extends celebration while waiting for runner-up")
+finishRacer(ca)
+check(not b:GetAttribute("RaceWinnerAwaitingRunnerUp") and session.phase=="RACING"
+ and c:GetAttribute("RaceState")=="RACING" and d:GetAttribute("RaceState")=="RACING",
+ "runner-up crossing stops winner extension without ending remaining racers")
+finishRacer(cd);finishRacer(cc)
 check(session.phase=="COMPLETE" and b:GetAttribute("RaceFinishPosition")==1
  and a:GetAttribute("RaceFinishPosition")==2 and d:GetAttribute("RaceFinishPosition")==3
  and c:GetAttribute("RaceFinishPosition")==4,
@@ -313,6 +321,7 @@ check(session.phase=="WAITING" and d:GetAttribute("RaceItemsReady"),"full Rematc
 tick(.1)
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==4,
  "four-of-four rematch automatically starts shared countdown")
+for _,p in {a,b,c,d} do check(p:GetAttribute("RaceWinnerAwaitingRunnerUp")==false,"Rematch clears waiting celebration") end
 tick(raceConfig.COUNTDOWN_SECONDS+0.1)
 finishRacer(cb,2)
 local mixedDeadline=session.raceEndDeadline
@@ -368,4 +377,14 @@ check(d:GetAttribute("RaceState")=="DNF" and d:GetAttribute("RaceDNFReason")=="R
  and d:GetAttribute("RaceFinishPosition")==0 and d:GetAttribute("RaceFinalTime")==0
  and b:GetAttribute("RaceParticipantCount")==4 and session.phase=="COMPLETE",
  "first finisher deadline times out only unfinished fourth racer")
+-- A runner-up may never arrive; existing terminal completion must end the hold.
+for _,p in {a,b,c,d} do remote:Fire(p,"Rematch") end
+tick(raceConfig.COUNTDOWN_SECONDS+.1)
+finishRacer(cb,2)
+check(b:GetAttribute("RaceWinnerAwaitingRunnerUp")==true,"new round winner waits for a possible second finish")
+for _,ctx in {ca,cc,cd} do ctx.chassis.CFrame=CF.new(1700,0,1700) end
+tick(raceConfig.OFF_TRACK_TIMEOUT_SECONDS+.1)
+check(session.phase=="COMPLETE" and #session.finishOrder==1
+ and b:GetAttribute("RaceWinnerAwaitingRunnerUp")==false,
+ "all rivals DNF clears wait without fabricating a runner-up or extending grace")
 print("PASS: "..count.." flexible four-player race checks")

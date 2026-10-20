@@ -267,6 +267,7 @@ tick(raceConfig.FINISH_CAMERA_TRANSITION_SECONDS)
 check(player:GetAttribute("RaceState")=="FINISHED" and kart:GetAttribute("KartFinishRollActive")==false
  and player:GetAttribute("RaceFinishPhase")=="PRESENT" and player:GetAttribute("RaceFinalTime")==officialTime,"practice result follows presentation without added time")
 check(player:GetAttribute("RaceFinishMissedSerial")==1,"valid finish gives no additional miss warning")
+check(player:GetAttribute("RaceWinnerAwaitingRunnerUp")==false,"solo has no runner-up celebration wait")
 check(player:GetAttribute("LicenseCompletedThisSession")==nil,"no license state created")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(player,"Rematch")
 check(player:GetAttribute("RaceTotalLaps")==3 and player:GetAttribute("RaceMode")=="RACE","practice rematch stays practice")

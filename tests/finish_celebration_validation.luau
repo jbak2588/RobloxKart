@@ -33,12 +33,14 @@ for round=1,10 do
  for _,e in jets do check(e.emitCalls==1,'no duplicate burst on result update')end
  local timerEnd=#h.timers
  if round%2==1 then
-  for i=timerEnd-4,timerEnd-1 do
-   local expected=if (i-(timerEnd-4))%2==0 then .6 else 1.2
+  for i=timerEnd-5,timerEnd-2 do
+   local expected=if (i-(timerEnd-5))%2==0 then .6 else 1.2
    check(math.abs(h.timers[i].seconds-expected)<.00001,'exact winner repeat schedule .6 / 1.2')
    check(h.timers[i].seconds<h.finish.Profiles.WINNER.WaveSeconds,'refresh emission ends before wave hold')
    h.timers[i].fn()
   end
+  check(h.timers[timerEnd-1].seconds==h.finish.Profiles.WINNER.WaveSeconds,'winner extension checks after base wave')
+  h.timers[timerEnd-1].fn()
   local refreshed=0;for _,e in jets do
    check(e.emitCalls==3 and not e.Enabled and e.Rate==0,'winner has exactly three bounded pulses')
    refreshed+=e.emitted
@@ -65,7 +67,7 @@ set('RaceState','FINISHING');set('RaceFinishPhase','PRESENT');set('RaceSessionId
 check(#emitters()==2,'new session rearms celebration')
 local cancelledJets=emitters();local beforeCancel={cancelledJets[1].emitted,cancelledJets[2].emitted}
 h.humanoid.SeatPart=nil;check(#emitters()==0,'seat loss removes particles')
-for i=#h.timers-4,#h.timers do h.timers[i].fn()end
+for i=#h.timers-5,#h.timers do h.timers[i].fn()end
 for i,e in cancelledJets do check(e.emitted==beforeCancel[i],'seat loss cancels queued winner refreshes')end
 h.humanoid.SeatPart=h.seat;check(#emitters()==0,'seat regain does not replay same finish')
 set('RaceState','PRE_RACE');set('RaceSessionId',1000);set('RaceFinishPosition',1)
@@ -74,7 +76,7 @@ local oldSessionJets=emitters();local oldTimerEnd=#h.timers
 local oldCounts={oldSessionJets[1].emitted,oldSessionJets[2].emitted}
 set('RaceSessionId',1001)
 check(#emitters()==2 and oldSessionJets[1].destroyed and oldSessionJets[2].destroyed,'session change removes old burst and rearms new session')
-for i=oldTimerEnd-4,oldTimerEnd do h.timers[i].fn()end
+for i=oldTimerEnd-5,oldTimerEnd do h.timers[i].fn()end
 for i,e in oldSessionJets do check(e.emitted==oldCounts[i],'session change cancels old queued pulses')end
 check(#emitters()==2,'old session expiry cannot destroy new session emitters')
 set('RaceState','DNF');check(#emitters()==0,'DNF cancels active replacement session sequence')

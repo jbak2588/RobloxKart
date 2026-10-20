@@ -73,6 +73,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	for lap = 1, 3 do player:SetAttribute("RaceLap" .. lap .. "Time", 0) end
 	player:SetAttribute("RaceFinalTime", 0)
 	player:SetAttribute("RaceFinishPhase", "NONE")
+	player:SetAttribute("RaceWinnerAwaitingRunnerUp", false)
 	player:SetAttribute("RaceCheckpointCount", checkpointCount)
 	player:SetAttribute("RaceOffTrackRemaining", 0)
 	player:SetAttribute("RaceFinishMissedSerial", 0)
@@ -849,6 +850,10 @@ function RaceController.start(options)
 		end
 		for player in session.participants do
 			setChanged(player,'RacePublicMatch',options and options.isQuickMatch and options.isQuickMatch()or false)
+			-- Presentation only; never extend the result, grace timer or reward lifecycle.
+			setChanged(player, "RaceWinnerAwaitingRunnerUp", session.phase == "RACING"
+				and session.startingParticipantCount > 1 and #session.finishOrder == 1
+				and session.finishOrder[1].player == player)
 			setChanged(player,'RacePrivatePractice',options and options.isPractice and options.isPractice()or false)
 			setChanged(player, "RaceItemsReadyCount", itemsReady)
 			setChanged(player, "RaceItemsRequiredCount", count)
