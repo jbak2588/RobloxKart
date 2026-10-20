@@ -105,13 +105,12 @@ function Controller.start()
  overlay.Name="Overlay";overlay.Size=UDim2.fromScale(1,1);overlay.BackgroundColor3=Color3.fromRGB(18,34,64)
  overlay.BackgroundTransparency=0.80;overlay.BorderSizePixel=0;overlay.Visible=false;overlay.ZIndex=20;overlay.Parent=gui
  local button=Instance.new("TextButton")
- button.Name="Records";button.Text="MY RECORDS";button.Size=UDim2.fromOffset(132,44)
- button.AnchorPoint=Vector2.new(1,0);button.Position=UDim2.new(1,-12,0,12)
- button.BackgroundColor3=Color3.fromRGB(52,88,152);button.TextColor3=Color3.new(1,1,1)
- button.Font=Enum.Font.GothamBold;button.TextSize=14;button.Parent=gui
- local buttonCorner=Instance.new("UICorner");buttonCorner.CornerRadius=UDim.new(0,6);buttonCorner.Parent=button
- local buttonStroke=Instance.new("UIStroke");buttonStroke.Name="RecordsStroke";buttonStroke.Color=Color3.fromRGB(0,220,255)
- buttonStroke.Thickness=2;buttonStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;buttonStroke.Parent=button
+ button.Name="Records";button.Text="MY RECORDS";button.Size=UDim2.fromOffset(104,44)
+ button.AnchorPoint=Vector2.new(1,0);button.Position=UDim2.new(1,-124,0,12)
+ button.BackgroundTransparency=1;button.BorderSizePixel=0
+ button.TextColor3=Color3.fromRGB(200,215,230)
+ button.Font=Enum.Font.GothamBold;button.TextSize=13;button.TextStrokeTransparency=1
+ button.Parent=gui
  local panel,label,resizeConnections=Controller.createRecordsPanel(gui)
  panel:GetPropertyChangedSignal("Visible"):Connect(function() overlay.Visible=panel.Visible end)
  local busy=false;local last=-math.huge;local alive=true

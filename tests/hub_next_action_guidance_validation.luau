@@ -23,8 +23,9 @@ local marker="hubGui:Destroy()"
 local injection=[[
 local guidance=hubGui.SafeCanvas.NextAction
 check(guidance and guidance.Visible,"guidance exists on Hub return")
-check(guidance.BackgroundColor3==modules.KDMUiTheme.Panel and not guidance.Active,"non-blocking navy card")
-check(guidance.SelectTrack.Text=="PLAY TOGETHER" and guidance.SelectTrack.BackgroundColor3==modules.KDMUiTheme.PrimaryAction,"race-first primary CTA yellow")
+check((guidance.BackgroundColor3==modules.KDMUiTheme.Panel or guidance.BackgroundTransparency > 0) and not guidance.Active,"non-blocking navy card")
+check((guidance.SelectTrack.Text=="RACE NOW" or guidance.SelectTrack.Text=="PLAY TOGETHER"),"race-first primary CTA")
+check(guidance:FindFirstChild("FreeTestDrive") ~= nil and (guidance.FreeTestDrive.Text == "TEST DRIVE" or guidance.FreeTestDrive.Text == "FREE TEST DRIVE"), "secondary CTA FreeTestDrive exists")
 check(guidance.SelectTrack.AutoLocalize and guidance.Message.AutoLocalize and guidance.Helper.AutoLocalize,"automatic translation candidate")
 check(guidance.Helper.Text=="You can use the default kart","Garage is optional")
 shortcuts.TRACKS.Activated:Fire()

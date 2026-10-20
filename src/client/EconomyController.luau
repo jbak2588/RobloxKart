@@ -57,12 +57,22 @@ function Controller.start()
   Style.style(b)
   return b
  end
- local badge = button(gui, 'Profile', 'MY PROFILE', 12); badge.AnchorPoint = Vector2.new(1, 0)
- badge.Size = UDim2.fromOffset(132, 44); badge.Position = UDim2.new(1, -152, 0, 12); badge.ZIndex = 1
- badge.BackgroundColor3 = Color3.fromRGB(52, 88, 152); badge.TextColor3 = Color3.new(1, 1, 1)
- badge.Font = Enum.Font.GothamBold; badge.TextSize = 14
- local badgeStroke = badge:FindFirstChild('ArcadeStroke')
- if badgeStroke then badgeStroke.Thickness = 2; badgeStroke.Color = Color3.fromRGB(0, 220, 255); badgeStroke.Transparency = 0 end
+ -- F60-A-B2: MY PROFILE as clean transparent text button on top-right edge (>=44x44 touch target)
+ local badge = Instance.new('TextButton')
+ badge.Name = 'Profile'
+ badge.Text = 'MY PROFILE'
+ badge.AnchorPoint = Vector2.new(1, 0)
+ badge.Position = UDim2.new(1, -12, 0, 12)
+ badge.Size = UDim2.fromOffset(104, 44)
+ badge.BackgroundTransparency = 1
+ badge.BorderSizePixel = 0
+ badge.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ badge.TextColor3 = Color3.fromRGB(240, 245, 252)
+ badge.Font = Enum.Font.GothamBold
+ badge.TextSize = 13
+ badge.TextStrokeTransparency = 1
+ badge.ZIndex = 1
+ badge.Parent = gui
  local shade = Instance.new('TextButton'); shade.Name = 'Backdrop'; shade.Text = ''; shade.Position=UDim2.fromScale(-1,-1);shade.Size = UDim2.fromScale(3, 3)
  shade.BackgroundColor3 = Color3.fromRGB(18, 34, 64); shade.BackgroundTransparency = .82
  shade.Visible = false; shade.Modal = true; shade.AutoButtonColor = false; shade.ZIndex = 9; shade.Parent = gui

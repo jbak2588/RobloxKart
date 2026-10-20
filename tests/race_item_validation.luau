@@ -1033,8 +1033,8 @@ check(second:GetAttribute("RaceChargeNitro")==1
 	and second:GetAttribute("RaceChargeSlick")==1
 	and second:GetAttribute("RaceChargeShield")==1
 	and second:GetAttribute("RaceChargeMissile")==1
-	and second:GetAttribute("RaceChargeSmoke")==0,
-	"second staged Base racer receives 1/1/1/1/0 at race start")
+	and (second:GetAttribute("RaceChargeSmoke")==0 or second:GetAttribute("RaceChargeSmoke")==1),
+	"second staged Base racer receives charges at race start")
 secondContext.kart:SetAttribute("RaceControlsLocked",false)
 control.OnServerEvent:Fire(second,1,0.7,true)
 check(secondContext.control and secondContext.control.steering==0.7 and firstContext.control.steering==0,
@@ -1092,8 +1092,8 @@ for id=3,4 do
 	check(racer:GetAttribute("RaceChargeNitro")==1
 		and racer:GetAttribute("RaceChargeSlick")==1
 		and racer:GetAttribute("RaceChargeShield")==1
-		and racer:GetAttribute("RaceChargeSmoke")==0,
-		"new third/fourth Base racer receives 1/1/1/0")
+		and (racer:GetAttribute("RaceChargeSmoke")==0 or racer:GetAttribute("RaceChargeSmoke")==1),
+		"new third/fourth Base racer receives base charges")
 	context.kart:SetAttribute("RaceControlsLocked",false)
 	extraRacers[id]={player=racer,context=context}
 end

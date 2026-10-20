@@ -69,41 +69,76 @@ function HubUiController.start()
   end
   Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end
+ local function onRaceNow()
+  print("[F60:Client] event=F60_RACE_NOW_CLICKED")
+  local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
+  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true) or (rooms and rooms.Enabled) then return end
+  if player:GetAttribute('LobbyDriveActive')==true or player:GetAttribute('LobbyDrivePending')==true or (player:GetAttribute('KDMRoutePending')~=nil and player:GetAttribute('KDMRoutePending')~='') then return end
+  local MatchRoomUi = require(script.Parent:WaitForChild("MatchRoomUiController"))
+  MatchRoomUi.quickStart()
+ end
+ local function onTestDrive()
+  print("[F60:Client] event=F60_TEST_DRIVE_CLICKED")
+  local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
+  if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true) or (rooms and rooms.Enabled) then return end
+  if player:GetAttribute('LobbyDriveActive')==true or player:GetAttribute('LobbyDrivePending')==true or (player:GetAttribute('KDMRoutePending')~=nil and player:GetAttribute('KDMRoutePending')~='') then return end
+  local TestDrive = require(script.Parent:WaitForChild("LobbyTestDriveController"))
+  TestDrive.requestDrive()
+ end
  local canvas = Instance.new("Frame")
  canvas.Name, canvas.Size, canvas.BackgroundTransparency = "SafeCanvas", UDim2.fromScale(1,1), 1
  canvas.Active, canvas.Parent = false, gui
- local guidance = GuidanceView.create(canvas, Theme, function() open(GuidanceState.nextAction(state)) end)
+ local guidance = GuidanceView.create(canvas, Theme, onRaceNow, onTestDrive)
+ print("[F60:Client] event=F60_HUB_READY")
  local worldGuidance = WorldGuidance.create(hub, Theme)
  local raceBoard=require(script.Parent:WaitForChild('HubRaceBoardView')).create(hub)
  local panel = Instance.new("Frame")
  panel.Name = "Shortcuts"
  panel.AnchorPoint, panel.Position = Vector2.new(1,1), UDim2.new(1,-12,1,-12)
- panel.Size, panel.BackgroundColor3, panel.BorderSizePixel = UDim2.fromOffset(150,152), Theme.Panel, 0
+ panel.Size, panel.BackgroundColor3, panel.BorderSizePixel = UDim2.fromOffset(150,152), Color3.fromRGB(14, 22, 35), 0
+ panel.BackgroundTransparency = 0.35
  panel.Parent = gui
- StyleHelper.applyModalPanel(panel, Color3.fromRGB(45, 85, 150))
 
- local dockGradients = {
-  GARAGE = { top = Color3.fromRGB(80, 190, 255), mid = Color3.fromRGB(0, 140, 240), bottom = Color3.fromRGB(0, 95, 200) },
-  TRACKS = { top = Color3.fromRGB(255, 140, 50), mid = Color3.fromRGB(255, 80, 20), bottom = Color3.fromRGB(210, 40, 0) },
-  SHOP   = { top = Color3.fromRGB(255, 235, 90), mid = Color3.fromRGB(255, 195, 25), bottom = Color3.fromRGB(215, 140, 0) },
- }
+ local panelCorner = Instance.new("UICorner")
+ panelCorner.CornerRadius = UDim.new(0, 10)
+ panelCorner.Parent = panel
+
+ local panelStroke = Instance.new("UIStroke")
+ panelStroke.Thickness = 1
+ panelStroke.Color = Color3.fromRGB(40, 60, 90)
+ panelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+ panelStroke.Parent = panel
 
  for index, action in {"GARAGE", "TRACKS", "SHOP"} do
   local button = Instance.new("TextButton")
-  button.Name, button.Text = action, action
+  button.Name, button.Text = action, ""
   button.Size, button.Position = UDim2.new(1,-12,0,44), UDim2.fromOffset(6,6+(index-1)*48)
-  button.BackgroundColor3 = if action=='GARAGE' then Color3.fromRGB(36,138,242) elseif action=='TRACKS' then Color3.fromRGB(246,112,42) else Color3.fromRGB(42,198,102)
-  button.TextColor3 = Theme.TextPrimary
+  button.BackgroundColor3 = Color3.fromRGB(24, 36, 52)
+  button.BackgroundTransparency = 0.35
+  button.TextColor3 = Color3.fromRGB(225, 235, 245)
   button.Font, button.TextSize, button.BorderSizePixel = Enum.Font.GothamBold, 13, 0
   button.Parent = panel
   local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,6);corner.Parent=button
-  button.Text=''
-  local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1;caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0);caption.Font=Enum.Font.GothamBold;caption.TextSize=13;caption.TextColor3=Theme.TextPrimary;caption.Parent=button
-  local mark=Instance.new('Frame');mark.Name='NavigationIcon';mark.Size=UDim2.fromOffset(12,14);mark.Position=UDim2.new(0,5,.5,-7);mark.BackgroundTransparency=1;mark.Parent=button
+
+  local stroke = Instance.new("UIStroke")
+  stroke.Color = Color3.fromRGB(45, 65, 95)
+  stroke.Thickness = 1
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Parent = button
+
+  local caption=Instance.new('TextLabel');caption.Name='NavigationLabel';caption.Text=action;caption.BackgroundTransparency=1
+  caption.Position=UDim2.fromOffset(22,0);caption.Size=UDim2.new(1,-26,1,0)
+  caption.Font=Enum.Font.GothamBold;caption.TextSize=13
+  caption.TextColor3=Color3.fromRGB(225, 235, 245)
+  caption.TextStrokeTransparency = 1
+  caption.Parent=button
+
+  local mark=Instance.new('Frame');mark.Name='NavigationIcon';mark.Size=UDim2.fromOffset(12,14)
+  mark.Position=UDim2.new(0,5,.5,-7);mark.BackgroundTransparency=1;mark.Parent=button
   local function piece(x,y,w,h,color)
    local f=Instance.new('Frame');f.Size=UDim2.fromOffset(w,h);f.Position=UDim2.fromOffset(x,y);f.BackgroundColor3=color;f.BorderSizePixel=0;f.Parent=mark
   end
-  local ink=Color3.fromRGB(240,245,252)
+  local ink=Color3.fromRGB(225, 235, 245)
   if action=='GARAGE' then
    piece(3,2,6,10,ink);for _,x in {0,10}do piece(x,2,2,4,ink);piece(x,9,2,4,ink)end
   elseif action=='TRACKS' then
@@ -111,12 +146,8 @@ function HubUiController.start()
   else
    piece(1,5,11,9,ink);piece(3,1,2,5,ink);piece(8,1,2,5,ink);piece(3,0,7,2,ink)
   end
-  local stroke = Instance.new("UIStroke")
-  stroke.Color, stroke.Thickness, stroke.ApplyStrokeMode, stroke.Parent = Color3.fromRGB(0,220,255), 2, Enum.ApplyStrokeMode.Border, button
-  table.insert(connections, button.Activated:Connect(function() open(action) end))
 
-  local g = dockGradients[action]
-  StyleHelper.apply3DButton(button, g.top, g.mid, g.bottom, 12, 2.5)
+  table.insert(connections, button.Activated:Connect(function() open(action) end))
  end
 
  local walletCapsule = Instance.new("Frame")

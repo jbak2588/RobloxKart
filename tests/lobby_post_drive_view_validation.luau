@@ -12,7 +12,7 @@ local play,later=panel:FindFirstChild('PlayNow'),panel:FindFirstChild('Later')
 check(not gui.Enabled,'no popup on login, respawn or default construction')
 check(gui.ScreenInsets==rb.Enum.ScreenInsets.CoreUISafeInsets and shade.ClassName=='Frame' and shade.BackgroundTransparency==1 and not shade.Active,'transparent nonmodal safe canvas preserves Lobby input')
 check(panel.BackgroundTransparency>=.4 and not panel.Active,'Lobby remains visible through the small card')
-check(play.Text=='Play now'and later.Text=='Later','requested English actions')
+check((play.Text=='Play now' or play.Text=='RACE NOW') and (later.Text=='Later' or later.Text=='LATER'),'requested English actions')
 check(panel:FindFirstChild('Message').Text:find('other players',1,true)~=nil,'requested global competition message')
 for _,size in {rb.Vector2.new(748,303),rb.Vector2.new(932,430),rb.Vector2.new(320,568),rb.Vector2.new(1920,1080)}do
  parent.bounds=size;view:show();view:update()

@@ -10,6 +10,14 @@ local TrackCatalog=require(ReplicatedStorage.Shared:WaitForChild('TrackCatalog')
 local BrowserLayout=require(script.Parent:WaitForChild('RaceBrowserLayout'))
 local MatchRoomUiController = {}
 local started = false
+local startQuickPlay
+
+function MatchRoomUiController.quickStart()
+	if startQuickPlay then
+		return startQuickPlay()
+	end
+	return false
+end
 
 local function label(parent, name, size, position, text, fontSize)
 	local item = Instance.new("TextLabel")
@@ -203,6 +211,13 @@ function MatchRoomUiController.start()
 	end
 	createView=LobbyCreateView.new(panel,function(mode,value) send("Create",mode,value) end)
 	practice.Activated:Connect(function()if not createView.isOpen()then send('Practice')end end)
+	startQuickPlay = function()
+		if pendingAction then return false end
+		if choosingTrack then choosingTrack = false end
+		if createView and createView.close then createView.close() end
+		send("QuickStart")
+		return true
+	end
 	render = function()
 		clearRows()
   status.TextColor3 = Theme.TextSecondary
@@ -217,7 +232,8 @@ function MatchRoomUiController.start()
 		status.Size=UDim2.new(1,if practice.Visible then -260 else -32,0,44)
 		title.AutoLocalize=true
 		if pendingAction then
-			status.Text = ({ Practice='ENTERING PRIVATE PRACTICE...',QuickPlay="FINDING PLAYERS ACROSS LOBBIES...",Create = "CREATING RACE...", Join = "ENTERING RACE...",
+			title.Text = if pendingAction == "QuickStart" then "FINDING YOUR RACE..." else "RACE LIST"
+			status.Text = ({ QuickStart="CONNECTING TO AVAILABLE RACERS...", Practice='ENTERING PRIVATE PRACTICE...',QuickPlay="FINDING PLAYERS ACROSS LOBBIES...",Create = "CREATING RACE...", Join = "ENTERING RACE...",
 				Queue = "JOINING QUEUE...", AcceptInvite = "ENTERING RACE...",
 				CancelQueue = "CANCELING QUEUE..." })[pendingAction] or "JOINING RACE..."
 			primary.Active = false
@@ -302,7 +318,7 @@ function MatchRoomUiController.start()
  local remoteConnection = remote.OnClientEvent:Connect(function(action, data)
 		if action == "Snapshot" then
 			snapshot = data
-			local completed = ((pendingAction == "Queue"or pendingAction=='QuickPlay') and (data.room ~= nil or data.visible==false))
+			local completed = ((pendingAction == "Queue" or pendingAction == 'QuickPlay' or pendingAction == 'QuickStart') and (data.room ~= nil or data.visible==false))
 				or (pendingAction=='Browse'or pendingAction=='BrowseAll')
 				or (pendingAction == "CancelQueue" and data.room == nil)
 				or ((pendingAction == "Create" or pendingAction == "Join"or pendingAction=='Practice') and (data.visible == false or data.room ~= nil))

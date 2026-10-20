@@ -279,11 +279,29 @@ function MatchRoomService.openBrowser(player, driverId, kartId, trackId,allTrack
 	return true
 end
 
+local function ensureSelection(player)
+	local selected = selections[player.UserId]
+	if selected and publicTrack(selected.trackId) and DriverCatalog.Entries[selected.driverId] and KartCatalog.Entries[selected.kartId] then
+		return selected
+	end
+	local driverId = player:GetAttribute("SelectedDriverId") or DriverCatalog.DefaultId
+	if not DriverCatalog.Entries[driverId] then driverId = DriverCatalog.DefaultId end
+
+	local kartId = player:GetAttribute("SelectedKartId") or KartCatalog.DefaultId
+	if not KartCatalog.Entries[kartId] then kartId = KartCatalog.DefaultId end
+
+	local trackId = (selected and selected.trackId) or Discovery.DefaultTrackId
+	if not publicTrack(trackId) then trackId = Discovery.DefaultTrackId end
+
+	choose(player, driverId, kartId, trackId)
+	return selections[player.UserId]
+end
+
 -- Cross-Hub allocation is serialized only through reservation. Teleport happens
 -- after releasing the lease, so a slow network transfer cannot block new users.
 local function quickPlay(player)
  if not eligible(player)or membership[player.UserId]or quickBusy[player.UserId]or creating[player.UserId]then return end
- local selected=selections[player.UserId];if not selected then return end
+ local selected=ensureSelection(player);if not selected then return end
  quickBusy[player.UserId]=true
  local token=HttpService:GenerateGUID(false)
  local Allocator=require(script.Parent:WaitForChild('GlobalRaceAllocator'))
@@ -379,8 +397,16 @@ function MatchRoomService.start()
 		if quickBusy[player.UserId]then return end
 		if action == "BrowseAll" then
 			MatchRoomService.openBrowser(player,first,second,Discovery.DefaultTrackId,true)
+		elseif action == "QuickStart" then
+			print(string.format("[F60] event=F60_MATCHMAKING_STARTED user=%d action=QuickStart", player.UserId))
+			stopLobbyDrive(player, 'quick_start')
+			ensureSelection(player)
+			quickPlay(player)
 		elseif action == "QuickPlay" then
-			stopLobbyDrive(player,'quick_play');quickPlay(player)
+			print(string.format("[F60] event=F60_MATCHMAKING_STARTED user=%d action=QuickPlay", player.UserId))
+			stopLobbyDrive(player, 'quick_play')
+			ensureSelection(player)
+			quickPlay(player)
 		elseif action == "Browse" then
 			MatchRoomService.openBrowser(player, first, second, third)
 		elseif action == "Back" then

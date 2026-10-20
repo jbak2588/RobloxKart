@@ -94,7 +94,10 @@ function Controller.start()
    and player:GetAttribute('LobbyDriveActive')~=true and player:GetAttribute('LobbyDrivePending')~=true
    and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH' and player:GetAttribute('HubOverlayOpen')~=true
    and player:GetAttribute('KDMShopOpen')~=true and player:GetAttribute('KDMProfileOpen')~=true and not (rooms and rooms.Enabled)
- end,function() Garage.open('RACE') end)
+ end,function()
+  local MatchRoomUi=require(script.Parent:WaitForChild('MatchRoomUiController'))
+  MatchRoomUi.quickStart()
+ end)
  gui.Destroying:Connect(function()smokeView:destroy();postDrive:destroy()end)
  local function neutral()
   if exhaust then exhaust:update(0,false) end

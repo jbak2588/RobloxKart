@@ -49,16 +49,17 @@ end
 function HubGuidanceState.presentation(state, safeSize, raceState, overlayOpen, routePending, roomOwned)
  -- Phone landscapes keep world signs readable from the very first arrival.
  local compact = state.visited or safeSize.Y < 400
- local heading = if state.context == "KART_READY" then "KART READY" elseif state.context == "NEXT_RACE" then "NEXT RACE" else "NEXT"
- local message = if state.context == "TRACK_RETURN" then "Choose a track and race again" elseif not state.visited then "Welcome to KDM Lobby" else "Choose a track and start racing"
+ local heading = if state.context == "KART_READY" then "KART READY" elseif state.context == "NEXT_RACE" then "NEXT RACE" elseif state.context == "TRACK_RETURN" then "NEXT" else "YOUR KART IS READY!"
+ local message = if state.context == "TRACK_RETURN" then "Create or join a race" elseif not state.visited then "Race against real players or a rookie bot." else "Race against real players or a rookie bot."
  local action, destination = HubGuidanceState.nextAction(state)
- local button = if action == "GARAGE" then "CHOOSE KART" elseif action == "ROOMS" then "PLAY TOGETHER" else "SELECT TRACK"
- message = if action == "GARAGE" then "Check your kart in Garage" elseif action == "ROOMS" then "Create or join a race" else message
+ local button = "RACE NOW"
+ local secondaryButton = "FREE TEST DRIVE"
  return {
   visible = raceState == "GARAGE" and not overlayOpen and not roomOwned
    and (routePending == nil or routePending == "") and safeSize.X >= 200 and safeSize.Y >= 212,
   compact = compact, heading = heading, message = message, action = action, destination = destination, button = button,
-  width = math.min(if compact then 150 else 280, safeSize.X - 24), height = if compact then 76 else 150,
+  secondaryButton = secondaryButton,
+  width = math.min(280, safeSize.X - 24), height = if compact then 76 else 208,
   bottom = 124, -- Existing 104px shortcuts + 12px bottom inset + 8px gap.
  }
 end

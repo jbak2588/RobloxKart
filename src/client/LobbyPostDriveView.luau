@@ -15,8 +15,8 @@ function View.new(parent,canShow,onPlay)
   local limit=Instance.new('UITextSizeConstraint');limit.MinTextSize=12;limit.MaxTextSize=maxSize;limit.Parent=label
   return label
  end
- local title=text('Title','Enjoyed your test drive?',12,32,20)
- local body=text('Message','Race with other players. Finish races to earn K$!',52,44,14)
+ local title=text('Title','READY FOR YOUR FIRST RACE?',12,32,20)
+ local body=text('Message','Race with other players and earn K$!',52,44,14)
  body.Font=Enum.Font.Gotham
  local self={gui=gui}
  function self:hide() gui.Enabled=false end
@@ -27,8 +27,8 @@ function View.new(parent,canShow,onPlay)
   local c=Instance.new('UICorner');c.CornerRadius=UDim.new(0,8);c.Parent=b
   return b
  end
- local play=button('PlayNow','Play now',0,Color3.fromRGB(255,209,55))
- local later=button('Later','Later',.5,Color3.fromRGB(111,211,245))
+ local play=button('PlayNow','RACE NOW',0,Color3.fromRGB(255,209,55))
+ local later=button('Later','LATER',.5,Color3.fromRGB(111,211,245))
  play.Activated:Connect(function()
   if not gui.Enabled then return end
   local valid=canShow();self:hide();if valid then onPlay() end
