@@ -7,8 +7,16 @@ OPEN: user-reported published recurrence, not a verified repair.
 The user reports smooth initial human-plus-bot play, followed after approximately
 5–15 Rematches by a bot start that appears to advance and snap backward. Periodic
 roughly 3–4-second hitches then persist. Returning to the Lobby and starting
-another RACE NOW restores smooth play. This report did not include a fresh
-PlaceVersion or synchronized client/server capture of the failing interval.
+another RACE NOW restores smooth play. The user subsequently confirmed the
+affected published version is **PV932**. A synchronized client/server capture
+of its failing interval is still unavailable.
+
+PV932 was published from `94808583f10576cc4caeabf5de4ab1c10160c175`, which includes
+the PV931 human-seating authority repair and the extended winner celebration.
+Comparing that commit with the follow-up HEAD shows no differences under `src/`.
+The local native experiment therefore used the same production source revision;
+its isolated environment and temporary harness remain important limitations.
+Do not attribute this report simply to a version predating the seating repair.
 
 The investigation starts at clean `prototype/kart-physics` HEAD
 `578ae85ced49bf602c8aed04918024d0ed158449`, matching fetched origin. No production
