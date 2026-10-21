@@ -279,6 +279,13 @@ local function crossedBarrier(trigger: BasePart, fromPosition: Vector3, toPositi
 	return true
 end
 
+-- Static G2 preview only: never suppress an official RACE or the Studio bot harness.
+function PrototypeWorld.isHubParkPreview(): boolean
+	if Workspace:GetAttribute("KDMServerRole") ~= "HUB" or Workspace:GetAttribute("HubParkV1Enabled") ~= true then return false end
+	return require(ReplicatedStorage.Shared:WaitForChild("HubParkRuntimePolicy")).enabled(
+		Workspace, RunService:IsStudio(), game.GameId, game.PlaceId)
+end
+
 function PrototypeWorld.start(options)
 	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
 	local initialTrack = assert(TrackCatalog.Entries[initialTrackId], "Unknown initial track")
@@ -306,14 +313,20 @@ function PrototypeWorld.start(options)
 		ground.Position.Z
 	))
 
-	TrackBuilder.build(prototype, initialTrack, groundTop)
+	if not PrototypeWorld.isHubParkPreview() then
+		TrackBuilder.build(prototype, initialTrack, groundTop)
+	end
 	-- Analyze each shared geometry once during world load, never in a physics frame.
 	if KartConfig.STRAIGHT_SPEED_ENABLED then
 		for _, entry in TrackCatalog.Entries do
 			StraightSpeedResolver.get(entry.GeometryId, TrackGeometry, KartConfig)
 		end
 	end
-	print(string.format("[RobloxKart] %s ready", initialTrack.DisplayName or initialTrackId))
+	if PrototypeWorld.isHubParkPreview() then
+		print("[RobloxKart] G2 HUB preview: official track generation suppressed")
+	else
+		print(string.format("[RobloxKart] %s ready", initialTrack.DisplayName or initialTrackId))
+	end
 
 	local initialGrid = initialTrack.GridSlots[1]
 	local spawnCFrame = CFrame.new(0, groundTop + WORLD.CHASSIS_CLEARANCE, 0) * initialGrid

@@ -16,7 +16,7 @@ local SHOWROOM_VISUAL_SCALE = 1.2
 
 -- Reuse the yellow stand between the exterior bollards; keep the entry prompt.
 function HubUiController.createTestDriveKiosk(hub)
- local zone=hub:FindFirstChild('LobbyFrontTestDriveZone')
+ local zone=hub:FindFirstChild('LobbyFrontTestDriveZone')or hub:FindFirstChild('HubParkRookieLoopG2')
  local entry=zone and zone:FindFirstChild('LobbyFrontDriveEntry')
  local source=hub:FindFirstChild('RaceStationKiosk',true)
  if not entry or not source then return nil end
@@ -348,6 +348,11 @@ function HubUiController.start()
  table.insert(connections,player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(refreshDisplay))
  refreshDisplay()
  local entryKiosk=HubUiController.createTestDriveKiosk(hub)
+ if hub.DescendantAdded then table.insert(connections,hub.DescendantAdded:Connect(function(v)
+  if not entryKiosk and(v.Name=='LobbyFrontDriveEntry'or v.Name=='RaceStationKiosk')then
+   task.defer(function()if gui.Parent and not entryKiosk then entryKiosk=HubUiController.createTestDriveKiosk(hub)end end)
+  end
+ end))end
  for _, attribute in {"RaceState", "HubOverlayOpen", "KDMProfileOpen", "KDMShopOpen", "KDMRoutePending", "LobbyDriveActive",
   "KartProfileLoadCompleted","KartProfileLoadResult","KartRestorationConfirmed","KartRestoredKartId","KartSaveState","SelectedKartId"} do
   table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(update))

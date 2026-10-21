@@ -240,6 +240,7 @@ function Controller.start()
 				local h = if type(Workspace.FindFirstChild) == "function" then Workspace:FindFirstChild("KDMHub") else nil
 				if h then
 					local zone = if type(h.FindFirstChild) == "function" then h:FindFirstChild("LobbyFrontTestDriveZone", true) else nil
+					if not zone and type(h.FindFirstChild)=='function'then zone=h:FindFirstChild('HubParkRookieLoopG2',true)end
 					if zone and zone.GetChildren then
 						for _, o in zone:GetChildren() do bind(o) end
 					end

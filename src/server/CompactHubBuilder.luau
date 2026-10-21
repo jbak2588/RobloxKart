@@ -271,6 +271,12 @@ end
 
 -- Explicit Global Lobby startup calls this after the accepted shell has been built.
 function CompactHubBuilder.buildFrontDriveZone(hub, ground)
+ -- One policy for geometry, race binding and drive dispatch; OFF keeps H1.
+ local workspace=hub.Parent
+ if workspace and require(game:GetService("ReplicatedStorage").Shared:WaitForChild("HubParkRuntimePolicy")).enabled(
+  workspace,game:GetService("RunService"):IsStudio(),game.GameId,game.PlaceId) then
+  return require(script.Parent:WaitForChild("HubParkRookieLoopBuilder")).build(hub,ground)
+ end
  return require(script.Parent:WaitForChild("LobbyFrontDriveZoneBuilder")).build(hub, ground)
 end
 

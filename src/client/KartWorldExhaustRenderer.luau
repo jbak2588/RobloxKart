@@ -208,10 +208,19 @@ function Renderer.new(kart)
  local contacts={}
  local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Include
  local surfaceRoot=nil
+ local tireSurfaceLift=0
  local function updateSurfaceFilter()
   if surfaceRoot and surfaceRoot.Parent then return true end
   local parent=kart.Parent
-  if isLobby then surfaceRoot=parent and parent:FindFirstChild("LobbyFrontSmoothFloor")
+  if isLobby then
+   surfaceRoot=parent and parent:FindFirstChild("LobbyFrontSmoothFloor")
+   tireSurfaceLift=0
+   if parent and parent:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' then
+    surfaceRoot=parent:FindFirstChild('G2SafetyGround')
+    -- Park road slices deliberately cannot be queried. Raycast the existing
+    -- flat support, then draw on the visual road top (.35 high + .02 offset).
+    tireSurfaceLift=.37
+   end
   else
    local track=parent and parent:FindFirstChild("TestTrack")
    surfaceRoot=track and track:FindFirstChild("Road")
@@ -359,7 +368,7 @@ function Renderer.new(kart)
     local hit=if updateSurfaceFilter() then Workspace:Raycast(origin,-Vector3.yAxis*6,params) else nil
     grounded[i]=hit~=nil and hit.Normal.Y>.55
     if grounded[i] then
-     local surface=hit.Position+hit.Normal*.04
+     local surface=hit.Position+hit.Normal*(.04+tireSurfaceLift)
      local right=chassis.CFrame.RightVector
      local tangent=(right-hit.Normal*right:Dot(hit.Normal)).Unit*contact.width
      contact.a.WorldPosition=surface-tangent

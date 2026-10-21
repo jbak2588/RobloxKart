@@ -71,7 +71,9 @@ function GarageController.start()
 	local prototype = Workspace:WaitForChild("Prototype")
 	local hub = Workspace:WaitForChild("KDMHub")
 	local spawnLocation = hub:WaitForChild("HubSpawn") :: SpawnLocation
-	prototype:WaitForChild("TestTrack")
+	if not (PrototypeWorld.isHubParkPreview and PrototypeWorld.isHubParkPreview()) then
+		prototype:WaitForChild("TestTrack")
+	end
 	local ground = Workspace:FindFirstChild("Baseplate") or prototype:FindFirstChild("Ground")
 	local groundTop = if ground and ground:IsA("BasePart") then ground.Position.Y + ground.Size.Y * 0.5 else 0
 

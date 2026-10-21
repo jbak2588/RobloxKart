@@ -19,6 +19,13 @@ local closing={}
 local started,remote,zone,canEnter=false,nil,nil,nil
 local practice
 local presence
+local forwardSpeed=Policy.Forward
+local function allowedHub()
+ if zone and zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then
+  return require(Shared:WaitForChild('HubParkRuntimePolicy')).enabled(Workspace,RunService:IsStudio(),game.GameId,game.PlaceId)
+ end
+ return Policy.isGlobalHub(Workspace:GetAttribute('KDMServerRole'),game.PrivateServerId,Workspace:GetAttribute('KDMEnableRaceBot')==true)
+end
 local function generation(player)
  generations[player]=(generations[player] or 0)+1
  player:SetAttribute("LobbyDriveGeneration",generations[player]);return generations[player]
@@ -141,7 +148,7 @@ local function createKart(player,definition,frame)
  return kart,body,seat
 end
 local function drive(player,previewKartId)
- if not started or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true)
+ if not started or not allowedHub()
   or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH"
   or player:GetAttribute("LobbyDrivePending")==true or (canEnter and not canEnter(player)) then return false,"DRIVE UNAVAILABLE" end
  -- Showroom previews are temporary, free V2 visuals; selection/persistence is
@@ -162,7 +169,12 @@ local function drive(player,previewKartId)
  -- Side-by-side/non-contact start slots, all on the straight, never at the display anchor.
  local occupied={};for _,r in records do occupied[r.slot]=true end
  local slot=0;while occupied[slot] do slot+=1 end
- frame=frame*CFrame.new((slot%3-1)*8,0,-math.floor(slot/3)*16)
+ local starts=zone:FindFirstChild('StartSlots')
+ if starts then
+  local a=starts:FindFirstChild(tostring(slot+1))
+  if not a then player:SetAttribute('LobbyDrivePending',false);return false,'DRIVE ZONE BUSY'end
+  frame=a.CFrame
+ else frame=frame*CFrame.new((slot%3-1)*8,0,-math.floor(slot/3)*16)end
  if not inside(frame.Position,Policy.FootprintMargin) then player:SetAttribute("LobbyDrivePending",false);return false,"DRIVE ZONE BUSY" end
  local ok,kart,body,seat=pcall(createKart,player,definition,frame)
  if not ok then player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
@@ -190,11 +202,15 @@ local function drive(player,previewKartId)
 end
 function Service.start(driveZone,eligibility)
  if started then return end
- if not driveZone or not Policy.isGlobalHub(Workspace:GetAttribute("KDMServerRole"),game.PrivateServerId,Workspace:GetAttribute("KDMEnableRaceBot")==true) then return end
+ if not driveZone then return end
+ zone=driveZone
+ if not allowedHub()then zone=nil;return end
+ forwardSpeed=Policy.forwardSpeed(driveZone:GetAttribute('DriveGeometry'),KartConfig)
+ Geometry=if zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then require(Shared:WaitForChild('RookieLoopDriveGeometry')).create()else require(Shared:WaitForChild('LobbyDriveGeometry')).create(Policy)
  started,zone,canEnter=true,driveZone,eligibility
  presence=Presence.new(zone,records)
  Service.configureCollision()
- practice=Practice.new(zone,records)
+ practice=Practice.new(zone,records,Geometry)
  remote=Instance.new("RemoteEvent");remote.Name="LobbyDriveControl";remote.Parent=ReplicatedStorage
  local connections={}
  zone.Destroying:Connect(function()
@@ -346,7 +362,7 @@ function Service.start(driveZone,eligibility)
     local steer=r.training.steer;Drift.clear(r.training);r.training.steer=steer
    end
    local nitro=practice:isNitro(player,now,throttle,clearance<=Policy.FootprintMargin)
-   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,Policy.Forward,nitro)
+   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro)
    if r.training.boost and r.training.boostPress~=r.practiceBoostPress then
     r.practiceBoostPress=r.training.boostPress;practice:boost(player)
    end

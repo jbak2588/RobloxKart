@@ -9,6 +9,10 @@ local Policy = {
  EscapeClearance = 8, SteeringAssist = .65,
 }
 -- Scalar helpers also validate the server's contact response without physics mocks.
+function Policy.forwardSpeed(geometryId,kartConfig)
+ -- Only the opt-in Racing Park matches the official normal driving cap.
+ return if geometryId=='ROOKIE_LOOP_V1' then kartConfig.MAX_FORWARD_SPEED else Policy.Forward
+end
 function Policy.slide(x,z,nx,nz)
  local outward=math.max(0,x*nx+z*nz)
  return x-nx*outward,z-nz*outward

@@ -187,6 +187,7 @@ function RaceController.start(options)
 		end
 	end
 	local initialTrackId = if options and options.trackId then options.trackId else TrackCatalog.DefaultId
+	local hubParkPreview = PrototypeWorld.isHubParkPreview and PrototypeWorld.isHubParkPreview()
 	local publicWarmup=false
 	-- Optional server observer: persistence failure must never change race adjudication.
 	local recordModule = script.Parent:FindFirstChild("RaceRecordService")
@@ -300,7 +301,8 @@ function RaceController.start(options)
 		return true
 	end
 
-	if not bindTrackForRace(initialTrackId) then
+	-- Keep Garage attributes/remotes initialized without inventing a fake TestTrack.
+	if not hubParkPreview and not bindTrackForRace(initialTrackId) then
 		return false
 	end
 
@@ -1126,6 +1128,7 @@ function RaceController.start(options)
 	end
 
 	local function admitRacer(player: Player, context, now: number)
+		if hubParkPreview then return end -- G2 is geometry-only; official racing remains in RACE.
 		if preformedMatch and rosterLocked then
 			warn(string.format("[KDMRoute] race admission reject user=%d reason=LATE_RACE_ARRIVAL", player.UserId))
 			player:SetAttribute("RaceEntryError", "RACE SERVER UNAVAILABLE - RETURNING TO HUB")

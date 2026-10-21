@@ -35,12 +35,13 @@ function Controller.start()
  local player=Players.LocalPlayer;local token=0;local pending=nil;local suspended=false;local handoffComplete=false
  local feedback=nil
  local exhaust=nil
+ local speedGauge=nil
  local engineAB=nil
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
  local boostCue=nil;local previousBoost=false
  local missileHitCue=nil;local previousMissileHit=false
  local thunderHitCue=nil;local previousThunderHit=false
- local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild("LobbyFrontTestDriveZone")
+ local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild(Workspace:GetAttribute('LobbyDriveZoneName')or "LobbyFrontTestDriveZone")
  local hub=driveZone.Parent
  local displayPrompts={}
  local function cacheDisplayPrompts(model)
@@ -98,14 +99,19 @@ function Controller.start()
   local MatchRoomUi=require(script.Parent:WaitForChild('MatchRoomUiController'))
   MatchRoomUi.quickStart()
  end)
- gui.Destroying:Connect(function()smokeView:destroy();postDrive:destroy()end)
+ gui.Destroying:Connect(function()
+  smokeView:destroy();postDrive:destroy()
+  if speedGauge then speedGauge:destroy();speedGauge=nil end
+ end)
  local function neutral()
+  if speedGauge then speedGauge:update(nil,0,0,Input.isTouchPreferred(),false) end
   if exhaust then exhaust:update(0,false) end
   if feedback then feedback:update(0,false) end
   suspended=true;Input.resetTouchActions();Input.resetLobbyTouchState()
   remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),0,0)
  end
  local function detach()
+  if speedGauge then speedGauge:destroy();speedGauge=nil end
   if engineAB then engineAB:destroy();engineAB=nil end
   if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false
   if missileHitCue then Audio.stop(missileHitCue);missileHitCue:Destroy();missileHitCue=nil end;previousMissileHit=false
@@ -253,6 +259,18 @@ function Controller.start()
    if thunderHitCue then thunderHitCue.PlaybackSpeed=AudioConfig.COMBAT.Thunder.Pitch end
    engineAB=EngineAB.new(body,canvas)
    if engine then diagnostic=EngineDiagnostic.new(engine,Run:IsStudio());diagnostic:setMode(player:GetAttribute("KartEngineLoopTestMode"));engine:Play() end
+  end
+  -- Reuse the accepted race analog dials + digital readout. This is local
+  -- presentation only: no speed attributes, remotes or driving writes.
+  if driveZone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' then
+   if not speedGauge then
+    speedGauge=require(script.Parent:WaitForChild('V2GaugeController')).new(gui.Parent,'ANALOG',MobileView)
+    speedGauge.gui.Name='KDMLobbySpeedHud'
+   end
+   speedGauge.gui.Enabled=gui.Enabled
+   local velocity=body.AssemblyLinearVelocity
+   local measuredSpeed=Vector3.new(velocity.X,0,velocity.Z).Magnitude
+   speedGauge:update(body,measuredSpeed,dt,Input.isTouchPreferred(),gui.Enabled and focused and not GuiService.MenuIsOpen)
   end
   if feedback then feedback:update(dt,(kart:GetAttribute("LobbyDrifting")==true or kart:GetAttribute("KartSlickActive")==true) and not suspended and focused and not GuiService.MenuIsOpen) end
   if exhaust then exhaust:update(dt,not suspended and focused and not GuiService.MenuIsOpen) end

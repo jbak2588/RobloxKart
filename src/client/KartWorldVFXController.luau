@@ -35,7 +35,7 @@ function Controller.start()
   bind(k)
   -- Track only potential kart roots, including attributes arriving after parenting.
   if records[k] or candidates[k] or not k.Parent then return end
-  if k.Parent~=prototype and k.Parent.Name~="LobbyFrontTestDriveZone" then return end
+  if k.Parent~=prototype and k.Parent.Name~="LobbyFrontTestDriveZone" and k.Parent.Name~='HubParkRookieLoopG2'then return end
   local list={};candidates[k]=list
   for _,name in {"PrototypeKart","LobbyKart"} do
    table.insert(list,k:GetAttributeChangedSignal(name):Connect(function() bind(k) end))

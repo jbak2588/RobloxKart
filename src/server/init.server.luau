@@ -130,21 +130,30 @@ elseif firstPlayer and game.PrivateServerId ~= "" and game.PrivateServerOwnerId 
 	end)
 else
 	local botTest=RunService:IsStudio() and Workspace:GetAttribute("KDMEnableRaceBot")==true
+	local parkStartup=require(script:WaitForChild("HubParkStartup"))
+	parkStartup.snapshot(nil) -- Before generation: exposes serialized geometry and environment.
+	parkStartup.prepare()
 	PrototypeWorld.start(if botTest then {trackId="Track01Race"} else nil)
 	RaceItemController.start()
 	RaceController.start(if botTest then {trackId="Track01Race"} else nil)
 	MatchRoomService.start()
 	CompactHubBuilder.build(Workspace, Workspace.Prototype.PlayerSpawn)
 	GarageController.start()
-	if game.PrivateServerId == "" and not botTest and CompactHubBuilder.buildFrontDriveZone then
+	local connectedDriveZone=nil
+	if (game.PrivateServerId == "" or parkStartup.enabled()) and not botTest and CompactHubBuilder.buildFrontDriveZone then
 		local drive = require(script:WaitForChild("LobbyTestDriveService"))
 		drive.configureCollision()
 		local hub = Workspace:FindFirstChild("KDMHub")
 		local ground = Workspace:FindFirstChild("Baseplate") or Workspace.Prototype:FindFirstChild("Ground")
 		local zone = CompactHubBuilder.buildFrontDriveZone(hub, ground)
+		Workspace:SetAttribute('LobbyDriveZoneName',if zone then zone.Name else nil)
 		drive.start(zone, MatchRoomService.canTestDrive)
-		require(script:WaitForChild("LobbyDemoService")).start(zone)
+		if not zone or zone:GetAttribute('DriveGeometry')~='ROOKIE_LOOP_V1'then
+			require(script:WaitForChild("LobbyDemoService")).start(zone)
+		end
+		connectedDriveZone=zone
 	end
+	parkStartup.snapshot(connectedDriveZone) -- Actual zone passed to the unchanged drive service; nil in G2.
 	PlayerPreferences.start()
 	if botTest then require(script:WaitForChild("RaceBotController")).start() end
 end

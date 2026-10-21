@@ -32,8 +32,9 @@ local function actor(owner,record)
  end
  return a
 end
-function Combat.new(zone,records)
+function Combat.new(zone,records,driveGeometry)
  local self=setmetatable({zone=zone,records=records,actors={},hazards={},shieldPulses={},session={roundId=1,id='PRACTICE:'..tostring(os.clock())}},Combat)
+ self.driveGeometry=driveGeometry or DriveGeometry
  self.folder=Instance.new('Folder');self.folder.Name='LobbyPracticeEffects';self.folder.Parent=zone
  local model=Instance.new('Model');model.Name='LobbyPracticeBot';model:SetAttribute('LobbyPracticeBot',true)
  local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
@@ -159,13 +160,13 @@ function Combat:dropFrame(body,distance,width,length)
  local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z)
  if f.Magnitude<.001 then return nil end
  local c=self.zone:GetAttribute('Center');local pos=body.Position-f.Unit*distance
- if not DriveGeometry.inside(pos.X-c.X,pos.Z-c.Z,7)then return nil end
+ if not self.driveGeometry.inside(pos.X-c.X,pos.Z-c.Z,7)then return nil end
  pos=Vector3.new(pos.X,c.Y+.25,pos.Z)
  local frame=CFrame.lookAt(pos,pos+f.Unit)
  for _,x in {-(width or Config.SLICK_WIDTH)/2,(width or Config.SLICK_WIDTH)/2}do
   for _,z in {-(length or Config.SLICK_LENGTH)/2,(length or Config.SLICK_LENGTH)/2}do
    local corner=frame*Vector3.new(x,0,z)
-   if not DriveGeometry.inside(corner.X-c.X,corner.Z-c.Z)then return nil end
+   if not self.driveGeometry.inside(corner.X-c.X,corner.Z-c.Z)then return nil end
   end
  end
  return frame
@@ -180,7 +181,7 @@ function Combat:use(player,generation,id,extra)
    local r=a.record
    if a.nitroEnd or r.throttle<=0 or now-r.lastInput>.5 or r.crashEnd or self:physical(player,now)then return false,'NITRO UNAVAILABLE'end
    local c=self.zone:GetAttribute('Center');local pos=r.body.Position-c
-   if DriveGeometry.contact(pos.X,pos.Z)<=7 then return false,'MOVE AWAY FROM EDGE'end
+   if self.driveGeometry.contact(pos.X,pos.Z)<=7 then return false,'MOVE AWAY FROM EDGE'end
    a.nitroEnd=now+Kart.NITRO_DURATION;r.kart:SetAttribute('KartNitroEndReason','');return true
   elseif item=='Shield'then
    if a.shieldEnd and now<a.shieldEnd then return false,'SHIELD ACTIVE'end
