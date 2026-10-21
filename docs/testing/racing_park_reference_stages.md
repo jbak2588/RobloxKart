@@ -78,17 +78,16 @@ Previous G3-A full-lap acceptance belongs to the smaller old layout and must not
 be transferred to this layout. User private testing is recorded above; no new
 agent-captured timing, mobile FPS measurements or multiplayer capture is claimed.
 
-## Stage 2 — course acceptance recorded; measured performance remains
+## Stage 2 — uphill island implemented locally
 
-Drive the expanded loop, pit and tight corners at the new normal cap. Exercise
-Drift/Mini Boost/Nitro/Shield and recovery/return. Check camera visibility, road
-joins and mobile draw cost before dressing: road slices increased 576 ->1,557.
-Do not adjust accepted vehicle physics to compensate for a bad corner.
+User approved uphill distant roads after PC/mobile acceptance of the flat course.
+See [the island implementation and native driving evidence](rookie_loop_island_stage2.md).
+The accepted X/Z route and widths remain; slope, ground-dependent presentation
+and recovery now follow the island surface. Real-device performance remains open.
 
-## Stage 3 — island and paddock presentation
+## Stage 3 — landscaping and paddock presentation
 
-Shape the visual island edge/cliffs/water around the measured course envelope;
-reuse curated tree/rock resources in bounded clusters. Add KDM gates, planting,
+Reuse curated tree/rock resources in bounded clusters. Add KDM gates, planting,
 fencing and plaza/podium identity without road incursions or new rewards.
 Keep the F60 building and clear pedestrian/garage access. Reference images set
 the intended quality; the current greybox is not the finished island.

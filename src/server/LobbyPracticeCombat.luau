@@ -161,8 +161,13 @@ function Combat:dropFrame(body,distance,width,length)
  if f.Magnitude<.001 then return nil end
  local c=self.zone:GetAttribute('Center');local pos=body.Position-f.Unit*distance
  if not self.driveGeometry.inside(pos.X-c.X,pos.Z-c.Z,7)then return nil end
- pos=Vector3.new(pos.X,c.Y+.25,pos.Z)
- local frame=CFrame.lookAt(pos,pos+f.Unit)
+ local x,z=pos.X-c.X,pos.Z-c.Z
+ local height=if self.driveGeometry.height then self.driveGeometry.height(x,z)else 0
+ local normal=Vector3.yAxis
+ if self.driveGeometry.normal then local nx,ny,nz=self.driveGeometry.normal(x,z);normal=Vector3.new(nx,ny,nz)end
+ pos=Vector3.new(pos.X,c.Y+height+(self.driveGeometry.itemDropOffset or .25),pos.Z)
+ local tangent=(f.Unit-normal*f.Unit:Dot(normal)).Unit
+ local frame=CFrame.lookAt(pos,pos+tangent,normal)
  for _,x in {-(width or Config.SLICK_WIDTH)/2,(width or Config.SLICK_WIDTH)/2}do
   for _,z in {-(length or Config.SLICK_LENGTH)/2,(length or Config.SLICK_LENGTH)/2}do
    local corner=frame*Vector3.new(x,0,z)

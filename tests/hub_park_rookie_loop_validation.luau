@@ -55,25 +55,38 @@ local hub=rb.Instance.new('Model');hub.Name='KDMHub';hub.Parent=workspace
 local spawn=rb.Instance.new('Part');spawn.Name='HubSpawn';spawn.Position=rb.Vector3.new(0,1,0);spawn.Parent=hub
 local ground=rb.Instance.new('Part');ground.Size=rb.Vector3.new(2048,20,2048);ground.Position=rb.Vector3.new(0,-10,0)
 local shared={HubParkRookieLoopLayout='layout',WaitForChild=function(_,n)return n end}
+local lighting=rb.Instance.new('Lighting')
+local originalSky=rb.Instance.new('Sky');originalSky.Name='OriginalSky';originalSky.Parent=lighting
 local game={GetService=function(_,n)
  if n=='ReplicatedStorage'then return {Shared=shared,WaitForChild=function()return shared end}end
  if n=='RunService'then return {IsStudio=function()return true end}end
+ if n=='Lighting'then return lighting end
  error(n)
 end}
 local env={game=game,Instance=rb.Instance,Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,
- Color3=rb.Color3,UDim2=rb.UDim2,Enum=rb.Enum,task={wait=function()end},require=function(ref)return if ref=='HubParkRuntimePolicy'then policy else layout end}
+ Color3=rb.Color3,UDim2=rb.UDim2,Enum=rb.Enum,task={wait=function()end},script={Parent={WaitForChild=function(_,n)return n end}}}
+local island=luau.load(fs.readFile('src/server/HubParkIslandBuilder.luau'),{environment=env})()
+env.require=function(ref)return if ref=='HubParkRuntimePolicy'then policy elseif ref=='HubParkIslandBuilder'then island else layout end
 local builder=luau.load(fs.readFile('src/server/HubParkRookieLoopBuilder.luau'),{environment=env})()
 check(not builder.enabled(workspace,true) and builder.build(hub,ground)==nil,'OFF creates nothing')
+check(ground.Transparency==0,'OFF leaves original ground appearance untouched')
+check(originalSky.Parent==lighting,'OFF leaves original sky untouched')
 workspace:SetAttribute('HubParkV1Enabled',true)
 check(not builder.enabled(workspace,false),'production cannot enable G2')
 workspace:SetAttribute('KDMServerRole','RACE');check(builder.build(hub,ground)==nil,'RACE creates nothing')
 workspace:SetAttribute('KDMServerRole','HUB')
 local root=assert(builder.build(hub,ground));check(builder.build(hub,ground)==root,'idempotent ON')
+check(lighting:FindFirstChild('HubParkIslandSky')~=nil and originalSky.Parent==root.ParkOriginalEnvironment,'ON-only sky swap preserves original panorama')
 local safety=root:FindFirstChild('G2SafetyGround')
-check(safety and safety.CanCollide and safety.CFrame.Position.Y+safety.Size.Y/2==0,'continuous support coplanar with original ground')
-check(safety.Transparency==1,'coplanar physical floor is invisible, no competing grass pixels')
-for _,a in points do check(math.abs(a.x-safety.CFrame.Position.X)<safety.Size.X/2-36
- and math.abs(a.z-safety.CFrame.Position.Z)<safety.Size.Z/2-36,'safety floor covers full road envelope beyond original plate')end
+local uphill=assert(safety:FindFirstChild('UphillSupport'))
+check(uphill.CanCollide and uphill.Transparency==1,'continuous invisible uphill support')
+check(safety.LobbyLevelSupport.CanCollide and safety.LobbyLevelSupport.Transparency==1,'flat Lobby support remains')
+for _,a in points do
+ local v=uphill.CFrame:PointToObjectSpace(rb.Vector3.new(a.x,layout.height(a.x,a.z),a.z))
+ -- Serialized CFrame angles are quantized; a 1,200-stud plane can differ by
+ -- millistuds at its ends. Require <=.01 stud, well below chassis clearance.
+ check(math.abs(v.Y-uphill.Size.Y/2)<.01 and math.abs(v.X)<uphill.Size.X/2-36 and math.abs(v.Z)<uphill.Size.Z/2-36,'continuous support agrees with analytic height within .01 stud')
+end
 local road,slots=0,0
 for _,v in root:GetDescendants()do
  check(not v:IsA('LuaSourceContainer') and not v:IsA('RemoteEvent') and not v:IsA('Seat') and not v:IsA('SpawnLocation'),'no auto seating or new remote')
@@ -92,10 +105,10 @@ for _,v in root:GetDescendants()do
   check(v.Anchored and not v.CanTouch,'static non-touch geometry')
   if v.Name=='Road'then road+=1;check(not v.CanCollide and not v.CanQuery,'visual road slices cannot snag chassis')end
   if v.Name=='PitRoad' or v.Name=='PedestrianPlaza' or v.Name=='PedestrianLink12' then check(not v.CanCollide and not v.CanQuery,'one common support at pit/road/walk merges')end
-  if v.CanCollide then check(v.Name=='G2SafetyGround'or v.Name=='Barrier','only flat support and safety barriers collide')end
+  if v.CanCollide then check(v.Parent==safety or v.Name=='Barrier'or v.Name=='IslandEdgeGuard','only continuous support and safety boundaries collide')end
   if v.Name=='Kerb'then check(not v.CanCollide and not v.CanQuery and not v.CastShadow,'visual-only kerbs')end
   if v.Name=='ForwardChevron' or v.Name=='StartMark' or v.Parent.Name:match('^SlotBracket%d+$')then
-   check(v.CFrame.Position.Y-v.Size.Y/2>.38,'markings stand above road/pit surface')
+   check(v.CFrame.Position.Y-layout.height(v.CFrame.Position.X,v.CFrame.Position.Z)-v.Size.Y/2>.38,'markings stand above sloped road/pit surface')
   end
  end
 end
@@ -121,16 +134,13 @@ local edgeHub=rb.Instance.new('Model');edgeHub.Parent=workspace
 -- beyond Baseplate, rather than assuming the old rear extension still exists.
 local edgeSpawn=rb.Instance.new('Part');edgeSpawn.Name='HubSpawn';edgeSpawn.Position=rb.Vector3.new(0,1,-900);edgeSpawn.Parent=edgeHub
 local edgeRoot=builder.build(edgeHub,ground);local visuals=0
-for _,v in edgeRoot:GetChildren()do if v.Name=='GroundVisual'then
+for _,v in edgeRoot.IslandScenery:GetChildren()do if v.Name=='IslandGrass'then
  visuals+=1;check(not v.CanCollide and not v.CanQuery,'grass cap visual only')
- local p,size=v.CFrame.Position,v.Size
- local overlapX=math.min(p.X+size.X/2,1024)-math.max(p.X-size.X/2,-1024)
- local overlapZ=math.min(p.Z+size.Z/2,1024)-math.max(p.Z-size.Z/2,-1024)
- check(overlapX<=.001 or overlapZ<=.001,'grass cap never overlaps visible Baseplate footprint')
 end end
-check(visuals>0,'course beyond Baseplate has visible ground without coplanar overlap')
+check(visuals>0 and ground.Transparency==1,'island outside Baseplate has grass; old rectangle cannot z-fight')
 check(root.StartSlots:FindFirstChild('1')~=nil and root:GetAttribute('DriveIntegrated')==true,'manual integration exposes start anchors')
 local leading=root.StartSlots:FindFirstChild('1')
 check(leading.CFrame.LookVector.X>.999 and leading.CFrame.Position.X==45,'first manual spawn is the forwardmost bracket, facing +X')
 for i=2,4 do check(leading.CFrame.Position.X>root.StartSlots:FindFirstChild(tostring(i)).CFrame.Position.X,'all remaining slots are behind first spawn')end
 print(string.format('PASS: %d G2/manual-zone checks; %d road strips; min radius %.2f; OFF/ON/RACE/grass validated',checks,road,minRadius))
+return {root=root,layout=layout,origin=rb.Vector3.zero}

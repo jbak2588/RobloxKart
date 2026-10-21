@@ -281,10 +281,11 @@ function Service.start(driveZone,eligibility)
    if not r.body.Parent or player.Character~=r.character or r.humanoid.Health<=0
     or r.humanoid.SeatPart~=r.seat or r.seat.Occupant~=r.humanoid then Service.stop(player,"seat_lost",true);continue end
    local body=r.body;local pos=body.Position;local c=zone:GetAttribute("Center")
+   local groundY=c.Y+(if Geometry.height then Geometry.height(pos.X-c.X,pos.Z-c.Z)else 0)
    local previous=r.boundaryPrevious
    local crossed=previous and Geometry.crossesBoundary(previous.X-c.X,previous.Z-c.Z,pos.X-c.X,pos.Z-c.Z)
    r.boundaryPrevious=pos
-   if crossed or not inside(pos,0) or pos.Y<c.Y-4 or pos.Y>c.Y+18 or body.CFrame.UpVector.Y<.55 then
+   if crossed or not inside(pos,0) or pos.Y<groundY-4 or pos.Y>groundY+18 or body.CFrame.UpVector.Y<.55 then
     practice:recover(player)
     body.AssemblyLinearVelocity=Vector3.zero;body.AssemblyAngularVelocity=Vector3.zero
     r.kart:PivotTo(r.safe);r.boundaryPrevious=r.safe.Position;r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
@@ -416,7 +417,7 @@ function Service.start(driveZone,eligibility)
    r.kart:SetAttribute("KartDrifting",drifting);r.kart:SetAttribute("KartBoosting",r.training.boost)
    r.kart:SetAttribute("LobbyDriftReady",r.training.ready)
    r.kart:SetAttribute("LobbyDriftCharge",math.min(r.training.duration/KartConfig.DRIFT_CHARGE_MIN_DURATION,r.training.qualified/KartConfig.DRIFT_CHARGE_REQUIRED_TIME))
-   if inside(pos,Policy.FootprintMargin+4) and math.abs(pos.Y-(c.Y+1.75))<3 and body.CFrame.UpVector.Y>.95 then r.safe=body.CFrame end
+   if inside(pos,Policy.FootprintMargin+4) and math.abs(pos.Y-(groundY+1.75))<3 and body.CFrame.UpVector.Y>.95 then r.safe=body.CFrame end
   end
  end)
 end

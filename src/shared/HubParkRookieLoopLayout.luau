@@ -57,7 +57,19 @@ for i,c in corners do
   p(b.x+dx*next.r*k,b.z+dz*next.r*k),
   p(finish.x-ox*next.r*k,finish.z-oz*next.r*k),finish})
 end
-Layout.Stage="PARK_1_SKETCH_FRONT"
+Layout.Stage="PARK_2_ISLAND"
+-- One continuous uphill plane beyond the unchanged T plaza. All course and
+-- pit surfaces share it; there are no ramps/joins between individual road slices.
+Layout.Island={minX=-820,maxX=720,minZ=-1270,maxZ=220,chamfer=150,
+ baseZ=-70,slope=.04,waterY=-58,waterSize=14000}
+function Layout.height(_x,z)
+ return math.max(0,(Layout.Island.baseZ-z)*Layout.Island.slope)
+end
+function Layout.normal(_x,z)
+ local slope=if z<Layout.Island.baseZ then Layout.Island.slope else 0
+ local length=math.sqrt(1+slope*slope)
+ return 0,1/length,slope/length
+end
 Layout.MainStraightLength=870
 Layout.NitroStraightLength=360+Layout.PitShift -- Extend outside straight with pit approach.
 Layout.Pit={width=22,segments={

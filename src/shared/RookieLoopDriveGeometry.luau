@@ -19,6 +19,9 @@ function Geometry.create()
  addRoute(Layout.Segments,Layout.RoadWidth/2+Layout.KerbWidth+Layout.Shoulder)
  addRoute(Layout.Pit.segments,Layout.Pit.width/2+6)
  local g={}
+ g.height=Layout.height
+ g.normal=Layout.normal
+ g.itemDropOffset=.47 -- .37 road top + .08 Slick half-thickness + .02 clearance.
  function g.contact(x,z)
   local best,nx,nz=-1e6,1,0
   for _,e in cells[key(x,z)]or {}do
