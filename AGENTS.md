@@ -41,6 +41,14 @@ respawn, kart creation, bot integration or network ownership. Physics tuning,
 items and economy were not changed by this repair. See
 [the investigation](docs/testing/race_network_ownership_hitch_review.md).
 
+**Open follow-up, 2026-10-21:** the user reports renewed periodic hitches after
+approximately 5–15 human-plus-bot Rematches, cleared by returning to the Lobby
+and launching another race. The earlier 40-second captures and four mocked
+reseatings do not establish long-session Rematch acceptance. Preserve the PV931
+authority repair; do not declare this recurrence resolved or make speculative
+camera/physics changes without a correlated capture. See
+[the follow-up](docs/testing/rematch_hitch_followup.md).
+
 ## Mission
 
 Commercial mobile-first Roblox arcade kart racing game.
