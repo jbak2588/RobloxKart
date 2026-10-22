@@ -138,23 +138,17 @@ function Controller.start()
 
     if hit then boosting=false;b.visualDrift=0 end
 
-    -- Hit physics and visual reaction animations
-    local spin=if slick then math.rad(VFX.Slick.SpinDegrees)*math.clamp((now-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/ItemConfig.SLICK_EFFECT_DURATION,0,1)else 0
-    local missilePitch,jumpY=0,0
-    if missile then
-     local t=(now*15)%(math.pi*2)
-     missilePitch=math.sin(t)*math.rad(28)
-     jumpY=math.abs(math.sin(now*8))*2.5
-    end
-    local jitterX,jitterRoll=0,0
-    if thunder then
-     jitterX=(math.sin(now*55)+math.cos(now*37))*0.35
-     jitterRoll=math.rad(math.sin(now*45)*12)
-    end
+    -- Sync combat hit attributes so KDMItemVFXController renders official race smoke & electrical sparks
+    b.model:SetAttribute('KartMissileHitActive',missile)
+    b.model:SetAttribute('KartThunderHitActive',thunder)
+    b.model:SetAttribute('KartSlickActive',slick)
 
-    local position=center+Vector3.new(x+jitterX,.22-b.bottom+jumpY,z)
+    -- Official race-identical hit handling: speed attenuation + smoke/sparks, no unnatural tumbling
+    local spin=if slick then math.rad(VFX.Slick.SpinDegrees)*math.clamp((now-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/ItemConfig.SLICK_EFFECT_DURATION,0,1)else 0
+
+    local position=center+Vector3.new(x,.22-b.bottom,z)
     local basis=CFrame.lookAt(position,position+Vector3.new(dx,0,dz))
-    b.model:PivotTo(basis*CFrame.Angles(missilePitch,if slick then spin else math.rad(32)*b.visualDrift,jitterRoll))
+    b.model:PivotTo(basis*CFrame.Angles(0,if slick then spin else math.rad(32)*b.visualDrift,0))
 
     -- Target practice feedback badge
     local customMsg=if missile then "MISSILE HIT!" elseif thunder then "SHOCKED!" elseif slick then "SLIPPED!" else (proxy and proxy:GetAttribute('LobbyPracticeMessage'))
