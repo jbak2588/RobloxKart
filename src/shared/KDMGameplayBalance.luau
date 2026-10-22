@@ -123,7 +123,7 @@ local Balance = {
 		ChargeRequiredTime = 0.75,
 		ChargeMinForwardSpeed = 30,
 		ChargeMinSlipDegrees = 12,
-		BonusRequiredBoosts = 5,
+		BonusRequiredBoosts = 3,
 	},
 	BOOST = {
 		MiniBoost = {

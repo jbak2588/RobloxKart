@@ -144,7 +144,7 @@ function Combat:boost(player)
  local a=self.actors[player];if not a or not self:valid(a)then return end
  local awards,pending=a.loadout.bonusAwardCount,a.loadout.bonusPending
  a.loadout:recordBoost(Config.DRIFT_BONUS_REQUIRED_BOOSTS);self:publish(a,os.clock())
- if a.loadout.bonusAwardCount>awards then self:feedback(a,'NITRO +1 • FIVE BOOSTS')
+ if a.loadout.bonusAwardCount>awards then self:feedback(a,'NITRO +1 • THREE BOOSTS')
  elseif not pending and a.loadout.bonusPending then self:feedback(a,'NITRO PENDING • USE NITRO')end
 end
 function Combat:physical(player,now)

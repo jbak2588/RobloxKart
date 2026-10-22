@@ -53,7 +53,7 @@ function View.new(canvas,player,remote,canUse)
   if serial~=lastSerial then lastSerial=serial;messageUntil=now+1.4 end
   local incoming=(player:GetAttribute('LobbyMissileIncomingCount')or 0)+(player:GetAttribute('LobbyThunderIncomingCount')or 0)
   local progress=player:GetAttribute('LobbyBonusProgress')or 0
-  local state=if kart and kart:GetAttribute('LobbyDriftReady')then 'BOOST READY • RELEASE'elseif kart and kart:GetAttribute('KartBoosting')then 'MINI BOOST'else 'NITRO '..(player:GetAttribute('LobbyChargeNitro')or 0)..' • BOOST '..progress..'/5'..(if player:GetAttribute('LobbyBonusPending')then ' PENDING'else '')
+  local state=if kart and kart:GetAttribute('LobbyDriftReady')then 'BOOST READY • RELEASE'elseif kart and kart:GetAttribute('KartBoosting')then 'MINI BOOST'else 'NITRO '..(player:GetAttribute('LobbyChargeNitro')or 0)..' • BOOST '..progress..'/3'..(if player:GetAttribute('LobbyBonusPending')then ' PENDING'else '')
   info.Text=if incoming>0 then 'INCOMING! • SHIELD'elseif now<messageUntil then player:GetAttribute('LobbyPracticeMessage')or ''else state
   return l
  end

@@ -162,7 +162,7 @@ function Tutorial.create(parent: Instance, onDismiss)
 	local page = 1
 	local pages = {
 		{ "DRIVE", "↑       ←   →       ↓", "Forward: accelerate. Left/Right: steer only; combine with Forward or Reverse.\nAUTO START: continuous acceleration. Brake overrides Auto; reverse after stopping.", { "Forward", "ForwardLeft", "ForwardRight", "BrakeReverse", "AutoStart" } },
-		{ "DRIFT & BOOST", "HOLD DRIFT + FORWARD+LEFT/RIGHT", "Exit a READY Drift for MINI BOOST.\nLand 5 boosts in one race for +1 NITRO.", { "DriftSquare", "ForwardLeft", "ForwardRight" } },
+		{ "DRIFT & BOOST", "HOLD DRIFT + FORWARD+LEFT/RIGHT", "Exit a READY Drift for MINI BOOST.\nLand 3 boosts in one race for +1 NITRO.", { "DriftSquare", "ForwardLeft", "ForwardRight" } },
 		{ "RACE ITEMS", "", "Tap an item once to use it while racing.\nWhen a Missile is incoming, tap Shield to defend.", { "Nitro", "Slick", "Shield", "Missile" } },
 	}
 	local function layoutContent()

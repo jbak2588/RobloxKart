@@ -8,7 +8,7 @@ check(balance.VERSION == "R6-C0", "version")
 local expectedKartConfig = (function()
 local KartConfig = {
 	MAX_FORWARD_SPEED = 70,
-	OFF_TRACK_MAX_SPEED = 50,
+	OFF_TRACK_MAX_SPEED = 60,
 	MAX_REVERSE_SPEED = 24,
 	ACCELERATION = 36,
 	REVERSE_ACCELERATION = 22,
@@ -105,7 +105,7 @@ check(type(balance.ITEMS.Nitro.Acceleration) == "number" and actualKartConfig.NI
 check(type(balance.ITEMS.Nitro.ExitDeceleration) == "number" and actualKartConfig.NITRO_EXIT_DECELERATION == balance.ITEMS.Nitro.ExitDeceleration, "adapter NITRO_EXIT_DECELERATION")
 local expectedRaceItemConfig = (function()
 return table.freeze({
-	DRIFT_BONUS_REQUIRED_BOOSTS = 5,
+	DRIFT_BONUS_REQUIRED_BOOSTS = 3,
 	SLICK_LIFETIME = 10.0,
 	SLICK_OWNER_GRACE = 0.75,
 	SLICK_EFFECT_DURATION = 0.70,

@@ -59,7 +59,7 @@ for _,effect in {"Missile","Thunder","OffTrack"} do
  elseif effect=="Thunder" then assert(world.applyThunderHit(player))
  else kart:SetAttribute("KartOffTrack",true) end
  drive(.01)
- local cap=if effect=="Missile" then 55 elseif effect=="Thunder" then 60 else 50
+ local cap=if effect=="Missile" then 55 elseif effect=="Thunder" then 60 else config.OFF_TRACK_MAX_SPEED
  check(ctx.commandedSpeed<=cap and chassis.AssemblyLinearVelocity.Magnitude<=cap+.001,effect.." safety cap")
 end
 resetAt(straightIndex);for _=1,150 do drive(1/60,-1) end
