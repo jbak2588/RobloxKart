@@ -13,15 +13,21 @@ function KDMV2VisualDefinition.createVisual(): Model
 	visual.Name = "Visual"
 	visual.PrimaryPart = visual.StaticRoot
 
+	local offset = CFrame.new(0, -0.65, 0.25)
+
 	local steeringPivot = visual:FindFirstChild("SteeringPivot")
 	if steeringPivot and steeringPivot:IsA("BasePart") then
-		local offset = CFrame.new(0, -0.65, 0.25)
 		for _, child in steeringPivot:GetDescendants() do
 			if child:IsA("BasePart") then
 				child.CFrame = child.CFrame * offset
 			end
 		end
 		steeringPivot.CFrame = steeringPivot.CFrame * offset
+	end
+
+	local visualSeat = visual.StaticRoot:FindFirstChild("VisualSeat")
+	if visualSeat and visualSeat:IsA("BasePart") then
+		visualSeat.CFrame = visualSeat.CFrame * offset
 	end
 
 	for _, part in visual:GetDescendants() do
