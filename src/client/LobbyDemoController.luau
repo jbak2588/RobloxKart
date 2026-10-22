@@ -53,8 +53,9 @@ function Controller.start()
   if type(start)~="number" or typeof(center)~="Vector3" then return end
   state=nextState
 
-  local isRookie=zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
-  local fleet=if isRookie then Policy.BotFleet else {Policy.BotFleet[1]}
+ local isRookie=zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
+ local Layout=if isRookie then require(Shared:WaitForChild('HubParkRookieLoopLayout')) else nil
+ local fleet=if isRookie then Policy.BotFleet else {Policy.BotFleet[1]}
 
   for index,cfg in fleet do
    local botKartId=nextState:GetAttribute("BotKartId_"..cfg.id) or cfg.kartId
@@ -68,12 +69,6 @@ function Controller.start()
    model:SetAttribute("BotIndex",cfg.id)
    local visual=Factory.createVisual(definition,false);visual.Parent=model
    local root=Instance.new("Part");root.Name="DemoRoot";root.Transparency=1;root.Size=Vector3.one;root.Parent=model;model.PrimaryPart=root
-   local bottom=math.huge
-   for _,v in visual:GetDescendants() do if v:IsA("BasePart") then
-    for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
-     bottom=math.min(bottom,(v.CFrame*Vector3.new(x*v.Size.X/2,y*v.Size.Y/2,z*v.Size.Z/2)).Y)
-    end end end
-   end end
    local seat=Factory.getDriverSeatLocalCFrame(definition)
    local function driverPart(pname,size,offset,color,ball)
     local p=Instance.new("Part");p.Name=pname;p.Size=size;p.CFrame=seat*CFrame.new(offset);p.Color=color
@@ -89,12 +84,12 @@ function Controller.start()
     driverPart("DriverArm",Vector3.new(.55,.55,1.5),Vector3.new(side*.95,.55,-.65),driverColor)
     driverPart("DriverLeg",Vector3.new(.65,.6,1.6),Vector3.new(side*.45,-.25,-.9),dark)
    end
-   model:ScaleTo(route.VisualScale)
-   model:SetAttribute("DemoVisualScale",route.VisualScale)
-   local scaledBottom=bottom*route.VisualScale
+   local scale=route.VisualScale or 1.0
+   if scale~=1.0 then model:ScaleTo(scale) end
+   model:SetAttribute("DemoVisualScale",scale)
    local smoke={}
    for _,side in {-1,1} do
-    local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1*route.VisualScale,scaledBottom+.25*route.VisualScale,2.2*route.VisualScale);attachment.Parent=root
+    local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1*scale,-1.0*scale,2.2*scale);attachment.Parent=root
     table.insert(smoke,Exhaust.createDriftSmoke(attachment,true))
    end
    for _,v in model:GetDescendants() do
@@ -108,7 +103,7 @@ function Controller.start()
    local boostVisuals=Exhaust.createBoostVisuals(visual)
    table.insert(botList,{
     id=cfg.id,delay=botDelay,model=model,visual=visual,root=root,smoke=smoke,audio=audio,
-    badge=badge,label=label,boostVisuals=boostVisuals,bottom=scaledBottom,visualDrift=0,
+    badge=badge,label=label,boostVisuals=boostVisuals,visualDrift=0,
     proxyName=if cfg.id==1 then 'LobbyPracticeBot' else 'LobbyPracticeBot_'..cfg.id,
    })
   end
@@ -146,8 +141,12 @@ function Controller.start()
     -- Official race-identical hit handling: speed attenuation + smoke/sparks, no unnatural tumbling
     local spin=if slick then math.rad(VFX.Slick.SpinDegrees)*math.clamp((now-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/ItemConfig.SLICK_EFFECT_DURATION,0,1)else 0
 
-    local position=center+Vector3.new(x,.22-b.bottom,z)
-    local basis=CFrame.lookAt(position,position+Vector3.new(dx,0,dz))
+    local groundY=if Layout and Layout.height then Layout.height(x,z)else 0
+    local ny,nz=1,0
+    if Layout and Layout.normal then local _nx,_ny,_nz=Layout.normal(x,z);ny,nz=_ny,_nz end
+
+    local position=center+Vector3.new(x,groundY+0.463,z)
+    local basis=CFrame.lookAt(position,position+Vector3.new(dx,0,dz),Vector3.new(0,ny,nz))
     b.model:PivotTo(basis*CFrame.Angles(0,if slick then spin else math.rad(32)*b.visualDrift,0))
 
     -- Target practice feedback badge

@@ -1,6 +1,6 @@
 -- Shared presentation route, derived from the approved road; never drives a human kart.
 local Layout=require(script.Parent.HubParkRookieLoopLayout)
-local Route={Speed=36,VisualScale=1.12,PatternCount=1}
+local Route={Speed=36,VisualScale=1.0,PatternCount=1}
 local points=Layout.sample(Layout.Segments)
 local length,offset,best=0,0,math.huge
 for i,p in points do
