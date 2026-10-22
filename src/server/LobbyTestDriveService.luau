@@ -318,7 +318,7 @@ function Service.start(driveZone,eligibility)
    local right=Vector3.new(-f.Z,0,f.X)
    local physical=Vector3.new(body.AssemblyLinearVelocity.X,0,body.AssemblyLinearVelocity.Z)
    -- Respect actual wall stops: never keep accelerating into a rail with stale commanded speed.
-   if math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then r.speed=physical:Dot(f) end
+   if not offTrack and math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then r.speed=physical:Dot(f) end
    if throttle<=0 then
     local target=if throttle<0 then -Policy.Reverse*-throttle else 0
     local rate=if throttle<0 then Policy.Brake else Policy.Coast
@@ -328,7 +328,7 @@ function Service.start(driveZone,eligibility)
    local localPos=pos-c
    local isRookieLoop = zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
    local clearance,nx,nz=Geometry.contact(localPos.X,localPos.Z)
-   local offTrack = isRookieLoop and (clearance < 48)
+   local offTrack = if isRookieLoop then (clearance < 0) else (clearance < Policy.Shoulder)
    r.kart:SetAttribute("KartOffTrack", offTrack)
    local normal=Vector3.new(nx,0,nz)
    local approach=physical:Dot(normal)
@@ -387,7 +387,7 @@ function Service.start(driveZone,eligibility)
     r.training.straightExitActive=r.straightExitActive
     if r.speed<=forwardSpeed then r.straightExitActive=false;r.straightBoostReturnActive=false end
    else r.training.straightExitActive=false end
-   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro,not inside(pos,0))
+   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro,offTrack)
    if r.training.boost and r.training.boostPress~=r.practiceBoostPress then
     r.practiceBoostPress=r.training.boostPress;practice:boost(player)
    end
@@ -441,7 +441,7 @@ function Service.start(driveZone,eligibility)
    r.kart:SetAttribute("KartDrifting",drifting);r.kart:SetAttribute("KartBoosting",r.training.boost)
    r.kart:SetAttribute("LobbyDriftReady",r.training.ready)
    r.kart:SetAttribute("LobbyDriftCharge",math.min(r.training.duration/KartConfig.DRIFT_CHARGE_MIN_DURATION,r.training.qualified/KartConfig.DRIFT_CHARGE_REQUIRED_TIME))
-   if inside(pos,Policy.FootprintMargin+4) and math.abs(pos.Y-(groundY+1.75))<3 and body.CFrame.UpVector.Y>.95 then r.safe=body.CFrame end
+   if (isRookieLoop or inside(pos,Policy.FootprintMargin+4)) and math.abs(pos.Y-(groundY+1.75))<3 and body.CFrame.UpVector.Y>.95 then r.safe=body.CFrame end
   end
  end)
 end

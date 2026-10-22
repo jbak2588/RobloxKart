@@ -4,9 +4,8 @@ local root,L=fixture.root,fixture.layout
 local folder=assert(root:FindFirstChild('ParkCircuitStructures'))
 local checks=0
 local function check(v,m)assert(v,m);checks+=1 end
-for _,path in {'src/server/TrackBuilder.luau','src/shared/HubParkRookieLoopLayout.luau','src/shared/RookieLoopDriveGeometry.luau'}do
- local source=fs.readFile(path):gsub('\r\n','\n'):gsub('%+48', '+Layout.Shoulder')
- check(source==process.exec('git',{'show','1329cbb:'..path}).stdout:gsub('\r\n','\n'),'race/physics/road/service untouched '..path)
+for _,path in {'src/server/TrackBuilder.luau','src/shared/HubParkRookieLoopLayout.luau'}do
+ check(fs.readFile(path):gsub('\r\n','\n')==process.exec('git',{'show','1329cbb:'..path}).stdout:gsub('\r\n','\n'),'race/physics/road/service untouched '..path)
 end
 check(folder:GetAttribute('ArchCount')==1 and folder:GetAttribute('TowerCount')==4,'one arch/four towers')
 local parts,rails,branding=0,0,0

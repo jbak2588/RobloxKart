@@ -33,17 +33,23 @@ function Controller.start()
 		end)
 	end
 	local function activeKart()
-		if player:GetAttribute("IsBot") == true or player:GetAttribute("RaceState") ~= "RACING" then return nil end
+		if player:GetAttribute("IsBot") == true then return nil end
+		local state = player:GetAttribute("RaceState")
 		local human = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		local seat = human and human.SeatPart
 		local candidate = seat and seat.Parent
-		if not human or human.Health <= 0 or not seat or seat:GetAttribute("PrototypeKartSeat") ~= true
-			or not candidate or not candidate.Parent or candidate:GetAttribute("PrototypeKart") ~= true
-			or candidate:GetAttribute("RaceControlsLocked") == true then return nil end
+		if not human or human.Health <= 0 or not seat or not candidate or not candidate.Parent then return nil end
+		if candidate:GetAttribute("RaceControlsLocked") == true then return nil end
+
+		local isRaceKart = (state == "RACING") and seat:GetAttribute("PrototypeKartSeat") == true and candidate:GetAttribute("PrototypeKart") == true
+		local isLobbyKart = seat:GetAttribute("LobbyKartSeat") == true and candidate:GetAttribute("LobbyKart") == true
+		if not isRaceKart and not isLobbyKart then return nil end
 		return candidate
 	end
 	local function valid()
-		return kart and activeKart() == kart and player:GetAttribute("RaceSessionId") == session
+		if not kart or activeKart() ~= kart then return false end
+		if kart:GetAttribute("LobbyKart") == true then return true end
+		return player:GetAttribute("RaceSessionId") == session
 			and kart:GetAttribute("RaceResetSerial") == reset
 	end
 	local function renderStep()
@@ -127,7 +133,7 @@ function Controller.start()
 		end
 		table.insert(kartConnections, current.Destroying:Connect(clear))
 	end
-	for _, attribute in {"RaceState", "RaceSessionId"} do
+	for _, attribute in {"RaceState", "RaceSessionId", "LobbyDriveActive"} do
 		table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(sync))
 	end
 	-- Seat changes are polled by one connection, not another character-owned chain.
