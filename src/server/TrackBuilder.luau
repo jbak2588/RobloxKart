@@ -873,42 +873,77 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	end
 
 	local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLeftCurve: boolean)
-		local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
-		local gui = Instance.new("SurfaceGui")
-		gui.Name = "KDMChevronSurfaceGui"
-		gui.Face = inwardFace
-		gui.CanvasSize = Vector2.new(1024, 384)
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
-		gui.LightInfluence = 0
-		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-		gui.Parent = railPart
+		for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+			local gui = Instance.new("SurfaceGui")
+			gui.Name = "KDMChevronSurfaceGui_" .. face.Name
+			gui.Face = face
+			gui.CanvasSize = Vector2.new(512, 234)
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+			gui.LightInfluence = 0
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.Parent = railPart
 
-		local panel = Instance.new("Frame")
-		panel.Name = "ChevronPanel"
-		panel.Size = UDim2.new(0.96, 0, 0.90, 0)
-		panel.AnchorPoint = Vector2.new(0.5, 0.5)
-		panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-		panel.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
-		panel.BorderSizePixel = 0
-		panel.Parent = gui
+			-- F1 Board: Pure white background with border and 3 prominent red vector chevrons
+			local panel = Instance.new("Frame")
+			panel.Name = "ChevronPanel"
+			panel.Size = UDim2.new(0.96, 0, 0.90, 0)
+			panel.AnchorPoint = Vector2.new(0.5, 0.5)
+			panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+			panel.BackgroundColor3 = Color3.fromRGB(248, 250, 252)
+			panel.BorderSizePixel = 0
+			panel.ClipsDescendants = true
+			panel.Parent = gui
 
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
-		corner.Parent = panel
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 8)
+			corner.Parent = panel
 
-		local label = Instance.new("TextLabel")
-		label.Name = "ChevronText"
-		label.Size = UDim2.new(0.96, 0, 0.92, 0)
-		label.AnchorPoint = Vector2.new(0.5, 0.5)
-		label.Position = UDim2.new(0.5, 0, 0.5, 0)
-		label.BackgroundTransparency = 1
-		label.Text = if isLeftCurve then "<<<" else ">>>"
-		label.Font = Enum.Font.GothamBlack
-		label.TextColor3 = Color3.fromRGB(255, 224, 20)
-		label.TextScaled = true
-		label.TextXAlignment = Enum.TextXAlignment.Center
-		label.TextYAlignment = Enum.TextYAlignment.Center
-		label.Parent = panel
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(45, 48, 56)
+			stroke.Thickness = 2.5
+			stroke.Parent = panel
+
+			local function createF1Chevron(parent, posX, isLeft)
+				local container = Instance.new("Frame")
+				container.Name = "Chevron"
+				container.Size = UDim2.new(0, 120, 0, 200)
+				container.AnchorPoint = Vector2.new(0.5, 0.5)
+				container.Position = UDim2.new(posX, 0, 0.5, 0)
+				container.BackgroundTransparency = 1
+				container.ClipsDescendants = true
+				container.Parent = parent
+
+				local armLen = 125
+				local armThick = 26
+				local rot = if isLeft then 45 else -45
+				local apexX = if isLeft then 25 else 95
+
+				local topArm = Instance.new("Frame")
+				topArm.Size = UDim2.new(0, armThick, 0, armLen)
+				topArm.AnchorPoint = Vector2.new(0.5, 1)
+				topArm.Position = UDim2.new(0, apexX, 0.5, 8)
+				topArm.Rotation = rot
+				topArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
+				topArm.BorderSizePixel = 0
+				topArm.Parent = container
+
+				local botArm = Instance.new("Frame")
+				botArm.Size = UDim2.new(0, armThick, 0, armLen)
+				botArm.AnchorPoint = Vector2.new(0.5, 0)
+				botArm.Position = UDim2.new(0, apexX, 0.5, -8)
+				botArm.Rotation = -rot
+				botArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
+				botArm.BorderSizePixel = 0
+				botArm.Parent = container
+
+				local c1 = Instance.new("UICorner"); c1.CornerRadius = UDim.new(0, 4); c1.Parent = topArm
+				local c2 = Instance.new("UICorner"); c2.CornerRadius = UDim.new(0, 4); c2.Parent = botArm
+			end
+
+			createF1Chevron(panel, 0.25, isLeftCurve)
+			createF1Chevron(panel, 0.50, isLeftCurve)
+			createF1Chevron(panel, 0.75, isLeftCurve)
+		end
 	end
 
 	for _, item in plannedRails do
@@ -935,7 +970,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			end
 		end
 
-		local railHeight = if item.isStraight then 2.5 else 6.0
+		local railHeight = if item.isStraight then 2.5 else 5.5
 		local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + railHeight * 0.5, 0)
 		local railLook = CFrame.lookAt(railPos, railPos + tangent)
 
@@ -944,7 +979,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 		local railColor = if isRed then kerbRed else kerbWhite
 		local railPart = createVisualPart(visualRailsFolder, "RailSegment" .. (visualRailParts + 1),
-			Vector3.new(0.6, railHeight, (second - first).Magnitude + 2), railLook,
+			Vector3.new(0.5, railHeight, if item.isStraight then (second - first).Magnitude + 2 else 12.0), railLook,
 			railColor, Enum.Material.SmoothPlastic)
 		visualRailParts += 1
 		if not item.isStraight then

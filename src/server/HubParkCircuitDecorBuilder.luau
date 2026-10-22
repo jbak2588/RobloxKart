@@ -158,43 +158,78 @@ local function buildLightingTower(parent: Instance, cfg: any, groundY: number, s
 	return towerModel
 end
 
-local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLeftCurve: boolean)
-	local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "KDMChevronSurfaceGui"
-	gui.Face = inwardFace
-	gui.CanvasSize = Vector2.new(1024, 384)
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
-	gui.LightInfluence = 0
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	gui.Parent = railPart
+local function attachChevronGuidance(railPart: Part, isLeftCurve: boolean)
+	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "KDMChevronSurfaceGui_" .. face.Name
+		gui.Face = face
+		gui.CanvasSize = Vector2.new(512, 234)
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+		gui.LightInfluence = 0
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		gui.Parent = railPart
 
-	local panel = Instance.new("Frame")
-	panel.Name = "ChevronPanel"
-	panel.Size = UDim2.new(0.96, 0, 0.90, 0)
-	panel.AnchorPoint = Vector2.new(0.5, 0.5)
-	panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-	panel.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
-	panel.BorderSizePixel = 0
-	panel.Parent = gui
+		-- F1 Board: Pure white background with border and 3 prominent red vector chevrons
+		local panel = Instance.new("Frame")
+		panel.Name = "ChevronPanel"
+		panel.Size = UDim2.new(0.96, 0, 0.90, 0)
+		panel.AnchorPoint = Vector2.new(0.5, 0.5)
+		panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+		panel.BackgroundColor3 = Color3.fromRGB(248, 250, 252)
+		panel.BorderSizePixel = 0
+		panel.ClipsDescendants = true
+		panel.Parent = gui
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = panel
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 8)
+		corner.Parent = panel
 
-	local label = Instance.new("TextLabel")
-	label.Name = "ChevronText"
-	label.Size = UDim2.new(0.96, 0, 0.92, 0)
-	label.AnchorPoint = Vector2.new(0.5, 0.5)
-	label.Position = UDim2.new(0.5, 0, 0.5, 0)
-	label.BackgroundTransparency = 1
-	label.Text = if isLeftCurve then "<<<" else ">>>"
-	label.Font = Enum.Font.GothamBlack
-	label.TextColor3 = Color3.fromRGB(255, 224, 20)
-	label.TextScaled = true
-	label.TextXAlignment = Enum.TextXAlignment.Center
-	label.TextYAlignment = Enum.TextYAlignment.Center
-	label.Parent = panel
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(45, 48, 56)
+		stroke.Thickness = 2.5
+		stroke.Parent = panel
+
+		local function createF1Chevron(parent, posX, isLeft)
+			local container = Instance.new("Frame")
+			container.Name = "Chevron"
+			container.Size = UDim2.new(0, 120, 0, 200)
+			container.AnchorPoint = Vector2.new(0.5, 0.5)
+			container.Position = UDim2.new(posX, 0, 0.5, 0)
+			container.BackgroundTransparency = 1
+			container.ClipsDescendants = true
+			container.Parent = parent
+
+			local armLen = 125
+			local armThick = 26
+			local rot = if isLeft then 45 else -45
+			local apexX = if isLeft then 25 else 95
+
+			local topArm = Instance.new("Frame")
+			topArm.Size = UDim2.new(0, armThick, 0, armLen)
+			topArm.AnchorPoint = Vector2.new(0.5, 1)
+			topArm.Position = UDim2.new(0, apexX, 0.5, 8)
+			topArm.Rotation = rot
+			topArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
+			topArm.BorderSizePixel = 0
+			topArm.Parent = container
+
+			local botArm = Instance.new("Frame")
+			botArm.Size = UDim2.new(0, armThick, 0, armLen)
+			botArm.AnchorPoint = Vector2.new(0.5, 0)
+			botArm.Position = UDim2.new(0, apexX, 0.5, -8)
+			botArm.Rotation = -rot
+			botArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
+			botArm.BorderSizePixel = 0
+			botArm.Parent = container
+
+			local c1 = Instance.new("UICorner"); c1.CornerRadius = UDim.new(0, 4); c1.Parent = topArm
+			local c2 = Instance.new("UICorner"); c2.CornerRadius = UDim.new(0, 4); c2.Parent = botArm
+		end
+
+		createF1Chevron(panel, 0.25, isLeftCurve)
+		createF1Chevron(panel, 0.50, isLeftCurve)
+		createF1Chevron(panel, 0.75, isLeftCurve)
+	end
 end
 
 local function attachKdmBranding(railPart: Part, normalVector: Vector3)
@@ -284,24 +319,29 @@ function Builder.build(root,origin,layout,spotlightPrefab)
   -- Three alternating rail panels follow actual centerline samples, not a straight chord.
   for j=i,math.min(i+12,#points-1),6 do
    local p=points[j];local right=Vector3.new(-p.fz,0,p.fx)
-   local pNext=points[math.min(j+3,#points)]
-   local turnCross=p.fx*pNext.fz - p.fz*pNext.fx
-   local isLeftCurve = turnCross > 0.0001
-   local isCurve = p.section ~= 'StartStraight' and math.abs(turnCross) > 0.0001
-   local railHeight = if isCurve then 6.0 else 2.5
+   local pNext=points[math.min(j+4,#points)]
+   local turnSide = pNext.fx * right.X + pNext.fz * right.Z
+   local isLeftCurve = turnSide < -0.0005
+   local isRightCurve = turnSide > 0.0005
+   local isCurve = isLeftCurve or isRightCurve
+   local railHeight = if isCurve then 5.5 else 2.5
    for _,side in {-1,1}do
     -- Keep the complete pit apron and entry/exit unoccluded.
     if p.section=='StartStraight' and side==1 then continue end
+    -- Outer wall across from turn direction:
+    -- Left turn (turnSide < 0) -> outer wall across from turn is side == -1
+    -- Right turn (turnSide > 0) -> outer wall across from turn is side == 1
+    local isOuter = (isLeftCurve and side == -1) or (isRightCurve and side == 1)
     local center=Vector3.new(p.x,2.02+railHeight*0.5,p.z)+right*(side*(layout.RoadWidth/2+layout.KerbWidth+2.1))
     local frame=CFrame.lookAt(center,center+Vector3.new(p.fx,0,p.fz))
     count+=1
-    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.6,railHeight,20),frame,
+    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,if isCurve then 12 else 20),frame,
      if ((j-i)/6)%2==0 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230),Enum.Material.SmoothPlastic)
-    local isOuter = (turnCross < 0 and side == -1) or (turnCross > 0 and side == 1)
+    local inwardFace = if side == 1 then Enum.NormalId.Left else Enum.NormalId.Right
     if isCurve and isOuter then
-     attachChevronGuidance(rail,right*side,isLeftCurve)
+     attachChevronGuidance(rail, isLeftCurve)
     else
-     attachKdmBranding(rail,right*side)
+     attachKdmBranding(rail, right * side)
     end
    end
   end

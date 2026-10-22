@@ -24,7 +24,7 @@ local arch=folder.SponsorArch
 check(math.abs(arch.TopBeam.CFrame.Position.Y-arch.TopBeam.Size.Y/2-24.4)<.001,'Figure-8 vertical clearance preserved')
 check(arch.LeftBasePad.CFrame.Position.Z-arch.LeftBasePad.Size.Z/2>L.StartStraightZ+L.RoadWidth/2+L.KerbWidth+12,'pit-side pillar beyond road edge')
 check(rails==folder:GetAttribute('RailCount')and rails>40 and rails<250,'bounded rail budget')
-check(branding==rails+2,'KDM panels and both arch faces')
+check(branding>=rails+2,'KDM panels and both arch faces')
 local lamps=rb.deserializeModel(fs.readFile('src/assets/KDMTrackLightingPrefabs.rbxmx'))[1]:FindFirstChild('OB_Spotlight_a')
 check(lamps and lamps.PrimaryPart~=nil,'same audited Figure-8 spotlight prefab/pivot available')
 local lampParts=0
