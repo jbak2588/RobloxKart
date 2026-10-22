@@ -43,7 +43,7 @@ function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,nor
  local cap=if nitro then Config.NITRO_MAX_SPEED elseif s.boost then Config.MINI_BOOST_MAX_SPEED elseif s.active then math.min(normalCap,Config.DRIFT_MAX_SPEED) else normalCap
  local accel=if nitro then Config.NITRO_ACCELERATION elseif s.boost then Config.MINI_BOOST_ACCELERATION else Config.ACCELERATION
  if throttle>0 then
-  local rate=if speed>cap then (if s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) else Config.BOOST_EXIT_DECELERATION) else accel*throttle
+  local rate=if speed>cap then (if s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) elseif s.straightExitActive then Config.STRAIGHT_EXIT_DECELERATION else Config.BOOST_EXIT_DECELERATION) else accel*throttle
   speed=toward(speed,cap,rate*dt)
  end
  local side,turn,_,projected=Slide.step(s.slide,Config.ARCADE_DRIFT,forward,lateral,s.steer,normalYaw,yaw,dt,s.active,throttle>0,speed)

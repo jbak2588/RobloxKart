@@ -13,10 +13,11 @@ local Drift=require(script.Parent.LobbyDriftSession)
 local Practice=require(script.Parent.LobbyPracticeCombat)
 local Qualification=require(script.Parent.TestDriveQualification)
 local Presence=require(script.Parent.LobbyDrivePresence)
+local StraightSpeedResolver=require(script.Parent.KDMStraightSpeedResolver)
 local Service={}
 local records,generations,bindings,lastRequest={},{},{},{}
 local closing={}
-local started,remote,zone,canEnter=false,nil,nil,nil
+local started,remote,zone,canEnter,straightCourse=false,nil,nil,nil,nil
 local practice
 local presence
 local forwardSpeed=Policy.Forward
@@ -207,6 +208,13 @@ function Service.start(driveZone,eligibility)
  if not allowedHub()then zone=nil;return end
  forwardSpeed=Policy.forwardSpeed(driveZone:GetAttribute('DriveGeometry'),KartConfig)
  Geometry=if zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then require(Shared:WaitForChild('RookieLoopDriveGeometry')).create()else require(Shared:WaitForChild('LobbyDriveGeometry')).create(Policy)
+ if zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' and KartConfig.STRAIGHT_SPEED_ENABLED then
+  local Layout=require(Shared:WaitForChild('HubParkRookieLoopLayout'))
+  local pts=Layout.sample(Layout.Segments)
+  local samples={}
+  for i=1,#pts-1 do table.insert(samples,Vector3.new(pts[i].x,0,pts[i].z)) end
+  straightCourse=StraightSpeedResolver.precompute(samples,KartConfig,Layout.RoadWidth)
+ else straightCourse=nil end
  started,zone,canEnter=true,driveZone,eligibility
  presence=Presence.new(zone,records)
  Service.configureCollision()
@@ -363,6 +371,15 @@ function Service.start(driveZone,eligibility)
     local steer=r.training.steer;Drift.clear(r.training);r.training.steer=steer
    end
    local nitro=practice:isNitro(player,now,throttle,clearance<=Policy.FootprintMargin)
+   if straightCourse then
+    local lp=Vector3.new(localPos.X,0,localPos.Z)
+    StraightSpeedResolver.update(r,straightCourse,lp,now,true)
+    forwardSpeed=if r.straightEligible then KartConfig.STRAIGHT_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
+    if nitro or r.training.boost then r.straightBoostReturnActive=true end
+    if r.straightBoostReturnActive then r.straightExitActive=false end
+    r.training.straightExitActive=r.straightExitActive
+    if r.speed<=forwardSpeed then r.straightExitActive=false;r.straightBoostReturnActive=false end
+   else r.training.straightExitActive=false end
    local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro)
    if r.training.boost and r.training.boostPress~=r.practiceBoostPress then
     r.practiceBoostPress=r.training.boostPress;practice:boost(player)
