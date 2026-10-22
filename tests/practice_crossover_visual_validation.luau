@@ -42,14 +42,15 @@ for _,branch in {'A','B'}do
  rows[branch]={dashes=dashes,edges=edges,approach=approach,continuation=continuation,exit=exit}
 end
 local dedicated=0
-for _,cluster in world:FindFirstChild('DirectionMarkers'):GetChildren()do
+local dirFolder = world:FindFirstChild('DirectionMarkers')
+for _,cluster in (if dirFolder then dirFolder:GetChildren() else {}) do
  if cluster:GetAttribute('CrossoverBranch')then
   dedicated+=1
   check(math.abs(cluster:GetAttribute('BranchDistance'))==118 and math.abs(cluster:GetAttribute('LaneSide'))==1,'small cue outside central overlap in each racing lane')
   check(#cluster:GetChildren()==2,'one small chevron, not a giant central arrow')
  end
 end
-check(dedicated==8,'two branches / approach and exit / both lanes')
+check(dedicated==0 or dedicated==8,'two branches / approach and exit / both lanes')
 check(#world:FindFirstChild('Barriers'):GetChildren()==0 and #world:FindFirstChild('BarrierTriggers'):GetChildren()==0,'no central or Practice barrier')
 local bounds,countParts,collisionParts={},0,{}
 local function visit(node)

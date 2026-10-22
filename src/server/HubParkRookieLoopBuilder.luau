@@ -205,21 +205,6 @@ function Builder.build(hub,ground)
  local first=starts:FindFirstChild('1'):Clone();first.Name='LobbyFrontDriveStart';first.Parent=root
  local entry=part(root,'LobbyFrontDriveEntry',Vector3.new(12,.1,18),CFrame.new(origin+Vector3.new(0,.05,-35)),colors.plaza,false);entry.Transparency=1
  local prompt=Instance.new('ProximityPrompt');prompt.ActionText='TEST DRIVE';prompt.ObjectText='ROOKIE LOOP';prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
- -- Two lane-centered chevrons at each station, using the sampled forward tangent.
- for i=1,#samples-1,26 do
-  local a=samples[i]
-  for _,lane in {-Layout.RoadWidth/4,Layout.RoadWidth/4} do
-   local x,z=a.x-a.fz*lane,a.z+a.fx*lane
-   local v=Vector3.new(x,Layout.height(x,z)+.08,z)+origin
-   local _,ny,nz=Layout.normal(x,z);local normal=Vector3.new(0,ny,nz)
-   local f=Vector3.new(a.fx,0,a.fz).Unit;local right=f:Cross(normal).Unit
-   for _,side in {-1,1} do
-    local tail=v-f*2+right*side*1.6
-    local delta=v-tail
-    part(root,"ForwardChevron",Vector3.new(.4,.12,delta.Magnitude),CFrame.lookAt((tail+v)/2,v,normal),Color3.fromRGB(240,220,90),false)
-   end
-  end
- end
  root:SetAttribute('DriveIntegrated',true)
  return root
 end

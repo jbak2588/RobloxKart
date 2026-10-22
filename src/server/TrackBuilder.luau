@@ -495,15 +495,6 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			trigger:SetAttribute("BarrierIndex", index)
 			barrierCount += 1
 		end
-
-		if index % 3 == 1 and not inCrossover(first, 12) and not inCrossover(second, 12) then
-			createSegment(
-				markingFolder, "CenterDash" .. index,
-				roadPoint(first:Lerp(second, 0.22), 0.04),
-				roadPoint(first:Lerp(second, 0.78), 0.04),
-				0.8, 0.03, 0, white, nil
-			)
-		end
 	end
 
 	if isV2B then
@@ -663,73 +654,6 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	local chevronParts = 0
 	local chevronClusters = 0
-	if isHardCircuit or isFigure8 or isV2B then
-		local directions = Instance.new("Folder")
-		directions.Name = "DirectionMarkers"
-		directions.Parent = testTrack
-		local traveled = 0
-		local nextMarker = 70 -- Initial forward cue shortly after the checker/grid.
-		for index = 2, #samples - 2 do
-			traveled += (samples[index] - samples[index - 1]).Magnitude
-			if traveled < nextMarker then continue end
-			local clearOfGate = (samples[index] - course.StartPosition).Magnitude > 28
-			for _, checkpoint in checkpointSamples do
-				if (samples[index] - checkpoint.Position).Magnitude < 28 then clearOfGate = false end
-			end
-			if not clearOfGate or inCrossover(samples[index], if isFigure8 then 98 else 45) then continue end
-			local tangent = directionAt(index)
-			local right = Vector3.new(-tangent.Z, 0, tangent.X)
-			for _, laneSide in { -1, 1 } do
-				chevronClusters += 1
-				local origin = roadPoint(samples[index] + right * (roadWidth * 0.25 * laneSide), 0.12)
-				local cluster = Instance.new("Folder")
-				cluster.Name = "ForwardChevron" .. chevronClusters
-				cluster:SetAttribute("SampleIndex", index)
-				cluster:SetAttribute("LaneSide", laneSide)
-				cluster.Parent = directions
-				-- Same forward cue in each lane center; keep the center divider clear.
-				for arrow = -1, 1 do
-					for _, wing in { -1, 1 } do
-						local head = origin + tangent * (arrow * 8 + 3)
-						local tail = origin + tangent * (arrow * 8 - 3) + right * (wing * 3)
-						createSegment(cluster, "Arrow" .. arrow .. "Wing" .. wing, tail, head, 1.1, 0.035, 0,
-							Color3.fromRGB(185, 202, 204), nil)
-						chevronParts += 1
-					end
-				end
-			end
-
-			nextMarker = traveled + (if cornerSegments[index] then 98 else 154)
-		end
-	end
-
-	if isFigure8 then
-		local directions = testTrack:FindFirstChild("DirectionMarkers")
-		local crossing = definition.Crossover
-		for branch, tangent in crossing.BranchTangents do
-			local right = Vector3.new(-tangent.Z, 0, tangent.X)
-			for _, distance in { -118, 118 } do
-				for _, lane in { -1, 1 } do
-					local origin = crossing.Position + tangent * distance + right * (roadWidth * 0.25 * lane)
-					local cluster = Instance.new("Folder")
-					cluster.Name = "CrossoverChevron" .. branch .. "_" .. distance .. "_" .. lane
-					cluster:SetAttribute("ForwardTangent", tangent)
-					cluster:SetAttribute("CrossoverBranch", branch)
-					cluster:SetAttribute("BranchDistance", distance)
-					cluster:SetAttribute("LaneSide", lane)
-					cluster.Parent = directions
-					for _, wing in { -1, 1 } do
-						createSegment(cluster, "Wing" .. wing,
-							roadPoint(origin - tangent * 3 + right * (wing * 3), 0.12),
-							roadPoint(origin + tangent * 3, 0.12), 1.1, 0.035, 0,
-							Color3.fromRGB(185, 202, 204), nil)
-						chevronParts += 1
-					end
-					chevronClusters += 1
-				end
-			end
-		end
-	end
 
 	if isFigure8 then
 		local decor = Instance.new("Folder")
@@ -980,6 +904,45 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			label.Parent = panel
 		end
 
+		local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLeftCurve: boolean)
+			local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+			local gui = Instance.new("SurfaceGui")
+			gui.Name = "KDMChevronSurfaceGui"
+			gui.Face = inwardFace
+			gui.CanvasSize = Vector2.new(512, 128)
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+			gui.LightInfluence = 0
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.Parent = railPart
+
+			local panel = Instance.new("Frame")
+			panel.Name = "ChevronPanel"
+			panel.Size = UDim2.new(0.92, 0, 0.78, 0)
+			panel.AnchorPoint = Vector2.new(0.5, 0.5)
+			panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+			panel.BackgroundColor3 = Color3.fromRGB(15, 18, 22)
+			panel.BorderSizePixel = 0
+			panel.Parent = gui
+
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 6)
+			corner.Parent = panel
+
+			local label = Instance.new("TextLabel")
+			label.Name = "ChevronText"
+			label.Size = UDim2.new(0.92, 0, 0.88, 0)
+			label.AnchorPoint = Vector2.new(0.5, 0.5)
+			label.Position = UDim2.new(0.5, 0, 0.5, 0)
+			label.BackgroundTransparency = 1
+			label.Text = if isLeftCurve then "<<<" else ">>>"
+			label.Font = Enum.Font.GothamBlack
+			label.TextColor3 = Color3.fromRGB(255, 224, 40)
+			label.TextScaled = true
+			label.TextXAlignment = Enum.TextXAlignment.Center
+			label.TextYAlignment = Enum.TextYAlignment.Center
+			label.Parent = panel
+		end
+
 		for _, item in plannedRails do
 			local idx = item.idx
 			local first = samples[idx]
@@ -1004,7 +967,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				end
 			end
 
-			local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + 1.1, 0)
+			local railHeight = if item.isStraight then 2.2 else 3.2
+			local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + railHeight * 0.5, 0)
 			local railLook = CFrame.lookAt(railPos, railPos + tangent)
 
 			local isRed = (item.posInBlock % 2 == 1)
@@ -1012,10 +976,14 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 			local railColor = if isRed then kerbRed else kerbWhite
 			local railPart = createVisualPart(visualRailsFolder, "RailSegment" .. (visualRailParts + 1),
-				Vector3.new(0.4, 2.2, (second - first).Magnitude + 2), railLook,
+				Vector3.new(0.4, railHeight, (second - first).Magnitude + 2), railLook,
 				railColor, Enum.Material.SmoothPlastic)
 			visualRailParts += 1
-			if shouldBrand then
+			if not item.isStraight then
+				local isLeftCurve = signedTurnAt(idx) > 0
+				attachChevronGuidance(railPart, bestNormal, isLeftCurve)
+				brandedRailParts += 1
+			elseif shouldBrand then
 				attachKdmBranding(railPart, bestNormal)
 				brandedRailParts += 1
 			end

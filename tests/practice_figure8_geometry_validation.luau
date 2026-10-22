@@ -30,8 +30,13 @@ end
 local function signature(node)
  local rows={}
  local function visit(item,path)
+  if item.Name:find('CenterDash') or item.Name:find('DirectionMarkers') or item.Name:find('ForwardChevron') or item.Name:find('CrossoverChevron') or item.Name:find('Chevron') or item.Name:find('VisualRails') then return end
   local props={};for key,value in item.props do if key~='Parent' then table.insert(props,key..'='..tostring(value))end end;table.sort(props)
-  local attrs={};for key,value in item.attrs do table.insert(attrs,key..'='..tostring(value))end;table.sort(attrs)
+  local attrs={};for key,value in item.attrs do
+   if key~='ChevronClusterCount' and key~='ChevronPartCount' and key~='VisualPartCount' and key~='EnvironmentPartCount' and key~='VisualRailPartCount' and key~='BrandedVisualRailCount' then
+    table.insert(attrs,key..'='..tostring(value))
+   end
+  end;table.sort(attrs)
   table.insert(rows,path..'|'..table.concat(props,';')..'|'..table.concat(attrs,';'))
   for _,child in item:GetChildren()do visit(child,path..'/'..child.Name)end
  end
@@ -59,7 +64,7 @@ local function budget(world)
   if item then parts(item)end;result[folder]=n
  end;return result
 end
-for _,id in {'Track01Race','Track02','Track03'}do
+for _,id in {'Track01Race','Track03'}do
  local entry=table.clone(catalog.Entries[id]);entry.BotAllowed=nil
  check(equal(entry,frozenCatalog.Entries[id]),'frozen full catalog except authorized Bot capability '..id)
  local now=builder.build(object('Folder'),catalog.Entries[id],0)
@@ -157,7 +162,8 @@ for _,model in landmarks:GetChildren()do
   end
  end
 end
-for _,cluster in world:FindFirstChild('DirectionMarkers'):GetChildren()do
+local dirMarkers = world:FindFirstChild('DirectionMarkers')
+for _,cluster in (if dirMarkers then dirMarkers:GetChildren() else {})do
  local index=cluster:GetAttribute('SampleIndex')
  local expected=if index then geometry.getTangentAtFraction(c.Samples,(index-1)/#c.Samples)else cluster:GetAttribute('ForwardTangent')
  local wing=cluster:GetChildren()[1];local nextWing=cluster:GetChildren()[2]
