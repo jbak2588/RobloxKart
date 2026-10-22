@@ -155,7 +155,8 @@ function Combat:targets(source)
  for _,a in candidates do if a~=source and self:valid(a)then
   local delta=a.record.body.Position-body.Position;delta=Vector3.new(delta.X,0,delta.Z)
   local d=delta.Magnitude
-  if d>1 and d<=Policy.TargetRange and body.CFrame.LookVector:Dot(delta.Unit)>=Policy.ForwardDot then table.insert(out,{actor=a,distance=d})end
+  local range=if a==self.bot and self.route~=Route then Policy.ParkBotTargetRange else Policy.TargetRange
+  if d>1 and d<=range and body.CFrame.LookVector:Dot(delta.Unit)>=Policy.ForwardDot then table.insert(out,{actor=a,distance=d})end
  end end
  table.sort(out,function(a,b)if math.abs(a.distance-b.distance)<.001 then return a.actor.UserId<b.actor.UserId end;return a.distance<b.distance end)
  return out
