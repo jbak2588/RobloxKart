@@ -3,7 +3,7 @@ local layout=luau.load(fs.readFile('src/shared/HubParkRookieLoopLayout.luau'))()
 local policy=luau.load(fs.readFile('src/shared/LobbyDrivePolicy.luau'))()
 local function check(v,label)assert(v,label)end
 local m=layout.measure()
-check(layout.RoadWidth==50 and layout.Shoulder==9,'approved final road and half-width shoulders')
+check(layout.RoadWidth==68 and layout.Shoulder==0,'approved shoulder removal transfers 18 studs to road')
 check(layout.RoadWidth/2+layout.KerbWidth+layout.Shoulder==36,'guardrail envelope and driving containment unchanged')
 check(m.bounds.minZ<=-1100,'uses former Figure-8 region beyond lobby apron')
 check(m.bounds.maxZ<=layout.StartStraightZ+1e-6 and m.bounds.maxZ<-85,'entire main loop in front of lobby, no rear road')

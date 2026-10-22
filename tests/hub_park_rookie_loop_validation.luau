@@ -44,7 +44,7 @@ local pit=layout.sample(layout.Pit.segments)
 check(math.abs(pit[1].z-layout.StartStraightZ)<1e-6 and math.abs(pit[#pit].z-layout.StartStraightZ)<1e-6,'both pit ends join relocated main straight')
 check(layout.pitOpening(pit[1])==false,'pit segment labels cannot silently open unrelated edges')
 for _,slot in layout.Slots do
- check(slot.x-9>=-95 and slot.x+9<=100 and math.abs(slot.z-layout.PitLaneZ)<1e-6,'slots fit pit lane')
+ check(slot.x-9>=-95 and slot.x+9<=100 and math.abs(slot.z-layout.PitLaneZ)+5<=layout.Pit.width/2,'full slot footprint fits asymmetrically widened pit lane')
  check(math.abs(slot.x)+9<=layout.Plaza.width/2,'all four slots directly across T plaza width')
  check(math.abs(slot.z-(layout.Plaza.z-layout.Plaza.length/2))<=12,'slot center within two approximate walking steps')
 end
@@ -78,14 +78,12 @@ workspace:SetAttribute('KDMServerRole','HUB')
 local root=assert(builder.build(hub,ground));check(builder.build(hub,ground)==root,'idempotent ON')
 check(lighting:FindFirstChild('HubParkIslandSky')~=nil and originalSky.Parent==root.ParkOriginalEnvironment,'ON-only sky swap preserves original panorama')
 local safety=root:FindFirstChild('G2SafetyGround')
-local uphill=assert(safety:FindFirstChild('UphillSupport'))
-check(uphill.CanCollide and uphill.Transparency==1,'continuous invisible uphill support')
-check(safety.LobbyLevelSupport.CanCollide and safety.LobbyLevelSupport.Transparency==1,'flat Lobby support remains')
+local floor=assert(safety:FindFirstChild('FlatSupport'))
+check(#safety:GetChildren()==1 and floor.CanCollide and floor.Transparency==1,'one continuous invisible flat support')
+check(floor.CFrame.UpVector.Y>.999999,'flat support normal')
 for _,a in points do
- local v=uphill.CFrame:PointToObjectSpace(rb.Vector3.new(a.x,layout.height(a.x,a.z),a.z))
- -- Serialized CFrame angles are quantized; a 1,200-stud plane can differ by
- -- millistuds at its ends. Require <=.01 stud, well below chassis clearance.
- check(math.abs(v.Y-uphill.Size.Y/2)<.01 and math.abs(v.X)<uphill.Size.X/2-36 and math.abs(v.Z)<uphill.Size.Z/2-36,'continuous support agrees with analytic height within .01 stud')
+ local v=floor.CFrame:PointToObjectSpace(rb.Vector3.new(a.x,layout.height(a.x,a.z),a.z))
+ check(math.abs(v.Y-floor.Size.Y/2)<.0001 and math.abs(v.X)<floor.Size.X/2-36 and math.abs(v.Z)<floor.Size.Z/2-36,'flat support covers complete approved road and shoulders')
 end
 local road,slots=0,0
 for _,v in root:GetDescendants()do
@@ -108,7 +106,7 @@ for _,v in root:GetDescendants()do
   if v.CanCollide then check(v.Parent==safety or v.Name=='Barrier'or v.Name=='IslandEdgeGuard','only continuous support and safety boundaries collide')end
   if v.Name=='Kerb'then check(not v.CanCollide and not v.CanQuery and not v.CastShadow,'visual-only kerbs')end
   if v.Name=='ForwardChevron' or v.Name=='StartMark' or v.Parent.Name:match('^SlotBracket%d+$')then
-   check(v.CFrame.Position.Y-layout.height(v.CFrame.Position.X,v.CFrame.Position.Z)-v.Size.Y/2>.38,'markings stand above sloped road/pit surface')
+   check(v.CFrame.Position.Y-layout.height(v.CFrame.Position.X,v.CFrame.Position.Z)-v.Size.Y/2>=.019,'markings do not sink below the .02 flat asphalt skin')
   end
  end
 end

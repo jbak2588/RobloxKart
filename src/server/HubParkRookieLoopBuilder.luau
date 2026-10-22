@@ -21,7 +21,7 @@ function Builder.build(hub,ground)
  root:SetAttribute("Origin",origin);root:SetAttribute("OneWay",true);root.Parent=hub
  local colors={road=Color3.fromRGB(65,69,76),kerbA=Color3.fromRGB(220,225,230),
   kerbB=Color3.fromRGB(180,65,65),shoulder=Color3.fromRGB(108,125,105),
-  barrier=Color3.fromRGB(115,120,130),pit=Color3.fromRGB(75,110,125),plaza=Color3.fromRGB(160,165,170)}
+  barrier=Color3.fromRGB(115,120,130),pit=Color3.fromRGB(65,69,76),plaza=Color3.fromRGB(160,165,170)}
  local function part(parent,name,size,frame,color,collide)
   local v=Instance.new("Part");v.Name=name;v.Size=size;v.CFrame=frame
   v.Anchored=true;v.CanCollide=collide;v.CanTouch=false;v.CanQuery=collide;v.CastShadow=false
@@ -30,7 +30,7 @@ function Builder.build(hub,ground)
  end
  local function flat(parent,name,x,z,w,l,color,y,collide)
   local _,ny,nz=Layout.normal(x,z)
-  return part(parent,name,Vector3.new(w,.2,l),CFrame.new(origin+Vector3.new(x,Layout.height(x,z)+(y or .12),z))*CFrame.Angles(math.atan2(nz,ny),0,0),color,collide==true)
+  return part(parent,name,Vector3.new(w,.2,l),CFrame.new(origin+Vector3.new(x,Layout.height(x,z)+(y or -.08),z))*CFrame.Angles(math.atan2(nz,ny),0,0),color,collide==true)
  end
  local function strip(parent,name,a,b,width,offset,color,height,collide)
   local x,z=(a.x+b.x)/2,(a.z+b.z)/2
@@ -38,13 +38,14 @@ function Builder.build(hub,ground)
   if length<1e-6 then return end
   local sideX,sideZ=-dz/length,dx/length
   x+=sideX*offset;z+=sideZ*offset
-  local pos=origin+Vector3.new(x,Layout.height(x,z)+height/2+.02,z)
+  local pos=origin+Vector3.new(x,Layout.height(x,z)+(if collide then height/2+.02 elseif name=="Shoulder" then -height/2 else .02-height/2),z)
   local _,ny,nz=Layout.normal(x,z)
-  -- Two-stud overlap covers outer corners at the <=4-stud sample spacing.
-  return part(parent,name,Vector3.new(width,height,math.sqrt(length*length+(dz*Layout.Island.slope)^2)+2),CFrame.lookAt(pos,pos+Vector3.new(dx,-dz*Layout.Island.slope,dz),Vector3.new(0,ny,nz)),color,collide)
+  -- Visual overlap only; the single flat support owns wheel contact.
+  -- Asphalt top is +.02, not +.37 above the physical ground datum.
+  return part(parent,name,Vector3.new(width,height,length+2),CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz),Vector3.new(0,ny,nz)),color,collide)
  end
  local function label(parent,name,text,x,z,w,l,color)
-  local v=flat(parent,name,x,z,w,l,color,.405,false)
+  local v=flat(parent,name,x,z,w,l,color,.055,false)
   v.Size=Vector3.new(w,.01,l);v.Transparency=1 -- Text only, no raised slot/slab.
   local gui=Instance.new("SurfaceGui");gui.Face=Enum.NormalId.Top;gui.CanvasSize=Vector2.new(w*20,l*20)
   gui.LightInfluence=0;gui.Parent=v
@@ -53,6 +54,77 @@ function Builder.build(hub,ground)
   textLabel.TextScaled=true;textLabel.Font=Enum.Font.GothamBold;textLabel.AutoLocalize=false;textLabel.Parent=gui
   return v
  end
+ local function triangle(parent,name,color,a,b,c)
+  local ab,ac,bc=b-a,c-a,c-b
+  if ab:Dot(ab)>ac:Dot(ac) and ab:Dot(ab)>bc:Dot(bc) then c,a=a,c
+  elseif ac:Dot(ac)>bc:Dot(bc) then a,b=b,a end
+  ab,ac,bc=b-a,c-a,c-b
+  if ac:Cross(ab).Magnitude<.00001 then return end
+  local right=ac:Cross(ab).Unit;local back=bc.Unit;local up=back:Cross(right)
+  local h=math.abs(ab:Dot(up))
+  for _,s in {{a,b,right,back},{a,c,-right,-back}}do
+   local length=math.abs((s[2]-s[1]):Dot(back))
+   if length<.00001 then continue end
+   local v=Instance.new('WedgePart');v.Name=name
+   v.Size=Vector3.new(.01,h,length);v.CFrame=CFrame.fromMatrix((s[1]+s[2])/2,s[3],up,s[4])
+   v.Anchored=true;v.CanCollide=false;v.CanTouch=false;v.CanQuery=false;v.CastShadow=false
+   v.Material=Enum.Material.SmoothPlastic;v.Color=color;v.Parent=parent
+  end
+ end
+ local function clipToPit(poly)
+  local edge=Layout.StartStraightZ+Layout.RoadWidth/2+Layout.KerbWidth+.5+.001
+  local out={}
+  for i,p in poly do local q=poly[i%#poly+1]
+   local pin,qin=p.z>=edge,q.z>=edge
+   if pin then table.insert(out,p)end
+   if pin~=qin then local t=(edge-p.z)/(q.z-p.z)
+    table.insert(out,{x=p.x+(q.x-p.x)*t,z=edge})end
+  end
+  return out
+ end
+ local function patch(parent,name,color,poly,top)
+  local function v(p)return origin+Vector3.new(p.x,top-.005,p.z)end
+  for j=2,#poly-1 do triangle(parent,name,color,v(poly[1]),v(poly[j]),v(poly[j+1]))end
+ end
+ -- Equal arc-length colour runs, with shared polygon edges instead of
+ -- overlapping red/white rectangles. Both colours have the same top plane.
+ local function kerbRibbon(points,offset,route,omit)
+  local edge,total={},0
+  for i,p in points do
+   local v={x=p.x-p.fz*offset,z=p.z+p.fx*offset,fx=p.fx,fz=p.fz,section=p.section}
+   if i>1 then local a=edge[i-1];total+=math.sqrt((v.x-a.x)^2+(v.z-a.z)^2)end
+   v.distance=total;table.insert(edge,v)
+  end
+  local runs=math.max(2,math.ceil(total/8/2)*2);local step=total/runs
+  local cursor=1
+  local function station(d)
+   while cursor<#edge-1 and edge[cursor+1].distance<d do cursor+=1 end
+   local a,b=edge[cursor],edge[cursor+1]
+   local t=math.clamp((d-a.distance)/(b.distance-a.distance),0,1)
+   local fx,fz=a.fx+(b.fx-a.fx)*t,a.fz+(b.fz-a.fz)*t
+   local l=math.sqrt(fx*fx+fz*fz);fx/=l;fz/=l
+   local x,z=a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t
+   return {x=x,z=z,section=a.section,
+    inner={x=x+fz*Layout.KerbWidth/2,z=z-fx*Layout.KerbWidth/2},
+    outer={x=x-fz*Layout.KerbWidth/2,z=z+fx*Layout.KerbWidth/2}}
+  end
+  local a=station(0);local folder
+  for i=1,runs do
+   if (i-1)%32==0 then folder=Instance.new('Folder');folder.Name='KerbBatch' end
+   local b=station(i*step)
+   if not (omit and omit(a,b))then
+    local poly={a.inner,b.inner,b.outer,a.outer}
+    if route=='PIT' then poly=clipToPit(poly)end
+    if #poly>=3 then
+     local run=Instance.new('Folder');run.Name='KerbRun';run:SetAttribute('Route',route)
+     run:SetAttribute('ArcLength',step);run:SetAttribute('ColorIndex',i%2);run.Parent=folder
+     patch(run,'Kerb',if i%2==0 then colors.kerbA else colors.kerbB,poly,.07)
+    end
+   end
+   a=b
+   if i%32==0 or i==runs then folder.Parent=root;if task then task.wait()end end
+  end
+ end
  local samples=Layout.sample(Layout.Segments)
  require(script.Parent:WaitForChild('HubParkIslandBuilder')).build(root,ground,origin,Layout,game:GetService('Lighting'))
  root:SetAttribute("Segments",#samples-1)
@@ -60,22 +132,54 @@ function Builder.build(hub,ground)
  for i=1,#samples-1 do
   if (i-1)%48==0 then batch=Instance.new("Folder");batch.Name="RoadBatch"..i end
   local a,b=samples[i],samples[i+1];local half=Layout.RoadWidth/2
-  strip(batch,"Road",a,b,Layout.RoadWidth,0,colors.road,.35,false)
+  -- Asphalt continues underneath the kerb to the guard's inner face, so
+  -- even the half-stud construction clearance cannot expose green grass.
+  strip(batch,"Road",a,b,Layout.RoadWidth+2*Layout.KerbWidth+1,0,colors.road,.35,false)
   for _,side in {-1,1} do
    -- In travel direction +X, +Z is the inner/pit-facing edge.
-   if not (side==1 and Layout.pitOpening(a)) then
-    local kerb=if i%2==0 then colors.kerbA else colors.kerbB
-    strip(batch,"Kerb",a,b,Layout.KerbWidth,side*(half+1),kerb,.4,false)
-    strip(batch,"Shoulder",a,b,Layout.Shoulder,side*(half+2+Layout.Shoulder/2),colors.shoulder,.18,false)
+   -- The widened pit reaches the straight: no median wall inside its apron.
+   if not (side==1 and a.section=='StartStraight' and a.x>=-190 and a.x<=190)then
     strip(batch,"Barrier",a,b,1,side*(half+2+Layout.Shoulder+1),colors.barrier,2,true)
    end
   end
   if i%48==0 or i==#samples-1 then batch.Parent=root;if task then task.wait() end end
  end
+ for _,side in {-1,1}do
+  kerbRibbon(samples,side*(Layout.RoadWidth/2+Layout.KerbWidth/2),'MAIN',
+   if side==1 then function(a,b)return Layout.pitOpening(a)or Layout.pitOpening(b)end else nil)
+ end
  -- Pit is visual/collision geometry only. Its connectors are the only intended road junctions.
  local pit=Instance.new("Folder");pit.Name="Pit";pit.Parent=root
  local ps=Layout.sample(Layout.Pit.segments)
- for i=1,#ps-1 do strip(pit,"PitRoad",ps[i],ps[i+1],Layout.Pit.width,0,colors.pit,.36,false) end
+ -- Clip pit visuals to the straight's pit-facing edge. Both surfaces keep
+ -- the same .02 top and asphalt colour, with no duplicate main-road polygons.
+ local pitBoundary=Layout.StartStraightZ+Layout.RoadWidth/2+Layout.KerbWidth+.5+.001
+ for i=1,#ps-1 do
+  local a,b=ps[i],ps[i+1];local dx,dz=b.x-a.x,b.z-a.z
+  local length=math.sqrt(dx*dx+dz*dz);local fx,fz=dx/length,dz/length
+  local half=Layout.Pit.width/2
+  local poly={}
+  for _,s in {{-1,-1},{1,-1},{1,1},{-1,1}}do
+   table.insert(poly,{x=(a.x+b.x)/2+fx*s[1]*(length/2+1)-fz*s[2]*half,
+    z=(a.z+b.z)/2+fz*s[1]*(length/2+1)+fx*s[2]*half})
+  end
+  local clipped={};local allOutside=true
+  for j,p in poly do
+   local q=poly[j%#poly+1];local pin,qin=p.z>=pitBoundary,q.z>=pitBoundary
+   if not pin then allOutside=false end
+   if pin then table.insert(clipped,p)end
+   if pin~=qin then local t=(pitBoundary-p.z)/(q.z-p.z)
+    table.insert(clipped,{x=p.x+(q.x-p.x)*t,z=pitBoundary})end
+  end
+  if allOutside then strip(pit,"PitRoad",a,b,Layout.Pit.width,0,colors.pit,.36,false)
+  elseif #clipped>=3 then
+   local function vertex(p)return origin+Vector3.new(p.x,.015,p.z)end
+   for j=2,#clipped-1 do triangle(pit,"PitRoad",colors.pit,vertex(clipped[1]),vertex(clipped[j]),vertex(clipped[j+1]))end
+  end
+ end
+ -- The main-road kerb is the shared road-facing pit border. Only its
+ -- lobby-facing edge needs another ribbon; never double-paint that shared edge.
+ kerbRibbon(ps,Layout.Pit.width/2-Layout.KerbWidth/2,'PIT')
  local q=Layout.Plaza;flat(root,"PedestrianPlaza",q.x,q.z,q.width,q.length,colors.plaza,.12,false)
  local w=Layout.Walkway;flat(root,"PedestrianLink12",w.x,w.z,w.width,w.length,colors.plaza,.12,false)
  for i,slot in Layout.Slots do
@@ -85,7 +189,7 @@ function Builder.build(hub,ground)
   marker:SetAttribute("Active",true);marker:SetAttribute("Slot",i)
   local paint=Color3.fromRGB(235,246,250)
   local _,ny,nz=Layout.normal(slot.x,slot.z)
-  local function paintFrame(x,z)return CFrame.new(origin+Vector3.new(x,Layout.height(x,z)+.42,z))*CFrame.Angles(math.atan2(nz,ny),0,0)end
+  local function paintFrame(x,z)return CFrame.new(origin+Vector3.new(x,Layout.height(x,z)+.07,z))*CFrame.Angles(math.atan2(nz,ny),0,0)end
   part(marker,'Front',Vector3.new(.35,.02,10),paintFrame(slot.x+7.5,slot.z),paint,false)
   for _,side in {-1,1}do
    part(marker,'Arm',Vector3.new(4,.02,.35),paintFrame(slot.x+5.5,slot.z+side*5),paint,false)
@@ -101,16 +205,14 @@ function Builder.build(hub,ground)
  local entry=part(root,'LobbyFrontDriveEntry',Vector3.new(12,.1,18),CFrame.new(origin+Vector3.new(0,.05,-35)),colors.plaza,false);entry.Transparency=1
  local prompt=Instance.new('ProximityPrompt');prompt.ActionText='TEST DRIVE';prompt.ObjectText='ROOKIE LOOP';prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
  label(root,"StartMark","ROOKIE LOOP",-35,Layout.StartStraightZ,75,8,colors.road)
- label(root,"PitEntryMark","PIT IN  →",-138,Layout.StartStraightZ+33,32,7,colors.pit)
- label(root,"PitExitMark","PIT OUT  →",142,Layout.StartStraightZ+33,32,7,colors.pit)
  -- Two lane-centered chevrons at each station, using the sampled forward tangent.
  for i=1,#samples-1,26 do
   local a=samples[i]
   for _,lane in {-Layout.RoadWidth/4,Layout.RoadWidth/4} do
    local x,z=a.x-a.fz*lane,a.z+a.fx*lane
-   local v=Vector3.new(x,Layout.height(x,z)+.5,z)+origin
+   local v=Vector3.new(x,Layout.height(x,z)+.08,z)+origin
    local _,ny,nz=Layout.normal(x,z);local normal=Vector3.new(0,ny,nz)
-   local f=Vector3.new(a.fx,-a.fz*Layout.Island.slope,a.fz).Unit;local right=f:Cross(normal).Unit
+   local f=Vector3.new(a.fx,0,a.fz).Unit;local right=f:Cross(normal).Unit
    for _,side in {-1,1} do
     local tail=v-f*2+right*side*1.6
     local delta=v-tail

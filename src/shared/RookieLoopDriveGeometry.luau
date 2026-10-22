@@ -21,7 +21,7 @@ function Geometry.create()
  local g={}
  g.height=Layout.height
  g.normal=Layout.normal
- g.itemDropOffset=.47 -- .37 road top + .08 Slick half-thickness + .02 clearance.
+ g.itemDropOffset=.12 -- .02 asphalt top + .08 Slick half-thickness + .02 clearance.
  function g.contact(x,z)
   local best,nx,nz=-1e6,1,0
   for _,e in cells[key(x,z)]or {}do

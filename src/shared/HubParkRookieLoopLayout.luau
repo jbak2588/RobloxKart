@@ -1,7 +1,7 @@
 -- Racing Park stage 1. Coordinates are relative to HubSpawn, world X/Z axes.
--- User-approved final cross section: transfer half of each shoulder to road.
--- Total corridor and all guardrail positions stay unchanged (25+2+9 = 36).
-local Layout = { DefaultEnabled=false, RoadWidth=50, KerbWidth=2, Shoulder=9,
+-- User-approved apron revision: transfer both 9-stud shoulders to asphalt.
+-- Total corridor and outside guardrails stay fixed (34+2 = 36).
+local Layout = { DefaultEnabled=false, RoadWidth=68, KerbWidth=2, Shoulder=0,
  SampleLength=4, MinimumRadius=50, PrototypeName="HubParkRookieLoopG2" }
 local function p(x,z) return {x=x,z=z} end
 local k=.5522847498307936
@@ -9,7 +9,8 @@ local k=.5522847498307936
 -- slot centers 12 studs away: approximately two walking steps.
 local pitZ=-82
 local startZ=pitZ-55
-Layout.PitLaneZ=pitZ;Layout.StartStraightZ=startZ;Layout.PitShift=63
+local pitDriveZ=pitZ-5 -- Widen only toward the main road; retain the plaza-side edge.
+Layout.PitLaneZ=pitDriveZ;Layout.StartStraightZ=startZ;Layout.PitShift=63
 -- User pen sketch: every main-road section lies in FRONT of the lobby.
 -- Start east along the pit, go north on the outer right, descend the inner
 -- right, take the central folded hairpin/S, then return down the outer left.
@@ -57,25 +58,18 @@ for i,c in corners do
   p(b.x+dx*next.r*k,b.z+dz*next.r*k),
   p(finish.x-ox*next.r*k,finish.z-oz*next.r*k),finish})
 end
-Layout.Stage="PARK_2_ISLAND"
--- One continuous uphill plane beyond the unchanged T plaza. All course and
--- pit surfaces share it; there are no ramps/joins between individual road slices.
+Layout.Stage="PARK_FLAT_R1"
+-- Driving stays flat. Island scenery is independent of the kart contact face.
 Layout.Island={minX=-820,maxX=720,minZ=-1270,maxZ=220,chamfer=150,
- baseZ=-70,slope=.04,waterY=-58,waterSize=14000}
-function Layout.height(_x,z)
- return math.max(0,(Layout.Island.baseZ-z)*Layout.Island.slope)
-end
-function Layout.normal(_x,z)
- local slope=if z<Layout.Island.baseZ then Layout.Island.slope else 0
- local length=math.sqrt(1+slope*slope)
- return 0,1/length,slope/length
-end
+ baseZ=-70,waterY=-58,waterSize=14000}
+function Layout.height(_x,_z)return 0 end
+function Layout.normal(_x,_z)return 0,1,0 end
 Layout.MainStraightLength=870
 Layout.NitroStraightLength=360+Layout.PitShift -- Extend outside straight with pit approach.
-Layout.Pit={width=22,segments={
- {name="PitEntry",p(-180,startZ),p(-145,startZ),p(-130,pitZ),p(-95,pitZ)},
- {name="PitLane",p(-95,pitZ),p(-30,pitZ),p(35,pitZ),p(100,pitZ)},
- {name="PitExit",p(100,pitZ),p(135,pitZ),p(145,startZ),p(180,startZ)},
+Layout.Pit={width=32,segments={
+ {name="PitEntry",p(-180,startZ),p(-145,startZ),p(-130,pitDriveZ),p(-95,pitDriveZ)},
+ {name="PitLane",p(-95,pitDriveZ),p(-30,pitDriveZ),p(35,pitDriveZ),p(100,pitDriveZ)},
+ {name="PitExit",p(100,pitDriveZ),p(135,pitDriveZ),p(145,startZ),p(180,startZ)},
 }}
 Layout.Protected={minX=-90,maxX=90,minZ=-85,maxZ=95}
 Layout.Plaza={x=0,z=-58,width=120,length=24}
