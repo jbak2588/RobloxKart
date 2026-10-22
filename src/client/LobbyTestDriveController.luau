@@ -272,7 +272,8 @@ function Controller.start()
    local measuredSpeed=Vector3.new(velocity.X,0,velocity.Z).Magnitude
    speedGauge:update(body,measuredSpeed,dt,Input.isTouchPreferred(),gui.Enabled and focused and not GuiService.MenuIsOpen)
   end
-  if feedback then feedback:update(dt,(kart:GetAttribute("LobbyDrifting")==true or kart:GetAttribute("KartSlickActive")==true) and not suspended and focused and not GuiService.MenuIsOpen) end
+  local speed=math.abs(body.AssemblyLinearVelocity:Dot(body.CFrame.LookVector))
+  if feedback then feedback:update(dt,(kart:GetAttribute("LobbyDrifting")==true or kart:GetAttribute("KartSlickActive")==true) and not suspended and focused and not GuiService.MenuIsOpen, kart:GetAttribute("KartOffTrack")==true, speed) end
   if exhaust then exhaust:update(dt,not suspended and focused and not GuiService.MenuIsOpen) end
   local boosting=kart:GetAttribute('KartBoosting')==true or kart:GetAttribute('KartNitroActive')==true
   if boosting and not previousBoost then Audio.playOnce(boostCue) end

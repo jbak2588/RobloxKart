@@ -237,8 +237,9 @@ function KartAudioController.start()
 					end
 				end
 				if drift then
+					local offTrack = kart:GetAttribute("KartOffTrack") == true
 					local validDrift = kart:GetAttribute("KartDrifting") == true
-						and kart:GetAttribute("KartOffTrack") ~= true
+						and not offTrack
 						and kart:GetAttribute("RaceControlsLocked") ~= true
 						and math.abs(forwardSpeed) >= AudioConfig.DRIFT.MIN_SPEED
 					-- Slick cancels Drift in gameplay, so its skid must be driven by
@@ -246,20 +247,35 @@ function KartAudioController.start()
 					local slickHit = kart:GetAttribute("KartSlickActive") == true
 						and player:GetAttribute("RaceState") == "RACING"
 						and kart:GetAttribute("RaceControlsLocked") ~= true
-					local slipFactor = if slickHit then 1 else 0
-					if validDrift and not slickHit then
+					local isOffTrackRumble = offTrack
+						and math.abs(forwardSpeed) >= 6
+						and kart:GetAttribute("RaceControlsLocked") ~= true
+
+					local targetVolume = 0
+					local targetPitch = AudioConfig.DRIFT.MIN_PLAYBACK_SPEED
+
+					if isOffTrackRumble then
+						-- Option A: Low-pitched, heavy tire rumble while driving on off-track grass/gravel
+						local offTrackFactor = math.clamp(math.abs(forwardSpeed) / 60, 0.3, 1.0)
+						targetVolume = offTrackFactor * (AudioConfig.DRIFT.MAX_VOLUME * 0.75)
+						targetPitch = 0.65 + 0.12 * math.clamp(math.abs(forwardSpeed) / 100, 0, 1)
+					elseif slickHit then
+						targetVolume = AudioConfig.DRIFT.MAX_VOLUME
+						targetPitch = AudioConfig.DRIFT.MAX_PLAYBACK_SPEED
+					elseif validDrift then
 						local lateralSpeed = velocity:Dot(activeChassis.CFrame.RightVector)
 						local slip = math.abs(math.deg(math.atan2(lateralSpeed, math.max(math.abs(forwardSpeed), 0.01))))
-						slipFactor = math.clamp(
+						local slipFactor = math.clamp(
 							(slip - AudioConfig.DRIFT.MIN_SLIP_DEGREES)
 								/ (AudioConfig.DRIFT.FULL_SLIP_DEGREES - AudioConfig.DRIFT.MIN_SLIP_DEGREES),
 							0,
 							1
 						)
+						targetVolume = slipFactor * AudioConfig.DRIFT.MAX_VOLUME
+						targetPitch = AudioConfig.DRIFT.MIN_PLAYBACK_SPEED
+							+ (AudioConfig.DRIFT.MAX_PLAYBACK_SPEED - AudioConfig.DRIFT.MIN_PLAYBACK_SPEED) * slipFactor
 					end
-					local targetVolume = slipFactor * AudioConfig.DRIFT.MAX_VOLUME
-					local targetPitch = AudioConfig.DRIFT.MIN_PLAYBACK_SPEED
-						+ (AudioConfig.DRIFT.MAX_PLAYBACK_SPEED - AudioConfig.DRIFT.MIN_PLAYBACK_SPEED) * slipFactor
+
 					local alpha = 1 - math.exp(-AudioConfig.DRIFT.RESPONSE * deltaTime)
 					drift.Volume += (targetVolume - drift.Volume) * alpha
 					drift.PlaybackSpeed += (targetPitch - drift.PlaybackSpeed) * alpha
