@@ -37,11 +37,14 @@ local function case(id,label,fn)
  local before=checks;local ok,err=pcall(fn);table.insert(rows,{id=id,label=label,status=if ok then 'PASS' else 'FAIL',checks=checks-before,error=if ok then nil else tostring(err)})
  print(id..' '..(if ok then 'PASS ' else 'FAIL ')..label)
 end
-case('P01','ON candidate admits exactly one public HUB identity',function()
+case('P01','public rollout admits ordinary users in exact public HUB',function()
  local context={isStudio=false,role='HUB',experienceId=10768420544,placeId=127925465904803,privateServerId=''}
- check(Config.Enabled==true and S.count(Config.AllowedUserIds)==1,'exact ON allowlist')
+ check(Config.Enabled==true and Config.AllowAllUsers==true,'owner-approved public rollout')
  check(Policy.allowed(Config,context,11700555357),'approved identity')
- check(not Policy.allowed(Config,context,11700555358),'others denied')
+ check(Policy.allowed(Config,context,11700555358),'ordinary users persist')
+ local canary=table.clone(Config);canary.AllowAllUsers=false
+ check(not Policy.allowed(canary,context,11700555358)and Policy.allowed(canary,context,11700555357),'canary-only rollback retained')
+ for _,id in {0,-1,1.5,'11700555358'}do check(not Policy.allowed(Config,context,id),'invalid user rejected')end
  for key,value in {isStudio=true,role='RACE',experienceId=1,placeId=1,privateServerId='reserved'} do
   local wrong=table.clone(context);wrong[key]=value;check(not Policy.allowed(Config,wrong,11700555357),'denied '..key)
  end

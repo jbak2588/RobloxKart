@@ -29,8 +29,8 @@ check(layout.DefaultEnabled==false,'remains opt-in')
 for i=2,#layout.Slots do
  check(layout.Slots[i-1].x>layout.Slots[i].x,'lowest free index fills front to rear in +X travel direction')
 end
-check(policy.forwardSpeed('ROOKIE_LOOP_V1',{MAX_FORWARD_SPEED=70})==70,'RookieLoop matches official normal speed')
-check(policy.forwardSpeed('ROOKIE_LOOP_V1',{MAX_FORWARD_SPEED=73})==73,'follows race configuration rather than duplicate constant')
+check(policy.forwardSpeed('ROOKIE_LOOP_V1',{MAX_FORWARD_SPEED=70})==80,'RookieLoop owner-approved 80 stud normal speed')
+check(policy.forwardSpeed('ROOKIE_LOOP_V1',{MAX_FORWARD_SPEED=73})==80,'PARK cap independent of official race configuration')
 check(policy.forwardSpeed(nil,{MAX_FORWARD_SPEED=70})==60,'legacy HUB cap preserved')
 local drift=require('./helpers/lobby_drift_session')
 local config=require('./helpers/gameplay_config')('src/shared/KartConfig.luau')
@@ -44,4 +44,4 @@ for _,geometryId in {'ROOKIE_LOOP_V1','LEGACY'} do
  check(math.abs(speed-cap)<.001,'production solver reaches zone cap')
 end
 check(config.MINI_BOOST_MAX_SPEED==100 and config.NITRO_MAX_SPEED==120,'boost tuning preserved')
-print(string.format('PASS reference course: %.1f studs, straight %.0f, radius %.2f, %d strips; constant-70 estimate %.1fs (not measured lap time)',m.length,straight,m.minRadius,m.roadStrips,m.length/70))
+print(string.format('PASS reference course: %.1f studs, straight %.0f, radius %.2f, %d strips; constant-80 estimate %.1fs (not measured lap time)',m.length,straight,m.minRadius,m.roadStrips,m.length/80))

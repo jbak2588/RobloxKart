@@ -296,6 +296,16 @@ separately before capacity extension.
 
 ## Driving Invariants
 
+Owner override — 2026-10-22: HUB RookieLoop (`ROOKIE_LOOP_V1`) normal speed is
+80 studs/s through `LobbyDrivePolicy.ParkForward`. Official RACE normal speed
+remains 70; legacy HUB, reverse, acceleration, Drift, Mini Boost and Nitro stay
+unchanged. Do not raise global KartConfig to implement the PARK override.
+
+Garage kart selection persistence is now approved for ordinary users in the
+exact production public HUB, using the existing KDM_PlayerProgress_v1 schema.
+Joining is read-only; the first explicit valid Garage selection may create the
+profile. Retain Studio/RACE/foreign-place exclusions and the canary-only rollback.
+
 Normal:
 70
 

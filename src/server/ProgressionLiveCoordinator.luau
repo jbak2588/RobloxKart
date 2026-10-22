@@ -37,7 +37,8 @@ local function create(player)
   end})
  return Runtime.new({Service=Service,config=Config,authorize=function(p) return p==player and authorize() end,
   spawn=task.spawn,delay=task.delay,wait=task.wait,clock=os.clock,
-  coreDependencies={initializeAbsent=false,tools=S,schema=schema,operations=Ops,store=adapter,diagnostic=diagnostic,
+  -- Binding is read-only; an explicit validated Garage selection may create a profile.
+  coreDependencies={initializeAbsent=true,tools=S,schema=schema,operations=Ops,store=adapter,diagnostic=diagnostic,
    newOperationId=function() return game:GetService("HttpService"):GenerateGUID(false) end}})
 end
 function Coordinator.bind(player)

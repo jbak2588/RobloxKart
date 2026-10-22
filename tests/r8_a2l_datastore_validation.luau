@@ -66,7 +66,7 @@ case('L02','Canary OFF / Studio / Race / target / whitelist isolation',function(
  local ctx={isStudio=false,role='HUB',experienceId=10768420544,placeId=127925465904803,privateServerId=''}
  local off=table.clone(Config);off.Enabled=false
  check(not Policy.allowed(off,ctx,11700555357),'explicit OFF blocks accepted Canary')
- local cfg=table.clone(Config);cfg.Enabled=true
+ local cfg=table.clone(Config);cfg.Enabled=true;cfg.AllowAllUsers=false
  check(Policy.allowed(cfg,ctx,11700555357),'approved user only')
  for _,id in {1,11700555358,-1,'mozzy_hni'} do check(not Policy.allowed(cfg,ctx,id),'reject non-approved identity') end
  for key,value in {isStudio=true,role='RACE',experienceId=1,placeId=1,privateServerId='reserved'} do
@@ -183,10 +183,11 @@ case('L18','live integration stays server-only and preserves legacy preferences'
  check(not binding.enabled(),'Studio API OFF / local default OFF')
  check(Config.StoreName=='KDM_PlayerProgress_v1' and Config.AllowedUserIds[11700555357],'confirmed identity/config')
 end)
-case('L19','actual Coordinator hierarchy / user isolation / runtime restore',function()
+case('L19','actual Coordinator canary/public hierarchy and runtime restore',function()
+ for _,public in {false,true}do
  local b,a,c,p=fixture(profile())
- local approved=11700555357;p.UserId=approved
- local cfg=table.clone(Config);cfg.Enabled=true
+ local approved=if public then 2 else 11700555357;p.UserId=approved
+ local cfg=table.clone(Config);cfg.Enabled=true;cfg.AllowAllUsers=public
  local actualSchema={default=function(_) return schema.default(1) end,validate=function(value,_) return schema.validate(value,'u:1') end,
   supportsKart=schema.supportsKart,maxReceipts=schema.maxReceipts,prepare=schema.prepare,stamp=schema.stamp,issueTransaction=schema.issueTransaction}
  local tools=table.clone(S);tools.userKey=function(_) return 'u:1' end
@@ -213,13 +214,14 @@ case('L19','actual Coordinator hierarchy / user isolation / runtime restore',fun
   Instance={new=function(name) check(name=='DataStoreGetOptions','real uncached options');return {} end},
   Enum={DataStoreRequestType={StandardRead=9,StandardWrite=10}},
   task={spawn=function(f) table.insert(jobs,f) end,delay=function(_,f) table.insert(delays,f) end,wait=function() end}})
- local excluded=player(2);check(not coordinator.bind(excluded) and lookups==0,'excluded zero lookup')
+ local excluded=player(0);check(not coordinator.bind(excluded) and lookups==0,'excluded zero lookup')
  check(coordinator.select(excluded,'Kart09') and excluded.attrs.SelectedKartId=='Kart09' and lookups==0,'legacy excluded selection')
  check(coordinator.bind(p) and lookups==0,'asynchronous authorized bind');table.remove(jobs,1)()
  check(p.attrs.SelectedKartId=='Kart07','actual Coordinator restores')
  coordinator.select(p,'Kart09');table.remove(jobs,1)()
  check(p.attrs.KartSaveState=='SAVE_CONFIRMED' and coordinator.selection(p,'Kart05')=='Kart09','actual Coordinator ACK and race payload')
  local writes=b.writes;coordinator.remove(p);check(b.writes==writes,'departure does not create redundant save')
+ end
 end)
 case('L20','late load after departure emits no attributes or default write',function()
  local b,a,c,p,d=fixture(profile());local jobs,delays={},{}

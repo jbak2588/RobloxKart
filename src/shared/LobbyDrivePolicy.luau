@@ -1,6 +1,6 @@
 -- Lobby-only parameters. Never used by the race controller or KartConfig.
 local Policy = {
- Forward = 60, Reverse = 30, Acceleration = 36, Brake = 70, Coast = 18,
+ Forward = 60, ParkForward = 80, Reverse = 30, Acceleration = 36, Brake = 70, Coast = 18,
  TurnRadius = 50, DriftTurnRadius = 35, InputTimeout = .5,
  Radius = 50, HalfStraight = 120, RoadWidth = 32, Shoulder = 16,
  OuterRadius = 90, FootprintMargin = 7,
@@ -10,8 +10,8 @@ local Policy = {
 }
 -- Scalar helpers also validate the server's contact response without physics mocks.
 function Policy.forwardSpeed(geometryId,kartConfig)
- -- Only the opt-in Racing Park matches the official normal driving cap.
- return if geometryId=='ROOKIE_LOOP_V1' then kartConfig.MAX_FORWARD_SPEED else Policy.Forward
+ -- Owner-approved RookieLoop override. Official RACE KartConfig stays unchanged.
+ return if geometryId=='ROOKIE_LOOP_V1' then Policy.ParkForward else Policy.Forward
 end
 function Policy.slide(x,z,nx,nz)
  local outward=math.max(0,x*nx+z*nz)
