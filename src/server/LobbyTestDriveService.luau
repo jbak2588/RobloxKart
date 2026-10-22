@@ -140,9 +140,9 @@ local function createKart(player,definition,frame)
  for _,part in visual:GetChildren() do if part:IsA("BasePart") then
   if part.Name=="StaticRoot" then join(part,false) elseif part:GetAttribute("VisualMotionRole") then join(part,true) end
  end end
- local seat=Instance.new("Seat");seat.Name="Seat";seat.Size=Vector3.new(2.5,1,2.5)
+ local seat=Instance.new("Seat");seat.Name="Seat";seat.Size=Vector3.new(2.5,0.1,2.5)
  seat.CFrame=frame*Factory.getDriverSeatLocalCFrame(definition)
- seat.Transparency=1;seat.CanCollide=false;seat.CanTouch=false;seat.Massless=true
+ seat.Transparency=1;seat.CanCollide=false;seat.CanTouch=false;seat.CanQuery=false;seat.Massless=true
  seat:SetAttribute("LobbyKartSeat",true);seat.Parent=kart;join(seat,false)
  for _,part in kart:GetDescendants() do if part:IsA("BasePart") then part.CollisionGroup="LobbyKart" end end
  kart.Parent=zone;body:SetNetworkOwner(nil)
@@ -363,7 +363,11 @@ function Service.start(driveZone,eligibility)
    local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)*math.clamp(math.abs(r.speed)/KartConfig.MAX_FORWARD_SPEED,0,1)
    local normalYaw=-r.training.steer*r.speed/radius
    local slideCap = if nitro then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
-   if r.training.slide.active or r.training.slide.recovering then r.speed=math.min(physical.Magnitude,slideCap) end
+   if r.training.slide.active or r.training.slide.recovering then
+    local currentSpeed=physical.Magnitude
+    if r.training.active and throttle>0 then currentSpeed=math.max(currentSpeed,KartConfig.DRIFT_MAX_SPEED)end
+    r.speed=math.min(currentSpeed,slideCap)
+   end
    local wasBoost,boostEnd=r.training.boost,r.training.boostEnd
    local hit=practice:physical(player,now)
    if hit then

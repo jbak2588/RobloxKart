@@ -170,6 +170,10 @@ local function selectVisual(context, definition): boolean
 			joint:Destroy()
 		end
 	end
+	context.seat.Size = Vector3.new(2.5, 0.1, 2.5)
+	context.seat.CanCollide = false
+	context.seat.CanTouch = false
+	context.seat.CanQuery = false
 	context.seat.CFrame = context.chassis.CFrame * seatFrame
 	weldToChassis(context.chassis, context.seat)
 	return true
@@ -216,11 +220,14 @@ local function createKart(prototype: Folder, spawnCFrame: CFrame, kartName: stri
 
 	local seat = Instance.new("Seat")
 	seat.Name = "Seat"
-	seat.Size = Vector3.new(2.5, 1, 2.5)
+	seat.Size = Vector3.new(2.5, 0.1, 2.5)
 	seat.CFrame = spawnCFrame * KartVisualFactory.getDriverSeatLocalCFrame(definition)
 	seat.Color = Color3.fromRGB(35, 35, 40)
 	seat.TopSurface = Enum.SurfaceType.Smooth
 	seat.BottomSurface = Enum.SurfaceType.Smooth
+	seat.CanCollide = false
+	seat.CanTouch = false
+	seat.CanQuery = false
 	seat.Massless = true
 	seat:SetAttribute("PrototypeKartSeat", true)
 	seat.Parent = kart
@@ -1158,7 +1165,11 @@ function PrototypeWorld.start(options)
 			-- Store commandedSpeed as the projected forward component after the solver.
 			if angled and rearSlide.planarSpeed and (rearSlide.active or rearSlide.recovering) then
 				local slideCap = if context.nitro.active or context.nitro.exiting then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
-				context.commandedSpeed = math.min(planarVelocity.Magnitude, slideCap)
+				local currentPlanar = planarVelocity.Magnitude
+				if context.driftActive and throttle > 0 and not offTrack then
+					currentPlanar = math.max(currentPlanar, KartConfig.DRIFT_MAX_SPEED)
+				end
+				context.commandedSpeed = math.min(currentPlanar, slideCap)
 			end
 
 			if throttle > 0 then
