@@ -734,101 +734,57 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		testTrack:SetAttribute("PracticeTreeCount", if isRaceTrack01 then 0 else trees)
 		testTrack:SetAttribute("PracticeBillboardPartCount", #PRACTICE_BILLBOARD_PARTS)
 		testTrack:SetAttribute("PracticeSignalPartCount", 0)
+	end
 
-		-- P1-A (SpeedCues) & P1-B (VisualRails) for Track01 (PracticeFigure8V1)
-		-- Non-colliding visual landmarks placed strictly clear of crossover (VisualHalfLength=110),
-		-- gates, and road edges (>= 16 studs bounding edge clearance).
-		local visualRailsFolder = Instance.new("Folder")
-		visualRailsFolder.Name = "VisualRails"
-		visualRailsFolder.Parent = environmentFolder
+	-- Universal Outer Circuit VisualRails and Elevated Corner Chevron Signs for ALL tracks
+	local visualRailsFolder = Instance.new("Folder")
+	visualRailsFolder.Name = "VisualRails"
+	visualRailsFolder.Parent = environmentFolder
 
-		local crossing = definition.Crossover
-		local crossingPos = crossing.Position
-		local crossingClearDist = crossing.VisualHalfLength + 15
+	local straightBlocks = {
+		{ 10, 11, 12, 13 },
+		{ 15, 16, 17, 18 },
+		{ 48, 49, 50, 51 },
+		{ 54, 55, 56, 57 },
+		{ 60, 61, 62, 63 },
+		{ 66, 67, 68, 69 },
+		{ 104, 105, 106, 107 },
+		{ 110, 111, 112, 113 },
+		{ 116, 117, 118, 119 },
+		{ 122, 123, 124, 125 },
+		{ 155, 156, 157, 158 },
+		{ 160, 161, 162, 163 },
+		{ 180, 181, 182, 183 },
+		{ 185, 186, 187, 188 },
+		{ 208, 209, 210, 211 },
+		{ 214, 215, 216, 217 },
+		{ 220, 221, 222, 223 },
+		{ 236, 237, 238, 239 },
+		{ 242, 243, 244, 245 },
+	}
+	local curveRails = {
+		{ 25, 26, 27 },
+		{ 29, 30, 31 },
+		{ 33, 34, 35 },
+		{ 37, 38, 39 },
+		{ 41, 42, 43 },
+		{ 77, 78, 79 },
+		{ 81, 82, 83 },
+		{ 85, 86, 87 },
+		{ 89, 90, 91 },
+		{ 93, 94, 95 },
+		{ 165, 166, 167 },
+		{ 169, 170, 171 },
+		{ 173, 174, 175 },
+		{ 177, 178, 179 },
+		{ 191, 192, 193 },
+		{ 195, 196, 197 },
+		{ 199, 200, 201 },
+		{ 203, 204, 205 },
+	}
 
-		-- 1. P1-A: 8 Near SpeedCue Markers (Road edge + 18 studs offset)
-		local speedCueIndices = { 40, 50, 60, 70, 90, 100, 165, 175, 195, 205 }
-		for _, idx in speedCueIndices do
-			if speedCueObjects >= 8 then break end
-			local pos = samples[idx]
-			local tangent = directionAt(idx)
-			local deltaCross = pos - crossingPos
-			if Vector2.new(deltaCross.X, deltaCross.Z).Magnitude <= crossingClearDist then continue end
-
-			local gateClear = true
-			for _, cp in checkpointSamples do
-				if (pos - cp.Position).Magnitude < 32 then gateClear = false; break end
-			end
-			if not gateClear or (pos - course.StartPosition).Magnitude < 40 then continue end
-
-			local normal = Vector3.new(-tangent.Z, 0, tangent.X)
-			local center = pos + normal * (roadWidth * 0.5 + 18)
-
-			speedCueObjects += 1
-			local base = roadPoint(center, 0)
-			createVisualPart(speedCues, string.format("Cue%02dPole", speedCueObjects),
-				Vector3.new(1.0, 9.0, 1.0), CFrame.new(base + Vector3.new(0, 4.5, 0)),
-				Color3.fromRGB(65, 73, 80), Enum.Material.SmoothPlastic)
-			speedCueParts += 1
-			createVisualPart(speedCues, string.format("Cue%02dMarker", speedCueObjects),
-				Vector3.new(3.0, 1.6, 0.4), CFrame.lookAt(base + Vector3.new(0, 9.2, 0), base + Vector3.new(0, 9.2, 0) + tangent),
-				Color3.fromRGB(245, 205, 50), Enum.Material.SmoothPlastic)
-			speedCueParts += 1
-		end
-
-		-- 2. P1-B: Comprehensive Outer Circuit VisualRails with 4-rail straight blocks and curved sweeps
-		local straightBlocks = {
-			-- Segment 1 (Start straight): two 4-rail blocks
-			{ 10, 11, 12, 13 },
-			{ 15, 16, 17, 18 },
-			-- Segment 3 (North top main straight): four 4-rail blocks
-			{ 48, 49, 50, 51 },
-			{ 54, 55, 56, 57 },
-			{ 60, 61, 62, 63 },
-			{ 66, 67, 68, 69 },
-			-- Segment 5 (Mid diagonal straight - long crossover approach and exit): six 4-rail blocks
-			{ 104, 105, 106, 107 },
-			{ 110, 111, 112, 113 },
-			{ 116, 117, 118, 119 },
-			{ 122, 123, 124, 125 },
-			{ 155, 156, 157, 158 },
-			{ 160, 161, 162, 163 },
-			-- Segment 7 (South bottom straight): two 4-rail blocks
-			{ 180, 181, 182, 183 },
-			{ 185, 186, 187, 188 },
-			-- Segment 9 (Final return straight - long crossover approach and exit): five 4-rail blocks
-			{ 208, 209, 210, 211 },
-			{ 214, 215, 216, 217 },
-			{ 220, 221, 222, 223 },
-			{ 236, 237, 238, 239 },
-			{ 242, 243, 244, 245 },
-		}
-		local curveRails = {
-			-- North curve 1: five 3-rail attached clusters
-			{ 25, 26, 27 },
-			{ 29, 30, 31 },
-			{ 33, 34, 35 },
-			{ 37, 38, 39 },
-			{ 41, 42, 43 },
-			-- North curve 2: five 3-rail attached clusters
-			{ 77, 78, 79 },
-			{ 81, 82, 83 },
-			{ 85, 86, 87 },
-			{ 89, 90, 91 },
-			{ 93, 94, 95 },
-			-- South curve 1: four 3-rail attached clusters
-			{ 165, 166, 167 },
-			{ 169, 170, 171 },
-			{ 173, 174, 175 },
-			{ 177, 178, 179 },
-			-- South curve 2: four 3-rail attached clusters
-			{ 191, 192, 193 },
-			{ 195, 196, 197 },
-			{ 199, 200, 201 },
-			{ 203, 204, 205 },
-		}
-
-		local plannedRails = {}
+	local plannedRails = {}
+	if isFigure8 then
 		for _, block in straightBlocks do
 			for posInBlock, idx in block do
 				table.insert(plannedRails, { idx = idx, isStraight = true, posInBlock = posInBlock })
@@ -839,158 +795,169 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = posInCluster })
 			end
 		end
-
-		local visualRailParts = 0
-		local brandedRailParts = 0
-
-		local function attachKdmBranding(railPart: Part, normalVector: Vector3)
-			local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
-			local gui = Instance.new("SurfaceGui")
-			gui.Name = "KDMBrandSurfaceGui"
-			gui.Face = inwardFace
-			gui.CanvasSize = Vector2.new(512, 128)
-			gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
-			gui.LightInfluence = 0
-			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-			gui.Parent = railPart
-
-			local panel = Instance.new("Frame")
-			panel.Name = "BrandPanel"
-			panel.Size = UDim2.new(0.82, 0, 0.72, 0)
-			panel.AnchorPoint = Vector2.new(0.5, 0.5)
-			panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-			panel.BackgroundColor3 = Color3.fromRGB(15, 18, 22)
-			panel.BorderSizePixel = 0
-			panel.Parent = gui
-
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, 6)
-			corner.Parent = panel
-
-			local flag = Instance.new("Frame")
-			flag.Name = "CheckerFlag"
-			flag.Size = UDim2.new(0.20, 0, 0.74, 0)
-			flag.AnchorPoint = Vector2.new(0, 0.5)
-			flag.Position = UDim2.new(0.04, 0, 0.5, 0)
-			flag.BackgroundTransparency = 1
-			flag.BorderSizePixel = 0
-			flag.Parent = panel
-
-			local rows, cols = 3, 4
-			for r = 0, rows - 1 do
-				for c = 0, cols - 1 do
-					local cell = Instance.new("Frame")
-					cell.Name = string.format("Cell_%d_%d", r, c)
-					cell.Size = UDim2.new(1 / cols, 0, 1 / rows, 0)
-					cell.Position = UDim2.new(c / cols, 0, r / rows, 0)
-					cell.BackgroundColor3 = if (r + c) % 2 == 0 then Color3.fromRGB(250, 250, 250) else Color3.fromRGB(18, 20, 24)
-					cell.BorderSizePixel = 0
-					cell.Parent = flag
-				end
-			end
-
-			local label = Instance.new("TextLabel")
-			label.Name = "KDMText"
-			label.Size = UDim2.new(0.68, 0, 0.82, 0)
-			label.AnchorPoint = Vector2.new(0, 0.5)
-			label.Position = UDim2.new(0.28, 0, 0.5, 0)
-			label.BackgroundTransparency = 1
-			label.Text = "KDM"
-			label.Font = Enum.Font.GothamBold
-			label.TextColor3 = Color3.fromRGB(255, 255, 255)
-			label.TextScaled = true
-			label.TextXAlignment = Enum.TextXAlignment.Center
-			label.TextYAlignment = Enum.TextYAlignment.Center
-			label.Parent = panel
-		end
-
-		local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLeftCurve: boolean)
-			local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
-			local gui = Instance.new("SurfaceGui")
-			gui.Name = "KDMChevronSurfaceGui"
-			gui.Face = inwardFace
-			gui.CanvasSize = Vector2.new(512, 128)
-			gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
-			gui.LightInfluence = 0
-			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-			gui.Parent = railPart
-
-			local panel = Instance.new("Frame")
-			panel.Name = "ChevronPanel"
-			panel.Size = UDim2.new(0.92, 0, 0.78, 0)
-			panel.AnchorPoint = Vector2.new(0.5, 0.5)
-			panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-			panel.BackgroundColor3 = Color3.fromRGB(15, 18, 22)
-			panel.BorderSizePixel = 0
-			panel.Parent = gui
-
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, 6)
-			corner.Parent = panel
-
-			local label = Instance.new("TextLabel")
-			label.Name = "ChevronText"
-			label.Size = UDim2.new(0.92, 0, 0.88, 0)
-			label.AnchorPoint = Vector2.new(0.5, 0.5)
-			label.Position = UDim2.new(0.5, 0, 0.5, 0)
-			label.BackgroundTransparency = 1
-			label.Text = if isLeftCurve then "<<<" else ">>>"
-			label.Font = Enum.Font.GothamBlack
-			label.TextColor3 = Color3.fromRGB(255, 224, 40)
-			label.TextScaled = true
-			label.TextXAlignment = Enum.TextXAlignment.Center
-			label.TextYAlignment = Enum.TextYAlignment.Center
-			label.Parent = panel
-		end
-
-		for _, item in plannedRails do
-			local idx = item.idx
-			local first = samples[idx]
-			local nextIdx = idx % #samples + 1
-			local second = samples[nextIdx]
-			local tangent = (second - first).Unit
-
-			local n1 = Vector3.new(-tangent.Z, 0, tangent.X)
-			local n2 = Vector3.new(tangent.Z, 0, -tangent.X)
-			local bestNormal = n1
-			local bestDist = -math.huge
-			for _, testN in { n1, n2 } do
-				local testPos = first + testN * (roadWidth * 0.5 + 18.5)
-				local minD = math.huge
-				for _, roadPt in samples do
-					local d = (Vector2.new(testPos.X - roadPt.X, testPos.Z - roadPt.Z)).Magnitude
-					if d < minD then minD = d end
-				end
-				if minD > bestDist then
-					bestDist = minD
-					bestNormal = testN
-				end
-			end
-
-			local railHeight = if item.isStraight then 2.2 else 3.2
-			local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + railHeight * 0.5, 0)
-			local railLook = CFrame.lookAt(railPos, railPos + tangent)
-
-			local isRed = (item.posInBlock % 2 == 1)
-			local shouldBrand = (item.posInBlock == 2)
-
-			local railColor = if isRed then kerbRed else kerbWhite
-			local railPart = createVisualPart(visualRailsFolder, "RailSegment" .. (visualRailParts + 1),
-				Vector3.new(0.4, railHeight, (second - first).Magnitude + 2), railLook,
-				railColor, Enum.Material.SmoothPlastic)
-			visualRailParts += 1
-			if not item.isStraight then
-				local isLeftCurve = signedTurnAt(idx) > 0
-				attachChevronGuidance(railPart, bestNormal, isLeftCurve)
-				brandedRailParts += 1
-			elseif shouldBrand then
-				attachKdmBranding(railPart, bestNormal)
-				brandedRailParts += 1
+	else
+		-- General curve rails for Track01Race, Track02 (V2B), Track03 (Hard)
+		local nextRail = 4
+		for idx = 4, #samples - 4 do
+			if idx >= nextRail and turnAt(idx) >= kerbThreshold then
+				table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = 2 })
+				table.insert(plannedRails, { idx = math.min(idx + 1, #samples - 4), isStraight = false, posInBlock = 1 })
+				table.insert(plannedRails, { idx = math.min(idx + 2, #samples - 4), isStraight = false, posInBlock = 2 })
+				nextRail = idx + 6
 			end
 		end
-		testTrack:SetAttribute("VisualRailPartCount", visualRailParts)
-		testTrack:SetAttribute("BrandedVisualRailCount", brandedRailParts)
 	end
+
+	local visualRailParts = 0
+	local brandedRailParts = 0
+
+	local function attachKdmBranding(railPart: Part, normalVector: Vector3)
+		local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "KDMBrandSurfaceGui"
+		gui.Face = inwardFace
+		gui.CanvasSize = Vector2.new(512, 128)
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+		gui.LightInfluence = 0
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		gui.Parent = railPart
+
+		local panel = Instance.new("Frame")
+		panel.Name = "BrandPanel"
+		panel.Size = UDim2.new(0.82, 0, 0.72, 0)
+		panel.AnchorPoint = Vector2.new(0.5, 0.5)
+		panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+		panel.BackgroundColor3 = Color3.fromRGB(15, 18, 22)
+		panel.BorderSizePixel = 0
+		panel.Parent = gui
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 6)
+		corner.Parent = panel
+
+		local flag = Instance.new("Frame")
+		flag.Name = "CheckerFlag"
+		flag.Size = UDim2.new(0.20, 0, 0.74, 0)
+		flag.AnchorPoint = Vector2.new(0, 0.5)
+		flag.Position = UDim2.new(0.04, 0, 0.5, 0)
+		flag.BackgroundTransparency = 1
+		flag.BorderSizePixel = 0
+		flag.Parent = panel
+
+		local rows, cols = 3, 4
+		for r = 0, rows - 1 do
+			for c = 0, cols - 1 do
+				local cell = Instance.new("Frame")
+				cell.Name = string.format("Cell_%d_%d", r, c)
+				cell.Size = UDim2.new(1 / cols, 0, 1 / rows, 0)
+				cell.Position = UDim2.new(c / cols, 0, r / rows, 0)
+				cell.BackgroundColor3 = if (r + c) % 2 == 0 then Color3.fromRGB(250, 250, 250) else Color3.fromRGB(18, 20, 24)
+				cell.BorderSizePixel = 0
+				cell.Parent = flag
+			end
+		end
+
+		local label = Instance.new("TextLabel")
+		label.Name = "KDMText"
+		label.Size = UDim2.new(0.68, 0, 0.82, 0)
+		label.AnchorPoint = Vector2.new(0, 0.5)
+		label.Position = UDim2.new(0.28, 0, 0.5, 0)
+		label.BackgroundTransparency = 1
+		label.Text = "KDM"
+		label.Font = Enum.Font.GothamBold
+		label.TextColor3 = Color3.fromRGB(255, 255, 255)
+		label.TextScaled = true
+		label.TextXAlignment = Enum.TextXAlignment.Center
+		label.TextYAlignment = Enum.TextYAlignment.Center
+		label.Parent = panel
+	end
+
+	local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLeftCurve: boolean)
+		local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector) > 0 then Enum.NormalId.Right else Enum.NormalId.Left
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "KDMChevronSurfaceGui"
+		gui.Face = inwardFace
+		gui.CanvasSize = Vector2.new(1024, 384)
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+		gui.LightInfluence = 0
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		gui.Parent = railPart
+
+		local panel = Instance.new("Frame")
+		panel.Name = "ChevronPanel"
+		panel.Size = UDim2.new(0.96, 0, 0.90, 0)
+		panel.AnchorPoint = Vector2.new(0.5, 0.5)
+		panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+		panel.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
+		panel.BorderSizePixel = 0
+		panel.Parent = gui
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = panel
+
+		local label = Instance.new("TextLabel")
+		label.Name = "ChevronText"
+		label.Size = UDim2.new(0.96, 0, 0.92, 0)
+		label.AnchorPoint = Vector2.new(0.5, 0.5)
+		label.Position = UDim2.new(0.5, 0, 0.5, 0)
+		label.BackgroundTransparency = 1
+		label.Text = if isLeftCurve then "<<<" else ">>>"
+		label.Font = Enum.Font.GothamBlack
+		label.TextColor3 = Color3.fromRGB(255, 224, 20)
+		label.TextScaled = true
+		label.TextXAlignment = Enum.TextXAlignment.Center
+		label.TextYAlignment = Enum.TextYAlignment.Center
+		label.Parent = panel
+	end
+
+	for _, item in plannedRails do
+		local idx = item.idx
+		local first = samples[idx]
+		local nextIdx = idx % #samples + 1
+		local second = samples[nextIdx]
+		local tangent = (second - first).Unit
+
+		local n1 = Vector3.new(-tangent.Z, 0, tangent.X)
+		local n2 = Vector3.new(tangent.Z, 0, -tangent.X)
+		local bestNormal = n1
+		local bestDist = -math.huge
+		for _, testN in { n1, n2 } do
+			local testPos = first + testN * (roadWidth * 0.5 + 18.5)
+			local minD = math.huge
+			for _, roadPt in samples do
+				local d = (Vector2.new(testPos.X - roadPt.X, testPos.Z - roadPt.Z)).Magnitude
+				if d < minD then minD = d end
+			end
+			if minD > bestDist then
+				bestDist = minD
+				bestNormal = testN
+			end
+		end
+
+		local railHeight = if item.isStraight then 2.5 else 6.0
+		local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + railHeight * 0.5, 0)
+		local railLook = CFrame.lookAt(railPos, railPos + tangent)
+
+		local isRed = (item.posInBlock % 2 == 1)
+		local shouldBrand = (item.posInBlock == 2)
+
+		local railColor = if isRed then kerbRed else kerbWhite
+		local railPart = createVisualPart(visualRailsFolder, "RailSegment" .. (visualRailParts + 1),
+			Vector3.new(0.6, railHeight, (second - first).Magnitude + 2), railLook,
+			railColor, Enum.Material.SmoothPlastic)
+		visualRailParts += 1
+		if not item.isStraight then
+			local isLeftCurve = signedTurnAt(idx) > 0
+			attachChevronGuidance(railPart, bestNormal, isLeftCurve)
+			brandedRailParts += 1
+		elseif shouldBrand then
+			attachKdmBranding(railPart, bestNormal)
+			brandedRailParts += 1
+		end
+	end
+	testTrack:SetAttribute("VisualRailPartCount", visualRailParts)
+	testTrack:SetAttribute("BrandedVisualRailCount", brandedRailParts)
 
 	local function createRaceGate(name: string, point: Vector3, direction: Vector3, gateType: string, checkpointIndex: number?)
 		local gatePosition = Vector3.new(point.X, groundTop + 8, point.Z)

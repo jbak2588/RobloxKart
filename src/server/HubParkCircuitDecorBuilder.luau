@@ -163,7 +163,7 @@ local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLe
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "KDMChevronSurfaceGui"
 	gui.Face = inwardFace
-	gui.CanvasSize = Vector2.new(512, 128)
+	gui.CanvasSize = Vector2.new(1024, 384)
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
 	gui.LightInfluence = 0
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -171,26 +171,26 @@ local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLe
 
 	local panel = Instance.new("Frame")
 	panel.Name = "ChevronPanel"
-	panel.Size = UDim2.new(0.92, 0, 0.78, 0)
+	panel.Size = UDim2.new(0.96, 0, 0.90, 0)
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-	panel.BackgroundColor3 = Color3.fromRGB(15, 18, 22)
+	panel.BackgroundColor3 = Color3.fromRGB(12, 15, 20)
 	panel.BorderSizePixel = 0
 	panel.Parent = gui
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
+	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = panel
 
 	local label = Instance.new("TextLabel")
 	label.Name = "ChevronText"
-	label.Size = UDim2.new(0.92, 0, 0.88, 0)
+	label.Size = UDim2.new(0.96, 0, 0.92, 0)
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
 	label.Position = UDim2.new(0.5, 0, 0.5, 0)
 	label.BackgroundTransparency = 1
 	label.Text = if isLeftCurve then "<<<" else ">>>"
 	label.Font = Enum.Font.GothamBlack
-	label.TextColor3 = Color3.fromRGB(255, 224, 40)
+	label.TextColor3 = Color3.fromRGB(255, 224, 20)
 	label.TextScaled = true
 	label.TextXAlignment = Enum.TextXAlignment.Center
 	label.TextYAlignment = Enum.TextYAlignment.Center
@@ -284,19 +284,22 @@ function Builder.build(root,origin,layout,spotlightPrefab)
   -- Three alternating rail panels follow actual centerline samples, not a straight chord.
   for j=i,math.min(i+12,#points-1),6 do
    local p=points[j];local right=Vector3.new(-p.fz,0,p.fx)
-   local isCurve = p.section ~= 'StartStraight'
-   local railHeight = if isCurve then 3.0 else 2.2
+   local pNext=points[math.min(j+3,#points)]
+   local turnCross=p.fx*pNext.fz - p.fz*pNext.fx
+   local isLeftCurve = turnCross > 0.0001
+   local isCurve = p.section ~= 'StartStraight' and math.abs(turnCross) > 0.0001
+   local railHeight = if isCurve then 6.0 else 2.5
    for _,side in {-1,1}do
     -- Keep the complete pit apron and entry/exit unoccluded.
     if p.section=='StartStraight' and side==1 then continue end
     local center=Vector3.new(p.x,2.02+railHeight*0.5,p.z)+right*(side*(layout.RoadWidth/2+layout.KerbWidth+2.1))
     local frame=CFrame.lookAt(center,center+Vector3.new(p.fx,0,p.fz))
     count+=1
-    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.4,railHeight,20),frame,
+    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.6,railHeight,20),frame,
      if ((j-i)/6)%2==0 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230),Enum.Material.SmoothPlastic)
-    if isCurve then
-     local isLeft = side < 0
-     attachChevronGuidance(rail,right*side,isLeft)
+    local isOuter = (turnCross < 0 and side == -1) or (turnCross > 0 and side == 1)
+    if isCurve and isOuter then
+     attachChevronGuidance(rail,right*side,isLeftCurve)
     else
      attachKdmBranding(rail,right*side)
     end
