@@ -94,7 +94,7 @@ check(client:find('KDMDriverGripController.start()', 1, true) ~= nil, 'client st
 local definition = fs.readFile('src/shared/KDMV2VisualDefinition.luau')
 check(definition:find('CFrame.new(0, -0.79, 0.5)', 1, true) ~= nil, 'KDMV2 lowered Seat contract verified')
 local factory = fs.readFile('src/shared/KartVisualFactory.luau')
-check(factory:find('CFrame.new(0, 1.5, 0.5)', 1, true) ~= nil, 'Sprint Seat contract unchanged')
+check(factory:find('CFrame.new(0, 0.06, 0.5)', 1, true) ~= nil, 'Sprint lowered Seat contract verified')
 check(not definition:find('Grip', 1, true) and not factory:find('KDMGrip', 1, true),
 	'visual definition and factory carry no grip geometry')
 

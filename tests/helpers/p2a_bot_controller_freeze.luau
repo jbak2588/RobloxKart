@@ -16,5 +16,6 @@ return function(source)
 	replace('Steering.command(record.steeringState, context.chassis.CFrame)','Steering.command(course.Samples, context.chassis.CFrame)')
 	replace('\t\t\t-- PrototypeWorld polls even while staging/countdown controls are locked.\n\t\t\t-- Those poses must not seed stale pursuit before the round\'s grid teleport.\n\t\t\tif state:GetAttribute("RaceState") ~= "RACING" then Steering.reset(record.steeringState) end\n','')
 	replace('\tSteering.reset(productionRecord.steeringState)\n','')
+	replace('\t\thumanoid.HipHeight = 0.8\n','')
 	return source
 end

@@ -11,7 +11,7 @@ end
 
 function KartVisualFactory.getDriverSeatLocalCFrame(definition): CFrame
 	if definition.VisualModelName == "SprintV1" then
-		return CFrame.new(0, 1.5, 0.5)
+		return CFrame.new(0, 0.06, 0.5)
 	elseif definition.VisualModelName == "KDMV2" then
 		return require(script.Parent.KDMV2VisualDefinition).DriverSeatLocalCFrame
 	end
@@ -329,12 +329,12 @@ function KartVisualFactory.createVisual(definition: { [string]: any },wingEquipp
 		addPart(staticRoot, "SidePod" .. side, Vector3.new(0.95, 0.82, 2.7),
 			CFrame.new(side * 2.17, 0.08, 0.05), "BodyPrimary", nil, true)
 	end
-	-- Visual shell surrounds Seat center (0, 1.5, 0.5), without changing it.
+	-- Visual shell surrounds Seat center (0, 0.06, 0.5), matching low racing posture.
 	addPart(staticRoot, "SeatBack", Vector3.new(2.55, 1.45, 0.22),
-		CFrame.new(0, 1.75, 1.91) * CFrame.Angles(math.rad(8), 0, 0), "Seat")
+		CFrame.new(0, 0.65, 1.65) * CFrame.Angles(math.rad(10), 0, 0), "Seat")
 	for _, side in { -1, 1 } do
 		addPart(staticRoot, "SeatBolster" .. side, Vector3.new(0.2, 0.9, 2.35),
-			CFrame.new(side * 1.37, 1.45, 0.5), "Seat", nil, true)
+			CFrame.new(side * 1.37, 0.35, 0.5), "Seat", nil, true)
 	end
 	addPart(staticRoot, "EngineBlock", Vector3.new(1.65, 0.8, 1.1), CFrame.new(0, 0.72, 2.88), "Trim"):SetAttribute("MaterialRole", "Metal")
 	addPart(staticRoot, "CoolingHead", Vector3.new(1.8, 0.24, 1.18), CFrame.new(0, 1.24, 2.88), "Metal")
@@ -345,8 +345,8 @@ function KartVisualFactory.createVisual(definition: { [string]: any },wingEquipp
 			CFrame.new(side * 1.45, 0.18, 3.575) * CFrame.Angles(0, math.pi / 2, 0), "Metal", Enum.PartType.Cylinder)
 	end
 	addPart(staticRoot, "RearBumper", Vector3.new(5.85, 0.3, 0.3), CFrame.new(0, -0.16, 3.92), "Trim", Enum.PartType.Cylinder)
-	addPart(staticRoot, "SteeringColumn", Vector3.new(0.2, 1.25, 0.2), CFrame.new(0, 1.05, -1.05), "Metal")
-	local steeringCenter = Vector3.new(0, 1.65, -1.05)
+	addPart(staticRoot, "SteeringColumn", Vector3.new(0.2, 0.85, 0.2), CFrame.new(0, 0.45, -0.95), "Metal")
+	local steeringCenter = Vector3.new(0, 0.85, -0.95)
 	local steeringPivot = addPivot(visual, "SteeringPivot", CFrame.new(steeringCenter))
 	steeringPivot:SetAttribute("VisualMotionRole", "SteeringWheel")
 	addPart(steeringPivot, "SteeringWheel", Vector3.new(0.27, 0.27, 0.16), CFrame.new(steeringCenter), "BodyPrimary")

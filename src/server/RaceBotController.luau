@@ -94,6 +94,7 @@ local function create(source, options)
 		npc.Parent = Workspace.Prototype
 		local humanoid = npc:FindFirstChildOfClass("Humanoid")
 		humanoid.DisplayName = npc.Name
+		humanoid.HipHeight = 0.8
 		record.humanoid = humanoid
 		local context = World.createBotKartContext(state, npc, options.spawnCFrame, source, options.roomId)
 		record.context = context
