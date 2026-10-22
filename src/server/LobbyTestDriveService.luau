@@ -326,12 +326,13 @@ function Service.start(driveZone,eligibility)
    end
    local now=os.clock()
    local localPos=pos-c
+   local isRookieLoop = zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
    local clearance,nx,nz=Geometry.contact(localPos.X,localPos.Z)
-   local offTrack = clearance < Policy.Shoulder
+   local offTrack = isRookieLoop and (clearance < 48)
    r.kart:SetAttribute("KartOffTrack", offTrack)
    local normal=Vector3.new(nx,0,nz)
    local approach=physical:Dot(normal)
-   if not r.crashEnd then
+   if not r.crashEnd and not isRookieLoop then
     if clearance<=Policy.FootprintMargin and math.abs(f:Dot(normal))>Policy.GlancingNormal and approach>KartConfig.BARRIER_CONTACT_MIN_SPEED
      and now>=(r.crashCooldown or 0) then
      local impact=Policy.barrierImpact(approach,KartConfig)
@@ -398,7 +399,7 @@ function Service.start(driveZone,eligibility)
    drifting=r.training.active
    local lateral=right*(slideLateral or (physical:Dot(right)*math.exp(-KartConfig.LATERAL_GRIP*dt)))
    local velocity=f*(projected or r.speed)+lateral
-   local nearWall=clearance<=Policy.EscapeClearance
+   local nearWall=clearance<=Policy.EscapeClearance and not isRookieLoop
    if nearWall and math.abs(f:Dot(normal))<=Policy.GlancingNormal then
     local x,z=Policy.slide(velocity.X,velocity.Z,nx,nz);velocity=Vector3.new(x,0,z)
    end

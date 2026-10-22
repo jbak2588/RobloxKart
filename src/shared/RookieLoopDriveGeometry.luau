@@ -16,7 +16,7 @@ function Geometry.create()
    end
   end
  end
- addRoute(Layout.Segments,Layout.RoadWidth/2+Layout.KerbWidth+Layout.Shoulder)
+ addRoute(Layout.Segments,Layout.RoadWidth/2+Layout.KerbWidth+48)
  addRoute(Layout.Pit.segments,Layout.Pit.width/2+6)
  local g={}
  g.height=Layout.height

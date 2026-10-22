@@ -32,13 +32,14 @@ function Builder.build(hub,ground)
   local _,ny,nz=Layout.normal(x,z)
   return part(parent,name,Vector3.new(w,.2,l),CFrame.new(origin+Vector3.new(x,Layout.height(x,z)+(y or -.08),z))*CFrame.Angles(math.atan2(nz,ny),0,0),color,collide==true)
  end
- local function strip(parent,name,a,b,width,offset,color,height,collide)
+ local function strip(parent,name,a,b,width,offset,color,height,collide,topOffset)
   local x,z=(a.x+b.x)/2,(a.z+b.z)/2
   local dx,dz=b.x-a.x,b.z-a.z;local length=math.sqrt(dx*dx+dz*dz)
   if length<1e-6 then return end
   local sideX,sideZ=-dz/length,dx/length
   x+=sideX*offset;z+=sideZ*offset
-  local pos=origin+Vector3.new(x,Layout.height(x,z)+(if collide then height/2+.02 elseif name=="Shoulder" then -height/2 else .02-height/2),z)
+  local yBase = if topOffset then topOffset - height/2 elseif collide then height/2+.02 elseif name=="Shoulder" then -height/2 else .02-height/2
+  local pos=origin+Vector3.new(x,Layout.height(x,z)+yBase,z)
   local _,ny,nz=Layout.normal(x,z)
   -- Visual overlap only; the single flat support owns wheel contact.
   -- Asphalt top is +.02, not +.37 above the physical ground datum.
@@ -136,9 +137,10 @@ function Builder.build(hub,ground)
   -- even the half-stud construction clearance cannot expose green grass.
   strip(batch,"Road",a,b,Layout.RoadWidth+2*Layout.KerbWidth+1,0,colors.road,.35,false)
   for _,side in {-1,1} do
-   -- Solid continuous white edge lines along both sides of the asphalt track
+   -- Solid continuous white edge lines (thick 1.2 stud line, with 1.2 stud road margin before kerb, raised to .045 to eliminate Z-fighting)
    if not (side==1 and (Layout.pitOpening(a) or Layout.pitOpening(b))) then
-    strip(batch,"EdgeLine",a,b,0.45,side*half,Color3.fromRGB(245,248,252),.04,false)
+    local lineOffset = side * (half - 1.8)
+    strip(batch,"EdgeLine",a,b,1.2,lineOffset,Color3.fromRGB(245,248,252),.04,false,.045)
    end
   end
   if i%48==0 or i==#samples-1 then batch.Parent=root;if task then task.wait() end end
