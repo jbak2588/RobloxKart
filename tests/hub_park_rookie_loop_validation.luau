@@ -57,16 +57,22 @@ local ground=rb.Instance.new('Part');ground.Size=rb.Vector3.new(2048,20,2048);gr
 local shared={HubParkRookieLoopLayout='layout',WaitForChild=function(_,n)return n end}
 local lighting=rb.Instance.new('Lighting')
 local originalSky=rb.Instance.new('Sky');originalSky.Name='OriginalSky';originalSky.Parent=lighting
+local treePrefabs=rb.deserializeModel(fs.readFile('src/assets/KDMHorizonTreePrefabs.rbxmx'))[1]
+local mountainPrefabs=rb.deserializeModel(fs.readFile('src/assets/KDMHorizonMountainPrefabs.rbxmx'))[1]
 local game={GetService=function(_,n)
- if n=='ReplicatedStorage'then return {Shared=shared,WaitForChild=function()return shared end}end
+ if n=='ReplicatedStorage'then return {Shared=shared,WaitForChild=function()return shared end,
+  FindFirstChild=function(_,name)return if name=='KDMHorizonTreePrefabs'then treePrefabs elseif name=='KDMHorizonMountainPrefabs'then mountainPrefabs else nil end}end
  if n=='RunService'then return {IsStudio=function()return true end}end
  if n=='Lighting'then return lighting end
  error(n)
 end}
 local env={game=game,Instance=rb.Instance,Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,
- Color3=rb.Color3,UDim2=rb.UDim2,Enum=rb.Enum,task={wait=function()end},script={Parent={WaitForChild=function(_,n)return n end}}}
-local island=luau.load(fs.readFile('src/server/HubParkIslandBuilder.luau'),{environment=env})()
-env.require=function(ref)return if ref=='HubParkRuntimePolicy'then policy elseif ref=='HubParkIslandBuilder'then island else layout end
+ Color3=rb.Color3,UDim=rb.UDim,UDim2=rb.UDim2,Enum=rb.Enum,task={wait=function()end},script={Parent={WaitForChild=function(_,n)return n end}}}
+local island,landscaping,circuit
+env.require=function(ref)return if ref=='HubParkRuntimePolicy'then policy elseif ref=='HubParkIslandBuilder'then island elseif ref=='HubParkCircuitDecorBuilder'then circuit elseif ref=='HubParkLandscapingBuilder'then landscaping else layout end
+landscaping=luau.load(fs.readFile('src/server/HubParkLandscapingBuilder.luau'),{environment=env})()
+circuit=luau.load(fs.readFile('src/server/HubParkCircuitDecorBuilder.luau'),{environment=env})()
+island=luau.load(fs.readFile('src/server/HubParkIslandBuilder.luau'),{environment=env})()
 local builder=luau.load(fs.readFile('src/server/HubParkRookieLoopBuilder.luau'),{environment=env})()
 check(not builder.enabled(workspace,true) and builder.build(hub,ground)==nil,'OFF creates nothing')
 check(ground.Transparency==0,'OFF leaves original ground appearance untouched')

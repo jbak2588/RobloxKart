@@ -3,11 +3,12 @@ local policy=luau.load(fs.readFile('src/shared/HubParkRuntimePolicy.luau'))()
 local checks=0;local function check(v,label)assert(v,label);checks+=1 end
 local ws=rb.Instance.new('Workspace');ws:SetAttribute('KDMServerRole','HUB');ws:SetAttribute('HubParkV1Enabled',true)
 check(policy.enabled(ws,false,10772198697,106553302629620),'approved exact staging pair')
-for _,ids in {{10768420544,127925465904803},{10772198697,1},{1,106553302629620},{0,0},{10768420544,106553302629620}}do
- check(not policy.enabled(ws,false,ids[1],ids[2]),'deny production/unapproved IDs')
+check(policy.enabled(ws,false,10768420544,127925465904803),'owner-approved exact production pair')
+for _,ids in {{10772198697,127925465904803},{10772198697,1},{1,106553302629620},{0,0},{10768420544,106553302629620}}do
+ check(not policy.enabled(ws,false,ids[1],ids[2]),'deny mixed/unapproved IDs')
 end
 for _,role in {'RACE','UNKNOWN'}do ws:SetAttribute('KDMServerRole',role)
- check(not policy.enabled(ws,true,0,0)and not policy.enabled(ws,false,10772198697,106553302629620),'non HUB isolated')end
+ check(not policy.enabled(ws,true,0,0)and not policy.enabled(ws,false,10772198697,106553302629620)and not policy.enabled(ws,false,10768420544,127925465904803),'non HUB isolated')end
 ws:SetAttribute('KDMServerRole','HUB');ws:SetAttribute('KDMEnableRaceBot',true)
 check(not policy.enabled(ws,true,0,0),'Bot harness excluded');ws:SetAttribute('KDMEnableRaceBot',false)
 local storage=rb.Instance.new('ServerStorage')
@@ -38,7 +39,9 @@ startup.prepare();check(#storage:GetChildren()==1,'empty repeat creates no archi
 local live=child(hub,'LobbyKart_1');live:SetAttribute('LobbyKart',true)
 check(not pcall(startup.prepare),'reject active-world cleanup');live.Parent=nil
 studio=false;game.GameId=10768420544;game.PlaceId=127925465904803
-old.Parent=proto;startup.prepare();check(old.Parent==proto,'production never archived')
+old.Parent=proto;ws:SetAttribute('HubParkV1Enabled',false);startup.prepare();check(old.Parent==proto,'production OFF preserves rollback')
+ws:SetAttribute('HubParkV1Enabled',true);startup.prepare();check(old.Parent~=proto and old.Parent.Parent==storage,'approved production ON segregates old tracks')
+old.Parent=proto
 game.GameId=10772198697;game.PlaceId=106553302629620;startup.prepare()
 check(old.Parent~=proto and old.Parent.Parent==storage,'approved published staging uses same startup segregation')
 -- Inspect the final build only; no source asset inventory is repeated.
