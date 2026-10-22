@@ -77,12 +77,12 @@ function Controller.start()
    end
    local driverColor=cfg.driverColor or Color3.fromRGB(35,155,240)
    local dark=Color3.fromRGB(20,29,44)
-   driverPart("DriverTorso",Vector3.new(1.7,1.5,.85),Vector3.new(0,.6,0),driverColor)
-   driverPart("DriverHelmet",Vector3.new(1.35,1.35,1.35),Vector3.new(0,1.9,-.05),driverColor,true)
-   driverPart("DriverVisor",Vector3.new(1.15,.5,.2),Vector3.new(0,2,-.68),dark)
+   driverPart("DriverTorso",Vector3.new(1.85,1.9,1.0),Vector3.new(0,.85,0),driverColor)
+   driverPart("DriverHelmet",Vector3.new(1.5,1.5,1.5),Vector3.new(0,2.35,-.05),driverColor,true)
+   driverPart("DriverVisor",Vector3.new(1.3,.55,.25),Vector3.new(0,2.45,-.75),dark)
    for _,side in {-1,1} do
-    driverPart("DriverArm",Vector3.new(.55,.55,1.5),Vector3.new(side*.95,.55,-.65),driverColor)
-    driverPart("DriverLeg",Vector3.new(.65,.6,1.6),Vector3.new(side*.45,-.25,-.9),dark)
+    driverPart("DriverArm",Vector3.new(.65,.65,1.6),Vector3.new(side*1.05,.8,-.65),driverColor)
+    driverPart("DriverLeg",Vector3.new(.7,.65,1.7),Vector3.new(side*.5,-.15,-.9),dark)
    end
    local scale=route.VisualScale or 1.0
    if scale~=1.0 then model:ScaleTo(scale) end
