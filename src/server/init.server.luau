@@ -148,9 +148,7 @@ else
 		local zone = CompactHubBuilder.buildFrontDriveZone(hub, ground)
 		Workspace:SetAttribute('LobbyDriveZoneName',if zone then zone.Name else nil)
 		drive.start(zone, MatchRoomService.canTestDrive)
-		if not zone or zone:GetAttribute('DriveGeometry')~='ROOKIE_LOOP_V1'then
-			require(script:WaitForChild("LobbyDemoService")).start(zone)
-		end
+		require(script:WaitForChild("LobbyDemoService")).start(zone)
 		connectedDriveZone=zone
 	end
 	parkStartup.snapshot(connectedDriveZone) -- Actual zone passed to the unchanged drive service; nil in G2.

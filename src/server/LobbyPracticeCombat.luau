@@ -35,6 +35,10 @@ end
 function Combat.new(zone,records,driveGeometry)
  local self=setmetatable({zone=zone,records=records,actors={},hazards={},shieldPulses={},session={roundId=1,id='PRACTICE:'..tostring(os.clock())}},Combat)
  self.driveGeometry=driveGeometry or DriveGeometry
+ self.route=if zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then require(Shared:WaitForChild('RookieLoopDemoRoute'))else Route
+ self.normalBotSpeed=require(Shared:WaitForChild('LobbyDrivePolicy')).forwardSpeed(zone:GetAttribute('DriveGeometry'),Kart)
+ -- Legacy demo keeps its accepted race-normal pace; PARK follows its HUB-only cap.
+ if self.route==Route then self.normalBotSpeed=Kart.MAX_FORWARD_SPEED end
  self.folder=Instance.new('Folder');self.folder.Name='LobbyPracticeEffects';self.folder.Parent=zone
  local model=Instance.new('Model');model.Name='LobbyPracticeBot';model:SetAttribute('LobbyPracticeBot',true)
  local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
@@ -232,7 +236,7 @@ function Combat:resolve(target,source,id,now)
   target.effect={kind=id,started=now,untilTime=now+(if id=='Slick'then Config.SLICK_EFFECT_DURATION elseif id=='Missile'then Config.MISSILE_EFFECT_DURATION else Config.THUNDER_EFFECT_DURATION)}
   if id=='Slick'then
    target.slick=target.slick or Slick.new(Config)
-   target.slick:start(target,now,f,f,if target.owner then math.abs(r.body.AssemblyLinearVelocity:Dot(f))else target.speed or Route.Speed)
+   target.slick:start(target,now,f,f,if target.owner then math.abs(r.body.AssemblyLinearVelocity:Dot(f))else target.speed or self.route.Speed)
    r.kart:SetAttribute('LobbySlickStartedAt',Workspace:GetServerTimeNow())
   end
   r.kart:SetAttribute(if id=='Slick'then 'KartSlickActive'elseif id=='Missile'then 'KartMissileHitActive'else 'KartThunderHitActive',true)
@@ -274,9 +278,9 @@ function Combat:update(now,dt)
  if state then
   if not self.botElapsed then self.botElapsed=math.max(0,Workspace:GetServerTimeNow()-state:GetAttribute('StartedAt'))end
   local b=self.bot
-  local _,_,_,_,_,_,_,boosting=Route.sample(self.botElapsed,Kart.MINI_BOOST_DURATION)
-  local targetSpeed=if next(self.actors)then (if boosting then Kart.MINI_BOOST_MAX_SPEED else Kart.MAX_FORWARD_SPEED)else Route.Speed
-  b.speed=b.speed or Route.Speed
+  local _,_,_,_,_,_,_,boosting=self.route.sample(self.botElapsed,Kart.MINI_BOOST_DURATION)
+  local targetSpeed=if next(self.actors)then (if boosting then Kart.MINI_BOOST_MAX_SPEED else self.normalBotSpeed)else self.route.Speed
+  b.speed=b.speed or self.route.Speed
   if b.effect and now<b.effect.untilTime then
    if b.effect.kind=='Slick'then targetSpeed=b.slick.speed
    else targetSpeed=math.min(targetSpeed,if b.effect.kind=='Missile'then Config.MISSILE_SPEED_CAP else Config.THUNDER_SPEED_CAP)end
@@ -284,9 +288,9 @@ function Combat:update(now,dt)
   end
   local accel=if b.speed>targetSpeed then Kart.BOOST_EXIT_DECELERATION elseif boosting then Kart.MINI_BOOST_ACCELERATION else Kart.ACCELERATION
   b.speed+=math.clamp(targetSpeed-b.speed,-accel*dt,accel*dt)
-  local rate=b.speed/Route.Speed
+  local rate=b.speed/self.route.Speed
   self.botElapsed+=math.max(0,dt)*rate
-  local x,z,dx,dz=Route.sample(self.botElapsed,Kart.MINI_BOOST_DURATION)
+  local x,z,dx,dz=self.route.sample(self.botElapsed,Kart.MINI_BOOST_DURATION)
   local pos=self.zone:GetAttribute('Center')+Vector3.new(x,1.75,z)
   b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
   if not self.nextBotSync or now>=self.nextBotSync then

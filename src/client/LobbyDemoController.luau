@@ -18,8 +18,17 @@ function Controller.start()
  if stopCurrent or Workspace:GetAttribute("KDMServerRole")~="HUB" then return end
  local player=Players.LocalPlayer
  local hub=Workspace:WaitForChild("KDMHub")
- local zone=hub:WaitForChild("LobbyFrontTestDriveZone",15)
+ -- The server announces the active zone after building it. Initial replication
+ -- may lag the HUB model, so wait briefly without binding a per-frame watcher.
+ local deadline=os.clock()+15
+ local name=Workspace:GetAttribute('LobbyDriveZoneName')
+ while type(name)~='string'and os.clock()<deadline do
+  task.wait(.1);name=Workspace:GetAttribute('LobbyDriveZoneName')
+ end
+ local zone=hub:FindFirstChild(if type(name)=='string'then name else 'LobbyFrontTestDriveZone')
+ if not zone and type(name)=='string'then zone=hub:WaitForChild(name,15)end
  if not zone then return end
+ local route=if zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then require(Shared:WaitForChild('RookieLoopDemoRoute'))else Route
  local connections={}
  local model,render,state,audio,boostVisuals
  local function clear()
@@ -67,12 +76,12 @@ function Controller.start()
   end
   -- Only the ambient bot is enlarged. Scale geometry/driver/exhaust anchors
   -- before adding shared particles, so human smoke/flame profiles stay intact.
-  model:ScaleTo(Route.VisualScale)
-  model:SetAttribute("DemoVisualScale",Route.VisualScale)
-  bottom*=Route.VisualScale
+  model:ScaleTo(route.VisualScale)
+  model:SetAttribute("DemoVisualScale",route.VisualScale)
+  bottom*=route.VisualScale
   local smoke={}
   for _,side in {-1,1} do
-   local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1*Route.VisualScale,bottom+.25*Route.VisualScale,2.2*Route.VisualScale);attachment.Parent=root
+   local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1*route.VisualScale,bottom+.25*route.VisualScale,2.2*route.VisualScale);attachment.Parent=root
    table.insert(smoke,Exhaust.createDriftSmoke(attachment,true))
   end
   for _,v in model:GetDescendants() do
@@ -92,7 +101,7 @@ function Controller.start()
    if type(sampled)=='number' and type(proxy:GetAttribute('RouteElapsed'))=='number' then
     elapsed=proxy:GetAttribute('RouteElapsed')+math.clamp(Workspace:GetServerTimeNow()-sampled,0,.3)*(proxy:GetAttribute('RouteRate')or 1)
    end
-   local x,z,dx,dz,drift,_,pattern,boosting=Route.sample(elapsed,KartConfig.MINI_BOOST_DURATION)
+   local x,z,dx,dz,drift,_,pattern,boosting=route.sample(elapsed,KartConfig.MINI_BOOST_DURATION)
    visualDrift+=(drift-visualDrift)*(1-math.exp(-math.max(0,dt)*10))
    local position=center+Vector3.new(x,.22-bottom,z)
    local slick=proxy and proxy:GetAttribute('KartSlickActive')==true
