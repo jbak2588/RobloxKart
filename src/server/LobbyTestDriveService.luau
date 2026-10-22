@@ -327,6 +327,8 @@ function Service.start(driveZone,eligibility)
    local now=os.clock()
    local localPos=pos-c
    local clearance,nx,nz=Geometry.contact(localPos.X,localPos.Z)
+   local offTrack = clearance < Policy.Shoulder
+   r.kart:SetAttribute("KartOffTrack", offTrack)
    local normal=Vector3.new(nx,0,nz)
    local approach=physical:Dot(normal)
    if not r.crashEnd then

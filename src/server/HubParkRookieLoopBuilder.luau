@@ -136,10 +136,9 @@ function Builder.build(hub,ground)
   -- even the half-stud construction clearance cannot expose green grass.
   strip(batch,"Road",a,b,Layout.RoadWidth+2*Layout.KerbWidth+1,0,colors.road,.35,false)
   for _,side in {-1,1} do
-   -- In travel direction +X, +Z is the inner/pit-facing edge.
-   -- The widened pit reaches the straight: no median wall inside its apron.
-   if not (side==1 and a.section=='StartStraight' and a.x>=-190 and a.x<=190)then
-    strip(batch,"Barrier",a,b,1,side*(half+2+Layout.Shoulder+1),colors.barrier,2,true)
+   -- Solid continuous white edge lines along both sides of the asphalt track
+   if not (side==1 and (Layout.pitOpening(a) or Layout.pitOpening(b))) then
+    strip(batch,"EdgeLine",a,b,0.45,side*half,Color3.fromRGB(245,248,252),.04,false)
    end
   end
   if i%48==0 or i==#samples-1 then batch.Parent=root;if task then task.wait() end end
@@ -204,7 +203,6 @@ function Builder.build(hub,ground)
  local first=starts:FindFirstChild('1'):Clone();first.Name='LobbyFrontDriveStart';first.Parent=root
  local entry=part(root,'LobbyFrontDriveEntry',Vector3.new(12,.1,18),CFrame.new(origin+Vector3.new(0,.05,-35)),colors.plaza,false);entry.Transparency=1
  local prompt=Instance.new('ProximityPrompt');prompt.ActionText='TEST DRIVE';prompt.ObjectText='ROOKIE LOOP';prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
- label(root,"StartMark","ROOKIE LOOP",-35,Layout.StartStraightZ,75,8,colors.road)
  -- Two lane-centered chevrons at each station, using the sampled forward tangent.
  for i=1,#samples-1,26 do
   local a=samples[i]
