@@ -16,7 +16,7 @@ function Session.input(s,held,now,fresh)
  if held and not s.held and fresh then s.press+=1;s.pressTime=now end
  s.held=held
 end
-function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,normalYaw,yaw,normalCap,nitro)
+function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,normalYaw,yaw,normalCap,nitro,offTrack)
  if not valid or dt>Config.ARCADE_DRIFT.MaxStep then Session.clear(s);return nil end
  s.steer=toward(s.steer,steering,Config.STEERING_RESPONSE*dt)
  local entered=false
@@ -40,10 +40,11 @@ function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,nor
  end
  if s.boost and (now>=s.boostEnd or throttle<=0) then s.boost=false;s.boostEnd=0 end
  s.nitroExit=nitro==true or (s.nitroExit and speed>normalCap)
- local cap=if nitro then Config.NITRO_MAX_SPEED elseif s.boost then Config.MINI_BOOST_MAX_SPEED elseif s.active then math.min(normalCap,Config.DRIFT_MAX_SPEED) else normalCap
+ local rawCap=if nitro then Config.NITRO_MAX_SPEED elseif s.boost then Config.MINI_BOOST_MAX_SPEED elseif s.active then math.min(normalCap,Config.DRIFT_MAX_SPEED) else normalCap
+ local cap=if offTrack and (nitro or s.boost) then rawCap*0.8 elseif offTrack then Config.OFF_TRACK_MAX_SPEED else rawCap
  local accel=if nitro then Config.NITRO_ACCELERATION elseif s.boost then Config.MINI_BOOST_ACCELERATION else Config.ACCELERATION
  if throttle>0 then
-  local rate=if speed>cap then (if s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) elseif s.straightExitActive then Config.STRAIGHT_EXIT_DECELERATION else Config.BOOST_EXIT_DECELERATION) else accel*throttle
+  local rate=if speed>cap then (if offTrack then Config.BRAKE_FORCE elseif s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) elseif s.straightExitActive then Config.STRAIGHT_EXIT_DECELERATION else Config.BOOST_EXIT_DECELERATION) else accel*throttle
   speed=toward(speed,cap,rate*dt)
  end
  local side,turn,_,projected=Slide.step(s.slide,Config.ARCADE_DRIFT,forward,lateral,s.steer,normalYaw,yaw,dt,s.active,throttle>0,speed)

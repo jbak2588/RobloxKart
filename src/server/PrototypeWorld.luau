@@ -575,9 +575,9 @@ function PrototypeWorld.start(options)
 				emitDriftOutcome(context.owner, "RESET")
 				setDriftActive(false, "off_track")
 				resetDriftCharge()
-				context.commandedSpeed = math.min(context.commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
-				stopBoost("off_track")
-				stopNitro("off_track")
+				if not context.nitro.active and not context.boostActive then
+					context.commandedSpeed = math.min(context.commandedSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
+				end
 				stopSlick()
 			end
 		end)
@@ -1150,15 +1150,13 @@ function PrototypeWorld.start(options)
 			-- Natural Boost overspeed keeps its existing return rate, even when the
 			-- straight mask exits on the very same expiry frame.
 			if context.straightBoostReturnActive then context.straightExitActive = false end
-			local forwardTargetSpeed = if context.nitro.active then KartConfig.NITRO_MAX_SPEED elseif context.boostActive
-				then KartConfig.MINI_BOOST_MAX_SPEED
+			local forwardTargetSpeed = if context.nitro.active then (if offTrack then KartConfig.NITRO_MAX_SPEED * 0.8 else KartConfig.NITRO_MAX_SPEED)
+				elseif context.boostActive then (if offTrack then KartConfig.MINI_BOOST_MAX_SPEED * 0.8 else KartConfig.MINI_BOOST_MAX_SPEED)
 				elseif context.driftActive then KartConfig.DRIFT_MAX_SPEED
+				elseif offTrack then KartConfig.OFF_TRACK_MAX_SPEED
 				else normalForwardCap
 			if context.thunderHitActive then forwardTargetSpeed = math.min(forwardTargetSpeed, RaceItemConfig.THUNDER_SPEED_CAP) end
 			if context.missileHitActive then forwardTargetSpeed = math.min(forwardTargetSpeed, RaceItemConfig.MISSILE_SPEED_CAP) end
-			if offTrack then
-				forwardTargetSpeed = math.min(forwardTargetSpeed, KartConfig.OFF_TRACK_MAX_SPEED)
-			end
 			local forwardAcceleration = if context.boostActive then KartConfig.MINI_BOOST_ACCELERATION else KartConfig.ACCELERATION
 			local angled=arcadeEnabled() and slideConfig().Angled
 			-- While angled, acceleration/deceleration acts on total planar speed.
@@ -1175,9 +1173,11 @@ function PrototypeWorld.start(options)
 			if throttle > 0 then
 				if context.commandedSpeed < 0 then
 					context.commandedSpeed = moveToward(context.commandedSpeed, 0, KartConfig.BRAKE_FORCE * throttle * deltaTime)
-				elseif (context.nitro.active or context.nitro.exiting) and not offTrack then
-					context.commandedSpeed = context.nitro:forwardSpeed(context.commandedSpeed, context.boostActive, throttle, deltaTime, normalForwardCap)
-				elseif offTrack and context.commandedSpeed > forwardTargetSpeed then
+				elseif (context.nitro.active or context.nitro.exiting) then
+					context.commandedSpeed = context.nitro:forwardSpeed(context.commandedSpeed, context.boostActive, throttle, deltaTime, normalForwardCap, offTrack)
+				elseif offTrack and not context.boostActive and context.commandedSpeed > forwardTargetSpeed then
+					context.commandedSpeed = moveToward(context.commandedSpeed, forwardTargetSpeed, KartConfig.BRAKE_FORCE * deltaTime)
+				elseif context.boostActive and offTrack and context.commandedSpeed > forwardTargetSpeed then
 					context.commandedSpeed = moveToward(context.commandedSpeed, forwardTargetSpeed, KartConfig.BRAKE_FORCE * deltaTime)
 				elseif context.driftActive and context.commandedSpeed > forwardTargetSpeed then
 					context.commandedSpeed = moveToward(

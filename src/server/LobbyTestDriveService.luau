@@ -384,7 +384,7 @@ function Service.start(driveZone,eligibility)
     r.training.straightExitActive=r.straightExitActive
     if r.speed<=forwardSpeed then r.straightExitActive=false;r.straightBoostReturnActive=false end
    else r.training.straightExitActive=false end
-   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro)
+   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro,not inside(pos,0))
    if r.training.boost and r.training.boostPress~=r.practiceBoostPress then
     r.practiceBoostPress=r.training.boostPress;practice:boost(player)
    end

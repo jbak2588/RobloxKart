@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local HapticService = (function() local ok, s = pcall(function() return game:GetService("HapticService") end); return if ok then s else nil end)()
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("KDMItemVFXConfig"))
 local Motion = require(Shared:WaitForChild("KDMImpactCameraMotion"))
@@ -25,6 +26,11 @@ function Controller.start()
 		restore(); motion:clear()
 		RunService:UnbindFromRenderStep(PRE); RunService:UnbindFromRenderStep(POST)
 		bound = false
+		pcall(function()
+			if HapticService and HapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) then
+				HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0)
+			end
+		end)
 	end
 	local function activeKart()
 		if player:GetAttribute("IsBot") == true or player:GetAttribute("RaceState") ~= "RACING" then return nil end
@@ -40,24 +46,57 @@ function Controller.start()
 		return kart and activeKart() == kart and player:GetAttribute("RaceSessionId") == session
 			and kart:GetAttribute("RaceResetSerial") == reset
 	end
+	local function renderStep()
+		if not valid() then clear(); return end
+		local position, rotation, active = motion:sample(time())
+		local offTrack = kart and kart:GetAttribute("KartOffTrack") == true
+		local forwardSpeed = 0
+		if offTrack and kart.PrimaryPart then
+			forwardSpeed = math.abs(kart.PrimaryPart.AssemblyLinearVelocity:Dot(kart.PrimaryPart.CFrame.LookVector))
+		end
+
+		local shakePos = Vector3.zero
+		local shakeRot = Vector3.zero
+		if offTrack and forwardSpeed > 4 then
+			local speedFactor = math.clamp(forwardSpeed / 60, 0.2, 1.0)
+			local shakeT = time() * 30
+			local sx = (math.sin(shakeT * 1.3) + math.cos(shakeT * 0.9)) * 0.05 * speedFactor
+			local sy = math.sin(shakeT * 1.7) * 0.07 * speedFactor
+			local sz = math.cos(shakeT * 1.5) * 0.04 * speedFactor
+			local sRoll = math.rad(math.sin(shakeT * 1.1) * 0.5 * speedFactor)
+			shakePos = Vector3.new(sx, sy, sz)
+			shakeRot = Vector3.new(0, 0, sRoll)
+
+			pcall(function()
+				if HapticService and HapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) then
+					HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0.2 * speedFactor)
+				end
+			end)
+		else
+			pcall(function()
+				if HapticService and HapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) then
+					HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0)
+				end
+			end)
+		end
+
+		if not active and not (offTrack and forwardSpeed > 4) then clear(); return end
+		camera = Workspace.CurrentCamera
+		if not camera then clear(); return end
+		base = camera.CFrame
+		applied = base * CFrame.new(position + shakePos) * CFrame.Angles(rotation.X + shakeRot.X, rotation.Y + shakeRot.Y, rotation.Z + shakeRot.Z)
+		camera.CFrame = applied
+	end
+	local function bindRender()
+		if bound then return end
+		bound = true
+		RunService:BindToRenderStep(PRE, Enum.RenderPriority.Camera.Value-1, restore)
+		RunService:BindToRenderStep(POST, Enum.RenderPriority.Camera.Value+2, renderStep)
+	end
 	local function play(kind)
 		if not valid() then clear(); return end
 		motion:play(kind, time())
-		if bound then return end
-		bound = true
-		-- Undo before Roblox/chase smoothing reads last frame's CFrame; then add
-		-- after Camera+1 (existing KartCameraController). No feedback accumulation.
-		RunService:BindToRenderStep(PRE, Enum.RenderPriority.Camera.Value-1, restore)
-		RunService:BindToRenderStep(POST, Enum.RenderPriority.Camera.Value+2, function()
-			if not valid() then clear(); return end
-			local position, rotation, active = motion:sample(time())
-			if not active then clear(); return end
-			camera = Workspace.CurrentCamera
-			if not camera then clear(); return end
-			base = camera.CFrame
-			applied = base * CFrame.new(position) * CFrame.Angles(rotation.X, rotation.Y, rotation.Z)
-			camera.CFrame = applied
-		end)
+		bindRender()
 	end
 	local function sync()
 		local current = activeKart()
@@ -78,6 +117,11 @@ function Controller.start()
 				previous[kind] = active
 			end))
 		end
+		table.insert(kartConnections, current:GetAttributeChangedSignal("KartOffTrack"):Connect(function()
+			if current:GetAttribute("KartOffTrack") == true then
+				bindRender()
+			end
+		end))
 		for _, attribute in {"RaceResetSerial", "RaceControlsLocked"} do
 			table.insert(kartConnections, current:GetAttributeChangedSignal(attribute):Connect(sync))
 		end

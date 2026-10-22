@@ -28,7 +28,7 @@ function NitroState:stop(reason: string)
 end
 
 function NitroState:update(now, driver, driveEnabled, offTrack, crash, validInput)
-	if not driveEnabled or offTrack or crash or not validInput
+	if not driveEnabled or crash or not validInput
 		or ((self.active or self.exiting) and self.driver ~= driver) then
 		self:stop("safety")
 	elseif self.active and now >= self.endTime then
@@ -36,12 +36,15 @@ function NitroState:update(now, driver, driveEnabled, offTrack, crash, validInpu
 	end
 end
 
-function NitroState:forwardSpeed(speed, miniBoost, throttle, dt, normalCap)
+function NitroState:forwardSpeed(speed, miniBoost, throttle, dt, normalCap, offTrack)
 	local c = self.config
-	local target = if self.active then c.NITRO_MAX_SPEED
+	local rawTarget = if self.active then c.NITRO_MAX_SPEED
 		elseif miniBoost then c.MINI_BOOST_MAX_SPEED else (normalCap or c.MAX_FORWARD_SPEED)
-	local rate = if self.active then c.NITRO_ACCELERATION
-		elseif speed > target then c.NITRO_EXIT_DECELERATION
+	local target = if offTrack and (self.active or miniBoost) then rawTarget * 0.8
+		elseif offTrack then (c.OFF_TRACK_MAX_SPEED or 60)
+		else rawTarget
+	local rate = if self.active then (if speed > target then c.BRAKE_FORCE else c.NITRO_ACCELERATION)
+		elseif speed > target then (if offTrack then c.BRAKE_FORCE else c.NITRO_EXIT_DECELERATION)
 		elseif miniBoost then c.MINI_BOOST_ACCELERATION else c.ACCELERATION
 	return approach(speed, target, rate * (if speed > target then 1 else throttle) * dt)
 end

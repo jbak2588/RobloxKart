@@ -296,8 +296,11 @@ check(math.abs(braking-(before-config.BRAKE_FORCE/60))<0.001,"S uses existing br
 local coast=step(0)
 check(coast<braking and math.abs(coast-(braking-config.COAST_DECELERATION/60))<0.001,"release uses coast, no forced acceleration")
 kart:SetAttribute("KartOffTrack",true)
-speed=step(1)
-check(not kart:GetAttribute("KartNitroActive") and speed<=60,"off-track cancels and caps Nitro")
+for _=1,45 do speed=step(1) end
+check(kart:GetAttribute("KartNitroActive") and math.abs(speed-96)<0.001,"off-track retains Nitro with 20% speed reduction to 96")
+kart:SetAttribute("KartOffTrack",false)
+for _=1,30 do speed=step(1) end
+check(kart:GetAttribute("KartNitroActive") and math.abs(speed-120)<0.001,"track return restores full 120 Nitro speed")
 check(not world.activateNitro(player),"off-track activation rejected")
 kart:SetAttribute("KartOffTrack",false)
 for _, state in {"FINISHED","DNF","GARAGE","COUNTDOWN"} do
@@ -703,9 +706,14 @@ startRace()
 for _=1,100 do driftFrame(true,15) end
 driftFrame(false,15)
 kart:SetAttribute("KartOffTrack",true)
-local offTrackBoostSpeed=step(1)
-check(not kart:GetAttribute("KartBoosting") and offTrackBoostSpeed<=60,
-	"Beta 2 Mini Boost cancels and caps at 60 off-track")
+local offTrackBoostSpeed
+for _=1,30 do offTrackBoostSpeed=step(1) end
+check(kart:GetAttribute("KartBoosting") and math.abs(offTrackBoostSpeed-80)<0.001,
+	"Beta 2 Mini Boost retains across off-track with 20% reduction to 80")
+kart:SetAttribute("KartOffTrack",false)
+for _=1,30 do offTrackBoostSpeed=step(1) end
+check(kart:GetAttribute("KartBoosting") and math.abs(offTrackBoostSpeed-100)<0.001,
+	"track return restores full 100 Mini Boost speed")
 charge(8)
 check(kart:GetAttribute("KartDriftDiagDuration")==1 and kart:GetAttribute("KartDriftDiagQualified")==0,"insufficient slip distinguishes two charge axes")
 driftFrame(false,8)
