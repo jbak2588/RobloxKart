@@ -404,7 +404,7 @@ local function buildCircuitStructures(testTrack: Model): Model
 	local groundY = getPhysicalGroundTop(testTrack)
 
 	-- 1. Build KDM Sponsor Arch
-	local arch, brandPanel = buildSponsorArch(rootModel, groundY)
+	local _arch, brandPanel = buildSponsorArch(rootModel, groundY)
 
 	-- 2. Build 2 Lighting Towers
 	local towersFolder = Instance.new("Folder")

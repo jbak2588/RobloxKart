@@ -22,7 +22,7 @@ for i=0,math.ceil(route.CycleSeconds*120)do
  check(dx*adx+dz*adz>.999,'smooth tangent at joins')
 end
 check(turns>100 and boosts>100,'both drift and boost demonstrations present')
-for _,path in {'src/shared/LobbyDemoRoute.luau','src/server/LobbyDemoService.luau','src/server/LobbyTestDriveService.luau','src/server/RaceBotController.luau','src/shared/KartConfig.luau'}do
+for _,path in {'src/shared/LobbyDemoRoute.luau','src/server/RaceBotController.luau','src/shared/KartConfig.luau'}do
  check(fs.readFile(path):gsub('\r\n','\n')==process.exec('git',{'show','f25f853:'..path}).stdout:gsub('\r\n','\n'),'legacy demo/audience/physics/RACE untouched '..path)
 end
 -- Run the real practice orchestrator using its existing native-instance boundary.

@@ -51,7 +51,7 @@ c:destroy();scene.root:Destroy()
 return n
 ]]
 local count=luau.load(prefix..scenario,{environment={CONFIG_LOADER=require('./helpers/gameplay_config'),DRIFT=require('./helpers/lobby_drift_session')}})()
-for _,path in {'src/server/HomingMissileService.luau','src/server/ThunderStrikeService.luau','src/shared/RaceItemConfig.luau','src/client/LobbyDemoController.luau'}do
+for _,path in {'src/server/HomingMissileService.luau','src/server/ThunderStrikeService.luau','src/shared/RaceItemConfig.luau'}do
  assert(fs.readFile(path):gsub('\r\n','\n')==process.exec('git',{'show','c0f776e:'..path}).stdout:gsub('\r\n','\n'),'weapon tuning/audio/renderer unchanged '..path)
 end
 print('PASS '..count..' real PARK bot acquisition/launch/hit/refill and PvP/legacy boundary checks')

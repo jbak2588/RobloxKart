@@ -13,8 +13,16 @@ function Service.start(zone)
   local active=zone.Parent~=nil and Route.hasAudience(Players:GetPlayers(),departing)
   if active and not state then
    state=Instance.new("Folder");state.Name="LobbyDemoState"
-   state:SetAttribute("StartedAt",Workspace:GetServerTimeNow())
+   local t0=Workspace:GetServerTimeNow()
+   state:SetAttribute("StartedAt",t0)
    state:SetAttribute("KartId","Kart05")
+   local isRookie=zone.GetAttribute and zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
+   local fleet=require(game:GetService("ReplicatedStorage").Shared.LobbyPracticePolicy).BotFleet
+   state:SetAttribute("FleetSize",if isRookie then #fleet else 1)
+   for _,bot in fleet do
+    state:SetAttribute("BotStartedAt_"..bot.id,t0+bot.delay)
+    state:SetAttribute("BotKartId_"..bot.id,bot.kartId)
+   end
    state.Parent=zone
   elseif not active and state then state:Destroy();state=nil end
  end

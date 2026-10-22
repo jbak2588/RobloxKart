@@ -40,12 +40,21 @@ function Combat.new(zone,records,driveGeometry)
  -- Legacy demo keeps its accepted race-normal pace; PARK follows its HUB-only cap.
  if self.route==Route then self.normalBotSpeed=Kart.MAX_FORWARD_SPEED end
  self.folder=Instance.new('Folder');self.folder.Name='LobbyPracticeEffects';self.folder.Parent=zone
- local model=Instance.new('Model');model.Name='LobbyPracticeBot';model:SetAttribute('LobbyPracticeBot',true)
- local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
- body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false;body.Parent=model;model.PrimaryPart=body
- model:SetAttribute('RaceResetSerial',0);model.Parent=zone
- self.bot=actor(nil,{kart=model,body=body});self.botElapsed=nil
- self.bot.attrs.RaceSessionId=self.session.id
+ local isRookie=zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
+ local fleet=if isRookie then Policy.BotFleet else {Policy.BotFleet[1]}
+ self.bots={}
+ for _,cfg in fleet do
+  local model=Instance.new('Model');model.Name=if cfg.id==1 then 'LobbyPracticeBot' else 'LobbyPracticeBot_'..cfg.id
+  model:SetAttribute('LobbyPracticeBot',true);model:SetAttribute('BotIndex',cfg.id);model:SetAttribute('KartId',cfg.kartId)
+  local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
+  pcall(function() body.Position=Vector3.zero end)
+  body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false;body.Parent=model;model.PrimaryPart=body
+  model:SetAttribute('RaceResetSerial',0);model.Parent=zone
+  local a=actor(nil,{kart=model,body=body})
+  a.DisplayName=cfg.name;a.attrs.RaceSessionId=self.session.id;a.botIndex=cfg.id;a.botDelay=cfg.delay;a.active=false
+  table.insert(self.bots,a)
+ end
+ self.bot=self.bots[1];self.botElapsed=nil
  local deps={parent=self.folder,visuals=Visuals,
   getKart=function(a)if self:valid(a)then return a.record.kart,a.record.body end end,
   getSession=function(a)if self:valid(a)then return self.session end end,
@@ -63,7 +72,7 @@ function Combat.new(zone,records,driveGeometry)
 end
 function Combat:valid(a)
  if not a or self.stopped or not self.zone.Parent then return false end
- if a==self.bot then return self.zone:FindFirstChild('LobbyDemoState')~=nil and a.record.kart.Parent~=nil and self.botElapsed~=nil end
+ if a.botIndex then return self.zone:FindFirstChild('LobbyDemoState')~=nil and a.record.kart.Parent~=nil and (a.botElapsed~=nil or (a==self.bot and self.botElapsed~=nil)) and a.active~=false end
  local p,r=a.owner,a.record
  return self.actors[p]==a and self.records[p]==r and r.seated and r.body.Parent~=nil
   and p.Parent~=nil and p.Character==r.character and r.humanoid.Health>0
@@ -150,12 +159,14 @@ function Combat:isNitro(player,now,throttle,wall)
  local active=a.nitroEnd~=nil;a.record.kart:SetAttribute('KartNitroActive',active);return active
 end
 function Combat:targets(source)
- local candidates={self.bot};for _,a in self.actors do table.insert(candidates,a)end
+ local candidates={}
+ for _,b in self.bots do table.insert(candidates,b)end
+ for _,a in self.actors do table.insert(candidates,a)end
  local out={};local body=source.record.body
  for _,a in candidates do if a~=source and self:valid(a)then
   local delta=a.record.body.Position-body.Position;delta=Vector3.new(delta.X,0,delta.Z)
   local d=delta.Magnitude
-  local range=if a==self.bot and self.route~=Route then Policy.ParkBotTargetRange else Policy.TargetRange
+  local range=if a.botIndex and self.route~=Route then Policy.ParkBotTargetRange else Policy.TargetRange
   if d>1 and d<=range and body.CFrame.LookVector:Dot(delta.Unit)>=Policy.ForwardDot then table.insert(out,{actor=a,distance=d})end
  end end
  table.sort(out,function(a,b)if math.abs(a.distance-b.distance)<.001 then return a.actor.UserId<b.actor.UserId end;return a.distance<b.distance end)
@@ -277,34 +288,50 @@ function Combat:update(now,dt)
  end
  local state=self.zone:FindFirstChild('LobbyDemoState')
  if state then
-  if not self.botElapsed then self.botElapsed=math.max(0,Workspace:GetServerTimeNow()-state:GetAttribute('StartedAt'))end
-  local b=self.bot
-  local _,_,_,_,_,_,_,boosting=self.route.sample(self.botElapsed,Kart.MINI_BOOST_DURATION)
-  local targetSpeed=if next(self.actors)then (if boosting then Kart.MINI_BOOST_MAX_SPEED else self.normalBotSpeed)else self.route.Speed
-  b.speed=b.speed or self.route.Speed
-  if b.effect and now<b.effect.untilTime then
-   if b.effect.kind=='Slick'then targetSpeed=b.slick.speed
-   else targetSpeed=math.min(targetSpeed,if b.effect.kind=='Missile'then Config.MISSILE_SPEED_CAP else Config.THUNDER_SPEED_CAP)end
-   b.speed=math.min(b.speed,targetSpeed)
+  local t0=state:GetAttribute('StartedAt')
+  local nowServer=Workspace:GetServerTimeNow()
+  for _,b in self.bots do
+   local start=t0+b.botDelay
+   if nowServer>=start then
+    b.active=true
+    if not b.botElapsed then b.botElapsed=math.max(0,nowServer-start)end
+    local _,_,_,_,_,_,_,boosting=self.route.sample(b.botElapsed,Kart.MINI_BOOST_DURATION)
+    local targetSpeed=if next(self.actors)then (if boosting then Kart.MINI_BOOST_MAX_SPEED else self.normalBotSpeed)else self.route.Speed
+    b.speed=b.speed or self.route.Speed
+    if b.effect and now<b.effect.untilTime then
+     if b.effect.kind=='Slick'then targetSpeed=b.slick.speed
+     else targetSpeed=math.min(targetSpeed,if b.effect.kind=='Missile'then Config.MISSILE_SPEED_CAP else Config.THUNDER_SPEED_CAP)end
+     b.speed=math.min(b.speed,targetSpeed)
+    end
+    local accel=if b.speed>targetSpeed then Kart.BOOST_EXIT_DECELERATION elseif boosting then Kart.MINI_BOOST_ACCELERATION else Kart.ACCELERATION
+    b.speed+=math.clamp(targetSpeed-b.speed,-accel*dt,accel*dt)
+    local rate=b.speed/self.route.Speed
+    b.botElapsed+=math.max(0,dt)*rate
+    local x,z,dx,dz=self.route.sample(b.botElapsed,Kart.MINI_BOOST_DURATION)
+    local pos=self.zone:GetAttribute('Center')+Vector3.new(x,1.75,z)
+    b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
+    pcall(function() b.record.body.Position=pos end)
+    if not b.nextBotSync or now>=b.nextBotSync then
+     local k=b.record.kart;k:SetAttribute('RouteElapsed',b.botElapsed);k:SetAttribute('SampledAt',Workspace:GetServerTimeNow());k:SetAttribute('RouteRate',rate);k:SetAttribute('BotActive',true)
+     b.nextBotSync=now+Policy.BotSyncSeconds
+    end
+   else
+    b.active=false;b.record.kart:SetAttribute('BotActive',false)
+   end
   end
-  local accel=if b.speed>targetSpeed then Kart.BOOST_EXIT_DECELERATION elseif boosting then Kart.MINI_BOOST_ACCELERATION else Kart.ACCELERATION
-  b.speed+=math.clamp(targetSpeed-b.speed,-accel*dt,accel*dt)
-  local rate=b.speed/self.route.Speed
-  self.botElapsed+=math.max(0,dt)*rate
-  local x,z,dx,dz=self.route.sample(self.botElapsed,Kart.MINI_BOOST_DURATION)
-  local pos=self.zone:GetAttribute('Center')+Vector3.new(x,1.75,z)
-  b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
-  if not self.nextBotSync or now>=self.nextBotSync then
-   local k=b.record.kart;k:SetAttribute('RouteElapsed',self.botElapsed);k:SetAttribute('SampledAt',Workspace:GetServerTimeNow());k:SetAttribute('RouteRate',rate)
-   self.nextBotSync=now+Policy.BotSyncSeconds
+  if self.bots[1] then self.botElapsed=self.bots[1].botElapsed end
+ else
+  for _,b in self.bots do
+   if b.botElapsed or b.active then
+    self:clearTransient(b);b.botElapsed=nil;b.speed=nil;b.active=false
+    b.record.kart:SetAttribute('SampledAt',nil);b.record.kart:SetAttribute('RouteElapsed',nil);b.record.kart:SetAttribute('BotActive',false)
+   end
   end
- elseif self.botElapsed then
-  self:clearTransient(self.bot);self.botElapsed=nil;self.bot.speed=nil
-  self.bot.record.kart:SetAttribute('SampledAt',nil);self.bot.record.kart:SetAttribute('RouteElapsed',nil)
+  self.botElapsed=nil
  end
  local targets={}
  for _,a in self.actors do table.insert(targets,a)end
- if self:valid(self.bot)then table.insert(targets,self.bot)end
+ for _,b in self.bots do if self:valid(b)then table.insert(targets,b)end end
  local swept={}
  for _,a in targets do
   local r=a.record;local k=r.kart
@@ -334,8 +361,9 @@ end
 function Combat:destroy()
  if self.stopped then return end
  for p in self.actors do self:remove(p)end
- self:clearTransient(self.bot);self.stopped=true
+ for _,b in self.bots do self:clearTransient(b);b.record.kart:Destroy()end
+ self.stopped=true
  self.missiles:clearSession(self.session);self.thunder:clearSession(self.session);self.smoke:clearSession(self.session)
- self.folder:Destroy();self.bot.record.kart:Destroy()
+ self.folder:Destroy()
 end
 return Combat

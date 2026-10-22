@@ -141,7 +141,8 @@ function Controller.start()
 		local isKart = kart:GetAttribute("PrototypeKart") == true
 			or kart:GetAttribute("LobbyKart") == true
 			or kart:GetAttribute("LobbyPracticeBot") == true
-			or (kart.Name and (kart.Name:find("LobbyKart") ~= nil or kart.Name == "LobbyPracticeBot"))
+			or kart:GetAttribute("LobbyDemoBot") == true
+			or (kart.Name and (kart.Name:find("LobbyKart") ~= nil or kart.Name:find("LobbyPracticeBot") ~= nil or kart.Name:find("KDMClientDemoBot") ~= nil))
 		if not isKart then return end
 
 		local record = {
