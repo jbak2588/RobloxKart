@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AudioConfig = require(Shared:WaitForChild("AudioConfig"))
@@ -162,8 +164,31 @@ function RaceAudioController.start()
 			AudioRuntime.playOnce(sounds.Dnf)
 		end
 	end)
+	-- Park uses a personal server deadline rather than the official race attributes.
+	-- Reuse these exact sound instances, including GO duration/pitch/volume.
+	local parkPhase,parkGoAt,parkBeep
+	local parkConnection=RunService.Heartbeat:Connect(function()
+		local phase=player:GetAttribute("ParkTrialPhase")
+		local deadline=player:GetAttribute("ParkTrialGoAt")
+		if player:GetAttribute("LobbyDriveActive")~=true or player:GetAttribute("RaceState")~="GARAGE"
+			or (phase~="COUNTDOWN" and phase~="RUNNING") or type(deadline)~="number" then
+			if parkPhase then AudioRuntime.stop(sounds.Countdown);AudioRuntime.stop(sounds.Go)end
+			parkPhase,parkGoAt,parkBeep=nil,nil,nil;return
+		end
+		if phase=="COUNTDOWN" then
+			if deadline~=parkGoAt then
+				parkGoAt,parkBeep=deadline,nil
+				AudioRuntime.stop(sounds.Go)
+			end
+			local value=math.clamp(math.ceil(deadline-Workspace:GetServerTimeNow()),1,3)
+			if value~=parkBeep then parkBeep=value;AudioRuntime.playOnce(sounds.Countdown)end
+		elseif parkPhase=="COUNTDOWN" and deadline==parkGoAt then
+			AudioRuntime.stop(sounds.Countdown);AudioRuntime.playOnce(sounds.Go)
+		end
+		parkPhase=phase
+	end)
 	player.AncestryChanged:Connect(function(_,parent)
-		if not parent then goSerial+=1;stopAll() end
+		if not parent then parkConnection:Disconnect();goSerial+=1;stopAll() end
 	end)
 end
 

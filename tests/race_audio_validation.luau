@@ -18,7 +18,8 @@ local runtime={getGroup=function() return {} end,preload=function() end,stop=fun
  playOnce=function(sound) table.insert(played,sound.Name) end}
 local shared={WaitForChild=function(_,name) return name end}
 local modules={AudioRuntime=runtime,AudioConfig=luau.load(fs.readFile("src/shared/AudioConfig.luau"))(),RaceConfig={TOTAL_LAPS=3}}
-local services={Players={LocalPlayer=player},ReplicatedStorage={WaitForChild=function() return shared end},SoundService={}}
+local now=0;local heartbeat={Connect=function(self,fn)self.callback=fn;return {Disconnect=function()self.callback=nil end}end}
+local services={RunService={Heartbeat=heartbeat},Workspace={GetServerTimeNow=function()return now end},Players={LocalPlayer=player},ReplicatedStorage={WaitForChild=function() return shared end},SoundService={}}
 local controller=luau.load(fs.readFile("src/client/RaceAudioController.luau"),{environment={
  game={GetService=function(_,name) return services[name] end},script={Parent=shared},require=function(name) return modules[name] end,
  Instance={new=function(class)assert(class=='PitchShiftSoundEffect');local effect={};table.insert(effects,effect);return effect end},
@@ -71,5 +72,20 @@ set("RaceState","FINISHING")
 assert(#played==1 and played[1]=="RaceFinish","finish sound plays at crossing into FINISHING")
 set("RaceState","FINISHED")
 assert(#played==1,"result reveal does not replay finish sound")
+-- Park first entry / Replay use the same four cues, independent of race attributes.
+set('RaceState','GARAGE');played={}
+set('LobbyDriveActive',true);set('ParkTrialGoAt',3);set('ParkTrialPhase','COUNTDOWN')
+for _,t in {0,.05,.5,1,1.1,2,2.5,3}do now=t;heartbeat.callback()end
+set('ParkTrialPhase','RUNNING');heartbeat.callback();heartbeat.callback()
+assert(table.concat(played,',')=='CountdownBeep,CountdownBeep,CountdownBeep,RaceGoFirst','Park 3/2/1/GO exact official sound instances, no frame repeats')
+set('ParkTrialPhase','FINISHED');heartbeat.callback();played={}
+set('ParkTrialGoAt',13);set('ParkTrialPhase','COUNTDOWN')
+for _,t in {10,11,12}do now=t;heartbeat.callback()end
+set('ParkTrialPhase','RUNNING');heartbeat.callback()
+assert(table.concat(played,',')=='CountdownBeep,CountdownBeep,CountdownBeep,RaceGoFirst','Replay re-arms all four cues')
+set('ParkTrialGoAt',23);set('ParkTrialPhase','COUNTDOWN');now=20;heartbeat.callback();played={}
+set('LobbyDriveActive',false);heartbeat.callback();now=23;set('ParkTrialPhase','RUNNING');heartbeat.callback()
+assert(#played==0,'exit during countdown suppresses stale GO')
+set('LobbyDriveActive',true);heartbeat.callback();assert(#played==0,'late RUNNING attach cannot emit stale GO')
 stopped={};player.AncestryChanged.callback(player,nil);assert(stopped.RaceGoFirst,'departure clears GO')
 print("PASS: countdown/GO regression; higher three-beep Final Lap, spacing, ordering, deduplication, rematch and cancellation")
