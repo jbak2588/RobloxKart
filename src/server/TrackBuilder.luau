@@ -872,77 +872,50 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		label.Parent = panel
 	end
 
+	local CHEVRON_SIGN_ASSETS = {
+		Left = "rbxassetid://125863354300599", -- kdm_sign_chevron_left_1024x512.png
+		Right = "rbxassetid://118109633914676", -- kdm_sign_chevron_right_1024x512.png
+		LeftCompact = "rbxassetid://71424040130204", -- kdm_sign_chevron_left.png
+		RightCompact = "rbxassetid://82868994615753", -- kdm_sign_chevron_right.png
+	}
+
 	local function attachChevronGuidance(railPart: Part, normalVector: Vector3, isLeftCurve: boolean)
+		local assetId = if isLeftCurve then CHEVRON_SIGN_ASSETS.Left else CHEVRON_SIGN_ASSETS.Right
+		railPart:SetAttribute("ChevronDirection", if isLeftCurve then "Left" else "Right")
+		railPart:SetAttribute("ChevronAssetId", assetId)
 		for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
 			local gui = Instance.new("SurfaceGui")
 			gui.Name = "KDMChevronSurfaceGui_" .. face.Name
 			gui.Face = face
-			gui.CanvasSize = Vector2.new(512, 234)
+			gui.CanvasSize = Vector2.new(1024, 512)
 			gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
 			gui.LightInfluence = 0
 			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 			gui.Parent = railPart
 
-			-- F1 Board: Pure white background with border and 3 prominent red vector chevrons
 			local panel = Instance.new("Frame")
 			panel.Name = "ChevronPanel"
-			panel.Size = UDim2.new(0.96, 0, 0.90, 0)
+			panel.Size = UDim2.fromScale(1, 1)
 			panel.AnchorPoint = Vector2.new(0.5, 0.5)
 			panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-			panel.BackgroundColor3 = Color3.fromRGB(248, 250, 252)
+			panel.BackgroundColor3 = Color3.fromRGB(235, 238, 242)
 			panel.BorderSizePixel = 0
 			panel.ClipsDescendants = true
 			panel.Parent = gui
 
 			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(0, 8)
+			corner.CornerRadius = UDim.new(0, 12)
 			corner.Parent = panel
 
-			local stroke = Instance.new("UIStroke")
-			stroke.Color = Color3.fromRGB(45, 48, 56)
-			stroke.Thickness = 2.5
-			stroke.Parent = panel
-
-			local function createF1Chevron(parent, posX, isLeft)
-				local container = Instance.new("Frame")
-				container.Name = "Chevron"
-				container.Size = UDim2.new(0, 120, 0, 200)
-				container.AnchorPoint = Vector2.new(0.5, 0.5)
-				container.Position = UDim2.new(posX, 0, 0.5, 0)
-				container.BackgroundTransparency = 1
-				container.ClipsDescendants = true
-				container.Parent = parent
-
-				local armLen = 125
-				local armThick = 26
-				local rot = if isLeft then 45 else -45
-				local apexX = if isLeft then 25 else 95
-
-				local topArm = Instance.new("Frame")
-				topArm.Size = UDim2.new(0, armThick, 0, armLen)
-				topArm.AnchorPoint = Vector2.new(0.5, 1)
-				topArm.Position = UDim2.new(0, apexX, 0.5, 8)
-				topArm.Rotation = rot
-				topArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
-				topArm.BorderSizePixel = 0
-				topArm.Parent = container
-
-				local botArm = Instance.new("Frame")
-				botArm.Size = UDim2.new(0, armThick, 0, armLen)
-				botArm.AnchorPoint = Vector2.new(0.5, 0)
-				botArm.Position = UDim2.new(0, apexX, 0.5, -8)
-				botArm.Rotation = -rot
-				botArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
-				botArm.BorderSizePixel = 0
-				botArm.Parent = container
-
-				local c1 = Instance.new("UICorner"); c1.CornerRadius = UDim.new(0, 4); c1.Parent = topArm
-				local c2 = Instance.new("UICorner"); c2.CornerRadius = UDim.new(0, 4); c2.Parent = botArm
-			end
-
-			createF1Chevron(panel, 0.25, isLeftCurve)
-			createF1Chevron(panel, 0.50, isLeftCurve)
-			createF1Chevron(panel, 0.75, isLeftCurve)
+			local image = Instance.new("ImageLabel")
+			image.Name = "ChevronImage"
+			image.Size = UDim2.fromScale(1, 1)
+			image.AnchorPoint = Vector2.new(0.5, 0.5)
+			image.Position = UDim2.new(0.5, 0, 0.5, 0)
+			image.BackgroundTransparency = 1
+			image.Image = assetId
+			image.ScaleType = Enum.ScaleType.Stretch
+			image.Parent = panel
 		end
 	end
 
@@ -955,22 +928,33 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 		local n1 = Vector3.new(-tangent.Z, 0, tangent.X)
 		local n2 = Vector3.new(tangent.Z, 0, -tangent.X)
+		-- In Roblox right-handed coordinates (+Y up), arriving:Cross(leaving).Y < 0 is a LEFT turn,
+		-- and arriving:Cross(leaving).Y > 0 is a RIGHT turn.
+		-- n1 = (-tangent.Z, 0, tangent.X) is the driver's LEFT normal; n2 = (tangent.Z, 0, -tangent.X) is the driver's RIGHT normal.
+		local isLeftCurve = signedTurnAt(idx) < 0
 		local bestNormal = n1
-		local bestDist = -math.huge
-		for _, testN in { n1, n2 } do
-			local testPos = first + testN * (roadWidth * 0.5 + 18.5)
-			local minD = math.huge
-			for _, roadPt in samples do
-				local d = (Vector2.new(testPos.X - roadPt.X, testPos.Z - roadPt.Z)).Magnitude
-				if d < minD then minD = d end
-			end
-			if minD > bestDist then
-				bestDist = minD
-				bestNormal = testN
+		if not item.isStraight then
+			-- Place curve chevron boards on the outer runoff wall across from the turn direction:
+			-- Left turn (isLeftCurve) -> outer wall is driver's RIGHT (n2)
+			-- Right turn (not isLeftCurve) -> outer wall is driver's LEFT (n1)
+			bestNormal = if isLeftCurve then n2 else n1
+		else
+			local bestDist = -math.huge
+			for _, testN in { n1, n2 } do
+				local testPos = first + testN * (roadWidth * 0.5 + 18.5)
+				local minD = math.huge
+				for _, roadPt in samples do
+					local d = (Vector2.new(testPos.X - roadPt.X, testPos.Z - roadPt.Z)).Magnitude
+					if d < minD then minD = d end
+				end
+				if minD > bestDist then
+					bestDist = minD
+					bestNormal = testN
+				end
 			end
 		end
 
-		local railHeight = if item.isStraight then 2.5 else 5.5
+		local railHeight = if item.isStraight then 2.5 else 6.0
 		local railPos = first + bestNormal * (roadWidth * 0.5 + 18.5) + Vector3.new(0, groundTop + railHeight * 0.5, 0)
 		local railLook = CFrame.lookAt(railPos, railPos + tangent)
 
@@ -983,7 +967,10 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			railColor, Enum.Material.SmoothPlastic)
 		visualRailParts += 1
 		if not item.isStraight then
-			local isLeftCurve = signedTurnAt(idx) > 0
+			if item.posInBlock == 1 then
+				chevronClusters += 1
+			end
+			chevronParts += 1
 			attachChevronGuidance(railPart, bestNormal, isLeftCurve)
 			brandedRailParts += 1
 		elseif shouldBrand then

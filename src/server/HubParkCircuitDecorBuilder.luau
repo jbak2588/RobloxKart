@@ -158,77 +158,50 @@ local function buildLightingTower(parent: Instance, cfg: any, groundY: number, s
 	return towerModel
 end
 
+local CHEVRON_SIGN_ASSETS = {
+	Left = "rbxassetid://125863354300599", -- kdm_sign_chevron_left_1024x512.png
+	Right = "rbxassetid://118109633914676", -- kdm_sign_chevron_right_1024x512.png
+	LeftCompact = "rbxassetid://71424040130204", -- kdm_sign_chevron_left.png
+	RightCompact = "rbxassetid://82868994615753", -- kdm_sign_chevron_right.png
+}
+
 local function attachChevronGuidance(railPart: Part, isLeftCurve: boolean)
+	local assetId = if isLeftCurve then CHEVRON_SIGN_ASSETS.Left else CHEVRON_SIGN_ASSETS.Right
+	railPart:SetAttribute("ChevronDirection", if isLeftCurve then "Left" else "Right")
+	railPart:SetAttribute("ChevronAssetId", assetId)
 	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "KDMChevronSurfaceGui_" .. face.Name
 		gui.Face = face
-		gui.CanvasSize = Vector2.new(512, 234)
+		gui.CanvasSize = Vector2.new(1024, 512)
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
 		gui.LightInfluence = 0
 		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		gui.Parent = railPart
 
-		-- F1 Board: Pure white background with border and 3 prominent red vector chevrons
 		local panel = Instance.new("Frame")
 		panel.Name = "ChevronPanel"
-		panel.Size = UDim2.new(0.96, 0, 0.90, 0)
+		panel.Size = UDim2.fromScale(1, 1)
 		panel.AnchorPoint = Vector2.new(0.5, 0.5)
 		panel.Position = UDim2.new(0.5, 0, 0.5, 0)
-		panel.BackgroundColor3 = Color3.fromRGB(248, 250, 252)
+		panel.BackgroundColor3 = Color3.fromRGB(235, 238, 242)
 		panel.BorderSizePixel = 0
 		panel.ClipsDescendants = true
 		panel.Parent = gui
 
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 8)
+		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = panel
 
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(45, 48, 56)
-		stroke.Thickness = 2.5
-		stroke.Parent = panel
-
-		local function createF1Chevron(parent, posX, isLeft)
-			local container = Instance.new("Frame")
-			container.Name = "Chevron"
-			container.Size = UDim2.new(0, 120, 0, 200)
-			container.AnchorPoint = Vector2.new(0.5, 0.5)
-			container.Position = UDim2.new(posX, 0, 0.5, 0)
-			container.BackgroundTransparency = 1
-			container.ClipsDescendants = true
-			container.Parent = parent
-
-			local armLen = 125
-			local armThick = 26
-			local rot = if isLeft then 45 else -45
-			local apexX = if isLeft then 25 else 95
-
-			local topArm = Instance.new("Frame")
-			topArm.Size = UDim2.new(0, armThick, 0, armLen)
-			topArm.AnchorPoint = Vector2.new(0.5, 1)
-			topArm.Position = UDim2.new(0, apexX, 0.5, 8)
-			topArm.Rotation = rot
-			topArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
-			topArm.BorderSizePixel = 0
-			topArm.Parent = container
-
-			local botArm = Instance.new("Frame")
-			botArm.Size = UDim2.new(0, armThick, 0, armLen)
-			botArm.AnchorPoint = Vector2.new(0.5, 0)
-			botArm.Position = UDim2.new(0, apexX, 0.5, -8)
-			botArm.Rotation = -rot
-			botArm.BackgroundColor3 = Color3.fromRGB(225, 20, 25)
-			botArm.BorderSizePixel = 0
-			botArm.Parent = container
-
-			local c1 = Instance.new("UICorner"); c1.CornerRadius = UDim.new(0, 4); c1.Parent = topArm
-			local c2 = Instance.new("UICorner"); c2.CornerRadius = UDim.new(0, 4); c2.Parent = botArm
-		end
-
-		createF1Chevron(panel, 0.25, isLeftCurve)
-		createF1Chevron(panel, 0.50, isLeftCurve)
-		createF1Chevron(panel, 0.75, isLeftCurve)
+		local image = Instance.new("ImageLabel")
+		image.Name = "ChevronImage"
+		image.Size = UDim2.fromScale(1, 1)
+		image.AnchorPoint = Vector2.new(0.5, 0.5)
+		image.Position = UDim2.new(0.5, 0, 0.5, 0)
+		image.BackgroundTransparency = 1
+		image.Image = assetId
+		image.ScaleType = Enum.ScaleType.Stretch
+		image.Parent = panel
 	end
 end
 
@@ -312,42 +285,68 @@ function Builder.build(root,origin,layout,spotlightPrefab)
  end
  local rails=Instance.new('Folder');rails.Name='VisualRails';rails.Parent=folder
  local points=layout.sample(layout.Segments);local distance,nextStation,count=0,100,0
+ local chevronClusters,chevronParts=0,0
  for i=2,#points-1 do
   local a,b=points[i-1],points[i];distance+=math.sqrt((b.x-a.x)^2+(b.z-a.z)^2)
   if distance<nextStation then continue end
   nextStation=distance+360
-  -- Three alternating rail panels follow actual centerline samples, not a straight chord.
+  -- Straightaway rail panels follow actual centerline samples on straight sections.
   for j=i,math.min(i+12,#points-1),6 do
-   local p=points[j];local right=Vector3.new(-p.fz,0,p.fx)
-   local pNext=points[math.min(j+4,#points)]
-   local turnSide = pNext.fx * right.X + pNext.fz * right.Z
-   local isLeftCurve = turnSide < -0.0005
-   local isRightCurve = turnSide > 0.0005
-   local isCurve = isLeftCurve or isRightCurve
-   local railHeight = if isCurve then 5.5 else 2.5
+   local p=points[j]
+   if p.section~='StartStraight' and not p.section:find('Link$')then continue end
+   local right=Vector3.new(-p.fz,0,p.fx)
+   local railHeight=2.5
    for _,side in {-1,1}do
     -- Keep the complete pit apron and entry/exit unoccluded.
     if p.section=='StartStraight' and side==1 then continue end
-    -- Outer wall across from turn direction:
-    -- Left turn (turnSide < 0) -> outer wall across from turn is side == -1
-    -- Right turn (turnSide > 0) -> outer wall across from turn is side == 1
-    local isOuter = (isLeftCurve and side == -1) or (isRightCurve and side == 1)
     local center=Vector3.new(p.x,2.02+railHeight*0.5,p.z)+right*(side*(layout.RoadWidth/2+layout.KerbWidth+2.1))
     local frame=CFrame.lookAt(center,center+Vector3.new(p.fx,0,p.fz))
     count+=1
-    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,if isCurve then 12 else 20),frame,
+    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,20),frame,
      if ((j-i)/6)%2==0 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230),Enum.Material.SmoothPlastic)
-    local inwardFace = if side == 1 then Enum.NormalId.Left else Enum.NormalId.Right
-    if isCurve and isOuter then
-     attachChevronGuidance(rail, isLeftCurve)
-    else
-     attachKdmBranding(rail, right * side)
-    end
+    attachKdmBranding(rail, right * side)
+   end
+  end
+ end
+ -- Dedicated corner chevron sign clusters on the outer wall of every curve section.
+ local sections,curSec,secStart={},nil,1
+ for i=1,#points do
+  if points[i].section~=curSec then
+   if curSec then table.insert(sections,{name=curSec,first=secStart,last=i-1})end
+   curSec=points[i].section;secStart=i
+  end
+ end
+ table.insert(sections,{name=curSec,first=secStart,last=#points})
+ for _,sec in sections do
+  if sec.name~='StartStraight' and not sec.name:find('Link$')then
+   local len=sec.last-sec.first+1
+   local mid=math.floor(sec.first+len*0.45)
+   local pMid=points[mid];local rightMid=Vector3.new(-pMid.fz,0,pMid.fx)
+   local pMidNext=points[math.min(mid+4,#points)]
+   -- right = (-fz, 0, fx) is the driver's left normal.
+   -- Left turn (turnSide < 0, turning toward -right) -> outer wall across from turn is +right (outerSide = 1).
+   -- Right turn (turnSide > 0, turning toward +right) -> outer wall across from turn is -right (outerSide = -1).
+   local turnSide=pMidNext.fx*rightMid.X+pMidNext.fz*rightMid.Z
+   local isLeftCurve=turnSide<0
+   local outerSide=if isLeftCurve then 1 else -1
+   local railHeight=6.0
+   local step=5
+   local indices={math.max(sec.first+1,mid-step),mid,math.min(sec.last-1,mid+step)}
+   chevronClusters+=1
+   for k,idx in indices do
+    local p=points[idx];local right=Vector3.new(-p.fz,0,p.fx)
+    local center=Vector3.new(p.x,2.02+railHeight*0.5,p.z)+right*(outerSide*(layout.RoadWidth/2+layout.KerbWidth+2.1))
+    local frame=CFrame.lookAt(center,center+Vector3.new(p.fx,0,p.fz))
+    count+=1;chevronParts+=1
+    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,12),frame,
+     if k%2==1 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230),Enum.Material.SmoothPlastic)
+    attachChevronGuidance(rail,isLeftCurve)
    end
   end
  end
  for _,p in folder:GetDescendants()do if p:IsA('BasePart')then p.CFrame+=origin end end
  folder:SetAttribute('ArchCount',1);folder:SetAttribute('TowerCount',4);folder:SetAttribute('RailCount',count)
+ folder:SetAttribute('ChevronClusterCount',chevronClusters);folder:SetAttribute('ChevronPartCount',chevronParts)
  folder.Parent=root;return folder
 end
 return Builder

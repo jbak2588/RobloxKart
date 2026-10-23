@@ -152,6 +152,25 @@ local world=builder.build(object('Folder'),track,0);budgets.Track01=budget(world
 check(budgets.Track01.Part<=1400,'static polish remains inside mobile part budget')
 check(world:GetAttribute('PracticeTreeCount')>=8 and world:GetAttribute('PracticeTreeCount')<=18,'bounded native tree family')
 check(world:GetAttribute('PracticeBillboardPartCount')==42 and world:GetAttribute('PracticeSignalPartCount')==0,'sanitized donor structure / deferred signal')
+check(world:GetAttribute('ChevronClusterCount')==18 and world:GetAttribute('ChevronPartCount')==54,'Figure-8 18 outer curve chevron clusters (54 boards)')
+local visualRails=world:FindFirstChild('Environment'):FindFirstChild('VisualRails')
+local fig8ChevronRails=0
+for _,rail in (if visualRails then visualRails:GetChildren() else {})do
+ local dir=rail:GetAttribute('ChevronDirection')
+ if dir then
+  fig8ChevronRails+=1
+  check(math.abs(rail.Size.Y-6.0)<.001 and math.abs(rail.Size.Z-12.0)<.001,'Figure-8 chevron board is 6.0x12.0 studs')
+  local expectedAsset=if dir=='Left'then'rbxassetid://125863354300599'else'rbxassetid://118109633914676'
+  check(rail:GetAttribute('ChevronAssetId')==expectedAsset,'Figure-8 chevron asset matches curve direction')
+  for _,face in {'Left','Right'}do
+   local gui=rail:FindFirstChild('KDMChevronSurfaceGui_'..face)
+   local panel=gui and gui:FindFirstChild('ChevronPanel')
+   local img=panel and panel:FindFirstChild('ChevronImage')
+   check(img and img.Image==expectedAsset,'Figure-8 chevron board has 1024x512 asset on '..face)
+  end
+ end
+end
+check(fig8ChevronRails==54,'all 54 Figure-8 curve boards have double-sided chevron assets')
 check(budgets.Track01.Script==0 and budgets.Track01.LocalScript==0 and budgets.Track01.ModuleScript==0 and budgets.Track01.MeshPart==0,'no donor code or runtime mesh dependencies')
 local landmarks=world:FindFirstChild('Environment'):FindFirstChild('PracticeLandmarks')
 for _,model in landmarks:GetChildren()do
