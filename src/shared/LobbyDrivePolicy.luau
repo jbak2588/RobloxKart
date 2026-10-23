@@ -1,6 +1,6 @@
 -- Lobby-only parameters. Never used by the race controller or KartConfig.
 local Policy = {
- Forward = 60, ParkForward = 80, Reverse = 30, Acceleration = 36, Brake = 70, Coast = 18,
+ Forward = 60, ParkForward = 80, Reverse = 50, Acceleration = 36, Brake = 70, Coast = 18,
  TurnRadius = 50, DriftTurnRadius = 35, InputTimeout = .5,
  Radius = 50, HalfStraight = 120, RoadWidth = 32, Shoulder = 16,
  OuterRadius = 90, FootprintMargin = 7,

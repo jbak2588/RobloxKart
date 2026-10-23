@@ -79,15 +79,16 @@ function Gauge.create(root, debugEnabled)
 				local controls=driftButton.Parent
 				local items=View.itemLayout(controls.AbsoluteSize,4)
 				local nitroBottom=controls.AbsolutePosition.Y+items.progressTop+items.progressHeight
-				if nitroBottom>top-gap-l.gaugeHeight-3 then
+				local itemsRight=controls.AbsolutePosition.X+items.x+items.width
+				if center-l.driftWidth*.65/2 < itemsRight+6 and nitroBottom>top-gap-l.gaugeHeight-3 then
 					-- A crowded short lane cannot move Nitro into LAP/Quit. Use the
 					-- nearest clear horizontal position while retaining button-relative Y.
-					center=controls.AbsolutePosition.X+items.x+items.width+6+l.driftWidth*.65/2
+					center=itemsRight+6+l.driftWidth*.65/2
 				end
 				frame.Position=UDim2.fromScale((center-origin.X)/size.X,(top-origin.Y-gap)/size.Y)
 			else
 				-- Startup/standalone preview fallback before touch controls exist.
-				frame.Position=UDim2.new(0,l.driftX+l.driftHitWidth/2,1,-l.driftBottom-l.driftHitHeight-l.driftGaugeGap)
+				frame.Position=UDim2.new(0,(l.rightDriftX or l.driftX)+l.driftHitWidth/2,1,-(l.rightDriftBottom or l.driftBottom)-l.driftHitHeight-l.driftGaugeGap)
 			end
 		else
 			frame.Size=UDim2.fromOffset(math.clamp(size.X*0.12,140,160),if size.Y<=650 then 18 else 20)

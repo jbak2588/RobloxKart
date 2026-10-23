@@ -8,6 +8,16 @@ function Layout.apply(l,size)
  -- Fit the full hitboxes and two shortcut rows, even on short safe viewports.
  local scale=math.min(1,math.max(0.5,(size.Y-100)/l.padHeight))
  for _,key in {"padWidth","padHeight","forward","brake","sideWidth","sideHeight","sideVisualWidth","driveVisualSize","autoHitSize","autoVisualSize","autoRight","autoTop"} do l[key]*=scale end
+ l.steerLeftX=12
+ l.steerBottom=12
+ l.steerTotalWidth=l.sideWidth*2+8
+ l.steerHeight=l.sideHeight
+ l.rightPadWidth=math.max(l.padWidth,l.driftHitWidth)
+ l.rightPadX=size.X-l.margin-l.rightPadWidth
+ l.rightBrakeX=l.rightPadX+math.floor((l.rightPadWidth-l.brake)/2)
+ l.rightBrakeBottom=12
+ l.rightDriftX=l.rightPadX+math.floor((l.rightPadWidth-l.driftHitWidth)/2)
+ l.rightDriftBottom=l.rightBrakeBottom+l.brake+6
  if size.X<l.driftHitWidth+l.padWidth+36 and size.Y>size.X then l.driftBottom=l.padBottom+l.padHeight+100 end
  return l
 end

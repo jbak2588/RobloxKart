@@ -44,8 +44,21 @@ function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,nor
  local cap=if offTrack and (nitro or s.boost) then rawCap*0.8 elseif offTrack then Config.OFF_TRACK_MAX_SPEED else rawCap
  local accel=if nitro then Config.NITRO_ACCELERATION elseif s.boost then Config.MINI_BOOST_ACCELERATION else Config.ACCELERATION
  if throttle>0 then
-  local rate=if speed>cap then (if offTrack then Config.BRAKE_FORCE elseif s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) elseif s.straightExitActive then Config.STRAIGHT_EXIT_DECELERATION else Config.BOOST_EXIT_DECELERATION) else accel*throttle
-  speed=toward(speed,cap,rate*dt)
+  if speed<0 then
+   speed=toward(speed,0,Config.BRAKE_FORCE*throttle*dt)
+  else
+   local rate=if speed>cap then (if offTrack then Config.BRAKE_FORCE elseif s.nitroExit and not s.boost then Config.NITRO_EXIT_DECELERATION elseif s.active then (if s.reentry then Config.ARCADE_DRIFT.ReentryDeceleration else Config.DRIFT_SPEED_DECELERATION) elseif s.straightExitActive then Config.STRAIGHT_EXIT_DECELERATION else Config.BOOST_EXIT_DECELERATION) else accel*throttle
+   speed=toward(speed,cap,rate*dt)
+  end
+ elseif throttle<0 then
+  if speed>0 then
+   speed=toward(speed,0,Config.BRAKE_FORCE*-throttle*dt)
+  else
+   local revCap=if offTrack then Config.MAX_REVERSE_SPEED*0.8 else Config.MAX_REVERSE_SPEED
+   speed=toward(speed,-revCap,Config.REVERSE_ACCELERATION*-throttle*dt)
+  end
+ else
+  speed=toward(speed,0,Config.COAST_DECELERATION*dt)
  end
  local side,turn,_,projected=Slide.step(s.slide,Config.ARCADE_DRIFT,forward,lateral,s.steer,normalYaw,yaw,dt,s.active,throttle>0,speed)
  return side,turn,projected or speed,speed

@@ -319,10 +319,10 @@ function Service.start(driveZone,eligibility)
    local physical=Vector3.new(body.AssemblyLinearVelocity.X,0,body.AssemblyLinearVelocity.Z)
    -- Respect actual wall stops: never keep accelerating into a rail with stale commanded speed.
    if not offTrack and math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then r.speed=physical:Dot(f) end
-   if throttle<=0 then
-    local target=if throttle<0 then -Policy.Reverse*-throttle else 0
-    local rate=if throttle<0 then Policy.Brake else Policy.Coast
-    r.speed+=math.clamp(target-r.speed,-rate*dt,rate*dt)
+   -- Fresh brake/reverse/coast input is integrated once by LobbyDriftSession.
+   -- Its stale-input branch only clears Drift, so retain timeout coasting here.
+   if os.clock()-r.lastInput>Policy.InputTimeout then
+    r.speed+=math.clamp(-r.speed,-Policy.Coast*dt,Policy.Coast*dt)
    end
    local now=os.clock()
    local localPos=pos-c

@@ -48,4 +48,28 @@ end
 local _,_,_,exit=adapter.step(nitro,1.1,.05,100,0,100,1,0,true,0,0,60,false)
 check(math.abs(exit-(100-config.NITRO_EXIT_DECELERATION*.05))<1e-6,'Nitro exit decays at 15')
 check(config.NITRO_DURATION==3 and config.NITRO_MAX_SPEED==120,'same Nitro duration and maximum')
-print('PASS: practice Nitro ramp / maximum / smooth exit checks')
+-- Off-track retains Nitro at 80% (96) and restores to 120 upon returning to track.
+local offNitro=adapter.new();local nSpeed=120
+for i=1,40 do
+ local _,_,_,budget=adapter.step(offNitro,i/60,1/60,nSpeed,0,nSpeed,1,0,true,0,0,80,true,true)
+ nSpeed=budget
+end
+check(math.abs(nSpeed-config.NITRO_MAX_SPEED*0.8)<1e-6,'off-track Nitro caps at 80% (96)')
+for i=41,80 do
+ local _,_,_,budget=adapter.step(offNitro,i/60,1/60,nSpeed,0,nSpeed,1,0,true,0,0,80,true,false)
+ nSpeed=budget
+end
+check(math.abs(nSpeed-config.NITRO_MAX_SPEED)<1e-6,'returning to track restores full 120 Nitro speed')
+-- Off-track retains Mini Boost at 80% (80) and restores to 100 upon returning to track.
+local offBoost=adapter.new();offBoost.boost=true;offBoost.boostEnd=10;local bSpeed=100
+for i=1,40 do
+ local _,_,_,budget=adapter.step(offBoost,i/60,1/60,bSpeed,0,bSpeed,1,0,true,0,0,80,false,true)
+ bSpeed=budget
+end
+check( offBoost.boost and math.abs(bSpeed-config.MINI_BOOST_MAX_SPEED*0.8)<1e-6,'off-track Mini Boost persists at 80% (80)')
+for i=41,80 do
+ local _,_,_,budget=adapter.step(offBoost,i/60,1/60,bSpeed,0,bSpeed,1,0,true,0,0,80,false,false)
+ bSpeed=budget
+end
+check(offBoost.boost and math.abs(bSpeed-config.MINI_BOOST_MAX_SPEED)<1e-6,'returning to track restores full 100 Mini Boost speed')
+print('PASS: practice Nitro ramp / maximum / smooth exit / off-track 80% retention checks')

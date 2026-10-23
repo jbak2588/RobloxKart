@@ -296,6 +296,14 @@ separately before capacity extension.
 
 ## Driving Invariants
 
+Owner override — 2026-10-23: mobile Buttons mode defaults to automatic forward
+throttle while actively driving. Left/Right steering is on the left; Drift and
+Brake/Reverse are on the right. Forward and Auto toggle buttons are hidden.
+Brake/Reverse overrides forward; release resumes forward. Maximum reverse speed
+is now 50 studs/s in RACE and HUB. Keyboard control and the developer Joystick
+rollback retain their input behavior. Preserve focus/menu/seat/state safety gates
+and manual server network ownership. Rematch hitch investigation remains separate.
+
 Owner override — 2026-10-22: HUB RookieLoop (`ROOKIE_LOOP_V1`) normal speed is
 80 studs/s through `LobbyDrivePolicy.ParkForward`. Official RACE normal speed
 remains 70; legacy HUB, reverse, acceleration, Drift, Mini Boost and Nitro stay
@@ -313,7 +321,7 @@ Off-track:
 50
 
 Reverse:
-24
+50
 
 Mini Boost:
 100

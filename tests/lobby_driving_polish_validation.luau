@@ -4,9 +4,9 @@ local rb=require('@lune/roblox')
 local p=luau.load(fs.readFile('src/shared/LobbyDrivePolicy.luau'))()
 local geometry=luau.load(fs.readFile('src/shared/LobbyDriveGeometry.luau'))().create(p)
 local n=0;local function check(v,label)assert(v,label);n+=1 end
-check(p.Forward==60 and p.Reverse==30 and p.TurnRadius==50 and p.DriftTurnRadius==35,'approved Lobby policy')
+check(p.Forward==60 and p.Reverse==50 and p.TurnRadius==50 and p.DriftTurnRadius==35,'approved Lobby policy')
 for _,dt in {1/30,1/60,.05} do for _,input in {-10,-1,0,1,10} do
- local s=0;for _=1,300 do s=p.advance(s,input,dt);check(s>=-30 and s<=60,'oversized finite axes cannot overspeed') end
+ local s=0;for _=1,300 do s=p.advance(s,input,dt);check(s>=-50 and s<=60,'oversized finite axes cannot overspeed') end
 end end
 for angle=0,359,3 do
  local a=math.rad(angle);local nx,nz=math.cos(a),math.sin(a)
@@ -40,12 +40,12 @@ local source=fs.readFile('src/server/LobbyTestDriveService.luau')
 source=source:gsub('return Service%s*$','Service.inject=function(player,record) record.qualification=Qualification.new();records[player]=record end; return Service')
 local shared={WaitForChild=function(_,name)return {Name=name}end}
 local tick,service,scenario=0,nil,nil
-local modules={LobbyDrivePresence=luau.load(fs.readFile('src/server/LobbyDrivePresence.luau'))(),TestDriveQualification=luau.load(fs.readFile('src/server/TestDriveQualification.luau'))(),LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=p,LobbyDriveGeometry={create=function()return geometry end},KartConfig={},KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
+local modules={LobbyDrivePresence=luau.load(fs.readFile('src/server/LobbyDrivePresence.luau'))(),TestDriveQualification=luau.load(fs.readFile('src/server/TestDriveQualification.luau'))(),LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=p,LobbyDriveGeometry={create=function()return geometry end},KartConfig={},KartCatalog={},KartVisualFactory={},LobbyDriftSession=training,KDMStraightSpeedResolver={}}
 local run={Heartbeat={Wait=function()tick+=1;coroutine.yield()end}}
 local spawn={CFrame=rb.CFrame.new(0,1,888)}
 local hub={FindFirstChild=function()return spawn end}
 local workspace={FindFirstChild=function()return hub end}
-service=luau.load(source,{environment={script={Parent={LobbyDrivePresence={Name='LobbyDrivePresence'},TestDriveQualification={Name='TestDriveQualification'},LobbyDriftSession={Name='LobbyDriftSession'},LobbyPracticeCombat={Name='LobbyPracticeCombat'}}},game={GetService=function(_,name)
+service=luau.load(source,{environment={script={Parent={LobbyDrivePresence={Name='LobbyDrivePresence'},TestDriveQualification={Name='TestDriveQualification'},LobbyDriftSession={Name='LobbyDriftSession'},LobbyPracticeCombat={Name='LobbyPracticeCombat'},KDMStraightSpeedResolver={Name='KDMStraightSpeedResolver'}}},game={GetService=function(_,name)
  if name=='ReplicatedStorage' then return {WaitForChild=function()return shared end} elseif name=='RunService' then return run elseif name=='Workspace' then return workspace else return {} end
 end},require=function(m)return modules[m.Name]end,Vector3=rb.Vector3,CFrame=rb.CFrame,Enum={HumanoidStateType={GettingUp='GettingUp'}}}})()
 for _,mode in {'exit','unseated','duplicate','race','death','respawn','cancel'} do

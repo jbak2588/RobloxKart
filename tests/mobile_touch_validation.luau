@@ -15,8 +15,8 @@ check(string.find(itemHudSource,"NITRO CHARGE",1,true)~=nil
 	and string.find(itemHudSource,"DRIFT STREAK",1,true)==nil
 	and string.find(itemHudSource,"/4",1,true)==nil,
 	"RaceItemUiController owns five-count Nitro terminology")
-check(require("./helpers/gameplay_config")("src/shared/RaceItemConfig.luau").DRIFT_BONUS_REQUIRED_BOOSTS==5,
-	"production Bonus Nitro threshold remains five")
+check(require("./helpers/gameplay_config")("src/shared/RaceItemConfig.luau").DRIFT_BONUS_REQUIRED_BOOSTS==3,
+	"production Bonus Nitro threshold is three")
 local function signal()
 	local listeners = {}
 	return {
@@ -144,12 +144,12 @@ check(not tutorial.isOpen(),"tutorial starts closed")
 tutorial.open()
 check(tutorial.isOpen() and tutorialCard.Title.Text=="DRIVE","tutorial opens on DRIVE")
 check(not tutorialCard.Diagram.Visible and tutorialCard.Diagram.Text=="","DRIVE has no duplicate arrow row")
-assertTutorialIcons({"Forward","Left","Right","BrakeReverse","AutoForward"})
+assertTutorialIcons({"Left","Right","Drift","BrakeReverse"})
 tutorialCard.Next.Activated:Fire()
 check(tutorialCard.Title.Text=="DRIFT & BOOST","tutorial advances to drift")
-check(string.find(tutorialCard.Description.Text,"5 boosts in one race",1,true)~=nil
+check(string.find(tutorialCard.Description.Text,"3 boosts in one race",1,true)~=nil
 	and not string.find(tutorialCard.Description.Text,"in a row",1,true),
-	"tutorial explains cumulative five-Boost reward")
+	"tutorial explains cumulative three-Boost reward")
 check(tutorialCard.Diagram.Visible,"DRIFT diagram remains visible")
 assertTutorialIcons({"Drift","Left","Right"})
 local examples=tutorialCard.GaugeExamples
@@ -336,51 +336,39 @@ check(shackle.Rotation==openRotation and auto.BackgroundTransparency==offTranspa
 auto.Activated:Fire(); local cancelled=touch(joy,10,0); cancelled.UserInputState=rb.Enum.UserInputState.Cancel
 neutral("cancelled joystick disables auto")
 else
-	check(not joy.Visible and root.Forward.Visible and gui:GetAttribute("MobileDriveControlMode")=="Buttons","digital default hides legacy joystick")
-	local ignored=touch(joy); neutral("legacy stick cannot activate in Buttons mode")
-	local f=touch(root.Forward); check(latest()[1]==1,"forward press")
-	local b=touch(root.BrakeReverse); check(latest()[1]==-1,"brake overrides held forward")
-	b.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1,"forward resumes after brake")
-	f.UserInputState=rb.Enum.UserInputState.End; neutral("forward release auto OFF")
- check(auto.Visible and gui:GetAttribute("AutoForwardEnabled")==false,"Auto Start defaults OFF")
- local owned=touch(root.ForwardLeft);auto.InputBegan:Fire(owned);auto.Activated:Fire(owned)
- check(not gui:GetAttribute("AutoForwardEnabled"),"held drive owner cannot arm Auto by slipping onto it")
- owned.UserInputState=rb.Enum.UserInputState.End;neutral("Auto ownership probe cleanup")
+	check(not joy.Visible and not root.Forward.Visible and not auto.Visible and not root.AutoBackward.Visible
+		and root.ForwardLeft.Visible and root.ForwardRight.Visible and root.BrakeReverse.Visible and drift.Visible
+		and gui:GetAttribute("MobileDriveControlMode")=="Buttons","digital default shows Left/Right steering on left, Drift+BrakeReverse on right, and hides manual Forward/Auto buttons")
+	check(root.ForwardLeft.AbsolutePosition.X < root.ForwardRight.AbsolutePosition.X
+		and root.ForwardRight.AbsolutePosition.X < drift.AbsolutePosition.X
+		and drift.AbsolutePosition.Y + drift.AbsoluteSize.Y <= root.BrakeReverse.AbsolutePosition.Y,
+		"Left/Right steering is on the left thumb lane; Drift is on the right above BrakeReverse")
+	check(latest()[1]==1 and latest()[2]==0 and gui:GetAttribute("AutoForwardEnabled")==true,"Auto-Forward defaults ON immediately in Buttons mode")
+	local ignored=touch(joy); check(latest()[1]==1 and latest()[2]==0,"legacy stick cannot activate in Buttons mode")
+	local b=touch(root.BrakeReverse); check(latest()[1]==-1,"brake/reverse overrides default Auto-Forward")
+	b.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1 and gui:GetAttribute("AutoForwardEnabled")==true,"releasing BrakeReverse immediately resumes Auto-Forward")
 
- auto.Activated:Fire();tick();check(latest()[1]==1 and latest()[2]==0 and gui:GetAttribute("AutoForwardEnabled"),"Auto ON continuous throttle")
- for _,direction in {-1,1} do
-  if not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire();tick() end
-  local steer=touch(if direction==-1 then root.ForwardLeft else root.ForwardRight)
-  check(latest()[1]==1 and latest()[2]==direction,"Auto plus turn")
-  local d=touch(drift);check(latest()[1]==1 and latest()[2]==direction and latest()[3],"Auto turn Drift")
-  local brake=touch(root.BrakeReverse);check(latest()[1]==-1,"Brake overrides Auto")
-  brake.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1 and not latest()[3] and gui:GetAttribute("AutoForwardEnabled"),"Brake release resumes Auto with cleared Drift")
-  d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End;tick()
-  check(latest()[1]==1 and latest()[2]==0 and not latest()[3],"releasing turn resumes straight Auto")
-  auto.Activated:Fire();tick();check(latest()[1]==0 and not gui:GetAttribute("AutoForwardEnabled"),"Auto button explicitly turns off Auto")
- end
- if gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end;neutral("Auto OFF coasts")
+	for _,direction in {-1,1} do
+		local steer=touch(if direction==-1 then root.ForwardLeft else root.ForwardRight)
+		check(latest()[1]==1 and latest()[2]==direction,"Auto-Forward plus turn")
+		local d=touch(drift);check(latest()[1]==1 and latest()[2]==direction and latest()[3],"Auto-Forward turn Drift")
+		local brake=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==direction and not latest()[3],"Brake overrides Auto-Forward and clears Drift while keeping steering")
+		brake.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1 and latest()[2]==direction and not latest()[3] and gui:GetAttribute("AutoForwardEnabled"),"Brake release resumes Auto-Forward with cleared Drift")
+		d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End;tick()
+		check(latest()[1]==1 and latest()[2]==0 and not latest()[3],"releasing turn resumes straight Auto-Forward")
+	end
 
- local bareLeft=touch(root.ForwardLeft);check(latest()[1]==0 and latest()[2]==-1,"standalone left only steers")
- bareLeft.UserInputState=rb.Enum.UserInputState.End;neutral("standalone turn release coasts")
- local bareBrake=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==0,"standalone BrakeReverse neutral steering")
- bareBrake.UserInputState=rb.Enum.UserInputState.End;neutral("brake release")
- local straight=touch(root.Forward);local turn=touch(root.ForwardLeft)
- check(latest()[1]==1 and latest()[2]==-1,"Forward held plus combined left")
- turn.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1 and latest()[2]==0,"combined left release falls back to straight")
- straight.UserInputState=rb.Enum.UserInputState.End;neutral("straight release")
-	f=touch(root.ForwardLeft); local extra=touch(root.ForwardLeft)
-	f.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[2]==-1,"same-direction second owner survives first release")
-	extra.UserInputState=rb.Enum.UserInputState.End; neutral("last same-direction owner released")
+	local f=touch(root.ForwardLeft); local extra=touch(root.ForwardLeft)
+	f.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1 and latest()[2]==-1,"same-direction second owner survives first release")
+	extra.UserInputState=rb.Enum.UserInputState.End; tick(); check(latest()[1]==1 and latest()[2]==0,"last same-direction owner released returns to straight Auto-Forward")
 	for _, direction in {-1,1} do
 		local button=if direction==-1 then root.ForwardLeft else root.ForwardRight
 		local other=if direction==-1 then root.ForwardRight else root.ForwardLeft
-		f=touch(root.Forward); local steer=touch(button)
-		check(latest()[2]==direction and not latest()[3],"normal digital steering remains full")
+		local steer=touch(button)
+		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"normal digital steering remains full with Auto-Forward")
 		local d=touch(drift)
-		check(latest()[2]==direction and latest()[3],"drift press retains PC-equivalent full digital steering")
+		check(latest()[1]==1 and latest()[2]==direction and latest()[3],"drift press retains PC-equivalent full digital steering")
 		check(input.getEffectiveSteering()==direction,"drift steering HUD action sync")
-		-- Moving far outside the button must not change a held digital target.
 		for i=1,90 do
 			steer.Position=V3.new(i*100,-i*70,0); ui.InputChanged:Fire(steer); tick()
 			check(latest()[1]==1 and latest()[2]==direction and latest()[3],"stable forward/steering/drift across pointer movement")
@@ -395,69 +383,36 @@ else
 		d.UserInputState=rb.Enum.UserInputState.End; tick()
 		check(latest()[1]==1 and latest()[2]==direction and not latest()[3],"drift release preserves throttle/steer for existing boost condition")
 		check(input.getEffectiveSteering()==direction,"steering HUD action sync")
-		steer.UserInputState=rb.Enum.UserInputState.End; f.UserInputState=rb.Enum.UserInputState.End; neutral("all buttons released")
-  steer=touch(button);check(latest()[1]==0 and latest()[2]==direction,"standalone steering has neutral throttle")
-  b=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==direction,"brake priority preserves independently held turn")
-  d=touch(drift);check(latest()[1]==-1 and latest()[2]==direction and not latest()[3],"reverse never requests Drift")
-  b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==0 and latest()[2]==direction,"brake release retains Drift steering without acceleration")
-  d.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[2]==direction and not latest()[3],"normal steering restored")
-  steer.UserInputState=rb.Enum.UserInputState.Cancel;neutral("combined turn cancel neutral")
-
+		steer.UserInputState=rb.Enum.UserInputState.End; tick()
+		check(latest()[1]==1 and latest()[2]==0 and not latest()[3],"steering release returns to straight Auto-Forward")
+		steer=touch(button)
+		b=touch(root.BrakeReverse);check(latest()[1]==-1 and latest()[2]==direction,"brake priority preserves independently held turn")
+		d=touch(drift);check(latest()[1]==-1 and latest()[2]==direction and not latest()[3],"reverse never requests Drift")
+		b.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[1]==1 and latest()[2]==direction,"brake release resumes Auto-Forward while preserving held steering")
+		d.UserInputState=rb.Enum.UserInputState.End;tick();check(latest()[2]==direction and not latest()[3],"normal steering restored")
+		steer.UserInputState=rb.Enum.UserInputState.Cancel;tick()
+		check(latest()[1]==1 and latest()[2]==0,"cancelled steering finger keeps Auto-Forward active")
 	end
 	check(#item._p.calls==8,"all four digital item direct-use requests delivered once per tap")
-	local back=root.AutoBackward
-	check(back and back.Visible and not gui:GetAttribute("AutoBackwardEnabled"),"Auto Backward starts OFF")
-	for _,direction in {-1,1} do
-		back.Activated:Fire();tick()
-		local steer=touch(if direction==-1 then root.ForwardLeft else root.ForwardRight)
-		local d=touch(drift)
-		check(latest()[1]==-1 and latest()[2]==direction and not latest()[3],"automatic reverse steers without Drift")
-		auto.Activated:Fire();tick()
-		check(latest()[1]==1 and not gui:GetAttribute("AutoBackwardEnabled") and gui:GetAttribute("AutoForwardEnabled"),"reverse to forward is exclusive")
-		back.Activated:Fire();tick()
-		check(latest()[1]==-1 and gui:GetAttribute("AutoBackwardEnabled") and not gui:GetAttribute("AutoForwardEnabled") and not latest()[3],"forward to reverse clears Drift")
-		d.UserInputState=rb.Enum.UserInputState.End;steer.UserInputState=rb.Enum.UserInputState.End
-		back.Activated:Fire();neutral("reverse OFF")
-	end
-	-- Forward manually overrides and cancels reverse Auto
-	back.Activated:Fire();tick();local heldForward=touch(root.Forward)
-	check(not gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==1,"manual forward cancels reverse")
-	back.Activated:Fire();auto.Activated:Fire();tick()
-	check(not gui:GetAttribute("AutoBackwardEnabled") and not gui:GetAttribute("AutoForwardEnabled"),"held forward cannot arm hidden auto")
-	heldForward.UserInputState=rb.Enum.UserInputState.End;neutral("forward release neutral")
-
-	-- BrakeReverse slows down/reverses without canceling AutoBackward or AutoForward
-	back.Activated:Fire();tick();local heldBrake=touch(root.BrakeReverse)
-	check(gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==-1,"brake priority preserves AutoBackward state")
-	heldBrake.UserInputState=rb.Enum.UserInputState.End;tick()
-	check(gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==-1,"brake release resumes AutoBackward")
-	back.Activated:Fire();neutral("reverse OFF")
-	local owned=touch(root.ForwardLeft);back.InputBegan:Fire(owned);back.Activated:Fire(owned)
-	check(not gui:GetAttribute("AutoBackwardEnabled"),"steering owner cannot slip into reverse toggle")
-	owned.UserInputState=rb.Enum.UserInputState.End
-	local toggle=touch(back);root.Forward.InputBegan:Fire(toggle);tick()
-	check(latest()[1]==0,"auto owner cannot also hold manual throttle")
-	back.Activated:Fire(toggle);tick();back.Activated:Fire(toggle);tick()
-	check(gui:GetAttribute("AutoBackwardEnabled") and latest()[1]==-1,"same touch activates reverse once")
-	toggle.UserInputState=rb.Enum.UserInputState.End
-	local cancelled=touch(back);cancelled.UserInputState=rb.Enum.UserInputState.Cancel;neutral("cancelled auto touch clears reverse")
-	for _,event in {function() gui.Enabled=false end,function() humanoid.SeatPart=nil end,
-		function() ui.WindowFocusReleased:Fire() end,function() player:SetAttribute("RaceState","FINISHED") end,
-		function() kart:SetAttribute("RaceResetSerial",99) end} do
-		back.Activated:Fire();tick();check(latest()[1]==-1,"reverse reset fixture armed")
-		event();neutral("reverse lifecycle reset")
-		check(not gui:GetAttribute("AutoBackwardEnabled"),"reverse reset visual OFF")
-		gui.Enabled=true;humanoid.SeatPart=seat;ui.WindowFocused:Fire();player:SetAttribute("RaceState","RACING");tick()
-	end
 end
 local function hold()
-	tick(); touch(if legacy then joy else root.Forward,20,-40)
-	if not legacy then touch(root.ForwardLeft); touch(root.ForwardRight); touch(root.BrakeReverse) end
-	touch(drift)
-	if not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
+	tick()
+	if legacy then
+		touch(joy,20,-40)
+		touch(drift)
+		if not gui:GetAttribute("AutoForwardEnabled") then auto.Activated:Fire() end
+	else
+		touch(root.ForwardLeft); touch(root.ForwardRight); touch(root.BrakeReverse)
+		touch(drift)
+	end
 	check(latest()[1]==(if legacy then 1 else -1) and latest()[3]==legacy,"hold established; digital reverse suppresses Drift")
 	kart:SetAttribute("KartDriftChargeProgress",1);kart:SetAttribute("KartDriftChargeReady",true);tick()
 	check(gauge.Visible and gauge:GetAttribute("LitSegments")==5,"lifecycle fixture starts READY")
+end
+local function resumesAutoForward(label)
+	tick()
+	local a=latest()
+	check(a[1]==(if legacy then 0 else 1) and a[2]==0 and a[3]==false,label)
 end
 for _, race in {"FINISHED","FINISHING","DNF","GARAGE","COUNTDOWN"} do
 	player:SetAttribute("RaceState","RACING"); hold(); player:SetAttribute("RaceState",race); neutral("race transition "..race)
@@ -465,14 +420,14 @@ for _, race in {"FINISHED","FINISHING","DNF","GARAGE","COUNTDOWN"} do
 end
 player:SetAttribute("RaceState","RACING")
 hold(); gui.Enabled=false; neutral("disabled GUI"); gui.Enabled=true
-hold(); root.Visible=false; neutral("hidden controls reset ownership")
+hold(); root.Visible=false; resumesAutoForward("hidden controls reset held ownership and restore default Auto-Forward")
 hold(); humanoid.SeatPart=nil; neutral("seat loss"); humanoid.SeatPart=seat
 hold(); player.CharacterRemoving:Fire(character); neutral("character removal"); player.CharacterAdded:Fire(character)
 hold(); ui.WindowFocusReleased:Fire(); neutral("focus loss"); ui.WindowFocused:Fire()
 hold(); focused={}; ui.TextBoxFocused:Fire(); neutral("textbox focus"); focused=nil
 hold(); services.GuiService.MenuIsOpen=true; services.GuiService.MenuOpened:Fire(); neutral("menu opened"); services.GuiService.MenuIsOpen=false
 hold(); kart:SetAttribute("RaceControlsLocked",true); neutral("race controls locked"); kart:SetAttribute("RaceControlsLocked",false)
-hold(); kart:SetAttribute("RaceResetSerial",1); neutral("race reset serial")
+hold(); kart:SetAttribute("RaceResetSerial",1); resumesAutoForward("race reset serial clears held buttons and restores default Auto-Forward")
 hold(); ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse; keys[tostring(rb.Enum.KeyCode.W)]=true; keys[tostring(rb.Enum.KeyCode.A)]=true; tick()
 check(latest()[1]==1 and latest()[2]==-1 and not root.Visible and defaultGui.Enabled,"keyboard W/A remains unchanged; stock controls restored")
 keys={}; neutral("keyboard release")
@@ -527,7 +482,7 @@ for _, size in {V2.new(801,334),V2.new(749,303),V2.new(473,240),V2.new(389,703),
 	check(mobileClip.AbsolutePosition.Y+mobileClip.AbsoluteSize.Y==size.Y-3,"mobile clip leaves a three-pixel bottom margin")
 	mobileWheel:Destroy();mobileClip:Destroy()
 	local rects={}
-	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.Forward,root.ForwardLeft,root.ForwardRight,root.BrakeReverse,root.AutoBackward,auto,drift,gauge,diagnostic}
+	local buttons=if legacy then {joy,drift,auto,gauge,diagnostic} else {root.ForwardLeft,root.ForwardRight,root.BrakeReverse,drift,gauge,diagnostic}
 	for _, button in buttons do
 		local p,z=button.AbsolutePosition,button.AbsoluteSize
 		table.insert(rects,{p.X,p.Y,p.X+z.X,p.Y+z.Y})
@@ -637,24 +592,24 @@ local lobbyCalls={}
 input.setLobbyInputSender(function(...)table.insert(lobbyCalls,table.pack(...))end)
 player.CharacterAdded:Fire(character)
 tick()
-local heldForward=touch(root.Forward)
 local function lobbyLatest()return lobbyCalls[#lobbyCalls]end
-check(lobbyLatest() and lobbyLatest()[1]==1,"Lobby digital Forward reaches Lobby transport")
+check(lobbyLatest() and lobbyLatest()[1]==1,"Lobby digital Auto-Forward reaches Lobby transport immediately")
 for i=1,24 do
  local previous=#lobbyCalls;tick()
- check(#lobbyCalls==previous+1 and lobbyLatest()[1]==1,"held Lobby throttle refreshed past server timeout")
+ check(#lobbyCalls==previous+1 and lobbyLatest()[1]==1,"Lobby Auto-Forward throttle refreshed past server timeout")
 end
 local heldTurn=touch(root.ForwardLeft);local heldDrift=touch(drift)
 check(lobbyLatest()[1]==1 and lobbyLatest()[2]==-1 and lobbyLatest()[3],"Lobby turn and Drift transported")
 heldDrift.UserInputState=rb.Enum.UserInputState.End;tick()
 check(not lobbyLatest()[3] and lobbyLatest()[2]==-1,"Lobby Drift release preserves steering")
-heldTurn.UserInputState=rb.Enum.UserInputState.End;heldForward.UserInputState=rb.Enum.UserInputState.End;tick()
-check(lobbyLatest()[1]==0 and lobbyLatest()[2]==0,"Lobby pad release sends neutral")
+heldTurn.UserInputState=rb.Enum.UserInputState.End;tick()
+check(lobbyLatest()[1]==1 and lobbyLatest()[2]==0,"Lobby turn release returns to straight Auto-Forward")
 local heldBrake=touch(root.BrakeReverse)
 check(lobbyLatest()[1]==-1,"Lobby reverse transported")
+heldBrake.UserInputState=rb.Enum.UserInputState.End;tick()
+check(lobbyLatest()[1]==1,"Lobby brake release resumes Auto-Forward")
 ui.WindowFocusReleased:Fire()
 check(lobbyLatest()[1]==0 and lobbyLatest()[2]==0 and not lobbyLatest()[3],"Lobby focus loss forces neutral")
-heldBrake.UserInputState=rb.Enum.UserInputState.End
 player:SetAttribute("LobbyDriveActive",false);input.setLobbyInputSender(nil)
 seat:SetAttribute("PrototypeKartSeat",true);seat:SetAttribute("LobbyKartSeat",false)
 player:SetAttribute("RaceState","RACING");ui.WindowFocused:Fire()

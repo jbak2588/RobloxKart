@@ -18,11 +18,15 @@ for _,s in {{932,390},{844,300},{748,303},{724,311},{801,334},{667,250},{480,210
  check(gauge.y>=boost.y+boost.h+2 and gauge.h>=6,'five-segment gauge visible below charge text')
  check(message.y>=gauge.y+gauge.h+4,'combat/Nitro feedback below Boost gauge')
  check(message.y>=a.y+a.height and message.y+message.h<=size.Y,'message clear of item buttons')
- local pad={x=size.X-l.margin-l.padWidth-l.padInset,y=size.Y-l.padBottom-l.padHeight,w=l.padWidth,h=l.padHeight}
- local drift={x=l.driftX,y=size.Y-l.driftBottom-l.driftHitHeight,w=l.driftHitWidth,h=l.driftHitHeight}
- check(not overlap(panel,pad)and not overlap(panel,drift),'item buttons clear all driving hitboxes')
- check(not overlap(message,pad)and not overlap(message,drift),'feedback clears driving hitboxes')
- check(not overlap(boost,pad)and not overlap(boost,drift)and not overlap(gauge,pad)and not overlap(gauge,drift),'Boost text and gauge clear driving hitboxes')
+ local controls={
+  {x=l.steerLeftX,y=size.Y-l.steerBottom-l.steerHeight,w=l.steerTotalWidth,h=l.steerHeight},
+  {x=l.rightBrakeX,y=size.Y-l.rightBrakeBottom-l.brake,w=l.brake,h=l.brake},
+  {x=l.rightDriftX,y=size.Y-l.rightDriftBottom-l.driftHitHeight,w=l.driftHitWidth,h=l.driftHitHeight},
+ }
+ for _,control in controls do
+  check(not overlap(panel,control),'six actual item buttons clear relocated controls: '..tostring(size))
+  check(not overlap(message,control)and not overlap(boost,control)and not overlap(gauge,control),'practice text clears relocated controls: '..tostring(size))
+ end
  local shortcuts=drive.shortcuts(size,mobile)
  check(not overlap(panel,{x=shortcuts.x,y=shortcuts.y,w=shortcuts.width,h=shortcuts.height}),'items clear exit/shortcuts')
  for _,id in {'Slick','Missile','Smoke','Thunder','Nitro','Shield'}do

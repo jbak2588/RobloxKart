@@ -98,7 +98,7 @@ check(not failed:ready("Forward") and failed.states.Forward=="Failure","preload 
 
 local model=luau.load(fs.readFile("src/client/TouchDrivingModel.luau"))()
 local state=model.new("Buttons")
-state:toggleAutoForward();state.autoForward=true
+check(state.autoForward,"Buttons mode defaults to Auto-Forward ON")
 local t,steer=state:actions();check(t==1 and steer==0,"Buttons Auto accelerates without a held finger")
 state:toggleAutoForward();t,steer=state:actions();check(t==0 and steer==0,"Auto toggles OFF")
 check(not state:pressButton("x","Left") and not state:pressButton("x","Brake"),"old directional actions rejected")
@@ -107,10 +107,10 @@ t,steer=state:actions();check(t==0 and steer==1,"last turn press wins without th
 state:release("b");t,steer=state:actions();check(t==0 and steer==-1,"last turn release restores earlier owner without throttle")
 state:pressButton("c","BrakeReverse");state:pressDrift("d")
 t,steer=state:actions();check(t==-1 and steer==-1 and not select(3,state:actions()),"reverse keeps full steering and suppresses Drift")
-state:reset();t,steer=state:actions();check(t==0 and steer==0,"reset clears every owner")
+state:reset();t,steer=state:actions();check(t==1 and steer==0 and state.autoForward,"reset clears held owners and restores default Auto-Forward")
 state:toggleAutoBackward();state:setMode("Joystick")
 check(not state.autoBackward and not state.autoForward and not state:toggleAutoBackward(),"mode switch clears autos and Joystick rejects reverse AUTO")
-state:setMode("Buttons");check(state:actions()==0,"return to digital mode remains neutral")
+state:setMode("Buttons");check(state:actions()==1 and state.autoForward,"return to digital mode restores default Auto-Forward")
 slot=view.new(object("TextButton"),"AutoBackward",failed,mobileView)
 check(not slot:update(true,true) and slot.fallback.latched and slot.fallback.root.Visible,"reverse fetch failure retains ON fallback")
 slot:update(true,false);check(not slot.fallback.latched,"reverse OFF fallback clears latch")

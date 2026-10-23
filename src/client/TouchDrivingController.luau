@@ -179,7 +179,7 @@ function Controller.start()
 		if input.UserInputState ~= Enum.UserInputState.End and input.UserInputState ~= Enum.UserInputState.Cancel then return end
 		-- A cancelled joystick is not an intentional release of cruise control.
 		if input.UserInputState == Enum.UserInputState.Cancel then
-			if input == state.owner or state.buttons[input] or ownsAuto(input) then state:clearAuto() end
+			if input == state.owner or ownsAuto(input) then state:clearAuto() end
 			if input==autoTouch then autoTouch=nil end
 			if input==backwardTouch then backwardTouch=nil end
 		end
@@ -255,33 +255,57 @@ function Controller.start()
 		if state.mode == "Buttons" then
 			local left = root.AbsoluteSize.X - l.margin - l.padWidth - l.padInset
 			local top = l.padBottom + l.padHeight
+			auto.Visible = false
 			auto.Size=UDim2.fromOffset(l.autoHitSize,l.autoHitSize)
 			auto.Position=UDim2.new(0,left+l.autoRight,1,-top+l.autoTop+l.autoHitSize)
 			autoIcon:layout(l.autoVisualSize,l.autoVisualSize)
 			if backwardLayout then
+				autoBackward.Visible = false
 				autoBackward.Size=UDim2.fromOffset(backwardLayout.hit,backwardLayout.hit)
 				autoBackward.Position=UDim2.new(0,backwardLayout.right,1,-backwardLayout.bottom)
 				backwardIcon:layout(backwardLayout.visual,backwardLayout.visual)
 			end
-			local function place(action, x, bottom, width, height)
-				local b = drivingButtons[action].button
-				b.Size = UDim2.fromOffset(width, height or width)
-				b.Position = UDim2.new(0, left+x, 1, -bottom)
-			end
-			place("Forward", (l.padWidth-l.forward)/2, top-l.forward, l.forward)
-			local directionBottom = l.padBottom + (l.padHeight-l.sideHeight)/2
-			place("ForwardLeft", 0, directionBottom, l.sideWidth,l.sideHeight)
-			place("ForwardRight", l.padWidth-l.sideWidth, directionBottom, l.sideWidth,l.sideHeight)
-			place("BrakeReverse", (l.padWidth-l.brake)/2, l.padBottom, l.brake)
+			drivingButtons.Forward.button.Visible = false
+			drivingButtons.Forward.button.Size = UDim2.fromOffset(l.forward, l.forward)
+			drivingButtons.Forward.button.Position = UDim2.new(0, left+(l.padWidth-l.forward)/2, 1, -(top-l.forward))
 
+			-- Left thumb zone: Left / Right steering buttons (where Drift used to be)
+			local steerX = l.steerLeftX or 12
+			local steerBottom = l.steerBottom or math.max(12, l.padBottom)
+			drivingButtons.ForwardLeft.button.Visible = true
+			drivingButtons.ForwardLeft.button.Size = UDim2.fromOffset(l.sideWidth, l.sideHeight)
+			drivingButtons.ForwardLeft.button.Position = UDim2.new(0, steerX, 1, -steerBottom)
+
+			drivingButtons.ForwardRight.button.Visible = true
+			drivingButtons.ForwardRight.button.Size = UDim2.fromOffset(l.sideWidth, l.sideHeight)
+			drivingButtons.ForwardRight.button.Position = UDim2.new(0, steerX + l.sideWidth + 8, 1, -steerBottom)
+
+			-- Right thumb zone: Drift on top (where Left/Right used to be) and BrakeReverse directly below it
+			local rightBrakeX = l.rightBrakeX or (left + (l.padWidth - l.brake) / 2)
+			local rightBrakeBottom = l.rightBrakeBottom or math.max(10, l.padBottom)
+			drivingButtons.BrakeReverse.button.Visible = true
+			drivingButtons.BrakeReverse.button.Size = UDim2.fromOffset(l.brake, l.brake)
+			drivingButtons.BrakeReverse.button.Position = UDim2.new(0, rightBrakeX, 1, -rightBrakeBottom)
+
+			local rightDriftX = l.rightDriftX or (left + (l.padWidth - l.driftHitWidth) / 2)
+			local rightDriftBottom = l.rightDriftBottom or (rightBrakeBottom + l.brake + 6)
+			drift.Size, use.Size = UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight), UDim2.fromOffset(l.action,l.action)
+			driftIcon:layout(l.driftWidth,l.driftHeight)
+			for action,control in drivingButtons do
+				control.icon:layout(if action=="ForwardLeft" or action=="ForwardRight" then l.sideVisualWidth else l.driveVisualSize,l.driveVisualSize)
+			end
+			drift.Position = UDim2.new(0, rightDriftX, 1, -rightDriftBottom)
+			use.Position = UDim2.new(0, l.useX, 1, -l.useBottom)
+		else
+			if auto then auto.Visible = true end
+			drift.Size, use.Size = UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight), UDim2.fromOffset(l.action,l.action)
+			driftIcon:layout(l.driftWidth,l.driftHeight)
+			for action,control in drivingButtons do
+				control.icon:layout(if action=="ForwardLeft" or action=="ForwardRight" then l.sideVisualWidth else l.driveVisualSize,l.driveVisualSize)
+			end
+			drift.Position = UDim2.new(0,l.driftX,1,-l.driftBottom)
+			use.Position = UDim2.new(0,l.useX,1,-l.useBottom)
 		end
-		drift.Size, use.Size = UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight), UDim2.fromOffset(l.action,l.action)
-		driftIcon:layout(l.driftWidth,l.driftHeight)
-		for action,control in drivingButtons do
-			control.icon:layout(if action=="ForwardLeft" or action=="ForwardRight" then l.sideVisualWidth else l.driveVisualSize,l.driveVisualSize)
-		end
-		drift.Position = UDim2.new(0,l.driftX,1,-l.driftBottom)
-		use.Position = UDim2.new(0,l.useX,1,-l.useBottom)
 	end
 	local function bindKart(value)
 		for _, c in kartConnections do c:Disconnect() end

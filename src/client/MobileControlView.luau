@@ -40,11 +40,24 @@ function View.layout(size: Vector2)
 	local driftHitWidth = math.ceil(driftWidth*1.10)
 	local driftHitHeight = if portrait then math.ceil(driftHeight*1.14) else math.ceil(driftHeight*View.artwork.driftHeight)+6
 	local driftBottom = if portrait then padBottom+padHeight+8 else 10-(driftHitHeight-driftHeight)/2-driftHeight*View.artwork.driftBottom-screenBottomInset
+	local steerLeftX = 12
+	local steerBottom = math.max(12, padBottom)
+	local steerTotalWidth = sideWidth*2+8
+	local steerHeight = sideHeight
+	local rightPadWidth = math.max(padWidth, driftHitWidth)
+	local rightPadX = size.X - margin - rightPadWidth - padInset
+	local rightBrakeX = rightPadX + math.floor((rightPadWidth - brake) / 2)
+	local rightBrakeBottom = math.max(10, padBottom)
+	if portrait and steerLeftX + steerTotalWidth + 8 > rightPadX then
+		rightBrakeBottom = steerBottom + steerHeight + 8
+	end
+	local rightDriftX = rightPadX + math.floor((rightPadWidth - driftHitWidth) / 2)
+	local rightDriftBottom = rightBrakeBottom + brake + (if short then 4 else 6)
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
-	if portrait and margin + slot*4 + 8*3 > size.X - margin - padWidth then
-		-- Lift only the four-slot group/progress above the narrow portrait driving pad.
-		loadoutBottom = math.max(loadoutBottom, padBottom + padHeight + 48)
+	if portrait then
+		local highestDriveTop = math.max(steerBottom + steerHeight, rightDriftBottom + driftHitHeight + 28)
+		loadoutBottom = math.max(loadoutBottom, highestDriveTop + 12)
 	end
 	return {
 		speedTop = math.clamp(size.Y*0.004, 2, 4), speedHeight = 56,
@@ -54,6 +67,10 @@ function View.layout(size: Vector2)
 		padBottom = padBottom, padInset=padInset, padSpacing=padSpacing, padVerticalSpacing=verticalSpacing,
 		autoVisualSize=autoVisual, autoHitSize=autoHit,
 		sideWidth=sideWidth,sideHeight=sideHeight,sideVisualWidth=sideVisualWidth,
+		steerLeftX=steerLeftX, steerBottom=steerBottom, steerTotalWidth=steerTotalWidth, steerHeight=steerHeight,
+		rightPadWidth=rightPadWidth, rightPadX=rightPadX,
+		rightBrakeX=rightBrakeX, rightBrakeBottom=rightBrakeBottom,
+		rightDriftX=rightDriftX, rightDriftBottom=rightDriftBottom,
 		-- AUTO shares Forward's visible top and the steering row's visible right.
 		autoRight=padWidth-(sideWidth-sideVisualWidth)/2+(autoHit-autoVisual)/2,
 		autoTop=(direction-visual)/2+visual*(1-View.artwork.driveHeight)/2-(autoHit-autoVisual)/2,

@@ -22,8 +22,9 @@ function Model.sample(dx: number, dy: number, radius: number, deadZone: number?)
 end
 
 function Model.new(mode: string?)
-	return setmetatable({ mode = mode or Model.MobileDriveControlMode, buttons = {}, pressSerial = 0,
-		owner = nil, throttle = 0, steering = 0, knobX = 0, knobY = 0, driftOwners = {}, autoForward = false, autoBackward = false }, Model)
+	local m = mode or Model.MobileDriveControlMode
+	return setmetatable({ mode = m, buttons = {}, pressSerial = 0,
+		owner = nil, throttle = 0, steering = 0, knobX = 0, knobY = 0, driftOwners = {}, autoForward = (m == "Buttons"), autoBackward = false }, Model)
 end
 
 function Model:pressButton(id, action: string)
@@ -62,7 +63,7 @@ end
 
 function Model:setMode(mode)
 	if mode ~= "Buttons" and mode ~= "Joystick" then return false end
-	if self.mode ~= mode then self:reset(); self.mode = mode end
+	if self.mode ~= mode then self.mode = mode; self:reset() end
 	return true
 end
 
@@ -95,7 +96,8 @@ function Model:release(id)
 end
 
 function Model:reset()
-	self:clearAuto()
+	self.autoForward = (self.mode == "Buttons")
+	self.autoBackward = false
 	self.owner = nil
 	self.throttle, self.steering, self.knobX, self.knobY = 0, 0, 0, 0
 	table.clear(self.driftOwners)
