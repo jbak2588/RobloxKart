@@ -269,5 +269,566 @@
         </Item>
       </Item>
     </Item>
+    <Item class="Model" referent="CityBeech">
+      <Properties>
+        <string name="Name">CityBeech</string>
+      </Properties>
+      <Item class="MeshPart" referent="CityBeech0">
+        <Properties>
+          <bool name="DoubleSided">true</bool>
+          <Content name="MeshId">
+            <url>rbxassetid://11504219301</url>
+          </Content>
+          <token name="RenderFidelity">2</token>
+          <Content name="TextureID">
+            <null />
+          </Content>
+          <bool name="Anchored">true</bool>
+          <CoordinateFrame name="CFrame">
+            <X>1673.5747076728421</X>
+            <Y>30.135783277998694</Y>
+            <Z>315.82823450763306</Z>
+            <R00>-1</R00>
+            <R01>1.13197609e-06</R01>
+            <R02>-1.509989e-07</R02>
+            <R10>1.1282383e-06</R10>
+            <R11>1</R11>
+            <R12>-1.6998838e-06</R12>
+            <R20>1.50994907e-07</R20>
+            <R21>-1.70056308e-06</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CastShadow">false</bool>
+          <Color3uint8 name="Color3uint8">4288914085</Color3uint8>
+          <token name="Material">256</token>
+          <float name="Reflectance">0</float>
+          <float name="Transparency">0</float>
+          <Vector3 name="size">
+            <X>24.233364945043892</X>
+            <Y>33.906021936663876</Y>
+            <Z>33.047686325592366</Z>
+          </Vector3>
+          <string name="Name">Leaves</string>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="RBXC78D2CD12C5749EFB9AEC45035372524">
+          <Properties>
+            <token name="AlphaMode">1</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://11322266264</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <url>rbxassetid://10961354837</url>
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5224401386</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5022684984</url>
+            </Content>
+            <string name="Name">SA_BeechwoodTree</string>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="MeshPart" referent="CityBeech1">
+        <Properties>
+          <bool name="DoubleSided">false</bool>
+          <Content name="MeshId">
+            <url>rbxassetid://5547038724</url>
+          </Content>
+          <token name="RenderFidelity">0</token>
+          <Content name="TextureID">
+            <null />
+          </Content>
+          <bool name="Anchored">true</bool>
+          <CoordinateFrame name="CFrame">
+            <X>1674.5158757447057</X>
+            <Y>20.66411109330768</Y>
+            <Z>315.6862571125012</Z>
+            <R00>-1</R00>
+            <R01>1.13197609e-06</R01>
+            <R02>-1.509989e-07</R02>
+            <R10>1.1282383e-06</R10>
+            <R11>1</R11>
+            <R12>-1.6998838e-06</R12>
+            <R20>1.50994907e-07</R20>
+            <R21>-1.70056308e-06</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CastShadow">false</bool>
+          <Color3uint8 name="Color3uint8">4288914085</Color3uint8>
+          <token name="Material">256</token>
+          <float name="Reflectance">0</float>
+          <float name="Transparency">0</float>
+          <Vector3 name="size">
+            <X>11.936025307852463</X>
+            <Y>39.51776680822337</Y>
+            <Z>22.571130156039505</Z>
+          </Vector3>
+          <string name="Name">Trunk</string>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="RBXC79750EB50B14E91B207AC264332D8F2">
+          <Properties>
+            <token name="AlphaMode">0</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5224402344</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <null />
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5224403038</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5224403332</url>
+            </Content>
+            <string name="Name">SurfaceAppearance</string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Model" referent="CityDogwood">
+      <Properties>
+        <string name="Name">CityDogwood</string>
+      </Properties>
+      <Item class="MeshPart" referent="CityDogwood0">
+        <Properties>
+          <bool name="DoubleSided">true</bool>
+          <Content name="MeshId">
+            <url>rbxassetid://5547038790</url>
+          </Content>
+          <token name="RenderFidelity">0</token>
+          <Content name="TextureID">
+            <null />
+          </Content>
+          <bool name="Anchored">true</bool>
+          <CoordinateFrame name="CFrame">
+            <X>300.641937</X>
+            <Y>16.8006439</Y>
+            <Z>224.094116</Z>
+            <R00>-1</R00>
+            <R01>1.1315459e-06</R01>
+            <R02>-1.5100953e-07</R02>
+            <R10>1.12866871e-06</R10>
+            <R11>1</R11>
+            <R12>-1.945539e-06</R12>
+            <R20>1.50984548e-07</R20>
+            <R21>-1.94664858e-06</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CastShadow">false</bool>
+          <Color3uint8 name="Color3uint8">4288914085</Color3uint8>
+          <token name="Material">256</token>
+          <float name="Reflectance">0</float>
+          <float name="Transparency">0</float>
+          <Vector3 name="size">
+            <X>31.8888283</X>
+            <Y>21.5182838</Y>
+            <Z>31.4921265</Z>
+          </Vector3>
+          <string name="Name">Meshes/Dogwood Trees 01_Leaf</string>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="RBX65FAC70E911F4A34BA6D3409A6BD7666">
+          <Properties>
+            <token name="AlphaMode">1</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://11378981454</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <url>rbxassetid://6036394111</url>
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://11379004434</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5058678265</url>
+            </Content>
+            <string name="Name">SA_Dogwood_Tree</string>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="MeshPart" referent="CityDogwood1">
+        <Properties>
+          <bool name="DoubleSided">false</bool>
+          <Content name="MeshId">
+            <url>rbxassetid://5547038983</url>
+          </Content>
+          <token name="RenderFidelity">0</token>
+          <Content name="TextureID">
+            <null />
+          </Content>
+          <bool name="Anchored">true</bool>
+          <CoordinateFrame name="CFrame">
+            <X>301.15976</X>
+            <Y>13.7837667</Y>
+            <Z>222.916306</Z>
+            <R00>-1</R00>
+            <R01>1.1315459e-06</R01>
+            <R02>-1.5100953e-07</R02>
+            <R10>1.12866871e-06</R10>
+            <R11>1</R11>
+            <R12>-1.945539e-06</R12>
+            <R20>1.50984548e-07</R20>
+            <R21>-1.94664858e-06</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CastShadow">false</bool>
+          <Color3uint8 name="Color3uint8">4288914085</Color3uint8>
+          <token name="Material">256</token>
+          <float name="Reflectance">0</float>
+          <float name="Transparency">0</float>
+          <Vector3 name="size">
+            <X>23.4112053</X>
+            <Y>25.5077152</Y>
+            <Z>25.184927</Z>
+          </Vector3>
+          <string name="Name">Meshes/Dogwood Trees 01_Trunk</string>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="RBX71989B60A3604C659CE62A4F85796113">
+          <Properties>
+            <token name="AlphaMode">0</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5058679416</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <null />
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5058679991</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5058680263</url>
+            </Content>
+            <string name="Name">SurfaceAppearance</string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Model" referent="CityFern">
+      <Properties>
+        <string name="Name">CityFern</string>
+      </Properties>
+      <Item class="MeshPart" referent="CityFern0">
+        <Properties>
+          <string name="Name">FernLeavesOuter</string>
+          <CoordinateFrame name="CFrame">
+            <X>299.2362060546875</X>
+            <Y>3.5134129524230957</Y>
+            <Z>156.4814453125</Z>
+            <R00>-1</R00>
+            <R01>1.0359784710090025e-06</R01>
+            <R02>9.683767530077603e-06</R02>
+            <R10>1.0321365380150382e-06</R10>
+            <R11>1</R11>
+            <R12>-1.968834567378508e-06</R12>
+            <R20>-9.683769349067006e-06</R20>
+            <R21>-1.9694607544806786e-06</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+          <Vector3 name="size">
+            <X>8.391057968139648</X>
+            <Y>5.706521987915039</Y>
+            <Z>8.636594772338867</Z>
+          </Vector3>
+          <Content name="MeshId">
+            <url>rbxassetid://11504219256</url>
+          </Content>
+          <bool name="DoubleSided">true</bool>
+          <Color3uint8 name="Color3uint8">10724005</Color3uint8>
+          <bool name="Anchored">true</bool>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CastShadow">false</bool>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="CityFernSA0">
+          <Properties>
+            <token name="AlphaMode">1</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5548259390</url>
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5548170153</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5548170334</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <url>rbxassetid://6036394111</url>
+            </Content>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Model" referent="CityRhododendron">
+      <Properties>
+        <string name="Name">CityRhododendron</string>
+      </Properties>
+      <Item class="MeshPart" referent="CityRhododendron0">
+        <Properties>
+          <string name="Name">Trunk</string>
+          <CoordinateFrame name="CFrame">
+            <X>304.41827392578125</X>
+            <Y>4.215012073516846</Y>
+            <Z>161.9212646484375</Z>
+            <R00>0.28493762016296387</R00>
+            <R01>1.1289221220067702e-06</R01>
+            <R02>0.9585464000701904</R02>
+            <R10>-1.9510212041495834e-06</R10>
+            <R11>1</R11>
+            <R12>-6.002549639561039e-07</R12>
+            <R20>-0.9585464000701904</R20>
+            <R21>-1.701339442661265e-06</R21>
+            <R22>0.28493762016296387</R22>
+          </CoordinateFrame>
+          <Vector3 name="size">
+            <X>5.606734275817871</X>
+            <Y>5.186936855316162</Y>
+            <Z>6.086295127868652</Z>
+          </Vector3>
+          <Content name="MeshId">
+            <url>rbxassetid://5547038308</url>
+          </Content>
+          <bool name="DoubleSided">false</bool>
+          <Color3uint8 name="Color3uint8">10724005</Color3uint8>
+          <bool name="Anchored">true</bool>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CastShadow">false</bool>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="CityRhododendronSA0">
+          <Properties>
+            <token name="AlphaMode">0</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5164022511</url>
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5164022594</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5164022664</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <null />
+            </Content>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="MeshPart" referent="CityRhododendron1">
+        <Properties>
+          <string name="Name">Leaves</string>
+          <CoordinateFrame name="CFrame">
+            <X>304.1024169921875</X>
+            <Y>4.62215518951416</Y>
+            <Z>162.02615356445312</Z>
+            <R00>0.28493762016296387</R00>
+            <R01>1.1289221220067702e-06</R01>
+            <R02>0.9585464000701904</R02>
+            <R10>-1.9510212041495834e-06</R10>
+            <R11>1</R11>
+            <R12>-6.002549639561039e-07</R12>
+            <R20>-0.9585464000701904</R20>
+            <R21>-1.701339442661265e-06</R21>
+            <R22>0.28493762016296387</R22>
+          </CoordinateFrame>
+          <Vector3 name="size">
+            <X>9.9838285446167</X>
+            <Y>5.675293922424316</Y>
+            <Z>12.258443832397461</Z>
+          </Vector3>
+          <Content name="MeshId">
+            <url>rbxassetid://11504219291</url>
+          </Content>
+          <bool name="DoubleSided">true</bool>
+          <Color3uint8 name="Color3uint8">10724005</Color3uint8>
+          <bool name="Anchored">true</bool>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CastShadow">false</bool>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="CityRhododendronSA1">
+          <Properties>
+            <token name="AlphaMode">1</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5164021540</url>
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5164022093</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5164022409</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <url>rbxassetid://6036394111</url>
+            </Content>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Model" referent="CityLaurel">
+      <Properties>
+        <string name="Name">CityLaurel</string>
+      </Properties>
+      <Item class="MeshPart" referent="CityLaurel0">
+        <Properties>
+          <string name="Name">Trunk</string>
+          <CoordinateFrame name="CFrame">
+            <X>305.8122253417969</X>
+            <Y>4.125551223754883</Y>
+            <Z>225.10081481933594</Z>
+            <R00>-0.4733138382434845</R00>
+            <R01>-4.043435808398499e-07</R01>
+            <R02>0.880893886089325</R02>
+            <R10>-1.954664185177535e-06</R10>
+            <R11>1</R11>
+            <R12>-5.938435378993745e-07</R12>
+            <R20>-0.880893886089325</R20>
+            <R21>-1.9999774849566165e-06</R21>
+            <R22>-0.4733138382434845</R22>
+          </CoordinateFrame>
+          <Vector3 name="size">
+            <X>3.9079415798187256</X>
+            <Y>5.210513114929199</Y>
+            <Z>4.424069881439209</Z>
+          </Vector3>
+          <Content name="MeshId">
+            <url>rbxassetid://5547038502</url>
+          </Content>
+          <bool name="DoubleSided">false</bool>
+          <Color3uint8 name="Color3uint8">10724005</Color3uint8>
+          <bool name="Anchored">true</bool>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CastShadow">false</bool>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="CityLaurelSA0">
+          <Properties>
+            <token name="AlphaMode">1</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5099981959</url>
+            </Content>
+            <Content name="NormalMap">
+              <null />
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5100001901</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <null />
+            </Content>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="MeshPart" referent="CityLaurel1">
+        <Properties>
+          <string name="Name">Leaf</string>
+          <CoordinateFrame name="CFrame">
+            <X>305.9353332519531</X>
+            <Y>4.118288040161133</Y>
+            <Z>225.28848266601562</Z>
+            <R00>-0.4733138382434845</R00>
+            <R01>-4.043435808398499e-07</R01>
+            <R02>0.880893886089325</R02>
+            <R10>-1.954664185177535e-06</R10>
+            <R11>1</R11>
+            <R12>-5.938435378993745e-07</R12>
+            <R20>-0.880893886089325</R20>
+            <R21>-1.9999774849566165e-06</R21>
+            <R22>-0.4733138382434845</R22>
+          </CoordinateFrame>
+          <Vector3 name="size">
+            <X>6.736687660217285</X>
+            <Y>5.29159688949585</Y>
+            <Z>6.736305236816406</Z>
+          </Vector3>
+          <Content name="MeshId">
+            <url>rbxassetid://5547038659</url>
+          </Content>
+          <bool name="DoubleSided">true</bool>
+          <Color3uint8 name="Color3uint8">10724005</Color3uint8>
+          <bool name="Anchored">true</bool>
+          <bool name="CanCollide">false</bool>
+          <bool name="CanTouch">false</bool>
+          <bool name="CanQuery">false</bool>
+          <bool name="CastShadow">false</bool>
+        </Properties>
+        <Item class="SurfaceAppearance" referent="CityLaurelSA1">
+          <Properties>
+            <token name="AlphaMode">1</token>
+            <Color3 name="Color">
+              <R>1</R>
+              <G>1</G>
+              <B>1</B>
+            </Color3>
+            <Content name="ColorMap">
+              <url>rbxassetid://5099981959</url>
+            </Content>
+            <Content name="NormalMap">
+              <url>rbxassetid://5099982930</url>
+            </Content>
+            <Content name="RoughnessMap">
+              <url>rbxassetid://5126484437</url>
+            </Content>
+            <Content name="MetalnessMap">
+              <url>rbxassetid://6036394111</url>
+            </Content>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
   </Item>
 </roblox>

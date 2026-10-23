@@ -4,9 +4,9 @@ local root,L=fixture.root,fixture.layout
 local g=luau.load(fs.readFile('src/shared/RookieLoopDriveGeometry.luau'),{environment={script={Parent={HubParkRookieLoopLayout='layout'}},require=function()return L end}})().create()
 local n=0;local function check(v,m)assert(v,m);n+=1 end
 local forest=rb.deserializeModel(fs.readFile('src/assets/KDMHubForestTreePrefabs.rbxmx'))[1]
-check(#forest:GetChildren()==2,'two reusable City prefabs, no whole City import')
+check(#forest:GetChildren()==7,'four City trees and three understory prefabs, no whole City import')
 for _,model in forest:GetChildren()do
- check(model:IsA('Model')and #model:GetChildren()==2,'two-mesh tree budget')
+ check(model:IsA('Model')and #model:GetChildren()==(if model.Name=='CityFern'then 1 else 2),'one/two-mesh prefab budget')
  for _,v in model:GetDescendants()do
   check(v:IsA('MeshPart')or v:IsA('SurfaceAppearance'),'prefab contains visual data only')
   if v:IsA('MeshPart')then check(tostring(v.MeshContent):find('rbxassetid://')~=nil and v:FindFirstChildOfClass('SurfaceAppearance')~=nil,'real mesh and appearance, no empty placeholder')end
@@ -17,7 +17,8 @@ for _,path in {'src/shared/HubParkRookieLoopLayout.luau','src/server/HubParkRook
 end
 local art=assert(root:FindFirstChild('ParkLandscaping'))
 check(not fs.readFile('src/server/HubParkLandscapingBuilder.luau'):match('RenderFidelity%s*='),'no runtime LOD mutation')
-local parts,trees,shrubs,rocks,hills,meshes,beds=0,0,0,0,0,0,0
+local parts,trees,shrubs,rocks,hills,meshes,beds,understory=0,0,0,0,0,0,0,0
+local interior={west=0,northeast=0,lower=0}
 local minClearance=math.huge
 for _,v in art:GetDescendants()do
  if v:IsA('Folder')and v.Name:match('^ParkFlowerBed')then
@@ -25,8 +26,14 @@ for _,v in art:GetDescendants()do
  end
  check(not v:IsA('LuaSourceContainer')and not v:IsA('RemoteEvent')and not v:IsA('Constraint')and not v:IsA('JointInstance'),'visual props contain no gameplay/physics code or joints')
  if v:IsA('Model')then
-  trees+=1;local key=v:GetAttribute('CuratedPrefab')
-  check(key=='NaturalTreeA'or key=='NaturalTreeB'or key=='CityMaple'or key=='CityBroadleaf','curated tree reuse')
+  local key=v:GetAttribute('CuratedPrefab')
+  if v:GetAttribute('ForestUnderstory')then understory+=1 else
+   trees+=1;local p=v:FindFirstChildOfClass('MeshPart').CFrame.Position
+   if p.X>-650 and p.X< -400 and p.Z< -500 and p.Z> -1100 then interior.west+=1 end
+   if p.X>280 and p.X<660 and p.Z< -930 then interior.northeast+=1 end
+   if p.X> -420 and p.X<260 and p.Z> -330 and p.Z< -230 then interior.lower+=1 end
+  end
+  check(key=='NaturalTreeA'or key=='NaturalTreeB'or forest:FindFirstChild(key)~=nil,'curated vegetation reuse')
   local minY=math.huge
   for _,p in v:GetDescendants()do if p:IsA('BasePart')then
    local cf=p.CFrame
@@ -47,7 +54,8 @@ for _,v in art:GetDescendants()do
   end end
  end
 end
-check(parts==275 and meshes==190,'bounded Forest Band: 275 parts, 190 reused meshes; no snowy backdrops')
-check(trees==80 and shrubs==6 and rocks==5 and hills==0 and beds==8,'80 trees and low beds/rocks preserved; three mountains removed')
+check(parts==1445 and meshes==1360,'bounded forest mass: 1445 static parts, 1360 reused meshes')
+check(trees==440 and understory==270 and shrubs==6 and rocks==5 and hills==0 and beds==8,'440 trees and 270 City understory groups; existing low beds/rocks preserved, no mountains')
+check(interior.west>=15 and interior.northeast>=20 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
 check(#root.IslandScenery:GetDescendants()==332,'A1 outer cliff/sea scenery left unchanged')
 print(string.format('PASS %d A2 checks; %d static parts/%d meshes; minimum sampled corridor clearance %.2f studs',n,parts,meshes,minClearance))
