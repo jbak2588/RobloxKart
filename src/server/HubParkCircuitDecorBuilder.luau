@@ -1,6 +1,10 @@
 -- Opt-in HUB presentation adapted from Figure-8 circuit structures and visual rails.
 -- The RACE controllers remain unchanged. No lights, physics, triggers or update loops.
 local Builder={}
+-- A3 Lite: 75% of the existing 6-stud chevrons; retain the 20-stud
+-- horizontal panel, branding and station count. Chevrons remain dominant.
+local AD_RAIL_HEIGHT = 4.5
+local AD_RAIL_LENGTH = 20
 local ARCH_CONFIG = {
 	name = "SponsorArch",
 	-- HUB main straight, beyond the Pit exit.
@@ -295,14 +299,14 @@ function Builder.build(root,origin,layout,spotlightPrefab)
    local p=points[j]
    if p.section~='StartStraight' and not p.section:find('Link$')then continue end
    local right=Vector3.new(-p.fz,0,p.fx)
-   local railHeight=2.5
+   local railHeight=AD_RAIL_HEIGHT
    for _,side in {-1,1}do
     -- Keep the complete pit apron and entry/exit unoccluded.
     if p.section=='StartStraight' and side==1 then continue end
     local center=Vector3.new(p.x,2.02+railHeight*0.5,p.z)+right*(side*(layout.RoadWidth/2+layout.KerbWidth+2.1))
     local frame=CFrame.lookAt(center,center+Vector3.new(p.fx,0,p.fz))
     count+=1
-    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,20),frame,
+    local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,AD_RAIL_LENGTH),frame,
      if ((j-i)/6)%2==0 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230),Enum.Material.SmoothPlastic)
     attachKdmBranding(rail, right * side)
    end

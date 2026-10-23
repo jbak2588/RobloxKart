@@ -30,6 +30,8 @@ for _,v in folder:GetDescendants()do
      check(img and img:IsA('ImageLabel')and img.Image==expectedAsset,'ChevronImage uses uploaded 1024x512 chevron asset')
      chevronImages+=1
     end
+   else
+    check(math.abs(v.Size.Y-4.5)<.001 and math.abs(v.Size.Z-20)<.001,'ad rails 4.5x20, 75 percent of chevron height')
    end
   end
  elseif v:IsA('SurfaceGui')then branding+=1;check(not v.AlwaysOnTop,'world occlusion respected')end

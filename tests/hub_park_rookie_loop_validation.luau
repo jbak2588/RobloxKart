@@ -58,10 +58,11 @@ local shared={HubParkRookieLoopLayout='layout',WaitForChild=function(_,n)return 
 local lighting=rb.Instance.new('Lighting')
 local originalSky=rb.Instance.new('Sky');originalSky.Name='OriginalSky';originalSky.Parent=lighting
 local treePrefabs=rb.deserializeModel(fs.readFile('src/assets/KDMHorizonTreePrefabs.rbxmx'))[1]
+local forestPrefabs=rb.deserializeModel(fs.readFile('src/assets/KDMHubForestTreePrefabs.rbxmx'))[1]
 local mountainPrefabs=rb.deserializeModel(fs.readFile('src/assets/KDMHorizonMountainPrefabs.rbxmx'))[1]
 local game={GetService=function(_,n)
  if n=='ReplicatedStorage'then return {Shared=shared,WaitForChild=function()return shared end,
-  FindFirstChild=function(_,name)return if name=='KDMHorizonTreePrefabs'then treePrefabs elseif name=='KDMHorizonMountainPrefabs'then mountainPrefabs else nil end}end
+  FindFirstChild=function(_,name)return if name=='KDMHorizonTreePrefabs'then treePrefabs elseif name=='KDMHubForestTreePrefabs'then forestPrefabs elseif name=='KDMHorizonMountainPrefabs'then mountainPrefabs else nil end}end
  if n=='RunService'then return {IsStudio=function()return true end}end
  if n=='Lighting'then return lighting end
  error(n)
