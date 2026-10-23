@@ -40,7 +40,15 @@ for _,v in art:GetDescendants()do
    local halfHeight=(math.abs(cf.RightVector.Y)*p.Size.X+math.abs(cf.UpVector.Y)*p.Size.Y+math.abs(cf.LookVector.Y)*p.Size.Z)/2
    minY=math.min(minY,cf.Position.Y-halfHeight)
   end end
-  check(math.abs(minY+.2)<.001,'tree foot grounded, no floating prefab pivots')
+  if key=='CityMaple'then
+   local trunk=v:FindFirstChild('Trunk')
+   local scale=trunk.Size.Y/forest.CityMaple.Trunk.Size.Y
+   local collarY=trunk.CFrame:PointToWorldSpace(rb.Vector3.new(0,-trunk.Size.Y/2,0)).Y+2*scale
+   check(math.abs(collarY+.2)<.001,'tilted Maple root collar meets grass at every scale/yaw')
+   check(minY< -4,'Maple empty bbox corners buried rather than mistaken for visible roots')
+  else
+   check(math.abs(minY+.2)<.001,'other vegetation grounding preserved')
+  end
  end
  if v:IsA('BasePart')then
   parts+=1;check(v.Anchored and not v.CanCollide and not v.CanTouch and not v.CanQuery and not v.CastShadow,'noninteractive static mobile art')

@@ -8,7 +8,7 @@ function Builder.build(root,origin,trees,mountains)
   p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false;p.CastShadow=false
   -- Preserve the curated asset's LOD. RenderFidelity is editor-write-only.
  end
- local function foot(model)
+ local function foot(model,prefabName)
   local lo,hi=Vector3.new(math.huge,math.huge,math.huge),Vector3.new(-math.huge,-math.huge,-math.huge)
   for _,p in model:GetDescendants()do if p:IsA('BasePart')then
    for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
@@ -17,7 +17,17 @@ function Builder.build(root,origin,trees,mountains)
     hi=Vector3.new(math.max(hi.X,v.X),math.max(hi.Y,v.Y),math.max(hi.Z,v.Z))
    end end end
   end end
-  return Vector3.new((lo.X+hi.X)/2,lo.Y,(lo.Z+hi.Z)/2)
+  local groundY=lo.Y
+  if prefabName=='CityMaple'then
+   -- This tilted mesh's empty bounding-box corners extend below its roots.
+   -- Plant at the trunk's root collar, burying the lowest 2 source studs
+   -- so the spreading roots meet the grass instead of hovering above it.
+   local trunk=model:FindFirstChild('Trunk')
+   if trunk and trunk:IsA('BasePart')then
+    groundY=trunk.CFrame:PointToWorldSpace(Vector3.new(0,-trunk.Size.Y/2,0)).Y+2
+   end
+  end
+  return Vector3.new((lo.X+hi.X)/2,groundY,(lo.Z+hi.Z)/2)
  end
  local treeSites={
   {-145,-25,.85,15,'NaturalTreeA'},{145,-25,.9,-25,'NaturalTreeB'},
@@ -457,7 +467,7 @@ function Builder.build(root,origin,trees,mountains)
   local prefab=(forest and forest:FindFirstChild(s[5]))or(trees and trees:FindFirstChild(s[5]))
   if prefab then
    local model=prefab:Clone();model.Name=name
-   local base=foot(model);local target=CFrame.new(origin+Vector3.new(s[1],-.2,s[2]))*CFrame.Angles(0,math.rad(s[4]),0)
+   local base=foot(model,s[5]);local target=CFrame.new(origin+Vector3.new(s[1],-.2,s[2]))*CFrame.Angles(0,math.rad(s[4]),0)
    for _,p in model:GetDescendants()do
     if p:IsA('BasePart')then
      local frame=p.CFrame;p.Size*=s[3]
