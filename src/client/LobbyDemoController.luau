@@ -97,13 +97,10 @@ function Controller.start()
     elseif v:IsA("LuaSourceContainer") or v:IsA("ProximityPrompt") then v:Destroy() end
    end
    local audio=Feedback.new(root)
-   local badge=Instance.new('BillboardGui');badge.Name='PracticeBotFeedback';badge.Size=UDim2.fromOffset(200,32);badge.StudsOffset=Vector3.new(0,6,0);badge.AlwaysOnTop=false;badge.Parent=root
-   local label=Instance.new('TextLabel');label.Size=UDim2.fromScale(1,1);label.BackgroundColor3=Color3.fromRGB(16,25,35);label.BackgroundTransparency=.15
-   label.TextColor3=Color3.fromRGB(65,225,245);label.TextSize=15;label.Font=Enum.Font.GothamBold;label.BorderSizePixel=0;label.Parent=badge
    local boostVisuals=Exhaust.createBoostVisuals(visual)
    table.insert(botList,{
     id=cfg.id,delay=botDelay,model=model,visual=visual,root=root,smoke=smoke,audio=audio,
-    badge=badge,label=label,boostVisuals=boostVisuals,visualDrift=0,
+    boostVisuals=boostVisuals,visualDrift=0,
     proxyName=if cfg.id==1 then 'LobbyPracticeBot' else 'LobbyPracticeBot_'..cfg.id,
    })
   end
@@ -148,15 +145,6 @@ function Controller.start()
     local position=center+Vector3.new(x,groundY+0.463,z)
     local basis=CFrame.lookAt(position,position+Vector3.new(dx,0,dz),Vector3.new(0,ny,nz))
     b.model:PivotTo(basis*CFrame.Angles(0,if slick then spin else math.rad(32)*b.visualDrift,0))
-
-    -- Target practice feedback badge
-    local customMsg=if missile then "MISSILE HIT!" elseif thunder then "SHOCKED!" elseif slick then "SLIPPED!" else (proxy and proxy:GetAttribute('LobbyPracticeMessage'))
-    local showBadge=hit or (proxy~=nil and now-(proxy:GetAttribute('LobbyPracticeMessageAt')or -math.huge)<1.2)
-    b.badge.Enabled=showBadge
-    if showBadge then
-     b.label.Text=customMsg or ''
-     b.label.TextColor3=if thunder then Color3.fromRGB(255,235,80) elseif missile then Color3.fromRGB(255,90,80) else Color3.fromRGB(65,225,245)
-    end
 
     -- Drift particles & audio
     local slip=if slick then 32 elseif hit then 0 else 32*math.abs(drift)

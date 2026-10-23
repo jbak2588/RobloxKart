@@ -2,7 +2,11 @@
 local RunService = game:GetService("RunService")
 local KartConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("KartConfig"))
 local View = {}
-function View.new(gui, player, onClear)
+function View.isPracticeResult(text)
+	return type(text) == "string" and (text:find("HIT", 1, true) ~= nil
+		or text:find("BLOCKED", 1, true) ~= nil or text == "SHOCKED!" or text == "SMOKED!")
+end
+function View.new(gui, player, onClear, practice)
 	local cue = Instance.new("TextLabel")
 	cue.Name = "CombatResult"
 	cue.AnchorPoint = Vector2.new(0.5, 0)
@@ -38,18 +42,23 @@ function View.new(gui, player, onClear)
 		if notify and onClear then onClear() end
 	end
 	local function activeKart()
-		if player:GetAttribute("RaceState") ~= "RACING" then return nil end
+		if practice then
+			if player:GetAttribute("RaceState") ~= "GARAGE" or player:GetAttribute("LobbyDriveActive") ~= true then return nil end
+		elseif player:GetAttribute("RaceState") ~= "RACING" then return nil end
 		local human = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		local seat = human and human.SeatPart
 		local candidate = seat and seat.Parent
-		if not human or human.Health <= 0 or not seat or seat:GetAttribute("PrototypeKartSeat") ~= true
-			or not candidate or not candidate.Parent or candidate:GetAttribute("PrototypeKart") ~= true
+		if not human or human.Health <= 0 or not seat
+			or seat:GetAttribute(if practice then "LobbyKartSeat" else "PrototypeKartSeat") ~= true
+			or not candidate or not candidate.Parent
+			or candidate:GetAttribute(if practice then "LobbyKart" else "PrototypeKart") ~= true
+			or (practice and candidate:GetAttribute("LobbyOwnerUserId") ~= player.UserId)
 			or candidate:GetAttribute("RaceControlsLocked") == true then return nil end
 		return candidate
 	end
 	local function sync()
 		local current = activeKart()
-		local currentSession = player:GetAttribute("RaceSessionId")
+		local currentSession = player:GetAttribute(if practice then "LobbyCombatSessionId" else "RaceSessionId")
 		local currentReset = current and current:GetAttribute("RaceResetSerial")
 		if current ~= kart or currentSession ~= session or currentReset ~= reset then
 			for _, connection in kartSignals do connection:Disconnect() end
@@ -86,6 +95,15 @@ function View.new(gui, player, onClear)
 	local orange = Color3.fromRGB(255, 200, 75)
 	local cyan = Color3.fromRGB(65, 225, 255)
 	local purple = Color3.fromRGB(185, 125, 255)
+	if practice then
+		table.insert(connections, player:GetAttributeChangedSignal("LobbyPracticeMessageSerial"):Connect(function()
+			local text = player:GetAttribute("LobbyPracticeMessage")
+			if type(text) ~= "string" or not sync() then return end
+			if View.isPracticeResult(text) then
+				show(text, cyan, 1.2, false)
+			end
+		end))
+	end
 	local function diagnostic(message)
 		if KartConfig.DEBUG_TELEMETRY then print("[CombatFeedbackView] "..message) end
 	end
@@ -126,7 +144,7 @@ function View.new(gui, player, onClear)
 	table.insert(connections, player:GetAttributeChangedSignal("RaceItemBlockedSerial"):Connect(function()
 		if sync() then show("BLOCKED!", cyan, 1.0, true); diagnostic("victim=BLOCKED") end
 	end))
-	for _, attr in {"RaceState", "RaceSessionId"} do
+	for _, attr in (if practice then {"RaceState", "LobbyCombatSessionId", "LobbyDriveActive"} else {"RaceState", "RaceSessionId"}) do
 		table.insert(connections, player:GetAttributeChangedSignal(attr):Connect(function() clear(true); kart=nil; sync() end))
 	end
 	table.insert(connections, player.CharacterRemoving:Connect(function() clear(true); kart=nil end))

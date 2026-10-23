@@ -138,4 +138,32 @@ local first=View.new(firstGui,player);tick()
 check(firstGui:FindFirstChild("CombatResult").Text=="MISSILE HIT!" and firstGui:FindFirstChild("CombatResult").Visible,
 	"first binding displays already-replicated active hit")
 first:destroy()
+-- Park uses the exact race badge/layout rather than a second bot-head billboard.
+player.UserId=42;player:SetAttribute('RaceState','GARAGE');player:SetAttribute('LobbyDriveActive',true)
+player:SetAttribute('LobbyCombatSessionId','practice1')
+seat:SetAttribute('LobbyKartSeat',true);kart:SetAttribute('LobbyKart',true);kart:SetAttribute('LobbyOwnerUserId',42)
+kart:SetAttribute('KartMissileHitActive',false)
+local parkGui=object('Frame');parkGui.bounds=rb.Vector2.new(844,332);parkGui.origin=rb.Vector2.zero
+local park=View.new(parkGui,player,nil,true);tick()
+local parkCue=parkGui:FindFirstChild('CombatResult')
+check(not parkCue.Visible,'Park does not replay stale feedback on attachment')
+for i,text in {'MISSILE HIT: BOT 1','THUNDER HIT 2'}do
+ player:SetAttribute('LobbyPracticeMessage',text);player:SetAttribute('LobbyPracticeMessageSerial',i)
+ check(parkCue.Visible and parkCue.Text==text,'Park authoritative result: '..text)
+ check(parkCue.BackgroundTransparency==cue.BackgroundTransparency and parkCue.TextColor3==cue.TextColor3
+  and parkCue.Font==cue.Font and parkCue.TextSize==cue.TextSize,'Park badge shares race transparency and typography')
+ tick(1.21);check(not parkCue.Visible,'Park result expires after race duration')
+end
+for _,bounds in {rb.Vector2.new(1920,1080),rb.Vector2.new(844,332),rb.Vector2.new(390,780)}do
+ parkGui.bounds=bounds
+ local compareGui=object('Frame');compareGui.bounds=bounds;compareGui.origin=rb.Vector2.zero
+ local raceCompare=View.new(compareGui,player)
+ park:layout(rb.UDim2.new(.5,0,0,6));raceCompare:layout(rb.UDim2.new(.5,0,0,6));tick()
+ check(parkCue.Position==compareGui:FindFirstChild('CombatResult').Position,'same Park/race screen height at '..tostring(bounds))
+ raceCompare:destroy()
+end
+player:SetAttribute('LobbyPracticeMessage','MISSILE HIT: BOT 1');player:SetAttribute('LobbyPracticeMessageSerial',3)
+player:SetAttribute('LobbyDriveActive',false);tick();check(not parkCue.Visible,'return Lobby clears practice result immediately')
+park:destroy()
+check(not fs.readFile('src/client/LobbyDemoController.luau'):find('PracticeBotFeedback',1,true),'no duplicate bot-head feedback')
 print("PASS: "..count.." production combat feedback view checks")

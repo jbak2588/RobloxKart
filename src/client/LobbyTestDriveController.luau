@@ -23,6 +23,7 @@ local StyleHelper=require(script.Parent:WaitForChild('KDMUiStyleHelper'))
 local PracticeView=require(script.Parent:WaitForChild('LobbyPracticeView'))
 local SmokeView=require(script.Parent:WaitForChild('SmokeEffectView'))
 local PostDriveView=require(script.Parent:WaitForChild('LobbyPostDriveView'))
+local CombatFeedbackView=require(script.Parent:WaitForChild('CombatFeedbackView'))
 local Controller={}
 local requestDrive
 function Controller.requestDrive()return if requestDrive then requestDrive()else false end
@@ -56,6 +57,7 @@ function Controller.start()
  local gui=Instance.new("ScreenGui");gui.Name="KDMLobbyTestDrive";gui.ResetOnSpawn=false
  gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.DisplayOrder=21;gui.Parent=player:WaitForChild("PlayerGui")
  local canvas=Instance.new("Frame");canvas.Name="SafeCanvas";canvas.Size=UDim2.fromScale(1,1);canvas.BackgroundTransparency=1;canvas.Parent=gui
+ local combatView=CombatFeedbackView.new(canvas,player,nil,true)
  local button=Instance.new("TextButton");button.Name="Drive";button.AnchorPoint=Vector2.new(0,1)
  button.Position=UDim2.new(0,12,1,-12);button.Size=UDim2.fromOffset(156,44)
  button.BackgroundColor3=Color3.fromRGB(111,211,245);button.TextColor3=Color3.fromRGB(12,27,42)
@@ -223,6 +225,9 @@ function Controller.start()
   local wallet=navigation and navigation:FindFirstChild("WalletCapsule")
   local walletBottom=if wallet then wallet.AbsolutePosition.Y+wallet.AbsoluteSize.Y-canvas.AbsolutePosition.Y else nil
   local practiceLayout=practiceView:update(active and gui.Enabled,l,walletBottom,seatKart())
+  local rewardHud=gui.Parent:FindFirstChild('KDMActivityReward')
+  combatView:layout(UDim2.new(.5,0,0,6),nil,
+   rewardHud and rewardHud.Enabled and rewardHud:FindFirstChild('Progress'))
   charge.Visible=active;gauge.Visible=active
   charge.TextSize=if practiceLayout.compact then 12 else 16
   charge.Position=UDim2.fromOffset(practiceLayout.x,practiceLayout.boostY);charge.Size=UDim2.fromOffset(practiceLayout.width,practiceLayout.boostTextHeight)

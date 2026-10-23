@@ -6,6 +6,7 @@ local Policy=require(RS.Shared.LobbyPracticePolicy)
 local Layout=require(RS.Shared.LobbyPracticeLayout)
 local Icon=require(script.Parent.KDMItemIconView)
 local Mobile=require(script.Parent.MobileControlView)
+local CombatFeedback=require(script.Parent.CombatFeedbackView)
 local View={}
 function View.new(canvas,player,remote,canUse)
  local scroll=Instance.new('ScrollingFrame');scroll.Name='PracticeItems';scroll.BackgroundTransparency=1;scroll.BorderSizePixel=0
@@ -54,7 +55,8 @@ function View.new(canvas,player,remote,canUse)
   local incoming=(player:GetAttribute('LobbyMissileIncomingCount')or 0)+(player:GetAttribute('LobbyThunderIncomingCount')or 0)
   local progress=player:GetAttribute('LobbyBonusProgress')or 0
   local state=if kart and kart:GetAttribute('LobbyDriftReady')then 'BOOST READY • RELEASE'elseif kart and kart:GetAttribute('KartBoosting')then 'MINI BOOST'else 'NITRO '..(player:GetAttribute('LobbyChargeNitro')or 0)..' • BOOST '..progress..'/3'..(if player:GetAttribute('LobbyBonusPending')then ' PENDING'else '')
-  info.Text=if incoming>0 then 'INCOMING! • SHIELD'elseif now<messageUntil then player:GetAttribute('LobbyPracticeMessage')or ''else state
+  local message=player:GetAttribute('LobbyPracticeMessage')or ''
+  info.Text=if incoming>0 then 'INCOMING! • SHIELD'elseif now<messageUntil and not CombatFeedback.isPracticeResult(message) then message else state
   return l
  end
  function self:destroy()input:Disconnect();cache:destroy();scroll:Destroy();info:Destroy()end
