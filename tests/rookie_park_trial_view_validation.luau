@@ -2,11 +2,13 @@ local fs,luau=require('@lune/fs'),require('@lune/luau')
 local fixture=fs.readFile('tests/mobile_touch_validation.luau')
 local prefix=fixture:sub(1,assert(fixture:find('local input=modules.KartInputController; input.start()',1,true))-1)
 local scenario=[=[
+services.GuiService.TopbarInset=rb.Rect.new(0,0,932,58)
 local now=0;local viewEnv=table.clone(env);viewEnv.workspace={GetServerTimeNow=function()return now end}
 local View=luau.load(fs.readFile('src/client/RookieParkTrialView.luau'),{environment=viewEnv})()
 local replays,returns=0,0
 local view=View.new(pg,player,function()replays+=1 end,function()returns+=1 end)
 local gui=pg.KDMRookieParkTrial;local root=gui:FindFirstChildOfClass('Frame');local panel=root.LapResult
+local timing=pg.KDMRookieParkTopHud.Timing
 local projected=rb.Vector3.new(30,20,10)
 local camera={ViewportSize=V2.new(844,390),WorldToViewportPoint=function()return projected end}
 check(View.format(61234)=='01:01.234','lap clock millisecond format')
@@ -16,18 +18,17 @@ for _,size in {V2.new(750,332),V2.new(844,390),V2.new(932,430),V2.new(390,703)}d
  for _,case in {{0,'3'},{1,'2'},{2,'1'}}do now=case[1];view:update(true,camera);check(root.Countdown.Visible and root.Countdown.Text==case[2],'server countdown display '..case[2])end
  now=3;player:SetAttribute('ParkTrialPhase','RUNNING');player:SetAttribute('ParkTrialStartedAt',3)
  player:SetAttribute('ParkTrialCheckpoint',2);player:SetAttribute('ParkTrialTarget',rb.Vector3.zero)
- view:update(true,camera);check(root.Countdown.Text=='GO!'and root.Timing.Visible,'GO then individual timer')
- player:SetAttribute('ParkTrialMissed',true);projected=rb.Vector3.new(0,20,10);now=10
- view:update(true,camera);check(root.CheckpointDirection.Text:find('MISSED CP 3',1,true)~=nil,'first missed checkpoint number')
- check(root.CheckpointDirection.Text:find('◀',1,true)~=nil,'left target has left arrow')
- projected=rb.Vector3.new(0,0,-1);view:update(true,camera)
- check(root.CheckpointDirection.Text:find('↶',1,true)~=nil,'behind camera requests turn back')
- local cue=root.CheckpointDirection
- check(cue.Position.X.Scale>=.1799 and cue.Position.X.Scale<=.8201 and cue.Position.Y.Scale>=.2399 and cue.Position.Y.Scale<=.6601,'direction stays inside central safe screen')
+ view:update(true,camera);check(root.Countdown.Text=='GO!'and timing.Visible,'GO then individual timer')
+ player:SetAttribute('ParkTrialMissed',true);now=10;view:update(true,camera)
+ check(timing.Text:find('MISSED 3',1,true)~=nil,'missed checkpoint number remains in unified top timing HUD')
+ check(pg.KDMRookieParkTopHud.ScreenInsets==rb.Enum.ScreenInsets.None and timing.Parent==pg.KDMRookieParkTopHud,'lap clock uses same topbar surface as Roblox logo')
+ check(root:FindFirstChild('CheckpointDirection')==nil,'custom Park marker removed in favor of shared Figure-8 controller')
+ player:SetAttribute('ParkTrialPhase','FINISHING');view:update(true,camera)
+ check(not panel.Visible,'result waits for roll and front camera transition')
  player:SetAttribute('ParkTrialPhase','FINISHED');player:SetAttribute('ParkTrialMilliseconds',61234)
  player:SetAttribute('KDMRookieParkBestMilliseconds',60000);player:SetAttribute('ParkTrialRewardState','SAVING')
  view:update(true,camera)
- check(panel.Visible and not root.Timing.Visible and panel.LapTime.Text=='01:01.234','lap result replaces running timer')
+ check(panel.Visible and not timing.Visible and panel.LapTime.Text=='01:01.234','lap result replaces running timer')
  check(not panel.Replay.Active and not panel.Reward.Text:find('EARNED',1,true),'no reward success before storage confirmation')
  player:SetAttribute('ParkTrialRewardState','CONFIRMED');view:update(true,camera)
  check(panel.Reward.Text:find('+ K$5,000',1,true)~=nil and panel.SaveState.Text:find('SAVED',1,true)~=nil,'confirmed K$5000 reward highlighted')

@@ -168,7 +168,7 @@ function Controller.start()
 		local race = player:GetAttribute("RaceState")
 		local phase=player:GetAttribute("ParkTrialPhase")
 		return gui.Enabled and Input.isTouchPreferred() and focused and not GuiService.MenuIsOpen
-			and phase~="FINISHED" and phase~="INVALID"
+			and phase~="FINISHING" and phase~="FINISHED" and phase~="INVALID"
 			and UserInputService:GetFocusedTextBox() == nil and kart() ~= nil
 			and (race == "COUNTDOWN" or race == "RACING" or Input.isLobbyDriving())
 	end

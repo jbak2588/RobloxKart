@@ -302,12 +302,18 @@ are decoration only. First entry and Replay use a server-owned 3/2/1/GO and the
 existing 2-second Mini Boost launch, with no Nitro consumption or Drift reward
 credit. Official RACE launch and physics are outside this Park-only change.
 
-The server validates six ordered forward checkpoint crossings and the finish
-crossing, rejects discontinuities/teleports, and owns lap timing. A missed gate
-shows the next required checkpoint and grants no finish reward. Each accepted
+The server uses Figure-8 RaceRouteProgress for six ordered checkpoints, including
+provisional off-road progress committed on re-entry. Rejected discontinuities
+retain route anchors instead of permanently invalidating an ordinary off-track
+lap. The shared CheckpointGuidanceController owns the original checkpoint/finish
+flags and checker markers. A missed gate shows the next required checkpoint
+and grants no finish reward. The server owns lap timing. Each accepted
 lap atomically saves the personal best and K$5,000 using a unique idempotent
 Park lap receipt in KDM_PlayerProgress_v1. Never claim a saved reward before
-read-back confirmation. Results offer Replay / Return Lobby. Global leaderboard
+read-back confirmation. Finish uses the official 2.4-second roll and 0.9-second
+front-camera transition, stops the engine, then shows the existing new Park
+time/PB/reward panel with Replay / Return Lobby. SOLO LAP uses the topbar center;
+the transparent white Return Lobby button matches wallet width. Global leaderboard
 is deferred to a later task. Studio economy uses the existing memory adapter;
 Studio verification does not establish live DataStore or mobile acceptance.
 

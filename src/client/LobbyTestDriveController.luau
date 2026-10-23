@@ -8,6 +8,8 @@ local PromptService=game:GetService("ProximityPromptService")
 local Shared=RS:WaitForChild("Shared")
 local Policy=require(Shared:WaitForChild("LobbyDrivePolicy"))
 local KartConfig=require(Shared:WaitForChild('KartConfig'))
+local RaceConfig=require(Shared:WaitForChild('RaceConfig'))
+local FinishComposition=require(script.Parent:WaitForChild('FinishCameraComposition'))
 local Motion=require(Shared:WaitForChild("ChaseCameraMotion"))
 local AudioConfig=require(Shared:WaitForChild("AudioConfig"))
 local Audio=require(script.Parent:WaitForChild("AudioRuntime"))
@@ -34,6 +36,7 @@ function Controller.start()
  local remote=RS:WaitForChild("LobbyDriveControl",10);if not remote then return end
  started=true
  local player=Players.LocalPlayer;local token=0;local pending=nil;local suspended=false;local handoffComplete=false
+ local finishCameraStart,finishCameraElapsed
  local feedback=nil
  local exhaust=nil
  local speedGauge=nil
@@ -63,7 +66,10 @@ function Controller.start()
  button.BackgroundColor3=Color3.fromRGB(111,211,245);button.TextColor3=Color3.fromRGB(12,27,42)
  button.Font=Enum.Font.GothamBold;button.TextSize=17;button.BorderSizePixel=0;button.Text="DRIVE";button.Parent=canvas
  local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(0,8);corner.Parent=button
- StyleHelper.apply3DButton(button,Color3.fromRGB(80,190,255),Color3.fromRGB(0,140,240),Color3.fromRGB(0,95,200),12,2.5)
+ if driveZone:GetAttribute('DriveGeometry')~='ROOKIE_LOOP_V1'then StyleHelper.apply3DButton(button,Color3.fromRGB(80,190,255),Color3.fromRGB(0,140,240),Color3.fromRGB(0,95,200),12,2.5)else
+  button.BackgroundTransparency=1;button.TextColor3=Color3.new(1,1,1)
+  local outline=Instance.new('UIStroke');outline.Color=Color3.new(1,1,1);outline.Thickness=1;outline.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;outline.Parent=button
+ end
  button.Text=''
  local returnLabel=Instance.new('TextLabel');returnLabel.Name='NavigationLabel'
  returnLabel.Size=UDim2.fromScale(1,1);returnLabel.BackgroundTransparency=1
@@ -130,6 +136,7 @@ function Controller.start()
    if camera then camera.CameraType=Enum.CameraType.Custom;if h then camera.CameraSubject=h end;if savedFov then camera.FieldOfView=savedFov end end
   end
   cameraBody,previousTarget,savedFov=nil,nil,nil
+  finishCameraStart,finishCameraElapsed=nil,nil
  end
  local function request(action,callback,previewKartId)
   if pending then return false end
@@ -222,7 +229,7 @@ function Controller.start()
   local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")
   gui.Enabled=player:GetAttribute("LobbyDriveAvailable")==true and player:GetAttribute("RaceState")=="GARAGE"
    and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled) and player:GetAttribute("KDMShopOpen")~=true and player:GetAttribute("KDMProfileOpen")~=true
-  button.Visible=active and phase~="FINISHED" and phase~="INVALID"
+  button.Visible=active and phase~="FINISHING" and phase~="FINISHED" and phase~="INVALID"
   returnLabel.Text=if pending then "PLEASE WAIT" else "RETURN LOBBY"
   charge.Visible=active
   gauge.Visible=active
@@ -247,6 +254,11 @@ function Controller.start()
   button.AnchorPoint=Vector2.zero
   button.Position=UDim2.fromOffset(exit.x+6,exit.y+4)
   button.Size=UDim2.fromOffset(exit.width-12,44)
+  if trialView and wallet then
+   local position=wallet.AbsolutePosition-canvas.AbsolutePosition
+   button.Position=UDim2.fromOffset(position.X,position.Y+wallet.AbsoluteSize.Y+8)
+   button.Size=UDim2.fromOffset(wallet.AbsoluteSize.X,44)
+  end
   local promptsEnabled=gui.Enabled and not active and not pending
   for _,prompt in displayPrompts do
    if prompt.Parent and prompt.Enabled~=promptsEnabled then prompt.Enabled=promptsEnabled end
@@ -281,7 +293,7 @@ function Controller.start()
     speedGauge=require(script.Parent:WaitForChild('V2GaugeController')).new(gui.Parent,'ANALOG',MobileView)
     speedGauge.gui.Name='KDMLobbySpeedHud'
    end
-   speedGauge.gui.Enabled=gui.Enabled and phase~="FINISHED" and phase~="INVALID"
+   speedGauge.gui.Enabled=gui.Enabled and phase~="FINISHING" and phase~="FINISHED" and phase~="INVALID"
    local velocity=body.AssemblyLinearVelocity
    local measuredSpeed=if driving then Vector3.new(velocity.X,0,velocity.Z).Magnitude else 0
    speedGauge:update(body,measuredSpeed,dt,Input.isTouchPreferred(),gui.Enabled and focused and not GuiService.MenuIsOpen)
@@ -309,8 +321,34 @@ function Controller.start()
   local target=body.Position
   local desired=CFrame.lookAt(target-f*18+Vector3.new(0,8,0),target+f*12+Vector3.new(0,2,0))
   camera.CameraType=Enum.CameraType.Scriptable;camera.FieldOfView=75
-  camera.CFrame=Motion.step(camera.CFrame,previousTarget,target,desired,6,dt);camera.Focus=CFrame.new(target);previousTarget=target
-  if engine then
+  if player:GetAttribute('ParkTrialFinishPhase')=='ROLL'and Input.isTouchPreferred()and canvas.AbsoluteSize.X>=720 then
+   local progress=math.clamp((Workspace:GetServerTimeNow()-(player:GetAttribute('ParkTrialFinishedAt')or Workspace:GetServerTimeNow()))/RaceConfig.FINISH_ROLL_SECONDS,0,1)
+   local drift=math.clamp((progress-RaceConfig.FINISH_DRIFT_START_RATIO)/(1-RaceConfig.FINISH_DRIFT_START_RATIO),0,1)
+   drift=drift*drift*(3-2*drift)
+   local position=target-f*KartConfig.CAMERA_DISTANCE+Vector3.yAxis*KartConfig.CAMERA_HEIGHT
+   local look=target+f*KartConfig.CAMERA_LOOK_AHEAD+Vector3.yAxis*2
+   position,look=FinishComposition.offset(position,look,target+Vector3.yAxis*2.25,camera.ViewportSize,KartConfig.CAMERA_FOV,.5+(RaceConfig.TARGET_FINISH_SCREEN_X-.5)*drift)
+   desired=CFrame.lookAt(position,look)
+  end
+  local present=player:GetAttribute('ParkTrialFinishPhase')=='PRESENT'
+  if present then
+   if not finishCameraStart then finishCameraStart=camera.CFrame;finishCameraElapsed=0 end
+   finishCameraElapsed+=dt
+   local visual=kart:FindFirstChild('Visual');local v2=visual and visual:GetAttribute('VisualModelName')=='KDMV2'
+   local mobile=Input.isTouchPreferred()and camera.ViewportSize.X>camera.ViewportSize.Y and canvas.AbsoluteSize.X>=720
+   local position,look=FinishComposition.front(target,f,camera.ViewportSize,KartConfig.CAMERA_FOV,
+    if v2 then KartConfig.V2_FINISH_CAMERA_SIDE else 2.5,if v2 then KartConfig.V2_FINISH_CAMERA_HEIGHT else 4.5,
+    if mobile then RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X else .5)
+   local alpha=math.clamp(finishCameraElapsed/RaceConfig.FINISH_CAMERA_TRANSITION_SECONDS,0,1)
+   camera.CFrame=finishCameraStart:Lerp(CFrame.lookAt(position,look),alpha*alpha*(3-2*alpha))
+   camera.FieldOfView=KartConfig.CAMERA_FOV;camera.Focus=CFrame.new(look)
+  else
+   finishCameraStart,finishCameraElapsed=nil,nil
+   camera.CFrame=Motion.step(camera.CFrame,previousTarget,target,desired,6,dt);camera.Focus=CFrame.new(target);previousTarget=target
+  end
+  if engine and present then Audio.stop(engine);Audio.stop(engineSecondary)
+  elseif engine then
+   if not engine.IsPlaying then engine:Play()end
    local speed=math.abs(body.AssemblyLinearVelocity:Dot(body.CFrame.LookVector))
    local ratio=math.clamp(speed/KartConfig.MAX_FORWARD_SPEED,0,1)
    local bonus=math.clamp((speed-KartConfig.MAX_FORWARD_SPEED)/(KartConfig.MINI_BOOST_MAX_SPEED-KartConfig.MAX_FORWARD_SPEED),0,1)

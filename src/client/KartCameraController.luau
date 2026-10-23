@@ -138,19 +138,14 @@ function KartCameraController.start()
 				finishTransitionElapsed = 0
 				finishTransitionStartCFrame = camera.CFrame
 			end
-			local right = lastPlanarForward:Cross(WORLD_UP).Unit
-			local lookTarget = chassis.Position + WORLD_UP * 2.25
-			local frontPosition = chassis.Position + lastPlanarForward * 11 + right * 2.5 + WORLD_UP * 4.5
 			local visual = kart:FindFirstChild("Visual")
 			local v2Finish = visual and visual:GetAttribute("VisualModelName") == "KDMV2"
-			if v2Finish and not (RunService:IsStudio() and Workspace:GetAttribute("KDMV2FinishCameraMode") == "D3") then
-				frontPosition = chassis.Position + lastPlanarForward * 11
-					+ right * KartConfig.V2_FINISH_CAMERA_SIDE + WORLD_UP * KartConfig.V2_FINISH_CAMERA_HEIGHT
-			end
-			if mobileFinish then
-				frontPosition, lookTarget = FinishComposition.offset(frontPosition, lookTarget, lookTarget,
-					camera.ViewportSize, KartConfig.CAMERA_FOV, RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X)
-			end
+				and not (RunService:IsStudio() and Workspace:GetAttribute("KDMV2FinishCameraMode") == "D3")
+			local frontPosition,lookTarget=FinishComposition.front(chassis.Position,lastPlanarForward,
+				camera.ViewportSize,KartConfig.CAMERA_FOV,
+				if v2Finish then KartConfig.V2_FINISH_CAMERA_SIDE else 2.5,
+				if v2Finish then KartConfig.V2_FINISH_CAMERA_HEIGHT else 4.5,
+				if mobileFinish then RaceConfig.MOBILE_FINISH_PRESENT_SCREEN_X else .5)
 			local frontCFrame = CFrame.lookAt(frontPosition, lookTarget, WORLD_UP)
 			camera.CameraType = Enum.CameraType.Scriptable
 			camera.FieldOfView = KartConfig.CAMERA_FOV

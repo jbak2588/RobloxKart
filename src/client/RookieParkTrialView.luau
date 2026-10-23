@@ -1,10 +1,11 @@
 local View={}
+local GuiService=game:GetService('GuiService')
+local MobileView=require(script.Parent.MobileControlView)
 function View.format(milliseconds)
  local ms=math.max(0,math.floor(milliseconds or 0))
  return string.format('%02d:%02d.%03d',math.floor(ms/60000),math.floor(ms/1000)%60,ms%1000)
 end
--- Native translucent presentation, inspired by the reference's clear FINISH and
--- screen-clamped next-checkpoint cue. No foreign scripts or race system imported.
+-- Preserve the Park reward presentation; shared race guidance owns checkpoints.
 function View.new(parent,player,onReplay,onReturn)
  local gui=Instance.new('ScreenGui');gui.Name='KDMRookieParkTrial';gui.ResetOnSpawn=false
  gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.DisplayOrder=42;gui.Parent=parent
@@ -13,11 +14,12 @@ function View.new(parent,player,onReplay,onReturn)
   local l=Instance.new('TextLabel');l.Name=name;l.BackgroundTransparency=1;l.TextColor3=Color3.new(1,1,1)
   l.Font=Enum.Font.GothamBold;l.TextSize=size;l.TextWrapped=true;l.Parent=parent;return l
  end
- local timing=text(canvas,'Timing',16);timing.Position=UDim2.fromOffset(12,120);timing.Size=UDim2.fromOffset(210,60);timing.TextXAlignment=Enum.TextXAlignment.Left
+ local topGui=Instance.new('ScreenGui');topGui.Name='KDMRookieParkTopHud';topGui.ResetOnSpawn=false
+ topGui.ScreenInsets=Enum.ScreenInsets.None;topGui.DisplayOrder=42;topGui.Parent=parent
+ local timing=text(topGui,'Timing',16);timing.AnchorPoint=Vector2.new(.5,0);timing.Size=UDim2.fromOffset(280,56)
+ timing.TextXAlignment=Enum.TextXAlignment.Center
  local countdown=text(canvas,'Countdown',64);countdown.AnchorPoint=Vector2.new(.5,.5);countdown.Position=UDim2.fromScale(.5,.4);countdown.Size=UDim2.fromOffset(230,85)
  countdown.TextStrokeTransparency=.45
- local cue=text(canvas,'CheckpointDirection',16);cue.AnchorPoint=Vector2.new(.5,.5);cue.Size=UDim2.fromOffset(174,42)
- cue.BackgroundColor3=Color3.fromRGB(45,95,120);cue.BackgroundTransparency=.4
  local panel=Instance.new('Frame');panel.Name='LapResult';panel.AnchorPoint=Vector2.new(.5,.5);panel.Position=UDim2.fromScale(.5,.5)
  panel.BackgroundColor3=Color3.fromRGB(70,110,135);panel.BackgroundTransparency=.4;panel.BorderSizePixel=0;panel.Parent=canvas
  local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,16);corner.Parent=panel
@@ -33,36 +35,30 @@ function View.new(parent,player,onReplay,onReturn)
   local c=Instance.new('UICorner');c.CornerRadius=UDim.new(0,8);c.Parent=b
   b.Activated:Connect(callback);return b
  end
+ for _,label in {title,lap,best,reward,saved}do
+  label.TextScaled=true;local limit=Instance.new('UITextSizeConstraint');limit.MinTextSize=10;limit.MaxTextSize=label.TextSize;limit.Parent=label
+ end
  local replay=button('Replay','REPLAY',0,onReplay);button('ReturnLobby','RETURN LOBBY',.5,onReturn)
  local api={}
  function api:update(active,camera)
-  local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil
+  local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil;topGui.Enabled=gui.Enabled
   if not gui.Enabled then return end
   local now=workspace:GetServerTimeNow();local started=player:GetAttribute('ParkTrialStartedAt')or now
   local size=canvas.AbsoluteSize
-  panel.Size=UDim2.fromOffset(math.min(390,size.X-24),math.min(250,size.Y-16))
+  local wide=size.X>size.Y and size.X>=600
+  panel.AnchorPoint=if wide then Vector2.new(0,.5)else Vector2.new(.5,.5)
+  panel.Position=if wide then UDim2.new(0,12,.5,0)else UDim2.fromScale(.5,.5)
+  panel.Size=UDim2.fromOffset(if wide then math.min(390,size.X*.5-24)else math.min(390,size.X-24),math.min(250,size.Y-16))
+  local top=MobileView.speedTopbarPosition(topGui.AbsoluteSize,GuiService.TopbarInset,280,56)
+  timing.Position=UDim2.fromOffset(top.X,top.Y)
   panel.Visible=phase=='FINISHED'or phase=='INVALID';timing.Visible=phase=='RUNNING'
   local cp=player:GetAttribute('ParkTrialCheckpoint')or 0
   local invalid=player:GetAttribute('ParkTrialInvalid')==true
   local missed=player:GetAttribute('ParkTrialMissed')==true
   local personalBest=player:GetAttribute('KDMRookieParkBestMilliseconds')
-  timing.Text='SOLO LAP  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if personalBest then '\nBEST '..View.format(personalBest)else '')
+  timing.Text='SOLO LAP  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if missed then ' • MISSED '..(cp+1)else '')..(if personalBest then '\nBEST '..View.format(personalBest)else '')
   countdown.Visible=phase=='COUNTDOWN'or(phase=='RUNNING'and now-started<1)
   countdown.Text=if phase=='COUNTDOWN'then tostring(math.max(1,math.ceil((player:GetAttribute('ParkTrialGoAt')or now)-now)))else 'GO!'
-  local target=player:GetAttribute('ParkTrialTarget');cue.Visible=phase=='RUNNING'and target~=nil
-  if cue.Visible and camera then
-   local p=camera:WorldToViewportPoint(target)
-   local offset=Vector2.new(p.X/camera.ViewportSize.X-.5,p.Y/camera.ViewportSize.Y-.5)
-   if p.Z<0 then offset=if offset.Magnitude<.001 then Vector2.new(0,-.35)else -offset.Unit*.35 end
-   if offset.Magnitude>.35 then offset=offset.Unit*.35 end
-   local cueX=math.clamp(.5+offset.X,.18,.82)*size.X
-   -- Keep the guide out of both the left lap HUD and the right item targets.
-   if size.X>size.Y and size.X>=640 then cueX=math.clamp(cueX,317,size.X-323)end
-   cue.Position=UDim2.fromScale(cueX/size.X,math.clamp(.5+offset.Y,.24,.66))
-   local direction=if p.Z<0 then '↶'elseif offset.X<-.12 then '◀'elseif offset.X>.12 then '▶'else '▲'
-   cue.Text=if invalid then 'LAP INVALID • RETURN / REPLAY'elseif missed then 'MISSED CP '..(cp+1)..'  '..direction elseif cp==6 then 'FINISH  '..direction else 'CHECKPOINT '..(cp+1)..'  '..direction
-   cue.TextColor3=if missed or invalid then Color3.fromRGB(255,215,95)else Color3.new(1,1,1)
-  end
   title.Text=if phase=='INVALID'then 'LAP INVALID • NO REWARD'else 'ROOKIE PARK • LAP COMPLETE'
   lap.Text=View.format(player:GetAttribute('ParkTrialMilliseconds'))
   local pb=player:GetAttribute('KDMRookieParkBestMilliseconds')
@@ -72,7 +68,7 @@ function View.new(parent,player,onReplay,onReturn)
   saved.Text=if phase=='INVALID'then 'REPLAY TO START A NEW VERIFIED LAP'elseif state=='CONFIRMED'then '6/6 CHECKPOINTS • RECORD & REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • REPLAY TO RETRY SAVE'else 'SAVING RECORD & REWARD…'
   replay.Active=state~='SAVING';replay.Text=if state=='SAVING'then 'SAVING…'else 'REPLAY'
  end
- function api:destroy()gui:Destroy()end
+ function api:destroy()gui:Destroy();topGui:Destroy()end
  return api
 end
 return View

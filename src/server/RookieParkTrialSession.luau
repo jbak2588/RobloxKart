@@ -2,6 +2,7 @@
 local RS=game:GetService('ReplicatedStorage')
 local Trial=require(RS.Shared.RookieParkTrial)
 local Config=require(RS.Shared.KartConfig)
+local RaceConfig=require(RS.Shared.RaceConfig)
 local Drift=require(script.Parent.LobbyDriftSession)
 local Session={}
 function Session.new(zone,practice)
@@ -16,6 +17,8 @@ function Session.new(zone,practice)
   player:SetAttribute('ParkTrialMissed',s.missed)
   player:SetAttribute('ParkTrialInvalid',s.invalid)
   player:SetAttribute('ParkTrialMilliseconds',s.milliseconds)
+  player:SetAttribute('ParkTrialFinishPhase',s.finishPhase)
+  player:SetAttribute('ParkTrialFinishedAt',s.finishAt)
   local target=Trial.Gates[s.next]or Trial.Finish
   player:SetAttribute('ParkTrialTarget',center+Vector3.new(target.x,4,target.z))
  end
@@ -25,6 +28,7 @@ function Session.new(zone,practice)
   r.trial.id=game:GetService('HttpService'):GenerateGUID(false)
   r.trial.transactionAt=DateTime.now().UnixTimestampMillis
   player:SetAttribute('ParkTrialRewardState','NONE')
+  r.kart:SetAttribute('KartFinishRollActive',false);r.kart:SetAttribute('RaceControlsLocked',false)
   r.body.Anchored=true;r.speed=0;r.yaw=0
   publish(player,r)
  end
@@ -54,6 +58,25 @@ function Session.new(zone,practice)
  end
  function api:step(player,r)
   local now=workspace:GetServerTimeNow();local p=r.body.Position-center
+  local s=r.trial
+  if s.phase=='FINISHING'then
+   local elapsed=now-s.finishAt
+   if elapsed<RaceConfig.FINISH_ROLL_SECONDS then
+    local velocity=r.body.AssemblyLinearVelocity
+    r.body.AssemblyLinearVelocity=Vector3.xAxis*s.rollSpeed*(1-elapsed/RaceConfig.FINISH_ROLL_SECONDS)+Vector3.new(0,velocity.Y,0)
+    r.body.AssemblyAngularVelocity=Vector3.zero
+   else
+    if s.finishPhase~='PRESENT'then
+     r.kart:SetAttribute('KartFinishRollActive',false)
+     local before=r.body.CFrame;local desired=CFrame.lookAt(before.Position,before.Position+Vector3.xAxis)
+     r.kart:PivotTo(desired*before:Inverse()*r.kart:GetPivot())
+     r.body.AssemblyLinearVelocity=Vector3.zero;r.body.AssemblyAngularVelocity=Vector3.zero;r.body.Anchored=true
+     s.finishPhase='PRESENT'
+    end
+    if elapsed>=RaceConfig.FINISH_SEQUENCE_SECONDS then s.phase='FINISHED'end
+   end
+   publish(player,r);return true
+  end
   if r.trial.phase=='RUNNING'and now<(r.trial.nextSample or 0)then return false end
   r.trial.nextSample=now+.1
   local event=Trial.step(r.trial,now,p.X,p.Y,p.Z)
@@ -67,11 +90,16 @@ function Session.new(zone,practice)
    practice:remove(player);Drift.clear(r.training)
    r.kart:SetAttribute('KartBoosting',false);r.kart:SetAttribute('KartDrifting',false)
   elseif event=='FINISHED'then
+   local s=r.trial;s.phase='FINISHING';s.finishPhase='ROLL';s.finishAt=now
+   s.rollSpeed=math.max(0,r.body.AssemblyLinearVelocity:Dot(Vector3.xAxis))
+   r.kart:SetAttribute('KartFinishRollDirection',Vector3.xAxis);r.kart:SetAttribute('KartFinishRollActive',true)
+   r.kart:SetAttribute('RaceControlsLocked',true);r.kart:SetAttribute('KartVisualSteering',0)
    practice:remove(player);Drift.clear(r.training)
    r.kart:SetAttribute('KartBoosting',false);r.kart:SetAttribute('KartDrifting',false)
    save(player,r,r.trial)
   end
   publish(player,r)
+  if r.trial.phase=='FINISHING'then return true end
   if r.trial.phase~='RUNNING'then
    r.body.AssemblyLinearVelocity=Vector3.zero;r.body.AssemblyAngularVelocity=Vector3.zero;r.body.Anchored=true
    r.speed,r.yaw=0,0;return true
@@ -83,7 +111,7 @@ function Session.new(zone,practice)
   local p=r.body.Position-center;Trial.recover(r.trial,p.X,p.Z,workspace:GetServerTimeNow())
  end
  function api:remove(player)
-  for _,key in {'Phase','GoAt','StartedAt','Checkpoint','Missed','Invalid','Milliseconds','Target','RewardState'}do player:SetAttribute('ParkTrial'..key,nil)end
+  for _,key in {'Phase','GoAt','StartedAt','Checkpoint','Missed','Invalid','Milliseconds','Target','RewardState','FinishPhase','FinishedAt'}do player:SetAttribute('ParkTrial'..key,nil)end
  end
  return api
 end

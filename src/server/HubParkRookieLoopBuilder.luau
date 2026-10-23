@@ -219,16 +219,13 @@ function Builder.build(hub,ground)
  local Trial=require(game:GetService('ReplicatedStorage').Shared.RookieParkTrial)
  local checkpoints=Instance.new('Folder');checkpoints.Name='TrialCheckpoints';checkpoints.Parent=root
  for i,g in Trial.Gates do
-  local pos=origin+Vector3.new(g.x,3,g.z)
-  local gate=part(checkpoints,'Checkpoint'..i,Vector3.new(Layout.RoadWidth,8,1),CFrame.lookAt(pos,pos+Vector3.new(g.fx,0,g.fz)),colors.plaza,false)
-  gate.Transparency=1;gate:SetAttribute('Index',i)
-  for _,side in {-1,1}do
-   local at=pos+Vector3.new(-g.fz,0,g.fx)*side*(Layout.RoadWidth/2+5)
-   local flag=part(checkpoints,'CP'..i..'Flag',Vector3.new(1,9,1),CFrame.new(at),Color3.fromRGB(65,225,245),false)
-   local billboard=Instance.new('BillboardGui');billboard.Size=UDim2.fromOffset(72,28);billboard.StudsOffset=Vector3.new(0,6,0);billboard.MaxDistance=180;billboard.Parent=flag
-   local caption=Instance.new('TextLabel');caption.Size=UDim2.fromScale(1,1);caption.BackgroundTransparency=.45;caption.BackgroundColor3=colors.plaza;caption.Text='CP '..i;caption.TextColor3=Color3.new(1,1,1);caption.Font=Enum.Font.GothamBold;caption.TextSize=18;caption.Parent=billboard
-  end
+  local pos=origin+Vector3.new(g.x,8,g.z)
+  local gate=part(checkpoints,'Checkpoint'..i,Vector3.new(Layout.RoadWidth+20,20,20),CFrame.lookAt(pos,pos+Vector3.new(g.fx,0,g.fz)),colors.plaza,false)
+  gate.Transparency=1;gate:SetAttribute('RaceGate',true);gate:SetAttribute('GateType','Checkpoint');gate:SetAttribute('CheckpointIndex',i)
  end
+ local finish=Trial.Finish;local pos=origin+Vector3.new(finish.x,8,finish.z)
+ local gate=part(checkpoints,'StartFinish',Vector3.new(Layout.RoadWidth+20,20,20),CFrame.lookAt(pos,pos+Vector3.xAxis),colors.plaza,false)
+ gate.Transparency=1;gate:SetAttribute('RaceGate',true);gate:SetAttribute('GateType','StartFinish')
  root:SetAttribute('DriveIntegrated',true)
  return root
 end

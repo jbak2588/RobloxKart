@@ -69,7 +69,7 @@ local game={GetService=function(_,n)
 end}
 local env={game=game,Instance=rb.Instance,Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,
  Color3=rb.Color3,UDim=rb.UDim,UDim2=rb.UDim2,Enum=rb.Enum,task={wait=function()end},script={Parent={WaitForChild=function(_,n)return n end}}}
-local trial=luau.load(fs.readFile('src/shared/RookieParkTrial.luau'),{environment={script={Parent={HubParkRookieLoopLayout='layout'}},require=function()return layout end}})()
+local trial=require('./helpers/rookie_park_trial')(layout)
 local island,landscaping,circuit
 env.require=function(ref)return if ref=='trial'then trial elseif ref=='HubParkRuntimePolicy'then policy elseif ref=='HubParkIslandBuilder'then island elseif ref=='HubParkCircuitDecorBuilder'then circuit elseif ref=='HubParkLandscapingBuilder'then landscaping else layout end
 landscaping=luau.load(fs.readFile('src/server/HubParkLandscapingBuilder.luau'),{environment=env})()
@@ -152,6 +152,6 @@ for i=1,8 do
  check(start~=nil and start.CFrame.Position.Z==layout.Slots[i].z and start.CFrame.Position.X==layout.Slots[i].x,'actual main-road grid anchor '..i)
 end
 check(#root.SoloStartGrid:GetChildren()==24,'eight three-stroke road grid brackets plus finish paint')
-check(#root.TrialCheckpoints:GetChildren()==18,'six gates and twelve noncollision flags')
+check(#root.TrialCheckpoints:GetChildren()==7,'six race-standard gates and finish, no custom banners')
 print(string.format('PASS: %d G2/manual-zone checks; %d road strips; min radius %.2f; OFF/ON/RACE/grass validated',checks,road,minRadius))
 return {root=root,layout=layout,origin=rb.Vector3.zero}

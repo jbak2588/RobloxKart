@@ -25,6 +25,7 @@ local function safe(part)
  part.Anchored=true;part.CanCollide=false;part.CanTouch=false;part.CanQuery=false;part.CastShadow=false
 end
 local function surfaceRoad(track,gate)
+ if track:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' then local ground=track:FindFirstChild('G2SafetyGround');return ground and ground:FindFirstChild('FlatSupport')end
  local folder=track:FindFirstChild('Road');if not folder then return nil end
  local best,score
  for _,road in folder:GetChildren() do if road:IsA('BasePart') then
@@ -50,10 +51,13 @@ function Controller.new(player,isDriving)
  end
  local function update()
   if closed then return end
+  local park=player:GetAttribute('LobbyDriveActive')==true and player:GetAttribute('ParkTrialPhase')~=nil
   local index=State.gateIndex(player:GetAttribute('RaceState'),player:GetAttribute('RaceNextCheckpoint'),player:GetAttribute('RaceCheckpointCount'))
+  if park then local cp=player:GetAttribute('ParkTrialCheckpoint')or 0;index=if player:GetAttribute('ParkTrialPhase')=='RUNNING'then (if cp>=6 then 0 else cp+1)else nil end
   if not index or (isDriving and not isDriving()) or player:GetAttribute('KDMRoutePending')=='HUB_RETURN' then clear();return end
   local prototype=Workspace:FindFirstChild('Prototype');local track=prototype and prototype:FindFirstChild('TestTrack')
-  local triggers=track and track:FindFirstChild('RaceTriggers');local gate
+  if park then local hub=Workspace:FindFirstChild('KDMHub');track=hub and hub:FindFirstChild(Workspace:GetAttribute('LobbyDriveZoneName')or 'HubParkRookieLoopG2')end
+  local triggers=track and track:FindFirstChild(if park then 'TrialCheckpoints'else 'RaceTriggers');local gate
   if triggers then for _,o in triggers:GetChildren() do
    if o:IsA('BasePart') and ((index==0 and o:GetAttribute('GateType')=='StartFinish') or (index>0 and o:GetAttribute('CheckpointIndex')==index)) then gate=o;break end
   end end
@@ -163,7 +167,7 @@ function Controller.new(player,isDriving)
   if pending or closed then return end;pending=true
   task.defer(function()pending=false;update()end)
  end
- for _,key in {'RaceState','RaceNextCheckpoint','RaceCheckpointCount','RaceCurrentLap','RaceCompletedLaps','RaceSessionId','RaceResetSerial','SelectedTrackId','KDMRoutePending'} do
+ for _,key in {'ParkTrialPhase','ParkTrialCheckpoint','LobbyDriveActive','RaceState','RaceNextCheckpoint','RaceCheckpointCount','RaceCurrentLap','RaceCompletedLaps','RaceSessionId','RaceResetSerial','SelectedTrackId','KDMRoutePending'} do
   table.insert(connections,player:GetAttributeChangedSignal(key):Connect(schedule))
  end
  table.insert(connections,Workspace.DescendantAdded:Connect(function(o)if o.Name=='RaceTriggers' or o:GetAttribute('RaceGate')==true then schedule()end end))
@@ -195,7 +199,7 @@ function Controller.start()
  local player=Players.LocalPlayer
  active=Controller.new(player,function()
   local h=player.Character and player.Character:FindFirstChildOfClass('Humanoid')
-  return h and h.Health>0 and h.SeatPart and h.SeatPart:GetAttribute('PrototypeKartSeat')==true
+  return h and h.Health>0 and h.SeatPart and (h.SeatPart:GetAttribute('PrototypeKartSeat')==true or (h.SeatPart:GetAttribute('LobbyKartSeat')==true and player:GetAttribute('LobbyDriveActive')==true))
  end)
 end
 function Controller.destroy()if active then active:destroy();active=nil end end

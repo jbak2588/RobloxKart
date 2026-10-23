@@ -1,7 +1,7 @@
 local fs,luau,rb,serde=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox'),require('@lune/serde')
 local function load(path,env)return luau.load(fs.readFile(path),{environment=env or {},debugName=path})()end
 local layout=load('src/shared/HubParkRookieLoopLayout.luau')
-local trial=load('src/shared/RookieParkTrial.luau',{script={Parent={HubParkRookieLoopLayout='layout'}},require=function()return layout end})
+local trial=require('./helpers/rookie_park_trial')(layout)
 local n=0;local function check(v,label)n+=1;assert(v,label)end
 check(#layout.Slots==8 and #layout.PitSlots==4,'eight main road grid slots, Pit decoration retained')
 for i,p in layout.Slots do check(math.abs(p.z-layout.StartStraightZ)==14 and p.x==45-math.floor((i-1)/2)*30,'two columns / four rows '..i)end
@@ -47,17 +47,34 @@ trial.step(delayed,3,45,1.75,layout.StartStraightZ)
 for tick=1,100 do trial.step(delayed,3+tick*.1,45,1.75,layout.StartStraightZ)end
 for x=46,80 do trial.step(delayed,13+(x-45)/30,x,1.75,layout.StartStraightZ)end
 check(delayed.finishPassed and not delayed.missed and delayed.phase=='RUNNING','initial start-line crossing is never a missing checkpoint even after delayed departure')
-local bad=lap(3)
-check(bad.phase=='RUNNING'and bad.next==3 and bad.missed,'skipped CP denies finish and points at first missed gate')
+local bad=trial.new(0,45,layout.StartStraightZ)
+trial.step(bad,3,45,1.75,layout.StartStraightZ)
+for i=1,100 do trial.step(bad,3+i*.05,45+i,1.75,layout.StartStraightZ)end
+-- Reverse below the start line and make a later forward finish attempt.
+for x=144,60,-1 do trial.step(bad,8+(145-x)*.05,x,1.75,layout.StartStraightZ)end
+for x=61,80 do trial.step(bad,12.25+(x-60)*.05,x,1.75,layout.StartStraightZ)end
+check(bad.phase=='RUNNING'and bad.next==1 and bad.missed and not bad.invalid,'missing gates deny reward without permanently invalidating an off-road lap')
 local reverse=trial.new(0,45,layout.StartStraightZ);trial.step(reverse,3,45,1.75,layout.StartStraightZ)
 local g=trial.Gates[1];reverse.previous={x=g.x+g.fx*2,z=g.z+g.fz*2,time=4}
 trial.step(reverse,4.1,g.x-g.fx*2,1.75,g.z-g.fz*2)
 check(reverse.next==1,'reverse crossing cannot credit checkpoint')
+local off=trial.new(0,g.x-g.fx*80,g.z-g.fz*80)
+trial.step(off,3,g.x-g.fx*80,1.75,g.z-g.fz*80)
+local offTime=3
+for i=1,160 do
+ offTime+=.05;local side=math.min(i,20)/20*50
+ trial.step(off,offTime,g.x+g.fx*(i-80)-g.fz*side,1.75,g.z+g.fz*(i-80)+g.fx*side)
+end
+check(off.next==1 and off.route.pending==2 and not off.invalid,'Figure-8 holds off-road gate progress provisionally without INVALID')
+for i=1,50 do offTime+=.05;local side=50-i
+ trial.step(off,offTime,g.x+g.fx*(80+i)-g.fz*side,1.75,g.z+g.fz*(80+i)+g.fx*side)
+end
+check(off.next==2 and not off.invalid,'return to road accepts the same pending checkpoint as Figure-8')
 local tp=trial.new(0,45,layout.StartStraightZ);trial.step(tp,3,45,1.75,layout.StartStraightZ)
 trial.step(tp,3.05,g.x,1.75,g.z)
-check(tp.invalid and tp.next==1,'teleport cannot generate gate or valid record')
+check(not tp.invalid and tp.next==1,'rejected teleport grants no gate and retains recoverable route anchors')
 trial.recover(tp,45,layout.StartStraightZ,4)
-check(tp.previous.x==45 and tp.next==1 and tp.invalid,'recovery resets sweep without gate credit or validation repair')
+check(tp.previous.x==45 and tp.next==1 and not tp.invalid,'recovery resets sweep without gate credit or validation repair')
 -- Atomic wallet + personal record; same receipt survives unknown ACK/replay.
 local S=load('src/shared/KDMProgressionSchema.luau')
 local catalog=load('src/shared/KartCatalog.luau',{Color3=rb.Color3,Enum=rb.Enum})

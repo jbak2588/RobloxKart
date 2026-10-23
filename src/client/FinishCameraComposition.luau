@@ -33,4 +33,13 @@ function Composition.offset(
 	return shiftedPosition, shiftedTarget
 end
 
+-- Shared by official RACE and Rookie Park; same front distance and subject height.
+function Composition.front(position,forward,viewport,fov,side,height,screenX)
+ local right=forward:Cross(WORLD_UP).Unit
+ local target=position+WORLD_UP*2.25
+ local front=position+forward*11+right*side+WORLD_UP*height
+ if screenX~=.5 then front,target=Composition.offset(front,target,target,viewport,fov,screenX)end
+ return front,target
+end
+
 return Composition
