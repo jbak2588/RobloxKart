@@ -62,11 +62,11 @@ function View.new(parent,player,onReplay,onReturn)
   title.Text=if phase=='INVALID'then 'LAP INVALID • NO REWARD'else 'ROOKIE PARK • LAP COMPLETE'
   lap.Text=View.format(player:GetAttribute('ParkTrialMilliseconds'))
   local pb=player:GetAttribute('KDMRookieParkBestMilliseconds')
-  best.Text=if pb then 'PERSONAL BEST  '..View.format(pb)else 'PERSONAL BEST • SAVING'
   local state=player:GetAttribute('ParkTrialRewardState')
+  best.Text=if pb then 'PERSONAL BEST  '..View.format(pb)elseif state=='SAVING'then 'PERSONAL BEST • SAVING'else 'PERSONAL BEST • NOT SAVED'
   reward.Text=if phase=='INVALID'then 'K$0  -  VALID LAP REQUIRED'elseif state=='CONFIRMED'then '+ K$5,000 • REWARD EARNED'else 'LAP REWARD  K$5,000'
-  saved.Text=if phase=='INVALID'then 'REPLAY TO START A NEW VERIFIED LAP'elseif state=='CONFIRMED'then '6/6 CHECKPOINTS • RECORD & REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • REPLAY TO RETRY SAVE'else 'SAVING RECORD & REWARD…'
-  replay.Active=state~='SAVING';replay.Text=if state=='SAVING'then 'SAVING…'else 'REPLAY'
+  saved.Text=if phase=='INVALID'then 'REPLAY TO START A NEW VERIFIED LAP'elseif state=='CONFIRMED'then '6/6 CHECKPOINTS • RECORD & REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • REPLAY TO RACE AGAIN'else 'SAVING RECORD & REWARD…'
+  replay.Active=true;replay.Text='REPLAY'
  end
  function api:destroy()gui:Destroy();topGui:Destroy()end
  return api

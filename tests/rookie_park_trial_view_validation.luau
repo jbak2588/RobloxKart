@@ -29,10 +29,12 @@ for _,size in {V2.new(750,332),V2.new(844,390),V2.new(932,430),V2.new(390,703)}d
  player:SetAttribute('KDMRookieParkBestMilliseconds',60000);player:SetAttribute('ParkTrialRewardState','SAVING')
  view:update(true,camera)
  check(panel.Visible and not timing.Visible and panel.LapTime.Text=='01:01.234','lap result replaces running timer')
- check(not panel.Replay.Active and not panel.Reward.Text:find('EARNED',1,true),'no reward success before storage confirmation')
+ check(panel.Replay.Active and panel.Replay.Text=='REPLAY'and not panel.Reward.Text:find('EARNED',1,true),'save pending permits Replay without claiming reward success')
  player:SetAttribute('ParkTrialRewardState','CONFIRMED');view:update(true,camera)
  check(panel.Reward.Text:find('+ K$5,000',1,true)~=nil and panel.SaveState.Text:find('SAVED',1,true)~=nil,'confirmed K$5000 reward highlighted')
  check(panel.PersonalBest.Text:find('01:00.000',1,true)~=nil,'persistent personal best visible')
+ player:SetAttribute('KDMRookieParkBestMilliseconds',nil);player:SetAttribute('ParkTrialRewardState','UNCONFIRMED');view:update(true,camera)
+ check(panel.Replay.Active and panel.Replay.Text=='REPLAY'and panel.PersonalBest.Text:find('NOT SAVED',1,true)~=nil,'failed save neither blocks Replay nor shows perpetual SAVING')
  check(panel.BackgroundTransparency>=.3 and panel.BackgroundColor3.B>.4,'bright translucent result backdrop')
  for _,node in {panel.Replay,panel.ReturnLobby}do
   check(node.AbsoluteSize.Y>=44,'result action target size')

@@ -75,6 +75,37 @@ trial.step(tp,3.05,g.x,1.75,g.z)
 check(not tp.invalid and tp.next==1,'rejected teleport grants no gate and retains recoverable route anchors')
 trial.recover(tp,45,layout.StartStraightZ,4)
 check(tp.previous.x==45 and tp.next==1 and not tp.invalid,'recovery resets sweep without gate credit or validation repair')
+-- Regression: a long excursion after checkpoint 2 must not freeze route anchors.
+local excursion=trial.new(0,45,layout.StartStraightZ)
+trial.step(excursion,3,45,1.75,layout.StartStraightZ)
+local exTime,exX,exZ=3,45,layout.StartStraightZ
+local function travel(x,z)
+ local startX,startZ=exX,exZ
+ local steps=math.max(1,math.ceil(math.sqrt((x-exX)^2+(z-exZ)^2)/4))
+ for i=1,steps do
+  exTime+=.05;exX=startX+(x-startX)*i/steps;exZ=startZ+(z-startZ)*i/steps
+  trial.step(excursion,exTime,exX,1.75,exZ)
+ end
+end
+for _,p in points do
+ if p.section~='StartStraight'or p.x>45 then travel(p.x,p.z)end
+ if excursion.next==3 then break end
+end
+check(excursion.next==3,'regression starts with two checkpoints accepted')
+travel(2000,2000)
+local fourth=trial.Gates[4];travel(fourth.x,fourth.z)
+check(excursion.phase=='RUNNING'and excursion.next==3,'wide excursion cannot credit the missed third gate or award a finished lap')
+-- Finish this circuit and drive a complete extra circuit; required gate is revisited.
+local nearest,best=1,math.huge
+for i,p in points do local d=(p.x-exX)^2+(p.z-exZ)^2;if d<best then nearest,best=i,d end end
+for i=nearest,#points do travel(points[i].x,points[i].z)end
+for _,p in points do travel(p.x,p.z)end
+for _,p in points do if p.section~='StartStraight'or p.x>85 then break end;travel(p.x,p.z)end
+check(excursion.next==7 and excursion.phase=='FINISHED','missed checkpoint 3 recovers on the next continuous full lap')
+-- A teleport near a gate must not count as the recovery sample or gate crossing.
+local jump=trial.new(0,45,layout.StartStraightZ);trial.step(jump,3,45,1.75,layout.StartStraightZ)
+trial.step(jump,3.1,g.x+g.fx*2,1.75,g.z+g.fz*2)
+check(jump.next==1 and jump.rejoinSince==nil,'teleport never primes reacquisition or grants checkpoint')
 -- Atomic wallet + personal record; same receipt survives unknown ACK/replay.
 local S=load('src/shared/KDMProgressionSchema.luau')
 local catalog=load('src/shared/KartCatalog.luau',{Color3=rb.Color3,Enum=rb.Enum})

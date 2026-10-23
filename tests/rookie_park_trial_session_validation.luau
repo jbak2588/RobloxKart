@@ -38,10 +38,20 @@ check(body.Anchored and attrs.ParkTrialFinishPhase=='PRESENT'and attrs.ParkTrial
 now=finishAt+3.31;session:step(player,r)
 check(attrs.ParkTrialPhase=='FINISHED','result waits for same 0.9s front camera transition')
 check(attrs.ParkTrialRewardState=='UNCONFIRMED','failed ACK never displays reward earned')
-confirmed=true;check(not session:replay(player,r)and saved==2 and attrs.ParkTrialRewardState=='CONFIRMED','Replay first retries same receipt when save unknown')
-check(session:replay(player,r)and attrs.ParkTrialPhase=='COUNTDOWN','confirmed Replay resets same seat into countdown')
+local finished=r.trial
+check(session:replay(player,r)and attrs.ParkTrialPhase=='COUNTDOWN','unconfirmed save does not block one-click Replay')
+check(saved==2 and not finished.confirmed,'Replay retries original receipt without claiming reward success')
 check(r.trial.next==1 and r.trial.route.pending==1 and body.Position==r.gridFrame.Position,'Replay clears gates, time and motion on grid')
-check(saved==2,'repeated result observation creates no second reward')
+-- A save that is still yielding may complete after Replay, but cannot replace the new HUD state.
+local jobs={};env.task.spawn=function(fn)table.insert(jobs,fn)end
+r.trial=finished;finished.saving=nil;finished.confirmed=nil;finished.phase='FINISHED'
+check(session:replay(player,r)and #jobs==1,'pending retry starts once and new countdown begins immediately')
+local replayTrial=r.trial;confirmed=true;jobs[1]()
+check(finished.confirmed and r.trial==replayTrial and attrs.ParkTrialRewardState=='NONE','late save confirmation cannot overwrite newer lap state')
+r.trial=finished;finished.saving=true;finished.confirmed=false;finished.phase='FINISHED'
+check(session:replay(player,r)and #jobs==1,'in-flight save also permits Replay without duplicate retry')
+now=r.trial.goAt;session:step(player,r)
+check(attrs.ParkTrialPhase=='RUNNING'and not body.Anchored and r.training.boost,'Replay exits result and launches with boost after GO')
 session:remove(player)
 check(attrs.ParkTrialPhase==nil and attrs.ParkTrialTarget==nil,'return/seat-loss teardown clears HUD mirrors')
 print('PASS '..n..' production Park countdown/GO/boost/finish/save-retry/Replay lifecycle checks')

@@ -305,12 +305,17 @@ credit. Official RACE launch and physics are outside this Park-only change.
 The server uses Figure-8 RaceRouteProgress for six ordered checkpoints, including
 provisional off-road progress committed on re-entry. Rejected discontinuities
 retain route anchors instead of permanently invalidating an ordinary off-track
-lap. The shared CheckpointGuidanceController owns the original checkpoint/finish
+lap. After a wide excursion, Park reacquires route anchors only after 0.5 seconds
+of continuous on-road samples; reacquisition grants no checkpoint or finish.
+The shared CheckpointGuidanceController owns the original checkpoint/finish
 flags and checker markers. A missed gate shows the next required checkpoint
 and grants no finish reward. The server owns lap timing. Each accepted
 lap atomically saves the personal best and K$5,000 using a unique idempotent
 Park lap receipt in KDM_PlayerProgress_v1. Never claim a saved reward before
-read-back confirmation. Finish uses the official 2.4-second roll and 0.9-second
+read-back confirmation. Replay is independent from save confirmation: retry the
+same old receipt in the background and immediately reset into the next countdown,
+even when saving fails or is still in flight. Stale saves cannot replace new lap
+HUD state. Finish uses the official 2.4-second roll and 0.9-second
 front-camera transition, stops the engine, then shows the existing new Park
 time/PB/reward panel with Replay / Return Lobby. SOLO LAP uses the topbar center;
 the transparent white Return Lobby button matches wallet width. Global leaderboard

@@ -81,11 +81,25 @@ function Trial.step(s,now,x,y,z)
  local moved=math.sqrt((x-a.x)^2+(z-a.z)^2)
  local _,roadDistance=Trial.project(x,z)
  local onRoad=roadDistance<=Layout.RoadWidth/2+RaceConfig.ROAD_CORRIDOR_MARGIN
+ -- Sample continuity is independent from the older accepted route anchor.
+ -- Never rebase a teleport itself or award gates during reacquisition.
+ if dt>.5 or moved>110*dt+6 then s.rejoinSince=nil;return end
  local previousNext=s.next
  local nextGate=Progress.step(s.route,position,s.next,onRoad)
  -- A rejected discontinuity retains the Figure-8 route anchors. It does not
  -- poison the whole lap; normal compatible motion can resume after recovery.
- if s.route.position and (position-s.route.position).Magnitude>60 then return end
+ if s.route.position and (position-s.route.position).Magnitude>60 then
+  if onRoad then
+   s.rejoinSince=s.rejoinSince or now
+   if now-s.rejoinSince>=.5 then
+    s.route=Progress.new(course,Layout.RoadWidth)
+    Progress.step(s.route,position,s.next,true)
+    s.rejoinSince=nil
+   end
+  else s.rejoinSince=nil end
+  return
+ end
+ s.rejoinSince=nil
  s.next=nextGate
  local g=Trial.Gates[s.next]
  if g and onRoad and moved/dt>=1 then
@@ -107,6 +121,7 @@ function Trial.step(s,now,x,y,z)
  end
 end
 function Trial.recover(s,x,z,now)
+ s.rejoinSince=nil
  s.previous={x=x,z=z,time=now};s.route=Progress.new(course,Layout.RoadWidth)
  Progress.step(s.route,Vector3.new(x,0,z),s.next,true)
 end

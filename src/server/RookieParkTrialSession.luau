@@ -33,13 +33,14 @@ function Session.new(zone,practice)
   publish(player,r)
  end
  local function save(player,r,s)
+  if s.saving or s.confirmed then return end
   s.saving=true;player:SetAttribute('ParkTrialRewardState','SAVING')
   task.spawn(function()
    local ok,result=pcall(function()
     return require(script.Parent.EconomyService).saveParkLap(player,{id=s.id,milliseconds=s.milliseconds,
      transaction={version=1,issuedAt=s.transactionAt},completedCheckpoints=s.next-1,valid=not s.invalid})
    end)
-   s.saving=false;s.confirmed=ok and result.status=='SAVE_CONFIRMED'
+   s.saving=false;s.confirmed=ok and type(result)=='table' and result.status=='SAVE_CONFIRMED'
    if r.trial==s and player.Parent and player:GetAttribute('LobbyDriveActive')==true
     and player:GetAttribute('LobbyDriveGeneration')==r.generation then
     player:SetAttribute('ParkTrialRewardState',if s.confirmed then 'CONFIRMED'else 'UNCONFIRMED')
@@ -47,8 +48,9 @@ function Session.new(zone,practice)
   end)
  end
  function api:replay(player,r)
-  if not r.trial or (r.trial.phase~='FINISHED'and r.trial.phase~='INVALID')or r.trial.saving then return false end
-  if r.trial.phase=='FINISHED'and not r.trial.confirmed then save(player,r,r.trial);return false end
+  if not r.trial or (r.trial.phase~='FINISHED'and r.trial.phase~='INVALID')then return false end
+  -- Retry the same immutable receipt in the background; saving never gates racing.
+  if r.trial.phase=='FINISHED'and not r.trial.confirmed then save(player,r,r.trial)end
   practice:remove(player);Drift.clear(r.training)
   r.body.Anchored=true;r.body.AssemblyLinearVelocity=Vector3.zero;r.body.AssemblyAngularVelocity=Vector3.zero
   r.kart:PivotTo(r.gridFrame);r.safe=r.gridFrame;r.boundaryPrevious=r.gridFrame.Position
