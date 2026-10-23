@@ -72,15 +72,18 @@ local function readRoll(pivot: BasePart): number
 end
 
 local function findGripContext(player: Player, humanoid: Humanoid): (BasePart?, BasePart?)
-	if CONFIG.ActiveRaceStates[player:GetAttribute("RaceState")] ~= true then
-		return nil, nil
-	end
+	local state = player:GetAttribute("RaceState")
+	local racing = CONFIG.ActiveRaceStates[state] == true
+	local driving = state == "GARAGE" and player:GetAttribute("LobbyDriveActive") == true
 	local seat = humanoid.SeatPart
-	if not seat or seat:GetAttribute("PrototypeKartSeat") ~= true then
+	if not seat or not (racing and seat:GetAttribute("PrototypeKartSeat") == true
+		or driving and seat:GetAttribute("LobbyKartSeat") == true) then
 		return nil, nil
 	end
 	local kart = seat.Parent
-	if not kart or not kart:IsA("Model") or kart:GetAttribute("PrototypeKart") ~= true then
+	if not kart or not kart:IsA("Model") or not (racing and kart:GetAttribute("PrototypeKart") == true
+		or driving and kart:GetAttribute("LobbyKart") == true
+			and kart:GetAttribute("LobbyOwnerUserId") == player.UserId) then
 		return nil, nil
 	end
 	local visual = kart:FindFirstChild("Visual")
@@ -246,6 +249,9 @@ function KDMDriverGripController.start()
 		end
 		bindings[player] = {
 			player:GetAttributeChangedSignal("RaceState"):Connect(function()
+				evaluate(player)
+			end),
+			player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(function()
 				evaluate(player)
 			end),
 			player.CharacterRemoving:Connect(function()

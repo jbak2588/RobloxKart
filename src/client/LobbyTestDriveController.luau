@@ -38,7 +38,7 @@ function Controller.start()
  local speedGauge=nil
  local engineAB=nil
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
- local boostCue=nil;local previousBoost=false
+ local boostCue=nil;local previousBoost=false;local previousNitro=false
  local missileHitCue=nil;local previousMissileHit=false
  local thunderHitCue=nil;local previousThunderHit=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild(Workspace:GetAttribute('LobbyDriveZoneName')or "LobbyFrontTestDriveZone")
@@ -113,7 +113,7 @@ function Controller.start()
  local function detach()
   if speedGauge then speedGauge:destroy();speedGauge=nil end
   if engineAB then engineAB:destroy();engineAB=nil end
-  if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false
+  if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false;previousNitro=false
   if missileHitCue then Audio.stop(missileHitCue);missileHitCue:Destroy();missileHitCue=nil end;previousMissileHit=false
   if thunderHitCue then Audio.stop(thunderHitCue);thunderHitCue:Destroy();thunderHitCue=nil end;previousThunderHit=false
   if exhaust then exhaust:destroy();exhaust=nil end
@@ -275,10 +275,14 @@ function Controller.start()
   local speed=math.abs(body.AssemblyLinearVelocity:Dot(body.CFrame.LookVector))
   if feedback then feedback:update(dt,(kart:GetAttribute("LobbyDrifting")==true or kart:GetAttribute("KartSlickActive")==true) and not suspended and focused and not GuiService.MenuIsOpen, kart:GetAttribute("KartOffTrack")==true, speed) end
   if exhaust then exhaust:update(dt,not suspended and focused and not GuiService.MenuIsOpen) end
-  local boosting=kart:GetAttribute('KartBoosting')==true or kart:GetAttribute('KartNitroActive')==true
-  if boosting and not previousBoost then Audio.playOnce(boostCue) end
-  if not boosting and previousBoost then Audio.stop(boostCue) end
-  previousBoost=boosting
+  local miniBoost=kart:GetAttribute('KartBoosting')==true
+  local nitro=kart:GetAttribute('KartNitroActive')==true
+  local boosting=miniBoost or nitro
+  -- Nitro can start while Mini Boost is still active (and vice versa).
+  -- Track each onset; simultaneous replicated edges share a single cue.
+  if (miniBoost and not previousBoost) or (nitro and not previousNitro) then Audio.playOnce(boostCue) end
+  if not boosting and (previousBoost or previousNitro) then Audio.stop(boostCue) end
+  previousBoost,previousNitro=miniBoost,nitro
   local missileHit=kart:GetAttribute('KartMissileHitActive')==true
   if missileHit and not previousMissileHit then Audio.playOnce(missileHitCue) end
   previousMissileHit=missileHit
