@@ -471,6 +471,7 @@ function RaceHudController.start()
 	racingInviteToggle.Position = UDim2.new(1, -12, 0, 132)
 	racingInviteToggle.Size = UDim2.fromOffset(118, 32)
 	racingInviteToggle.BackgroundColor3 = Color3.fromRGB(35, 95, 165)
+	racingInviteToggle.BackgroundTransparency = 1
 	racingInviteToggle.TextColor3 = Color3.new(1, 1, 1)
 	racingInviteToggle.Font = Enum.Font.GothamBold
 	racingInviteToggle.TextSize = 12
@@ -478,6 +479,8 @@ function RaceHudController.start()
 	racingInviteToggle.Visible = false
 	racingInviteToggle.Parent = screenGui
 	addCorner(racingInviteToggle, 5)
+	local inviteOutline=Instance.new("UIStroke");inviteOutline.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+	inviteOutline.Color=Color3.new(1,1,1);inviteOutline.Thickness=1;inviteOutline.Parent=racingInviteToggle
 	racingInviteToggle.Activated:Connect(function()
 		racingInvitesOpen = not racingInvitesOpen
 		updateHud()
@@ -1080,6 +1083,12 @@ function RaceHudController.start()
 				mapWidth,mapHeight,roomQueueLabel.Visible)
 			racingInviteToggle.Position = UDim2.fromOffset(inviteLayout.x + inviteLayout.width, inviteLayout.y)
 			racingInviteToggle.Size = UDim2.fromOffset(inviteLayout.width, inviteLayout.height)
+			if player:GetAttribute("RaceState") == "RACING" then
+				roomQueueLabel.AnchorPoint=Vector2.zero
+				roomQueueLabel.Position=UDim2.fromOffset(inviteLayout.x,inviteLayout.statusY)
+				roomQueueLabel.Size=UDim2.fromOffset(180,22)
+				roomQueueLabel.TextXAlignment=Enum.TextXAlignment.Left
+			end
 		else
 			racingInviteToggle.Position = UDim2.new(1, -12, 0, 132)
 			racingInviteToggle.Size = UDim2.fromOffset(118, 32)

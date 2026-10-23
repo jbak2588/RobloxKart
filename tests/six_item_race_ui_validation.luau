@@ -29,6 +29,10 @@ for _,size in {V2.new(750,283),V2.new(801,334),V2.new(844,390),V2.new(932,430),V
  check(boxes[1][2]==boxes[4][2] and boxes[5][2]==boxes[6][2] and boxes[5][2]>boxes[1][4], 'four attacks above Nitro/Shield')
  local progress=rect(itemHud.NitroProgress)
  check(progress[2]>=boxes[6][4] and progress[3]==boxes[4][3],'Nitro progress below both rows')
+ local layout=modules.MobileControlView.layout(size)
+ local driftTop=size.Y-layout.rightDriftBottom-layout.driftHitHeight
+ check(boxes[4][3]==size.X-12,'real six-item HUD uses right safe edge')
+ check(progress[4]<=driftTop-25,'real Nitro progress leaves room for Drift charge gauge')
 end
 ui.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 safeSize=V2.new(1280,720);itemCamera.ViewportSize=safeSize

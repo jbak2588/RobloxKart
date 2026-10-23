@@ -10,20 +10,23 @@ function Layout.compute(size,drive,walletBottom)
  local cell=if compact then 44 else 48
  local columns,rows=4,2
  local content=columns*(cell+6)-6
- local steerTop=size.Y-drive.steerBottom-drive.steerHeight
- local y=(walletBottom or 58)+6
  local height=rows*(cell+6)-6
- local boostY=y+height+4
  local boostTextHeight=if compact then 16 else 22
- local gaugeY=boostY+boostTextHeight+2
  local gaugeHeight=if compact then 6 else 9
- local messageY=gaugeY+gaugeHeight+4
  local messageHeight=if compact then 14 else 20
- -- Very short windows use the middle lane beside Drift, with scrollable items.
- local x=if messageY+messageHeight>steerTop-2 then drive.steerLeftX+drive.steerTotalWidth+12 else 12
- local rightTop=size.Y-drive.rightDriftBottom-drive.driftHitHeight
- local right=if messageY+messageHeight>rightTop-2 then drive.rightDriftX-12 else size.X-12
- local width=math.min(content,math.max(cell,right-x))
+ local rightTop=size.Y-drive.rightDriftBottom-math.max(drive.brake,drive.driftHitHeight)
+ local messageY=rightTop-28-messageHeight
+ local gaugeY=messageY-4-gaugeHeight
+ local boostY=gaugeY-2-boostTextHeight
+ local y=boostY-4-height
+ local width=content
+ local x=size.X-12-width
+ -- An exceptionally short canvas uses a scrollable lane to the left of Drift.
+ if y<4 then
+  x=drive.steerLeftX+drive.steerTotalWidth+12
+  width=math.max(cell,drive.rightDriftX-x-8)
+  y=4;boostY=y+height+4;gaugeY=boostY+boostTextHeight+2;messageY=gaugeY+gaugeHeight+4
+ end
  return {x=x,y=y,width=width,height=height,content=content,
   cell=cell,columns=columns,compact=compact,messageHeight=if compact then 14 else 20,
   boostY=boostY,boostTextHeight=boostTextHeight,gaugeY=gaugeY,gaugeHeight=gaugeHeight,messageY=messageY}

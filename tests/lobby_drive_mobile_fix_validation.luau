@@ -11,7 +11,7 @@ for _,size in {rb.Vector2.new(801,334),rb.Vector2.new(844,300),rb.Vector2.new(93
  local padTop=size.Y-l.padBottom-l.padHeight
  check(l.padBottom>=0 and padTop>=0,'entire driving pad within safe bounds')
  check(left>=0 and left+l.padWidth<=size.X,'pad horizontal bounds')
- check(shortcut.y+shortcut.height<=padTop-4,'two shortcuts above Forward')
+ check(shortcut.y+shortcut.height<=size.Y-l.steerBottom-l.steerHeight-4,'shortcuts above left steering')
  check(shortcut.x>=0 and shortcut.x+shortcut.width<=size.X,'shortcut horizontal bounds')
  local driftTop=size.Y-l.driftBottom-l.driftHitHeight
  check(driftTop-8-44>=0 and l.driftBottom>=0,'Exit and Drift fit safe height')

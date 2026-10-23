@@ -280,7 +280,7 @@ function Controller.start()
 			drivingButtons.ForwardRight.button.Size = UDim2.fromOffset(l.sideWidth, l.sideHeight)
 			drivingButtons.ForwardRight.button.Position = UDim2.new(0, steerX + l.sideWidth + 8, 1, -steerBottom)
 
-			-- Right thumb zone: Drift on top (where Left/Right used to be) and BrakeReverse directly below it
+			-- Right thumb zone: Drift and BrakeReverse share the lower row.
 			local rightBrakeX = l.rightBrakeX or (left + (l.padWidth - l.brake) / 2)
 			local rightBrakeBottom = l.rightBrakeBottom or math.max(10, l.padBottom)
 			drivingButtons.BrakeReverse.button.Visible = true

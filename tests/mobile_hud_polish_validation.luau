@@ -5,47 +5,37 @@ local function check(v,label) assert(v,label); count+=1 end
 local function overlaps(a,b) return a[1]<b[3] and b[1]<a[3] and a[2]<b[4] and b[2]<a[4] end
 for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,360}} do
  local s=rb.Vector2.new(pair[1],pair[2]); local l=V.layout(s)
- local top=s.Y-l.padBottom-l.padHeight; local left=s.X-l.margin-l.padWidth-l.padInset
  local m=V.minimapLayout(s,-58)
  local map={m.x,m.y,m.x+m.side,m.y+m.side}
- local i=V.inviteLayout(s,m.x,m.y,m.side,m.side,true); local invite={i.x,i.y,i.x+i.width,i.y+i.height}
- local pad={left,top,left+l.padWidth,s.Y-l.padBottom}
- check(invite[2]==m.y+m.side+34,'invite directly below Room status')
- check(not overlaps(invite,map),'invite clears minimap')
- -- The cluster bounding rectangle includes empty corner space.
- check(not overlaps(invite,map),'invite avoids minimap')
-
- check(i.x>=0 and i.x+i.width<=s.X and i.y>=0,'invite inside safe area')
- local panel={i.panelX,i.panelY,i.panelX+i.panelWidth,i.panelY+52+i.rows*28}
- check(not overlaps(panel,map),'open panel clears map')
- local wheel={s.X*.5-l.wheel*.5,s.Y-3-l.wheel*2/3,s.X*.5+l.wheel*.5,s.Y-3}
- check(not overlaps(map,wheel),'minimap clears Steering')
- check(m.x>=0 and m.y>=-58 and map[3]<=s.X-12 and map[4]<=s.Y-l.margin,'minimap topbar/safe containment')
- check(m.side>=92,'minimap readable minimum')
- check(m.y==-56,'map leaves 2px above the topbar speed baseline')
- local room={s.X-12-118,m.y+m.side+6,s.X-12,m.y+m.side+28}
- check(not overlaps(room,map) and not overlaps(room,invite),'map room invite stack')
- check(invite[2]==room[4]+6 or invite[3]<=left-4,'room/invite stack or adjacent safe lane')
- local directionTop=s.Y-l.padBottom-(l.padHeight+l.direction)/2
- local forwardX=left+(l.padWidth-l.forward)*.5
- local brakeX=left+(l.padWidth-l.brake)*.5
- local buttons={
-  Forward={forwardX,top,forwardX+l.forward,top+l.forward},
-  ForwardLeft={left,directionTop,left+l.direction,directionTop+l.direction},
-  ForwardRight={left+l.padWidth-l.direction,directionTop,left+l.padWidth,directionTop+l.direction},
-  BrakeReverse={brakeX,s.Y-l.padBottom-l.brake,brakeX+l.brake,s.Y-l.padBottom},
-}
- for name,rect in buttons do check(not overlaps(map,rect),'minimap clears actual '..name); check(not overlaps(panel,rect),'panel clears actual '..name); check(not overlaps(invite,rect),'invite clears actual '..name) end
- local speed={s.X*.5-80,-58,s.X*.5+80,-2}
- check(not overlaps(map,speed) and not overlaps(invite,speed),'map/invite clear speed')
- check(not overlaps(panel,speed),'open panel clears speed')
- check(not overlaps(panel,wheel),'open panel clears wheel')
- local items=V.itemLayout(s,4); local row={items.x,s.Y-items.bottom-l.slot,items.x+items.width,s.Y-items.bottom}
- check(not overlaps(panel,row),'open panel clears items '..tostring(s)..' panel='..table.concat(panel,',')..' row='..table.concat(row,','))
- check(not overlaps(map,row),'minimap clears item row')
- local drift={l.driftX,s.Y-l.driftBottom-l.driftHitHeight,l.driftX+l.driftHitWidth,s.Y-l.driftBottom}
+ local i=V.inviteLayout(s,m.x,m.y,m.side,m.side,true)
+ local invite={i.x,i.y,i.x+i.width,i.y+i.height}
+ local room={12,i.statusY,192,i.statusY+22}
+ local steer={l.steerLeftX,s.Y-l.steerBottom-l.steerHeight,l.steerLeftX+l.steerTotalWidth,s.Y-l.steerBottom}
+ local drift={l.rightDriftX,s.Y-l.rightDriftBottom-l.driftHitHeight,l.rightDriftX+l.driftHitWidth,s.Y-l.rightDriftBottom}
+ local reverse={l.rightBrakeX,s.Y-l.rightBrakeBottom-l.brake,l.rightBrakeX+l.brake,s.Y-l.rightBrakeBottom}
+ local items=V.itemLayout(s,6)
+ local row={items.x,items.top,items.x+items.width,items.secondTop+l.slot}
  local progress={items.x,items.progressTop,items.x+items.width,items.progressTop+items.progressHeight}
- check(not overlaps(map,drift) and not overlaps(map,progress),'minimap clears Drift/Nitro progress')
+ local gauge={l.rightDriftX+l.driftHitWidth/2-l.driftWidth*.65/2,drift[2]-22,
+  l.rightDriftX+l.driftHitWidth/2+l.driftWidth*.65/2,drift[2]-10}
+ local panel={i.panelX,i.panelY,i.panelX+i.panelWidth,i.panelY+52+i.rows*28}
+ check(i.x==12 and i.y==i.statusY+26,'social controls use former left item lane')
+ check(items.x==s.X-12-items.width,'six items align with right safe edge')
+ check(row[2]>=0 and progress[4]<=gauge[2]-3,'item rows and Nitro progress above Drift gauge')
+ check(drift[4]==reverse[4] and drift[3]+8==reverse[1],'Drift and reverse share bottom row with gap')
+ check(drift[4]<=s.Y-12 and drift[3]-drift[1]>=132 and reverse[3]-reverse[1]>=44,'right controls fit safe touch sizes')
+ local blocks={row,progress,gauge,drift,reverse,steer,room,invite,map,panel}
+ for index,rect in blocks do
+  check(rect[1]>=0 and rect[3]<=s.X and rect[2]>=-58 and rect[4]<=s.Y,'safe rectangle '..index..' '..tostring(s))
+  for other=index+1,#blocks do
+   check(not overlaps(rect,blocks[other]),'no item/control/social/map/panel overlap '..index..'/'..other..' '..tostring(s))
+  end
+ end
+ local wheel={s.X*.5-l.wheel*.5,s.Y-3-l.wheel*2/3,s.X*.5+l.wheel*.5,s.Y-3}
+ for _,rect in {row,progress,gauge,drift,reverse,steer,invite,map,panel} do
+  check(not overlaps(rect,wheel),'mobile controls clear speed gauges')
+ end
+ check(m.y==-56,'map retains speed topbar baseline')
  check(l.driveVisualSize>=44 and l.direction>=l.driveVisualSize*V.artwork.driveWidth+4 and l.brake>=44,'minimum control targets')
  check(l.padGap==4,'nonoverlapping hitbox gap')
 end

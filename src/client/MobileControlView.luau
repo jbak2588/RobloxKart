@@ -35,7 +35,7 @@ function View.layout(size: Vector2)
 	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else 10-(direction-visual)/2-visual*View.artwork.driveBottom-screenBottomInset
 	local mapSide = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
 	local padInset = if portrait then 0 else 12-margin-(sideWidth-sideVisualWidth)/2
-	local driftWidth = slot*4+8*3
+	local driftWidth = if portrait then 132 else 140
 	local driftHeight = driftWidth*518/1536
 	local driftHitWidth = math.ceil(driftWidth*1.10)
 	local driftHitHeight = if portrait then math.ceil(driftHeight*1.14) else math.ceil(driftHeight*View.artwork.driftHeight)+6
@@ -44,15 +44,15 @@ function View.layout(size: Vector2)
 	local steerBottom = math.max(12, padBottom)
 	local steerTotalWidth = sideWidth*2+8
 	local steerHeight = sideHeight
-	local rightPadWidth = math.max(padWidth, driftHitWidth)
-	local rightPadX = size.X - margin - rightPadWidth - padInset
-	local rightBrakeX = rightPadX + math.floor((rightPadWidth - brake) / 2)
-	local rightBrakeBottom = math.max(10, padBottom)
+	local rightPadWidth = driftHitWidth + 8 + brake
+	local rightPadX = size.X - 12 - rightPadWidth
+	local rightBrakeX = rightPadX + driftHitWidth + 8
+	local rightBrakeBottom = 12
 	if portrait and steerLeftX + steerTotalWidth + 8 > rightPadX then
 		rightBrakeBottom = steerBottom + steerHeight + 8
 	end
-	local rightDriftX = rightPadX + math.floor((rightPadWidth - driftHitWidth) / 2)
-	local rightDriftBottom = rightBrakeBottom + brake + (if short then 4 else 6)
+	local rightDriftX = rightPadX
+	local rightDriftBottom = rightBrakeBottom
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
 	if portrait then
@@ -107,32 +107,20 @@ function View.minimapLayout(size: Vector2, speedTop: number?)
 	return {x=size.X-12-side, y=(speedTop or 0)+2, side=side}
 end
 
--- Keep the driving rail fixed. Short phones use an adjacent lane when the
--- vertical space between the map and pad cannot contain the invite button.
+-- Social controls occupy the former left item lane, away from the right thumb.
 function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: number, mapHeight: number, roomVisible: boolean?)
 	local l = View.layout(size)
 	local width, height = if size.Y < 360 then 108 else 118, if size.Y < 360 then 30 else 32
-	local padTop = size.Y - l.padBottom - l.padHeight
-	local padLeft=size.X-l.margin-l.padWidth-l.padInset
-	local x = size.X - 12 - width
-	local y = mapY + mapHeight + (if roomVisible then 34 else 8)
-	-- Exceptionally short safe viewports cannot fit the full stack above Forward.
-	if y+height > padTop-4 and x < padLeft+(l.padWidth+l.forward)/2 then
-		-- A shorter topbar band cannot contain the stack above the thumb rail.
-		x = padLeft-width-8
-	end
-	local panelWidth = 220
-	local panelX = if size.X>=600 and size.Y<360 then math.max(12+math.min(170,size.X*.28)+8,12+l.slot*4+l.gap*3+8) else 12+math.min(170,size.X*.28)+8
-	local panelTop = if size.X>=600 and size.Y<360 then 58 else 0
-	local items=View.itemLayout(size,4)
-	if x+width > items.x and x < items.x+items.width
-		and y+height > size.Y-items.bottom-l.slot then
-		x=panelX; y=size.Y-items.bottom-l.slot-height-4
-	end
-	local panelBottom = size.Y-items.bottom-l.slot-4
+	local x = 12
+	local statusY = if size.Y < 360 then 60 else 100
+	local y = statusY + (if roomVisible then 26 else 0)
+	local panelX, panelTop = 200, 60
+	local items=View.itemLayout(size,6)
+	local panelWidth = math.min(220,math.max(120,items.x-panelX-8))
+	local panelBottom = size.Y-l.steerBottom-l.steerHeight-4
 	local rows = math.clamp(math.floor((panelBottom-panelTop-52)/28),1,4)
 	return {x=x,y=math.max(8,y),width=width,height=height,
-		panelX=panelX,panelY=panelTop,panelWidth=panelWidth,rows=rows}
+		statusY=statusY,panelX=panelX,panelY=panelTop,panelWidth=panelWidth,rows=rows}
 
 end
 
@@ -155,15 +143,19 @@ function View.speedTopbarPosition(fullSize: Vector2, topbar: Rect, panelWidth: n
 	return Vector2.new(centerX, topY)
 end
 
--- Keep the complete group in the left HUD lane, including short safe viewports.
+-- Six-item race HUD belongs above the right thumb controls and charge gauge.
 function View.itemLayout(size: Vector2, slotCount: number)
 	local l = View.layout(size)
 	if slotCount == 6 then
-		local top = if size.Y < 360 then 60 else 100
+		local controlTop=size.Y-l.rightDriftBottom-math.max(l.brake,l.driftHitHeight)
+		local progressHeight=24
+		local progressTop=controlTop-10-12-6-progressHeight
+		local top=progressTop-4-l.slot*2-6
 		local rowGap = 6
 		local secondTop = top + l.slot + rowGap
-		return {x=12, width=l.slot*4+l.gap*3, bottom=size.Y-secondTop-l.slot,
-			top=top, secondTop=secondTop, progressTop=secondTop+l.slot+4, progressHeight=24}
+		local width=l.slot*4+l.gap*3
+		return {x=size.X-12-width, width=width, bottom=size.Y-secondTop-l.slot,
+			top=top, secondTop=secondTop, progressTop=progressTop, progressHeight=progressHeight}
 	end
 	local width = l.slot * slotCount + l.gap * (slotCount - 1)
 	local x = 12

@@ -28,7 +28,7 @@ for _,s in {{932,390},{844,300},{748,303},{724,311},{801,334},{667,250},{480,210
   check(not overlap(message,control)and not overlap(boost,control)and not overlap(gauge,control),'practice text clears relocated controls: '..tostring(size))
  end
  local shortcuts=drive.shortcuts(size,mobile)
- check(not overlap(panel,{x=shortcuts.x,y=shortcuts.y,w=shortcuts.width,h=shortcuts.height}),'items clear exit/shortcuts')
+ check(not overlap(panel,{x=shortcuts.x,y=shortcuts.y,w=shortcuts.width,h=shortcuts.height}),'items clear exit/shortcuts '..tostring(size))
  for _,id in {'Slick','Missile','Smoke','Thunder','Nitro','Shield'}do
   local x,y=layout.itemPosition(id,a.cell)
   check(x>=0 and x+a.cell<=a.content and y+a.cell<=a.height,'all six buttons accessible in scroll content')

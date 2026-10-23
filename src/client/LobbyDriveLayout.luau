@@ -12,18 +12,22 @@ function Layout.apply(l,size)
  l.steerBottom=12
  l.steerTotalWidth=l.sideWidth*2+8
  l.steerHeight=l.sideHeight
- l.rightPadWidth=math.max(l.padWidth,l.driftHitWidth)
- l.rightPadX=size.X-l.margin-l.rightPadWidth
- l.rightBrakeX=l.rightPadX+math.floor((l.rightPadWidth-l.brake)/2)
+ l.rightPadWidth=l.driftHitWidth+8+l.brake
+ l.rightPadX=size.X-12-l.rightPadWidth
+ l.rightBrakeX=l.rightPadX+l.driftHitWidth+8
  l.rightBrakeBottom=12
- l.rightDriftX=l.rightPadX+math.floor((l.rightPadWidth-l.driftHitWidth)/2)
- l.rightDriftBottom=l.rightBrakeBottom+l.brake+6
+ l.rightDriftX=l.rightPadX
+ l.rightDriftBottom=l.rightBrakeBottom
+ if size.X<l.steerLeftX+l.steerTotalWidth+8+l.rightPadWidth+12 and size.Y>size.X then
+  l.rightBrakeBottom=l.steerBottom+l.steerHeight+8
+  l.rightDriftBottom=l.rightBrakeBottom
+ end
  if size.X<l.driftHitWidth+l.padWidth+36 and size.Y>size.X then l.driftBottom=l.padBottom+l.padHeight+100 end
  return l
 end
 function Layout.shortcuts(size,view)
  local l=Layout.apply(view.layout(size),size)
- return {x=size.X-l.margin-l.padWidth,y=math.max(4,size.Y-l.padBottom-l.padHeight-88),width=l.padWidth,height=80}
+ return {x=12,y=if size.Y<340 then 64 else 100,width=math.min(210,l.steerTotalWidth,size.X-(l.slot*4+18)-32),height=80}
 end
 -- Coordinates are relative to the same CoreUISafeInsets canvas as the wallet.
 function Layout.trainingHud(size,walletLeft,walletBottom,driftLeft,driftHitWidth,driftVisualWidth)

@@ -341,8 +341,9 @@ else
 		and gui:GetAttribute("MobileDriveControlMode")=="Buttons","digital default shows Left/Right steering on left, Drift+BrakeReverse on right, and hides manual Forward/Auto buttons")
 	check(root.ForwardLeft.AbsolutePosition.X < root.ForwardRight.AbsolutePosition.X
 		and root.ForwardRight.AbsolutePosition.X < drift.AbsolutePosition.X
-		and drift.AbsolutePosition.Y + drift.AbsoluteSize.Y <= root.BrakeReverse.AbsolutePosition.Y,
-		"Left/Right steering is on the left thumb lane; Drift is on the right above BrakeReverse")
+		and drift.AbsolutePosition.X + drift.AbsoluteSize.X + 8 <= root.BrakeReverse.AbsolutePosition.X
+		and math.abs(drift.AbsolutePosition.Y+drift.AbsoluteSize.Y-root.BrakeReverse.AbsolutePosition.Y-root.BrakeReverse.AbsoluteSize.Y)<1,
+		"Left/Right steering stays left; Drift and BrakeReverse share the bottom right row")
 	check(latest()[1]==1 and latest()[2]==0 and gui:GetAttribute("AutoForwardEnabled")==true,"Auto-Forward defaults ON immediately in Buttons mode")
 	local ignored=touch(joy); check(latest()[1]==1 and latest()[2]==0,"legacy stick cannot activate in Buttons mode")
 	local b=touch(root.BrakeReverse); check(latest()[1]==-1,"brake/reverse overrides default Auto-Forward")
@@ -513,6 +514,7 @@ for _,case in {
 	safeSize=full
 	modules.MobileControlView.setViewportBottomInset(full.Y,offset.Y+controlSize.Y)
 	local host=object("ScreenGui")
+	host:SetAttribute("MobileDriveControlMode",if legacy then "Joystick" else "Buttons")
 	local controls=child(host,"Frame","InsetControls")
 	controls.Size=rb.UDim2.fromOffset(controlSize.X,controlSize.Y)
 	controls.Position=rb.UDim2.fromOffset(offset.X,offset.Y)
@@ -520,7 +522,7 @@ for _,case in {
 	local l=modules.MobileControlView.layout(controlSize)
 	button.AnchorPoint=V2.new(0,1)
 	button.Size=rb.UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight)
-	button.Position=rb.UDim2.new(0,l.driftX,1,-l.driftBottom)
+	button.Position=rb.UDim2.new(0,if legacy then l.driftX else l.rightDriftX,1,-(if legacy then l.driftBottom else l.rightDriftBottom))
 	local artwork=child(button,"ImageLabel","KDMControlImage")
 	artwork.AnchorPoint=V2.new(.5,.5);artwork.Position=rb.UDim2.fromScale(.5,.5)
 	artwork.Size=rb.UDim2.fromOffset(l.driftWidth,l.driftHeight)
@@ -530,8 +532,8 @@ for _,case in {
 	view:layout(full,true,nil,displayRoot.AbsolutePosition,button)
 	local g=view.frame
 	local top=math.min(button.AbsolutePosition.Y,artwork.AbsolutePosition.Y)
-	local items=modules.MobileControlView.itemLayout(controlSize,4)
-	local row={offset.X+items.x,offset.Y+controlSize.Y-items.bottom-l.slot,
+	local items=modules.MobileControlView.itemLayout(controlSize,if legacy then 4 else 6)
+	local row={offset.X+items.x,offset.Y+(if legacy then controlSize.Y-items.bottom-l.slot else items.top),
 		offset.X+items.x+items.width,offset.Y+controlSize.Y-items.bottom}
 	local nitro={offset.X+items.x,offset.Y+items.progressTop,
 		offset.X+items.x+items.width,offset.Y+items.progressTop+items.progressHeight}

@@ -486,16 +486,13 @@ end
 for _,size in {rb.Vector2.new(1490,620),rb.Vector2.new(844,332),rb.Vector2.new(749,303)} do
  safeSize=size;camera.ViewportSize=size;camera:GetPropertyChangedSignal("ViewportSize"):Fire()
  local status,map=hud.RoomQueueStatus,raceMap()
- local statusRight=status.AbsolutePosition.X+status.AbsoluteSize.X
- local mapRight=map.AbsolutePosition.X+map.AbsoluteSize.X
- check(status.Visible and map.Visible and math.abs(statusRight-mapRight)<1,
-  "mobile Room status aligns with minimap right edge "..tostring(size))
- check(if size.Y<500 then map.AbsolutePosition.Y+map.AbsoluteSize.Y+6<=status.AbsolutePosition.Y
-  else status.AbsolutePosition.Y+status.AbsoluteSize.Y+6<=map.AbsolutePosition.Y,
-  "mobile Room status follows minimap hierarchy "..tostring(size))
- check(status.AbsolutePosition.X>size.X*0.5 and statusRight<=size.X
-  and status.AbsolutePosition.Y>=hud.AbsolutePosition.Y,
-  "mobile Room status clears central driving view inside safe area "..tostring(size))
+ local invite=hud.RacingInviteToggle
+ check(status.Visible and map.Visible and status.Position.X.Offset==12 and status.AnchorPoint.X==0,
+  "mobile Room status uses former left item lane "..tostring(size))
+ check(status.AbsolutePosition.Y+status.AbsoluteSize.Y+4<=invite.AbsolutePosition.Y,
+  "mobile Invite is below Room status "..tostring(size))
+ check(invite.BackgroundTransparency==1 and invite:FindFirstChildOfClass('UIStroke').Color==rb.Color3.new(1,1,1)
+  and invite.TextColor3==rb.Color3.new(1,1,1),"transparent white Invite matches requested outline style")
 end
 for _,size in {rb.Vector2.new(749,303),rb.Vector2.new(749,361),rb.Vector2.new(724,311),
  rb.Vector2.new(844,390),rb.Vector2.new(932,430),rb.Vector2.new(640,360)} do

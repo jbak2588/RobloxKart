@@ -142,7 +142,7 @@ for _,pair in {{750,283},{750,341},{750,361},{844,390},{932,430},{749,303},{640,
 		if g.visible then check(not overlaps(r,passive),"drive avoids RPM/Speed gauge "..w.."x"..h.." target "..i) end
 	end
 	check(l.driveVisualSize>=(if w<500 and h<260 then 58 else 62),"enlarged drive art minimum")
-	check(l.driftWidth==layout.itemLayout({X=w,Y=h},4).width,"Drift matches four item group width")
+	check(l.driftWidth<=140 and l.driftHitWidth>=132,"narrow Drift leaves room for same-row reverse")
 	if w>=600 and w>h then
 		check(math.abs(l.padBottom+(l.brake-l.driveVisualSize)/2+l.driveVisualSize*layout.artwork.driveBottom-10)<.001,"visible Brake bottom is 10px")
 		check(math.abs(l.driftBottom+(l.driftHitHeight-l.driftHeight)/2+l.driftHeight*layout.artwork.driftBottom-10)<.001,"visible Drift bottom is 10px")
@@ -155,8 +155,8 @@ end
 layout.setViewportBottomInset(360,338)
 local insetLayout=layout.layout({X=685,Y=280})
 local insetItems=layout.itemLayout({X=685,Y=280},4)
-check(insetLayout.direction==59 and insetLayout.autoVisualSize==52 and insetLayout.autoHitSize==56 and insetLayout.driftHitWidth==221
-	and insetLayout.driftHitHeight==74,"short v3 retains Forward and Auto visual size with full new Drift hitbox")
+check(insetLayout.direction==59 and insetLayout.autoVisualSize==52 and insetLayout.autoHitSize==56 and insetLayout.driftHitWidth==154
+	and insetLayout.driftHitHeight==54,"short phone retains steering size and narrower Drift hitbox")
 check(280-insetItems.bottom-insetLayout.slot>=120,"device bottom compensation leaves room for LAP, Quit and both warnings")
 check(math.abs(insetLayout.padBottom+(insetLayout.brake-insetLayout.driveVisualSize)/2
 	+insetLayout.driveVisualSize*layout.artwork.driveBottom+22-10)<.001,"device inset compensated Brake shares physical gauge bottom")

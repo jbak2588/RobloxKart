@@ -77,13 +77,14 @@ function Gauge.create(root, debugEnabled)
 				local gap=if size.X<500 and size.Y>size.X then 8 else 10
 				local center=driftButton.AbsolutePosition.X+driftButton.AbsoluteSize.X/2
 				local controls=driftButton.Parent
-				local items=View.itemLayout(controls.AbsoluteSize,4)
+				local digital=controls.Parent and controls.Parent:GetAttribute("MobileDriveControlMode")=="Buttons"
+				local items=View.itemLayout(controls.AbsoluteSize,if digital then 6 else 4)
 				local nitroBottom=controls.AbsolutePosition.Y+items.progressTop+items.progressHeight
 				local itemsRight=controls.AbsolutePosition.X+items.x+items.width
 				if center-l.driftWidth*.65/2 < itemsRight+6 and nitroBottom>top-gap-l.gaugeHeight-3 then
 					-- A crowded short lane cannot move Nitro into LAP/Quit. Use the
 					-- nearest clear horizontal position while retaining button-relative Y.
-					center=itemsRight+6+l.driftWidth*.65/2
+					center=math.min(controls.AbsolutePosition.X+controls.AbsoluteSize.X-l.driftWidth*.65/2-3,itemsRight+6+l.driftWidth*.65/2)
 				end
 				frame.Position=UDim2.fromScale((center-origin.X)/size.X,(top-origin.Y-gap)/size.Y)
 			else
