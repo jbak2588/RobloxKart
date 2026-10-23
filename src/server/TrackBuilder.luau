@@ -928,16 +928,11 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 		local n1 = Vector3.new(-tangent.Z, 0, tangent.X)
 		local n2 = Vector3.new(tangent.Z, 0, -tangent.X)
-		-- In Roblox right-handed coordinates (+Y up), arriving:Cross(leaving).Y < 0 is a LEFT turn,
-		-- and arriving:Cross(leaving).Y > 0 is a RIGHT turn.
-		-- n1 = (-tangent.Z, 0, tangent.X) is the driver's LEFT normal; n2 = (tangent.Z, 0, -tangent.X) is the driver's RIGHT normal.
-		local isLeftCurve = signedTurnAt(idx) < 0
+		local isLeftCurve = signedTurnAt(idx) > 0
 		local bestNormal = n1
 		if not item.isStraight then
-			-- Place curve chevron boards on the outer runoff wall across from the turn direction:
-			-- Left turn (isLeftCurve) -> outer wall is driver's RIGHT (n2)
-			-- Right turn (not isLeftCurve) -> outer wall is driver's LEFT (n1)
-			bestNormal = if isLeftCurve then n2 else n1
+			-- Keep the exact outer runoff wall position across from the curve:
+			bestNormal = if isLeftCurve then n1 else n2
 		else
 			local bestDist = -math.huge
 			for _, testN in { n1, n2 } do
