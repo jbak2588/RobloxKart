@@ -11,7 +11,10 @@ function Builder.build(hub,ground)
  local existing=hub:FindFirstChild(Layout.PrototypeName);if existing then return existing end
  assert(not hub:FindFirstChild("LobbyFrontTestDriveZone"),"G2 preview requires a fresh HUB; do not toggle over a live drive zone")
  local spawn=assert(hub:FindFirstChild("HubSpawn"),"Missing HubSpawn")
- local origin=Vector3.new(spawn.Position.X,ground.Position.Y+ground.Size.Y/2,spawn.Position.Z)
+ local origin=hub:GetAttribute('RookieParkOrigin')or Vector3.new(spawn.Position.X,ground.Position.Y+ground.Size.Y/2,spawn.Position.Z)
+ hub:SetAttribute('RookieParkOrigin',origin)
+ local arrival=origin+Vector3.new(Layout.Arrival.x,.75,Layout.Arrival.z)
+ spawn.CFrame=CFrame.lookAt(arrival,arrival-Vector3.zAxis)
  local root=Instance.new("Model");root.Name=Layout.PrototypeName
  root:SetAttribute("Stage",Layout.Stage);root:SetAttribute("DriveIntegrated",false)
  root:SetAttribute("CourseLengthStuds",Layout.measure().length)

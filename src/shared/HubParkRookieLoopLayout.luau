@@ -1,4 +1,4 @@
--- Racing Park stage 1. Coordinates are relative to HubSpawn, world X/Z axes.
+-- Racing Park coordinates use the stable RookieParkOrigin, world X/Z axes.
 -- User-approved apron revision: transfer both 9-stud shoulders to asphalt.
 -- Total corridor and outside guardrails stay fixed (34+2 = 36).
 local Layout = { DefaultEnabled=false, RoadWidth=68, KerbWidth=2, Shoulder=0,
@@ -74,6 +74,11 @@ Layout.Pit={width=32,segments={
 Layout.Protected={minX=-90,maxX=90,minZ=-85,maxZ=95}
 Layout.Plaza={x=0,z=-58,width=120,length=24}
 Layout.Walkway={x=0,z=-36,width=12,length=24}
+-- Arrival stands on the pedestrian stem, facing the Park (-Z).
+Layout.Arrival={x=0,z=-36}
+-- Seven static exhibits on the crossbar; keep the stem approach clear.
+Layout.ShowroomSlots={}
+for i=0,6 do table.insert(Layout.ShowroomSlots,{x=-48+i*16,z=-61})end
 -- The service fills the lowest free slot index first. Travel is +X, so
 -- index 1 must be the leading bracket, then fill backward without moving paint.
 Layout.PitSlots={p(45,pitZ),p(15,pitZ),p(-15,pitZ),p(-45,pitZ)}

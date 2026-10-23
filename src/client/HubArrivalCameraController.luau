@@ -25,14 +25,15 @@ function HubArrivalCameraController.start()
     local camera = Workspace.CurrentCamera
     if spawn and root and humanoid and camera and not humanoid.SeatPart
      and (root.Position - (spawn.Position + Vector3.new(0, 3, 0))).Magnitude < 5 then
-     local zone = hub:FindFirstChild("LobbyFrontTestDriveZone")
+     local zone = hub:FindFirstChild("HubParkRookieLoopG2") or hub:FindFirstChild("LobbyFrontTestDriveZone")
+     local park=zone and zone:GetAttribute("DriveGeometry")=="ROOKIE_LOOP_V1"
      local entry = zone and zone:FindFirstChild("LobbyFrontDriveEntry")
      local toward = entry and Vector3.new(entry.Position.X-root.Position.X, 0, entry.Position.Z-root.Position.Z)
-     local forward = if toward and toward.Magnitude > 1 then toward.Unit else spawn.CFrame.LookVector
-     local focus = root.Position + forward * 20 + Vector3.new(0, 1, 0)
+     local forward = if park then -Vector3.zAxis elseif toward and toward.Magnitude > 1 then toward.Unit else spawn.CFrame.LookVector
+     local focus = root.Position + forward * (if park then 6 else 20) + Vector3.new(0, 1, 0)
      camera.CameraType = Enum.CameraType.Custom
      camera.CameraSubject = humanoid
-     camera.CFrame = CFrame.lookAt(root.Position - forward * 10 + Vector3.new(0, 5, 0), focus)
+     camera.CFrame = CFrame.lookAt(root.Position - forward * (if park then 14 else 10) + Vector3.new(0, if park then 6 else 5, 0), focus)
      camera.Focus = CFrame.new(root.Position)
      return -- Native camera owns walking, touch/mouse orbit and zoom immediately.
     end

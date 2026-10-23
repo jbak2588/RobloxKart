@@ -338,6 +338,19 @@ Mini Boost. Launch automatically accelerates, Brake cancels, and existing
 seating/network ownership and boost safety limits apply. Launch must not consume
 Nitro or emit a successful Drift outcome/count toward repeatable Nitro rewards.
 
+## Park arrival and walk-up exhibits - 2026-10-24
+
+Park Hub arrivals and Return Lobby use the pedestrian stem at Park-local (0,-36),
+facing -Z toward the Park. RookieParkOrigin preserves the original course datum;
+never recompute the track from the relocated HubSpawn. The one-shot arrival
+camera hands back to Roblox native walking/orbit immediately.
+
+Seven existing KDM V2 static exhibits occupy the T-crossbar at z=-61 and x=-48
+through +48 with 16-stud spacing. Native nearby PLAY prompts reuse the validated
+temporary preview Drive request and personal grid/countdown/boost launch. They
+do not change persisted Garage selection or create another driving system.
+Legacy non-Park indoor displays retain their layout and TEST DRIVE prompts.
+
 ## Driving Invariants
 
 Owner override — 2026-10-23: mobile Buttons mode defaults to automatic forward

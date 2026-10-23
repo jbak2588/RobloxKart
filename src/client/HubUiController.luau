@@ -319,21 +319,26 @@ function HubUiController.start()
   for _,candidate in catalog.Order do
    if candidate~=heroId and catalog.Entries[candidate].VisualModelName=="KDMV2" then table.insert(ids,candidate) end
   end
+  local park=hub:FindFirstChild('HubParkRookieLoopG2')
+  local parkLayout=if park and park:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then require(ReplicatedStorage.Shared.HubParkRookieLoopLayout)else nil
   local bays={{0,904},{-30,885},{30,885},{-30,901},{30,901},{-30,917},{30,917}}
   local ok,result=pcall(function()
    for index,kartId in ids do
     local bay=Instance.new("Model");bay.Name="ShowroomBay"..index;bay.Parent=showroom
     local location=bays[index]
     local offset=CFrame.new(location[1],0,location[2]-904)
-    -- Spawn camera faces +Z: positive X bays are screen-left.
-    -- Factory front wheels/nose face +X here; only these three face out.
+    -- Preserve legacy indoor bay orientation; Park uses its T-crossbar slots.
     local frame=offset*anchor.CFrame*(if location[1]>0 then CFrame.Angles(0,math.pi,0) else CFrame.identity)
+    if parkLayout then
+     local slot=parkLayout.ShowroomSlots[index]
+     frame=CFrame.new(park:GetAttribute('Center')+Vector3.new(slot.x,.22,slot.z))*CFrame.Angles(0,math.pi,0)
+    end
     local kart=HubUiController.createDisplay(bay,{CFrame=frame},catalog.Entries[kartId],factory,player:GetAttribute('KDMWingEquipped')==true)
     kart:SetAttribute("ShowroomStatic",true)
     do
      local drive=Instance.new("Part");drive.Name="LobbyDisplayDrivePoint";drive.Size=Vector3.one;drive.Transparency=1;drive.Anchored=true;drive.CanCollide=false;drive.CanTouch=false;drive.CanQuery=false
      drive.CFrame=frame*CFrame.new(0,2,0);drive:SetAttribute("ShowroomKartId",kartId);drive.Parent=kart
-     local prompt=Instance.new("ProximityPrompt");prompt.Name="LobbyDisplayTestDrive";prompt.ActionText="TEST DRIVE";prompt.ObjectText=catalog.Entries[kartId].DisplayName;prompt.RequiresLineOfSight=false;prompt.MaxActivationDistance=8;prompt.Parent=drive
+     local prompt=Instance.new("ProximityPrompt");prompt.Name="LobbyDisplayTestDrive";prompt.ActionText=if parkLayout then "PLAY"else "TEST DRIVE";prompt.ObjectText=catalog.Entries[kartId].DisplayName;prompt.RequiresLineOfSight=false;prompt.MaxActivationDistance=8;prompt.Parent=drive
     end
    end
    return showroom
@@ -341,6 +346,8 @@ function HubUiController.start()
   if ok then showroom.Parent=hub;display=result
   else showroom:Destroy();warn("[Hub] Showroom unavailable: "..tostring(result)) end
  end
+ table.insert(connections,Workspace:GetAttributeChangedSignal('LobbyDriveZoneName'):Connect(refreshDisplay))
+ table.insert(connections,hub.ChildAdded:Connect(function(v)if v.Name=='HubParkRookieLoopG2'then refreshDisplay()end end))
  table.insert(connections,player:GetAttributeChangedSignal("SelectedKartId"):Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal('KDMWingEquipped'):Connect(refreshDisplay))
  table.insert(connections,player:GetAttributeChangedSignal("RaceState"):Connect(refreshDisplay))
