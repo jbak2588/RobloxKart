@@ -493,14 +493,14 @@ function PrototypeWorld.start(options)
 			context.driftDriver = nil
 		end
 
-		local function startBoost(player: Player, now: number)
+		local function startBoost(player: Player, now: number, awardDrift: boolean?)
 			context.boostPressSerial=context.driftPressSerial or 0
 			context.boostActive = true
 			context.boostDriver = player
 			context.boostEndTime = now + KartConfig.MINI_BOOST_DURATION
 			kart:SetAttribute("KartBoostEndReason", "")
 			kart:SetAttribute("KartBoosting", true)
-			emitDriftOutcome(player, "BOOST")
+			if awardDrift~=false then emitDriftOutcome(player, "BOOST")end
 			if KartConfig.DEBUG_TELEMETRY then
 				print(string.format(
 					"[KartBoost] START reason=qualified_clean_exit chargeDuration=%.2f qualifiedDuration=%.2f",
@@ -508,6 +508,15 @@ function PrototypeWorld.start(options)
 					context.qualifiedDuration
 				))
 			end
+		end
+
+		function context:launchBoost(player: Player): boolean
+			if not self:getRaceKart(player) then return false end
+			local now=time()
+			if self.startBoostUntil and now<self.startBoostUntil then return false end
+			startBoost(player,now,false)
+			self.startBoostUntil=self.boostEndTime
+			return true
 		end
 
 		-- Reset display state immediately at lifecycle boundaries; simulation reset
@@ -522,6 +531,7 @@ function PrototypeWorld.start(options)
 			if not context.boostActive then
 				return
 			end
+			context.startBoostUntil = nil
 			context.boostActive = false
 			context.boostDriver = nil
 			context.boostEndTime = 0
@@ -944,6 +954,10 @@ function PrototypeWorld.start(options)
 				throttle = control.throttle
 				steering = control.steering
 				driftRequested = control.driftRequested
+			end
+			-- Automatic GO launch uses normal Mini Boost; Brake still cancels it.
+			if context.startBoostUntil and now<context.startBoostUntil and player==context.boostDriver and throttle>=0 then
+				throttle=1;hasValidInput=true
 			end
 			local nitroWasActive = context.nitro.active
 			context.nitro:update(now, player, player ~= nil and player:GetAttribute("RaceState") == "RACING",

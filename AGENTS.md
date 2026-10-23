@@ -322,6 +322,22 @@ the transparent white Return Lobby button matches wallet width. Global leaderboa
 is deferred to a later task. Studio economy uses the existing memory adapter;
 Studio verification does not establish live DataStore or mobile acceptance.
 
+## Rookie Park traffic and automatic GO launch - 2026-10-23
+
+Park traffic is a server-shared fleet of seven distinct KDM V2 colors, joining at
+0/30/60/90/120/150/180 seconds while the Hub has an audience. It never creates
+seven extra bots per user or changes official race capacity. Each starts just
+ahead of the personal start grid, ramps from rest using Mini Boost and runs at
+70 studs/s even before any human selects TEST DRIVE. Human Park normal speed
+remains 80. Existing turn drift, item hit caps and audience teardown remain.
+Park bot smoke uses the lighter RACE emitter; beyond 300 studs visual pose work
+is capped at 10 Hz, smoke beyond 160 and boost flame beyond 300 are suppressed.
+
+Every official track's authoritative GO adapter starts the existing 2-second
+Mini Boost. Launch automatically accelerates, Brake cancels, and existing
+seating/network ownership and boost safety limits apply. Launch must not consume
+Nitro or emit a successful Drift outcome/count toward repeatable Nitro rewards.
+
 ## Driving Invariants
 
 Owner override — 2026-10-23: mobile Buttons mode defaults to automatic forward

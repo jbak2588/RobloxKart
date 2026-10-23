@@ -90,7 +90,7 @@ function Controller.start()
    local smoke={}
    for _,side in {-1,1} do
     local attachment=Instance.new("Attachment");attachment.Position=Vector3.new(side*2.1*scale,-1.0*scale,2.2*scale);attachment.Parent=root
-    table.insert(smoke,Exhaust.createDriftSmoke(attachment,true))
+    table.insert(smoke,Exhaust.createDriftSmoke(attachment,not isRookie))
    end
    for _,v in model:GetDescendants() do
     if v:IsA("BasePart") then v.Anchored=true;v.CanCollide=false;v.CanTouch=false;v.CanQuery=false;v.CastShadow=false
@@ -115,7 +115,7 @@ function Controller.start()
     end
     if not b.model.Parent then b.model.Parent=zone end
     local proxy=zone:FindFirstChild(b.proxyName)
-    local elapsed=now-botStart
+    local elapsed=if isRookie then 0 else now-botStart
     local sampled=proxy and proxy:GetAttribute('SampledAt')
     if type(sampled)=='number' and type(proxy:GetAttribute('RouteElapsed'))=='number' then
      elapsed=proxy:GetAttribute('RouteElapsed')+math.clamp(now-sampled,0,.3)*(proxy:GetAttribute('RouteRate')or 1)
@@ -123,6 +123,7 @@ function Controller.start()
     local x,z,dx,dz,drift,_,pattern,boosting=route.sample(elapsed,KartConfig.MINI_BOOST_DURATION)
     b.visualDrift+=(drift-b.visualDrift)*(1-math.exp(-math.max(0,dt)*10))
 
+    if isRookie and proxy then boosting=proxy:GetAttribute('KartBoosting')==true end
     local slick=proxy and proxy:GetAttribute('KartSlickActive')==true
     local missile=proxy and proxy:GetAttribute('KartMissileHitActive')==true
     local thunder=proxy and proxy:GetAttribute('KartThunderHitActive')==true
@@ -144,18 +145,23 @@ function Controller.start()
 
     local position=center+Vector3.new(x,groundY+0.463,z)
     local basis=CFrame.lookAt(position,position+Vector3.new(dx,0,dz),Vector3.new(0,ny,nz))
+    local camera=Workspace.CurrentCamera
+    local distance=if camera then (camera.CFrame.Position-position).Magnitude else 0
+    b.renderElapsed=(b.renderElapsed or 0)+dt
+    if isRookie and distance>300 and b.renderElapsed<.1 then continue end
+    local renderDt=b.renderElapsed;b.renderElapsed=0
     b.model:PivotTo(basis*CFrame.Angles(0,if slick then spin else math.rad(32)*b.visualDrift,0))
 
     -- Drift particles & audio
     local slip=if slick then 32 elseif hit then 0 else 32*math.abs(drift)
     local drifting=slip>=5 or slick==true
-    local camera=Workspace.CurrentCamera
-    local distance=if camera then (camera.CFrame.Position-position).Magnitude else 0
     local lod=if distance>160 then 0 elseif distance>80 or dt>.035 then .5 else 1
-    local rate=Exhaust.driftSmokeRate(slip,true,lod,drifting)
+    local rate=Exhaust.driftSmokeRate(slip,not isRookie,lod,drifting)
     for _,emitter in b.smoke do emitter.Rate=rate;emitter.Enabled=rate>0 end
-    b.boostVisuals:update(boosting,lod)
-    b.audio:update(dt,drifting,boosting)
+    -- Keep launches visible from the nearby Lobby while suppressing distant smoke.
+    local boostLod=if not isRookie then lod elseif distance>300 then 0 elseif distance>160 then .5 else lod
+    b.boostVisuals:update(boosting,boostLod)
+    b.audio:update(renderDt,drifting,boosting)
     b.model:SetAttribute("DemoDrifting",drifting)
     b.model:SetAttribute("DemoBoosting",boosting)
     b.model:SetAttribute("DemoPattern",pattern)

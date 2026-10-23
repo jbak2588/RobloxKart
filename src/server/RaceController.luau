@@ -699,6 +699,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceCountdown", 0)
 			setRaceState(player, "RACING")
 			kart:SetAttribute("RaceControlsLocked", false)
+			if context.launchBoost then context:launchBoost(player)end
 			record("start", player, startTime)
 		end
 

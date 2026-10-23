@@ -1,13 +1,13 @@
 -- Shared presentation route, derived from the approved road; never drives a human kart.
 local Layout=require(script.Parent.HubParkRookieLoopLayout)
-local Route={Speed=36,VisualScale=1.0,PatternCount=1}
+local Route={Speed=70,VisualScale=1.0,PatternCount=1,StartX=Layout.TrialFinishX+12}
 local points=Layout.sample(Layout.Segments)
 local length,offset,best=0,0,math.huge
 for i,p in points do
  if i>1 then local a=points[i-1];length+=math.sqrt((p.x-a.x)^2+(p.z-a.z)^2)end
  p.distance=length
- -- Begin on the main straight opposite the Lobby, never inside the Pit slots.
- local d=math.abs(p.x)+math.abs(p.z-Layout.StartStraightZ)
+ -- Start just ahead of the personal finish/grid, on the main straight.
+ local d=math.abs(p.x-Route.StartX)+math.abs(p.z-Layout.StartStraightZ)
  if d<best then best=d;offset=length end
  local before=points[if i==1 then #points-1 else i-1]
  local after=points[if i==#points then 2 else i+1]
@@ -29,8 +29,8 @@ function Route.sample(elapsed,boostSeconds)
  local magnitude=math.sqrt(dx*dx+dz*dz)
  local drift=a.drift+(b.drift-a.drift)*t
  local x,z=a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t
- -- A single bounded boost window, well clear of Pit exit and the first bend.
- local boosting=a.section=='StartStraight'and x>=220 and x<220+Route.Speed*(boostSeconds or 2)
+ -- Boost from the line on entry and subsequent straight-line laps.
+ local boosting=math.max(0,elapsed)%Route.CycleSeconds<(boostSeconds or 2)
  return x,z,dx/magnitude,dz/magnitude,drift,if math.abs(drift)>.01 then 'TURN'else 'CRUISE','ROOKIE_LOOP',boosting
 end
 return table.freeze(Route)

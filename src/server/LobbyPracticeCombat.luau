@@ -36,11 +36,11 @@ function Combat.new(zone,records,driveGeometry)
  local self=setmetatable({zone=zone,records=records,actors={},hazards={},shieldPulses={},session={roundId=1,id='PRACTICE:'..tostring(os.clock())}},Combat)
  self.driveGeometry=driveGeometry or DriveGeometry
  self.route=if zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then require(Shared:WaitForChild('RookieLoopDemoRoute'))else Route
- self.normalBotSpeed=require(Shared:WaitForChild('LobbyDrivePolicy')).forwardSpeed(zone:GetAttribute('DriveGeometry'),Kart)
- -- Legacy demo keeps its accepted race-normal pace; PARK follows its HUB-only cap.
- if self.route==Route then self.normalBotSpeed=Kart.MAX_FORWARD_SPEED end
+ self.normalBotSpeed=Kart.MAX_FORWARD_SPEED
+ -- Bots use race-normal 70 independently from the human Park 80 override.
  self.folder=Instance.new('Folder');self.folder.Name='LobbyPracticeEffects';self.folder.Parent=zone
  local isRookie=zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
+ self.isRookie=isRookie
  local fleet=if isRookie then Policy.BotFleet else {Policy.BotFleet[1]}
  self.bots={}
  for _,cfg in fleet do
@@ -294,9 +294,13 @@ function Combat:update(now,dt)
    local start=t0+b.botDelay
    if nowServer>=start then
     b.active=true
-    if not b.botElapsed then b.botElapsed=math.max(0,nowServer-start)end
+    if not b.botElapsed then
+     b.botElapsed=0;b.speed=if self.isRookie then 0 else self.route.Speed
+     if self.isRookie then b.launchUntil=nowServer+Kart.MINI_BOOST_DURATION end
+    end
     local _,_,_,_,_,_,_,boosting=self.route.sample(b.botElapsed,Kart.MINI_BOOST_DURATION)
-    local targetSpeed=if next(self.actors)then (if boosting then Kart.MINI_BOOST_MAX_SPEED else self.normalBotSpeed)else self.route.Speed
+    boosting=boosting or (b.launchUntil~=nil and nowServer<b.launchUntil)
+    local targetSpeed=if self.isRookie or next(self.actors)then (if boosting then Kart.MINI_BOOST_MAX_SPEED else self.normalBotSpeed)else self.route.Speed
     b.speed=b.speed or self.route.Speed
     if b.effect and now<b.effect.untilTime then
      if b.effect.kind=='Slick'then targetSpeed=b.slick.speed
@@ -306,6 +310,8 @@ function Combat:update(now,dt)
     local accel=if b.speed>targetSpeed then Kart.BOOST_EXIT_DECELERATION elseif boosting then Kart.MINI_BOOST_ACCELERATION else Kart.ACCELERATION
     b.speed+=math.clamp(targetSpeed-b.speed,-accel*dt,accel*dt)
     local rate=b.speed/self.route.Speed
+    if b.effect and now<b.effect.untilTime then boosting=false end
+    b.record.kart:SetAttribute('KartBoosting',boosting)
     b.botElapsed+=math.max(0,dt)*rate
     local x,z,dx,dz=self.route.sample(b.botElapsed,Kart.MINI_BOOST_DURATION)
     local pos=self.zone:GetAttribute('Center')+Vector3.new(x,1.75,z)
@@ -316,15 +322,15 @@ function Combat:update(now,dt)
      b.nextBotSync=now+Policy.BotSyncSeconds
     end
    else
-    b.active=false;b.record.kart:SetAttribute('BotActive',false)
+    b.active=false;b.record.kart:SetAttribute('BotActive',false);b.record.kart:SetAttribute('KartBoosting',false)
    end
   end
   if self.bots[1] then self.botElapsed=self.bots[1].botElapsed end
  else
   for _,b in self.bots do
    if b.botElapsed or b.active then
-    self:clearTransient(b);b.botElapsed=nil;b.speed=nil;b.active=false
-    b.record.kart:SetAttribute('SampledAt',nil);b.record.kart:SetAttribute('RouteElapsed',nil);b.record.kart:SetAttribute('BotActive',false)
+    self:clearTransient(b);b.botElapsed=nil;b.speed=nil;b.launchUntil=nil;b.active=false
+    b.record.kart:SetAttribute('SampledAt',nil);b.record.kart:SetAttribute('RouteElapsed',nil);b.record.kart:SetAttribute('BotActive',false);b.record.kart:SetAttribute('KartBoosting',false)
    end
   end
   self.botElapsed=nil
