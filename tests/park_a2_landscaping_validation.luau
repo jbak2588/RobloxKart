@@ -47,7 +47,7 @@ for _,v in art:GetDescendants()do
   end end
  end
 end
-check(parts==278 and meshes==193,'bounded Forest Band: 278 parts, 193 reused meshes')
-check(trees==80 and shrubs==6 and rocks==5 and hills==3 and beds==8,'56 added forest trees; existing 24 trees and low beds/rocks/hills preserved')
+check(parts==275 and meshes==190,'bounded Forest Band: 275 parts, 190 reused meshes; no snowy backdrops')
+check(trees==80 and shrubs==6 and rocks==5 and hills==0 and beds==8,'80 trees and low beds/rocks preserved; three mountains removed')
 check(#root.IslandScenery:GetDescendants()==332,'A1 outer cliff/sea scenery left unchanged')
 print(string.format('PASS %d A2 checks; %d static parts/%d meshes; minimum sampled corridor clearance %.2f studs',n,parts,meshes,minClearance))

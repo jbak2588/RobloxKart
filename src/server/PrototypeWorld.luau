@@ -337,7 +337,6 @@ function PrototypeWorld.start(options)
 
 	local initialGrid = initialTrack.GridSlots[1]
 	local spawnCFrame = CFrame.new(0, groundTop + WORLD.CHASSIS_CLEARANCE, 0) * initialGrid
-	local kart, chassis, seat = createKart(prototype, spawnCFrame, "Kart")
 
 	local existingPlayerSpawn = prototype:FindFirstChild("PlayerSpawn")
 	local playerSpawn: SpawnLocation
@@ -1393,8 +1392,20 @@ function PrototypeWorld.start(options)
 		return context
 	end
 
-	defaultContext = createContext(nil, kart, chassis, seat, spawnCFrame)
-	kart:SetAttribute("KartOwnerUserId", 0)
+	if PrototypeWorld.isHubParkPreview() then
+		-- The Park uses explicit LobbyTestDriveService karts, not an idle race kart.
+		-- Also remove a saved, unoccupied prototype from this fresh HUB startup.
+		local savedKart = prototype:FindFirstChild("Kart")
+		if savedKart and savedKart:GetAttribute("PrototypeKart") == true then
+			local savedSeat = savedKart:FindFirstChild("Seat")
+			if not savedSeat or not savedSeat.Occupant then savedKart:Destroy() end
+		end
+		defaultContext = nil
+	else
+		local kart, chassis, seat = createKart(prototype, spawnCFrame, "Kart")
+		defaultContext = createContext(nil, kart, chassis, seat, spawnCFrame)
+		kart:SetAttribute("KartOwnerUserId", 0)
+	end
 	function PrototypeWorld.acquireKartContext(player: Player, startCFrame: CFrame, kartId: string?)
 		local definition = kartDefinition(kartId)
 		local existing = ownerContexts[player]

@@ -141,12 +141,6 @@ function Builder.build(root,origin,trees,mountains)
   p.CFrame=CFrame.new(origin+Vector3.new(s[1],3.7,s[2]))*CFrame.Angles(0,i*.9,0)
   p.Material=Enum.Material.Slate;p.Color=Color3.fromRGB(115,121,115);static(p);p.Parent=folder
  end
- for i,s in {{500,-1080,180,65,150,'HorizonMountainA'},{-570,-970,150,60,150,'HorizonMountainB'},{40,-1100,200,65,150,'HorizonMountainA'}}do
-  local prefab=mountains and mountains:FindFirstChild(s[6])
-  if prefab then local p=prefab:Clone();p.Name='ParkBackdropHill'..i;p.Size=Vector3.new(s[3],s[4],s[5])
-   p.CFrame=CFrame.new(origin+Vector3.new(s[1],s[4]/2-2.2,s[2]));static(p);p.Parent=folder
-  end
- end
  return folder
 end
 return Builder

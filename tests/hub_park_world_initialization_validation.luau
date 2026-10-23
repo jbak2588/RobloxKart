@@ -36,13 +36,19 @@ modules.TrackBuilder.build=function(prototype,track,...)
  calls+=1;check(track.Id==(SCENARIO.trackId or 'Track01'),'selected official track preserved')
  return oldBuild(prototype,track,...)
 end
+local savedKart
+if SCENARIO.suppressed then
+ local prototype=object('Folder','Prototype');prototype.Parent=services.Workspace
+ savedKart=object('Model','Kart');savedKart:SetAttribute('PrototypeKart',true);savedKart.Parent=prototype
+end
 world.start(if SCENARIO.trackId then {trackId=SCENARIO.trackId} else nil)
 check(world.isHubParkPreview()==SCENARIO.suppressed,'strict preview predicate')
 check(calls==(if SCENARIO.suppressed then 0 else 1),'official builder invocation')
 local prototype=services.Workspace.Prototype
 check((prototype:FindFirstChild('TestTrack')==nil)==SCENARIO.suppressed,'no dummy official track')
 check(prototype:FindFirstChild('PlayerSpawn')~=nil,'common PlayerSpawn retained')
-check(prototype:FindFirstChild('Kart')~=nil,'common kart retained')
+check((prototype:FindFirstChild('Kart')==nil)==SCENARIO.suppressed,'no idle prototype kart in Park; other modes retain it')
+if savedKart then check(savedKart.Parent==nil,'saved unoccupied prototype removed on fresh Park startup')end
 check(services.ReplicatedStorage:FindFirstChild('KartControl')~=nil,'common control remote retained')
 check(type(world.acquireKartContext)=='function' and type(world.createKartContext)=='function','vehicle APIs retained')
 local ctx=assert(world.acquireKartContext(player,CF.new(0,2,900),'Kart05'))
