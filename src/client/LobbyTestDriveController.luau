@@ -89,6 +89,7 @@ function Controller.start()
  local practiceView=PracticeView.new(canvas,player,remote,function()
   return player:GetAttribute('LobbyDriveActive')==true and seatKart()~=nil and not suspended and focused and not pending
  end)
+ local trialView
  local smokeView=SmokeView.new(player:WaitForChild('PlayerGui'),player,true)
  local postDrive=PostDriveView.new(gui.Parent,function()
   local rooms=gui.Parent:FindFirstChild('KDMMatchRooms')
@@ -102,7 +103,7 @@ function Controller.start()
   MatchRoomUi.quickStart()
  end)
  gui.Destroying:Connect(function()
-  smokeView:destroy();postDrive:destroy()
+  smokeView:destroy();postDrive:destroy();if trialView then trialView:destroy()end
   if speedGauge then speedGauge:destroy();speedGauge=nil end
  end)
  local function neutral()
@@ -147,6 +148,10 @@ function Controller.start()
   return true
  end
  requestDrive=function()return request('Drive')end
+ if driveZone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then
+  trialView=require(script.Parent:WaitForChild('RookieParkTrialView')).new(gui.Parent,player,
+   function()request('Replay')end,function()request('Stop')end)
+ end
  Garage.setOpenGate(function(resume)
   if handoffComplete then handoffComplete=false;return false end
   if player:GetAttribute("LobbyDriveActive")~=true and player:GetAttribute("LobbyDrivePending")~=true and not pending then return false end
@@ -171,9 +176,10 @@ function Controller.start()
  button.Activated:Connect(function()
   if pending then return end
   if player:GetAttribute('LobbyDriveActive')==true then
+   local parkTrial=player:GetAttribute('ParkTrialPhase')~=nil
    local character=player.Character;local requestToken=token+1
    request('Stop',function(ok,returned)
-    if not ok or not returned then return end
+    if not ok or not returned or parkTrial then return end
     -- The reply can arrive before replicated seat/attribute changes settle.
     task.spawn(function()
      local deadline=os.clock()+2
@@ -210,10 +216,13 @@ function Controller.start()
  Run.RenderStepped:Connect(function(dt)
   postDrive:update()
   local active=player:GetAttribute("LobbyDriveActive")==true
+  if trialView then trialView:update(active,Workspace.CurrentCamera)end
+  local phase=player:GetAttribute("ParkTrialPhase")
+  local driving=active and (phase==nil or phase=="RUNNING")
   local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")
   gui.Enabled=player:GetAttribute("LobbyDriveAvailable")==true and player:GetAttribute("RaceState")=="GARAGE"
    and player:GetAttribute("KDMRoutePending")~="RACE_LAUNCH" and player:GetAttribute("HubOverlayOpen")~=true and not (rooms and rooms.Enabled) and player:GetAttribute("KDMShopOpen")~=true and player:GetAttribute("KDMProfileOpen")~=true
-  button.Visible=active
+  button.Visible=active and phase~="FINISHED" and phase~="INVALID"
   returnLabel.Text=if pending then "PLEASE WAIT" else "RETURN LOBBY"
   charge.Visible=active
   gauge.Visible=active
@@ -224,11 +233,11 @@ function Controller.start()
   local navigation=gui.Parent:FindFirstChild("KDMHubNavigation")
   local wallet=navigation and navigation:FindFirstChild("WalletCapsule")
   local walletBottom=if wallet then wallet.AbsolutePosition.Y+wallet.AbsoluteSize.Y-canvas.AbsolutePosition.Y else nil
-  local practiceLayout=practiceView:update(active and gui.Enabled,l,walletBottom,seatKart())
+  local practiceLayout=practiceView:update(driving and gui.Enabled,l,walletBottom,seatKart())
   local rewardHud=gui.Parent:FindFirstChild('KDMActivityReward')
   combatView:layout(UDim2.new(.5,0,0,6),nil,
    rewardHud and rewardHud.Enabled and rewardHud:FindFirstChild('Progress'))
-  charge.Visible=active;gauge.Visible=active
+  charge.Visible=driving;gauge.Visible=driving
   charge.TextSize=if practiceLayout.compact then 12 else 16
   charge.Position=UDim2.fromOffset(practiceLayout.x,practiceLayout.boostY);charge.Size=UDim2.fromOffset(practiceLayout.width,practiceLayout.boostTextHeight)
   gauge.Position=UDim2.fromOffset(practiceLayout.x,practiceLayout.gaugeY);gauge.Size=UDim2.fromOffset(practiceLayout.width,practiceLayout.gaugeHeight)
@@ -272,9 +281,9 @@ function Controller.start()
     speedGauge=require(script.Parent:WaitForChild('V2GaugeController')).new(gui.Parent,'ANALOG',MobileView)
     speedGauge.gui.Name='KDMLobbySpeedHud'
    end
-   speedGauge.gui.Enabled=gui.Enabled
+   speedGauge.gui.Enabled=gui.Enabled and phase~="FINISHED" and phase~="INVALID"
    local velocity=body.AssemblyLinearVelocity
-   local measuredSpeed=Vector3.new(velocity.X,0,velocity.Z).Magnitude
+   local measuredSpeed=if driving then Vector3.new(velocity.X,0,velocity.Z).Magnitude else 0
    speedGauge:update(body,measuredSpeed,dt,Input.isTouchPreferred(),gui.Enabled and focused and not GuiService.MenuIsOpen)
   end
   local speed=math.abs(body.AssemblyLinearVelocity:Dot(body.CFrame.LookVector))

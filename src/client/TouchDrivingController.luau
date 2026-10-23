@@ -166,13 +166,16 @@ function Controller.start()
 	end
 	local function canShow()
 		local race = player:GetAttribute("RaceState")
+		local phase=player:GetAttribute("ParkTrialPhase")
 		return gui.Enabled and Input.isTouchPreferred() and focused and not GuiService.MenuIsOpen
+			and phase~="FINISHED" and phase~="INVALID"
 			and UserInputService:GetFocusedTextBox() == nil and kart() ~= nil
 			and (race == "COUNTDOWN" or race == "RACING" or Input.isLobbyDriving())
 	end
 	local function canDrive()
 		local activeKart = kart()
 		return canShow() and root.Visible and (player:GetAttribute("RaceState") == "RACING" or Input.isLobbyDriving())
+			and player:GetAttribute("ParkTrialPhase")~="COUNTDOWN"
 			and activeKart ~= nil and activeKart:GetAttribute("RaceControlsLocked") ~= true
 	end
 	local function release(input)

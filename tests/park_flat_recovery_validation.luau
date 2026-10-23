@@ -7,7 +7,7 @@ check(L.RoadWidth==68 and L.Shoulder==0,'approved 68-stud asphalt without green 
 check(L.RoadWidth/2+L.KerbWidth+L.Shoulder==prior.RoadWidth/2+prior.KerbWidth+prior.Shoulder,'outside guardrail envelope preserved')
 check(L.Pit.width==32 and L.PitLaneZ+L.Pit.width/2==-71,'pit expands toward road, keeps plaza-side edge')
 check(L.PitLaneZ-L.Pit.width/2==L.StartStraightZ+L.RoadWidth/2,'no grass gap between pit and main road')
-for i,s in L.Slots do check(s.x==prior.Slots[i].x and s.z==prior.Slots[i].z,'approved slot positions preserved')end
+for i,s in L.PitSlots do check(s.x==prior.Slots[i].x and s.z==prior.Slots[i].z,'approved slot positions preserved')end
 for i,s in L.Segments do for j=1,4 do
  check(s[j].x==prior.Segments[i][j].x and s[j].z==prior.Segments[i][j].z,'approved XZ preserved')
 end;check(s.name==prior.Segments[i].name,'corner order preserved')end

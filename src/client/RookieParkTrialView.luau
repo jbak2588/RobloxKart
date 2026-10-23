@@ -1,0 +1,78 @@
+local View={}
+function View.format(milliseconds)
+ local ms=math.max(0,math.floor(milliseconds or 0))
+ return string.format('%02d:%02d.%03d',math.floor(ms/60000),math.floor(ms/1000)%60,ms%1000)
+end
+-- Native translucent presentation, inspired by the reference's clear FINISH and
+-- screen-clamped next-checkpoint cue. No foreign scripts or race system imported.
+function View.new(parent,player,onReplay,onReturn)
+ local gui=Instance.new('ScreenGui');gui.Name='KDMRookieParkTrial';gui.ResetOnSpawn=false
+ gui.ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets;gui.DisplayOrder=42;gui.Parent=parent
+ local canvas=Instance.new('Frame');canvas.Size=UDim2.fromScale(1,1);canvas.BackgroundTransparency=1;canvas.Parent=gui
+ local function text(parent,name,size)
+  local l=Instance.new('TextLabel');l.Name=name;l.BackgroundTransparency=1;l.TextColor3=Color3.new(1,1,1)
+  l.Font=Enum.Font.GothamBold;l.TextSize=size;l.TextWrapped=true;l.Parent=parent;return l
+ end
+ local timing=text(canvas,'Timing',16);timing.Position=UDim2.fromOffset(12,120);timing.Size=UDim2.fromOffset(210,60);timing.TextXAlignment=Enum.TextXAlignment.Left
+ local countdown=text(canvas,'Countdown',64);countdown.AnchorPoint=Vector2.new(.5,.5);countdown.Position=UDim2.fromScale(.5,.4);countdown.Size=UDim2.fromOffset(230,85)
+ countdown.TextStrokeTransparency=.45
+ local cue=text(canvas,'CheckpointDirection',16);cue.AnchorPoint=Vector2.new(.5,.5);cue.Size=UDim2.fromOffset(174,42)
+ cue.BackgroundColor3=Color3.fromRGB(45,95,120);cue.BackgroundTransparency=.4
+ local panel=Instance.new('Frame');panel.Name='LapResult';panel.AnchorPoint=Vector2.new(.5,.5);panel.Position=UDim2.fromScale(.5,.5)
+ panel.BackgroundColor3=Color3.fromRGB(70,110,135);panel.BackgroundTransparency=.4;panel.BorderSizePixel=0;panel.Parent=canvas
+ local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,16);corner.Parent=panel
+ local stroke=Instance.new('UIStroke');stroke.Color=Color3.fromRGB(210,245,255);stroke.Thickness=2;stroke.Parent=panel
+ local title=text(panel,'Title',20);title.Position=UDim2.fromOffset(12,12);title.Size=UDim2.new(1,-24,0,28);title.Text='ROOKIE PARK • LAP COMPLETE'
+ local lap=text(panel,'LapTime',38);lap.Position=UDim2.fromOffset(12,43);lap.Size=UDim2.new(1,-24,0,48)
+ local best=text(panel,'PersonalBest',14);best.Position=UDim2.fromOffset(12,94);best.Size=UDim2.new(1,-24,0,22)
+ local reward=text(panel,'Reward',24);reward.Position=UDim2.fromOffset(12,120);reward.Size=UDim2.new(1,-24,0,34);reward.TextColor3=Color3.fromRGB(255,230,100)
+ local saved=text(panel,'SaveState',12);saved.Position=UDim2.fromOffset(12,155);saved.Size=UDim2.new(1,-24,0,28)
+ local function button(name,label,x,callback)
+  local b=Instance.new('TextButton');b.Name=name;b.Text=label;b.Position=UDim2.new(x,if x==0 then 12 else 4,1,-58);b.Size=UDim2.new(.5,-16,0,46)
+  b.BackgroundColor3=Color3.fromRGB(115,205,230);b.BackgroundTransparency=.25;b.TextColor3=Color3.new(1,1,1);b.Font=Enum.Font.GothamBold;b.TextSize=16;b.Parent=panel
+  local c=Instance.new('UICorner');c.CornerRadius=UDim.new(0,8);c.Parent=b
+  b.Activated:Connect(callback);return b
+ end
+ local replay=button('Replay','REPLAY',0,onReplay);button('ReturnLobby','RETURN LOBBY',.5,onReturn)
+ local api={}
+ function api:update(active,camera)
+  local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil
+  if not gui.Enabled then return end
+  local now=workspace:GetServerTimeNow();local started=player:GetAttribute('ParkTrialStartedAt')or now
+  local size=canvas.AbsoluteSize
+  panel.Size=UDim2.fromOffset(math.min(390,size.X-24),math.min(250,size.Y-16))
+  panel.Visible=phase=='FINISHED'or phase=='INVALID';timing.Visible=phase=='RUNNING'
+  local cp=player:GetAttribute('ParkTrialCheckpoint')or 0
+  local invalid=player:GetAttribute('ParkTrialInvalid')==true
+  local missed=player:GetAttribute('ParkTrialMissed')==true
+  local personalBest=player:GetAttribute('KDMRookieParkBestMilliseconds')
+  timing.Text='SOLO LAP  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if personalBest then '\nBEST '..View.format(personalBest)else '')
+  countdown.Visible=phase=='COUNTDOWN'or(phase=='RUNNING'and now-started<1)
+  countdown.Text=if phase=='COUNTDOWN'then tostring(math.max(1,math.ceil((player:GetAttribute('ParkTrialGoAt')or now)-now)))else 'GO!'
+  local target=player:GetAttribute('ParkTrialTarget');cue.Visible=phase=='RUNNING'and target~=nil
+  if cue.Visible and camera then
+   local p=camera:WorldToViewportPoint(target)
+   local offset=Vector2.new(p.X/camera.ViewportSize.X-.5,p.Y/camera.ViewportSize.Y-.5)
+   if p.Z<0 then offset=if offset.Magnitude<.001 then Vector2.new(0,-.35)else -offset.Unit*.35 end
+   if offset.Magnitude>.35 then offset=offset.Unit*.35 end
+   local cueX=math.clamp(.5+offset.X,.18,.82)*size.X
+   -- Keep the guide out of both the left lap HUD and the right item targets.
+   if size.X>size.Y and size.X>=640 then cueX=math.clamp(cueX,317,size.X-323)end
+   cue.Position=UDim2.fromScale(cueX/size.X,math.clamp(.5+offset.Y,.24,.66))
+   local direction=if p.Z<0 then '↶'elseif offset.X<-.12 then '◀'elseif offset.X>.12 then '▶'else '▲'
+   cue.Text=if invalid then 'LAP INVALID • RETURN / REPLAY'elseif missed then 'MISSED CP '..(cp+1)..'  '..direction elseif cp==6 then 'FINISH  '..direction else 'CHECKPOINT '..(cp+1)..'  '..direction
+   cue.TextColor3=if missed or invalid then Color3.fromRGB(255,215,95)else Color3.new(1,1,1)
+  end
+  title.Text=if phase=='INVALID'then 'LAP INVALID • NO REWARD'else 'ROOKIE PARK • LAP COMPLETE'
+  lap.Text=View.format(player:GetAttribute('ParkTrialMilliseconds'))
+  local pb=player:GetAttribute('KDMRookieParkBestMilliseconds')
+  best.Text=if pb then 'PERSONAL BEST  '..View.format(pb)else 'PERSONAL BEST • SAVING'
+  local state=player:GetAttribute('ParkTrialRewardState')
+  reward.Text=if phase=='INVALID'then 'K$0  -  VALID LAP REQUIRED'elseif state=='CONFIRMED'then '+ K$5,000 • REWARD EARNED'else 'LAP REWARD  K$5,000'
+  saved.Text=if phase=='INVALID'then 'REPLAY TO START A NEW VERIFIED LAP'elseif state=='CONFIRMED'then '6/6 CHECKPOINTS • RECORD & REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • REPLAY TO RETRY SAVE'else 'SAVING RECORD & REWARD…'
+  replay.Active=state~='SAVING';replay.Text=if state=='SAVING'then 'SAVING…'else 'REPLAY'
+ end
+ function api:destroy()gui:Destroy()end
+ return api
+end
+return View

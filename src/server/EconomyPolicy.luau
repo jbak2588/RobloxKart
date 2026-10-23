@@ -14,6 +14,7 @@ function Policy.allowed(config,ctx,userId,kind)
   return storage and (inStudio or config.ShopTransactionsPublicEnabled==true or (config.AllowedUserIds and config.AllowedUserIds[userId]==true))
    and (if kind=='voucher' then race else hub)
  end
+ if kind=='parkReward' then return hub and storage and (inStudio or config.RewardsPublicEnabled==true or (config.AllowedUserIds and config.AllowedUserIds[userId]==true)) end
  if kind=='reward' then return race and storage and (inStudio or config.RewardsPublicEnabled==true or (config.AllowedUserIds and config.AllowedUserIds[userId]==true)) end
  if kind=='read' or kind=='initialize' then return storage end
  if kind=='purchase' then return storage and hub end

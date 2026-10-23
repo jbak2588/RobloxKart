@@ -19,6 +19,8 @@ local records,generations,bindings,lastRequest={},{},{},{}
 local closing={}
 local started,remote,zone,canEnter,straightCourse=false,nil,nil,nil,nil
 local practice
+local timeTrial
+local nextGridSlot=0
 local presence
 local forwardSpeed=Policy.Forward
 local function allowedHub()
@@ -78,6 +80,7 @@ function Service.stop(player,reason,returnToHub)
  local record=records[player]
  if not record then return true,false end
  if practice then practice:remove(player)end
+ if timeTrial then timeTrial:remove(player)end
  record.returnToHub=returnToHub;closing[player]=record
  records[player]=nil;generation(player)
  record.throttle,record.steering,record.speed=0,0,0
@@ -169,7 +172,13 @@ local function drive(player,previewKartId)
  local frame=zone.LobbyFrontDriveStart.CFrame
  -- Side-by-side/non-contact start slots, all on the straight, never at the display anchor.
  local occupied={};for _,r in records do occupied[r.slot]=true end
- local slot=0;while occupied[slot] do slot+=1 end
+ local slot=0
+ if timeTrial then
+  local nextSlot
+  slot,nextSlot=timeTrial:allocate(occupied,nextGridSlot)
+  if slot==nil then player:SetAttribute('LobbyDrivePending',false);return false,'START GRID BUSY'end
+  nextGridSlot=nextSlot
+ else while occupied[slot]do slot+=1 end end
  local starts=zone:FindFirstChild('StartSlots')
  if starts then
   local a=starts:FindFirstChild(tostring(slot+1))
@@ -182,6 +191,7 @@ local function drive(player,previewKartId)
  local record={qualification=Qualification.new(),kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
   throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,boundaryPrevious=frame.Position,slot=slot,seated=false,training=Drift.new()}
  records[player]=record
+ record.gridFrame=frame
  record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
   local occupant=seat.Occupant
   if occupant and occupant~=humanoid then occupant.Sit=false;Service.stop(player,"wrong_occupant",true)
@@ -196,7 +206,7 @@ local function drive(player,previewKartId)
  if seat.Occupant~=humanoid or humanoid.SeatPart~=seat or player.Character~=character or humanoid.Health<=0 then
   Service.stop(player,"sit_failed",true);return false,"COULD NOT ENTER KART"
  end
- record.seated=true;if practice then practice:add(player,record)end;player:SetAttribute("LobbyDriveKartId",definition.Id)
+ record.seated=true;if timeTrial then timeTrial:begin(player,record)elseif practice then practice:add(player,record)end;player:SetAttribute("LobbyDriveKartId",definition.Id)
  player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)
  if presence then presence:refresh() end
  return true
@@ -219,6 +229,9 @@ function Service.start(driveZone,eligibility)
  presence=Presence.new(zone,records)
  Service.configureCollision()
  practice=Practice.new(zone,records,Geometry)
+ if zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then
+  timeTrial=require(script.Parent:WaitForChild('RookieParkTrialSession')).new(zone,practice)
+ end
  remote=Instance.new("RemoteEvent");remote.Name="LobbyDriveControl";remote.Parent=ReplicatedStorage
  local connections={}
  zone.Destroying:Connect(function()
@@ -251,6 +264,8 @@ function Service.start(driveZone,eligibility)
  remote.OnServerEvent:Connect(function(player,action,id,first,second,drift,...)
   if action=='UseItem'then
    if second~=nil or drift~=nil or select('#',...)>0 then return end
+   local r=records[player]
+   if timeTrial and (not r or not r.trial or r.trial.phase~='RUNNING')then return end
    if practice then practice:use(player,id,first)end;return
   end
   if action=="Input" then
@@ -268,6 +283,10 @@ function Service.start(driveZone,eligibility)
    local now=os.clock();if now-(lastRequest[player] or -1e9)<.6 then remote:FireClient(player,"Reply",id,generations[player],false,"PLEASE WAIT");return end
    lastRequest[player]=now;local ok,message=drive(player,first)
    remote:FireClient(player,"Reply",id,generations[player],ok,message)
+  elseif action=='Replay' then
+   local r=records[player]
+   local ok=timeTrial and r and r.seated and timeTrial:replay(player,r)or false
+   remote:FireClient(player,'Reply',id,generations[player],ok,if ok then ''else 'REPLAY UNAVAILABLE')
   elseif action=="Stop" then
    local _,returned=Service.stop(player,"exit",true)
    local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -288,6 +307,7 @@ function Service.start(driveZone,eligibility)
    if not r.seated then continue end
    if not r.body.Parent or player.Character~=r.character or r.humanoid.Health<=0
     or r.humanoid.SeatPart~=r.seat or r.seat.Occupant~=r.humanoid then Service.stop(player,"seat_lost",true);continue end
+   if timeTrial and timeTrial:step(player,r)then continue end
    local body=r.body;local pos=body.Position;local c=zone:GetAttribute("Center")
    local groundY=c.Y+(if Geometry.height then Geometry.height(pos.X-c.X,pos.Z-c.Z)else 0)
    local previous=r.boundaryPrevious
@@ -297,6 +317,7 @@ function Service.start(driveZone,eligibility)
     practice:recover(player)
     body.AssemblyLinearVelocity=Vector3.zero;body.AssemblyAngularVelocity=Vector3.zero
     r.kart:PivotTo(r.safe);r.boundaryPrevious=r.safe.Position;r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
+    if timeTrial then timeTrial:recover(r)end
     player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1);continue
    end
    if Qualification.step(r.qualification,dt,pos.X,pos.Z,true) and not r.qualificationSaved and not r.qualificationSaving
@@ -312,6 +333,7 @@ function Service.start(driveZone,eligibility)
     player:SetAttribute('KDMTestDriveDistance',math.floor(r.qualification.distance))
    end
    local throttle,steering=r.throttle,r.steering
+   if r.launchUntil and os.clock()<r.launchUntil and throttle>=0 then throttle=1;r.lastInput=os.clock()end
    local drifting=false
    if os.clock()-r.lastInput>Policy.InputTimeout then throttle,steering,drifting=0,0,false end
    local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit

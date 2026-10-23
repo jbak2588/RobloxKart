@@ -183,7 +183,7 @@ function Builder.build(hub,ground)
  kerbRibbon(ps,Layout.Pit.width/2-Layout.KerbWidth/2,'PIT')
  local q=Layout.Plaza;flat(root,"PedestrianPlaza",q.x,q.z,q.width,q.length,colors.plaza,.12,false)
  local w=Layout.Walkway;flat(root,"PedestrianLink12",w.x,w.z,w.width,w.length,colors.plaza,.12,false)
- for i,slot in Layout.Slots do
+ for i,slot in Layout.PitSlots do
   -- Native painted ] bracket: closed end ahead (+X), open toward the kart.
   -- No text orientation, raised pad, touch/query or collision surface.
   local marker=Instance.new('Folder');marker.Name='SlotBracket'..i;marker.Parent=pit
@@ -196,6 +196,17 @@ function Builder.build(hub,ground)
    part(marker,'Arm',Vector3.new(4,.02,.35),paintFrame(slot.x+5.5,slot.z+side*5),paint,false)
   end
  end
+ local grid=Instance.new('Folder');grid.Name='SoloStartGrid';grid.Parent=root
+ for i,slot in Layout.Slots do
+  local marker=Instance.new('Folder');marker.Name='Grid'..i;marker.Parent=grid
+  local paint=Color3.fromRGB(238,246,250)
+  flat(marker,'Front',slot.x+7.5,slot.z,.35,10,paint,.07,false)
+  for _,side in {-1,1}do flat(marker,'Arm',slot.x+5.5,slot.z+side*5,4,.35,paint,.07,false)end
+ end
+ for lane=0,15 do
+  flat(grid,'StartFinish',Layout.TrialFinishX,Layout.StartStraightZ-30+lane*4,2,4,
+   if lane%2==0 then Color3.new(1,1,1)else Color3.fromRGB(35,45,55),.07,false)
+ end
  local starts=Instance.new('Folder');starts.Name='StartSlots';starts.Parent=root
  for i,slot in Layout.Slots do
   local pos=origin+Vector3.new(slot.x,Layout.height(slot.x,slot.z)+1.75,slot.z)
@@ -205,6 +216,19 @@ function Builder.build(hub,ground)
  local first=starts:FindFirstChild('1'):Clone();first.Name='LobbyFrontDriveStart';first.Parent=root
  local entry=part(root,'LobbyFrontDriveEntry',Vector3.new(12,.1,18),CFrame.new(origin+Vector3.new(0,.05,-35)),colors.plaza,false);entry.Transparency=1
  local prompt=Instance.new('ProximityPrompt');prompt.ActionText='TEST DRIVE';prompt.ObjectText='ROOKIE LOOP';prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
+ local Trial=require(game:GetService('ReplicatedStorage').Shared.RookieParkTrial)
+ local checkpoints=Instance.new('Folder');checkpoints.Name='TrialCheckpoints';checkpoints.Parent=root
+ for i,g in Trial.Gates do
+  local pos=origin+Vector3.new(g.x,3,g.z)
+  local gate=part(checkpoints,'Checkpoint'..i,Vector3.new(Layout.RoadWidth,8,1),CFrame.lookAt(pos,pos+Vector3.new(g.fx,0,g.fz)),colors.plaza,false)
+  gate.Transparency=1;gate:SetAttribute('Index',i)
+  for _,side in {-1,1}do
+   local at=pos+Vector3.new(-g.fz,0,g.fx)*side*(Layout.RoadWidth/2+5)
+   local flag=part(checkpoints,'CP'..i..'Flag',Vector3.new(1,9,1),CFrame.new(at),Color3.fromRGB(65,225,245),false)
+   local billboard=Instance.new('BillboardGui');billboard.Size=UDim2.fromOffset(72,28);billboard.StudsOffset=Vector3.new(0,6,0);billboard.MaxDistance=180;billboard.Parent=flag
+   local caption=Instance.new('TextLabel');caption.Size=UDim2.fromScale(1,1);caption.BackgroundTransparency=.45;caption.BackgroundColor3=colors.plaza;caption.Text='CP '..i;caption.TextColor3=Color3.new(1,1,1);caption.Font=Enum.Font.GothamBold;caption.TextSize=18;caption.Parent=billboard
+  end
+ end
  root:SetAttribute('DriveIntegrated',true)
  return root
 end

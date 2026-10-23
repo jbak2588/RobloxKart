@@ -294,6 +294,23 @@ do not add another hardcoded four-racer limit. Current explicit invited Bot is
 Base-only; no automatic Bot fill on Base or Track03. Decide future fill policy
 separately before capacity extension.
 
+## Rookie Racing Park solo trial override - 2026-10-23
+
+RookieLoop TEST DRIVE now enters an individual timed one-lap trial. Use the
+main-road 2-column / 4-row grid (8 slots), allocated sequentially; Pit brackets
+are decoration only. First entry and Replay use a server-owned 3/2/1/GO and the
+existing 2-second Mini Boost launch, with no Nitro consumption or Drift reward
+credit. Official RACE launch and physics are outside this Park-only change.
+
+The server validates six ordered forward checkpoint crossings and the finish
+crossing, rejects discontinuities/teleports, and owns lap timing. A missed gate
+shows the next required checkpoint and grants no finish reward. Each accepted
+lap atomically saves the personal best and K$5,000 using a unique idempotent
+Park lap receipt in KDM_PlayerProgress_v1. Never claim a saved reward before
+read-back confirmation. Results offer Replay / Return Lobby. Global leaderboard
+is deferred to a later task. Studio economy uses the existing memory adapter;
+Studio verification does not establish live DataStore or mobile acceptance.
+
 ## Driving Invariants
 
 Owner override — 2026-10-23: mobile Buttons mode defaults to automatic forward

@@ -6,8 +6,9 @@ local start=assert(source:find(' button.Activated:Connect(function()',1,true))
 local finish=assert(source:find(' PromptService.PromptTriggered:Connect',start,true))
 local handler=source:sub(start,finish-1)
 local n=0;local function check(v,l)assert(v,l);n+=1 end
-for _,mode in {'success','rejected','not_returned','replication_delay','respawn','new_request','dead','timeout','inactive','pending'}do
+for _,mode in {'success','park_trial','rejected','not_returned','replication_delay','respawn','new_request','dead','timeout','inactive','pending'}do
  local player=nodes.object('Player');player:SetAttribute('LobbyDriveActive',mode~='inactive')
+ if mode=='park_trial'then player:SetAttribute('ParkTrialPhase','FINISHED')end
  local h={Health=100,SeatPart={}}
  local character={FindFirstChildOfClass=function()return h end};player.Character=character
  local button=nodes.object('TextButton');local requests,threads={},{}
@@ -42,5 +43,5 @@ for _,mode in {'success','rejected','not_returned','replication_delay','respawn'
  local expected=if mode=='success'or mode=='replication_delay'then 1 else 0
  check(shown==expected,'popup only follows confirmed, settled same-character return: '..mode)
 end
-check(source:find("end,function() Garage.open('RACE') end)",1,true)~=nil,'Play now uses the existing Race screen entry')
+check(source:find('MatchRoomUi.quickStart()',1,true)~=nil,'legacy Play now uses the current Quick Race entry')
 print('PASS: '..n..' production Return Lobby / ACK / delayed replication / cancellation / Race route checks')

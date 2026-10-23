@@ -76,7 +76,12 @@ Layout.Plaza={x=0,z=-58,width=120,length=24}
 Layout.Walkway={x=0,z=-36,width=12,length=24}
 -- The service fills the lowest free slot index first. Travel is +X, so
 -- index 1 must be the leading bracket, then fill backward without moving paint.
-Layout.Slots={p(45,pitZ),p(15,pitZ),p(-15,pitZ),p(-45,pitZ)}
+Layout.PitSlots={p(45,pitZ),p(15,pitZ),p(-15,pitZ),p(-45,pitZ)}
+Layout.Slots={}
+for row=0,3 do
+ for _,side in {-1,1} do table.insert(Layout.Slots,p(45-row*30,startZ+side*14)) end
+end
+Layout.TrialFinishX=75
 function Layout.evaluate(s,t)
  local a,b,c,d=s[1],s[2],s[3],s[4];local u=1-t
  local x=u^3*a.x+3*u*u*t*b.x+3*u*t*t*c.x+t^3*d.x

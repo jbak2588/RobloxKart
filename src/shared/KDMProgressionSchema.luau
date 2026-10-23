@@ -280,6 +280,12 @@ function Schema.new(catalog, options)
     or not Schema.integer(a.qualifiedAt) or type(a.starterGranted)~='boolean'
     or not Schema.integer(a.movingMilliseconds) or not Schema.integer(a.distance) then return false,'CORRUPT_ACTIVITY' end
   end
+  if profile.parkTimeTrial~=nil then
+   local p=profile.parkTimeTrial
+   if type(p)~='table' or p.version~=1 or not Schema.integer(p.bestMilliseconds,86400000) or p.bestMilliseconds<10000
+    or not Schema.integer(p.lastMilliseconds,86400000) or p.lastMilliseconds<p.bestMilliseconds or not Schema.integer(p.completedLaps)
+    or p.completedLaps<1 then return false,'CORRUPT_PARK_TRIAL' end
+  end
   if profile.onboarding~=nil then
    local o=profile.onboarding
    if type(o)~='table' or type(o.welcomeSeen)~='boolean' or type(o.firstFinishClaimed)~='boolean' then return false,'CORRUPT_ONBOARDING' end

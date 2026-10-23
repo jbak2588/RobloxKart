@@ -7,7 +7,7 @@ local function distance(a,b)return math.sqrt((a.x-b.x)^2+(a.z-b.z)^2)end
 local function cross(a,b,c)return (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x)end
 local points=layout.sample(layout.Segments)
 check(layout.DefaultEnabled==false,'default OFF')
-check(#layout.Slots==4,'four reserved slots')
+check(#layout.Slots==8,'eight two-column main-road grid slots')
 local minRadius=math.huge
 for i,s in layout.Segments do
  local next=layout.Segments[i%#layout.Segments+1]
@@ -43,7 +43,7 @@ end
 local pit=layout.sample(layout.Pit.segments)
 check(math.abs(pit[1].z-layout.StartStraightZ)<1e-6 and math.abs(pit[#pit].z-layout.StartStraightZ)<1e-6,'both pit ends join relocated main straight')
 check(layout.pitOpening(pit[1])==false,'pit segment labels cannot silently open unrelated edges')
-for _,slot in layout.Slots do
+for _,slot in layout.PitSlots do
  check(slot.x-9>=-95 and slot.x+9<=100 and math.abs(slot.z-layout.PitLaneZ)+5<=layout.Pit.width/2,'full slot footprint fits asymmetrically widened pit lane')
  check(math.abs(slot.x)+9<=layout.Plaza.width/2,'all four slots directly across T plaza width')
  check(math.abs(slot.z-(layout.Plaza.z-layout.Plaza.length/2))<=12,'slot center within two approximate walking steps')
@@ -54,7 +54,7 @@ local workspace=rb.Instance.new('Workspace');workspace:SetAttribute('KDMServerRo
 local hub=rb.Instance.new('Model');hub.Name='KDMHub';hub.Parent=workspace
 local spawn=rb.Instance.new('Part');spawn.Name='HubSpawn';spawn.Position=rb.Vector3.new(0,1,0);spawn.Parent=hub
 local ground=rb.Instance.new('Part');ground.Size=rb.Vector3.new(2048,20,2048);ground.Position=rb.Vector3.new(0,-10,0)
-local shared={HubParkRookieLoopLayout='layout',WaitForChild=function(_,n)return n end}
+local shared={HubParkRookieLoopLayout='layout',RookieParkTrial='trial',WaitForChild=function(_,n)return n end}
 local lighting=rb.Instance.new('Lighting')
 local originalSky=rb.Instance.new('Sky');originalSky.Name='OriginalSky';originalSky.Parent=lighting
 local treePrefabs=rb.deserializeModel(fs.readFile('src/assets/KDMHorizonTreePrefabs.rbxmx'))[1]
@@ -69,8 +69,9 @@ local game={GetService=function(_,n)
 end}
 local env={game=game,Instance=rb.Instance,Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,
  Color3=rb.Color3,UDim=rb.UDim,UDim2=rb.UDim2,Enum=rb.Enum,task={wait=function()end},script={Parent={WaitForChild=function(_,n)return n end}}}
+local trial=luau.load(fs.readFile('src/shared/RookieParkTrial.luau'),{environment={script={Parent={HubParkRookieLoopLayout='layout'}},require=function()return layout end}})()
 local island,landscaping,circuit
-env.require=function(ref)return if ref=='HubParkRuntimePolicy'then policy elseif ref=='HubParkIslandBuilder'then island elseif ref=='HubParkCircuitDecorBuilder'then circuit elseif ref=='HubParkLandscapingBuilder'then landscaping else layout end
+env.require=function(ref)return if ref=='trial'then trial elseif ref=='HubParkRuntimePolicy'then policy elseif ref=='HubParkIslandBuilder'then island elseif ref=='HubParkCircuitDecorBuilder'then circuit elseif ref=='HubParkLandscapingBuilder'then landscaping else layout end
 landscaping=luau.load(fs.readFile('src/server/HubParkLandscapingBuilder.luau'),{environment=env})()
 circuit=luau.load(fs.readFile('src/server/HubParkCircuitDecorBuilder.luau'),{environment=env})()
 island=luau.load(fs.readFile('src/server/HubParkIslandBuilder.luau'),{environment=env})()
@@ -97,7 +98,7 @@ for _,v in root:GetDescendants()do
  check(not v:IsA('LuaSourceContainer') and not v:IsA('RemoteEvent') and not v:IsA('Seat') and not v:IsA('SpawnLocation'),'no auto seating or new remote')
  if v:IsA('TextLabel')then check(not v.Text:match('SLOT'),'no SLOT lettering remains on road')end
  if v:IsA('Folder') and v.Name:match('^SlotBracket%d+$')then
-  slots+=1;local slot=layout.Slots[v:GetAttribute('Slot')]
+  slots+=1;local slot=layout.PitSlots[v:GetAttribute('Slot')]
   check(v:GetAttribute('Active')==true and #v:GetChildren()==3,'four native three-stroke slot brackets')
   local front=v:FindFirstChild('Front')
   check(front.CFrame.Position.X==slot.x+7.5 and front.CFrame.Position.Z==slot.z,'closed bracket ahead in +X direction')
@@ -146,6 +147,11 @@ check(visuals>0 and ground.Transparency==1,'island outside Baseplate has grass; 
 check(root.StartSlots:FindFirstChild('1')~=nil and root:GetAttribute('DriveIntegrated')==true,'manual integration exposes start anchors')
 local leading=root.StartSlots:FindFirstChild('1')
 check(leading.CFrame.LookVector.X>.999 and leading.CFrame.Position.X==45,'first manual spawn is the forwardmost bracket, facing +X')
-for i=2,4 do check(leading.CFrame.Position.X>root.StartSlots:FindFirstChild(tostring(i)).CFrame.Position.X,'all remaining slots are behind first spawn')end
+for i=1,8 do
+ local start=root.StartSlots:FindFirstChild(tostring(i))
+ check(start~=nil and start.CFrame.Position.Z==layout.Slots[i].z and start.CFrame.Position.X==layout.Slots[i].x,'actual main-road grid anchor '..i)
+end
+check(#root.SoloStartGrid:GetChildren()==24,'eight three-stroke road grid brackets plus finish paint')
+check(#root.TrialCheckpoints:GetChildren()==18,'six gates and twelve noncollision flags')
 print(string.format('PASS: %d G2/manual-zone checks; %d road strips; min radius %.2f; OFF/ON/RACE/grass validated',checks,road,minRadius))
 return {root=root,layout=layout,origin=rb.Vector3.zero}

@@ -9,6 +9,7 @@ local Ops=require(script.Parent.EconomyOperations)
 local Adapter=require(script.Parent.ProgressionDataStoreAdapter)
 local busy,last={},{}
 local accountReads,joining,closing=0,0,false
+local parkSaves=0
 local studioData={}
 local studioAdapter={
  read=function(key)
@@ -56,6 +57,8 @@ function Service.publishProfile(player,p)
  local event=S.finishEvent(p)
  player:SetAttribute('KDMWelcomeSeen',event.seen)
  player:SetAttribute('KDMFirstFinishClaimed',event.claimed)
+ player:SetAttribute('KDMRookieParkBestMilliseconds',p.parkTimeTrial and p.parkTimeTrial.bestMilliseconds)
+ player:SetAttribute('KDMRookieParkCompletedLaps',p.parkTimeTrial and p.parkTimeTrial.completedLaps or 0)
  player:SetAttribute('KDMAccountQualified',true)
  player:SetAttribute('KDMEconomyState','FOUND')
 end
@@ -162,6 +165,30 @@ function Service.qualifyActivity(player,kind,proof)
  qualifying[player]=nil
  return if ok then result else {status='SAVE_UNCONFIRMED'}
 end
+-- Internal observer only: no remote accepts a lap proof or reward amount.
+function Service.saveParkLap(player,proof)
+ if not Service.allowed(player,'parkReward')then return {status='ACCESS_BLOCKED'}end
+ local op=S.clone(proof);op.userId=player.UserId
+ local reducer=Ops.parkLap(S,schema,op)
+ parkSaves+=1
+ local ok,result=pcall(function()
+  local a=adapter(player,'parkReward');local key=S.userKey(player.UserId)
+  local sig=S.transactionCanonical(op)
+  for attempt=1,Config.RetryAttempts do
+   local result=a.commit(a.beginUpdate(key,reducer))
+   local read=a.read(key)
+   local receipt=read.status=='FOUND'and schema.validate(read.value,key)and not read.value.deleted and read.value.receipts['park-lap:'..tostring(op.id)]
+   if receipt and S.signatureMatches(receipt,sig)then
+    Service.publishProfile(player,read.value);return {status='SAVE_CONFIRMED'}
+   end
+   if result.status~='PENDING'and result.status~='SAVED'then return {status='SAVE_UNCONFIRMED'}end
+   if attempt<Config.RetryAttempts then task.wait(.5*2^(attempt-1))end
+  end
+  return {status='SAVE_UNCONFIRMED'}
+ end)
+ parkSaves-=1
+ return if ok then result else {status='SAVE_UNCONFIRMED'}
+end
 function Service.passAvailable() return passVerified() end
 function Service.creditReward(player, amount, reason, identity)
 	if not player or type(amount) ~= "number" or amount <= 0 or not Service.allowed(player, "reward") then return false end
@@ -256,7 +283,7 @@ function Service.start()
  game:BindToClose(function()
   closing=true
   local deadline=os.clock()+20
-  while (next(busy) or accountReads>0 or joining>0) and os.clock()<deadline do task.wait(.1) end
+  while (next(busy) or accountReads>0 or joining>0 or parkSaves>0) and os.clock()<deadline do task.wait(.1) end
  end)
  game:GetService('MarketplaceService').PromptGamePassPurchaseFinished:Connect(function(p,id,purchased)
   if purchased and id==Config.GamePassId and not busy[p] then
