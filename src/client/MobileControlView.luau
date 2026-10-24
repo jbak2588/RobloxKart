@@ -21,7 +21,9 @@ function View.layout(size: Vector2)
 	local tiny = not portrait and size.X<500 and size.Y<260
 	local visual = if tiny then 58 elseif portrait or short then 62 else 68
 	local direction = if portrait then 74 else math.ceil(visual*View.artwork.driveWidth)+4
-	local forward, brake = direction, direction
+	local forward = direction
+	local brake = if portrait then direction else math.round(direction * 0.85)
+	local brakeVisualSize = math.round(brake * View.artwork.driveWidth)
 	local autoVisual = if portrait or short then 52 else 58
 	local autoHit = autoVisual+4
 	local sideVisualWidth = visual*1.5
@@ -35,23 +37,30 @@ function View.layout(size: Vector2)
 	local padBottom = if portrait then math.min(112,size.X*.18)*2/3+12 else 10-(direction-visual)/2-visual*View.artwork.driveBottom-screenBottomInset
 	local mapSide = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
 	local padInset = if portrait then 0 else 12-margin-(sideWidth-sideVisualWidth)/2
-	local driftWidth = if portrait then 132 else 140
-	local driftHeight = driftWidth*518/1536
-	local driftHitWidth = math.ceil(driftWidth*1.10)
-	local driftHitHeight = if portrait then math.ceil(driftHeight*1.14) else math.ceil(driftHeight*View.artwork.driftHeight)+6
+	local driftHeight = brake
+	local driftWidth = math.round(driftHeight * 1536 / 518)
+	local wheel = math.min(112, size.X * 0.18)
+	local maxDriftWidth = if portrait then 220 else math.max(132, math.floor((size.X - 12) - (size.X * 0.5 + wheel * 0.5 + 8) - brake - 8))
+	if driftWidth > maxDriftWidth then
+		driftWidth = maxDriftWidth
+		driftHeight = math.round(driftWidth * 518 / 1536)
+	end
+	local driftHitWidth = driftWidth
+	local driftHitHeight = driftHeight
 	local driftBottom = if portrait then padBottom+padHeight+8 else 10-(driftHitHeight-driftHeight)/2-driftHeight*View.artwork.driftBottom-screenBottomInset
 	local steerLeftX = 12
 	local steerBottom = math.max(12, padBottom)
 	local steerTotalWidth = sideWidth*2+8
 	local steerHeight = sideHeight
-	local rightPadWidth = driftHitWidth + 8 + brake
+	local gap = 8
+	local rightPadWidth = brake + gap + driftHitWidth
 	local rightPadX = size.X - 12 - rightPadWidth
-	local rightBrakeX = rightPadX + driftHitWidth + 8
+	local rightBrakeX = rightPadX
 	local rightBrakeBottom = 12
 	if portrait and steerLeftX + steerTotalWidth + 8 > rightPadX then
 		rightBrakeBottom = steerBottom + steerHeight + 8
 	end
-	local rightDriftX = rightPadX
+	local rightDriftX = rightPadX + brake + gap
 	local rightDriftBottom = rightBrakeBottom
 	local loadoutBottom = margin + (if portrait then action*2+72 else action+28)
 		+ (if not portrait and size.Y >= 360 then 62 else 0)
@@ -77,7 +86,7 @@ function View.layout(size: Vector2)
 		padAutoRight = portrait,
 		padCompact = compactPad,
 		padGap = padGap,
-		driveVisualSize=visual, driveHitSize=direction,
+		driveVisualSize=visual, driveHitSize=direction, brakeVisualSize=brakeVisualSize,
 		driftWidth=driftWidth,driftHeight=driftHeight,
 		driftHitWidth=driftHitWidth,driftHitHeight=driftHitHeight,
 		-- Align visible Drift artwork with the LAP panel's 12px left edge.

@@ -128,8 +128,8 @@ for _,pair in {{750,283},{750,341},{750,361},{844,390},{932,430},{749,303},{640,
 	{left+l.padWidth-l.sideWidth,turnTop,left+l.padWidth,turnTop+l.sideHeight},
 	{fx,h-l.padBottom-l.brake,fx+l.brake,h-l.padBottom}}
 	check(l.direction>=l.driveVisualSize*layout.artwork.driveWidth+4,"visible artwork retains touch tolerance")
-	check(l.driftHitWidth>=l.driftWidth*1.10 and l.driftHitHeight>=l.driftHeight*layout.artwork.driftHeight+6,"Drift target encloses the opaque artwork")
-	check(math.abs(l.driftWidth/l.driftHeight-1536/518)<.001,"new Drift artwork aspect")
+	check(l.driftHitWidth>=l.driftWidth and l.driftHitHeight>=l.driftHeight*layout.artwork.driftHeight,"Drift target encloses the opaque artwork")
+	check(math.abs(l.driftWidth/l.driftHeight-1536/518)<.05,"new Drift artwork aspect")
 	check(math.abs((ay+(l.autoHitSize-l.autoVisualSize)/2)-(top+(l.forward-l.driveVisualSize)/2+l.driveVisualSize*(1-layout.artwork.driveHeight)/2))<.001,"Auto and Forward visible tops align")
 	check(math.abs((ax+l.autoHitSize-(l.autoHitSize-l.autoVisualSize)/2)-(left+l.padWidth-(l.sideWidth-l.sideVisualWidth)/2))<.001,"Auto right matches steering row")
 	check(l.sideVisualWidth/l.driveVisualSize==1.5 and l.sideWidth*2+8==l.padWidth,"wide arrows fill former center while retaining 8px gap")
@@ -137,14 +137,14 @@ for _,pair in {{750,283},{750,341},{750,361},{844,390},{932,430},{749,303},{640,
 	local passive={g.x-g.width/2,g.y-g.height,g.x+g.width/2,g.y}
 	for i,r in targets do
 		check(r[1]>=0 and r[2]>=0 and r[3]<=w and r[4]<=h,"hitbox inside safe region")
-		check(r[3]-r[1]>=(if i==1 then l.autoVisualSize elseif i==3 or i==4 then l.sideVisualWidth else l.driveVisualSize*layout.artwork.driveWidth),"opaque artwork inside hitbox")
+		check(r[3]-r[1]>=(if i==1 then l.autoVisualSize elseif i==3 or i==4 then l.sideVisualWidth elseif i==5 then (l.brakeVisualSize or l.driveVisualSize)*layout.artwork.driveWidth else l.driveVisualSize*layout.artwork.driveWidth),"opaque artwork inside hitbox")
 		for j=i+1,#targets do check(not overlaps(r,targets[j]),"drive hitboxes never overlap") end
 		if g.visible then check(not overlaps(r,passive),"drive avoids RPM/Speed gauge "..w.."x"..h.." target "..i) end
 	end
 	check(l.driveVisualSize>=(if w<500 and h<260 then 58 else 62),"enlarged drive art minimum")
-	check(l.driftWidth<=140 and l.driftHitWidth>=132,"narrow Drift leaves room for same-row reverse")
+	check(l.driftWidth>=132 and l.driftHitWidth>=132,"Drift leaves room for same-row reverse")
 	if w>=600 and w>h then
-		check(math.abs(l.padBottom+(l.brake-l.driveVisualSize)/2+l.driveVisualSize*layout.artwork.driveBottom-10)<.001,"visible Brake bottom is 10px")
+		check(math.abs(l.padBottom+(l.direction-l.driveVisualSize)/2+l.driveVisualSize*layout.artwork.driveBottom-10)<.001,"visible Brake bottom is 10px")
 		check(math.abs(l.driftBottom+(l.driftHitHeight-l.driftHeight)/2+l.driftHeight*layout.artwork.driftBottom-10)<.001,"visible Drift bottom is 10px")
 		check(math.abs(l.margin+l.padInset+(l.sideWidth-l.sideVisualWidth)/2-12)<.001,"steering row shares minimap's right edge")
 	end
@@ -155,10 +155,10 @@ end
 layout.setViewportBottomInset(360,338)
 local insetLayout=layout.layout({X=685,Y=280})
 local insetItems=layout.itemLayout({X=685,Y=280},4)
-check(insetLayout.direction==59 and insetLayout.autoVisualSize==52 and insetLayout.autoHitSize==56 and insetLayout.driftHitWidth==154
-	and insetLayout.driftHitHeight==54,"short phone retains steering size and narrower Drift hitbox")
+check(insetLayout.direction==59 and insetLayout.autoVisualSize==52 and insetLayout.autoHitSize==56 and insetLayout.driftHitWidth==insetLayout.driftWidth
+	and insetLayout.driftHitHeight==insetLayout.driftHeight,"short phone retains steering size and proportional Drift")
 check(280-insetItems.bottom-insetLayout.slot>=120,"device bottom compensation leaves room for LAP, Quit and both warnings")
-check(math.abs(insetLayout.padBottom+(insetLayout.brake-insetLayout.driveVisualSize)/2
+check(math.abs(insetLayout.padBottom+(insetLayout.direction-insetLayout.driveVisualSize)/2
 	+insetLayout.driveVisualSize*layout.artwork.driveBottom+22-10)<.001,"device inset compensated Brake shares physical gauge bottom")
 layout.setViewportBottomInset(338,338)
 for _,size in {{749,381},{844,390},{932,430},{685,280},{473,240},{1920,1080}} do

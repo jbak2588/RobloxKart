@@ -24,7 +24,7 @@ function Layout.compute(size,drive,walletBottom)
  -- An exceptionally short canvas uses a scrollable lane to the left of Drift.
  if y<4 then
   x=drive.steerLeftX+drive.steerTotalWidth+12
-  width=math.max(cell,drive.rightDriftX-x-8)
+  width=math.max(cell,drive.rightBrakeX-x-8)
   y=4;boostY=y+height+4;gaugeY=boostY+boostTextHeight+2;messageY=gaugeY+gaugeHeight+4
  end
  return {x=x,y=y,width=width,height=height,content=content,

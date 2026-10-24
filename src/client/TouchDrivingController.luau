@@ -295,7 +295,9 @@ function Controller.start()
 			drift.Size, use.Size = UDim2.fromOffset(l.driftHitWidth,l.driftHitHeight), UDim2.fromOffset(l.action,l.action)
 			driftIcon:layout(l.driftWidth,l.driftHeight)
 			for action,control in drivingButtons do
-				control.icon:layout(if action=="ForwardLeft" or action=="ForwardRight" then l.sideVisualWidth else l.driveVisualSize,l.driveVisualSize)
+				local visualWidth = if action=="ForwardLeft" or action=="ForwardRight" then l.sideVisualWidth elseif action=="BrakeReverse" then (l.brakeVisualSize or l.driveVisualSize) else l.driveVisualSize
+				local visualHeight = if action=="BrakeReverse" then (l.brakeVisualSize or l.driveVisualSize) else l.driveVisualSize
+				control.icon:layout(visualWidth, visualHeight)
 			end
 			drift.Position = UDim2.new(0, rightDriftX, 1, -rightDriftBottom)
 			use.Position = UDim2.new(0, l.useX, 1, -l.useBottom)

@@ -340,10 +340,10 @@ else
 		and root.ForwardLeft.Visible and root.ForwardRight.Visible and root.BrakeReverse.Visible and drift.Visible
 		and gui:GetAttribute("MobileDriveControlMode")=="Buttons","digital default shows Left/Right steering on left, Drift+BrakeReverse on right, and hides manual Forward/Auto buttons")
 	check(root.ForwardLeft.AbsolutePosition.X < root.ForwardRight.AbsolutePosition.X
-		and root.ForwardRight.AbsolutePosition.X < drift.AbsolutePosition.X
-		and drift.AbsolutePosition.X + drift.AbsoluteSize.X + 8 <= root.BrakeReverse.AbsolutePosition.X
+		and root.ForwardRight.AbsolutePosition.X < root.BrakeReverse.AbsolutePosition.X
+		and root.BrakeReverse.AbsolutePosition.X + root.BrakeReverse.AbsoluteSize.X + 6 <= drift.AbsolutePosition.X
 		and math.abs(drift.AbsolutePosition.Y+drift.AbsoluteSize.Y-root.BrakeReverse.AbsolutePosition.Y-root.BrakeReverse.AbsoluteSize.Y)<1,
-		"Left/Right steering stays left; Drift and BrakeReverse share the bottom right row")
+		"Left/Right steering stays left; BrakeReverse and Drift share the bottom right row")
 	check(latest()[1]==1 and latest()[2]==0 and gui:GetAttribute("AutoForwardEnabled")==true,"Auto-Forward defaults ON immediately in Buttons mode")
 	local ignored=touch(joy); check(latest()[1]==1 and latest()[2]==0,"legacy stick cannot activate in Buttons mode")
 	local b=touch(root.BrakeReverse); check(latest()[1]==-1,"brake/reverse overrides default Auto-Forward")

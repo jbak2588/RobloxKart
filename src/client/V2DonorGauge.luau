@@ -1,24 +1,27 @@
 -- AC6 stock gauge artwork only. Gear and transmission labels intentionally hidden.
 local Gauge = {}
 function Gauge.layout(width, height, mobile)
-	-- Leave the full four-item-width Drift hitbox clear in the left thumb lane.
-	local slot=if width>=700 and height>=360 then 48 else 44
-	local driftWidth=slot*4+24
-	local driftRight=12+driftWidth+(math.ceil(driftWidth*1.10)-driftWidth)/2
-	local visual=if width<500 and height<260 then 58 elseif height<340 then 62 else 68
-	local autoVisual=if height<340 then 52 else 58
-	local spacing=(visual+autoVisual)/2+10
-	local padWidth=visual+4+spacing*2
-	local margin=if width>=700 then 20 else 12
-	local mapSide=if height<330 then 96 elseif height<390 then 104 else 112
-	local inset=10-margin
-	local padLeft=width-margin-padWidth-inset
-	local left,right=driftRight+8,padLeft-4
-	local available = if mobile then right-left else 320
+	local portrait = width < 500 and height > width
+	local visual = if not portrait and width<500 and height<260 then 58 elseif portrait or height<340 then 62 else 68
+	local sideVisualWidth = visual * 1.5
+	local sideWidth = math.ceil(sideVisualWidth) + 4
+	local steerRight = 12 + sideWidth * 2 + 8
+	local direction = if portrait then 74 else math.ceil(visual * 1093 / 1254) + 4
+	local brake = if portrait then direction else math.round(direction * 0.85)
+	local driftWidth = math.round(brake * 1536 / 518)
+	local gap = 8
+	local rightPadWidth = brake + gap + driftWidth
+	local rightBrakeX = width - 12 - rightPadWidth
+	local leftBoundary = steerRight + 16
+	local rightBoundary = rightBrakeX - 16
+	local available = if mobile then rightBoundary - leftBoundary else 320
 	local w = math.min(300, available)
+	local dialReach = 253 * (math.max(1, w) / 640)
+	local minX = leftBoundary + dialReach
+	local maxX = rightBoundary - dialReach
+	local x = if mobile then math.clamp(width * 0.5, minX, math.max(minX, maxX)) else width * 0.5
 	return {width=math.max(1,w), height=math.max(1,w)*200/640,
-		x=if mobile then math.clamp(width/2,left+math.max(1,w)/2,math.max(left+math.max(1,w)/2,right-math.max(1,w)/2)) else width/2,
-		y=height-10, scale=math.max(1,w)/640, visible=w>=190 and width>height}
+		x=x, y=height-10, scale=math.max(1,w)/640, visible=w>=190 and width>height}
 end
 
 local function rotate(point, center, degrees)

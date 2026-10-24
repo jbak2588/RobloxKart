@@ -22,7 +22,7 @@ for _,pair in {{750,283},{749,361},{844,390},{932,430},{749,303},{724,311},{640,
  check(i.x==12 and i.y==i.statusY+26,'social controls use former left item lane')
  check(items.x==s.X-12-items.width,'six items align with right safe edge')
  check(row[2]>=0 and progress[4]<=gauge[2]-3,'item rows and Nitro progress above Drift gauge')
- check(drift[4]==reverse[4] and drift[3]+8==reverse[1],'Drift and reverse share bottom row with gap')
+ check(drift[4]==reverse[4] and reverse[3]+8==drift[1],'Drift and reverse share bottom row with gap')
  check(drift[4]<=s.Y-12 and drift[3]-drift[1]>=132 and reverse[3]-reverse[1]>=44,'right controls fit safe touch sizes')
  local blocks={row,progress,gauge,drift,reverse,steer,room,invite,map,panel}
  for index,rect in blocks do
