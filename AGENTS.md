@@ -338,6 +338,16 @@ Mini Boost. Launch automatically accelerates, Brake cancels, and existing
 seating/network ownership and boost safety limits apply. Launch must not consume
 Nitro or emit a successful Drift outcome/count toward repeatable Nitro rewards.
 
+## Tree planting principles — owner direction 2026-10-24
+
+- Plant dense groves in a staggered / zigzag arrangement, with space for another tree between neighboring planting positions. Avoid continuous aligned rows and unnecessarily overlapping canopies.
+- Even when reusing the same asset, vary its scale and Y rotation so nearby copies do not have matching size and direction.
+- Preserve the intended forest-track atmosphere. Do not translate this qualitative direction into an unapproved canopy-width formula or a drastic tree-count reduction.
+- The owner explicitly rejected the 50-tree reinterpretation and directed restoration of the existing **258-tree Park layout**. Retain that layout and the 15+15 low plants around the two Lobby trees. No dark CityBroadleaf or forest understory carpet is to be restored. Any further large density/count reduction needs separate owner direction.
+- Keep trees grounded, anchored, noncolliding, non-touching, non-querying and without cast shadows, outside road/recovery/pedestrian clearances.
+
+Owner mobile report on 2026-10-24: heating has decreased after the earlier forest thinning / dark-tree removal. Record this as user-observed improvement, not measured temperature/FPS or a guarantee of zero heat. Preserve the accepted forest appearance and lower vegetation load.
+
 ## Park arrival and walk-up exhibits - 2026-10-24
 
 Park Hub arrivals and Return Lobby use the pedestrian stem at Park-local (0,-36),
