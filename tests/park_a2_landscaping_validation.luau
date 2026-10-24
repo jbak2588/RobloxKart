@@ -62,8 +62,8 @@ for _,v in art:GetDescendants()do
   end end
  end
 end
-check(parts==831 and meshes==746,'reduced vegetation budget: 831 static parts / 746 reused meshes')
-check(trees==308 and understory==60 and shrubs==6 and rocks==5 and hills==0 and beds==8,'308 trees and 60 Lobby understory groups; existing low beds/rocks preserved, no mountains')
+check(parts==781 and meshes==696,'reduced vegetation budget: 781 static parts / 696 reused meshes')
+check(trees==308 and understory==30 and shrubs==6 and rocks==5 and hills==0 and beds==8,'308 trees and 30 Lobby understory groups; existing low beds/rocks preserved, no mountains')
 check(interior.west>=15 and interior.northeast>=20 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
 -- Check source planting anchors: grounding changes mesh-center positions by species.
 local source=fs.readFile('src/server/HubParkLandscapingBuilder.luau')
@@ -81,9 +81,10 @@ local underBlock=assert(source:match('local understorySites={(.-)\n }'))
 local left,right=0,0
 for x,z in underBlock:gmatch('{([%d%.%-]+),([%d%.%-]+),')do
  x,z=tonumber(x),tonumber(z)
- check(math.abs(x)>=112 and math.abs(x)<=187 and z>=-16 and z<=77,'understory only beside Lobby, none in the forest')
+ local radius=math.sqrt((math.abs(x)-145)^2+(z+25)^2)
+ check(radius>=7 and radius<=18,'mixed understory wraps Lobby tree bases with clear trunk collars; none in forest')
  if x<0 then left+=1 else right+=1 end
 end
-check(left==30 and right==30,'30 low plants on each Lobby side')
+check(left==15 and right==15,'15 low plants around each Lobby tree')
 check(#root.IslandScenery:GetDescendants()==332,'A1 outer cliff/sea scenery left unchanged')
 print(string.format('PASS %d A2 checks; %d static parts/%d meshes; minimum sampled corridor clearance %.2f studs',n,parts,meshes,minClearance))
