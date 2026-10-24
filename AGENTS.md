@@ -344,6 +344,7 @@ Nitro or emit a successful Drift outcome/count toward repeatable Nitro rewards.
 - Even when reusing the same asset, vary its scale and Y rotation so nearby copies do not have matching size and direction.
 - Preserve the intended forest-track atmosphere. Do not translate this qualitative direction into an unapproved canopy-width formula or a drastic tree-count reduction.
 - The owner explicitly rejected the 50-tree reinterpretation and directed restoration of the existing **258-tree Park layout**. Retain that layout and the 15+15 low plants around the two Lobby trees. No dark CityBroadleaf or forest understory carpet is to be restored. Any further large density/count reduction needs separate owner direction.
+- Later owner clarification on 2026-10-24 authorizes **redistributing 45 existing trees** from the circled northeast/left groves to the empty Lobby-front road verges in three offset rows, keeping **258 total**. The northeast decorative tower moves to the open outer-corner verge and faces the road. This is relocation, not a density/count reduction.
 - Keep trees grounded, anchored, noncolliding, non-touching, non-querying and without cast shadows, outside road/recovery/pedestrian clearances.
 
 Owner mobile report on 2026-10-24: heating has decreased after the earlier forest thinning / dark-tree removal. Record this as user-observed improvement, not measured temperature/FPS or a guarantee of zero heat. Preserve the accepted forest appearance and lower vegetation load.

@@ -284,7 +284,7 @@ function Builder.build(root,origin,layout,spotlightPrefab)
   text.Parent=gui
  end
  local towers=Instance.new('Folder');towers.Name='LightingTowers';towers.Parent=folder
- for i,s in {{-320,-210,-30},{670,-450,90},{-765,-900,-90},{250,-1040,160}}do
+ for i,s in {{-320,-210,-30},{670,-450,90},{-765,-900,-90},{430,-900,180}}do
   buildLightingTower(towers,{id='ParkTower'..i,pos=Vector3.new(s[1],0,s[2]),height=32,facingAngle=s[3]},0,spotlightPrefab)
  end
  local rails=Instance.new('Folder');rails.Name='VisualRails';rails.Parent=folder

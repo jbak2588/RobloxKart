@@ -64,19 +64,43 @@ for _,v in art:GetDescendants()do
 end
 check(parts==681 and meshes==596,'reduced vegetation budget: 681 static parts / 596 reused meshes')
 check(trees==258 and understory==30 and shrubs==6 and rocks==5 and hills==0 and beds==8,'258 trees and 30 Lobby understory groups; existing low beds/rocks preserved, no mountains')
-check(interior.west>=15 and interior.northeast>=20 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
+check(interior.west>=15 and interior.northeast>=15 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
 -- Check source planting anchors: grounding changes mesh-center positions by species.
 local source=fs.readFile('src/server/HubParkLandscapingBuilder.luau')
 local sites={}
 local function outsideClearing(x,z)return ((x-300)/220)^2+((z+1080)/120)^2>=1 end
 local treeBlock=assert(source:match('local treeSites={(.-)\n }'))
-for x,z in treeBlock:gmatch('{([%d%.%-]+),([%d%.%-]+),')do
- x,z=tonumber(x),tonumber(z)
+for x,z,scale,yaw,key in treeBlock:gmatch("{([%d%.%-]+),([%d%.%-]+),([%d%.]+),([%d%.%-]+),'([^']+)'}")do
+ x,z,scale,yaw=tonumber(x),tonumber(z),tonumber(scale),tonumber(yaw)
  check(outsideClearing(x,z),'northeast grove center cleared')
- for _,p in sites do check((x-p.x)^2+(z-p.z)^2>=31^2,'staggered trees separated by at least 31 studs')end
- table.insert(sites,{x=x,z=z})
+ for _,p in sites do
+  local distance2=(x-p.x)^2+(z-p.z)^2
+  check(distance2>=31^2,'staggered trees separated by at least 31 studs')
+  if z>=-15 and p.z>=-15 and key==p.key and distance2<110^2 then
+   check(math.abs(scale-p.scale)>=.08-.001,'nearby relocated copies differ in scale')
+   check(math.abs((yaw-p.yaw+180)%360-180)>=25,'nearby relocated copies differ in rotation')
+  end
+ end
+ table.insert(sites,{x=x,z=z,scale=scale,yaw=yaw,key=key})
 end
 check(#sites==258,'258 trees remain after removing 50 dark CityBroadleaf trees')
+local verge={left=0,right=0};local rows={}
+for i,p in sites do if p.z>=-15 then
+ if p.x<0 then verge.left+=1 else verge.right+=1 end
+ rows[p.z]=(rows[p.z]or 0)+1
+ local model=assert(art:FindFirstChild('ParkTree'..i))
+ for _,part in model:GetDescendants()do if part:IsA('BasePart')then
+  for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
+   local corner=part.CFrame:PointToWorldSpace(part.Size*rb.Vector3.new(x,y,z)/2)
+   local island=L.Island
+   check(corner.X>=island.minX and corner.X<=island.maxX and corner.Z>=island.minZ and corner.Z<=island.maxZ,'relocated tree remains on island')
+   check(corner.X-corner.Z>=island.minX-island.maxZ+island.chamfer and corner.X+corner.Z<=island.maxX+island.maxZ-island.chamfer,'relocated foliage clears front chamfered island corners')
+  end end end
+ end end
+end end
+check(verge.left==24 and verge.right==21,'45 existing trees redistributed to both Lobby road verges')
+check(rows[-15]==15 and rows[65]==15 and rows[145]==15,'three staggered rows without tree-count reduction')
+
 check(not treeBlock:find("'CityBroadleaf'",1,true),'no dark CityBroadleaf placements remain')
 local underBlock=assert(source:match('local understorySites={(.-)\n }'))
 local left,right=0,0
