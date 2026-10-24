@@ -822,6 +822,9 @@ local function buildH1BWedgeHorizon(testTrack: Model, model: Model, groundY: num
 end
 
 local function buildHorizon(testTrack: Model): Model
+ if Workspace:GetAttribute('KDMFigure8DesertCandidate')==true then
+  return require(script.Parent:WaitForChild('Figure8DesertEnvironment')).build(testTrack)
+ end
 	local existing = testTrack:FindFirstChild("ClientHorizonEnvironment")
 	if existing then
 		existing:Destroy()
@@ -855,7 +858,7 @@ function Controller.start()
 	local lastGroundY = 0
 
 	local function clearHorizon()
-		clearRollingHills(lastGroundY)
+		if Workspace:GetAttribute("KDMFigure8DesertCandidate")~=true then clearRollingHills(lastGroundY) end
 		if activeHorizonModel then
 			activeHorizonModel:Destroy()
 			activeHorizonModel = nil

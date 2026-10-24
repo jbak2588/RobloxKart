@@ -1588,3 +1588,18 @@ establish reserved-server launch acceptance. No server logic change is requested
 Historical next UI direction at that checkpoint: Phase 1C / Arcade Garage Visual Layer.
 Superseded by the R7-H0 Compact Lobby roadmap above.
 This finalization authorizes the Git checkpoint only; no Roblox Publish.
+
+
+## Figure-8 source desert staging — owner direction 2026-10-24
+
+Use only Hub_n_lobby_original.rbxlx environment resources for this theme. Preserve
+PracticeFigure8V1 planar road/crossover, width, height, kerbs, trigger and recovery
+physics. No grass or trees in the candidate: source cactus/agave/tumbleweed/rock,
+source desert materials, sky/atmosphere and sampled original Terrain relief.
+Figure8DesertPolicy enables only exact test Universe 10772198697 / Place
+106553302629620, or explicit Studio KDMDesertPreviewEnabled opt-in. Until mobile
+stabilization, publish this candidate only to that test destination; no production
+rollout. Existing Hub/Park and other tracks retain their environments.
+Terrain is static client scenery with a protected road/recovery rectangle and
+bounded yielding construction. Never allow an environment task to write after
+its track is destroyed. No imported template scripts or full template game systems.

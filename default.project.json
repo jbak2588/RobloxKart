@@ -28,6 +28,12 @@
       },
       "Shared": {
         "$path": "src/shared"
+      },
+      "KDMDesertResources": {
+        "$path": "src/assets/KDMDesertResources.rbxmx"
+      },
+      "KDMDesertSource": {
+        "$path": "src/assets/DesertSource"
       }
     },
 

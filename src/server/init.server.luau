@@ -22,6 +22,9 @@ local RaceRoomCoordinator = require(script:WaitForChild("RaceRoomCoordinator"))
 local KDMServerPresence = require(script:WaitForChild("KDMServerPresence"))
 local MemoryStoreService = if game.PlaceId==0 and game:GetService("RunService"):IsStudio() then require(script:WaitForChild("StudioOfflineMemoryStore")) else game:GetService("MemoryStoreService")
 local HttpService = game:GetService("HttpService")
+Workspace:SetAttribute('KDMFigure8DesertCandidate',require(ReplicatedStorage.Shared.Figure8DesertPolicy).enabled(
+ Workspace,RunService:IsStudio(),game.GameId,game.PlaceId))
+
 
 local firstPlayer
 local joinData

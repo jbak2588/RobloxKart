@@ -1,0 +1,119 @@
+{
+  "name": "KDM Desert Staging",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedFirst": {
+      "$path": "src/replicatedFirst"
+    },
+    "ReplicatedStorage": {
+      "KDMHorizonMountainPrefabs": {
+        "$path": "src/assets/KDMHorizonMountainPrefabs.rbxmx"
+      },
+      "KDMHorizonTreePrefabs": {
+        "$path": "src/assets/KDMHorizonTreePrefabs.rbxmx"
+      },
+      "KDMHubForestTreePrefabs": {
+        "$path": "src/assets/KDMHubForestTreePrefabs.rbxmx"
+      },
+      "KDMTrackLightingPrefabs": {
+        "$path": "src/assets/KDMTrackLightingPrefabs.rbxmx"
+      },
+      "KDMRacePresentationResources": {
+        "$path": "src/assets/KDMRacePresentationResources.rbxmx"
+      },
+      "KDMTemplateResources": {
+        "$path": "src/assets/KDMTemplateResources.rbxmx"
+      },
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "KDMDesertResources": {
+        "$path": "src/assets/KDMDesertResources.rbxmx"
+      },
+      "KDMDesertSource": {
+        "$path": "src/assets/DesertSource"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true
+      },
+      "Terrain": {
+        "$className": "Terrain",
+        "$properties": {
+          "Decoration": true,
+          "GrassLength": 0.7
+        }
+      },
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Color": [
+            0.38823,
+            0.37254,
+            0.38823
+          ],
+          "Locked": true,
+          "Position": [
+            0,
+            -10,
+            0
+          ],
+          "Size": [
+            2048,
+            20,
+            2048
+          ]
+        }
+      },
+      "$attributes": {
+        "KDMDesertPreviewEnabled": true
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Ambient": [
+          0,
+          0,
+          0
+        ],
+        "Brightness": 2,
+        "GlobalShadows": true,
+        "Outlines": false,
+        "Technology": "Voxel"
+      },
+      "Sky": {
+        "$className": "Sky",
+        "$properties": {
+          "CelestialBodiesShown": false,
+          "SkyboxBk": "rbxassetid://745333784",
+          "SkyboxDn": "rbxassetid://745333640",
+          "SkyboxFt": "rbxassetid://745333915",
+          "SkyboxLf": "rbxassetid://745333512",
+          "SkyboxRt": "rbxassetid://745333733",
+          "SkyboxUp": "rbxassetid://745333984",
+          "SunTextureId": "rbxasset://sky/sun.jpg",
+          "MoonTextureId": "rbxasset://sky/moon.jpg"
+        }
+      }
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    }
+  }
+}
