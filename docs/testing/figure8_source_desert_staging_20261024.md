@@ -76,3 +76,41 @@ and edge lines. Asphalt RGB 56/59/65 -> 78/81/86 improves black-mark contrast.
 Studio actual kart renderer enabled both trails; environment teardown restored
 kerb frames and road color. Manual/mobile moving flicker and skid visibility remain
 user-device checks; no new full-lap PASS claimed.
+
+## Island / roadside source follow-up — 2026-10-25
+
+Baseline 1ace1bd; clean entry and fetched remote matched. Owner now permits original
+DRY yellow tufts; no green turf. Added original Racing_Foliage_Grass_b and actual
+MaterialService AsphaltName override Racing_Asphalt_A. The original road mesh tint
+is RGB 226/220/188; earlier Figure-8 used 56/59/65, then 78/81/86. Original indirect
+lighting scales are 1/1 versus inherited 0/0. Candidate keeps reduced sun 2 and
+exposure -0.2, uses diffuse .8 / specular .25, softer ambient and a matte asphalt
+copy (source color/normal/roughness retained, metallic map disabled). No new art.
+
+Nineteen separated 20 x 4.5 x .5 Park-size advertising panels replace overlapping
+straight rail slices client-side; corner chevrons remain. Minimum measured panel
+center gap 49.98 studs. Panel footprint centerline distance >=44; original rail/GUI
+state restored on cleanup. Adjacent cactus/rock/agave clusters retain >=68 centerline
+clearance. Original static tumbleweeds removed from planting, not made into a new
+wind simulation.
+
+One island dune uses a low original sampled height patch, scaled/tapered into an
+ellipse at (0,338), radii84/64. Raised footprint tested against actual road >=68.
+The nine added native Terrain tiles have a below-floor base to avoid an exposed
+rim. This island is the owner's explicit exception to the old rectangular exclusion.
+Road geometry, support, triggers, checkpoints and physics unchanged. Planting waits
+for terrain, samples actual Terrain height and the flat floor, then buries 38% of
+boulder height. No moving foliage, shadows, lights or per-frame environment work.
+
+Studio final layout: 19 panels, 34 cactus, 34 agave, 38 boulders, 64 small original
+dry tufts (28 on the dune; remainder roadside), zero planted tumbleweeds. 170 palette
+instances;881 terrain tiles. Construction around3.87 seconds on this desktop.
+All38 boulder bounds below sampled ground, zero unsafe decorative BaseParts;
+actual road material/appearance, hill profile and panel spacing visually reviewed.
+Cleanup restored original road color and original advertising GUI visibility.
+This is visual/placement validation, not mobile thermal/FPS or full manual-lap PASS.
+
+Checks: 276566 source/isolation/terrain/dune-clearance checks;43139 geometry checks;
+76 production race-controller checks;25 world-VFX/skid regression checks;222-source
+compile; Rojo XML and binary builds; git diff --check. Mobile moving shimmer,
+road contrast, live texture permissions and sustained performance remain device QA.

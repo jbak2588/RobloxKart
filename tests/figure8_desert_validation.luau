@@ -25,9 +25,17 @@ for _,row in surface.Rows do
  end
 end
 check(max>140 and max<=256,'source contains real tall cliff relief')
+local dunePeak=0
+for x=-96,96,4 do for z=240,432,4 do
+ local height=env.duneHeight(surface,x,z);dunePeak=math.max(dunePeak,height)
+ if height>0 then check(env.roadDistance(course.Samples,x,z)>=68,'island dune preserves road and recovery clearance')end
+end end
+check(dunePeak>8 and dunePeak<30,'one restrained original-profile island dune')
 local resources=rb.deserializeModel(fs.readFile('src/assets/KDMDesertResources.rbxmx'))[1]
-check(#resources.Natural:GetChildren()==4,'only cactus/agave/tumbleweed/boulder; grass excluded')
+check(#resources.Natural:GetChildren()==5,'original palette plus owner-approved dry tufts')
 for _,x in resources:GetDescendants()do check(not x:IsA('LuaSourceContainer'),'no imported template scripts')end
 check(resources.Natural:FindFirstChild('Racing_Foliage_Cactus_a')~=nil,'original cactus is present')
 check(resources.Materials:FindFirstChild('Racing_Buttes_A')~=nil,'original cliff material present')
+check(resources.Materials:FindFirstChild('Racing_Asphalt_A')~=nil,'original desert asphalt present')
+check(resources.Natural:FindFirstChild('Racing_Foliage_Grass_b')~=nil,'original dry grass present')
 print('PASS: '..count..' staging isolation, original resources/terrain and actual Figure-8 road/recovery clearance checks')

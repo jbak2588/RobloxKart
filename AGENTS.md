@@ -1603,3 +1603,13 @@ rollout. Existing Hub/Park and other tracks retain their environments.
 Terrain is static client scenery with a protected road/recovery rectangle and
 bounded yielding construction. Never allow an environment task to write after
 its track is destroyed. No imported template scripts or full template game systems.
+
+Owner desert follow-up — 2026-10-25: yellow original dry-grass tufts are allowed
+in sparse dune/roadside clusters; no green turf carpet. Do not plant static
+tumbleweeds as shrubs. Ground source boulders after terrain construction and
+partially bury them. Use original Racing_Asphalt_A appearance with reduced-glare
+daylight. Park-size advertising panels are 20 x 4.5 studs, spaced without coplanar
+overlaps; preserve corner chevrons. One sampled-source dune in the large Figure-8
+island is an explicit exception to the rectangular terrain exclusion, only where
+its raised footprint stays at least 68 studs from the actual road centerline.
+Preserve planar driving surfaces, checkpoints, recovery and test-only publication.
