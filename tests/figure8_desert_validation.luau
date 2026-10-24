@@ -37,5 +37,12 @@ for _,x in resources:GetDescendants()do check(not x:IsA('LuaSourceContainer'),'n
 check(resources.Natural:FindFirstChild('Racing_Foliage_Cactus_a')~=nil,'original cactus is present')
 check(resources.Materials:FindFirstChild('Racing_Buttes_A')~=nil,'original cliff material present')
 check(resources.Materials:FindFirstChild('Racing_Asphalt_A')~=nil,'original desert asphalt present')
+local bakedMatte=false
+for item in fs.readFile('src/assets/KDMDesertResources.rbxmx'):gmatch('<Item class="MaterialVariant".-</Item>')do
+ if item:find('<string name="Name">Racing_Asphalt_A</string>',1,true)then
+  bakedMatte=item:match('<Content name="MetalnessMap">%s*<null%s*/>')~=nil
+ end
+end
+check(bakedMatte,'matte map baked into prefab; client has no Plugin map-write capability')
 check(resources.Natural:FindFirstChild('Racing_Foliage_Grass_b')~=nil,'original dry grass present')
 print('PASS: '..count..' staging isolation, original resources/terrain and actual Figure-8 road/recovery clearance checks')

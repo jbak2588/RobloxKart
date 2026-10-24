@@ -114,3 +114,23 @@ Checks: 276566 source/isolation/terrain/dune-clearance checks;43139 geometry che
 76 production race-controller checks;25 world-VFX/skid regression checks;222-source
 compile; Rojo XML and binary builds; git diff --check. Mobile moving shimmer,
 road contrast, live texture permissions and sustained performance remain device QA.
+
+## Ordinary-client capability correction — 2026-10-25
+
+Owner screenshot after v51 showed only road tint applied, with green infield,
+old sky and rails. Reproduced under an ordinary LocalScript (not MCP execution):
+The current thread cannot write MetalnessMap (lacking capability Plugin).
+The privileged MCP preview had masked this client capability failure; the prior
+v51 visual review did not establish successful ordinary-client startup.
+
+Removed the runtime texture-map assignment. The empty asphalt metallic map is
+now baked into the resource prefab in Edit; runtime only clones that variant.
+Added baked-prefab regression (276567 checks PASS).222-source compilation,
+Rojo XML and diff checks PASS. Ordinary LocalScript controller startup completed
+with zero MessageErrors, SOURCE_DESERT / TerrainReady,881 tiles,170 natural
+instances,19 ad panels,64 dry tufts and1 dune. Native Client initializer was also
+exercised in Studio with temporary RACE attribute and GarageControl fixture:
+CLIENT sync OK role=RACE; infield hidden=1, correct source sky, complete same counts,
+zero MessageErrors. This tests ordinary client capability/startup, not a live
+reserved-server teleport or a full driven lap. All temporary QA scripts, bootstrap
+changes and fixture remotes removed by Stop/restoration before publishing.

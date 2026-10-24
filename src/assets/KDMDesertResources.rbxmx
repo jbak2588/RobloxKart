@@ -1307,8 +1307,7 @@
 					<B>1</B>
 				</Color3>
 				<token name="MaterialPattern">1</token>
-				<Content name="MetalnessMap"><url>rbxassetid://15217441658</url></Content>
-				<Content name="NormalMap"><url>rbxassetid://15217430764</url></Content>
+				<Content name="MetalnessMap"><null /></Content><Content name="NormalMap"><url>rbxassetid://15217430764</url></Content>
 				<Content name="RoughnessMap"><url>rbxassetid://15217430840</url></Content>
 				<float name="StudsPerTile">24</float>
 				<Content name="TexturePack"><url>rbxassetid://15217441771</url></Content>

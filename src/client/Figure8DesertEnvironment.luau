@@ -63,9 +63,8 @@ function Environment.build(track)
  local materialService=game:GetService('MaterialService');local materialCopies={};local overrides={}
  for _,v in resources.Materials:GetChildren()do
   local c=v:Clone();c.Name='KDMDesert_'..v.Name
-  -- Retain source asphalt color/normal/roughness, with a matte rather than
-  -- metallic response so shaded road stays legible without raising the sun.
-  if v.Name=='Racing_Asphalt_A'then c.MetalnessMap=''end
+  -- Texture-map properties require Plugin capability. The matte asphalt map
+  -- selection is baked into the prefab; ordinary LocalScripts only clone it.
   c.Parent=materialService;table.insert(materialCopies,c)
   local base=c.BaseMaterial
   if overrides[base]==nil then overrides[base]=materialService:GetBaseMaterialOverride(base)end
