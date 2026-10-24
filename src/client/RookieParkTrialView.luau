@@ -22,6 +22,11 @@ function View.new(parent,player,onReplay,onReturn)
  timing.TextXAlignment=Enum.TextXAlignment.Center
  local countdown=text(canvas,'Countdown',64);countdown.AnchorPoint=Vector2.new(.5,.5);countdown.Position=UDim2.fromScale(.5,.4);countdown.Size=UDim2.fromOffset(230,85)
  countdown.TextStrokeTransparency=.45
+ local finalLap=text(canvas,'FinalLapNotice',48);finalLap.AnchorPoint=Vector2.new(.5,.5);finalLap.Position=UDim2.fromScale(.5,.42)
+ finalLap.Size=UDim2.fromOffset(440,80);finalLap.Font=Enum.Font.GothamBlack;finalLap.Text='FINAL LAP';finalLap.AutoLocalize=false
+ finalLap.TextColor3=Color3.fromRGB(255,225,70);finalLap.TextScaled=true;finalLap.TextStrokeTransparency=.3;finalLap.Visible=false
+ local finalScale=Instance.new('UIScale');finalScale.Parent=finalLap
+ local finalKey,finalAt=nil,nil
  local panel=Instance.new('Frame');panel.Name='LapResult';panel.AnchorPoint=Vector2.new(.5,.5);panel.Position=UDim2.fromScale(.5,.5)
  panel.BackgroundColor3=Color3.fromRGB(70,110,135);panel.BackgroundTransparency=.4;panel.BorderSizePixel=0;panel.Parent=canvas
  local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(0,16);corner.Parent=panel
@@ -52,7 +57,7 @@ function View.new(parent,player,onReplay,onReturn)
  local nextStroke=Instance.new('UIStroke');nextStroke.Color=Color3.fromRGB(255,230,100);nextStroke.Thickness=1;nextStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;nextStroke.Parent=nextReward
  function api:update(active,camera)
   local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil;topGui.Enabled=gui.Enabled
-  if not gui.Enabled then return end
+  if not gui.Enabled then finalKey,finalAt=nil,nil;finalLap.Visible=false;return end
   local now=workspace:GetServerTimeNow();local started=player:GetAttribute('ParkTrialStartedAt')or now
   local size=canvas.AbsoluteSize
   local wide=size.X>size.Y and size.X>=720
@@ -69,6 +74,14 @@ function View.new(parent,player,onReplay,onReturn)
   panel.Visible=phase=='FINISHED'or phase=='INVALID';timing.Visible=phase=='RUNNING'
   banner.Visible=phase=='FINISHING'and now-(player:GetAttribute('ParkTrialFinishedAt')or now)<Finish.BANNER_SECONDS
   banner.Size=UDim2.fromOffset(math.min(400,size.X-24),math.min(82,size.Y*.18))
+  local key=tostring(player:GetAttribute('LobbyDriveGeneration'))..':'..tostring(player:GetAttribute('ParkTrialGoAt'))
+  if key~=finalKey or phase=='COUNTDOWN' then finalKey,finalAt=key,nil end
+  if phase=='RUNNING' and (player:GetAttribute('ParkTrialCurrentLap')or 1)==2 and (player:GetAttribute('ParkTrialCompletedLaps')or 0)==1 and not finalAt then finalAt=now end
+  local elapsed=if finalAt then now-finalAt else math.huge
+  finalLap.Visible=phase=='RUNNING' and elapsed<1.65
+  finalLap.Size=UDim2.fromOffset(math.min(440,size.X-32),math.min(80,size.Y*.2))
+  finalScale.Scale=1+.3*math.exp(-math.max(0,elapsed)*12)
+  finalLap.TextTransparency=math.clamp((elapsed-1.45)/.2,0,1);finalLap.TextStrokeTransparency=.3+.7*finalLap.TextTransparency
   local cp=player:GetAttribute('ParkTrialCheckpoint')or 0
   local invalid=player:GetAttribute('ParkTrialInvalid')==true
   local missed=player:GetAttribute('ParkTrialMissed')==true

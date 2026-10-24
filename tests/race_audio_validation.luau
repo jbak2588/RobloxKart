@@ -14,7 +14,7 @@ local function set(key,value)
 end
 local created,effects,stopped={},{},{}
 local runtime={getGroup=function() return {} end,preload=function() end,stop=function(s)if s then stopped[s.Name]=true end end,
- createSound=function(name,asset,parent,group,looped) local s={Name=name,SoundId=asset,TimeLength=0.32,PlaybackSpeed=1,Looped=looped};created[name]=s;return s end,
+ createSound=function(name,asset,parent,group,looped,volume) local s={Name=name,SoundId=asset,TimeLength=0.32,PlaybackSpeed=1,Looped=looped,Volume=volume};created[name]=s;return s end,
  playOnce=function(sound) table.insert(played,sound.Name) end}
 local shared={WaitForChild=function(_,name) return name end}
 local modules={AudioRuntime=runtime,AudioConfig=luau.load(fs.readFile("src/shared/AudioConfig.luau"))(),RaceConfig={TOTAL_LAPS=3}}
@@ -87,5 +87,23 @@ set('ParkTrialGoAt',23);set('ParkTrialPhase','COUNTDOWN');now=20;heartbeat.callb
 set('LobbyDriveActive',false);heartbeat.callback();now=23;set('ParkTrialPhase','RUNNING');heartbeat.callback()
 assert(#played==0,'exit during countdown suppresses stale GO')
 set('LobbyDriveActive',true);heartbeat.callback();assert(#played==0,'late RUNNING attach cannot emit stale GO')
+-- Accepted checkpoint counters only: no beep on resets, duplicates or non-driving state.
+played={};set('LobbyDriveActive',false);heartbeat.callback();set('RaceNextCheckpoint',1);set('RaceState','RACING')
+set('RaceNextCheckpoint',2);set('RaceNextCheckpoint',2);set('RaceNextCheckpoint',1)
+assert(#played==1 and played[1]=='CheckpointBeep','race checkpoint acceptance beeps once; reset/duplicates silent')
+set('RaceState','COUNTDOWN');set('RaceNextCheckpoint',2);assert(#played==1,'staging checkpoint mirror is silent')
+set('RaceState','GARAGE');set('LobbyDriveActive',true);set('ParkTrialPhase','COUNTDOWN');set('ParkTrialGoAt',33);now=30;heartbeat.callback()
+set('ParkTrialCheckpoint',0);set('ParkTrialCurrentLap',1);set('ParkTrialCompletedLaps',0)
+set('ParkTrialPhase','RUNNING');now=33;heartbeat.callback();played={};delayed={}
+set('ParkTrialCheckpoint',1);set('ParkTrialCheckpoint',1);set('ParkTrialCheckpoint',0)
+assert(#played==1 and played[1]=='CheckpointBeep','Park accepted checkpoint uses same sound and ignores duplicate/reset')
+set('ParkTrialCompletedLaps',1);heartbeat.callback();assert(#played==1,'Park final lap waits for paired lap mirrors')
+set('ParkTrialCurrentLap',2);heartbeat.callback();flush();heartbeat.callback();flush()
+assert(table.concat(played,',')=='CheckpointBeep,FinalLapFirst,FinalLapSecond,FinalLapThird','Park lap two plays exactly the official three-beep Final Lap pattern')
+assert(created.CheckpointBeep.SoundId==created.CountdownBeep.SoundId and created.CheckpointBeep.Volume==.45,'checkpoint reuses countdown asset at dedicated readable volume')
+set('ParkTrialPhase','COUNTDOWN');set('ParkTrialGoAt',43);now=40;heartbeat.callback();set('ParkTrialCheckpoint',0)
+set('ParkTrialCurrentLap',1);set('ParkTrialCompletedLaps',0);set('ParkTrialPhase','RUNNING');now=43;heartbeat.callback();played={};delayed={}
+set('ParkTrialCurrentLap',2);set('ParkTrialCompletedLaps',1);heartbeat.callback();set('ParkTrialPhase','FINISHED');heartbeat.callback();flush()
+assert(#played==1 and played[1]=='FinalLapFirst','exit cancels delayed Park final-lap repeats')
 stopped={};player.AncestryChanged.callback(player,nil);assert(stopped.RaceGoFirst,'departure clears GO')
 print("PASS: countdown/GO regression; higher three-beep Final Lap, spacing, ordering, deduplication, rematch and cancellation")

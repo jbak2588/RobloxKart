@@ -59,6 +59,22 @@ for _,prefix in {'Race','Lobby'}do
  local plays=mini.plays+nitro.plays+loop.plays;voice:step(.1,true,true,'',true)
  check(plays==mini.plays+nitro.plays+loop.plays,'destroyed voice cannot resurrect')
 end
+attrs={};parent.AssemblyLinearVelocity.X=70
+local climb=audio.createBoostAudio(parent,'Climb')
+climb:step(0,false,false,'',true);climb:step(.01,true,false,'',true)
+for _=1,3 do climb:step(.3,true,false,'',true)end
+check(sounds.ClimbMiniBoostStart.plays==4,'launch attack repeats every .3s while accelerating below cap')
+parent.AssemblyLinearVelocity.X=100;climb:step(.3,true,false,'',true)
+parent.AssemblyLinearVelocity.X=80;climb:step(.6,true,false,'',true)
+check(sounds.ClimbMiniBoostStart.plays==4,'reaching max latches repeat off even if speed drops later')
+climb:step(.01,false,false,'cancelled',true);climb:step(.01,true,false,'',true)
+climb:step(.3,true,false,'',true)
+check(sounds.ClimbMiniBoostStart.plays==6,'new Mini activation rearms acceleration repeats')
+climb:step(.3,true,true,'',true);climb:step(.6,true,true,'',true)
+check(sounds.ClimbMiniBoostStart.plays==6 and sounds.ClimbNitroStart.plays==1,'Nitro takes priority over Mini attack repeats')
+climb:step(.01,false,false,'',false);climb:step(.6,true,false,'',false)
+check(not sounds.ClimbMiniBoostStart.IsPlaying,'disabled state cancels repeat immediately')
+climb:destroy();parent.AssemblyLinearVelocity.X=100
 local launch=audio.createBoostAudio(parent,'Launch')
 launch:step(0,false,false,'',false);launch:step(.016,true,false,'',true)
 check(sounds.LaunchMiniBoostStart.plays==1 and sounds.LaunchMiniBoostLoop.IsPlaying,'countdown GO starts onset and sustain')

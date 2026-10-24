@@ -43,6 +43,8 @@ local AudioConfig = {
 	},
 	BOOST = {
 		START_VOLUME = 2.7980001 * 0.80,
+		START_REPEAT_SECONDS = 0.30,
+		START_REPEAT_MAX_SPEED = 99.5, -- Tolerance for the authoritative 100-stud cap.
 		LOOP_VOLUME = 0.800000012 * 0.80,
 		NITRO_START_VOLUME = 0.75,
 	},
@@ -54,6 +56,7 @@ local AudioConfig = {
 	},
 	RACE = {
 		COUNTDOWN_VOLUME = 0.6,
+		CHECKPOINT_VOLUME = 0.45,
 		GO_VOLUME = 0.85,
 		GO_DURATION_MULTIPLIER = 2,
 		GO_PITCH_RATIO = 1.18,

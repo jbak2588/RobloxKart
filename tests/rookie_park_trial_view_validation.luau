@@ -20,7 +20,7 @@ local camera={ViewportSize=V2.new(844,390),WorldToViewportPoint=function()return
 check(View.format(61234)=='01:01.234','lap clock millisecond format')
 for _,size in {V2.new(750,332),V2.new(844,390),V2.new(932,430),V2.new(390,703)}do
  safeSize=size;camera.ViewportSize=size
- player:SetAttribute('ParkTrialPhase','COUNTDOWN');player:SetAttribute('ParkTrialGoAt',3)
+ player:SetAttribute('ParkTrialPhase','COUNTDOWN');player:SetAttribute('ParkTrialGoAt',3);player:SetAttribute('ParkTrialCurrentLap',1);player:SetAttribute('ParkTrialCompletedLaps',0)
  for _,case in {{0,'3'},{1,'2'},{2,'1'}}do now=case[1];view:update(true,camera);check(root.Countdown.Visible and root.Countdown.Text==case[2],'server countdown display '..case[2])end
  now=3;player:SetAttribute('ParkTrialPhase','RUNNING');player:SetAttribute('ParkTrialStartedAt',3)
  player:SetAttribute('ParkTrialCheckpoint',2);player:SetAttribute('ParkTrialTarget',rb.Vector3.zero)
@@ -30,6 +30,9 @@ for _,size in {V2.new(750,332),V2.new(844,390),V2.new(932,430),V2.new(390,703)}d
  check(pg.KDMRookieParkTopHud.ScreenInsets==rb.Enum.ScreenInsets.None and timing.Parent==pg.KDMRookieParkTopHud,'lap clock uses same topbar surface as Roblox logo')
  check(root.FinishBanner.FinishText.FinishOutline.Thickness>=3,'shared FINISH has a thick black outline')
  check(root:FindFirstChild('CheckpointDirection')==nil,'custom Park marker removed in favor of shared Figure-8 controller')
+ player:SetAttribute('ParkTrialCurrentLap',2);player:SetAttribute('ParkTrialCompletedLaps',1);view:update(true,camera)
+ check(root.FinalLapNotice.Visible and root.FinalLapNotice.Text=='FINAL LAP','lap two displays shared-style Final Lap notice')
+ now+=2;view:update(true,camera);check(not root.FinalLapNotice.Visible,'Final Lap notice expires without repeating')
  player:SetAttribute('ParkTrialPhase','FINISHING');view:update(true,camera)
  check(not panel.Visible,'result waits for roll and front camera transition')
  player:SetAttribute('ParkTrialPhase','FINISHED');player:SetAttribute('ParkTrialMilliseconds',61234)

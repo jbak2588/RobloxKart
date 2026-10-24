@@ -21,6 +21,7 @@ function RaceAudioController.start()
 	local player = Players.LocalPlayer
 	local group = AudioRuntime.getGroup("RobloxKartSFX")
 	local sounds: { [string]: Sound? } = {
+  Checkpoint = AudioRuntime.createSound("CheckpointBeep", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.CHECKPOINT_VOLUME, false),
 		Countdown = AudioRuntime.createSound("CountdownBeep", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.COUNTDOWN_VOLUME, false),
 		Go = AudioRuntime.createSound("RaceGoFirst", AudioConfig.ASSETS.COUNTDOWN, SoundService, group, false, AudioConfig.RACE.GO_VOLUME, false),
 		Lap = AudioRuntime.createSound("LapComplete", AudioConfig.ASSETS.LAP_COMPLETE, SoundService, group, false, AudioConfig.RACE.LAP_VOLUME, false),
@@ -70,7 +71,7 @@ function RaceAudioController.start()
 		end
 	end
 
-	local function playFinalLapPattern()
+	local function playFinalLapPattern(park: boolean?)
 		local first = sounds.FinalLap
 		local second = sounds.FinalLapRepeat
 		local third = sounds.FinalLapThird
@@ -84,7 +85,7 @@ function RaceAudioController.start()
 		-- Three higher beeps, with the same short gap between each.
 		for index, sound in { second, third } do
 			task.delay(beepLength * 1.16 * index, function()
-				if goSerial == thisGo and player:GetAttribute("RaceState") == "RACING" then
+				if goSerial == thisGo and (if park then player:GetAttribute("LobbyDriveActive")==true and player:GetAttribute("ParkTrialPhase")=="RUNNING" else player:GetAttribute("RaceState") == "RACING") then
 					AudioRuntime.playOnce(sound)
 				end
 			end)
@@ -102,6 +103,18 @@ function RaceAudioController.start()
 			playFinalLapPattern()
 		end
 	end
+ local previousCheckpoint=player:GetAttribute("RaceNextCheckpoint")
+ player:GetAttributeChangedSignal("RaceNextCheckpoint"):Connect(function()
+  local nextCheckpoint=player:GetAttribute("RaceNextCheckpoint")
+  if player:GetAttribute("RaceState")=="RACING" and type(nextCheckpoint)=="number" and type(previousCheckpoint)=="number" and nextCheckpoint>previousCheckpoint then AudioRuntime.playOnce(sounds.Checkpoint)end
+  previousCheckpoint=nextCheckpoint
+ end)
+ local previousParkCheckpoint=player:GetAttribute("ParkTrialCheckpoint")
+ player:GetAttributeChangedSignal("ParkTrialCheckpoint"):Connect(function()
+  local checkpoint=player:GetAttribute("ParkTrialCheckpoint")
+  if player:GetAttribute("LobbyDriveActive")==true and player:GetAttribute("ParkTrialPhase")=="RUNNING" and type(checkpoint)=="number" and type(previousParkCheckpoint)=="number" and checkpoint>previousParkCheckpoint then AudioRuntime.playOnce(sounds.Checkpoint)end
+  previousParkCheckpoint=checkpoint
+ end)
 	player:GetAttributeChangedSignal("RaceCurrentLap"):Connect(checkFinalLap)
 
 	player:GetAttributeChangedSignal("RaceCountdown"):Connect(function()
@@ -142,6 +155,7 @@ function RaceAudioController.start()
 		if state ~= "RACING" then
 			goSerial += 1
 			AudioRuntime.stop(sounds.Go)
+   AudioRuntime.stop(sounds.Checkpoint)
 			AudioRuntime.stop(sounds.FinalLap)
 			AudioRuntime.stop(sounds.FinalLapRepeat)
 			AudioRuntime.stop(sounds.FinalLapThird)
@@ -166,18 +180,19 @@ function RaceAudioController.start()
 	end)
 	-- Park uses a personal server deadline rather than the official race attributes.
 	-- Reuse these exact sound instances, including GO duration/pitch/volume.
-	local parkPhase,parkGoAt,parkBeep
+	local parkPhase,parkGoAt,parkBeep,parkFinal
 	local parkConnection=RunService.Heartbeat:Connect(function()
 		local phase=player:GetAttribute("ParkTrialPhase")
 		local deadline=player:GetAttribute("ParkTrialGoAt")
 		if player:GetAttribute("LobbyDriveActive")~=true or player:GetAttribute("RaceState")~="GARAGE"
 			or (phase~="COUNTDOWN" and phase~="RUNNING") or type(deadline)~="number" then
-			if parkPhase then AudioRuntime.stop(sounds.Countdown);AudioRuntime.stop(sounds.Go)end
-			parkPhase,parkGoAt,parkBeep=nil,nil,nil;return
+			if parkPhase then goSerial+=1;AudioRuntime.stop(sounds.Countdown);AudioRuntime.stop(sounds.Go);AudioRuntime.stop(sounds.Checkpoint);AudioRuntime.stop(sounds.FinalLap);AudioRuntime.stop(sounds.FinalLapRepeat);AudioRuntime.stop(sounds.FinalLapThird)end
+			parkPhase,parkGoAt,parkBeep,parkFinal=nil,nil,nil,nil;return
 		end
 		if phase=="COUNTDOWN" then
 			if deadline~=parkGoAt then
-				parkGoAt,parkBeep=deadline,nil
+				parkGoAt,parkBeep,parkFinal=deadline,nil,false
+    goSerial+=1
 				AudioRuntime.stop(sounds.Go)
 			end
 			local value=math.clamp(math.ceil(deadline-Workspace:GetServerTimeNow()),1,3)
@@ -185,6 +200,9 @@ function RaceAudioController.start()
 		elseif parkPhase=="COUNTDOWN" and deadline==parkGoAt then
 			AudioRuntime.stop(sounds.Countdown);AudioRuntime.playOnce(sounds.Go)
 		end
+  if phase=="RUNNING" and not parkFinal and player:GetAttribute("ParkTrialCurrentLap")==2 and player:GetAttribute("ParkTrialCompletedLaps")==1 then
+   parkFinal=true;playFinalLapPattern(true)
+  end
 		parkPhase=phase
 	end)
 	player.AncestryChanged:Connect(function(_,parent)

@@ -419,6 +419,25 @@ Studio playback is not acoustic, published permission or iPhone acceptance.
 Owner accepted the completed work and explicitly authorized Commit / Push on
 2026-10-24. Roblox Publish remains outside that approval.
 
+## Lap cues and seated pedal pose — owner direction 2026-10-24
+
+Park's first accepted lap in its two-lap run shows the same gold FINAL LAP notice
+and three-beep pattern as official races. Re-arm per Replay deadline/generation;
+reset/exit cancels pending cues. All accepted official and Park checkpoint counter
+advances play the existing countdown asset once at .45 volume. Initial mirrors,
+duplicates, counter resets, staging and missed gates are silent.
+
+KDMDriverPedalController owns client-only seated leg transforms for R15 and R6,
+KDM V2 and Sprint V1, including front-camera finish/results. Keep the accepted
+Seat position, SeatWeld, avatar meshes/transparency, hand grip/wave, kart/root
+frames, velocity and server network ownership untouched. Restore original joint
+transforms on seat/character loss, death, departure or leaving driving state.
+Do not fabricate replacement legs or upload a separate driver animation.
+Owner refinement: straight forward legs (hip 90 degrees, knee/ankle zero),
+so soles face the front camera. Mini Boost repeats its approved start cue every
+.30 seconds while climbing to 100 studs/s (99.5 tolerance), then latches repeats
+off until the next activation. Nitro onset and sustained flame-loop remain intact.
+
 ## Driving Invariants
 
 Owner override — 2026-10-23: mobile Buttons mode defaults to automatic forward
