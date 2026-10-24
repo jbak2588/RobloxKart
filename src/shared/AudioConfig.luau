@@ -5,7 +5,7 @@ local AudioConfig = {
 		-- Replace only after approval of a new steady-state loop asset.
 		ENGINE_LOOP = "rbxassetid://6667206432",
 		DRIFT_LOOP = "rbxassetid://9120397552",
-		BOOST_START = "rbxassetid://15548492905", -- Template NitroStartPlayer, Mini Boost only.
+		BOOST_START = "rbxassetid://5199136449", -- Owner-selected Mini Boost launch.
 		BOOST_LOOP = "rbxassetid://15548491198", -- Template NitroLoopPlayer.
 		NITRO_START = "rbxassetid://83211426606907", -- Restore original KDM Nitro launch.
 		COUNTDOWN = "rbxassetid://9119144736",

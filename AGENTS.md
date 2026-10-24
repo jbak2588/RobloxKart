@@ -437,6 +437,8 @@ Owner refinement: straight forward legs (hip 90 degrees, knee/ankle zero),
 so soles face the front camera. Mini Boost repeats its approved start cue every
 .30 seconds while climbing to 100 studs/s (99.5 tolerance), then latches repeats
 off until the next activation. Nitro onset and sustained flame-loop remain intact.
+Latest owner-selected Mini Boost start asset is 5199136449, replacing
+15548492905; retain the existing volume and acceleration-repeat policy.
 
 ## Driving Invariants
 

@@ -22,7 +22,7 @@ for _,prefix in {'Race','Lobby'}do
  attrs={};parent.AssemblyLinearVelocity.X=100
  local voice=audio.createBoostAudio(parent,prefix)
  local mini,nitro,loop=sounds[prefix..'MiniBoostStart'],sounds[prefix..'NitroStart'],sounds[prefix..'MiniBoostLoop']
- check(mini.SoundId=='rbxassetid://15548492905' and math.abs(mini.Volume-2.7980001*.8)<1e-8,'template start volume is exactly source 80 percent')
+ check(mini.SoundId=='rbxassetid://5199136449' and math.abs(mini.Volume-2.7980001*.8)<1e-8,'owner-selected boost asset retains approved start volume')
  check(loop.SoundId=='rbxassetid://15548491198' and loop.Looped,'real template sustain loop enabled')
  check(nitro.SoundId=='rbxassetid://83211426606907' and nitro.Volume==.75,'Nitro preserves original KDM onset')
  voice:step(0,false,false,'',true)
@@ -31,7 +31,7 @@ for _,prefix in {'Race','Lobby'}do
   for _=1,120 do voice:step(1/60,true,false,'',true)end
   attrs.KartBoostEndReason='duration_complete';voice:step(.01,false,false,'',true)
  end
- check(mini.plays==10 and nitro.plays==0,'ten Mini activations have ten template onsets and zero original Nitro onsets')
+ check(mini.plays==10 and nitro.plays==0,'ten Mini activations have ten owner-selected onsets and zero original Nitro onsets')
  check(loop.plays==1 and loop.IsPlaying,'connected boosts retain one continuous loop, no repeated loop attack')
  voice:step(.02,true,false,'',true)
  check(math.abs(loop.Volume-.800000012*.8)<1e-8,'sustain volume is exactly source 80 percent')
