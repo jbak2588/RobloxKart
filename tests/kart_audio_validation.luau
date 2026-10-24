@@ -73,7 +73,7 @@ kart:SetAttribute("KartNitroActive",true);assert(played==1,"unchanged active sta
 clock=.05;kart:SetAttribute("KartBoosting",true);assert(played==2,"Mini Boost plays its distinct template onset during Nitro")
 clock=1;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartBoosting",false)
 assert(played==2,"ending boost/Nitro has no launch cue")
-assert(miniVoice.IsPlaying,"Mini clip continues after boost ends")
+assert(not miniVoice.IsPlaying and miniVoice.Volume==0,"Mini clip stops when the boost flame ends")
 miniVoice.IsPlaying=false -- Natural full-clip completion before the next launch.
 clock=2;kart:SetAttribute("KartBoosting",true);assert(played==3,"Mini Boost has its own replacement launch cue")
 clock=2.04;kart:SetAttribute("KartNitroActive",true);assert(played==4,"Nitro start remains distinct during Mini Boost")

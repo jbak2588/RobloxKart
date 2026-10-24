@@ -435,9 +435,12 @@ transforms on seat/character loss, death, departure or leaving driving state.
 Do not fabricate replacement legs or upload a separate driver animation.
 Owner refinement: straight forward legs (hip 90 degrees, knee/ankle zero),
 so soles face the front camera. Latest owner-selected Mini Boost start asset is
-5199136449, replacing 15548492905. Play the full clip once without timed repeats,
-speed-based restarts or truncation at boost expiry/Nitro onset. Connected boosts
-let an already-playing clip finish. Lifecycle disable/destroy still stops audio.
+5199136449, replacing 15548492905. Play from the beginning without timed repeats
+or pitch changes. Preserve full gain through active boost/100-stud output, then
+reduce gain by the existing BoostFlameEnvelope weight as the flame shrinks.
+Stop when that envelope reaches zero or boost is cancelled/disabled/destroyed;
+do not let the long clip outlive the boost effect. Connected boosts retain the
+already-playing clip without restart.
 Retain volume, Nitro onset and the existing sustained flame-loop.
 
 ## Driving Invariants
