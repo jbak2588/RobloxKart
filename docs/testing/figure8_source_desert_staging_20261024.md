@@ -56,3 +56,11 @@ Final release bootstrap Studio check: role HUB, GARAGE state, KDMHub present,
 no MessageError; candidate true but desert rendering remains RACE Track01 only.
 Edit source audit: all 222 script/data sources match repository hashes; temporary
 QAOriginalSource attribute removed, no extra LuaSourceContainer remains.
+
+Mobile glare follow-up: direct daylight Brightness 3 -> 2, fixed exposure -0.2,
+source color correction softened (brightness -0.02, contrast 0.08, saturation 0.04).
+Sand uses RGB 224/218/205 instead of white; original maps retained. Desert cleanup
+restores prior exposure as well as lighting/material appearance. Studio runtime
+confirmed applied values, terrain completion and brightness/exposure restoration.
+275507 focused checks, 222-source compile, Rojo XML build and diff check pass.
+This is a lighting-only follow-up; no new driving or mobile comfort PASS claimed.

@@ -9,7 +9,7 @@ end
 check(policy.enabled(ws,true,0,0),'explicit Studio preview')
 check(not policy.enabled({GetAttribute=function()return nil end},true,0,0),'Studio requires opt-in')
 local geometry=luau.load(fs.readFile('src/shared/TrackGeometry.luau'),{environment={Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame}})()
-local env=luau.load(fs.readFile('src/client/Figure8DesertEnvironment.luau'),{environment={game={GetService=function(_,n)return if n=='ReplicatedStorage'then {Shared={TrackGeometry='geometry'}}else {} end},require=function()return geometry end}})()
+local env=luau.load(fs.readFile('src/client/Figure8DesertEnvironment.luau'),{environment={Color3=rb.Color3,game={GetService=function(_,n)return if n=='ReplicatedStorage'then {Shared={TrackGeometry='geometry'}}else {} end},require=function()return geometry end}})()
 local course=geometry.getCourse(geometry.getDefinition('PracticeFigure8V1'))
 for _,p in course.Samples do
  for _,dx in {-90,0,90}do for _,dz in {-90,0,90}do check(env.protected(p.X+dx,p.Z+dz),'terrain exclusion preserves road plus 90-stud recovery envelope')end end

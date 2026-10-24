@@ -4,6 +4,8 @@ local W=game:GetService('Workspace')
 local Lighting=game:GetService('Lighting')
 local Geometry=require(RS.Shared.TrackGeometry)
 local Environment={}
+-- Softer mobile daylight; tint the sand instead of washing out the whole HUD.
+local sandTint=Color3.fromRGB(224,218,205)
 Environment.SourceScale=1
 Environment.ClearBounds={MinX=-400,MaxX=400,MinZ=-440,MaxZ=608}
 function Environment.protected(x,z)
@@ -29,7 +31,7 @@ function Environment.build(track)
  local saved={};local tiles={};local alive=true
  local function appearance(part)
   table.insert(saved,{part=part,material=part.Material,variant=part.MaterialVariant,color=part.Color,localTransparency=part.LocalTransparencyModifier})
-  part.Material=Enum.Material.Sand;part.MaterialVariant='KDMDesert_Racing_Sand_A';part.Color=Color3.new(1,1,1)
+  part.Material=Enum.Material.Sand;part.MaterialVariant='KDMDesert_Racing_Sand_A';part.Color=sandTint
  end
  local materialService=game:GetService('MaterialService');local materialCopies={};local overrides={}
  for _,v in resources.Materials:GetChildren()do
@@ -39,7 +41,7 @@ function Environment.build(track)
   materialService:SetBaseMaterialOverride(base,c.Name)
  end
  local terrain=W.Terrain;local colors={}
- for _,n in {'Sand','Sandstone','Ground'}do colors[n]=terrain:GetMaterialColor(Enum.Material[n]);terrain:SetMaterialColor(Enum.Material[n],Color3.new(1,1,1))end
+ for _,n in {'Sand','Sandstone','Ground'}do colors[n]=terrain:GetMaterialColor(Enum.Material[n]);terrain:SetMaterialColor(Enum.Material[n],sandTint)end
  colors.Slate=terrain:GetMaterialColor(Enum.Material.Slate);terrain:SetMaterialColor(Enum.Material.Slate,Color3.fromRGB(204,190,140))
  local env=track:FindFirstChild('Environment');local infield=env and env:FindFirstChild('Infield')
  if infield then appearance(infield);infield.LocalTransparencyModifier=1 end
@@ -47,14 +49,18 @@ function Environment.build(track)
  local base=W:FindFirstChild('Baseplate');if base then appearance(base)end
  for _,x in {-704,704}do for _,z in {-624,784}do
   local floor=Instance.new('Part');floor.Name='SourceSandGround';floor.Size=Vector3.new(1408,.02,1408)
-  floor.CFrame=CFrame.new(x,groundY+.025,z);floor.Material=Enum.Material.Sand;floor.MaterialVariant='KDMDesert_Racing_Sand_A';floor.Color=Color3.new(1,1,1)
+  floor.CFrame=CFrame.new(x,groundY+.025,z);floor.Material=Enum.Material.Sand;floor.MaterialVariant='KDMDesert_Racing_Sand_A';floor.Color=sandTint
   floor.Anchored=true;floor.CanCollide=false;floor.CanTouch=false;floor.CanQuery=false;floor.CastShadow=false;floor.Parent=model
  end end
- local oldLight={Brightness=Lighting.Brightness,ClockTime=Lighting.ClockTime,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient}
+ local oldLight={Brightness=Lighting.Brightness,ExposureCompensation=Lighting.ExposureCompensation,ClockTime=Lighting.ClockTime,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient}
  local lightBackup=Instance.new('Folder');local newLight={}
  for _,x in Lighting:GetChildren()do if x:IsA('Sky')or x:IsA('Atmosphere')or x:IsA('PostEffect')then x.Parent=lightBackup end end
- for _,x in resources.Lighting:GetChildren()do local c=x:Clone();c.Parent=Lighting;table.insert(newLight,c)end
- Lighting.Brightness=3;Lighting.ClockTime=15.883889;Lighting.Ambient=Color3.fromRGB(99,92,77);Lighting.OutdoorAmbient=Color3.fromRGB(66,94,143)
+ for _,x in resources.Lighting:GetChildren()do
+  local c=x:Clone()
+  if c:IsA('ColorCorrectionEffect')then c.Brightness=-.02;c.Contrast=.08;c.Saturation=.04 end
+  c.Parent=Lighting;table.insert(newLight,c)
+ end
+ Lighting.Brightness=2;Lighting.ExposureCompensation=-.2;Lighting.ClockTime=15.883889;Lighting.Ambient=Color3.fromRGB(99,92,77);Lighting.OutdoorAmbient=Color3.fromRGB(66,94,143)
  model.Parent=track
  model.Destroying:Connect(function()
   alive=false
