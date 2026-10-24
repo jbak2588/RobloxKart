@@ -13,7 +13,7 @@ for _,model in forest:GetChildren()do
  end
 end
 for _,path in {'src/shared/HubParkRookieLoopLayout.luau','src/server/HubParkRookieLoopBuilder.luau','src/shared/RookieLoopDriveGeometry.luau'}do
- check(fs.readFile(path):gsub('\r\n','\n')==process.exec('git',{'show','9227e3d:'..path}).stdout:gsub('\r\n','\n'),'approved road/drive/gate unchanged: '..path)
+ check(fs.readFile(path):gsub('\r\n','\n')==process.exec('git',{'show','4fc6ead:'..path}).stdout:gsub('\r\n','\n'),'approved road/drive/gate unchanged: '..path)
 end
 local art=assert(root:FindFirstChild('ParkLandscaping'))
 check(not fs.readFile('src/server/HubParkLandscapingBuilder.luau'):match('RenderFidelity%s*='),'no runtime LOD mutation')
@@ -62,8 +62,28 @@ for _,v in art:GetDescendants()do
   end end
  end
 end
-check(parts==1445 and meshes==1360,'bounded forest mass: 1445 static parts, 1360 reused meshes')
-check(trees==440 and understory==270 and shrubs==6 and rocks==5 and hills==0 and beds==8,'440 trees and 270 City understory groups; existing low beds/rocks preserved, no mountains')
+check(parts==831 and meshes==746,'reduced vegetation budget: 831 static parts / 746 reused meshes')
+check(trees==308 and understory==60 and shrubs==6 and rocks==5 and hills==0 and beds==8,'308 trees and 60 Lobby understory groups; existing low beds/rocks preserved, no mountains')
 check(interior.west>=15 and interior.northeast>=20 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
+-- Check source planting anchors: grounding changes mesh-center positions by species.
+local source=fs.readFile('src/server/HubParkLandscapingBuilder.luau')
+local sites={}
+local function outsideClearing(x,z)return ((x-300)/220)^2+((z+1080)/120)^2>=1 end
+local treeBlock=assert(source:match('local treeSites={(.-)\n }'))
+for x,z in treeBlock:gmatch('{([%d%.%-]+),([%d%.%-]+),')do
+ x,z=tonumber(x),tonumber(z)
+ check(outsideClearing(x,z),'northeast grove center cleared')
+ for _,p in sites do check((x-p.x)^2+(z-p.z)^2>=31^2,'staggered trees separated by at least 31 studs')end
+ table.insert(sites,{x=x,z=z})
+end
+check(#sites==308,'exactly 30 percent of the 440 original trees removed')
+local underBlock=assert(source:match('local understorySites={(.-)\n }'))
+local left,right=0,0
+for x,z in underBlock:gmatch('{([%d%.%-]+),([%d%.%-]+),')do
+ x,z=tonumber(x),tonumber(z)
+ check(math.abs(x)>=112 and math.abs(x)<=187 and z>=-16 and z<=77,'understory only beside Lobby, none in the forest')
+ if x<0 then left+=1 else right+=1 end
+end
+check(left==30 and right==30,'30 low plants on each Lobby side')
 check(#root.IslandScenery:GetDescendants()==332,'A1 outer cliff/sea scenery left unchanged')
 print(string.format('PASS %d A2 checks; %d static parts/%d meshes; minimum sampled corridor clearance %.2f studs',n,parts,meshes,minClearance))
