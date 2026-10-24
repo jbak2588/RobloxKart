@@ -5,8 +5,8 @@ local AudioConfig = {
 		-- Replace only after approval of a new steady-state loop asset.
 		ENGINE_LOOP = "rbxassetid://6667206432",
 		DRIFT_LOOP = "rbxassetid://9120397552",
-		BOOST_START = "rbxassetid://5199136449", -- Owner-selected Mini Boost launch.
-		BOOST_LOOP = "rbxassetid://15548491198", -- Template NitroLoopPlayer.
+		BOOST_START = "rbxassetid://83211426606907", -- Original KDM launch, lower Mini Boost pitch.
+		BOOST_LOOP = "", -- Original KDM boost has no turbine sustain.
 		NITRO_START = "rbxassetid://83211426606907", -- Restore original KDM Nitro launch.
 		COUNTDOWN = "rbxassetid://9119144736",
 		GO = "",
@@ -42,8 +42,8 @@ local AudioConfig = {
 		RESPONSE = 10,
 	},
 	BOOST = {
-		START_VOLUME = 2.7980001 * 0.80,
-		LOOP_VOLUME = 0.800000012 * 0.80,
+		START_VOLUME = 0.75,
+		START_PLAYBACK_SPEED = 0.80, -- 20% lower than the unchanged Nitro pitch of 1.0.
 		NITRO_START_VOLUME = 0.75,
 	},
 	-- Bundled Roblox explosion asset; no boost-start substitution or external upload.

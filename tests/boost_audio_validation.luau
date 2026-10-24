@@ -12,7 +12,7 @@ local sounds={};local loaded=true
 local attrs={};local parent={Parent={GetAttribute=function(_,key)return attrs[key]end},AssemblyLinearVelocity={X=100,Z=0}}
 audio.getGroup=function()return {}end;audio.preload=function()end
 function audio.createSound(name,asset,_,_,looped,volume)
- local s={Name=name,SoundId=asset,IsLoaded=loaded,Volume=volume,Looped=looped,plays=0,stops=0,IsPlaying=false}
+ local s={Name=name,SoundId=asset,IsLoaded=loaded,Volume=volume,Looped=looped,PlaybackSpeed=1,plays=0,stops=0,IsPlaying=false}
  function s:Play()self.plays+=1;self.IsPlaying=true end
  function s:Stop()self.stops+=1;self.IsPlaying=false end
  function s:Destroy()self.destroyed=true end
@@ -21,76 +21,47 @@ end
 for _,prefix in {'Race','Lobby'}do
  attrs={};parent.AssemblyLinearVelocity.X=100
  local voice=audio.createBoostAudio(parent,prefix)
- local mini,nitro,loop=sounds[prefix..'MiniBoostStart'],sounds[prefix..'NitroStart'],sounds[prefix..'MiniBoostLoop']
- check(mini.SoundId=='rbxassetid://5199136449' and math.abs(mini.Volume-2.7980001*.8)<1e-8,'owner-selected boost asset retains approved start volume')
- check(loop.SoundId=='rbxassetid://15548491198' and loop.Looped,'real template sustain loop enabled')
- check(nitro.SoundId=='rbxassetid://83211426606907' and nitro.Volume==.75,'Nitro preserves original KDM onset')
+ local mini,nitro=sounds[prefix..'MiniBoostStart'],sounds[prefix..'NitroStart']
+ check(mini.SoundId=='rbxassetid://83211426606907' and math.abs(mini.Volume-.75)<1e-8,'original Mini asset and volume restored')
+ check(nitro.SoundId==mini.SoundId and nitro.Volume==.75 and nitro.PlaybackSpeed==1,'Nitro original onset unchanged')
+ check(math.abs(mini.PlaybackSpeed/nitro.PlaybackSpeed-.8)<1e-8,'Mini pitch is exactly 20 percent lower than Nitro')
+ check(not mini.Looped and not sounds[prefix..'MiniBoostLoop'],'no timed looping or template turbine voice')
  voice:step(0,false,false,'',true)
- for _=1,10 do
-  voice:step(.02,true,false,'',true)
-  for _=1,120 do voice:step(1/60,true,false,'',true)end
-  attrs.KartBoostEndReason='duration_complete';voice:step(.01,false,false,'',true)
-  mini.IsPlaying=false -- Natural full-clip completion before the next separate activation.
- end
- check(mini.plays==10 and nitro.plays==0,'ten Mini activations have ten owner-selected onsets and zero original Nitro onsets')
- check(loop.plays==1 and loop.IsPlaying,'connected boosts retain one continuous loop, no repeated loop attack')
  voice:step(.02,true,false,'',true)
- check(math.abs(loop.Volume-.800000012*.8)<1e-8,'sustain volume is exactly source 80 percent')
+ for _=1,120 do voice:step(1/60,true,false,'',true)end
+ check(mini.plays==1 and mini.IsPlaying and math.abs(mini.Volume-.75)<1e-8,'held boost never repeats and preserves full gain')
  attrs.KartOffTrack=true;parent.AssemblyLinearVelocity.X=80
  voice:step(.1,true,false,'',true)
- check(loop.IsPlaying and loop.Volume>.63,'off-road accepted boost retains full sustain volume')
+ check(mini.IsPlaying and math.abs(mini.Volume-.75)<1e-8,'off-road active boost retains audio')
  attrs.KartOffTrack=false;parent.AssemblyLinearVelocity.X=100
  attrs.KartBoostEndReason='duration_complete';voice:step(.5,false,false,'',true)
- check(loop.IsPlaying and math.abs(loop.Volume-config.BOOST.LOOP_VOLUME*.75)<1e-8,'remaining flame tail sustains and fades audio after boost expiry')
- check(mini.IsPlaying and math.abs(mini.Volume-config.BOOST.START_VOLUME*.75)<1e-8,'long original clip fades by the same flame weight')
- parent.AssemblyLinearVelocity.X=82;voice:step(.1,false,false,'',true)
- check(not loop.IsPlaying and loop.Volume==0,'same flame end-speed stops residual loop')
- check(not mini.IsPlaying and mini.Volume==0,'flame extinction stops the long original clip')
- parent.AssemblyLinearVelocity.X=100;voice:step(.1,true,false,'',true)
+ check(mini.IsPlaying and math.abs(mini.Volume-.75*.75)<1e-8,'flame tail fades the onset gain')
+ voice:step(.02,true,false,'',true)
+ check(mini.plays==1 and math.abs(mini.Volume-.75)<1e-8,'connected boost keeps original playing clip without restart')
  voice:step(.1,true,true,'',true)
- check(nitro.plays==1 and loop.IsPlaying,'Nitro onset remains distinct while Mini loop continues')
+ check(nitro.plays==1 and mini.PlaybackSpeed==.8 and nitro.PlaybackSpeed==1,'overlapping Nitro retains independent normal pitch')
  for _=1,120 do voice:step(1/60,true,true,'',true)end
  check(nitro.plays==1,'held Nitro never repeats')
  attrs.KartBoostEndReason='cancelled';voice:step(.01,false,false,'cancelled',true)
- check(not loop.IsPlaying and loop.Volume==0,'cancelled boost has no natural flame/audio tail')
- check(not mini.IsPlaying and mini.Volume==0,'cancelled boost stops the long original clip too')
- voice:step(.1,false,true,'',true)
- check(not loop.IsPlaying,'Nitro alone does not gain new template sustain')
- voice:step(.01,false,false,'cancelled',false)
- check(not mini.IsPlaying and not nitro.IsPlaying and not loop.IsPlaying,'lifecycle gate silences every voice')
+ check(not mini.IsPlaying and mini.Volume==0,'cancelled boost stops onset')
+ voice:step(.01,true,false,'',true)
+ check(mini.plays==2,'new activation after completed audio starts original clip again')
+ voice:step(.01,false,false,'',false)
+ check(not mini.IsPlaying and not nitro.IsPlaying,'lifecycle gate silences both voices')
  voice:destroy();voice:destroy()
- check(mini.destroyed and nitro.destroyed and loop.destroyed,'bounded instances destroyed idempotently')
- local plays=mini.plays+nitro.plays+loop.plays;voice:step(.1,true,true,'',true)
- check(plays==mini.plays+nitro.plays+loop.plays,'destroyed voice cannot resurrect')
+ check(mini.destroyed and nitro.destroyed,'bounded voices destroyed idempotently')
+ local plays=mini.plays+nitro.plays;voice:step(.1,true,true,'',true)
+ check(plays==mini.plays+nitro.plays,'destroyed voice cannot resurrect')
 end
-attrs={};parent.AssemblyLinearVelocity.X=70
-local climb=audio.createBoostAudio(parent,'Climb')
-climb:step(0,false,false,'',true);climb:step(.01,true,false,'',true)
-for _=1,3 do climb:step(.3,true,false,'',true)end
-check(sounds.ClimbMiniBoostStart.plays==1 and not sounds.ClimbMiniBoostStart.Looped,'full launch clip plays once without timed looping')
-parent.AssemblyLinearVelocity.X=100;climb:step(.3,true,false,'',true)
-parent.AssemblyLinearVelocity.X=80;climb:step(.6,true,false,'',true)
-check(sounds.ClimbMiniBoostStart.plays==1,'speed changes never restart the full clip')
-parent.AssemblyLinearVelocity.X=100;attrs.KartBoostEndReason='duration_complete'
-climb:step(.5,false,false,'duration_complete',true)
-check(sounds.ClimbMiniBoostStart.IsPlaying and math.abs(sounds.ClimbMiniBoostStart.Volume-config.BOOST.START_VOLUME*.75)<1e-8,'long clip follows shrinking flame instead of ending at active timer expiry')
-climb:step(.01,true,false,'',true)
-check(sounds.ClimbMiniBoostStart.plays==1,'connected boost lets the current full clip finish')
-climb:step(.3,true,true,'',true)
-check(sounds.ClimbMiniBoostStart.IsPlaying and sounds.ClimbNitroStart.plays==1,'Nitro onset leaves the full Mini clip intact')
-sounds.ClimbMiniBoostStart.IsPlaying=false
-climb:step(.01,false,false,'',true);climb:step(.01,true,false,'',true)
-check(sounds.ClimbMiniBoostStart.plays==2,'new boost after natural audio completion plays a new full clip')
-climb:step(.01,false,false,'',false)
-check(not sounds.ClimbMiniBoostStart.IsPlaying,'lifecycle disable stops audio immediately')
-climb:destroy();parent.AssemblyLinearVelocity.X=100
+attrs={};parent.AssemblyLinearVelocity.X=100
 local launch=audio.createBoostAudio(parent,'Launch')
 launch:step(0,false,false,'',false);launch:step(.016,true,false,'',true)
-check(sounds.LaunchMiniBoostStart.plays==1 and sounds.LaunchMiniBoostLoop.IsPlaying,'countdown GO starts onset and sustain')
+check(sounds.LaunchMiniBoostStart.plays==1 and sounds.LaunchMiniBoostStart.PlaybackSpeed==.8,'GO launch uses restored lower-pitch onset')
 launch:destroy()
 loaded=false
 local voice=audio.createBoostAudio(parent,'Denied')
 voice:step(0,false,false,'',true);voice:step(.2,true,false,'',true);voice:step(.2,true,true,'',true)
 for name,s in sounds do if name:match('^Denied')then check(s.plays==0,'unloaded sounds have no wrong-cue fallback')end end
 voice:destroy()
-print('PASS: '..checks..' source-volume, sustained Mini, exact flame-tail, Nitro isolation and cleanup checks')
+check(config.COMBAT.MissileLaunch.Asset==config.ASSETS.NITRO_START and config.COMBAT.MissileLaunch.Volume==.75,'Missile onset config remains unchanged')
+print('PASS: '..checks..' original boost, 20-percent lower pitch, no turbine/repeats, fade, Nitro isolation and cleanup checks')

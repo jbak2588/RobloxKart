@@ -434,14 +434,12 @@ frames, velocity and server network ownership untouched. Restore original joint
 transforms on seat/character loss, death, departure or leaving driving state.
 Do not fabricate replacement legs or upload a separate driver animation.
 Owner refinement: straight forward legs (hip 90 degrees, knee/ankle zero),
-so soles face the front camera. Latest owner-selected Mini Boost start asset is
-5199136449, replacing 15548492905. Play from the beginning without timed repeats
-or pitch changes. Preserve full gain through active boost/100-stud output, then
-reduce gain by the existing BoostFlameEnvelope weight as the flame shrinks.
-Stop when that envelope reaches zero or boost is cancelled/disabled/destroyed;
-do not let the long clip outlive the boost effect. Connected boosts retain the
-already-playing clip without restart.
-Retain volume, Nitro onset and the existing sustained flame-loop.
+so soles face the front camera. Latest owner audio correction supersedes the
+experimental template/5199136449 sounds: restore original KDM 83211426606907
+for Mini Boost at its original .75 volume, PlaybackSpeed .80 (20% below Nitro
+1.0). Nitro and Missile retain their existing .75 volume and normal pitch.
+No turbine sustain or timed repeats. Preserve flame-linked gain/stop and
+lifecycle cleanup; do not alter boost physics or flame visuals.
 
 ## Driving Invariants
 

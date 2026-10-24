@@ -172,15 +172,15 @@ function AudioRuntime.createEngineLooper(primary: Sound?, secondary: Sound?)
 	return looper
 end
 
--- Mini Boost plays the owner-selected clip without repeats or pitch changes.
--- Its gain and stop follow the same exhaust envelope as the sustain loop.
+-- Original KDM boost onset, pitched 20% lower than Nitro; no turbine loop.
+-- Existing flame gain/cleanup remains shared across Park and official races.
 function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 	local group = AudioRuntime.getGroup("RobloxKartSFX")
 	local config = AudioConfig.BOOST
 	local miniStart = AudioRuntime.createSound(prefix .. "MiniBoostStart", AudioConfig.ASSETS.BOOST_START, parent, group, false, config.START_VOLUME, true)
 	local nitroStart = AudioRuntime.createSound(prefix .. "NitroStart", AudioConfig.ASSETS.NITRO_START, parent, group, false, config.NITRO_START_VOLUME, true)
-	local miniLoop = AudioRuntime.createSound(prefix .. "MiniBoostLoop", AudioConfig.ASSETS.BOOST_LOOP, parent, group, true, 0, true)
-	local sounds = { Mini = miniStart, Nitro = nitroStart, Loop = miniLoop }
+	if miniStart then miniStart.PlaybackSpeed = config.START_PLAYBACK_SPEED end
+	local sounds = { Mini = miniStart, Nitro = nitroStart }
 	AudioRuntime.preload(sounds, true)
 	local previousMini, previousNitro, initialized, destroyed = false, false, false, false
 	local envelope = FlameEnvelope.new()
@@ -190,7 +190,6 @@ function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 		if not enabled then
 			for _, sound in sounds do AudioRuntime.stop(sound) end
 			if miniStart then miniStart.Volume = 0 end
-			if miniLoop then miniLoop.Volume = 0 end
 			FlameEnvelope.step(envelope, 0, 0, false, false, false, true)
 			previousMini, previousNitro, initialized = mini, nitro, true
 			return
@@ -221,14 +220,6 @@ function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 		if miniStart then
 			miniStart.Volume = config.START_VOLUME * weight / 0.7
 			if weight <= 0 then AudioRuntime.stop(miniStart) end
-		end
-		if miniLoop then
-			miniLoop.Volume = config.LOOP_VOLUME * weight / 0.7
-			if weight > 0 and (mini or not nitro) and miniLoop.IsLoaded then
-				AudioRuntime.playLoop(miniLoop)
-			else
-				AudioRuntime.stop(miniLoop)
-			end
 		end
 		previousMini, previousNitro, initialized = mini, nitro, true
 	end
