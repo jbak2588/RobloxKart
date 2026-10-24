@@ -29,22 +29,10 @@ for _,state in {'PRE_RACE','COUNTDOWN','RACING'}do attrs.RaceState=state;check(a
 for _,state in {'GARAGE','FINISHING','FINISHED','DNF'}do attrs.RaceState=state;check(not active(),'inactive race state releases hands: '..state)end
 
 local drive=fs.readFile('src/client/LobbyTestDriveController.luau')
-local block=assert(drive:match('(  local miniBoost=.-previousBoost,previousNitro=miniBoost,nitro)'),'separate production onset dispatch')
-local mini,nitro,plays,stops=false,false,0,0
-local tick=luau.load('local previousBoost,previousNitro=false,false;local boostCue={};return function()\n'..block..'\nend',{environment={
- kart={GetAttribute=function(_,k)return if k=='KartBoosting'then mini else nitro end},
- Audio={playOnce=function()plays+=1 end,stop=function()stops+=1 end},
-}})()
-tick();check(plays==0,'idle has no onset')
-mini=true;tick();check(plays==1,'successful Drift starts Mini Boost cue')
-nitro=true;tick();check(plays==2,'Nitro during Mini Boost has its own launch cue')
-for _=1,120 do tick()end;check(plays==2,'held active states never repeat cue')
-mini=false;tick();check(stops==0,'ending Mini Boost leaves overlapping Nitro cue alone')
-nitro=false;tick();check(stops==1,'both effects ended stops cue')
-mini=true;nitro=true;tick();check(plays==3,'same-frame Mini Boost and Nitro play once')
-mini=false;tick();mini=true;tick();check(plays==4,'Mini Boost during Nitro has its own cue')
-mini=false;nitro=false;tick();nitro=true;tick();check(plays==5,'later Nitro reactivation sounds')
-check(drive:find('previousBoost=false;previousNitro=false',1,true)~=nil,'detach resets both onset histories')
+check(drive:find("Audio.createBoostAudio(body,'Lobby')",1,true)~=nil,'Park uses shared distinct boost/Nitro audio')
+check(drive:find("boostAudio:step(dt,miniBoost,nitro",1,true)~=nil,'Park supplies independent Mini/Nitro state')
+check(drive:find('boostAudio:destroy();boostAudio=nil',1,true)~=nil,'detach destroys shared boost voices')
+check(not drive:find('Audio.playOnce(boostCue)',1,true),'Mini Boost one-shot removed')
 local serviceSource=fs.readFile('src/server/LobbyTestDriveService.luau')
 check(serviceSource:find('practice:isNitro(player,now,throttle,not isRookieLoop and clearance<=Policy.FootprintMargin)',1,true)~=nil,
  'RookieLoop off-track clearance does not cancel active Nitro as a wall hit')

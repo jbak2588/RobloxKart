@@ -73,3 +73,9 @@ for i=41,80 do
 end
 check(offBoost.boost and math.abs(bSpeed-config.MINI_BOOST_MAX_SPEED)<1e-6,'returning to track restores full 100 Mini Boost speed')
 print('PASS: practice Nitro ramp / maximum / smooth exit / off-track 80% retention checks')
+
+local grass=adapter.new();grass.boost=true;grass.boostEnd=10
+adapter.input(grass,true,0,true)
+for i=1,60 do adapter.step(grass,i/60,1/60,80,0,80,1,1,true,0,0,80,false,true)end
+check(grass.boost and grass.boostEnd==10 and not grass.active and not grass.ready,'grass preserves boost timer without reentering Drift or awarding another boost')
+print('PASS: off-road held Drift cannot cancel active Mini Boost or award charge')

@@ -5,8 +5,9 @@ local AudioConfig = {
 		-- Replace only after approval of a new steady-state loop asset.
 		ENGINE_LOOP = "rbxassetid://6667206432",
 		DRIFT_LOOP = "rbxassetid://9120397552",
-		BOOST_START = "rbxassetid://83211426606907",
-		BOOST_LOOP = "",
+		BOOST_START = "rbxassetid://15548492905", -- Template NitroStartPlayer, Mini Boost only.
+		BOOST_LOOP = "rbxassetid://15548491198", -- Template NitroLoopPlayer.
+		NITRO_START = "rbxassetid://83211426606907", -- Restore original KDM Nitro launch.
 		COUNTDOWN = "rbxassetid://9119144736",
 		GO = "",
 		LAP_COMPLETE = "",
@@ -41,11 +42,13 @@ local AudioConfig = {
 		RESPONSE = 10,
 	},
 	BOOST = {
-		START_VOLUME = 0.75,
-		LOOP_VOLUME = 0.42,
+		START_VOLUME = 2.7980001 * 0.80,
+		LOOP_VOLUME = 0.800000012 * 0.80,
+		NITRO_START_VOLUME = 0.75,
 	},
 	-- Bundled Roblox explosion asset; no boost-start substitution or external upload.
 	COMBAT = {
+		MissileLaunch = { Asset = "rbxassetid://83211426606907", Volume = 0.75 },
 		Missile = { Asset = "rbxasset://sounds/impact_explosion_03.mp3", Volume = 0.8, Pitch = 1.0 },
 		Thunder = { Asset = "rbxasset://sounds/impact_explosion_03.mp3", Volume = 0.8, Pitch = 0.68 },
 	},

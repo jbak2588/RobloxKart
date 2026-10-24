@@ -384,6 +384,7 @@ function Service.start(driveZone,eligibility)
     end
     Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0);r.kart:SetAttribute("KartVisualSteering",0);continue
    end
+   local nitro=practice:isNitro(player,now,throttle,not isRookieLoop and clearance<=Policy.FootprintMargin)
    -- Use the approved race slide solver; training owns only transient charge.
    local radius=KartConfig.TURN_RADIUS_LOW_SPEED+(KartConfig.TURN_RADIUS_HIGH_SPEED-KartConfig.TURN_RADIUS_LOW_SPEED)*math.clamp(math.abs(r.speed)/KartConfig.MAX_FORWARD_SPEED,0,1)
    local normalYaw=-r.training.steer*r.speed/radius
@@ -399,7 +400,6 @@ function Service.start(driveZone,eligibility)
     -- Combat cancels Drift/Boost, while normal steering/throttle stay available.
     local steer=r.training.steer;Drift.clear(r.training);r.training.steer=steer
    end
-   local nitro=practice:isNitro(player,now,throttle,not isRookieLoop and clearance<=Policy.FootprintMargin)
    if straightCourse then
     local lp=Vector3.new(localPos.X,0,localPos.Z)
     StraightSpeedResolver.update(r,straightCourse,lp,now,true)

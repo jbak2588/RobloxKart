@@ -40,7 +40,7 @@ function NitroState:forwardSpeed(speed, miniBoost, throttle, dt, normalCap, offT
 	local c = self.config
 	local rawTarget = if self.active then c.NITRO_MAX_SPEED
 		elseif miniBoost then c.MINI_BOOST_MAX_SPEED else (normalCap or c.MAX_FORWARD_SPEED)
-	local target = if offTrack and (self.active or miniBoost) then rawTarget * 0.8
+	local target = if offTrack and (self.active or miniBoost) then rawTarget * c.OFF_TRACK_BOOST_SPEED_MULTIPLIER
 		elseif offTrack then (c.OFF_TRACK_MAX_SPEED or 60)
 		else rawTarget
 	local rate = if self.active then (if speed > target then c.BRAKE_FORCE else c.NITRO_ACCELERATION)

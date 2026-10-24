@@ -370,6 +370,34 @@ temporary preview Drive request and personal grid/countdown/boost launch. They
 do not change persisted Garage selection or create another driving system.
 Legacy non-Park indoor displays retain their layout and TEST DRIVE prompts.
 
+## Off-road Boost / Nitro and AUDIO-B1 override — 2026-10-24
+
+Owner direction supersedes the historical off-track Nitro cancellation rule:
+an active Mini Boost or Nitro retains its original expiry and exhaust flame when
+leaving the road. Apply KartConfig.OFF_TRACK_BOOST_SPEED_MULTIPLIER (0.80) to
+its normal target: Mini Boost 100 -> 80 and current Nitro 120 -> 96 studs/s.
+Returning to the road before expiry restores the full target through existing
+acceleration; it never restarts or extends the timer. Permit authoritative Nitro
+activation on grass/off-road with normal charge consumption. Preserve actual
+barrier/crash, combat, Brake, seat/input/lifecycle, island/fall recovery and race
+DNF protections and the existing route/checkpoint validation. Off-road travel
+cannot earn Drift charge.
+Normal non-boosted off-track speed, race capacity and network ownership stay unchanged.
+
+Owner acceptance: off-road speed and exhaust flame behavior PASS. Preserve it.
+The first AUDIO-B1 low-volume loop candidate was rejected as inaudible/too quiet.
+Owner audio correction: Mini Boost uses template NitroStartPlayer 15548492905
+and NitroLoopPlayer 15548491198 at 80% of source volumes: start
+2.7980001*.80, sustain .800000012*.80. Sustain follows the existing
+BoostFlameEnvelope through the active boost and natural residual flame fade;
+connected boosts reuse the same loop. Preserve KDM Nitro 83211426606907 at .75.
+Missile launch has its own COMBAT.MissileLaunch config with that original KDM
+asset at .75; never bind it to BOOST_START or boost volume again. Keep bounded
+instances and lifecycle cleanup; do not change the accepted speed/flame physics.
+Studio playback is not acoustic, published permission or iPhone acceptance.
+Owner accepted the completed work and explicitly authorized Commit / Push on
+2026-10-24. Roblox Publish remains outside that approval.
+
 ## Driving Invariants
 
 Owner override — 2026-10-23: mobile Buttons mode defaults to automatic forward

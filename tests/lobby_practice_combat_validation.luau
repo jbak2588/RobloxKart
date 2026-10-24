@@ -74,8 +74,8 @@ local function tick(seconds)
 end
 local c,p,q,r,s=fresh();tick(.01)
 check(#c.actors[p].loadout.slots==6,'all five tactics plus Nitro, server constructed')
-local normal=modules.RaceLoadout.new();check(normal:prepare()and #normal.slots==4,'race defaults remain four')
-check(not normal:prepare({'Nitro','Slick','Shield','Missile','Smoke','Thunder'}),'race rejects arbitrary six-slot prepare')
+local normal=modules.RaceLoadout.new();check(normal:prepare()and #normal.slots==6,'current race defaults contain six slots')
+check(not normal:prepare({'Nitro','Nitro','Shield','Missile','Smoke','Thunder'}),'race rejects duplicate item prepare')
 for _,id in modules.LobbyPracticePolicy.Items do check(p:GetAttribute('LobbyCharge'..id)==1,'practice initial charge '..id)end
 for _,payload in {{0,'Thunder'},{2,'Thunder'},{1,'Unknown'},{1,{}}}do check(not c:use(p,payload[1],payload[2]),'stale generation or unknown payload rejected')end
 check(not c:use(p,1,'Thunder',{}),'client extra target rejected')
@@ -131,10 +131,10 @@ tick(.8);check(r.kart:GetAttribute('KartSmokeObscuredActive'),'own cloud affects
 tick(3.1);check(not s.kart:GetAttribute('KartSmokeObscuredActive'),'Smoke expires without rehit from same cloud')
 c,p,q,r,s=fresh();tick(.01)
 local a=c.actors[p];a.loadout.counts.Nitro=2
-for _=1,5 do c:boost(p)end
-check(a.loadout.bonusPending and a.loadout.bonusProgress==5 and a.loadout.counts.Nitro==2,'held two plus five BOOST latches one pending')
+for _=1,cfg.DRIFT_BONUS_REQUIRED_BOOSTS do c:boost(p)end
+check(a.loadout.bonusPending and a.loadout.bonusProgress==cfg.DRIFT_BONUS_REQUIRED_BOOSTS and a.loadout.counts.Nitro==2,'held two plus configured BOOST latches one pending')
 for _=1,9 do c:boost(p)end
-check(a.loadout.bonusProgress==5 and a.loadout.bonusAwardCount==0,'extra BOOSTs freeze, no hidden charge')
+check(a.loadout.bonusProgress==cfg.DRIFT_BONUS_REQUIRED_BOOSTS and a.loadout.bonusAwardCount==0,'extra BOOSTs freeze, no hidden charge')
 r.throttle=0;check(not c:use(p,1,'Nitro')and a.loadout.bonusPending,'rejected Nitro neither consumes nor settles')
 tick(.3);r.throttle=1;check(c:use(p,1,'Nitro'),'Nitro accepted')
 check(a.loadout.counts.Nitro==2 and not a.loadout.bonusPending and a.loadout.bonusProgress==0 and a.loadout.bonusAwardCount==1,'atomic consume and pending refill')
@@ -194,6 +194,23 @@ local accepted,reason=c:resolve(c.actors[p],c.actors[q],'Thunder',now)
 check(accepted and reason=='blocked'and #c.shieldPulses==2,'race-style pulse on both activation and block')
 c:recover(p)
 check(#c.shieldPulses==0 and not r.kart:FindFirstChild('ShieldPulse')and not r.kart:FindFirstChild('RaceItemShield'),'recovery removes pulse and defense shell together')
+-- Real Park island geometry distinguishes grass from a physical island boundary.
+module('HubParkRookieLoopLayout','src/shared/HubParkRookieLoopLayout.luau')
+local parkGeometry=module('RookieLoopDriveGeometry','src/shared/RookieLoopDriveGeometry.luau').create()
+c,p,q,r,s=fresh();tick(.01);c.isRookie=true;c.driveGeometry=parkGeometry
+local center=scene.zone:GetAttribute('Center')
+pose(r,center.X-200,center.Z-250)
+check(parkGeometry.contact(-200,-250)<0 and parkGeometry.inside(-200,-250,7),'real grass point is outside road and inside island')
+r.kart:SetAttribute('KartOffTrack',true)
+check(c:use(p,1,'Nitro') and p:GetAttribute('LobbyChargeNitro')==0,'Park grass activation consumes one Nitro')
+local expires=c.actors[p].nitroEnd
+check(c:isNitro(p,now+.8,1,false) and c.actors[p].nitroEnd==expires,'grass never extends or cancels Nitro timer')
+r.kart:SetAttribute('KartOffTrack',false)
+check(c:isNitro(p,now+1.2,1,false) and c.actors[p].nitroEnd==expires,'road return keeps original expiry')
+check(not c:isNitro(p,expires+.01,1,false),'natural expiry still owns end time')
+c,p,q,r,s=fresh();tick(.01);c.isRookie=true;c.driveGeometry=parkGeometry
+pose(r,center.X+10000,center.Z+10000)
+check(not c:use(p,1,'Nitro') and p:GetAttribute('LobbyChargeNitro')==1,'physical island boundary retains safety rejection without consuming')
 c:destroy();scene.root:Destroy()
 scene=nil
 print('PASS: '..n..' production practice loadout / PvP / bot / warning / hit / immunity / Smoke / Nitro / lifecycle checks')

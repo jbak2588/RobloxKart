@@ -40,20 +40,23 @@ local config=luau.load(fs.readFile("src/shared/AudioConfig.luau"))()
 local skid
 kart.children.Chassis.CFrame=rb.CFrame.identity
 kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.zero
-local runtime={getGroup=function()return{}end,preload=function()end,playLoop=function()end,stop=function()end}
+local audioShared={WaitForChild=function(_,name)return name end}
+local runtime=luau.load(fs.readFile("src/client/AudioRuntime.luau"),{environment={
+ game={GetService=function(_,name)return if name=="ReplicatedStorage" then {WaitForChild=function()return audioShared end} else {} end},
+ script={Parent=audioShared},
+ require=function(name)return if name=="BoostFlameEnvelope" then luau.load(fs.readFile("src/client/BoostFlameEnvelope.luau"))() else config end,
+}})()
+runtime.getGroup=function()return{}end;runtime.preload=function()end;runtime.createEngineLooper=nil
 function runtime.createSound(name,asset)
-	if name=="DriftLoop" then
-		assert(asset==config.ASSETS.DRIFT_LOOP and asset~=config.ASSETS.BOOST_START,"skid uses tire asset")
-		skid={Volume=0,PlaybackSpeed=1,IsPlaying=false,Stop=function(self)self.IsPlaying=false end,Destroy=function(self)self.Parent=nil end}
-		return skid
-	end
-	if name~="BoostStart"then return nil end
-	assert(asset==config.ASSETS.BOOST_START,"same existing launch asset")
-	return {Stop=function()end,Destroy=function()destroyed+=1 end}
+ if name~="DriftLoop" and not name:match("^Race") then return nil end
+ local sound={Name=name,Volume=0,PlaybackSpeed=1,IsPlaying=false,IsLoaded=true}
+ function sound:Stop()self.IsPlaying=false end
+ function sound:Play()self.IsPlaying=true end
+ function sound:Destroy()self.Parent=nil;if self.Name=="RaceNitroStart" then destroyed+=1 end end
+ if name=="DriftLoop" then skid=sound end
+ return sound
 end
-function runtime.playLoop(sound) if sound then sound.IsPlaying=true end end
-function runtime.stop(sound) if sound then sound.IsPlaying=false end end
-function runtime.playOnce(sound)if sound then played+=1 end end
+function runtime.playOnce(sound)if sound then played+=1;sound:Play()end end
 local shared={WaitForChild=function(_,name)return name end}
 local services={Players={LocalPlayer=player},ReplicatedStorage={WaitForChild=function()return shared end},RunService={Heartbeat=signal()}}
 local modules={AudioRuntime=runtime,AudioConfig=config,KartConfig={}}
@@ -65,13 +68,13 @@ controller.start()
 assert(played==0,"attachment does not invent an activation")
 kart:SetAttribute("KartNitroActive",true);assert(played==1,"approved Nitro starts exactly one launch cue")
 kart:SetAttribute("KartNitroActive",true);assert(played==1,"unchanged active state does not repeat")
-clock=.05;kart:SetAttribute("KartBoosting",true);assert(played==1,"near-simultaneous Mini Boost shares one onset")
+clock=.05;kart:SetAttribute("KartBoosting",true);assert(played==2,"Mini Boost plays its distinct template onset during Nitro")
 clock=1;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartBoosting",false)
-assert(played==1,"ending boost/Nitro has no launch cue")
-clock=2;kart:SetAttribute("KartBoosting",true);assert(played==2,"Mini Boost cue preserved")
-clock=2.04;kart:SetAttribute("KartNitroActive",true);assert(played==2,"deduplicate in the opposite order too")
+assert(played==2,"ending boost/Nitro has no launch cue")
+clock=2;kart:SetAttribute("KartBoosting",true);assert(played==3,"Mini Boost has its own replacement launch cue")
+clock=2.04;kart:SetAttribute("KartNitroActive",true);assert(played==4,"Nitro start remains distinct during Mini Boost")
 clock=3;kart:SetAttribute("KartNitroActive",false)
-clock=4;kart:SetAttribute("KartNitroActive",true);assert(played==3,"later independent Nitro still sounds")
+clock=4;kart:SetAttribute("KartNitroActive",true);assert(played==5,"later independent Nitro still sounds")
 -- A hit on another racer only publishes an attacker result, never a local skid.
 local launches=played
 player:SetAttribute("RaceCombatFeedbackCode","SLICK_HIT")
@@ -92,13 +95,13 @@ kart:SetAttribute("KartSlickActive",false);services.RunService.Heartbeat:Fire(1)
 assert(not skid.IsPlaying,"effect expiry fades and stops skid")
 player:SetAttribute("RaceState","GARAGE");assert(destroyed==1,"garage cleans up attached audio")
 clock=5;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartNitroActive",true)
-assert(played==3,"detached kart cannot trigger sound")
-player:SetAttribute("RaceState","RACING");assert(played==3,"reattach while active does not replay launch")
+assert(played==5,"detached kart cannot trigger sound")
+player:SetAttribute("RaceState","RACING");assert(played==5,"reattach while active does not replay launch")
 clock=6;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartNitroActive",true)
-assert(played==4,"new activation after rematch still works")
+assert(played==6,"new activation after rematch still works")
 humanoid.SeatPart=nil;humanoid.Seated:Fire()
 clock=7;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartNitroActive",true)
-assert(played==4 and destroyed==2,"seat loss disconnects activation listeners")
+assert(played==6 and destroyed==2,"seat loss disconnects activation listeners")
 print("PASS: Nitro launch cue, Mini Boost regression, both overlap orders, cleanup and reattachment")
 
 -- Developer engine loop A/B harness: run the production diagnostic against a

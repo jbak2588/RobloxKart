@@ -42,7 +42,7 @@ function Controller.start()
  local speedGauge=nil
  local engineAB=nil
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
- local boostCue=nil;local previousBoost=false;local previousNitro=false
+ local boostAudio=nil
  local missileHitCue=nil;local previousMissileHit=false
  local thunderHitCue=nil;local previousThunderHit=false
  local driveZone=Workspace:WaitForChild("KDMHub"):WaitForChild(Workspace:GetAttribute('LobbyDriveZoneName')or "LobbyFrontTestDriveZone")
@@ -113,6 +113,7 @@ function Controller.start()
   if speedGauge then speedGauge:destroy();speedGauge=nil end
  end)
  local function neutral()
+  if boostAudio then boostAudio:step(0,false,false,nil,false) end
   if speedGauge then speedGauge:update(nil,0,0,Input.isTouchPreferred(),false) end
   if exhaust then exhaust:update(0,false) end
   if feedback then feedback:update(0,false) end
@@ -122,7 +123,7 @@ function Controller.start()
  local function detach()
   if speedGauge then speedGauge:destroy();speedGauge=nil end
   if engineAB then engineAB:destroy();engineAB=nil end
-  if boostCue then Audio.stop(boostCue);boostCue:Destroy();boostCue=nil end;previousBoost=false;previousNitro=false
+  if boostAudio then boostAudio:destroy();boostAudio=nil end
   if missileHitCue then Audio.stop(missileHitCue);missileHitCue:Destroy();missileHitCue=nil end;previousMissileHit=false
   if thunderHitCue then Audio.stop(thunderHitCue);thunderHitCue:Destroy();thunderHitCue=nil end;previousThunderHit=false
   if exhaust then exhaust:destroy();exhaust=nil end
@@ -278,7 +279,7 @@ function Controller.start()
     if engineSecondary then engineSecondary.PlaybackSpeed=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED*AudioConfig.ENGINE.SECONDARY_DETUNE end
     engineLooper=Audio.createEngineLooper(engine,engineSecondary)
    end
-   boostCue=Audio.createSound('LobbyBoostStart',AudioConfig.ASSETS.BOOST_START,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.BOOST.START_VOLUME,true)
+   boostAudio=Audio.createBoostAudio(body,'Lobby')
    missileHitCue=Audio.createSound('LobbyMissileHit',AudioConfig.COMBAT.Missile.Asset,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.COMBAT.Missile.Volume,true)
    if missileHitCue then missileHitCue.PlaybackSpeed=AudioConfig.COMBAT.Missile.Pitch end
    thunderHitCue=Audio.createSound('LobbyThunderHit',AudioConfig.COMBAT.Thunder.Asset,body,Audio.getGroup('RobloxKartSFX'),false,AudioConfig.COMBAT.Thunder.Volume,true)
@@ -304,11 +305,7 @@ function Controller.start()
   local miniBoost=kart:GetAttribute('KartBoosting')==true
   local nitro=kart:GetAttribute('KartNitroActive')==true
   local boosting=miniBoost or nitro
-  -- Nitro can start while Mini Boost is still active (and vice versa).
-  -- Track each onset; simultaneous replicated edges share a single cue.
-  if (miniBoost and not previousBoost) or (nitro and not previousNitro) then Audio.playOnce(boostCue) end
-  if not boosting and (previousBoost or previousNitro) then Audio.stop(boostCue) end
-  previousBoost,previousNitro=miniBoost,nitro
+  if boostAudio then boostAudio:step(dt,miniBoost,nitro,kart:GetAttribute('KartNitroEndReason'),driving and not suspended and focused and not GuiService.MenuIsOpen) end
   local missileHit=kart:GetAttribute('KartMissileHitActive')==true
   if missileHit and not previousMissileHit then Audio.playOnce(missileHitCue) end
   previousMissileHit=missileHit

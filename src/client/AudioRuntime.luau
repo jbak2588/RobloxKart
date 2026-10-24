@@ -3,6 +3,7 @@ local SoundService = game:GetService("SoundService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AudioConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("AudioConfig"))
+local FlameEnvelope = require(script.Parent:WaitForChild("BoostFlameEnvelope"))
 
 local AudioRuntime = {}
 
@@ -68,7 +69,7 @@ function AudioRuntime.stop(sound: Sound?)
 	end
 end
 
-function AudioRuntime.preload(sounds: { [string]: Sound? })
+function AudioRuntime.preload(sounds: { [string]: Sound? }, reportFailure: boolean?)
 	local configured: { Sound } = {}
 	for _, sound in sounds do
 		if sound then
@@ -79,9 +80,14 @@ function AudioRuntime.preload(sounds: { [string]: Sound? })
 		return
 	end
 	task.spawn(function()
-		pcall(function()
-			ContentProvider:PreloadAsync(configured)
+		local ok, err = pcall(function()
+			ContentProvider:PreloadAsync(configured, function(asset, status)
+				if reportFailure and status ~= Enum.AssetFetchStatus.Success then
+					warn("[BoostAudio] Unavailable candidate " .. tostring(asset) .. ": " .. tostring(status) .. "; no explosive fallback")
+				end
+			end)
 		end)
+		if not ok and reportFailure then warn("[BoostAudio] Preload failed: " .. tostring(err)) end
 	end)
 end
 
@@ -164,6 +170,70 @@ function AudioRuntime.createEngineLooper(primary: Sound?, secondary: Sound?)
 	end
 
 	return looper
+end
+
+-- Distinct launch cues: template NitroStart for Mini Boost, original KDM for
+-- Nitro. The Mini loop follows the existing exhaust envelope, including its tail.
+function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
+	local group = AudioRuntime.getGroup("RobloxKartSFX")
+	local config = AudioConfig.BOOST
+	local miniStart = AudioRuntime.createSound(prefix .. "MiniBoostStart", AudioConfig.ASSETS.BOOST_START, parent, group, false, config.START_VOLUME, true)
+	local nitroStart = AudioRuntime.createSound(prefix .. "NitroStart", AudioConfig.ASSETS.NITRO_START, parent, group, false, config.NITRO_START_VOLUME, true)
+	local miniLoop = AudioRuntime.createSound(prefix .. "MiniBoostLoop", AudioConfig.ASSETS.BOOST_LOOP, parent, group, true, 0, true)
+	local sounds = { Mini = miniStart, Nitro = nitroStart, Loop = miniLoop }
+	AudioRuntime.preload(sounds, true)
+	local previousMini, previousNitro, initialized, destroyed = false, false, false, false
+	local envelope = FlameEnvelope.new()
+	local voice = {}
+	function voice:step(dt: number, mini: boolean, nitro: boolean, endReason: string?, enabled: boolean)
+		if destroyed then return end
+		if not enabled then
+			for _, sound in sounds do AudioRuntime.stop(sound) end
+			if miniLoop then miniLoop.Volume = 0 end
+			FlameEnvelope.step(envelope, 0, 0, false, false, false, true)
+			previousMini, previousNitro, initialized = mini, nitro, true
+			return
+		end
+		if initialized then
+			-- Independent assets preserve Nitro onset during an active Mini Boost.
+			-- If both start in the same observation, prioritize the Nitro launch.
+			if nitro and not previousNitro then
+				AudioRuntime.stop(miniStart)
+				if nitroStart and nitroStart.IsLoaded then AudioRuntime.playOnce(nitroStart) end
+			elseif mini and not previousMini then
+				if miniStart and miniStart.IsLoaded then AudioRuntime.playOnce(miniStart) end
+			end
+			if not mini then AudioRuntime.stop(miniStart) end
+			if not nitro and endReason ~= "duration_complete" then AudioRuntime.stop(nitroStart) end
+		end
+		local kart = parent.Parent
+		local function attribute(name)
+			return if kart and kart.GetAttribute then kart:GetAttribute(name) else nil
+		end
+		local velocity = parent.AssemblyLinearVelocity
+		local speed = if velocity then math.sqrt(velocity.X ^ 2 + velocity.Z ^ 2) else 0
+		local unsafe = (attribute("KartOffTrack") == true and not mini and not nitro)
+			or attribute("KartDrifting") == true or attribute("LobbyDrifting") == true
+			or attribute("KartCrashActive") == true or attribute("KartSlickActive") == true
+			or attribute("KartMissileHitActive") == true or attribute("KartThunderHitActive") == true
+		local normalEnd = previousMini and not mini and attribute("KartBoostEndReason") == "duration_complete"
+		local weight = FlameEnvelope.step(envelope, dt, speed, false, mini, normalEnd, unsafe)
+		if miniLoop then
+			miniLoop.Volume = config.LOOP_VOLUME * weight / 0.7
+			if weight > 0 and (mini or not nitro) and miniLoop.IsLoaded then
+				AudioRuntime.playLoop(miniLoop)
+			else
+				AudioRuntime.stop(miniLoop)
+			end
+		end
+		previousMini, previousNitro, initialized = mini, nitro, true
+	end
+	function voice:destroy()
+		if destroyed then return end
+		destroyed = true
+		for _, sound in sounds do AudioRuntime.stop(sound); sound:Destroy() end
+	end
+	return voice
 end
 
 return AudioRuntime

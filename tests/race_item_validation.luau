@@ -301,7 +301,15 @@ check(kart:GetAttribute("KartNitroActive") and math.abs(speed-96)<0.001,"off-tra
 kart:SetAttribute("KartOffTrack",false)
 for _=1,30 do speed=step(1) end
 check(kart:GetAttribute("KartNitroActive") and math.abs(speed-120)<0.001,"track return restores full 120 Nitro speed")
-check(not world.activateNitro(player),"off-track activation rejected")
+check(not world.activateNitro(player),"already-active Nitro rejects duplicate activation")
+startRace();kart:SetAttribute("KartOffTrack",true)
+remote.OnServerEvent:Fire(player,"Select","Nitro");remote.OnServerEvent:Fire(player,"Use")
+check(kart:GetAttribute("KartNitroActive") and player:GetAttribute("RaceChargeNitro")==0,"off-track remote activation consumes exactly one charge")
+for _=1,90 do speed=step(1) end
+check(kart:GetAttribute("KartNitroActive") and math.abs(speed-96)<.001,"grass activation reaches attenuated 96 speed")
+kart:SetAttribute("KartOffTrack",false)
+for _=1,30 do speed=step(1) end
+check(kart:GetAttribute("KartNitroActive") and math.abs(speed-120)<.001,"grass activation recovers 120 before original timer expires")
 kart:SetAttribute("KartOffTrack",false)
 for _, state in {"FINISHED","DNF","GARAGE","COUNTDOWN"} do
 	startRace(); remote.OnServerEvent:Fire(player,"Select","Nitro"); remote.OnServerEvent:Fire(player,"Use")

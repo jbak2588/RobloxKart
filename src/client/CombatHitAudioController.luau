@@ -13,7 +13,8 @@ function Controller.new(player)
   local sound=Audio.createSound('Attacker'..kind..'Hit',c.Asset,SoundService,Audio.getGroup('RobloxKartSFX'),false,c.Volume,false)
   if sound then sound.PlaybackSpeed=c.Pitch;sounds[kind]=sound end
  end
- sounds.MissileLaunch=Audio.createSound('AttackerMissileLaunch',Config.ASSETS.BOOST_START,SoundService,Audio.getGroup('RobloxKartSFX'),false,Config.BOOST.START_VOLUME,false)
+ local launch=Config.COMBAT.MissileLaunch
+ sounds.MissileLaunch=Audio.createSound('AttackerMissileLaunch',launch.Asset,SoundService,Audio.getGroup('RobloxKartSFX'),false,launch.Volume,false)
  Audio.preload(sounds)
  local function stop()
   for _,sound in sounds do Audio.stop(sound)end

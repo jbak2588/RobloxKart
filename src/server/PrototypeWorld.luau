@@ -439,8 +439,7 @@ function PrototypeWorld.start(options)
 			if kart:GetAttribute("RaceControlsLocked") ~= false or player:GetAttribute("RaceState") ~= "RACING" then
 				return false, "race_locked"
 			end
-			if context.crashActive or context.slick.active or context.missileHitActive or context.thunderHitActive
-				or kart:GetAttribute("KartOffTrack") == true then return false, "unsafe_state" end
+			if context.crashActive or context.slick.active or context.missileHitActive or context.thunderHitActive then return false, "unsafe_state" end
 			local control = context.control
 			if not control or time() - control.lastUpdate > KartConfig.INPUT_TIMEOUT then return false, "input_timeout" end
 			local accepted, reason = context.nitro:activate(player, time())
@@ -1163,8 +1162,8 @@ function PrototypeWorld.start(options)
 			-- Natural Boost overspeed keeps its existing return rate, even when the
 			-- straight mask exits on the very same expiry frame.
 			if context.straightBoostReturnActive then context.straightExitActive = false end
-			local forwardTargetSpeed = if context.nitro.active then (if offTrack then KartConfig.NITRO_MAX_SPEED * 0.8 else KartConfig.NITRO_MAX_SPEED)
-				elseif context.boostActive then (if offTrack then KartConfig.MINI_BOOST_MAX_SPEED * 0.8 else KartConfig.MINI_BOOST_MAX_SPEED)
+			local forwardTargetSpeed = if context.nitro.active then (if offTrack then KartConfig.NITRO_MAX_SPEED * KartConfig.OFF_TRACK_BOOST_SPEED_MULTIPLIER else KartConfig.NITRO_MAX_SPEED)
+				elseif context.boostActive then (if offTrack then KartConfig.MINI_BOOST_MAX_SPEED * KartConfig.OFF_TRACK_BOOST_SPEED_MULTIPLIER else KartConfig.MINI_BOOST_MAX_SPEED)
 				elseif context.driftActive then KartConfig.DRIFT_MAX_SPEED
 				elseif offTrack then KartConfig.OFF_TRACK_MAX_SPEED
 				else normalForwardCap
