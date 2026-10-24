@@ -208,6 +208,7 @@ function Renderer.new(kart)
  local contacts={}
  local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Include
  local surfaceRoot=nil
+ local visualRoads=nil;local roadHint=1;local ribbonStart=1
  local tireSurfaceLift=0
  local function updateSurfaceFilter()
   if surfaceRoot and surfaceRoot.Parent then return true end
@@ -224,6 +225,18 @@ function Renderer.new(kart)
   else
    local track=parent and parent:FindFirstChild("TestTrack")
    surfaceRoot=track and track:FindFirstChild("Road")
+   if surfaceRoot and track:GetAttribute('GeometryId')=='PracticeFigure8V1' then
+    -- Figure-8 Road slices are intentionally non-queryable. Keep that contract;
+    -- contact is the top plane of the bounded visual slices, not the grass support.
+    visualRoads={}
+    for _,p in surfaceRoot:GetChildren()do if p:IsA('BasePart')then table.insert(visualRoads,p)end end
+    ribbonStart=#visualRoads+1
+    local environment=track:FindFirstChild('Environment')
+    if environment then for _,p in environment:GetChildren()do
+     if p:IsA('BasePart')and p.Name:match('^CrossoverRibbon')then table.insert(visualRoads,p)end
+    end end
+    if #visualRoads==0 then visualRoads=nil end
+   end
   end
   params.FilterDescendantsInstances=if surfaceRoot then {surfaceRoot} else {}
   return surfaceRoot~=nil
@@ -365,7 +378,30 @@ function Renderer.new(kart)
    groundElapsed=0
    for i,contact in contacts do
     local origin=chassis.CFrame:PointToWorldSpace(contact.position)+Vector3.yAxis*2
-    local hit=if updateSurfaceFilter() then Workspace:Raycast(origin,-Vector3.yAxis*6,params) else nil
+    local hit=nil
+    if updateSurfaceFilter() then
+     if visualRoads then
+      local function sample(index)
+       local p=visualRoads[index];if not p or not p.Parent then return nil end
+       local normal=p.CFrame.UpVector;if normal.Y<=.55 then return nil end
+       local top=p.Position+normal*(p.Size.Y/2)
+       local down=(origin-top):Dot(normal)/normal.Y
+       if down<0 or down>6 then return nil end
+       local point=origin-Vector3.yAxis*down;local q=p.CFrame:PointToObjectSpace(point)
+       if math.abs(q.X)>p.Size.X/2 or math.abs(q.Z)>p.Size.Z/2 then return nil end
+       return {Position=point,Normal=normal}
+      end
+      -- Usually the same slice or its immediate neighbors; full search only on entry.
+      for delta=-3,3 do local index=(roadHint+delta-1)%#visualRoads+1
+       hit=sample(index);if hit then roadHint=index;break end
+      end
+      if not hit then for index=1,#visualRoads do hit=sample(index);if hit then roadHint=index;break end end end
+      -- The crossing's raised visual ribbons must not bury a road-slice mark.
+      for index=ribbonStart,#visualRoads do local ribbon=sample(index)
+       if ribbon and (not hit or ribbon.Position.Y>hit.Position.Y)then hit=ribbon end
+      end
+     else hit=Workspace:Raycast(origin,-Vector3.yAxis*6,params)end
+    end
     grounded[i]=hit~=nil and hit.Normal.Y>.55
     if grounded[i] then
      local surface=hit.Position+hit.Normal*(.04+tireSurfaceLift)

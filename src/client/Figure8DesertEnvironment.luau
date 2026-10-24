@@ -28,7 +28,20 @@ function Environment.build(track)
  local model=Instance.new('Model');model.Name='ClientHorizonEnvironment'
  model:SetAttribute('Theme','SOURCE_DESERT');model:SetAttribute('Source','Hub_n_lobby_original.rbxlx')
  local ground=track:FindFirstChild('SafetyGround');local groundY=if ground then ground.Position.Y+ground.Size.Y/2 else 0
- local saved={};local tiles={};local alive=true
+ local saved={};local kerbFrames={};local roadColors={};local tiles={};local alive=true
+ -- Separate overlapping kerb stripes from each other and the white road edge.
+ local kerbs=track:FindFirstChild('Kerbs')
+ if kerbs then for _,p in kerbs:GetChildren()do if p:IsA('BasePart')then
+  kerbFrames[p]=p.CFrame
+  p.CFrame+=Vector3.yAxis*(if p.Color.R>p.Color.G*1.5 then .06 else .04)
+ end end end
+ local function softenRoad(p)
+  if p:IsA('BasePart')then roadColors[p]=p.Color;p.Color=Color3.fromRGB(78,81,86)end
+ end
+ local roads=track:FindFirstChild('Road')
+ if roads then for _,p in roads:GetChildren()do softenRoad(p)end end
+ local roadEnv=track:FindFirstChild('Environment')
+ if roadEnv then for _,p in roadEnv:GetChildren()do if p.Name:match('^CrossoverRibbon')then softenRoad(p)end end end
  local function appearance(part)
   table.insert(saved,{part=part,material=part.Material,variant=part.MaterialVariant,color=part.Color,localTransparency=part.LocalTransparencyModifier})
   part.Material=Enum.Material.Sand;part.MaterialVariant='KDMDesert_Racing_Sand_A';part.Color=sandTint
@@ -66,6 +79,8 @@ function Environment.build(track)
   alive=false
   for _,r in tiles do terrain:FillBlock(r.CFrame,r.Size,Enum.Material.Air)end
   for _,r in saved do if r.part.Parent then r.part.Material=r.material;r.part.MaterialVariant=r.variant;r.part.Color=r.color;r.part.LocalTransparencyModifier=r.localTransparency end end
+  for p,cf in kerbFrames do if p.Parent then p.CFrame=cf end end
+  for p,color in roadColors do if p.Parent then p.Color=color end end
   for _,x in newLight do x:Destroy()end
   for _,x in lightBackup:GetChildren()do x.Parent=Lighting end;lightBackup:Destroy()
   for k,v in oldLight do Lighting[k]=v end

@@ -64,3 +64,15 @@ restores prior exposure as well as lighting/material appearance. Studio runtime
 confirmed applied values, terrain completion and brightness/exposure restoration.
 275507 focused checks, 222-source compile, Rojo XML build and diff check pass.
 This is a lighting-only follow-up; no new driving or mobile comfort PASS claimed.
+
+Kerb/skid follow-up: Studio confirms Figure-8 Road.CanQuery=false. Shared exhaust
+previously queried that folder, preventing tire trails from enabling. Figure-8
+now intersects bounded visual road top planes (cached nearby slice search, including
+raised crossover ribbons); other tracks retain existing raycasts. No collision or
+query flags changed. Regression covers both marks, surface height, airborne and
+road-boundary rejection; remote VFX/culling suites and source/build checks pass.
+Desert-only visual kerbs raised 0.04/0.06 studs to separate coplanar red/white overlaps
+and edge lines. Asphalt RGB 56/59/65 -> 78/81/86 improves black-mark contrast.
+Studio actual kart renderer enabled both trails; environment teardown restored
+kerb frames and road color. Manual/mobile moving flicker and skid visibility remain
+user-device checks; no new full-lap PASS claimed.
