@@ -23,6 +23,10 @@ function Ops.valid(S,op)
  end
  if op.economy and (not op.race or op.economy.version~=1 or not S.integer(op.economy.humanPosition,frozen.humanCount)
   or op.economy.humanPosition==0 or op.economy.humanPosition>op.race.finishPosition) then return false end
+ if op.economy and op.economy.rematchMultiplier~=nil then
+  local m=op.economy.rematchMultiplier
+  if not S.integer(m,2147483647) or m<1 or (m>1 and (frozen.humanCount<2 or not op.race.eligible)) then return false end
+ end
  return member and ((op.bestLapMilliseconds==nil and v.fullLapValid==false)
   or (S.integer(op.bestLapMilliseconds,86400000) and op.bestLapMilliseconds>0 and v.fullLapValid==true))
 end
@@ -94,6 +98,11 @@ function Ops.reduce(S,schema,op)
     money.bestLap=if lapImproved then 500 else 0
    end
    money.total=math.min(5000,money.base+money.bestRace+money.bestLap)
+   if copy.economy.rematchMultiplier~=nil then
+    money.rematchMultiplier=copy.economy.rematchMultiplier
+    money.rematchBonus=money.base*(money.rematchMultiplier-1)
+    money.total+=money.rematchBonus
+   end
    -- This campaign is open to every account, independently of old finish history.
    -- Event latch and money are persisted in the same authoritative transaction.
    local onboarding=S.clone(previous.onboarding or {welcomeSeen=true,firstFinishClaimed=false})

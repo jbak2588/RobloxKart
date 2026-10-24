@@ -62,8 +62,8 @@ for _,v in art:GetDescendants()do
   end end
  end
 end
-check(parts==681 and meshes==596,'reduced vegetation budget: 681 static parts / 596 reused meshes')
-check(trees==258 and understory==30 and shrubs==6 and rocks==5 and hills==0 and beds==8,'258 trees and 30 Lobby understory groups; existing low beds/rocks preserved, no mountains')
+check(parts==651 and meshes==566,'reduced vegetation budget: 651 static parts / 566 reused meshes')
+check(trees==243 and understory==30 and shrubs==6 and rocks==5 and hills==0 and beds==8,'243 trees and 30 Lobby understory groups; existing low beds/rocks preserved, no mountains')
 check(interior.west>=15 and interior.northeast>=15 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
 -- Check source planting anchors: grounding changes mesh-center positions by species.
 local source=fs.readFile('src/server/HubParkLandscapingBuilder.luau')
@@ -83,7 +83,7 @@ for x,z,scale,yaw,key in treeBlock:gmatch("{([%d%.%-]+),([%d%.%-]+),([%d%.]+),([
  end
  table.insert(sites,{x=x,z=z,scale=scale,yaw=yaw,key=key})
 end
-check(#sites==258,'258 trees remain after removing 50 dark CityBroadleaf trees')
+check( #sites==243,'243 trees after the owner-approved third-row removal')
 local verge={left=0,right=0};local rows={}
 for i,p in sites do if p.z>=-15 then
  if p.x<0 then verge.left+=1 else verge.right+=1 end
@@ -98,8 +98,8 @@ for i,p in sites do if p.z>=-15 then
   end end end
  end end
 end end
-check(verge.left==24 and verge.right==21,'45 existing trees redistributed to both Lobby road verges')
-check(rows[-15]==15 and rows[65]==15 and rows[145]==15,'three staggered rows without tree-count reduction')
+check(verge.left==16 and verge.right==14,'two Lobby rows retain 30 staggered trees')
+check(rows[-15]==15 and rows[65]==15 and rows[145]==nil,'third row removed; two staggered rows unchanged')
 
 check(not treeBlock:find("'CityBroadleaf'",1,true),'no dark CityBroadleaf placements remain')
 local underBlock=assert(source:match('local understorySites={(.-)\n }'))

@@ -181,6 +181,13 @@ modules.PrototypeWorld={
  getKartContext=function(p) return contexts[p] end,
  releaseKartContext=function(p) released[p]=(released[p] or 0)+1 end,
 }
+-- Qualified collector observer stub: controller/session wiring is real; financial reducer is tested separately.
+child(server,"ModuleScript","RaceRecordService")
+modules.RaceRecordService={}
+for _,method in {"begin","boost","checkpoints","invalidate","lap","progress","start"}do modules.RaceRecordService[method]=function()end end
+local finishMultipliers={}
+modules.RaceRecordService.finish=function(p,result)finishMultipliers[p]=result.rewardMultiplier;return true end
+modules.PrototypeWorld.onDriftOutcome=function()end
 local race=load("src/server/RaceController.luau",server,"RaceController")
 race.start({trackId="Track01Race"})
 check(a:GetAttribute("RaceMapActive")==false and b:GetAttribute("RaceMapActive")==false
@@ -298,6 +305,10 @@ for _=1,2 do for _,gate in {checkpoints[1],checkpoints[2],finish} do cross(cb,ga
 check(b:GetAttribute("RaceFinishPosition")==2 and a:GetAttribute("RaceFinishPosition")==1,"second official finisher gets second place")
 tick(raceConfig.FINISH_SEQUENCE_SECONDS+0.1)
 check(session.phase=="COMPLETE" and a:GetAttribute("RaceState")=="FINISHED" and b:GetAttribute("RaceState")=="FINISHED","both results complete session")
+check(a:GetAttribute("RaceRewardMultiplier")==1 and b:GetAttribute("RaceRewardMultiplier")==2,"previous DNF resets only that player's continuation")
+check(a:GetAttribute("RaceNextRematchMultiplier")==2 and b:GetAttribute("RaceNextRematchMultiplier")==3,"real finish callback exposes each next Rematch reward")
+check(finishMultipliers[a]==1 and finishMultipliers[b]==2,"controller passes frozen per-player multiplier to record observer")
+
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(a,"Rematch")
 local finishedTime=a:GetAttribute("RaceFinalTime")
 services.ReplicatedStorage.RaceControl.OnServerEvent:Fire(b,"ReturnGarage")

@@ -688,11 +688,23 @@ function RaceHudController.start()
 	recordSaveLabel.TextXAlignment = Enum.TextXAlignment.Center
 	recordSaveLabel.Size = UDim2.new(1, -20, 0, 18)
 	recordSaveLabel.TextSize = 13
+ recordSaveLabel.TextScaled=true;recordSaveLabel.TextWrapped=true
+ local saveLimit=Instance.new("UITextSizeConstraint");saveLimit.MinTextSize=10;saveLimit.MaxTextSize=13;saveLimit.Parent=recordSaveLabel
 	recordSaveLabel.Visible = false
+
+ local nextRematchReward=createLabel(resultsPanel,"NextRematchReward",8)
+ nextRematchReward.Size=UDim2.new(1,-20,0,36);nextRematchReward.Visible=false
+ nextRematchReward.TextXAlignment=Enum.TextXAlignment.Center
+ nextRematchReward.Font=Enum.Font.GothamBlack;nextRematchReward.TextColor3=Color3.fromRGB(255,230,100)
+ nextRematchReward.BackgroundColor3=Color3.fromRGB(24,65,82);nextRematchReward.BackgroundTransparency=.12
+ nextRematchReward.TextScaled=true;nextRematchReward.TextWrapped=true
+ local rewardLimit=Instance.new("UITextSizeConstraint");rewardLimit.MinTextSize=10;rewardLimit.MaxTextSize=16;rewardLimit.Parent=nextRematchReward
+ local rewardCorner=Instance.new("UICorner");rewardCorner.CornerRadius=UDim.new(0,8);rewardCorner.Parent=nextRematchReward
+ local rewardStroke=Instance.new("UIStroke");rewardStroke.Color=Color3.fromRGB(255,230,100);rewardStroke.Thickness=1;rewardStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;rewardStroke.Parent=nextRematchReward
 
 	local rematchButton = Instance.new("TextButton")
 	rematchButton.Name = "Rematch"
-	rematchButton.LayoutOrder = 8
+	rematchButton.LayoutOrder = 9
 	rematchButton.Size = UDim2.fromOffset(180, 44)
 	rematchButton.BackgroundColor3 = Color3.fromRGB(45, 130, 235)
 	rematchButton.BorderSizePixel = 0
@@ -709,7 +721,7 @@ function RaceHudController.start()
 
 	local garageButton = Instance.new("TextButton")
 	garageButton.Name = "ReturnGarage"
-	garageButton.LayoutOrder = 9
+	garageButton.LayoutOrder = 10
 	garageButton.Size = UDim2.fromOffset(180, 44)
 	garageButton.BackgroundColor3 = Color3.fromRGB(75, 80, 90)
 	garageButton.BorderSizePixel = 0
@@ -761,7 +773,7 @@ function RaceHudController.start()
 	resultStatus.Visible=false
 	local resultActions=Instance.new("Frame")
 	resultActions.Name="ResultActions"
-	resultActions.LayoutOrder=8
+	resultActions.LayoutOrder=9
 	resultActions.BackgroundTransparency=1
 	resultActions.Visible=false
 	resultActions.Parent=resultsPanel
@@ -1098,8 +1110,12 @@ function RaceHudController.start()
 			local panelHeight=(if mobile then 272 else 304)+(if saving then 22 else 0)
 			if player:GetAttribute('RaceMoneyState') and player:GetAttribute('RaceMoneyState')~='NONE' then panelHeight+=18 end
 			if saving then panelHeight=math.min(panelHeight,safe.Y-16) end
-			local rowHeight=if mobile then 40 else 48
-			if saving then rowHeight=math.min(rowHeight,math.floor((panelHeight-134)/4)) end
+			local rewardHeight=if (player:GetAttribute('RaceNextRematchMultiplier')or 0)>1 then (if safe.Y<300 then 28 else 36)else 0
+   if rewardHeight>0 then panelHeight=math.min(panelHeight+rewardHeight+4,safe.Y-16)end
+   nextRematchReward.Size=UDim2.new(1,0,0,if rewardHeight>0 then rewardHeight else 36)
+   local rowHeight=if mobile then 40 else 48
+			local fixedHeight=112+(if recordSaveLabel.Visible then recordSaveLabel.Size.Y.Offset+4 else 0)+(if rewardHeight>0 then rewardHeight+4 else 0)
+   rowHeight=math.min(rowHeight,math.floor((panelHeight-fixedHeight)/4))
 			resultsPanel.Size=UDim2.fromOffset(width,panelHeight)
 			resultsPanel.AnchorPoint=Vector2.new(0,.5)
 			resultsPanel.Position=if mobile then UDim2.new(0,14,.5,0) else UDim2.new(.08,0,.5,0)
@@ -1113,6 +1129,10 @@ function RaceHudController.start()
 				row.frame.Size=UDim2.new(1,0,0,rowHeight-2)
 				for _,label in {row.place,row.name,row.total} do label.TextSize=if mobile then 12 else 15 end
 				row.laps.TextSize=if mobile then 10 else 12
+    local half=math.floor((rowHeight-2)/2)
+    for _,label in {row.place,row.name,row.total}do label.Size=UDim2.new(label.Size.X.Scale,label.Size.X.Offset,0,half);label.TextSize=math.min(label.TextSize,half)end
+    row.laps.Position=UDim2.fromOffset(28,half);row.laps.Size=UDim2.new(1,-32,0,rowHeight-2-half);row.laps.TextSize=math.min(row.laps.TextSize,rowHeight-2-half)
+
 			end
 			resultActions.Size=UDim2.new(1,0,0,44)
 			rematchButton.AnchorPoint=Vector2.zero;garageButton.AnchorPoint=Vector2.zero
@@ -1269,6 +1289,15 @@ function RaceHudController.start()
 		recordSaveLabel.Size=UDim2.new(1,-20,0,if (raceState=='FINISHED' and moneyState and moneyState~='NONE') or (raceState=='DNF' and moneyState=='SAVE_CONFIRMED') then 36 else 18)
 		recordSaveLabel.Visible = (raceState == "FINISHED" and (recordState == "SAVE_CONFIRMED" or recordState == "SAVE_PENDING"
 			or recordState == "SAVE_FAILED" or recordState == "READ_ONLY")) or (raceState == "DNF" and moneyState == "SAVE_CONFIRMED")
+  local nextMultiplier=getNumberAttribute(player,'RaceNextRematchMultiplier',0)
+  nextRematchReward.Visible=raceState=='FINISHED' and nextMultiplier>1
+  nextRematchReward.Text='NEXT REMATCH REWARD X'..nextMultiplier
+  if raceState=='FINISHED' and moneyState=='SAVE_CONFIRMED' and getNumberAttribute(player,'RaceMoney_rematchMultiplier',1)>1 then
+   recordSaveLabel.Text=string.format('REWARD +K$%d • RANK PRIZE X%d\nBASE %d + PB %d + EVENT %d',
+    getNumberAttribute(player,'RaceMoney_total',0),getNumberAttribute(player,'RaceMoney_rematchMultiplier',1),
+    getNumberAttribute(player,'RaceMoney_base',0),getNumberAttribute(player,'RaceMoney_bestRace',0)+getNumberAttribute(player,'RaceMoney_bestLap',0),getNumberAttribute(player,'RaceMoney_firstFinish',0))
+  end
+
 		resultsBestLabel.Visible = raceState == "FINISHED"
 		local canRematch = (raceState == "FINISHED" or raceState == "DNF"
 			and player:GetAttribute("RaceDNFReason") ~= "FORFEIT")
@@ -1556,6 +1585,10 @@ function RaceHudController.start()
 		"RaceMoney_bestRace",
 		"RaceMoney_bestLap",
 		"RaceMoney_total",
+  "RaceMoney_rematchMultiplier",
+  "RaceMoney_rematchBonus",
+  "RaceRewardMultiplier",
+  "RaceNextRematchMultiplier",
   "RaceMoney_firstFinish",
 		"RaceLap1Time",
 		"RaceLap2Time",

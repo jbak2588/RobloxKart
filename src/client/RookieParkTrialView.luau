@@ -45,7 +45,11 @@ function View.new(parent,player,onReplay,onReturn)
  end
  local replay=button('Replay','REPLAY',0,onReplay);button('ReturnLobby','RETURN LOBBY',.5,onReturn)
  local api={}
- local nextReward=text(panel,'NextReward',12);nextReward.Position=UDim2.fromOffset(12,183);nextReward.Size=UDim2.new(1,-24,0,20);nextReward.TextColor3=Color3.fromRGB(255,230,100)
+ local nextReward=text(panel,'NextReward',18);nextReward.Position=UDim2.fromOffset(12,183);nextReward.Size=UDim2.new(1,-24,0,34);nextReward.TextColor3=Color3.fromRGB(255,230,100)
+ nextReward.Font=Enum.Font.GothamBlack;nextReward.BackgroundColor3=Color3.fromRGB(24,65,82);nextReward.BackgroundTransparency=.12
+ nextReward.TextScaled=true;local nextLimit=Instance.new('UITextSizeConstraint');nextLimit.MinTextSize=11;nextLimit.MaxTextSize=18;nextLimit.Parent=nextReward
+ local nextCorner=Instance.new('UICorner');nextCorner.CornerRadius=UDim.new(0,8);nextCorner.Parent=nextReward
+ local nextStroke=Instance.new('UIStroke');nextStroke.Color=Color3.fromRGB(255,230,100);nextStroke.Thickness=1;nextStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;nextStroke.Parent=nextReward
  function api:update(active,camera)
   local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil;topGui.Enabled=gui.Enabled
   if not gui.Enabled then return end
@@ -55,6 +59,11 @@ function View.new(parent,player,onReplay,onReturn)
   panel.AnchorPoint=if wide then Vector2.new(0,.5)else Vector2.new(.5,.5)
   panel.Position=if wide then UDim2.new(0,12,.5,0)else UDim2.fromScale(.5,.5)
   panel.Size=UDim2.fromOffset(if wide then math.min(390,size.X*.5-24)else math.min(390,size.X-24),math.min(280,size.Y-16))
+  local vertical=(math.min(280,size.Y-16)-58)/222
+  for _,spec in {{title,12,28},{lap,43,48},{best,94,22},{reward,120,34},{saved,155,28},{nextReward,183,34}}do
+   spec[1].Position=UDim2.fromOffset(12,spec[2]*vertical)
+   spec[1].Size=UDim2.new(1,-24,0,spec[3]*vertical)
+  end
   local top=MobileView.speedTopbarPosition(topGui.AbsoluteSize,GuiService.TopbarInset,280,56)
   timing.Position=UDim2.fromOffset(top.X,top.Y)
   panel.Visible=phase=='FINISHED'or phase=='INVALID';timing.Visible=phase=='RUNNING'

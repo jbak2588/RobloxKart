@@ -40,6 +40,8 @@ for _,size in {V2.new(750,332),V2.new(844,390),V2.new(932,430),V2.new(390,703)}d
  player:SetAttribute('ParkTrialRewardState','CONFIRMED');view:update(true,camera)
  check(panel.Reward.Text:find('+ K$5,000',1,true)~=nil and panel.SaveState.Text:find('SAVED',1,true)~=nil,'confirmed K$5000 reward highlighted')
  check(panel.NextReward.Text:find('X2',1,true)~=nil,'first result previews X2 Replay reward')
+ check(panel.NextReward.Font==rb.Enum.Font.GothamBlack and panel.NextReward.BackgroundTransparency<.2,'next Replay reward has a strong gold-accent card')
+ check(panel.NextReward.AbsolutePosition.Y+panel.NextReward.AbsoluteSize.Y<=panel.Replay.AbsolutePosition.Y,'emphasized next reward clears actions at every viewport')
  check(panel.PersonalBest.Text:find('01:00.000',1,true)~=nil,'persistent personal best visible')
  player:SetAttribute('KDMRookieParkTwoLapBestMilliseconds',nil);player:SetAttribute('ParkTrialRewardState','UNCONFIRMED');view:update(true,camera)
  check(panel.Replay.Active and panel.Replay.Text=='REPLAY'and panel.PersonalBest.Text:find('NOT SAVED',1,true)~=nil,'failed save neither blocks Replay nor shows perpetual SAVING')

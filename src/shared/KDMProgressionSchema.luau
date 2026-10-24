@@ -337,10 +337,18 @@ function Schema.new(catalog, options)
    end
    if receipt.money~=nil then
     local m=receipt.money
+    if type(m)~='table' then return false,'CORRUPT_MONEY_RECEIPT' end
+    local rematchBonus=0
+    if m.rematchMultiplier~=nil or m.rematchBonus~=nil then
+     if not Schema.integer(m.rematchMultiplier,api.maxCash) or m.rematchMultiplier<1
+      or not Schema.integer(m.rematchBonus,api.maxCash) or not Schema.integer(m.base,3500)
+      or m.rematchBonus~=m.base*(m.rematchMultiplier-1) then return false,'CORRUPT_MONEY_RECEIPT' end
+     rematchBonus=m.rematchBonus
+    end
     if type(m)~='table' or not Schema.integer(m.base,3500) or not Schema.integer(m.bestRace,1000)
-     or not Schema.integer(m.bestLap,500) or not Schema.integer(m.total,10000)
+     or not Schema.integer(m.bestLap,500) or not Schema.integer(m.total,api.maxCash)
      or (m.firstFinish~=nil and m.firstFinish~=0 and m.firstFinish~=5000)
-     or m.total~=math.min(5000,m.base+m.bestRace+m.bestLap)+(m.firstFinish or 0) then return false,'CORRUPT_MONEY_RECEIPT' end
+     or m.total~=math.min(5000,m.base+m.bestRace+m.bestLap)+(m.firstFinish or 0)+rematchBonus then return false,'CORRUPT_MONEY_RECEIPT' end
    end
   end
   -- Numeric records remain compatible with A1/A2; A3 evidence is optional and separate.

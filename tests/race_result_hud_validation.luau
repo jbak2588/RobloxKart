@@ -563,6 +563,13 @@ check(board.Racer1.TotalTime.Text=="2:02.00" and board.Racer2.TotalTime.Text=="2
  "totals use replicated values rather than sorting by time")
 check(board.Racer1.Laps.Text=="L1 42.00 · L2 43.00 · L3 44.00","each racer three lap values")
 check(board.Racer4.Visible and contentFits(),"four rows fit 749x303 result")
+set('RaceRecordSaveState','SAVE_CONFIRMED');set('RaceMoneyState','SAVE_CONFIRMED');set('RaceMoney_total',7000);set('RaceMoney_base',3500);set('RaceMoney_rematchMultiplier',2)
+set('RaceNextRematchMultiplier',3)
+check(results.NextRematchReward.Visible and results.NextRematchReward.Text:find('X3',1,true) and not results.NextRematchReward.Text:find('K$',1,true) and not results.NextRematchReward.Text:find('10,500',1,true),'next Rematch card previews X3 only, never predicted cash')
+check(results.RecordSave.Text:find('X2',1,true) and results.RecordSave.Text:find('7000',1,true),'confirmed current multiplied reward visible')
+check(contentFits(),'four standings rows and highlighted reward remain in bounds')
+set('RaceMoneyState','NONE');set('RaceNextRematchMultiplier',nil);set('RaceRecordSaveState','NONE')
+
 check(results.ResultActions.Rematch.AbsoluteSize.Y>=44 and results.ResultActions.ReturnGarage.AbsoluteSize.Y>=44,
  "multiplayer buttons retain 44px targets")
 check(board.Racer2.BackgroundColor3~=board.Racer1.BackgroundColor3,"local row highlighted")

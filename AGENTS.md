@@ -346,6 +346,27 @@ Mini Boost. Launch automatically accelerates, Brake cancels, and existing
 seating/network ownership and boost safety limits apply. Launch must not consume
 Nitro or emit a successful Drift outcome/count toward repeatable Nitro rewards.
 
+## Multiplayer Rematch rewards / Lobby planting update — 2026-10-24
+
+Owner-approved: remove only the third Lobby verge row (15 trees at Park-local
+z=145). Current Park total is 243 trees, with the first two staggered rows and
+15+15 Lobby low plants retained. This narrowly supersedes the historical
+258-tree preservation direction; no other grove reduction is approved.
+
+For official races starting with at least two humans, each qualified finisher's
+explicit consecutive Rematch advances their own rank-prize multiplier X1 -> X2
+-> X3 -> X4, in the same server/session and track. New entrants, DNF/invalid
+completion, departure/Lobby/rejoin, different track or a solo GO start at X1.
+Freeze continuation at authoritative GO and its reward proof at completion;
+late save responses cannot change a newer result. Multiply only existing human
+rank base (3500/2500/2000/1500). PB and first-finish event bonuses remain separate
+and unmultiplied; DNF consolation is unchanged. Save the multiplier and bonus
+inside the existing idempotent official receipt with atomic wallet update and
+readback confirmation. Never advertise payment as earned before confirmation.
+Next Rematch previews show ONLY the multiplier, never an estimated cash amount;
+the next finish rank is unknown. Actual confirmed payout is shown after each
+race. Park's existing Replay amount preview and reward economy are unchanged.
+
 ## Tree planting principles — owner direction 2026-10-24
 
 - Plant dense groves in a staggered / zigzag arrangement, with space for another tree between neighboring planting positions. Avoid continuous aligned rows and unnecessarily overlapping canopies.

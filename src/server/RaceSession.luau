@@ -29,6 +29,7 @@ function RaceSession.new(trackId, mode, targetLaps)
 		raceEndDeadline = 0,
 		finishOrder = {},
 		rematchVotes = {},
+		rewardRuns = {},
 		terminal = {},
 	}, RaceSession)
 	activeSession = self
@@ -54,12 +55,42 @@ function RaceSession:addBot(state, racer)
 	assert(state:GetAttribute("IsBot")==true,"Bot state required")
 	self.participants[state]=racer;sessionsByBot[state]=self
 end
+-- Session-owned per-human continuation; votes cannot directly grant money.
+function RaceSession:requestRewardRematch(player)
+ local run=self.rewardRuns[player]
+ if run then run.requested=true end
+end
+function RaceSession:beginRewardRound()
+ local multiplayer=self.mode=="RACE" and self:humanCount()>=2
+ for player in self.participants do
+  if player:GetAttribute("IsBot")==true then continue end
+  local old=self.rewardRuns[player]
+  local multiplier=if multiplayer and old and old.trackId==self.trackId and old.completed and old.requested then old.multiplier+1 else 1
+  self.rewardRuns[player]={multiplier=multiplier,completed=false,requested=false,multiplayer=multiplayer,roundId=self.roundId,trackId=self.trackId}
+  player:SetAttribute("RaceRewardMultiplier",multiplier)
+  player:SetAttribute("RaceNextRematchMultiplier",nil)
+ end
+end
+function RaceSession:rewardMultiplier(player)
+ local run=self.rewardRuns[player]
+ return if run and run.roundId==self.roundId then run.multiplier else 1
+end
+function RaceSession:completeRewardRound(player,eligible)
+ local run=self.rewardRuns[player]
+ if not run or run.roundId~=self.roundId then return end
+ run.completed=run.multiplayer and eligible==true
+ player:SetAttribute("RaceNextRematchMultiplier",if run.completed then run.multiplier+1 else nil)
+end
+
 function RaceSession:humanCount()
 	local count=0;for participant in self.participants do
 		if participant:GetAttribute("IsBot")~=true then count+=1 end
 	end;return count
 end
 function RaceSession:remove(player)
+	self.rewardRuns[player] = nil
+	player:SetAttribute("RaceRewardMultiplier", nil)
+	player:SetAttribute("RaceNextRematchMultiplier", nil)
 	self.participants[player] = nil
 	if sessionsByBot[player]==self then sessionsByBot[player]=nil end
 	self.rematchVotes[player] = nil

@@ -126,7 +126,7 @@ function Service.begin(session,course,checkpointCount,identity)
   p:SetAttribute("RaceRecordNewPB",false);p:SetAttribute("RaceRecordSaveState","NONE")
   p:SetAttribute("RaceRecordNewBestRace",false)
   p:SetAttribute('RaceMoneyState','NONE')
-  for _,field in {'base','bestRace','bestLap','firstFinish','total'} do p:SetAttribute('RaceMoney_'..field,0) end
+  for _,field in {'base','bestRace','bestLap','firstFinish','total','rematchMultiplier','rematchBonus'} do p:SetAttribute('RaceMoney_'..field,0) end
   p:SetAttribute('RaceRecordDiagnostic',nil);p:SetAttribute('RaceRecordDiagnosticRound',nil)
   p:SetAttribute('RaceRecordReceiptConfirmed',false)
  end
@@ -142,7 +142,7 @@ function Service.boost(player,eventId) collector.boost(player,eventId) end
 function Service.finish(player,result)
  local op=collector.finish(player,result)
  if op and Economy.allowed(player,'reward') and result and result.humanPosition then
-  op=S.clone(op);op.economy={version=1,humanPosition=result.humanPosition};op=S.freeze(op)
+  op=S.clone(op);op.economy={version=1,humanPosition=result.humanPosition,rematchMultiplier=if op.race and op.race.eligible and op.round.humanCount>=2 then (result.rewardMultiplier or 1) else 1};op=S.freeze(op)
  end
  if op then op=S.clone(op);op.transaction={version=1,issuedAt=op.achievedAt};op=S.freeze(op) end
  local guid=player:GetAttribute('OfficialRoundGuid')
@@ -159,6 +159,7 @@ function Service.finish(player,result)
    player:SetAttribute("RaceRecordSaveState","SAVE_FAILED")
   end
  end
+ return op~=nil and op.race~=nil and op.race.eligible==true
 end
 function Service.startQuery()
  local storage=game:GetService("ReplicatedStorage")

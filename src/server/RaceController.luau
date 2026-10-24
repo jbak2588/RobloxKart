@@ -196,11 +196,11 @@ function RaceController.start(options)
 	if not recordLoaded then records = nil end
 	local function record(method, ...)
 		if records then
-			local ok = pcall(records[method], ...)
+			local ok, result = pcall(records[method], ...)
 			if not ok then
 				warn("[KDMRecords] observer unavailable method=" .. method)
 				records = nil -- Disable a broken observer once; never spam every Heartbeat.
-			end
+			else return result end
 		end
 	end
 	if records then
@@ -575,7 +575,11 @@ function RaceController.start(options)
 			setRaceState(player, "FINISHED")
 			session.terminal[player] = "FINISHED"
 			local officialResult = session:finalizedFinish(player, now)
-			if officialResult then record("finish", player, officialResult) end
+			if officialResult then
+    officialResult.rewardMultiplier=session:rewardMultiplier(player)
+    local eligible=record("finish", player, officialResult)
+    session:completeRewardRound(player,eligible==true)
+   end
 			publishSession(now)
 		end
 
@@ -953,6 +957,7 @@ function RaceController.start(options)
 		session.phase = "RACING"
 		session.startTime = session.countdownEndTime
 		-- Freeze the actual GO roster; a departure during COUNTDOWN is not a starter.
+		session:beginRewardRound()
 		record("begin", session, routeCourse, checkpointCount, identity)
 		for _, player in session:orderedParticipants() do
 			racers[player]:startRace(session.startTime)
@@ -1213,6 +1218,7 @@ function RaceController.start(options)
 		elseif action == "Rematch" and session.phase == "COMPLETE"
 			and (player:GetAttribute("RaceState") == "FINISHED" or player:GetAttribute("RaceState") == "DNF"
 				and player:GetAttribute("RaceDNFReason") ~= "FORFEIT") then
+			session:requestRewardRematch(player)
 			session.rematchVotes[player] = true
 			publishSession(time())
 			if allRematchVotes() then
