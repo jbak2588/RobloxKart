@@ -62,8 +62,8 @@ for _,v in art:GetDescendants()do
   end end
  end
 end
-check(parts==781 and meshes==696,'reduced vegetation budget: 781 static parts / 696 reused meshes')
-check(trees==308 and understory==30 and shrubs==6 and rocks==5 and hills==0 and beds==8,'308 trees and 30 Lobby understory groups; existing low beds/rocks preserved, no mountains')
+check(parts==681 and meshes==596,'reduced vegetation budget: 681 static parts / 596 reused meshes')
+check(trees==258 and understory==30 and shrubs==6 and rocks==5 and hills==0 and beds==8,'258 trees and 30 Lobby understory groups; existing low beds/rocks preserved, no mountains')
 check(interior.west>=15 and interior.northeast>=20 and interior.lower>=10,'forest occupies broad land interiors, not only roadside rows')
 -- Check source planting anchors: grounding changes mesh-center positions by species.
 local source=fs.readFile('src/server/HubParkLandscapingBuilder.luau')
@@ -76,7 +76,8 @@ for x,z in treeBlock:gmatch('{([%d%.%-]+),([%d%.%-]+),')do
  for _,p in sites do check((x-p.x)^2+(z-p.z)^2>=31^2,'staggered trees separated by at least 31 studs')end
  table.insert(sites,{x=x,z=z})
 end
-check(#sites==308,'exactly 30 percent of the 440 original trees removed')
+check(#sites==258,'258 trees remain after removing 50 dark CityBroadleaf trees')
+check(not treeBlock:find("'CityBroadleaf'",1,true),'no dark CityBroadleaf placements remain')
 local underBlock=assert(source:match('local understorySites={(.-)\n }'))
 local left,right=0,0
 for x,z in underBlock:gmatch('{([%d%.%-]+),([%d%.%-]+),')do
