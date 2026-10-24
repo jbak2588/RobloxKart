@@ -434,11 +434,11 @@ frames, velocity and server network ownership untouched. Restore original joint
 transforms on seat/character loss, death, departure or leaving driving state.
 Do not fabricate replacement legs or upload a separate driver animation.
 Owner refinement: straight forward legs (hip 90 degrees, knee/ankle zero),
-so soles face the front camera. Mini Boost repeats its approved start cue every
-.30 seconds while climbing to 100 studs/s (99.5 tolerance), then latches repeats
-off until the next activation. Nitro onset and sustained flame-loop remain intact.
-Latest owner-selected Mini Boost start asset is 5199136449, replacing
-15548492905; retain the existing volume and acceleration-repeat policy.
+so soles face the front camera. Latest owner-selected Mini Boost start asset is
+5199136449, replacing 15548492905. Play the full clip once without timed repeats,
+speed-based restarts or truncation at boost expiry/Nitro onset. Connected boosts
+let an already-playing clip finish. Lifecycle disable/destroy still stops audio.
+Retain volume, Nitro onset and the existing sustained flame-loop.
 
 ## Driving Invariants
 

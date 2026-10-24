@@ -172,7 +172,7 @@ function AudioRuntime.createEngineLooper(primary: Sound?, secondary: Sound?)
 	return looper
 end
 
--- Distinct launch cues: template NitroStart for Mini Boost, original KDM for
+-- Distinct launch cues: owner-selected full clip for Mini Boost, original KDM for
 -- Nitro. The Mini loop follows the existing exhaust envelope, including its tail.
 function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 	local group = AudioRuntime.getGroup("RobloxKartSFX")
@@ -184,12 +184,10 @@ function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 	AudioRuntime.preload(sounds, true)
 	local previousMini, previousNitro, initialized, destroyed = false, false, false, false
 	local envelope = FlameEnvelope.new()
-	local repeatElapsed, reachedMax = 0, false
 	local voice = {}
 	function voice:step(dt: number, mini: boolean, nitro: boolean, endReason: string?, enabled: boolean)
 		if destroyed then return end
 		if not enabled then
-			repeatElapsed, reachedMax = 0, false
 			for _, sound in sounds do AudioRuntime.stop(sound) end
 			if miniLoop then miniLoop.Volume = 0 end
 			FlameEnvelope.step(envelope, 0, 0, false, false, false, true)
@@ -200,13 +198,11 @@ function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 			-- Independent assets preserve Nitro onset during an active Mini Boost.
 			-- If both start in the same observation, prioritize the Nitro launch.
 			if nitro and not previousNitro then
-				AudioRuntime.stop(miniStart)
 				if nitroStart and nitroStart.IsLoaded then AudioRuntime.playOnce(nitroStart) end
 			elseif mini and not previousMini then
-				repeatElapsed, reachedMax = 0, false
-				if miniStart and miniStart.IsLoaded then AudioRuntime.playOnce(miniStart) end
+				-- Let the full clip finish; connected boosts do not truncate/restart it.
+				if miniStart and miniStart.IsLoaded and not miniStart.IsPlaying then AudioRuntime.playOnce(miniStart) end
 			end
-			if not mini then AudioRuntime.stop(miniStart) end
 			if not nitro and endReason ~= "duration_complete" then AudioRuntime.stop(nitroStart) end
 		end
 		local kart = parent.Parent
@@ -215,16 +211,6 @@ function AudioRuntime.createBoostAudio(parent: Instance, prefix: string)
 		end
 		local velocity = parent.AssemblyLinearVelocity
 		local speed = if velocity then math.sqrt(velocity.X ^ 2 + velocity.Z ^ 2) else 0
-		-- Repeat the approved launch attack only during the climb to maximum output.
-		-- Reaching the cap latches this off for the remainder of this Mini Boost.
-		if mini and speed >= config.START_REPEAT_MAX_SPEED then reachedMax = true end
-		if mini and previousMini and not nitro and not reachedMax then
-			repeatElapsed += math.max(0, dt)
-			if repeatElapsed >= config.START_REPEAT_SECONDS then
-				repeatElapsed %= config.START_REPEAT_SECONDS
-				if miniStart and miniStart.IsLoaded then AudioRuntime.playOnce(miniStart) end
-			end
-		elseif not mini or nitro then repeatElapsed = 0 end
 		local unsafe = (attribute("KartOffTrack") == true and not mini and not nitro)
 			or attribute("KartDrifting") == true or attribute("LobbyDrifting") == true
 			or attribute("KartCrashActive") == true or attribute("KartSlickActive") == true

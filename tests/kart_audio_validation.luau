@@ -47,6 +47,7 @@ local runtime=luau.load(fs.readFile("src/client/AudioRuntime.luau"),{environment
  require=function(name)return if name=="BoostFlameEnvelope" then luau.load(fs.readFile("src/client/BoostFlameEnvelope.luau"))() else config end,
 }})()
 runtime.getGroup=function()return{}end;runtime.preload=function()end;runtime.createEngineLooper=nil
+local miniVoice
 function runtime.createSound(name,asset)
  if name~="DriftLoop" and not name:match("^Race") then return nil end
  local sound={Name=name,Volume=0,PlaybackSpeed=1,IsPlaying=false,IsLoaded=true}
@@ -54,6 +55,7 @@ function runtime.createSound(name,asset)
  function sound:Play()self.IsPlaying=true end
  function sound:Destroy()self.Parent=nil;if self.Name=="RaceNitroStart" then destroyed+=1 end end
  if name=="DriftLoop" then skid=sound end
+ if name=="RaceMiniBoostStart" then miniVoice=sound end
  return sound
 end
 function runtime.playOnce(sound)if sound then played+=1;sound:Play()end end
@@ -71,6 +73,8 @@ kart:SetAttribute("KartNitroActive",true);assert(played==1,"unchanged active sta
 clock=.05;kart:SetAttribute("KartBoosting",true);assert(played==2,"Mini Boost plays its distinct template onset during Nitro")
 clock=1;kart:SetAttribute("KartNitroActive",false);kart:SetAttribute("KartBoosting",false)
 assert(played==2,"ending boost/Nitro has no launch cue")
+assert(miniVoice.IsPlaying,"Mini clip continues after boost ends")
+miniVoice.IsPlaying=false -- Natural full-clip completion before the next launch.
 clock=2;kart:SetAttribute("KartBoosting",true);assert(played==3,"Mini Boost has its own replacement launch cue")
 clock=2.04;kart:SetAttribute("KartNitroActive",true);assert(played==4,"Nitro start remains distinct during Mini Boost")
 clock=3;kart:SetAttribute("KartNitroActive",false)
