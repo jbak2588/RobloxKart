@@ -1,3 +1,4 @@
+local ResultView=require(script.Parent:WaitForChild('ResultPresentationView'))
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -592,45 +593,7 @@ function RaceHudController.start()
 	local finalLapScale = Instance.new("UIScale")
 	finalLapScale.Scale = 1
 	finalLapScale.Parent = finalLapLabel
-	local finishBanner = Instance.new("TextLabel")
-	finishBanner.Name = "FinishBanner"
-	finishBanner.AnchorPoint = Vector2.new(0.5, 0.5)
-	finishBanner.Position = UDim2.fromScale(0.5, 0.42)
-	finishBanner.Size = UDim2.fromOffset(400, 82)
-	finishBanner.BackgroundTransparency = 1
-	finishBanner.Font = Enum.Font.GothamBlack
-	finishBanner.Text = ""
-	finishBanner.TextColor3 = Color3.fromRGB(255, 225, 70)
-	finishBanner.TextStrokeTransparency = 0.3
-	finishBanner.TextScaled = true
-	finishBanner.Visible = false
-	finishBanner.Parent = screenGui
-	-- Native checkers keep the reference's edge fade without another image download.
-	for row=0,2 do for column=0,15 do
-		local tile=Instance.new('Frame');tile.Name='FinishChecker';tile.BorderSizePixel=0
-		tile.Position=UDim2.fromScale(column/16,row/3);tile.Size=UDim2.fromScale(1/16,1/3)
-		tile.BackgroundColor3=if (row+column)%2==0 then Color3.new(1,1,1) else Color3.new(0,0,0)
-		tile.BackgroundTransparency=if column==0 or column==15 then .8 elseif column==1 or column==14 then .5 else .12
-		tile.ZIndex=2;tile.Parent=finishBanner
-	end end
-	local finishText=Instance.new('TextLabel');finishText.Name='FinishText';finishText.BackgroundTransparency=1
-	finishText.Size=UDim2.fromScale(1,1);finishText.Text='FINISH!';finishText.AutoLocalize=false
-	finishText.Font=Enum.Font.GothamBlack;finishText.TextColor3=Color3.new(1,1,1)
-	finishText.TextScaled=true;finishText.TextStrokeColor3=Color3.new(0,0,0);finishText.TextStrokeTransparency=0
-	finishText.ZIndex=3;finishText.Parent=finishBanner
-	local finishBannerScale = Instance.new("UIScale")
-	finishBannerScale.Parent = finishBanner
-	local finishPlace = Instance.new("TextLabel")
-	finishPlace.Name = "FinishPlace"
-	finishPlace.Position = UDim2.new(0, 0, 1, 4)
-	finishPlace.Size = UDim2.new(1, 0, 0, 24)
-	finishPlace.BackgroundTransparency = 1
-	finishPlace.Font = Enum.Font.GothamBold
-	finishPlace.Text = ""
-	finishPlace.TextSize = 20
-	finishPlace.TextColor3 = Color3.fromRGB(255, 218, 75)
-	finishPlace.TextStrokeTransparency = .4
-	finishPlace.Parent = finishBanner
+	local finishBanner,finishBannerScale,finishPlace=ResultView.banner(screenGui)
 	local finishMissLabel = Instance.new("TextLabel")
 	finishMissLabel.Name = "FinishMissWarning"
 	finishMissLabel.AnchorPoint = Vector2.new(0.5, 0)
@@ -663,7 +626,7 @@ function RaceHudController.start()
 	resultsPanel.BorderSizePixel = 0
 	resultsPanel.Visible = false
 	resultsPanel.Parent = screenGui
-	addCorner(resultsPanel, 10)
+	ResultView.panel(resultsPanel)
 	local resultsScale = Instance.new("UIScale")
 	resultsScale.Name = "FinishRevealScale"
 	resultsScale.Scale = 1
@@ -739,7 +702,7 @@ function RaceHudController.start()
 	rematchButton.TextSize = 20
 	rematchButton.TextWrapped = true
 	rematchButton.Parent = resultsPanel
-	addCorner(rematchButton, 6)
+	ResultView.button(rematchButton)
 	rematchButton.Activated:Connect(function()
 		if rematchButton.Active then remoteEvent:FireServer("Rematch") end
 	end)
@@ -755,7 +718,7 @@ function RaceHudController.start()
 	garageButton.TextColor3 = Color3.new(1, 1, 1)
 	garageButton.TextSize = 20
 	garageButton.Parent = resultsPanel
-	addCorner(garageButton, 6)
+	ResultView.button(garageButton)
 	garageButton.Activated:Connect(function()
 		remoteEvent:FireServer("ReturnGarage")
 	end)
@@ -1163,6 +1126,12 @@ function RaceHudController.start()
 				roomQueueLabel.TextSize=11
 			end
 		end
+  local resultArea=screenGui.AbsoluteSize
+  if resultArea.X>=720 and resultArea.X>resultArea.Y then
+   resultsPanel.AnchorPoint=Vector2.new(0,.5)
+   resultsPanel.Position=UDim2.new(0,12,.5,0)
+  end
+
 	end
 
 	local goDisplaySerial = 0
@@ -1269,9 +1238,9 @@ function RaceHudController.start()
 		local routeError = player:GetAttribute("RaceEntryError")
 		garageButton.Text = if Workspace:GetAttribute("KDMServerRole") == "RACE"
 			and type(routeError) == "string" and routeError ~= "" then "KDM LOBBY UNAVAILABLE\nRETRY" else (if raceState=='FINISHED' and getNumberAttribute(player,'RaceMoney_firstFinish',0)>0 then "PLAY TOGETHER\nVIA LOBBY" else "LOBBY")
-  garageButton.BackgroundColor3=if raceState=='FINISHED' and getNumberAttribute(player,'RaceMoney_firstFinish',0)>0 then Color3.fromRGB(32,155,75) else Color3.fromRGB(75,80,90)
+  ResultView.button(garageButton)
 		finishLabel.Text = if raceState == "DNF" then "DNF" elseif participantCount >= 2 then string.format("PLACE %d/%d", getNumberAttribute(player, "RaceFinishPosition", position), participantCount) else "FINISHED"
-		finishLabel.TextColor3 = if raceState == "DNF" then Color3.fromRGB(255, 175, 80) else Color3.fromRGB(255, 225, 70)
+		finishLabel.TextColor3 = Color3.new(1,1,1)
 		totalLabel.Text = if raceState == "DNF" then (if player:GetAttribute("RaceDNFReason") == "RACE_TIMEOUT"
 			then "RACE TIMEOUT" elseif player:GetAttribute("RaceDNFReason") == "FORFEIT"
 			then "FORFEIT" else "OFF TRACK") elseif finalTime > 0 then "TOTAL TIME  " .. RaceResultFormat.time(finalTime) else "TOTAL TIME  --"
@@ -1305,7 +1274,7 @@ function RaceHudController.start()
 			and player:GetAttribute("RaceDNFReason") ~= "FORFEIT")
 			and (participantCount < 2 or sessionComplete) and not rematchReady
 		rematchButton.Active = canRematch
-		rematchButton.BackgroundColor3 = if canRematch then Color3.fromRGB(45, 130, 235) else Color3.fromRGB(65, 75, 87)
+		ResultView.button(rematchButton)
 		rematchButton.Text = if raceEndActive and not sessionComplete and participantCount >= 2 then
 			string.format("WAITING FOR RACERS\n0:%02d", raceEndRemaining)
 			elseif rematchReady then string.format("READY %d/%d",
@@ -1333,7 +1302,7 @@ function RaceHudController.start()
 				local entry=resultEntries[index]
 				row.frame.Visible=entry~=nil
 				if entry then
-					row.frame.BackgroundColor3=if entry.userId==player.UserId then Color3.fromRGB(20,75,88) else Color3.fromRGB(24,31,42)
+					row.frame.BackgroundColor3=if entry.userId==player.UserId then Color3.fromRGB(95,165,185) else Color3.fromRGB(70,110,135)
 					row.place.Text=if entry.state=="DNF" then "-" else tostring(if entry.finishPosition>0 then entry.finishPosition else entry.racePosition)
 					row.place.TextColor3=if entry.finishPosition==1 and entry.state~="DNF" then Color3.fromRGB(255,218,75) else Color3.fromRGB(225,238,245)
 					row.name.Text=entry.displayName

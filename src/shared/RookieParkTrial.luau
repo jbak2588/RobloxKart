@@ -1,8 +1,8 @@
--- Server-observed one-lap progress; clients only display the replicated outcome.
+-- Server-observed two-lap progress; clients only display the replicated outcome.
 local Layout=require(script.Parent.HubParkRookieLoopLayout)
 local Progress=require(script.Parent.RaceRouteProgress)
 local RaceConfig=require(script.Parent.RaceConfig)
-local Trial={Reward=5000,Countdown=3,Version='ROOKIE_PARK_SOLO_V1'}
+local Trial={Reward=5000,Laps=2,Countdown=3,Version='ROOKIE_PARK_SOLO_V2'}
 local points=Layout.sample(Layout.Segments)
 local length=0
 for i,p in points do
@@ -64,7 +64,7 @@ for _,g in Trial.Gates do
 end
 local course={Samples=samples,CenterlineLength=length,CheckpointSamples=checkpoints}
 function Trial.new(now,x,z)
- return {phase='COUNTDOWN',goAt=now+Trial.Countdown,next=1,previous={x=x,z=z,time=now},invalid=false,missed=false,
+ return {lap=1,completedLaps=0,lapTimes={},phase='COUNTDOWN',goAt=now+Trial.Countdown,next=1,previous={x=x,z=z,time=now},invalid=false,missed=false,
   route=Progress.new(course,Layout.RoadWidth)}
 end
 function Trial.step(s,now,x,y,z)
@@ -114,7 +114,14 @@ function Trial.step(s,now,x,y,z)
  if t and not s.finishPassed then s.finishPassed=true;return end
  if t and now-s.startedAt>3 then
   if s.next==7 then
-   s.phase='FINISHED';s.milliseconds=math.max(1,math.floor((a.time+dt*t-s.startedAt)*1000+.5))
+   local milliseconds=math.max(1,math.floor((a.time+dt*t-s.startedAt)*1000+.5))
+   s.lapTimes[s.lap]=milliseconds-(s.lastLapAt or 0);s.lastLapAt=milliseconds;s.completedLaps=s.lap
+   if s.lap<Trial.Laps then
+    s.lap+=1;s.next=1;s.missed=false;s.route=Progress.new(course,Layout.RoadWidth)
+    Progress.step(s.route,position,1,true)
+    return 'LAP'
+   end
+   s.phase='FINISHED';s.milliseconds=milliseconds
    return 'FINISHED'
   end
   s.missed=true

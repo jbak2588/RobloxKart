@@ -74,7 +74,8 @@ end
 local function findGripContext(player: Player, humanoid: Humanoid): (BasePart?, BasePart?)
 	local state = player:GetAttribute("RaceState")
 	local racing = CONFIG.ActiveRaceStates[state] == true
-	local driving = state == "GARAGE" and player:GetAttribute("LobbyDriveActive") == true
+	local phase=player:GetAttribute("ParkTrialPhase")
+	local driving = state == "GARAGE" and player:GetAttribute("LobbyDriveActive") == true and phase~="FINISHING" and phase~="FINISHED"
 	local seat = humanoid.SeatPart
 	if not seat or not (racing and seat:GetAttribute("PrototypeKartSeat") == true
 		or driving and seat:GetAttribute("LobbyKartSeat") == true) then
@@ -251,6 +252,7 @@ function KDMDriverGripController.start()
 			player:GetAttributeChangedSignal("RaceState"):Connect(function()
 				evaluate(player)
 			end),
+			player:GetAttributeChangedSignal("ParkTrialPhase"):Connect(function() evaluate(player) end),
 			player:GetAttributeChangedSignal("LobbyDriveActive"):Connect(function()
 				evaluate(player)
 			end),

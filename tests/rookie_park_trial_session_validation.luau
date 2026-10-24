@@ -14,7 +14,7 @@ local Config={MINI_BOOST_DURATION=2}
 local world={GetServerTimeNow=function()return now end}
 local env={game={GetService=function(_,name)if name=='ReplicatedStorage'then return {Shared={RookieParkTrial='T',KartConfig='C',RaceConfig='R'}}end;if name=='HttpService'then return {GenerateGUID=function()return '12345678-1234-1234-1234-000000000001'end}end end},
  workspace=world,Vector3=rb.Vector3,CFrame=rb.CFrame,DateTime={now=function()return {UnixTimestampMillis=1792800000000}end},script={Parent={LobbyDriftSession='D',EconomyService='E'}},
- require=function(ref)return ({T=T,C=Config,R=load('src/shared/RaceConfig.luau'),D=drift,E={saveParkLap=function(_,p)saved+=1;check(p.completedCheckpoints==6 and p.valid and p.milliseconds>10000,'server proof valid');return {status=if confirmed then 'SAVE_CONFIRMED'else 'SAVE_UNCONFIRMED'}end}})[ref]end,
+ require=function(ref)return ({T=T,C=Config,R=load('src/shared/RaceConfig.luau'),D=drift,E={saveParkLap=function(_,p)saved+=1;check(p.completedCheckpoints==12 and p.completedLaps==2 and p.rewardMultiplier>=1 and p.valid and p.milliseconds>10000,'server proof valid');return {status=if confirmed then 'SAVE_CONFIRMED'else 'SAVE_UNCONFIRMED'}end}})[ref]end,
  task={spawn=function(fn)fn()end},os={clock=function()return now end}}
 local module=load('src/server/RookieParkTrialSession.luau',env)
 local session=module.new({GetAttribute=function()return rb.Vector3.zero end},practice)
@@ -29,8 +29,11 @@ local function move(v)
  body.Position=rb.Vector3.new(x,1.75,z);session:step(player,r)
 end
 local points=L.sample(L.Segments)
-for _,v in points do if v.section~='StartStraight'or v.x>45 then move(v)end end
+for circuit=1,T.Laps do
+for _,v in points do if v.section~='StartStraight'or v.x>x then move(v)end end
 for _,v in points do if v.section~='StartStraight'or v.x>100 then break end;move(v)end
+ if circuit==1 then check(attrs.ParkTrialPhase=='RUNNING'and saved==0 and attrs.ParkTrialCurrentLap==2,'first lap resets gates without payout or result')end
+end
 check(attrs.ParkTrialPhase=='FINISHING'and attrs.ParkTrialFinishPhase=='ROLL'and saved==1,'crossing starts official ROLL before result')
 local finishAt=r.trial.finishAt
 now=finishAt+2.4;session:step(player,r)
@@ -40,6 +43,7 @@ check(attrs.ParkTrialPhase=='FINISHED','result waits for same 0.9s front camera 
 check(attrs.ParkTrialRewardState=='UNCONFIRMED','failed ACK never displays reward earned')
 local finished=r.trial
 check(session:replay(player,r)and attrs.ParkTrialPhase=='COUNTDOWN','unconfirmed save does not block one-click Replay')
+check(attrs.ParkTrialRewardMultiplier==2 and attrs.ParkTrialRewardAmount==10000,'Replay advances X2 independently from save ACK')
 check(saved==2 and not finished.confirmed,'Replay retries original receipt without claiming reward success')
 check(r.trial.next==1 and r.trial.route.pending==1 and body.Position==r.gridFrame.Position,'Replay clears gates, time and motion on grid')
 -- A save that is still yielding may complete after Replay, but cannot replace the new HUD state.

@@ -1,0 +1,26 @@
+# Park two-lap finish / common result presentation — 2026-10-24
+
+Owner-approved scope: restore Park high-speed trails, share an outlined FINISH banner, keep finish particles/waving through the displayed result, switch Park to two laps with consecutive Replay multiplier rewards, and share the Park result colors/border/buttons with official race results.
+
+Implemented:
+
+- The world VFX observer now renders speed trails/jets for the local Lobby kart as well as other karts. Local practice exhaust remains owned by its existing controller, avoiding a second exhaust renderer. Same immutable speed profile: ordinary streaks reach full intensity at 80 studs/s; Drift/off-track/control-lock suppressions remain.
+- Shared ResultPresentationView supplies the checker FINISH! banner with an opaque black 3-pixel UIStroke, translucent RGB(70,110,135) panel, pale 2-pixel border and cyan buttons. Park shows its FINISH banner during the existing roll; official races retain their existing banner timing. Race standings, money notices, ready/waiting authority and action semantics remain, with shared styling. Narrow displays retain centered fallback; landscape reserves the right side for the kart.
+- Shared cosmetic finish state reads Park or official authoritative attributes. Native Park seats use LobbyKartSeat rather than PrototypeKartSeat; both are supported. The driver's grip releases during Park finish to permit the existing additive shoulder wave. Two short-lived emitters are reused for repeated pulses until result exit; no accumulating emitter/attachment allocation. Wave/bursts stop on Replay/Rematch/Lobby, seat/character loss or teardown. Native TouchGui is suppressed during Park results too.
+- Park requires two full ordered six-gate laps. First-lap crossing resets progress/next gate and remains RUNNING, without result or reward. Only the second accepted lap enters the unchanged roll/front-camera sequence. Historical single-lap PB/completed-lap totals are retained. Separate additive parkTwoLapTrial stores two-lap total PB/last/count, so legacy lap reducers do not replace its record.
+- First completed two-lap run pays K$5,000, consecutive successful Replay runs pay K$10,000/X2, K$15,000/X3, etc. The multiplier lives in the server drive record and resets on new visit/Lobby (invalid Replay resets to X1). Result shows actual reward and next Replay X2/X3 preview. New immutable proof carries two laps, twelve checkpoints, fastest lap and multiplier; server-only reducer validates them, applies wallet/PBs atomically, rejects overflow and mismatched receipt identity, and requires read-back before REWARD EARNED. Save failure never gates Replay and stale confirmation cannot replace a new HUD.
+
+Validation:
+
+- Park route / grid / missed-gate recovery / legacy + two-lap schema / X2/X3 / receipt idempotency: 70 checks PASS.
+- Production Park lifecycle / countdown / first-lap no-pay / official finish sequence / save retry / immediate X2 Replay / stale save: 23 checks PASS.
+- Park GUI countdown/results/safe bounds/reward previews: 283 checks PASS at landscape and portrait sizes. Official result HUD: 266 checks plus gauge lifecycle PASS. Mobile input 1,188, HUD layout 513 and driver grip 72 checks PASS.
+- Persistent finish particles 111 checks; actual R6/R15 shoulder lifecycle 197; repeated result/runner-up/seat/character/teleport teardown 68; finish outcome authority 31 and existing finish camera lifecycle 29 PASS.
+- World VFX 1,402 checks and speed trails/jets profiles/cleanup 14,852 PASS, including local Park 80-stud trails. Progression mock suite: 25/25 scenarios, 600 checks PASS.
+- Studio native server checkpoint progression was exercised by a temporary 80-stud/s route-position replay (not a manual or physics-only driving lap). Both laps completed, twelve gates accepted, finish roll/front camera/results appeared, memory-adapter K$5,000 read-back confirmed and separate two-lap PB published. Actual W input observed two enabled speed trails. A finish-phase observer saw the native thick-outlined banner. Actual LobbyKartSeat presentation retained two native finish emitters beyond the initial burst and right-shoulder Transform changed while waving. Native Replay button returned to COUNTDOWN with X2 / K$10,000 and no leftover finish attachment, then entered RUNNING. Native Return Lobby removed the seat, hid results and cleared the trial/multiplier mirrors.
+- Scoped 210-source compile, Rojo XML/binary builds and diff check PASS. The five pre-existing dirty files (three production sources/two tests) are preserved and excluded from commit/release.
+
+Limits / existing diagnostics:
+
+- iPhone/Android sustained thermal, manual two-lap driving, real four-human multiplayer and live DataStore payment acceptance are NOT VERIFIED by these tests. Studio economy uses the existing memory adapter; the QA route replay is explicitly not physical driving acceptance.
+- Historical r8_a4_economy_validation fails its existing `ineligible zero` assertion on both the pre-task schema/reducer and the candidate. Historical speed_sensation_validation source-freeze rejects the pre-existing FinishCameraComposition mismatch. Their old frozen expectations are not relabeled PASS or weakened for this task; the focused current behavior/economy/VFX suites above pass.

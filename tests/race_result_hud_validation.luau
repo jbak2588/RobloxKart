@@ -98,7 +98,7 @@ local services={Players={LocalPlayer=player,GetPlayers=function() return {player
  end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController","RacePresentationState"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController","RacePresentationState","ResultPresentationView"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat","KDMFinishPresentation"} do
  child(shared,"ModuleScript",name)
 end
@@ -124,6 +124,7 @@ local common={Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vecto
  require=function(module) return assert(modules[module.Name],module.Name) end,
  task={delay=function(seconds, callback) table.insert(delayed,{seconds,callback}) end,defer=function(callback) callback() end},time=function() return now end}
 common.script={Parent=modulesFolder}
+modules.ResultPresentationView=luau.load(fs.readFile('src/client/ResultPresentationView.luau'),{environment=common})()
 modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment=common})()
 player:SetAttribute("RaceState","GARAGE")
 player:SetAttribute("SelectedTrackId","Track01")
@@ -133,6 +134,8 @@ controller.start()
 local hud=playerGui.RobloxKartRaceHud
 local function raceMap() return playerGui.RobloxKartMobileTopHud:FindFirstChild("RaceMiniMap") or hud:FindFirstChild("RaceMiniMap") end
 local results=hud.Results
+check(results.BackgroundColor3==rb.Color3.fromRGB(70,110,135) and results.BackgroundTransparency==.4,'all race results use Park translucent blue panel')
+check(hud.FinishBanner.FinishText.FinishOutline.Thickness==3,'all races share thick black FINISH outline')
 local function contentFits()
  local content=results:FindFirstChildOfClass("UIPadding")
  local layout=results:FindFirstChildOfClass("UIListLayout")
@@ -159,7 +162,7 @@ check(hud.RouteTransition.Visible and hud.RouteTransition.Message.Text=="RETURNI
  and not results.Visible,"HUB return shows transition instead of result choices")
 set("KDMRoutePending","")
 check(not hud.RouteTransition.Visible and results.Visible,"failed HUB return restores result choices")
-check(not hud.Panel.Visible and results.AnchorPoint.X==0 and results.Position.X.Offset==14
+check(not hud.Panel.Visible and results.AnchorPoint.X==0 and results.Position.X.Offset==12
  and results.Size.X.Offset<=285 and results.Size.X.Offset<=safeSize.X*0.39,
  "mobile result anchors to safe left edge with capped width")
 check(results.Position.X.Offset+results.Size.X.Offset<=safeSize.X*0.44
@@ -211,13 +214,13 @@ set("RaceDNFReason","FORFEIT")
 check(results.Total.Text=="FORFEIT" and not results:FindFirstChild("Rematch",true).Active
  and results:FindFirstChild("ReturnGarage",true).Visible,"reserved forfeit keeps Garage retry and disables Rematch")
 set("RaceDNFReason","")
-check(results.Position.X.Scale==0.5 and results.AnchorPoint.X==0.5,"DNF remains centered")
+check(results.Position.X.Offset==12 and results.AnchorPoint.X==0,"DNF uses common left result layout")
 input.PreferredInput=rb.Enum.PreferredInput.KeyboardAndMouse
 camera.ViewportSize=rb.Vector2.new(1280,720)
 input:GetPropertyChangedSignal("PreferredInput"):Fire()
 check(results.Size.X.Offset==370 and results.Size.Y.Offset==220,"desktop DNF layout stays compact")
 set("RaceState","FINISHED")
-check(math.abs(results.Position.X.Scale-0.26)<0.001 and not hud.Panel.Visible,"desktop result sits left with no lap HUD")
+check(results.Position.X.Offset==12 and results.AnchorPoint.X==0 and not hud.Panel.Visible,"desktop result sits left with no lap HUD")
 set("RaceParticipantCount",2);set("RacePosition",2)
 set("RaceMatchStatus","RACING")
 set("RaceSessionComplete",false)

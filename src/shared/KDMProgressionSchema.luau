@@ -286,6 +286,12 @@ function Schema.new(catalog, options)
     or not Schema.integer(p.lastMilliseconds,86400000) or p.lastMilliseconds<p.bestMilliseconds or not Schema.integer(p.completedLaps)
     or p.completedLaps<1 then return false,'CORRUPT_PARK_TRIAL' end
   end
+  if profile.parkTwoLapTrial~=nil then
+   local p=profile.parkTwoLapTrial
+   if type(p)~='table'or p.version~=1 or not Schema.integer(p.bestMilliseconds,86400000)or p.bestMilliseconds<20000
+    or not Schema.integer(p.lastMilliseconds,86400000)or p.lastMilliseconds<p.bestMilliseconds
+    or not Schema.integer(p.completedRuns)or p.completedRuns<1 then return false,'CORRUPT_PARK_TWO_LAP_TRIAL'end
+  end
   if profile.onboarding~=nil then
    local o=profile.onboarding
    if type(o)~='table' or type(o.welcomeSeen)~='boolean' or type(o.firstFinishClaimed)~='boolean' then return false,'CORRUPT_ONBOARDING' end

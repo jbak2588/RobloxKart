@@ -18,9 +18,10 @@ for _,rig in {{'UpperTorso','RightShoulder'},{'Torso','Right Shoulder'},
   -- Attribute/result updates must not reset elapsed pose progression.
   set('RaceState','FINISHED');h.pre:Fire(3)
   local hold=joint.Transform
-  h.pre:Fire(.5);check(joint.Transform==hold,'final raised hold, no cumulative transform')
+  h.pre:Fire(.113);check(joint.Transform~=hold,'wave continues throughout results')
+  hold=joint.Transform
   set('RaceFinishPosition',if place==1 then 2 else 1);h.pre:Fire(.1)
-  check(joint.Transform==hold,'place update does not restart or replace started profile')
+  check(joint.Transform~=original,'place update retains raised waving pose')
   human.SeatPart=nil;h.pre:Fire(.1);check(joint.Transform==original,'seat loss restores exact original')
   for _,state in {'PRE_RACE','COUNTDOWN','RACING','GARAGE','DNF'}do
    human.SeatPart=h.seat;set('RaceState','FINISHING');set('RaceFinishPhase','PRESENT');h.pre:Fire(.4)
@@ -30,6 +31,13 @@ for _,rig in {{'UpperTorso','RightShoulder'},{'Torso','Right Shoulder'},
   check(joint.Transform==original,'character removal restores')
  end
 end
+h.seat:SetAttribute('PrototypeKartSeat',false);h.seat:SetAttribute('LobbyKartSeat',true)
+set('RaceState','GARAGE');set('LobbyDriveActive',true);set('ParkTrialGoAt',555);set('ParkTrialPhase','FINISHING');set('ParkTrialFinishPhase','ROLL')
+local pm,pj=h.character('UpperTorso','RightShoulder');h.player.CharacterAdded:Fire(pm)
+set('ParkTrialFinishPhase','PRESENT');h.pre:Fire(.3);local waved=pj.Transform
+h.pre:Fire(5.113);check(pj.Transform~=waved,'Park driver waves beyond initial duration')
+set('ParkTrialPhase','COUNTDOWN');check(pj.Transform==h.rb.CFrame.Angles(.03,.04,.05),'Park Replay restores joint')
+set('LobbyDriveActive',false);set('ParkTrialPhase',nil)
 local model,joint=h.character('UpperTorso','Missing');h.player.CharacterAdded:Fire(model)
 set('RaceState','FINISHING');set('RaceFinishPhase','PRESENT');h.pre:Fire(.3)
 check(joint.Transform==h.rb.CFrame.Angles(.03,.04,.05),'missing joint safely skipped')

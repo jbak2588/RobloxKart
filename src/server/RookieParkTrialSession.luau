@@ -11,6 +11,11 @@ function Session.new(zone,practice)
  local function publish(player,r)
   local s=r.trial
   player:SetAttribute('ParkTrialPhase',s.phase)
+  player:SetAttribute('ParkTrialCurrentLap',s.lap)
+  player:SetAttribute('ParkTrialTotalLaps',Trial.Laps)
+  player:SetAttribute('ParkTrialCompletedLaps',s.completedLaps)
+  player:SetAttribute('ParkTrialRewardMultiplier',s.multiplier)
+  player:SetAttribute('ParkTrialRewardAmount',Trial.Reward*s.multiplier)
   player:SetAttribute('ParkTrialGoAt',s.goAt)
   player:SetAttribute('ParkTrialStartedAt',s.startedAt)
   player:SetAttribute('ParkTrialCheckpoint',s.next-1)
@@ -25,6 +30,7 @@ function Session.new(zone,practice)
  function api:begin(player,r)
   local pos=r.body.Position-center
   r.trial=Trial.new(workspace:GetServerTimeNow(),pos.X,pos.Z)
+  r.trial.multiplier=r.parkReplayMultiplier or 1
   r.trial.id=game:GetService('HttpService'):GenerateGUID(false)
   r.trial.transactionAt=DateTime.now().UnixTimestampMillis
   player:SetAttribute('ParkTrialRewardState','NONE')
@@ -38,7 +44,8 @@ function Session.new(zone,practice)
   task.spawn(function()
    local ok,result=pcall(function()
     return require(script.Parent.EconomyService).saveParkLap(player,{id=s.id,milliseconds=s.milliseconds,
-     transaction={version=1,issuedAt=s.transactionAt},completedCheckpoints=s.next-1,valid=not s.invalid})
+     transaction={version=1,issuedAt=s.transactionAt},completedCheckpoints=(s.completedLaps or 0)*6,valid=not s.invalid,
+     proofVersion=2,completedLaps=s.completedLaps,bestLapMilliseconds=math.min(table.unpack(s.lapTimes)),rewardMultiplier=s.multiplier})
    end)
    s.saving=false;s.confirmed=ok and type(result)=='table' and result.status=='SAVE_CONFIRMED'
    if r.trial==s and player.Parent and player:GetAttribute('LobbyDriveActive')==true
@@ -51,6 +58,7 @@ function Session.new(zone,practice)
   if not r.trial or (r.trial.phase~='FINISHED'and r.trial.phase~='INVALID')then return false end
   -- Retry the same immutable receipt in the background; saving never gates racing.
   if r.trial.phase=='FINISHED'and not r.trial.confirmed then save(player,r,r.trial)end
+  r.parkReplayMultiplier=if r.trial.phase=='FINISHED'then (r.trial.multiplier or 1)+1 else 1
   practice:remove(player);Drift.clear(r.training)
   r.body.Anchored=true;r.body.AssemblyLinearVelocity=Vector3.zero;r.body.AssemblyAngularVelocity=Vector3.zero
   r.kart:PivotTo(r.gridFrame);r.safe=r.gridFrame;r.boundaryPrevious=r.gridFrame.Position
@@ -113,7 +121,7 @@ function Session.new(zone,practice)
   local p=r.body.Position-center;Trial.recover(r.trial,p.X,p.Z,workspace:GetServerTimeNow())
  end
  function api:remove(player)
-  for _,key in {'Phase','GoAt','StartedAt','Checkpoint','Missed','Invalid','Milliseconds','Target','RewardState','FinishPhase','FinishedAt'}do player:SetAttribute('ParkTrial'..key,nil)end
+  for _,key in {'Phase','GoAt','StartedAt','Checkpoint','Missed','Invalid','Milliseconds','Target','RewardState','FinishPhase','FinishedAt','CurrentLap','TotalLaps','CompletedLaps','RewardMultiplier','RewardAmount'}do player:SetAttribute('ParkTrial'..key,nil)end
  end
  return api
 end

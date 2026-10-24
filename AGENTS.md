@@ -294,6 +294,14 @@ do not add another hardcoded four-racer limit. Current explicit invited Bot is
 Base-only; no automatic Bot fill on Base or Track03. Decide future fill policy
 separately before capacity extension.
 
+## Park two-lap results / Replay reward override — 2026-10-24
+
+This newer owner request supersedes the one-lap Park contract below. A Park attempt now requires **two ordered six-checkpoint laps**, with no finish/reward after lap one. The server resets route progress at the first finish crossing and owns the total time. Award K$5,000 for the first completed two-lap attempt, then K$10,000 (X2), K$15,000 (X3), etc. for consecutive completed Replay attempts in the same drive visit. Return Lobby/new drive resets to X1; invalid attempts reset the chain. Saving/ACK failure never blocks Replay or changes the frozen earlier receipt. Replicated reward amount/multiplier are display-only; no remote accepts reward proof or amount. Keep read-back confirmation before REWARD EARNED.
+
+Preserve historical single-lap PB and completed-lap data in parkTimeTrial; store the separate two-lap total PB/run count in additive parkTwoLapTrial. A version-2 server proof requires two laps / twelve ordered checkpoints; idempotent receipt retry cannot duplicate the multiplier reward. Official race economy, physics, GO boost and network authority remain unchanged.
+
+Park shares the existing speed-trail renderer, FINISH banner and winner-style finish presentation. Successful Park/official finishes use FINISH! with a thick black outline, the Park-style translucent blue result panel/white border/cyan buttons, and two bounded native celebration emitters plus seated waving until Replay/Rematch/Return Lobby or teardown. Preserve official multiplayer standings, readiness/waiting and action authority. Mobile/hardware acceptance must be reported separately from route and GUI simulation.
+
 ## Rookie Racing Park solo trial override - 2026-10-23
 
 RookieLoop TEST DRIVE now enters an individual timed one-lap trial. Use the

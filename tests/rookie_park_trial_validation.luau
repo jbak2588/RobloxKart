@@ -25,8 +25,9 @@ local function lap(skip)
   return trial.step(s,now,x,1.75,z)
  end
  -- Begin partway down the start straight; finish its initial crossing without ending a lap.
+ for circuit=1,trial.Laps do
  for _,p in points do
-  if p.section=='StartStraight'and p.x>45 or p.section~='StartStraight'then
+  if p.section=='StartStraight'and p.x>x or p.section~='StartStraight'then
    local old=s.next
    move(p)
    if skip and old==skip and s.next>old then s.next=old end
@@ -36,10 +37,11 @@ local function lap(skip)
   if p.section~='StartStraight'or p.x>85 then break end
   move(p)
  end
+ end
  return s,now,move
 end
 local s=lap()
-check(s.phase=='FINISHED'and s.next==7,'full sampled route crosses all six gates then finish')
+check(s.phase=='FINISHED'and s.next==7 and s.completedLaps==2 and #s.lapTimes==2,'full sampled route crosses all six gates then finish')
 check(s.milliseconds>trial.Length/110*1000,'authoritative lap duration plausible')
 check(trial.step(s,1000,80,1.75,layout.StartStraightZ)=='LOCKED','finish single-shot')
 local delayed=trial.new(0,45,layout.StartStraightZ)
@@ -101,7 +103,10 @@ for i,p in points do local d=(p.x-exX)^2+(p.z-exZ)^2;if d<best then nearest,best
 for i=nearest,#points do travel(points[i].x,points[i].z)end
 for _,p in points do travel(p.x,p.z)end
 for _,p in points do if p.section~='StartStraight'or p.x>85 then break end;travel(p.x,p.z)end
-check(excursion.next==7 and excursion.phase=='FINISHED','missed checkpoint 3 recovers on the next continuous full lap')
+check(excursion.completedLaps>=1 and not excursion.missed,'missed checkpoint recovers on a later full lap')
+for _,p in points do if p.section~='StartStraight'or p.x>exX then travel(p.x,p.z)end end
+for _,p in points do if p.section~='StartStraight'or p.x>85 then break end;travel(p.x,p.z)end
+check(excursion.phase=='FINISHED'and excursion.completedLaps==2,'recovery still requires two verified laps')
 -- A teleport near a gate must not count as the recovery sample or gate crossing.
 local jump=trial.new(0,45,layout.StartStraightZ);trial.step(jump,3,45,1.75,layout.StartStraightZ)
 trial.step(jump,3.1,g.x+g.fx*2,1.75,g.z+g.fz*2)
@@ -132,6 +137,22 @@ local recreated=ops.parkLap(S,schema,op(5))(nil)
 check(schema.validate(recreated,S.userKey(123))and recreated.wallet.cash==10000,'valid first lap may initialize guest, separate starter cash retained')
 local corrupt=S.clone(p);corrupt.parkTimeTrial.bestMilliseconds=-1
 check(not schema.validate(corrupt,S.userKey(123)),'corrupt PB denied')
+local two=op(6,160000);two.proofVersion=2;two.completedLaps=2;two.completedCheckpoints=12;two.bestLapMilliseconds=79000;two.rewardMultiplier=2
+local rewarded,reason=ops.parkLap(S,schema,two)(slower)
+check(reason=='PARK_LAP_CREDITED'and rewarded.wallet.cash==slower.wallet.cash+10000,'X2 two-lap reward is server receipt amount')
+check(rewarded.parkTimeTrial.completedLaps==slower.parkTimeTrial.completedLaps+2 and rewarded.parkTwoLapTrial.bestMilliseconds==160000,'two-lap total stored separately from historical lap PB')
+local third=S.clone(two);third.id='12345678-1234-1234-1234-000000000008';third.rewardMultiplier=3
+local triple=ops.parkLap(S,schema,third)(rewarded)
+check(triple.wallet.cash==rewarded.wallet.cash+15000,'X3 two-lap continuation awards K$15000')
+check(schema.validate(rewarded,S.userKey(123)),'new two-lap record validates without replacing historical one-lap schema')
+local legacyAfter=ops.parkLap(S,schema,op(9))(rewarded)
+check(legacyAfter.parkTwoLapTrial.bestMilliseconds==160000,'legacy lap receipt retains separate two-lap PB')
+local again=ops.parkLap(S,schema,two)(rewarded)
+check(S.canonical(again)==S.canonical(rewarded),'X2 retry is idempotent')
+for _,mutate in {function(v)v.completedLaps=1 end,function(v)v.completedCheckpoints=6 end,function(v)v.rewardMultiplier=0 end,function(v)v.rewardMultiplier=1.5 end,function(v)v.bestLapMilliseconds=100000 end}do
+ local invalid=S.clone(two);invalid.id='12345678-1234-1234-1234-000000000007';mutate(invalid)
+ check(ops.parkLap(S,schema,invalid)(rewarded)==nil,'partial two-lap proof or malformed multiplier rejected')
+end
 local policy=load('src/server/EconomyPolicy.luau');local config=load('src/server/EconomyConfig.luau')
 local ctx={isStudio=false,role='HUB',experienceId=config.ExperienceId,placeId=config.PlaceId,privateServerId=''}
 check(policy.allowed(config,ctx,123,'parkReward'),'production public HUB lap reward authorized')

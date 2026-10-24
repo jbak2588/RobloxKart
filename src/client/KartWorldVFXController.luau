@@ -89,9 +89,9 @@ function Controller.start()
    if not localLobby then
     if not r.exhaust then r.exhaust=Exhaust.new(kart) end
     if r.exhaust then r.exhaust:update(dt,true) end
-    if not r.speed then r.speed=Speed.new(kart) end
-    if r.speed then r.speed:update(dt,true) end
    end
+   if not r.speed then r.speed=Speed.new(kart) end
+   if r.speed then r.speed:update(dt,true) end
    local shell=kart:FindFirstChild("RaceItemShield")
    local active=kart:GetAttribute("KartShieldActive")==true and shell~=nil
    if active and not r.shield then r.shield=Shield.new(kart,chassis,human.Parent) end

@@ -15,7 +15,7 @@ for _,boundary in {'runner-up','DNF','GARAGE','COUNTDOWN','session','seat','char
  check(#jets==2 and not jets[1].destroyed and h.allocated()==allocated,'two emitters reused during long wait: '..boundary)
  check(jets[1].emitCalls>3 and jets[2].emitCalls==jets[1].emitCalls,'bounded repeated paired pulses: '..boundary)
  check(not jets[1].Enabled and jets[1].Rate==0,'no continuous unbounded emission')
- if boundary=='runner-up' then set('RaceWinnerAwaitingRunnerUp',false)
+ if boundary=='runner-up' then set('RaceWinnerAwaitingRunnerUp',false);h.advance(2);check(not jets[1].destroyed,'runner-up arrival does not end the displayed result celebration');set('RaceState','GARAGE')
  elseif boundary=='session' then set('RaceState','COUNTDOWN');set('RaceSessionId',902)
  elseif boundary=='seat' then h.humanoid.SeatPart=nil
  elseif boundary=='character' then p.CharacterRemoving:Fire(h.player.Character)
@@ -36,15 +36,15 @@ for _,boundary in {'runner-up','DNF','GARAGE','COUNTDOWN','session','seat','char
  check(jets[1].emitted+jets[2].emitted==count,'stale callback emits nothing: '..boundary)
  particles.destroy()
 end
--- Solo and non-winners retain the original short presentation.
+-- Solo and placed racers also keep celebrating until leaving results.
 for _,entry in {{1,1},{2,4}} do
  local h=harness();local p=h.player;local c=h.load('src/client/FinishCelebrationController.luau');c.start()
  p:SetAttribute('RaceParticipantCount',entry[2]);p:SetAttribute('RaceFinishPosition',entry[1])
  p:SetAttribute('RaceState','FINISHING');p:SetAttribute('RaceFinishPhase','PRESENT')
  local jets={};for _,d in h.chassis:GetDescendants()do if d:IsA('ParticleEmitter')then table.insert(jets,d)end end
  h.advance(5)
- check(jets[1].destroyed and jets[2].destroyed,'solo/placed stays finite')
- check(jets[1].emitCalls==(if entry[1]==1 then 3 else 1),'solo/placed pulse budget unchanged')
+ check(not jets[1].destroyed and not jets[2].destroyed,'solo/placed repeats while result remains visible')
+ check(jets[1].emitCalls>3,'solo/placed uses bounded repeated pulses');p:SetAttribute('RaceState','COUNTDOWN');check(jets[1].destroyed,'new countdown cleans up particles')
  c.destroy()
 end
-print('PASS: '..n..' winner waiting, runner-up stop, bounded emissions and lifecycle checks')
+print('PASS: '..n..' result persistence, runner-up arrival, bounded emissions and lifecycle checks')

@@ -68,9 +68,15 @@ end
 
 -- Separate HUB-only lap receipts; never an official RACE or leaderboard result.
 function Ops.parkLap(S,schema,op)
+ local laps=if type(op)=='table'and op.proofVersion==2 then 2 else 1
+ local multiplier=if type(op)=='table'then op.rewardMultiplier or 1 else 1
+ local bestLap=if type(op)=='table'then op.bestLapMilliseconds or op.milliseconds else nil
  if type(op)~='table' or not S.guid(op.id)or not S.integer(op.userId)or op.userId<=0
   or not S.integer(op.milliseconds)or op.milliseconds<10000 or op.milliseconds>86400000
-  or op.completedCheckpoints~=6 or op.valid~=true then return function()return nil,'INVALID_LAP'end end
+  or op.completedCheckpoints~=6*laps or op.valid~=true
+  or (laps==2 and op.completedLaps~=2)or not S.integer(multiplier)or multiplier<1 or multiplier>math.floor(schema.maxCash/5000)
+  or (laps==1 and multiplier~=1)or not S.integer(bestLap)or bestLap<10000 or bestLap>op.milliseconds
+  or (op.proofVersion~=nil and op.proofVersion~=2)or (laps==2 and (op.milliseconds<20000 or bestLap*2>op.milliseconds)) then return function()return nil,'INVALID_LAP'end end
  local copy=S.freeze(S.clone(op));local sig=S.transactionCanonical(copy);local key='park-lap:'..copy.id
  return function(previous)
   if previous and (not schema.validate(previous,S.userKey(copy.userId))or previous.deleted)then return nil,'READ_ONLY'end
@@ -79,13 +85,20 @@ function Ops.parkLap(S,schema,op)
   if receipt then return if S.signatureMatches(receipt,sig)then S.clone(base)else nil,if S.signatureMatches(receipt,sig)then 'REPLAY'else 'IDENTITY_MISMATCH'end
   local p,why=schema.prepare(base,copy.transaction);if not p then return nil,why end
   if S.count(p.receipts)>=schema.maxReceipts then return nil,'RECEIPT_CAPACITY'end
-  local earned=(p.wallet.lifetimeEarned or 0)+5000
-  if p.wallet.cash+5000>schema.maxCash or not S.integer(earned)or not S.integer(p.wallet.ledgerRevision+1)then return nil,'WALLET_CAPACITY'end
+  local amount=5000*multiplier
+  local earned=(p.wallet.lifetimeEarned or 0)+amount
+  if p.wallet.cash+amount>schema.maxCash or not S.integer(earned)or not S.integer(p.wallet.ledgerRevision+1)then return nil,'WALLET_CAPACITY'end
   local old=p.parkTimeTrial
-  if old and not S.integer(old.completedLaps+1)then return nil,'RECORD_CAPACITY'end
-  p.parkTimeTrial={version=1,bestMilliseconds=math.min(copy.milliseconds,if old then old.bestMilliseconds else math.huge),
-   lastMilliseconds=copy.milliseconds,completedLaps=(if old then old.completedLaps else 0)+1}
-  p.wallet.cash+=5000;p.wallet.lifetimeEarned=earned;p.wallet.ledgerRevision+=1
+  if old and not S.integer(old.completedLaps+laps)then return nil,'RECORD_CAPACITY'end
+  p.parkTimeTrial={version=1,bestMilliseconds=math.min(bestLap,if old then old.bestMilliseconds else math.huge),
+   lastMilliseconds=bestLap,completedLaps=(if old then old.completedLaps else 0)+laps}
+  if laps==2 then
+   local previousRun=p.parkTwoLapTrial
+   if previousRun and not S.integer(previousRun.completedRuns+1)then return nil,'RECORD_CAPACITY'end
+   p.parkTwoLapTrial={version=1,bestMilliseconds=math.min(copy.milliseconds,if previousRun then previousRun.bestMilliseconds else math.huge),
+    lastMilliseconds=copy.milliseconds,completedRuns=(if previousRun then previousRun.completedRuns else 0)+1}
+  end
+  p.wallet.cash+=amount;p.wallet.lifetimeEarned=earned;p.wallet.ledgerRevision+=1
   p.receipts[key]={signature=S.sha256(sig)};schema.stamp(p.receipts[key],copy.transaction)
   return p,'PARK_LAP_CREDITED'
  end

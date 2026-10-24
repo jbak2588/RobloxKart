@@ -25,4 +25,14 @@ function Finish.resolve(state, position, participants)
 	if position==1 then return "WINNER", labels[1], Finish.Profiles.WINNER end
 	return "PLACED", labels[position] or (tostring(position).."TH PLACE"), Finish.Profiles.PLACED
 end
+-- Park and official races expose one cosmetic terminal lifecycle.
+function Finish.snapshot(player)
+ local phase=player:GetAttribute('ParkTrialPhase')
+ if player:GetAttribute('LobbyDriveActive')==true and phase~=nil then
+  local state=if phase=='FINISHING'or phase=='FINISHED'then phase else 'GARAGE'
+  local key='park:'..tostring(player:GetAttribute('LobbyDriveGeneration'))..':'..tostring(player:GetAttribute('ParkTrialGoAt'))
+  return state,1,1,player:GetAttribute('ParkTrialFinishPhase'),key
+ end
+ return player:GetAttribute('RaceState'),player:GetAttribute('RaceFinishPosition'),player:GetAttribute('RaceParticipantCount'),player:GetAttribute('RaceFinishPhase'),player:GetAttribute('RaceSessionId')
+end
 return table.freeze(Finish)

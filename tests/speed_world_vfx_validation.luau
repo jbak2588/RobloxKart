@@ -72,6 +72,10 @@ require('./helpers/world_vfx_harness')(4,20,function(h)
   for _,k in h.karts do check(enabled(effects(k,'ParticleEmitter','KDMSpeedJet'))==0 and enabled(effects(k,'Trail','KDMSpeed'))==0,'suppression '..key)end
   for _,k in h.karts do k:SetAttribute(key,false)end;h.tick(.01)
  end
+ local localPark=h.karts[1];localPark:SetAttribute('LobbyKart',true);localPark:SetAttribute('LobbyOwnerUserId',1)
+ for _,k in h.karts do k:SetAttribute('KartDrifting',false)end
+ set(states[3]);check(enabled(effects(localPark,'Trail','KDMSpeed'))==2,'local Park kart has the same full 80-stud air trails')
+ localPark:SetAttribute('LobbyKart',false);h.tick(.01)
  local bot=h.karts[4];bot:SetAttribute('KartOwnerUserId',nil)
  for _,k in h.karts do k:SetAttribute('KartDrifting',false)end;set(states[2])
  check(enabled(effects(bot,'Trail','KDMSpeed'))==2 and enabled(effects(bot,'ParticleEmitter','KDMSpeedJet'))==0,'Bot motion is High only')

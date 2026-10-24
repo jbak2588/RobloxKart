@@ -12,10 +12,10 @@ function Controller.start()
 	local alive, teleporting, terminal = true, false, false
 	local sessionId, emittedSession = player:GetAttribute("RaceSessionId"), nil
 	local burstSerial = 0
-	local continuingWinner = false
+	local continuing = false
 	local function clearBurst()
 		burstSerial += 1
-		continuingWinner = false
+		continuing = false
 		for _,point in points do point:Destroy() end
 		table.clear(points)
 	end
@@ -44,32 +44,31 @@ function Controller.start()
 		local character=player.Character
 		local humanoid=character and character:FindFirstChildOfClass("Humanoid")
 		local seat=humanoid and humanoid.SeatPart
-		if not seat or seat:GetAttribute("PrototypeKartSeat")~=true then return nil end
+		if not seat or (seat:GetAttribute("PrototypeKartSeat")~=true and seat:GetAttribute("LobbyKartSeat")~=true) then return nil end
 		local kart=seat.Parent
 		local chassis=kart and kart.PrimaryPart
 		return if chassis and chassis:IsA("BasePart") then chassis else nil
 	end
 	local function update()
 		if not alive then return end
-		local current=player:GetAttribute("RaceSessionId")
+		local state,position,participants,finishPhase,current=Finish.snapshot(player)
 		if current~=sessionId then clearBurst(); emittedSession=nil; sessionId=current end
-		local state=player:GetAttribute("RaceState")
 		terminal=not teleporting and (state=="FINISHING" or state=="FINISHED" or state=="DNF")
 		if terminal then for _,gui in playerGui:GetChildren() do suppressTouch(gui) end else restoreTouch() end
-		local _,_,profile=Finish.resolve(state,player:GetAttribute("RaceFinishPosition"),player:GetAttribute("RaceParticipantCount"))
-		if teleporting or not profile or player:GetAttribute("RaceFinishPhase")~="PRESENT" then
+		local _,_,profile=Finish.resolve(state,position,participants)
+		if teleporting or not profile or finishPhase~="PRESENT" then
 			clearBurst()
-			if state~="FINISHING" and state~="FINISHED" then emittedSession=nil end
+			if finishPhase~="PRESENT"or(state~="FINISHING" and state~="FINISHED")then emittedSession=nil end
 			return
 		end
 		local chassis=getChassis()
 		if not chassis then clearBurst(); return end
-		if continuingWinner and player:GetAttribute("RaceWinnerAwaitingRunnerUp") ~= true then clearBurst() end
+		if continuing and not terminal then clearBurst() end
 		if not sessionId or sessionId==0 or emittedSession==sessionId then return end
 		emittedSession=sessionId
 		clearBurst()
 		local serial=burstSerial
-		local repeatWinner=profile==Finish.Profiles.WINNER
+		local repeatCelebration=true -- Small bounded refreshes continue until leaving results.
 		local gold=Color3.fromRGB(255,218,75)
 		local cyan=Color3.fromRGB(125,235,255)
 		for index=1,2 do
@@ -95,9 +94,9 @@ function Controller.start()
 			emitter.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.12),NumberSequenceKeypoint.new(.7,.35),NumberSequenceKeypoint.new(1,1)})
 			emitter.Parent=point
 			emitter:Emit(if index==1 then profile.PrimaryCount else profile.SecondaryCount)
-			if repeatWinner then
+			if repeatCelebration then
 				-- Two small refreshes stay visible through the front-camera transition/wave.
-				-- Base presentation: three bursts of 32; a waiting winner extends below.
+				-- Then refresh the same two emitters until the result is dismissed.
 				for pulse=1,2 do
 					task.delay(profile.WaveSeconds*pulse/3,function()
 						if alive and serial==burstSerial and emitter.Parent then
@@ -107,27 +106,28 @@ function Controller.start()
 				end
 			end
 		end
-		if repeatWinner then
-			local function continueWinner()
+		if repeatCelebration then
+			local function continueCelebration()
 				if not alive or serial~=burstSerial then return end
-				if player:GetAttribute("RaceWinnerAwaitingRunnerUp") ~= true then
-					if continuingWinner then clearBurst() end
+				local currentState,_,_,currentPhase=Finish.snapshot(player)
+				if (currentState~="FINISHING"and currentState~="FINISHED")or currentPhase~="PRESENT" then
+					if continuing then clearBurst() end
 					return
 				end
 				if getChassis()~=chassis then clearBurst(); return end
-				continuingWinner=true
+				continuing=true
 				-- Reuse two emitters, 32 particles per pulse; one pending timer, no frame loop.
 				for index,point in points do
 					local emitter=point:FindFirstChild("KDMFinishSparkles")
 					if emitter then emitter:Emit(if index==1 then profile.PrimaryCount else profile.SecondaryCount) end
 				end
-				task.delay(profile.WaveSeconds/3,continueWinner)
+				task.delay(profile.WaveSeconds/3,continueCelebration)
 			end
-			task.delay(profile.WaveSeconds,continueWinner)
+			task.delay(profile.WaveSeconds,continueCelebration)
 		end
-		local lastPulse=if repeatWinner then profile.WaveSeconds*2/3 else 0
+		local lastPulse=if repeatCelebration then profile.WaveSeconds*2/3 else 0
 		task.delay(lastPulse+profile.LifetimeMax+.1,function()
-			if alive and serial==burstSerial and not continuingWinner then clearBurst() end
+			if alive and serial==burstSerial and not continuing then clearBurst() end
 		end)
 	end
 	local function bindCharacter(character)
@@ -137,7 +137,7 @@ function Controller.start()
 		seatConnection=humanoid:GetPropertyChangedSignal("SeatPart"):Connect(update)
 		update()
 	end
-	for _,name in {"RaceState","RaceFinishPhase","RaceFinishPosition","RaceParticipantCount","RaceSessionId","RaceWinnerAwaitingRunnerUp"} do
+	for _,name in {"RaceState","RaceFinishPhase","RaceFinishPosition","RaceParticipantCount","RaceSessionId","RaceWinnerAwaitingRunnerUp","LobbyDriveActive","LobbyDriveGeneration","ParkTrialPhase","ParkTrialFinishPhase","ParkTrialGoAt"} do
 		table.insert(connections,player:GetAttributeChangedSignal(name):Connect(update))
 	end
 	table.insert(connections,playerGui.ChildAdded:Connect(suppressTouch))
