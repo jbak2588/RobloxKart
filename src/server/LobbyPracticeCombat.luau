@@ -202,7 +202,8 @@ function Combat:use(player,generation,id,extra)
    local r=a.record
    if a.nitroEnd or r.throttle<=0 or now-r.lastInput>.5 or r.crashEnd or self:physical(player,now)then return false,'NITRO UNAVAILABLE'end
    local c=self.zone:GetAttribute('Center');local pos=r.body.Position-c
-   if self.driveGeometry.contact(pos.X,pos.Z)<=7 then return false,'MOVE AWAY FROM EDGE'end
+   local atEdge=if self.isRookie then not self.driveGeometry.inside(pos.X,pos.Z,7) else self.driveGeometry.contact(pos.X,pos.Z)<=7
+   if atEdge then return false,'MOVE AWAY FROM EDGE'end
    a.nitroEnd=now+Kart.NITRO_DURATION;r.kart:SetAttribute('KartNitroEndReason','');return true
   elseif item=='Shield'then
    if a.shieldEnd and now<a.shieldEnd then return false,'SHIELD ACTIVE'end

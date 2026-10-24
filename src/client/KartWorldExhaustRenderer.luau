@@ -311,7 +311,7 @@ function Renderer.new(kart)
    dt=farElapsed;farElapsed=0
   else farElapsed=0 end
   local off=kart:GetAttribute("KartOffTrack")==true
-  local nitro=enabled and not off and kart:GetAttribute("KartNitroActive")==true
+  local nitro=enabled and kart:GetAttribute("KartNitroActive")==true
   local boost=enabled and kart:GetAttribute("KartBoosting")==true
 
   local velocity=chassis.AssemblyLinearVelocity
@@ -325,7 +325,7 @@ function Renderer.new(kart)
 
   local naturalEnd=(previousNitro and not nitro and kart:GetAttribute('KartNitroEndReason')=='duration_complete')
    or (previousBoost and not boost and kart:GetAttribute('KartBoostEndReason')=='duration_complete')
-  local unsafe=not enabled or off or drift or kart:GetAttribute('KartCrashActive')==true
+  local unsafe=not enabled or (off and not nitro and not boost) or isDrifting or drift or kart:GetAttribute('KartCrashActive')==true
    or kart:GetAttribute('KartSlickActive')==true or kart:GetAttribute('KartMissileHitActive')==true
    or kart:GetAttribute('KartThunderHitActive')==true
   local oldWeight=envelope.weight

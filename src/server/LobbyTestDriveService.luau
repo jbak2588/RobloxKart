@@ -399,7 +399,7 @@ function Service.start(driveZone,eligibility)
     -- Combat cancels Drift/Boost, while normal steering/throttle stay available.
     local steer=r.training.steer;Drift.clear(r.training);r.training.steer=steer
    end
-   local nitro=practice:isNitro(player,now,throttle,clearance<=Policy.FootprintMargin)
+   local nitro=practice:isNitro(player,now,throttle,not isRookieLoop and clearance<=Policy.FootprintMargin)
    if straightCourse then
     local lp=Vector3.new(localPos.X,0,localPos.Z)
     StraightSpeedResolver.update(r,straightCourse,lp,now,true)

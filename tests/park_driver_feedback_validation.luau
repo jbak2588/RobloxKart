@@ -45,4 +45,10 @@ mini=true;nitro=true;tick();check(plays==3,'same-frame Mini Boost and Nitro play
 mini=false;tick();mini=true;tick();check(plays==4,'Mini Boost during Nitro has its own cue')
 mini=false;nitro=false;tick();nitro=true;tick();check(plays==5,'later Nitro reactivation sounds')
 check(drive:find('previousBoost=false;previousNitro=false',1,true)~=nil,'detach resets both onset histories')
+local serviceSource=fs.readFile('src/server/LobbyTestDriveService.luau')
+check(serviceSource:find('practice:isNitro(player,now,throttle,not isRookieLoop and clearance<=Policy.FootprintMargin)',1,true)~=nil,
+ 'RookieLoop off-track clearance does not cancel active Nitro as a wall hit')
+local combatSource=fs.readFile('src/server/LobbyPracticeCombat.luau')
+check(combatSource:find('local atEdge=if self.isRookie then not self.driveGeometry.inside(pos.X,pos.Z,7) else self.driveGeometry.contact(pos.X,pos.Z)<=7',1,true)~=nil,
+ 'RookieLoop allows Nitro near road edge and on grass inside island boundary')
 print('PASS: '..n..' Park/race driver grip and overlapping boost audio checks')

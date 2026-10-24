@@ -9,6 +9,11 @@ require('./helpers/world_vfx_harness')(4,2,function(h)
  end
  h.tick(.016)
  local allocated=h.allocated()
+ for _,k in h.karts do k:SetAttribute('KartOffTrack',true);k:FindFirstChild('Chassis').AssemblyLinearVelocity=rb.Vector3.new(0,0,-96)end
+ h.tick(.016)
+ for _,k in h.karts do for _,f in k:GetDescendants()do if f.Name=='RearEmitter'then check(f.Enabled and f.Rate>0,'active Nitro keeps exhaust flame while off-track')end end end
+ for _,k in h.karts do k:SetAttribute('KartOffTrack',false);k:FindFirstChild('Chassis').AssemblyLinearVelocity=rb.Vector3.new(0,0,-100)end
+ h.tick(.016)
  for _,k in h.karts do k:SetAttribute('KartNitroEndReason','duration_complete');k:SetAttribute('KartNitroActive',false)end
  h.tick(.016)
  for _,k in h.karts do for _,f in k:GetDescendants()do if f.Name=='RearEmitter'then check(f.Enabled and f.Rate>0,'normal expiry keeps tail')end end end
@@ -22,6 +27,11 @@ require('./helpers/world_vfx_harness')(4,2,function(h)
  for _,k in h.karts do
   k:SetAttribute('KartBoosting',true);k:SetAttribute('KartBoostEndReason','');k:FindFirstChild('Chassis').AssemblyLinearVelocity=rb.Vector3.new(0,0,-100)
  end
+ h.tick(.016)
+ for _,k in h.karts do k:SetAttribute('KartOffTrack',true);k:FindFirstChild('Chassis').AssemblyLinearVelocity=rb.Vector3.new(0,0,-80)end
+ h.tick(.016)
+ for _,k in h.karts do for _,f in k:GetDescendants()do if f.Name=='RearEmitter'then check(f.Enabled and f.Rate>0,'active Mini Boost keeps exhaust flame while off-track')end end end
+ for _,k in h.karts do k:SetAttribute('KartOffTrack',false);k:FindFirstChild('Chassis').AssemblyLinearVelocity=rb.Vector3.new(0,0,-100)end
  h.tick(.016)
  for _,k in h.karts do k:SetAttribute('KartBoosting',false);k:SetAttribute('KartBoostEndReason','duration_complete')end
  h.tick(.016)
