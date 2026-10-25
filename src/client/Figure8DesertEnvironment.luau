@@ -7,6 +7,12 @@ local Environment={}
 -- Softer mobile daylight; tint the sand instead of washing out the whole HUD.
 local sandTint=Color3.fromRGB(224,218,205)
 Environment.SourceScale=1
+-- Bring the complete original relief inward, including the far side omitted
+-- from the owner's overview. Only horizontal scenery coordinates are compacted.
+Environment.ReliefScale=.68
+Environment.ReliefCenterZ=84
+Environment.ReliefClearance=132
+Environment.ReliefBlend=60
 function Environment.straightRoadLength(samples,index)
  local a,b=samples[index],samples[index%#samples+1]
  local before=samples[(index-2)%#samples+1];local after=samples[(index+1)%#samples+1]
@@ -74,6 +80,26 @@ function Environment.roadDistance(samples,x,z)
   best=math.min(best,math.sqrt((x-ax-q*dx)^2+(z-az-q*dz)^2))
  end
  return best
+end
+function Environment.reliefSample(source,x,z)
+ local sx=math.floor((x/Environment.ReliefScale-576-source.SourceMinX)/4)+1
+ local sz=math.floor(((z-Environment.ReliefCenterZ)/Environment.ReliefScale+Environment.ReliefCenterZ-336-source.SourceMinZ)/4)+1
+ if sx<1 or sx>source.Width or sz<1 or sz>source.Depth then return nil end
+ local row=source.Rows[sx];local offset=(sz-1)*4
+ return tonumber(row:sub(offset+1,offset+3),16)/4-8,source.Materials[tonumber(row:sub(offset+4,offset+4),16)+1]
+end
+function Environment.reliefBlend(samples,x,z)
+ -- Even/odd containment keeps both Figure-8 islands reserved for the existing
+ -- three mesas and dune. The outer relief follows the actual road, not a box.
+ local inside=false
+ for i,a in samples do
+  local b=samples[i%#samples+1]
+  if (a.Z>z)~=(b.Z>z) and x<(b.X-a.X)*(z-a.Z)/(b.Z-a.Z)+a.X then inside=not inside end
+ end
+ if inside then return 0 end
+ local distance=Environment.roadDistance(samples,x,z)
+ local t=math.clamp((distance-Environment.ReliefClearance)/Environment.ReliefBlend,0,1)
+ return t*t*(3-2*t)
 end
 -- Choose the face looking toward the closest road segment, including curves.
 function Environment.chevronFacesRoad(samples,position,rightVector,isRightFace)
@@ -267,28 +293,34 @@ function Environment.build(track)
   model:SetAttribute('NaturalCount',count);model:SetAttribute('DryGrassClumpCount',0)
   model:SetAttribute('DryGrassStyle','SOURCE_TERRAIN_DECORATION')
  end
- -- Source height/material samples; horizontal scale only. Road/recovery rectangle
- -- is never written. Each bounded 32x64x32 voxel batch yields to rendering.
+ -- Original height/material samples, compacted horizontally on all four sides.
+ -- Raised relief excludes the road/recovery corridor and both loop interiors.
+ -- Each bounded 64x64 horizontal voxel batch yields regularly to rendering.
  task.spawn(function()
   local started=os.clock();local total=0
-  for sx=1,source.Width,16 do for sz=1,source.Depth,16 do
+  local scale=Environment.ReliefScale;local centerZ=Environment.ReliefCenterZ
+  local minX=math.floor((source.SourceMinX+576)*scale/64)*64
+  local maxX=math.ceil((source.SourceMinX+source.Width*4+576)*scale/64)*64
+  local minZ=math.floor((centerZ+(source.SourceMinZ+336-centerZ)*scale)/64)*64
+  local maxZ=math.ceil((centerZ+(source.SourceMinZ+source.Depth*4+336-centerZ)*scale)/64)*64
+  for wx=minX,maxX-64,64 do for wz=minZ,maxZ-64,64 do
    if not alive then return end
-   local wx=source.SourceMinX+(sx-1)*4+576
-   local wz=source.SourceMinZ+(sz-1)*4+336
-   if not Environment.protected(wx+32,wz+32) or not Environment.protected(wx,wz)then
+   -- Distance is 1-Lipschitz: a tile beyond the blend plus its half diagonal
+   -- needs no per-column road search. Near-course tiles retain exact checks.
+   local tileDistance=Environment.roadDistance(samples,wx+32,wz+32)
+   if tileDistance+46>Environment.ReliefClearance then
     local minY=math.floor((groundY-8)/4)*4
     local columns={};local maxHeight=minY
+    local fullTile=tileDistance-46>=Environment.ReliefClearance+Environment.ReliefBlend
+     and Environment.reliefBlend(samples,wx+32,wz+32)==1
     for dx=1,16 do
-     columns[dx]={};local row=source.Rows[sx+dx-1]
+     columns[dx]={}
      for dz=1,16 do
       local x,z=wx+(dx-.5)*4,wz+(dz-.5)*4
-      if not Environment.protected(x,z)then
-       local offset=(sz+dz-2)*4
-       local q=tonumber(row:sub(offset+1,offset+3),16);local mi=tonumber(row:sub(offset+4,offset+4),16)
-       local b=Environment.ClearBounds
-       local distance=math.max(b.MinX-x,x-b.MaxX,b.MinZ-z,z-b.MaxZ,0)
-       local blend=math.clamp(distance/160,0,1);blend=blend*blend*(3-2*blend)
-       local height=groundY+(q/4-8)*blend;local mn=source.Materials[mi+1]
+      local sourceHeight,mn=Environment.reliefSample(source,x,z)
+      local blend=if fullTile then 1 else Environment.reliefBlend(samples,x,z)
+      if sourceHeight and blend>0 then
+       local height=groundY+sourceHeight*blend
        if mn=='Grass'or mn=='LeafyGrass'then mn='Sand'end
        columns[dx][dz]={height,Enum.Material[mn]or Enum.Material.Sand};maxHeight=math.max(maxHeight,height)
       end
@@ -362,6 +394,8 @@ function Environment.build(track)
   if alive then
    finishLandscaping()
    model:SetAttribute('DryGrassShoulderPatches',0)
+   model:SetAttribute('ReliefScale',Environment.ReliefScale)
+   model:SetAttribute('ReliefClearance',Environment.ReliefClearance)
    model:SetAttribute('CliffCount',#Environment.Cliffs);model:SetAttribute('DuneCount',1);model:SetAttribute('TerrainTiles',total);model:SetAttribute('TerrainReady',true);model:SetAttribute('TerrainBuildSeconds',os.clock()-started)
   end
  end)

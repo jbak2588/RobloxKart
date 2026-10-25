@@ -70,6 +70,36 @@ for _,row in surface.Rows do
  end
 end
 check(max>140 and max<=256,'source contains real tall cliff relief')
+-- Actual mapped relief on every destination voxel center, all four sides.
+local raised=0;local nearest=math.huge;local sides={west=0,east=0,north=0,south=0}
+for x=-830,830,4 do for z=-530,698,4 do
+ local h=env.reliefSample(surface,x,z)
+ if h and h>0 then
+  local blend=env.reliefBlend(course.Samples,x,z)
+  if blend>0 then
+   local distance=env.roadDistance(course.Samples,x,z)
+   check(distance>=132,'outer raised terrain preserves the full 90x90 recovery envelope plus voxel margin')
+   nearest=math.min(nearest,distance);raised+=1
+   if x< -300 then sides.west=math.max(sides.west,h*blend)end
+   if x>300 then sides.east=math.max(sides.east,h*blend)end
+   if z< -360 then sides.north=math.max(sides.north,h*blend)end
+   if z>525 then sides.south=math.max(sides.south,h*blend)end
+  end
+ end
+end end
+for side,peak in sides do check(peak>35,'retained original mountains on '..side..', including unseen side')end
+check(raised>10000 and nearest<140,'relief reaches the near-course band instead of remaining at the old horizon')
+for _,p in course.Samples do
+ for _,dx in {-90,0,90}do for _,dz in {-90,0,90}do
+  check(env.reliefBlend(course.Samples,p.X+dx,p.Z+dz)==0,'new relief preserves every road/recovery sample')
+ end end
+end
+check(env.reliefBlend(course.Samples,0,338)==0,'existing interior dune receives no outer relief')
+local mappedX=(-1792+4*50+576)*env.ReliefScale
+local mappedZ=84+(-1152+4*40+336-84)*env.ReliefScale
+local mappedHeight=env.reliefSample(surface,mappedX+.01,mappedZ+.01)
+check(mappedHeight==tonumber(surface.Rows[51]:sub(161,163),16)/4-8,'inverse mapping retains original sampled height')
+print('Near relief: raised='..raised..' nearest='..nearest..' peaks W/E/N/S='..sides.west..'/'..sides.east..'/'..sides.north..'/'..sides.south)
 local dunePeak=0
 for x=-96,96,4 do for z=240,432,4 do
  local height=env.duneHeight(surface,x,z);dunePeak=math.max(dunePeak,height)
