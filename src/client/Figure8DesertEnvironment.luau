@@ -75,6 +75,18 @@ function Environment.roadDistance(samples,x,z)
  end
  return best
 end
+-- Choose the face looking toward the closest road segment, including curves.
+function Environment.chevronFacesRoad(samples,position,rightVector,isRightFace)
+ local closest,distance=nil,math.huge
+ for i,a in samples do
+  local b=samples[i%#samples+1];local delta=b-a
+  local q=math.clamp((position-a):Dot(delta)/delta:Dot(delta),0,1)
+  local point=a+delta*q;local d=(point-position).Magnitude
+  if d<distance then closest,distance=point,d end
+ end
+ local rightInward=rightVector:Dot(closest-position)>0
+ return isRightFace==rightInward
+end
 function Environment.build(track)
  local resources=RS:WaitForChild('KDMDesertResources')
  local source=require(RS:WaitForChild('KDMDesertSource'):WaitForChild('TerrainSurface'))
@@ -167,7 +179,14 @@ function Environment.build(track)
  end end
  local keptChevrons=Environment.selectChevrons(chevrons);local chevronCount=0
  for _,p in chevrons do
-  if keptChevrons[p]then chevronCount+=1 else
+  if keptChevrons[p]then
+   chevronCount+=1
+   for _,g in p:GetChildren()do
+    if g:IsA('SurfaceGui')and not Environment.chevronFacesRoad(samples,p.Position,p.CFrame.RightVector,g.Face==Enum.NormalId.Right)then
+     railState[g]=g.Enabled;g.Enabled=false
+    end
+   end
+  else
    railState[p]=p.LocalTransparencyModifier;p.LocalTransparencyModifier=1
    for _,g in p:GetChildren()do if g:IsA('SurfaceGui')then railState[g]=g.Enabled;g.Enabled=false end end
   end
@@ -330,34 +349,9 @@ function Environment.build(track)
     terrain:WriteVoxels(region,4,materials,occupancy);table.insert(tiles,region);total+=1;task.wait()
    end end
   end
-  -- Occasional native dry-grass patches outside the kerb/runoff corridor.
-  -- Preserve existing voxels outside each small patch, including nearby mesas.
-  local shoulderPatches=0
-  for i=12,#samples-1,18 do
-   if not alive then return end
-   local a,b=samples[i],samples[i+1];local tangent=(b-a).Unit
-   local side=if i%4<2 then -1 else 1
-   local center=a+Vector3.new(-tangent.Z,0,tangent.X)*(62*side)
-   if Environment.roadDistance(samples,center.X,center.Z)<56 then continue end
-   local wx,wz=math.floor((center.X-12)/4)*4,math.floor((center.Z-12)/4)*4
-   local minY=math.floor((groundY-8)/4)*4
-   local region=Region3.new(Vector3.new(wx,minY,wz),Vector3.new(wx+28,minY+16,wz+28))
-   local materials,occupancy=terrain:ReadVoxels(region,4)
-   for dx=1,7 do for dz=1,7 do
-    local x,z=wx+(dx-.5)*4,wz+(dz-.5)*4
-    if ((x-center.X)/10)^2+((z-center.Z)/7)^2<1 and Environment.roadDistance(samples,x,z)>=44 then
-     for y=1,4 do
-      materials[dx][y][dz]=Enum.Material.Grass
-      occupancy[dx][y][dz]=math.clamp((groundY+.3-minY)/4-y+1,0,1)
-     end
-    end
-   end end
-   terrain:WriteVoxels(region,4,materials,occupancy);table.insert(tiles,region)
-   total+=1;shoulderPatches+=1;task.wait()
-  end
   if alive then
    finishLandscaping()
-   model:SetAttribute('DryGrassShoulderPatches',shoulderPatches)
+   model:SetAttribute('DryGrassShoulderPatches',0)
    model:SetAttribute('CliffCount',#Environment.Cliffs);model:SetAttribute('DuneCount',1);model:SetAttribute('TerrainTiles',total);model:SetAttribute('TerrainReady',true);model:SetAttribute('TerrainBuildSeconds',os.clock()-started)
   end
  end)

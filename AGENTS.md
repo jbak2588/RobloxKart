@@ -1627,3 +1627,8 @@ tumbleweed model. Both round models are excluded. Native golden grass may cover
 parts of the dune and occasional small shoulder patches, outside the road/kerbs.
 Decoration and GrassLength are baked Studio settings (test preview length0.1);
 do not attempt to write non-scriptable Terrain properties from client code.
+
+Owner roadside correction — 2026-10-25: remove the12 isolated raised shoulder
+grass patches; do not replace them with small oval mounds. Keep the approved
+island dune. Desert chevrons show arrows only on the road-facing side; leave
+the reverse side blank instead of displaying a misleading opposite direction.

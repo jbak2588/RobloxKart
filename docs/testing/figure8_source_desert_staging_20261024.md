@@ -188,3 +188,14 @@ and unchanged road Y confirmed. Cleanup fixture removed. Focused282057 checks,
 43139 geometry checks,25 skid/world-VFX checks,222-source compile,default/preview
 Rojo XML and diff checks pass. Mobile shimmer, grass readability and sustained
 rendering/thermal acceptance remain owner-device checks.
+
+## Roadside grass removal / one-sided chevrons — 2026-10-25
+
+Owner mobile review rejected the12 isolated native shoulder grass patches as
+burial mounds. Removed their voxel construction entirely; the existing island
+dune and its grass remain. Desert-only chevrons disable their outward-facing
+SurfaceGui, using the nearest road segment to choose the inward face. Cleanup
+restores prior GUI state. Original sign count, front image and road geometry stay
+unchanged. No replacement grass mounds or additional scenery.
+
+Validation: 282061 focused checks, 43139 Figure-8 geometry checks, all222 production sources compile, Rojo preview XML and diff check PASS. Ordinary Studio LocalScript runtime:12 enabled road-facing sign GUIs,12 disabled rear GUIs,0 shoulder patches; no environment/QA script errors. Mobile appearance remains owner verification.

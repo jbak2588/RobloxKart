@@ -60,6 +60,12 @@ end end
 local kept=env.selectChevrons(signs);local perArc={0,0,0,0}
 for p in kept do perArc[p.Arc]+=1 end
 for _,n in perArc do check(n==3,'three spaced signs per corner')end
+local square={rb.Vector3.new(-10,0,-10),rb.Vector3.new(10,0,-10),rb.Vector3.new(10,0,10),rb.Vector3.new(-10,0,10)}
+for _,side in {-1,1}do
+ local position=rb.Vector3.new(side*20,0,0)
+ check(env.chevronFacesRoad(square,position,rb.Vector3.xAxis,side<0),'road-facing chevron retained on either side')
+ check(not env.chevronFacesRoad(square,position,rb.Vector3.xAxis,side>0),'rear-facing chevron blank on either side')
+end
 local resources=rb.deserializeModel(fs.readFile('src/assets/KDMDesertResources.rbxmx'))[1]
 check(#resources.Natural:GetChildren()==3,'cactus/agave/boulder only; no round dry-grass or tumbleweed models')
 for _,x in resources:GetDescendants()do check(not x:IsA('LuaSourceContainer'),'no imported template scripts')end
