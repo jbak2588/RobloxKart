@@ -7,6 +7,15 @@ local Environment={}
 -- Softer mobile daylight; tint the sand instead of washing out the whole HUD.
 local sandTint=Color3.fromRGB(224,218,205)
 Environment.SourceScale=1
+function Environment.straightRoadLength(samples,index)
+ local a,b=samples[index],samples[index%#samples+1]
+ local before=samples[(index-2)%#samples+1];local after=samples[(index+1)%#samples+1]
+ local direction=(b-a).Unit
+ if direction:Dot((a-before).Unit)>.999999 and direction:Dot((after-b).Unit)>.999999 then
+  return (b-a).Magnitude
+ end
+ return nil
+end
 Environment.ClearBounds={MinX=-400,MaxX=400,MinZ=-440,MaxZ=608}
 Environment.Dune={X=0,Z=338,RadiusX=84,RadiusZ=64}
 Environment.Cliffs={
@@ -72,6 +81,7 @@ function Environment.build(track)
  local model=Instance.new('Model');model.Name='ClientHorizonEnvironment'
  model:SetAttribute('Theme','SOURCE_DESERT');model:SetAttribute('Source','Hub_n_lobby_original.rbxlx')
  local ground=track:FindFirstChild('SafetyGround');local groundY=if ground then ground.Position.Y+ground.Size.Y/2 else 0
+ local samples=Geometry.getCourse(Geometry.getDefinition('PracticeFigure8V1')).Samples
  local saved={};local kerbFrames={};local roadColors={};local railState={};local tiles={};local alive=true
  -- Separate overlapping kerb stripes from each other and the white road edge.
  local kerbs=track:FindFirstChild('Kerbs')
@@ -81,8 +91,11 @@ function Environment.build(track)
  end end end
  local function softenRoad(p)
   if p:IsA('BasePart')then
-   roadColors[p]={p.Color,p.MaterialVariant}
+   roadColors[p]={p.Color,p.MaterialVariant,p.Size}
    p.Color=Color3.fromRGB(226,220,188);p.MaterialVariant='KDMDesert_Racing_Asphalt_A'
+   local index=tonumber(p.Name:match('^Road(%d+)$'))
+   local length=index and Environment.straightRoadLength(samples,index)
+   if length and not p.CanCollide then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end
   end
  end
  local roads=track:FindFirstChild('Road')
@@ -96,8 +109,8 @@ function Environment.build(track)
  local materialService=game:GetService('MaterialService');local materialCopies={};local overrides={}
  for _,v in resources.Materials:GetChildren()do
   local c=v:Clone();c.Name='KDMDesert_'..v.Name
-  -- Texture-map properties require Plugin capability. The matte asphalt map
-  -- selection is baked into the prefab; ordinary LocalScripts only clone it.
+  -- Texture-map properties require Plugin capability. Source normal/color maps
+  -- and the baked matte profile are only cloned by ordinary LocalScripts.
   c.Parent=materialService;table.insert(materialCopies,c)
   local base=c.BaseMaterial
   if overrides[base]==nil then overrides[base]=materialService:GetBaseMaterialOverride(base)end
@@ -106,6 +119,7 @@ function Environment.build(track)
  local terrain=W.Terrain;local colors={}
  for _,n in {'Sand','Sandstone','Ground'}do colors[n]=terrain:GetMaterialColor(Enum.Material[n]);terrain:SetMaterialColor(Enum.Material[n],sandTint)end
  colors.Slate=terrain:GetMaterialColor(Enum.Material.Slate);terrain:SetMaterialColor(Enum.Material.Slate,Color3.fromRGB(204,190,140))
+ colors.Grass=terrain:GetMaterialColor(Enum.Material.Grass);terrain:SetMaterialColor(Enum.Material.Grass,Color3.fromRGB(204,190,140))
  local env=track:FindFirstChild('Environment');local infield=env and env:FindFirstChild('Infield')
  if infield then appearance(infield);infield.LocalTransparencyModifier=1 end
  if ground then appearance(ground);ground.LocalTransparencyModifier=1 end
@@ -132,7 +146,7 @@ function Environment.build(track)
   for _,r in tiles do terrain:FillBlock(r.CFrame,r.Size,Enum.Material.Air)end
   for _,r in saved do if r.part.Parent then r.part.Material=r.material;r.part.MaterialVariant=r.variant;r.part.Color=r.color;r.part.LocalTransparencyModifier=r.localTransparency end end
   for p,cf in kerbFrames do if p.Parent then p.CFrame=cf end end
-  for p,state in roadColors do if p.Parent then p.Color=state[1];p.MaterialVariant=state[2]end end
+  for p,state in roadColors do if p.Parent then p.Color=state[1];p.MaterialVariant=state[2];p.Size=state[3]end end
   for p,state in railState do if p.Parent then
    if p:IsA('SurfaceGui')then p.Enabled=state else p.LocalTransparencyModifier=state end
   end end
@@ -145,7 +159,6 @@ function Environment.build(track)
  end)
  -- Static original palette. Tumbleweed is not planted as a shrub.
  local natural=Instance.new('Folder');natural.Name='SourceNatural';natural.Parent=model
- local samples=Geometry.getCourse(Geometry.getDefinition('PracticeFigure8V1')).Samples
  local adRails=Instance.new('Folder');adRails.Name='ParkSizeAdRails';adRails.Parent=model
  local railSites={};local originals=env and env:FindFirstChild('VisualRails')
  local chevrons={}
@@ -182,7 +195,7 @@ function Environment.build(track)
  end end
  model:SetAttribute('AdRailCount',#railSites)
  local function finishLandscaping()
-  local count,dryCount=0,0
+  local count=0
   local groundParams=RaycastParams.new();groundParams.FilterType=Enum.RaycastFilterType.Include
   groundParams.FilterDescendantsInstances={terrain}
   local function plant(name,x,z,scale,angle)
@@ -201,7 +214,6 @@ function Environment.build(track)
    for _,p in parts do if p:IsA('BasePart')then p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false;p.CastShadow=false end end
    clone:SetAttribute('GroundY',floorY);clone:SetAttribute('Burial',bury)
    clone.Parent=natural;count+=1
-   if name=='Racing_Foliage_Grass_b'then dryCount+=1 end
   end
   local names={'Racing_Foliage_Cactus_a','Racing_Foliage_Agave_a','Racing_Boulder_a'}
   local scatter=0
@@ -219,20 +231,12 @@ function Environment.build(track)
     local v=p.Position+outward*s[1]+p.CFrame.LookVector*s[2]
     plant(names[s[3]],v.X,v.Z,.82+((i*17+j*13)%37)/100,(i*71+j*59)%360)
    end
-   for j=1,2 do local v=p.Position+outward*(40+j*4)+p.CFrame.LookVector*(j*13-18)
-    plant('Racing_Foliage_Grass_b',v.X,v.Z,.55+((i+j)%4)*.07,i*47+j*83)
-   end
-  end
-  -- Sparse original dry tufts on the dune, not a dense forest-understory carpet.
-  for i=1,28 do
-   local angle=i*2.39996;local r=math.sqrt(i/30)
-   local x,z=math.cos(angle)*r*72,338+math.sin(angle)*r*54
-   plant('Racing_Foliage_Grass_b',x,z,.55+(i%4)*.07,i*137%360)
   end
   for i,s in {{-32,324,3},{28,350,1},{43,310,2},{-45,366,3}}do
    plant(names[s[3]],s[1],s[2],.85+i*.05,i*83)
   end
-  model:SetAttribute('NaturalCount',count);model:SetAttribute('DryGrassCount',dryCount)
+  model:SetAttribute('NaturalCount',count);model:SetAttribute('DryGrassClumpCount',0)
+  model:SetAttribute('DryGrassStyle','SOURCE_TERRAIN_DECORATION')
  end
  -- Source height/material samples; horizontal scale only. Road/recovery rectangle
  -- is never written. Each bounded 32x64x32 voxel batch yields to rendering.
@@ -291,7 +295,9 @@ function Environment.build(track)
      -- A buried base connects boundary voxels below the flat sand floor, avoiding
      -- an exposed vertical rim where the hill would otherwise meet pure Air.
      for y=1,ny do local o=math.clamp((groundY-3+h-minY)/4-y+1,0,1)
-      materials[dx][y][dz]=Enum.Material.Sand;occupancy[dx][y][dz]=o
+      local x,z=wx+(dx-.5)*4,wz+(dz-.5)*4
+      local grass=h>3 and math.sin(x*.11)+math.sin(z*.09)>-.5
+      materials[dx][y][dz]=if grass then Enum.Material.Grass else Enum.Material.Sand;occupancy[dx][y][dz]=o
      end
     end
    end
@@ -324,8 +330,34 @@ function Environment.build(track)
     terrain:WriteVoxels(region,4,materials,occupancy);table.insert(tiles,region);total+=1;task.wait()
    end end
   end
+  -- Occasional native dry-grass patches outside the kerb/runoff corridor.
+  -- Preserve existing voxels outside each small patch, including nearby mesas.
+  local shoulderPatches=0
+  for i=12,#samples-1,18 do
+   if not alive then return end
+   local a,b=samples[i],samples[i+1];local tangent=(b-a).Unit
+   local side=if i%4<2 then -1 else 1
+   local center=a+Vector3.new(-tangent.Z,0,tangent.X)*(62*side)
+   if Environment.roadDistance(samples,center.X,center.Z)<56 then continue end
+   local wx,wz=math.floor((center.X-12)/4)*4,math.floor((center.Z-12)/4)*4
+   local minY=math.floor((groundY-8)/4)*4
+   local region=Region3.new(Vector3.new(wx,minY,wz),Vector3.new(wx+28,minY+16,wz+28))
+   local materials,occupancy=terrain:ReadVoxels(region,4)
+   for dx=1,7 do for dz=1,7 do
+    local x,z=wx+(dx-.5)*4,wz+(dz-.5)*4
+    if ((x-center.X)/10)^2+((z-center.Z)/7)^2<1 and Environment.roadDistance(samples,x,z)>=44 then
+     for y=1,4 do
+      materials[dx][y][dz]=Enum.Material.Grass
+      occupancy[dx][y][dz]=math.clamp((groundY+.3-minY)/4-y+1,0,1)
+     end
+    end
+   end end
+   terrain:WriteVoxels(region,4,materials,occupancy);table.insert(tiles,region)
+   total+=1;shoulderPatches+=1;task.wait()
+  end
   if alive then
    finishLandscaping()
+   model:SetAttribute('DryGrassShoulderPatches',shoulderPatches)
    model:SetAttribute('CliffCount',#Environment.Cliffs);model:SetAttribute('DuneCount',1);model:SetAttribute('TerrainTiles',total);model:SetAttribute('TerrainReady',true);model:SetAttribute('TerrainBuildSeconds',os.clock()-started)
   end
  end)

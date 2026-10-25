@@ -158,3 +158,33 @@ not a mobile thermal/FPS result or full manually driven-lap acceptance.
 checks,25 world-VFX/skid checks,222-source compile,Rojo XML and diff checks PASS.
 Temporary ordinary-client startup fixture removed before publication. Publish
 scope remains Universe10772198697 / Place106553302629620 only.
+
+## Native grass clarification / road shimmer attempt — 2026-10-25
+
+Owner clarified that the intended dry grass is the original Terrain blade
+rendering, not the imported Grass_b round clump. Removed both Grass_b and tumbleweed
+prefabs and all64 round placements. Imported source Racing_Sand_Grass instead;
+original template Terrain has Decoration=true,GrassLength0.1. These properties
+are non-scriptable: test preview and published Studio test place use baked0.1;
+default project retains its prior0.7 to avoid an unrelated production change.
+Native Grass voxels cover irregular dune areas and12 small shoulder patches;
+Grass color204/190/140 yields golden blades. Shoulder sample centers stay >=44
+from centerline (>=12 road-edge allowance including2-stud voxel half-width).
+ReadVoxels preserves neighboring mesa data outside the small patches. Native
+blade behavior reference: https://create.roblox.com/docs/parts/terrain.
+
+Road overlap is distinct from specular reflection. The source uses the same
+normal map without the Figure-8 overhanging Part seam arrangement. A depth-layer
+experiment produced visible fine seams and was discarded. Final road Y is unchanged;
+152 straight noncolliding visual slices now end at their actual chord endpoints,
+removing coplanar straight overhang. Curved geometry and the actual physical
+support remain unchanged. Original normal map restored; no new runtime map writes.
+No universal shimmer-removal or mobile moving-view PASS is claimed.
+
+Ordinary LocalScript environment startup: zero MessageErrors;923 tiles,3 cliffs,
+1 dune,19 panels,12 chevrons,106 cactus/agave/rock instances,0 round clumps,
+12 shoulder patches. Native blades visually confirmed on dune; source normal map
+and unchanged road Y confirmed. Cleanup fixture removed. Focused282057 checks,
+43139 geometry checks,25 skid/world-VFX checks,222-source compile,default/preview
+Rojo XML and diff checks pass. Mobile shimmer, grass readability and sustained
+rendering/thermal acceptance remain owner-device checks.

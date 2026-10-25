@@ -1620,3 +1620,10 @@ additional explicit terrain-exclusion exceptions: raised footprints must stay
 >=68 studs from the road centerline and >=130 studs from the crossing center.
 The desert candidate retains exactly three chevron sign panels per corner
 (12 total); keep original arrow imagery and directions. No production rollout.
+
+Owner dry-grass clarification — 2026-10-25: the intended dry grass is the original
+Terrain grass blades with Racing_Sand_Grass, not Racing_Foliage_Grass_b or a
+tumbleweed model. Both round models are excluded. Native golden grass may cover
+parts of the dune and occasional small shoulder patches, outside the road/kerbs.
+Decoration and GrassLength are baked Studio settings (test preview length0.1);
+do not attempt to write non-scriptable Terrain properties from client code.

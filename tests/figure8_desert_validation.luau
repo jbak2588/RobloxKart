@@ -11,6 +11,12 @@ check(not policy.enabled({GetAttribute=function()return nil end},true,0,0),'Stud
 local geometry=luau.load(fs.readFile('src/shared/TrackGeometry.luau'),{environment={Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame}})()
 local env=luau.load(fs.readFile('src/client/Figure8DesertEnvironment.luau'),{environment={Vector3=rb.Vector3,Color3=rb.Color3,game={GetService=function(_,n)return if n=='ReplicatedStorage'then {Shared={TrackGeometry='geometry'}}else {} end},require=function()return geometry end}})()
 local course=geometry.getCourse(geometry.getDefinition('PracticeFigure8V1'))
+local straightCount=0
+for i=1,#course.Samples do
+ local length=env.straightRoadLength(course.Samples,i)
+ if length then straightCount+=1;check(math.abs(length-(course.Samples[i%#course.Samples+1]-course.Samples[i]).Magnitude)<.001,'straight visual span has no overhang or height offset')end
+end
+check(straightCount>100,'straight visual road seam coverage')
 for _,p in course.Samples do
  for _,dx in {-90,0,90}do for _,dz in {-90,0,90}do check(env.protected(p.X+dx,p.Z+dz),'terrain exclusion preserves road plus 90-stud recovery envelope')end end
  check(env.roadDistance(course.Samples,p.X,p.Z)<.001,'actual polyline clearance evaluator')
@@ -55,17 +61,19 @@ local kept=env.selectChevrons(signs);local perArc={0,0,0,0}
 for p in kept do perArc[p.Arc]+=1 end
 for _,n in perArc do check(n==3,'three spaced signs per corner')end
 local resources=rb.deserializeModel(fs.readFile('src/assets/KDMDesertResources.rbxmx'))[1]
-check(#resources.Natural:GetChildren()==5,'original palette plus owner-approved dry tufts')
+check(#resources.Natural:GetChildren()==3,'cactus/agave/boulder only; no round dry-grass or tumbleweed models')
 for _,x in resources:GetDescendants()do check(not x:IsA('LuaSourceContainer'),'no imported template scripts')end
 check(resources.Natural:FindFirstChild('Racing_Foliage_Cactus_a')~=nil,'original cactus is present')
 check(resources.Materials:FindFirstChild('Racing_Buttes_A')~=nil,'original cliff material present')
 check(resources.Materials:FindFirstChild('Racing_Asphalt_A')~=nil,'original desert asphalt present')
-local bakedMatte=false
+local bakedMatte,sourceNormal=false,false
 for item in fs.readFile('src/assets/KDMDesertResources.rbxmx'):gmatch('<Item class="MaterialVariant".-</Item>')do
  if item:find('<string name="Name">Racing_Asphalt_A</string>',1,true)then
   bakedMatte=item:match('<Content name="MetalnessMap">%s*<null%s*/>')~=nil
+  sourceNormal=item:find('rbxassetid://15217430764',1,true)~=nil
  end
 end
 check(bakedMatte,'matte map baked into prefab; client has no Plugin map-write capability')
-check(resources.Natural:FindFirstChild('Racing_Foliage_Grass_b')~=nil,'original dry grass present')
+check(sourceNormal,'original road normal map retained; fix visual overlap instead')
+check(resources.Materials:FindFirstChild('Racing_Sand_Grass')~=nil,'original native dry-grass terrain material')
 print('PASS: '..count..' staging isolation, original resources/terrain and actual Figure-8 road/recovery clearance checks')
