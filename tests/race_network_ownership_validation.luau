@@ -63,6 +63,13 @@ verify(writes==before+1 and ctx.chassis._p.networkOwner==nil
  and not ctx.chassis._p.networkAutomatic,'item weld restores manual server authority')
 world.reassertServerAuthority(driver);flush()
 verify(writes==before+1,'intact server authority causes no redundant write')
+itemWeld();before=writes;humanoid.SeatPart=nil
+world.reassertServerAuthority(driver);flush()
+verify(writes==before,'item reassert rejects incomplete seating')
+humanoid.SeatPart=ctx.seat;humanoid.Health=0
+world.reassertServerAuthority(driver);flush()
+verify(writes==before,'item reassert rejects dead driver')
+humanoid.Health=100
 leave();itemWeld();before=writes;world.reassertServerAuthority(driver);flush()
 verify(writes==before,'unseated kart is not reasserted')
 sit();flush();itemWeld();before=writes;ctx.chassis.Anchored=true

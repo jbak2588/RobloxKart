@@ -181,7 +181,36 @@ replies=remote.messages[#remote.messages][2]
 check(not replies.pendingInvites['9']and replies.invitationResponses['9'].state=='ACCEPTED','accepted member no longer awaiting response')
 print('PASS '..count..' coordinator checks including invitation decisions')
 
--- Fresh reserved job experiment: only the affected unqueued1H+1B Quick Race.
+-- Production default: even unqueued 1H+1B repeats inside the original job.
+local productionConfig=luau.load(fs.readFile('src/shared/RaceConfig.luau'))()
+check(productionConfig.FRESH_BOT_REMATCH_ENABLED==false,'production disables fresh job workaround')
+modules.RaceConfig.FRESH_BOT_REMATCH_ENABLED=productionConfig.FRESH_BOT_REMATCH_ENABLED
+services.RunService={IsStudio=function()return false end}
+local reservations=0
+services.TeleportService={ReserveServerAsync=function()reservations+=1;error('unexpected reservation')end}
+local retainedSpawns=0
+modules.RaceBotController.setProductionSpawn=function()retainedSpawns+=1 end
+modules.RaceBotController.hasProductionBot=function()return true end
+modules.TrackCatalog.Entries.Track01Race.MaxPlayers=4
+local sameId,sameMatch='room-same-bot','match-same-bot'
+directory:createPersistent({id=sameId,matchId=sameMatch,trackId='Track01Race',hostUserId=1,hostName='Racer1',maxPlayers=4,quickMatch=true},'same-code','same-private')
+directory:stage(sameId,member(1),'same-token');directory:confirmArrival(sameId,1,'same-token','race-job')
+directory:addBot(sameId,{botId='Bot01',name='KDM Rookie [BOT]',kartId='Kart01',gridSlot=4})
+local same=Coordinator.start({roomId=sameId,matchId=sameMatch,trackId='Track01Race',participantUserIds={1}})
+for round=1,3 do
+ check(same.onRoundStart(1,2),'same-job human plus bot starts next round')
+ same.onRoomPhase('RACING',2)
+ check(same.onRoundReady({player})==true,'same-job rematch returns normal staging rather than transfer')
+ local retained=directory:get(sameId)
+ check(retained.matchId==sameMatch and retained.reservedServerAccessCode=='same-code'
+  and retained.raceJobId=='race-job','same job and reservation retained')
+ check(retained.state=='WAITING' and #retained.stagedMembers==1 and retained.stagedMembers[1].arrived
+  and #retained.stagedBots==1 and retained.stagedBots[1].botId=='Bot01','human and original bot retained for rematch')
+end
+check(reservations==0 and retainedSpawns==3,'three rematches reposition bot without server reservation')
+same.stop()
+
+-- Explicit opt-in experiment coverage is retained, but production leaves it off.
 local freshId='room-fresh-bot';local oldId='match-old-bot'
 directory:createPersistent({id=freshId,matchId=oldId,trackId='Track01Race',hostUserId=1,hostName='Racer1',maxPlayers=4,quickMatch=true},'old-code','old-private')
 directory:stage(freshId,member(1),'fresh-original-token');directory:confirmArrival(freshId,1,'fresh-original-token','race-job')

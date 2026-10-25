@@ -49,6 +49,20 @@ authority repair; do not declare this recurrence resolved or make speculative
 camera/physics changes without a correlated capture. See
 [the follow-up](docs/testing/rematch_hitch_followup.md).
 
+## Shield authority follow-up — 2026-10-25
+
+Owner reproduced the periodic hitch immediately after activating Shield while
+seated. Commit `c766860` adds deferred authority reassertion after Shield shell /
+pulse weld creation and removal, and at Countdown / GO. Preserve those guards.
+Reassert only for the current live context and its actual seated, living driver;
+check both Seat.Occupant and Humanoid.SeatPart, and write only when manual server
+ownership has been lost. Never turn this into per-frame ownership writes.
+
+Owner now directs human-plus-bot Rematch to stay in the existing Race server.
+`FRESH_BOT_REMATCH_ENABLED` is false; preserve the existing Room, bot, admission
+and reward-streak lifecycle. The fresh-job workaround is not the production path.
+Automated regression coverage is distinct from long-session real-device acceptance.
+
 ## Mission
 
 Commercial mobile-first Roblox arcade kart racing game.

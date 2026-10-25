@@ -98,6 +98,9 @@ function PrototypeWorld.reassertServerAuthority(player: Player)
 		local kart, chassis, seat = context.kart, context.chassis, context.seat
 		if contextsFor(player)[player] ~= context or context.owner ~= player or not kart or not kart.Parent
 			or not chassis or chassis.Parent ~= kart or chassis.Anchored or not seat or not seat.Occupant then return end
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 or seat.Occupant ~= humanoid or humanoid.SeatPart ~= seat then return end
 		local shouldReassert = true
 		if chassis.GetNetworkOwnershipAuto and chassis.GetNetworkOwner then
 			local ok, autoOrPlayer = pcall(function()
