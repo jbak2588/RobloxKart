@@ -142,3 +142,22 @@ same capture, then compare a fresh RACE NOW under the same device/network.
 Do not replace the accepted server simulation with client ownership or perform
 per-frame ownership writes as a speculative workaround. No Roblox Publish is
 performed in this follow-up.
+
+## Owner first isolation request — 2026-10-25
+
+After successful desert asset/reward acceptance, owner reports first two Race Now
+human+bot rounds smooth, third Rematch hitching roughly every4 seconds with
+broken-looking trails and bot forward/backward snaps. Park remains smooth after
+4–5 Replays. This is a user observation, not proof that the minimap is causal.
+
+First reversible experiment disables only rival minimap collection, position
+smoothing and marker updates via RaceConfig.MINIMAP_RIVALS_ENABLED=false. Local
+racer position, course, checkpoint cue and minimap stay. Server map replication,
+ranking, bot controls, physics, seating and manual server ownership remain intact.
+No race-server recreation is bundled into this experiment. If the same failure
+persists, owner authorizes investigating a fresh-entry-style Rematch lifecycle;
+do not report that second intervention as implemented by this change.
+
+Owner clarification: fresh-entry means reproducing Lobby exit/re-entry cleanup, not restarting the entire Roblox server. A possible later fresh-room handoff must preserve room/roster/reward continuation. This first minimap isolation does not implement that handoff.
+
+Validation:222-source compile,Rojo build,diff check;17 deferred ownership guards and existing1191 combat/NPC checks plus273 live-gated NPC checks and13 rear-preview checks PASS;150 Rematch receipt/session checks PASS. Studio render loop with active opponent map state:local marker1,rival markers0,rival collector calls0. Temporary QA bootstrap restored. No real third-Rematch hitch capture or mobile acceptance; recurrence remains OPEN.

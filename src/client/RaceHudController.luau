@@ -1719,11 +1719,11 @@ function RaceHudController.start()
 			local chassis = kart and kart:FindFirstChild("Chassis")
 			mapRenderer:setRacerMarker("local:" .. tostring(player.UserId),
 				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL")
-			local rivals = RaceMinimapRivals.collect(player, Players:GetPlayers(),
-				getNumberAttribute(player, "RaceParticipantCount", 1),botSnapshots())
+			local rivals = if RaceConfig.MINIMAP_RIVALS_ENABLED then RaceMinimapRivals.collect(player, Players:GetPlayers(),
+				getNumberAttribute(player, "RaceParticipantCount", 1),botSnapshots()) else nil
 			local activeKeys = spareRivalKeys
 			table.clear(activeKeys)
-			for userId, position in rivals do
+			for userId, position in rivals or {} do
 				local key = "rival:" .. tostring(userId)
 				activeKeys[key] = true
 				local previous = displayedRivalPositions[key]
