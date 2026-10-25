@@ -49,6 +49,27 @@ verify(writes==before,'removed chassis rejects deferred work')
 ctx.chassis.Parent=ctx.kart;leave();sit()
 world.releaseKartContext(driver);flush()
 verify(writes==before,'destroyed context rejects deferred work')
+-- Race item welds (Shield shell/pulse) can return the seated assembly to automatic.
+function methods:GetNetworkOwner() return self._p.networkOwner end
+function methods:GetNetworkOwnershipAuto() return self._p.networkAutomatic == true end
+leave();ctx=assert(world.acquireKartContext(driver,CF.new(0,1.75,0)));sit();flush()
+local function itemWeld()
+ ctx.chassis._p.networkAutomatic=true;ctx.chassis._p.networkOwner=driver
+end
+before=writes;itemWeld();world.reassertServerAuthority(driver)
+verify(#queue==1 and writes==before,'item weld reassert waits for joint to settle')
+flush()
+verify(writes==before+1 and ctx.chassis._p.networkOwner==nil
+ and not ctx.chassis._p.networkAutomatic,'item weld restores manual server authority')
+world.reassertServerAuthority(driver);flush()
+verify(writes==before+1,'intact server authority causes no redundant write')
+leave();itemWeld();before=writes;world.reassertServerAuthority(driver);flush()
+verify(writes==before,'unseated kart is not reasserted')
+sit();flush();itemWeld();before=writes;ctx.chassis.Anchored=true
+world.reassertServerAuthority(driver);flush()
+verify(writes==before,'anchored chassis is not reasserted')
+ctx.chassis.Anchored=false;world.reassertServerAuthority(driver);ctx:clearOwner();flush()
+verify(writes==before,'released owner rejects item reassert')
 print('PASS: '..ownershipChecks..' deferred driver network ownership lifecycle checks')
 ]]
 local helper=require('./helpers/gameplay_config')

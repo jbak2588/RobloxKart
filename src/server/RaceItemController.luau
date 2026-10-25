@@ -37,15 +37,24 @@ local tactical = TacticalLoadoutService.new(RaceSession.forPlayer)
 local shieldPulses = {}
 local function clearPulses(player)
 	for i = #shieldPulses, 1, -1 do
-		if shieldPulses[i].player == player then shieldPulses[i].visual:Destroy(); table.remove(shieldPulses, i) end
+		if shieldPulses[i].player == player then
+			shieldPulses[i].visual:Destroy(); table.remove(shieldPulses, i)
+			PrototypeWorld.reassertServerAuthority(player)
+		end
 	end
 end
 local function pulseShield(player, kart)
 	local _, chassis = PrototypeWorld.getRaceKart(player)
 	if not chassis then return end
-	if #shieldPulses >= 32 then shieldPulses[1].visual:Destroy(); table.remove(shieldPulses, 1) end
+	if #shieldPulses >= 32 then
+		local oldest = table.remove(shieldPulses, 1)
+		oldest.visual:Destroy()
+		PrototypeWorld.reassertServerAuthority(oldest.player)
+	end
 	table.insert(shieldPulses, {player=player, kart=kart, session=RaceSession.forPlayer(player), born=time(),
 		visual=Visuals.shieldPulse(kart, chassis)})
+	-- Welded visuals can reset the seated assembly to automatic ownership.
+	PrototypeWorld.reassertServerAuthority(player)
 end
 local function combatFeedback(source, target, item, result)
 	if source == target or not loadouts[source] or source:GetAttribute("RaceState") ~= "RACING" then return end
@@ -119,6 +128,7 @@ local function removeShield(player)
 		state.visual:Destroy()
 		state.kart:SetAttribute("KartShieldActive", false)
 		shields[player] = nil
+		PrototypeWorld.reassertServerAuthority(player)
 	end
 end
 local function removeHazard(index, reason)
@@ -264,7 +274,7 @@ local function activate(player, id)
 		removeShield(player)
 		shields[player] = { untilTime = time() + Config.SHIELD_DURATION, kart = kart, visual = Visuals.shield(kart, chassis) }
 		kart:SetAttribute("KartShieldActive", true)
-		pulseShield(player, kart)
+		pulseShield(player, kart) -- also reasserts authority after the shell weld
 		return true
 	elseif id == "Missile" then
 		local target = RaceItemController.missileTarget(player)
@@ -480,6 +490,7 @@ function RaceItemController.start()
 			if age >= 0.3 or not p.visual.Parent or PrototypeWorld.getRaceKart(p.player) ~= p.kart
 				or RaceSession.forPlayer(p.player) ~= p.session then
 				p.visual:Destroy(); table.remove(shieldPulses, i)
+				PrototypeWorld.reassertServerAuthority(p.player)
 			else
 				p.visual.Size = Vector3.new(9, 6.5, 11) * (0.9 + age * 1.5)
 				p.visual.Transparency = 0.45 + age / 0.3 * 0.55

@@ -407,6 +407,7 @@ function RaceController.start(options)
 			racer.lastCountdownValue = RaceConfig.COUNTDOWN_SECONDS
 			player:SetAttribute("RaceCountdown", racer.lastCountdownValue)
 			setRaceState(player, "COUNTDOWN")
+			if PrototypeWorld.reassertServerAuthority then PrototypeWorld.reassertServerAuthority(player) end
 		end
 
 		function racer:enterWaitingLobby()
@@ -703,6 +704,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceCountdown", 0)
 			setRaceState(player, "RACING")
 			kart:SetAttribute("RaceControlsLocked", false)
+			if PrototypeWorld.reassertServerAuthority then PrototypeWorld.reassertServerAuthority(player) end
 			if context.launchBoost then context:launchBoost(player)end
 			record("start", player, startTime)
 		end

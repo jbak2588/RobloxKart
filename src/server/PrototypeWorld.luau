@@ -86,6 +86,35 @@ function PrototypeWorld.activateNitro(player: Player): (boolean, string?)
 	return context:activateNitro(player)
 end
 
+-- Race item visuals (Shield shell / pulse) are welded to and removed from a live
+-- kart. Like SeatWeld, that joint change can return the seated assembly to
+-- automatic ownership; owner report 2026-10-25: periodic ~4 s hitch starting at
+-- Shield activation. Reassert manual server authority once after the change
+-- settles, only if it was lost. Event-driven; never a per-frame write.
+function PrototypeWorld.reassertServerAuthority(player: Player)
+	local context = contextsFor(player)[player]
+	if not context then return end
+	task.defer(function()
+		local kart, chassis, seat = context.kart, context.chassis, context.seat
+		if contextsFor(player)[player] ~= context or context.owner ~= player or not kart or not kart.Parent
+			or not chassis or chassis.Parent ~= kart or chassis.Anchored or not seat or not seat.Occupant then return end
+		local shouldReassert = true
+		if chassis.GetNetworkOwnershipAuto and chassis.GetNetworkOwner then
+			local ok, autoOrPlayer = pcall(function()
+				return chassis:GetNetworkOwnershipAuto() or chassis:GetNetworkOwner() ~= nil
+			end)
+			if ok then
+				shouldReassert = autoOrPlayer
+			end
+		end
+		if shouldReassert and chassis.SetNetworkOwner then
+			pcall(function()
+				chassis:SetNetworkOwner(nil)
+			end)
+		end
+	end)
+end
+
 local WORLD = {
 	GROUND_SIZE = Vector3.new(2048, 1, 2048),
 	CHASSIS_SIZE = Vector3.new(6, 1, 8),
