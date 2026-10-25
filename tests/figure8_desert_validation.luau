@@ -98,6 +98,12 @@ end
 local resources=rb.deserializeModel(fs.readFile('src/assets/KDMDesertResources.rbxmx'))[1]
 check(#resources.Natural:GetChildren()==3,'cactus/agave/boulder only; no round dry-grass or tumbleweed models')
 for _,x in resources:GetDescendants()do check(not x:IsA('LuaSourceContainer'),'no imported template scripts')end
+local meshIds={Cactus_a='rbxassetid://15491325754',Agave_a='rbxassetid://15169965752',Racing_Boulder_a='rbxassetid://15171684910'}
+local meshes=0
+for _,p in resources.Natural:GetDescendants()do if p:IsA('MeshPart')then
+ check(meshIds[p.Name]~=nil and fs.readFile('src/assets/KDMDesertResources.rbxmx'):find(meshIds[p.Name],1,true)~=nil,'source prefab contains original mesh asset ID');meshes+=1
+end end
+check(meshes==3,'three original natural meshes verified')
 check(resources.Natural:FindFirstChild('Racing_Foliage_Cactus_a')~=nil,'original cactus is present')
 check(resources.Materials:FindFirstChild('Racing_Buttes_A')~=nil,'original cliff material present')
 check(resources.Materials:FindFirstChild('Racing_Asphalt_A')~=nil,'original desert asphalt present')

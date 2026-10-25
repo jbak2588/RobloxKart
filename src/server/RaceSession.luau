@@ -61,7 +61,7 @@ function RaceSession:requestRewardRematch(player)
  if run then run.requested=true end
 end
 function RaceSession:beginRewardRound()
- local multiplayer=self.mode=="RACE" and self:humanCount()>=2
+ local multiplayer=self.mode=="RACE" and self:humanCount()>=1 and self:count()>=2
  for player in self.participants do
   if player:GetAttribute("IsBot")==true then continue end
   local old=self.rewardRuns[player]

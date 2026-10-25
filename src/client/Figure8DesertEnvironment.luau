@@ -222,6 +222,16 @@ function Environment.build(track)
    local template=resources.Natural:FindFirstChild(name);if not template then return end
    local hit=W:Raycast(Vector3.new(x,groundY+300,z),Vector3.new(0,-340,0),groundParams)
    local floorY=math.max(groundY+.035,if hit then hit.Position.Y else groundY+.035)
+   -- Never display a textured bounding box if an authoring sync lost MeshContent.
+   local missingMesh=false
+   local templateParts=template:GetDescendants();table.insert(templateParts,template)
+   for _,p in templateParts do if p:IsA('MeshPart')and p.MeshId==''then missingMesh=true end end
+   if missingMesh then
+    if not template:GetAttribute('MissingMeshReported')then
+     template:SetAttribute('MissingMeshReported',true);warn('[KDMDesert] Missing prefab mesh: '..name)
+    end
+    return
+   end
    local clone=template:Clone()
    if clone:IsA('Model')then clone:ScaleTo(clone:GetScale()*scale)else clone.Size*=scale end
    local cf,size;if clone:IsA('Model')then cf,size=clone:GetBoundingBox()else cf,size=clone.CFrame,clone.Size end

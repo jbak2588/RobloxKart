@@ -25,7 +25,7 @@ function Ops.valid(S,op)
   or op.economy.humanPosition==0 or op.economy.humanPosition>op.race.finishPosition) then return false end
  if op.economy and op.economy.rematchMultiplier~=nil then
   local m=op.economy.rematchMultiplier
-  if not S.integer(m,2147483647) or m<1 or (m>1 and (frozen.humanCount<2 or not op.race.eligible)) then return false end
+  if not S.integer(m,2147483647) or m<1 or (m>1 and (frozen.humanCount+frozen.botCount<2 or not op.race.eligible)) then return false end
  end
  return member and ((op.bestLapMilliseconds==nil and v.fullLapValid==false)
   or (S.integer(op.bestLapMilliseconds,86400000) and op.bestLapMilliseconds>0 and v.fullLapValid==true))

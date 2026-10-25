@@ -7,16 +7,17 @@ local schema=S.new(catalog,{jsonEncode=function(v)return serde.encode('json',v)e
 local Ops=load('src/server/RaceRecordOperations.luau')
 local n=0;local function check(ok,message)n+=1;assert(ok,message)end
 local function guid(i)return string.format('12345678-1234-1234-1234-%012d',i)end
-local function operation(i,rank,m,humans)
+local function operation(i,rank,m,humans,bots)
  humans=humans or 4
  local roster={};for j=1,humans do table.insert(roster,{IsBot=false,UserId=j})end
+ for j=1,(bots or 0)do table.insert(roster,{IsBot=true,BotId='Bot'..j})end
  local round=S.freezeRound({RoundGuid=guid(i),TrackId='Track01Race',GeometryId='PracticeCircuitV1',RulesetId='KDM_R8A3_RULES_V1',diagnostic=false,roster=roster})
  local at=1791650000000+i
  return {kind='OFFICIAL_RECORD',round=round,userId=1,bestLapMilliseconds=60000,bestRaceBoosts=2,achievedAt=at,
  verification={serverAccepted=true,state='FINISHED',targetLaps=2,completedLaps=2,fullLapValid=true,provenance='FULL_ROUTE_V1',boostIdentity='SERVER_SERIAL_V1'},
  economy={version=1,humanPosition=rank,rematchMultiplier=m},race={trackId=round.TrackId,geometryId=round.GeometryId,rulesetId=round.RulesetId,category=round.RaceCategory,
  recordScope=round.recordScope,targetLaps=2,roundGuid=round.RoundGuid,userId=1,totalMilliseconds=120000,laps={60000,60000},finishPosition=rank,
- startingHumans=humans,startingBots=0,raceBoosts=2,finishedAt=at,eligible=true,reason='FULL_ROUTE_V1',serverAccepted=true,state='FINISHED',positionFinalized=true}}
+ startingHumans=humans,startingBots=bots or 0,raceBoosts=2,finishedAt=at,eligible=true,reason='FULL_ROUTE_V1',serverAccepted=true,state='FINISHED',positionFinalized=true}}
 end
 local original=schema.default(1);original.onboarding.finishEvent.claimed=true
 local id=1000
@@ -78,6 +79,22 @@ check(s:rewardMultiplier(p)==1,'different track resets streak')
 s:remove(q);s:remove(r);s:completeRewardRound(p,true,1);s:requestRewardRematch(p);begin()
 check(s:rewardMultiplier(p)==1,'single remaining human does not advance multiplayer streak')
 s:completeRewardRound(p,true,1);check(p:GetAttribute('RaceNextRematchMultiplier')==nil,'solo gets no multiplayer promise')
+local bot=player(99);bot:SetAttribute('IsBot',true)
+s:addBot(bot,{});begin()
+s:completeRewardRound(p,true);s:requestRewardRematch(p);begin()
+check(s:rewardMultiplier(p)==2,'one human plus bot advances X2')
+s:completeRewardRound(p,true);s:requestRewardRematch(p);begin()
+check(s:rewardMultiplier(p)==3,'one human plus bot advances X3')
+s:completeRewardRound(p,true);s:requestRewardRematch(p);begin()
+check(s:rewardMultiplier(p)==4,'one human plus bot advances X4')
+for _,m in {2,3,4}do
+ local op=operation(3500+m,1,m,1,1)
+ check(Ops.valid(S,op),'one human plus bot multiplier is valid')
+ local profile,status=Ops.reduce(S,schema,op)(original)
+ check(status=='APPLIED' and profile.receipts[Ops.receiptKey(op)].money.rematchBonus==1500*(m-1),'bot race retains1500 base and multiplies only that base')
+ local _,duplicate=Ops.reduce(S,schema,op)(profile)
+ check(duplicate=='REPLAY','bot rematch receipt idempotent')
+end
 -- Deferred old-round saves retain their frozen multiplier; current HUD is guarded.
 local Runtime=load('src/server/RaceRecordRuntime.luau')
 local profile=S.clone(original);local queued={};local writes=0

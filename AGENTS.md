@@ -1642,3 +1642,17 @@ QuickStart targets desert rooms only; existing track selection retains both.
 Desert policy now permits the exact production and staging destinations. Only
 Track01Desert receives desert scenery; Hub/Park and Track01 stay unchanged.
 Owner authorizes Studio integration verification followed by production Publish.
+
+Desert prefab release gate — 2026-10-25: XML/build presence of MeshId does not
+prove the live Studio prefab has geometry. Rojo-synced production prefabs were
+observed with empty MeshContent while staging retained valid meshes. Before
+Publish, run tools/repair_desert_mesh_prefabs.luau in Edit mode and verify all
+three actual MeshIds plus cloned runtime instances. Never accept textured boxes
+as scenery. No runtime privileged MeshId/texture-property writes.
+
+Owner Rematch extension — 2026-10-25: valid PUBLIC_RACE completion with one
+human plus at least one bot may advance the same session-owned x2/x3/x4 streak.
+No-opponent solo still has no multiplier. Existing base prizes remain unchanged
+(one-human bot race base1500); multiply only the base prize. Next Rematch UI
+shows multiplier only, never a precomputed amount. Retain immutable receipts,
+route eligibility, departure/track/reset guards and independent player streaks.
