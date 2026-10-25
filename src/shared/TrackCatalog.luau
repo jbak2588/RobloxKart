@@ -1,11 +1,31 @@
 local TrackCatalog = {
 	DefaultId = "Track01",
-	Order = { "Track01", "Track01Race", "Track02", "Track03" },
+	Order = { "Track01", "Track01Desert", "Track01Race", "Track02", "Track03" },
 	Entries = {
 		Track01 = {
 			Id = "Track01",
 			PreviewImageAssetId = "rbxassetid://75369478362729",
-			DisplayName = "Figure 8 Racing Track",
+			DisplayName = "Figure-8 Green Island",
+			ModelName = "TestTrack",
+			GeometryId = "PracticeFigure8V1",
+			MatchType = "PUBLIC_RACE",
+			MinPlayers = 1,
+			MaxPlayers = 4,
+			PreviewRotationDegrees = 0,
+			TargetLaps = 3,
+			BotAllowed = true,
+			-- Existing forward-facing launch slots; the optional Bot uses the final slot.
+			GridSlots = {
+				CFrame.new(-98.898394282067, 0, 125.031263841772) * CFrame.Angles(0, 2.520066031181, 0),
+				CFrame.new(-111.906242059067, 0, 115.714832324772) * CFrame.Angles(0, 2.520066031181, 0),
+				CFrame.new(-84.923747007067, 0, 105.519492175772) * CFrame.Angles(0, 2.520066031181, 0),
+				CFrame.new(-97.931594785067, 0, 96.203060658772) * CFrame.Angles(0, 2.520066031181, 0),
+			},
+		},
+		Track01Desert = {
+			Id = "Track01Desert",
+			PreviewImageAssetId = "rbxassetid://75369478362729",
+			DisplayName = "Figure-8 Desert Canyon",
 			ModelName = "TestTrack",
 			GeometryId = "PracticeFigure8V1",
 			MatchType = "PUBLIC_RACE",

@@ -1632,3 +1632,13 @@ Owner roadside correction — 2026-10-25: remove the12 isolated raised shoulder
 grass patches; do not replace them with small oval mounds. Keep the approved
 island dune. Desert chevrons show arrows only on the road-facing side; leave
 the reverse side blank instead of displaying a misleading opposite direction.
+
+## Dual Figure-8 themes — owner release approval 2026-10-25
+
+Mobile and PC desert acceptance supplied by owner. Keep Track01 as Figure-8
+Green Island and add Track01Desert as Figure-8 Desert Canyon, sharing planar
+geometry/grid/laps/capacity but separate room/record/rematch identity. Race Now
+QuickStart targets desert rooms only; existing track selection retains both.
+Desert policy now permits the exact production and staging destinations. Only
+Track01Desert receives desert scenery; Hub/Park and Track01 stay unchanged.
+Owner authorizes Studio integration verification followed by production Publish.

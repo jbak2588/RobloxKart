@@ -46,7 +46,7 @@ local function hub(id,userId,noBrowser)
    return 'secret-code-'..n,'private-'..n
   end}}
  local modules={RaceDiscovery=Discovery,LobbyTitleService=titles.service,
-  TrackCatalog={Entries={Track01={MatchType='PUBLIC_RACE',MaxPlayers=4},Track01Race={MatchType='PUBLIC_RACE',MaxPlayers=4},Track03={MatchType='PUBLIC_RACE',MaxPlayers=4}}},
+  TrackCatalog={Entries={Track01Desert={MatchType='PUBLIC_RACE',MaxPlayers=4},Track01={MatchType='PUBLIC_RACE',MaxPlayers=4},Track01Race={MatchType='PUBLIC_RACE',MaxPlayers=4},Track03={MatchType='PUBLIC_RACE',MaxPlayers=4}}},
   DriverCatalog={DefaultId='Driver01',Entries={Driver01={}}},KartCatalog={DefaultId='Kart01',Entries={Kart01={}}},
   ActiveMatchDirectory=setmetatable({new=function()return directory end},{__index=Directory}),
   GlobalRaceAllocator=setmetatable({new=function()return Allocator.new(allocation,function()return now end)end},{__index=Allocator}),
@@ -170,6 +170,15 @@ check(firstRoom.quickMatch and #firstRoom.stagedMembers==1,'first solo auto-star
 check(#directory:list()==0 and not directory:queue(firstRoom.roomId,{userId=402},'Track01'),'first race protected from discovery and mid-race arrivals')
 newbie.action('FirstRace')
 check(#launches==1,'double CTA creates no second room')
+
+-- Race Now is desert-only even while another green room is available.
+rooms.values={};allocation.values={};launches={};holdReserve=false
+local green=hub('HUB-GREEN',501);green.action('QuickPlay')
+local desert=hub('HUB-DESERT',502);desert.action('QuickStart')
+check(#launches==2 and launches[1].payload.trackId=='Track01' and launches[2].payload.trackId=='Track01Desert','Race Now never joins an available green room')
+check(launches[1].payload.roomId~=launches[2].payload.roomId,'themes keep separate room identity')
+local desert2=hub('HUB-DESERT2',503);desert2.action('QuickStart')
+check(launches[3].payload.trackId=='Track01Desert' and launches[3].payload.roomId==launches[2].payload.roomId,'subsequent Race Now joins existing desert room')
 
 local Layout=luau.load(fs.readFile('src/client/RaceBrowserLayout.luau'))()
 for _,size in {{375,700},{640,300},{749,302},{844,390},{932,430},{1366,768},{1920,1080}}do

@@ -3,13 +3,42 @@ local count=0;local function check(v,m)count+=1;assert(v,m)end
 local policy=luau.load(fs.readFile('src/shared/Figure8DesertPolicy.luau'))()
 local ws={GetAttribute=function()return true end}
 check(policy.enabled(ws,false,10772198697,106553302629620),'exact authorized staging pair')
-for _,pair in {{10768420544,127925465904803},{10772198697,127925465904803},{10768420544,106553302629620},{0,0}}do
+for _,pair in {{10772198697,127925465904803},{10768420544,106553302629620},{0,0}}do
  check(not policy.enabled(ws,false,pair[1],pair[2]),'no production, mixed pair or live flag bypass')
 end
 check(policy.enabled(ws,true,0,0),'explicit Studio preview')
 check(not policy.enabled({GetAttribute=function()return nil end},true,0,0),'Studio requires opt-in')
 local geometry=luau.load(fs.readFile('src/shared/TrackGeometry.luau'),{environment={Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame}})()
 local env=luau.load(fs.readFile('src/client/Figure8DesertEnvironment.luau'),{environment={Vector3=rb.Vector3,Color3=rb.Color3,game={GetService=function(_,n)return if n=='ReplicatedStorage'then {Shared={TrackGeometry='geometry'}}else {} end},require=function()return geometry end}})()
+check(policy.enabled(ws,false,10768420544,127925465904803),'approved production pair')
+check(policy.TrackId=='Track01Desert','distinct desert identity')
+local catalog=luau.load(fs.readFile('src/shared/TrackCatalog.luau'),{environment={CFrame=rb.CFrame}})()
+local green,desert=catalog.Entries.Track01,catalog.Entries.Track01Desert
+check(green.Id~=desert.Id and green.GeometryId==desert.GeometryId,'two themes share accepted planar geometry only')
+check(green.TargetLaps==desert.TargetLaps and #green.GridSlots==#desert.GridSlots,'same laps and capacity')
+for i,cf in green.GridSlots do check(cf==desert.GridSlots[i],'identical safe grid')end
+local discovery=luau.load(fs.readFile('src/shared/RaceDiscovery.luau'))()
+check(discovery.RaceNowTrackId==desert.Id and discovery.DefaultTrackId==green.Id,'Race Now desert; existing browser default preserved')
+local function node(name)return {Name=name,Parent={WaitForChild=function(_,n)return node(n)end},WaitForChild=function(_,n)return node(n)end}end
+local modules={TrackCatalog=catalog,DriverCatalog={Entries={Driver01={}}},KartCatalog={Entries={Kart01={}}}}
+modules.RaceMode=luau.load(fs.readFile('src/shared/RaceMode.luau'),{environment={script=node('RaceMode'),game={GetService=function()return node('RS')end},require=function(n)return modules[n.Name]end}})()
+local function serverModule(name)
+ return luau.load(fs.readFile('src/server/'..name..'.luau'),{environment={game={GetService=function()return node('RS')end},script=node(name),require=function(n)return modules[n.Name]end}})()
+end
+modules.RaceLaunchPayload=serverModule('RaceLaunchPayload')
+local arrival=serverModule('RaceArrivalPlan')
+for _,id in {'Track01','Track01Desert'}do
+ local payload=assert(modules.RaceLaunchPayload.buildMatch('match-dual-theme','room-'..id,{{userId=1,driverId='Driver01',kartId='Kart01'}},id))
+ local plan=arrival.forPlayer(payload,1)
+ check(plan.trackId==id and plan.maxPlayers==4 and plan.mode=='RACE','real launch/arrival preserves separate public track identity')
+end
+local recordPolicy=serverModule('RaceRecordPolicy')
+local config={GeometryTokens={PracticeFigure8V1='F8'},RulesetId='r1'}
+local scopes={}
+for _,id in {'Track01','Track01Desert'}do
+ scopes[id]=recordPolicy.indexScope(config,{trackId=id,geometryId='PracticeFigure8V1',rulesetId='r1',category='SOLO_1H_0B'})
+end
+check(scopes.Track01~=nil and scopes.Track01Desert~=nil and scopes.Track01~=scopes.Track01Desert,'record indexes remain separate for themes')
 local course=geometry.getCourse(geometry.getDefinition('PracticeFigure8V1'))
 local straightCount=0
 for i=1,#course.Samples do

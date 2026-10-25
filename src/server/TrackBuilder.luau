@@ -82,14 +82,14 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local environmentVersion = if isFigure8 then 10 elseif isHardCircuit then 6 else 1
 	local currentWorkspace = if prototype and prototype.Parent then prototype.Parent else nil
 	local serverRole = if currentWorkspace and currentWorkspace.GetAttribute then currentWorkspace:GetAttribute("KDMServerRole") else nil
-	local isRaceTrack01 = isFigure8 and track.Id == "Track01" and serverRole == "RACE"
+	local isRaceTrack01 = isFigure8 and (track.Id == "Track01" or track.Id == "Track01Desert") and serverRole == "RACE"
 	local expectedTreeCount = if isRaceTrack01 then 0 else 12
 
 	local previousTrack = prototype:FindFirstChild("TestTrack")
 	if previousTrack and previousTrack:IsA("Model")
 		and previousTrack:GetAttribute("GeometryId") == track.GeometryId
 		and previousTrack:GetAttribute("TrackId") == track.Id
-		and (if isFigure8 and track.Id == "Track01" then previousTrack:GetAttribute("PracticeTreeCount") == expectedTreeCount else true)
+		and (if isFigure8 and (track.Id == "Track01" or track.Id == "Track01Desert") then previousTrack:GetAttribute("PracticeTreeCount") == expectedTreeCount else true)
 		and previousTrack:FindFirstChild("Road")
 		and previousTrack:FindFirstChild("RaceTriggers")
 		and previousTrack:FindFirstChild("BarrierTriggers")
@@ -691,7 +691,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		end
 		local currentWorkspace = if prototype and prototype.Parent then prototype.Parent else nil
 		local serverRole = if currentWorkspace and currentWorkspace.GetAttribute then currentWorkspace:GetAttribute("KDMServerRole") else nil
-		local isRaceTrack01 = isFigure8 and track.Id == "Track01" and serverRole == "RACE"
+		local isRaceTrack01 = isFigure8 and (track.Id == "Track01" or track.Id == "Track01Desert") and serverRole == "RACE"
 		local trees = 0
 		local legacyAnchorCount = 0
 

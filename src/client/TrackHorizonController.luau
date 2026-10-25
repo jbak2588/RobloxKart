@@ -412,7 +412,7 @@ local function isEligible(testTrack: Instance?): (boolean, string?)
 		return false, "InvalidTrackModel"
 	end
 	local trackId = testTrack:GetAttribute("TrackId")
-	if trackId ~= "Track01" then
+	if trackId ~= "Track01" and trackId ~= "Track01Desert" then
 		return false, "TrackNotTrack01:" .. tostring(trackId)
 	end
 	local geometryId = testTrack:GetAttribute("GeometryId")
@@ -822,7 +822,7 @@ local function buildH1BWedgeHorizon(testTrack: Model, model: Model, groundY: num
 end
 
 local function buildHorizon(testTrack: Model): Model
- if Workspace:GetAttribute('KDMFigure8DesertCandidate')==true then
+ if testTrack:GetAttribute('TrackId')=='Track01Desert' and Workspace:GetAttribute('KDMFigure8DesertCandidate')==true then
   return require(script.Parent:WaitForChild('Figure8DesertEnvironment')).build(testTrack)
  end
 	local existing = testTrack:FindFirstChild("ClientHorizonEnvironment")
@@ -858,7 +858,7 @@ function Controller.start()
 	local lastGroundY = 0
 
 	local function clearHorizon()
-		if Workspace:GetAttribute("KDMFigure8DesertCandidate")~=true then clearRollingHills(lastGroundY) end
+		if not activeHorizonModel or activeHorizonModel:GetAttribute("Theme")~="SOURCE_DESERT" then clearRollingHills(lastGroundY) end
 		if activeHorizonModel then
 			activeHorizonModel:Destroy()
 			activeHorizonModel = nil
@@ -976,7 +976,7 @@ end
 
 -- Exported pure evaluation helper for test harnesses
 function Controller._isEligible(role: string?, trackId: string?, geometryId: string?, hasRoad: boolean): boolean
-	return role == "RACE" and trackId == "Track01" and geometryId == "PracticeFigure8V1" and hasRoad == true
+	return role == "RACE" and (trackId == "Track01" or trackId == "Track01Desert") and geometryId == "PracticeFigure8V1" and hasRoad == true
 end
 
 -- Exported configurations for geometry / clearance tests

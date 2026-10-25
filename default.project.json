@@ -59,7 +59,7 @@
         "$className": "Terrain",
         "$properties": {
           "Decoration": true,
-          "GrassLength": 0.7
+          "GrassLength": 0.1
         }
       },
       "Baseplate": {

@@ -299,7 +299,7 @@ end
 
 -- Cross-Hub allocation is serialized only through reservation. Teleport happens
 -- after releasing the lease, so a slow network transfer cannot block new users.
-local function quickPlay(player)
+local function quickPlay(player,requestedTrackId)
  if not eligible(player)or membership[player.UserId]or quickBusy[player.UserId]or creating[player.UserId]then return end
  local selected=ensureSelection(player);if not selected then return end
  quickBusy[player.UserId]=true
@@ -319,7 +319,7 @@ local function quickPlay(player)
   local records=directory:list()
   if lease.roomId then
    local preferred=directory:get(lease.roomId)
-   if preferred and preferred.initializing then error('RACE IS OPENING - PLEASE TRY AGAIN')end
+   if preferred and (not requestedTrackId or preferred.trackId==requestedTrackId) and preferred.initializing then error('RACE IS OPENING - PLEASE TRY AGAIN')end
    if preferred and not table.find(records,preferred)then
     local seen=false;for _,r in records do if r.roomId==preferred.roomId then seen=true end end
     if not seen then table.insert(records,preferred)end
@@ -327,10 +327,10 @@ local function quickPlay(player)
   end
   Discovery.sort(records)
   local candidate
-  for _,r in records do if publicTrack(r.trackId)and Discovery.rank(r)then candidate=r;break end end
+  for _,r in records do if publicTrack(r.trackId)and (not requestedTrackId or r.trackId==requestedTrackId)and Discovery.rank(r)then candidate=r;break end end
   if not eligible(player)then return end
   if not candidate then
-   local trackId=Discovery.DefaultTrackId
+   local trackId=requestedTrackId or Discovery.DefaultTrackId
    local code,privateId=TeleportService:ReserveServerAsync(game.PlaceId)
    if type(code)~='string'or code==''then error('RACE SERVER UNAVAILABLE')end
    newRoom=HttpService:GenerateGUID(false)
@@ -401,7 +401,7 @@ function MatchRoomService.start()
 			print(string.format("[F60] event=F60_MATCHMAKING_STARTED user=%d action=QuickStart", player.UserId))
 			stopLobbyDrive(player, 'quick_start')
 			ensureSelection(player)
-			quickPlay(player)
+			quickPlay(player,Discovery.RaceNowTrackId)
 		elseif action == "QuickPlay" then
 			print(string.format("[F60] event=F60_MATCHMAKING_STARTED user=%d action=QuickPlay", player.UserId))
 			stopLobbyDrive(player, 'quick_play')

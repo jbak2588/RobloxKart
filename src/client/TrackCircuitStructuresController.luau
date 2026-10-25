@@ -68,7 +68,7 @@ local function isEligible(testTrack: Instance?): (boolean, string?)
 		return false, "InvalidTrackModel"
 	end
 	local trackId = testTrack:GetAttribute("TrackId")
-	if trackId ~= "Track01" then
+	if trackId ~= "Track01" and trackId ~= "Track01Desert" then
 		return false, "TrackNotTrack01:" .. tostring(trackId)
 	end
 	local geometryId = testTrack:GetAttribute("GeometryId")
