@@ -79,6 +79,7 @@ function RaceServerBootstrap.roomPlan(payload, arrivalPayload, record, userId, p
 			and member.kartId == arrivalPayload.selections[tostring(userId)].kartId then
 			local plan = RaceArrivalPlan.forPlayer(arrivalPayload, userId)
 			if not plan then return nil end
+			plan.rewardNextMultiplier=member.rewardNextMultiplier
 			plan.gridSlot = index+(if incoming then #record.currentRoundMembers else 0)
 			plan.readyOrder = plan.gridSlot
 			return plan
@@ -221,7 +222,9 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 			end)
 			if not confirmed or not record then reject(player, "ROOM_ADMISSION_EXPIRED"); return end
 		end
-		player:SetAttribute("RaceState", "PRE_RACE")
+		local session=require(script.Parent:WaitForChild('RaceSession')).active()
+        if session and session.seedRewardContinuation then session:seedRewardContinuation(player,plan.rewardNextMultiplier) end
+        player:SetAttribute("RaceState", "PRE_RACE")
 	end
 	local function safeArrive(player)
 		local ok, reason = pcall(arrive, player)

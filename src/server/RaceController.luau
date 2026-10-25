@@ -1067,11 +1067,19 @@ function RaceController.start(options)
 		local participants = session:orderedParticipants()
 		task.spawn(function()
 			local ok, accepted = pcall(options.onRoundReady, participants)
-			if ok and accepted then
+			if ok and accepted == "TRANSFER" then
+                -- Source remains on results; the new job owns the next countdown.
+            elseif ok and accepted then
 				enterWaitingLobby(time(), "REMATCH")
 				rosterLocked = false
 				publishRoomPhase("WAITING", session:count())
-			else warn("[KDMRoom] next staging unavailable") end
+			else
+                warn("[KDMRoom] next staging unavailable")
+                for _,p in participants do if p:GetAttribute('IsBot')~=true then
+                 session.rematchVotes[p]=nil;setChanged(p,'RaceRematchReady',false)
+                 setChanged(p,'RaceEntryError','REMATCH UNAVAILABLE - PLEASE RETRY')
+                end end
+            end
 			nextRoundPending = false
 		end)
 	end

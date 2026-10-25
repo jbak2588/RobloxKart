@@ -32,6 +32,16 @@ for _,id in {'Track01','Track01Desert'}do
  local plan=arrival.forPlayer(payload,1)
  check(plan.trackId==id and plan.maxPlayers==4 and plan.mode=='RACE','real launch/arrival preserves separate public track identity')
 end
+modules.RaceArrivalPlan=arrival
+local bootstrap=serverModule('RaceServerBootstrap')
+local handoff=assert(modules.RaceLaunchPayload.buildMatch('fresh-match-123','fresh-room-123',{{userId=1,driverId='Driver01',kartId='Kart01'}},'Track01Desert'))
+handoff.admissionToken='fresh-token-123';handoff.rewardNextMultiplier=999
+local staged={userId=1,driverId='Driver01',kartId='Kart01',admissionToken=handoff.admissionToken,admissionExpiresAt=os.time()+60,rewardNextMultiplier=3}
+local record={roomId=handoff.roomId,matchId=handoff.matchId,trackId=handoff.trackId,maxPlayers=4,state='WAITING',privateServerId='fresh-private',raceJobId='',currentRacers=0,stagedMembers={staged},stagedBots={}}
+local plan=bootstrap.roomPlan(handoff,handoff,record,1,'fresh-private','fresh-job')
+check(plan and plan.rewardNextMultiplier==3,'arrival continuation comes from authoritative record, not forged TeleportData')
+local bad=table.clone(handoff);bad.admissionToken='wrong-token'
+check(bootstrap.roomPlan(handoff,bad,record,1,'fresh-private','fresh-job')==nil,'wrong token cannot import continuation')
 local recordPolicy=serverModule('RaceRecordPolicy')
 local config={GeometryTokens={PracticeFigure8V1='F8'},RulesetId='r1'}
 local scopes={}

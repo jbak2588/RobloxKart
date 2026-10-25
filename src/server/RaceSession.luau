@@ -30,6 +30,7 @@ function RaceSession.new(trackId, mode, targetLaps)
 		finishOrder = {},
 		rematchVotes = {},
 		rewardRuns = {},
+        rewardSeeds = {},
 		terminal = {},
 	}, RaceSession)
 	activeSession = self
@@ -60,12 +61,18 @@ function RaceSession:requestRewardRematch(player)
  local run=self.rewardRuns[player]
  if run then run.requested=true end
 end
+function RaceSession:seedRewardContinuation(player,multiplier)
+ if type(multiplier)=='number' and multiplier%1==0 and multiplier>=2 and multiplier<=2147483647 then
+  self.rewardSeeds[player]=multiplier
+ end
+end
 function RaceSession:beginRewardRound()
  local multiplayer=self.mode=="RACE" and self:humanCount()>=1 and self:count()>=2
  for player in self.participants do
   if player:GetAttribute("IsBot")==true then continue end
   local old=self.rewardRuns[player]
-  local multiplier=if multiplayer and old and old.trackId==self.trackId and old.completed and old.requested then old.multiplier+1 else 1
+  local multiplier=if multiplayer and old and old.trackId==self.trackId and old.completed and old.requested then old.multiplier+1 else (if multiplayer then self.rewardSeeds[player] or 1 else 1)
+  self.rewardSeeds[player]=nil
   self.rewardRuns[player]={multiplier=multiplier,completed=false,requested=false,multiplayer=multiplayer,roundId=self.roundId,trackId=self.trackId}
   player:SetAttribute("RaceRewardMultiplier",multiplier)
   player:SetAttribute("RaceNextRematchMultiplier",nil)
@@ -89,6 +96,7 @@ function RaceSession:humanCount()
 end
 function RaceSession:remove(player)
 	self.rewardRuns[player] = nil
+ self.rewardSeeds[player] = nil
 	player:SetAttribute("RaceRewardMultiplier", nil)
 	player:SetAttribute("RaceNextRematchMultiplier", nil)
 	self.participants[player] = nil

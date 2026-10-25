@@ -1,6 +1,7 @@
 local RaceConfig = {
-	-- Owner A/B isolation: keep local position, skip all rival minimap work.
-	MINIMAP_RIVALS_ENABLED = false,
+	-- Rival isolation rejected by owner mobile test; restore all map markers.
+	MINIMAP_RIVALS_ENABLED = true,
+	FRESH_BOT_REMATCH_ENABLED = true,
 	INVITEABLE_BOT_ENABLED = true,
 	MAX_BOTS_PER_ROOM = 1,
 	ITEM_PREP_SECONDS = 10,

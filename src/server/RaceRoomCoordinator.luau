@@ -24,6 +24,7 @@ function RaceRoomCoordinator.start(payload)
 	local phase, racerCount = "WAITING", 0
 	local hostUserId = payload.participantUserIds[1]
 	local active = true
+ local freshTransfer=nil
 	local quickMatch=false
 	local practiceOnly=false
  local firstRaceOnly=false
@@ -65,6 +66,7 @@ function RaceRoomCoordinator.start(payload)
 	end
 
 	local function snapshot()
+        if freshTransfer then return end
 		local record = directory:get(roomId)
 		if not record or record.matchId ~= matchId or record.state == "CLOSING" then stop(); return end
 		quickMatch=record.quickMatch==true
@@ -132,6 +134,7 @@ function RaceRoomCoordinator.start(payload)
 	end
 
 	local function publish(newPhase, count)
+        if freshTransfer then return end
 		local ok, result = pcall(function()
 			return directory:raceState(roomId, matchId, newPhase, count,
 				game.PrivateServerId, game.JobId)
@@ -153,7 +156,26 @@ function RaceRoomCoordinator.start(payload)
 		return true
 	end
 
-	local function nextRound(players)
+	local function transferFresh(player)
+  if player:GetAttribute('KDMRoutePending')=='RACE_LAUNCH' then return 'TRANSFER' end
+  local t=freshTransfer
+  local renewed=directory:renewAdmission(roomId,player.UserId,t.token,t.token)
+  if not renewed then return false end
+  local launch=require(script.Parent:WaitForChild('RaceLaunchPayload')).buildMatch(t.matchId,roomId,{t.member},payload.trackId)
+  if not launch then return false end
+  launch.admissionToken=t.token
+  local accepted=require(script.Parent:WaitForChild('RaceLaunchService')).launchMatch({player},launch,function()
+   local session=RaceSession.active()
+   if session then session.rematchVotes[player]=nil end
+   player:SetAttribute('RaceRematchReady',false)
+  end,t.code,true)
+  return if accepted then 'TRANSFER' else false
+ end
+ local function nextRound(players)
+  if freshTransfer then
+   for _,p in players do if p:GetAttribute('IsBot')~=true then return transferFresh(p)end end
+   return false
+  end
 		publish("ROUND_COMPLETE", #players)
 		local members = {}
 		for _, player in players do
@@ -163,6 +185,25 @@ function RaceRoomCoordinator.start(payload)
 					kartId = player:GetAttribute("SelectedKartId") })
 			end
 		end
+  local current=directory:get(roomId)
+  if RaceConfig.FRESH_BOT_REMATCH_ENABLED==true and not game:GetService('RunService'):IsStudio() and current and current.quickMatch and not current.practiceOnly
+   and #members==1 and #(current.currentRoundMembers or {})==1 and #(current.currentRoundBots or {})==1
+   and #current.queued==0 and #(current.pendingArrivals or {})==0 then
+   local service=game:GetService('TeleportService');local http=game:GetService('HttpService')
+   local code,privateId=service:ReserveServerAsync(game.PlaceId)
+   local newMatch,token=http:GenerateGUID(false),http:GenerateGUID(false)
+   local member=members[1];member.admissionToken=token
+   local session=RaceSession.active();local human=Players:GetPlayerByUserId(member.userId)
+   local run=session and session.rewardRuns[human]
+   member.rewardNextMultiplier=if run and run.completed and run.requested then run.multiplier+1 else nil
+   local migrated=directory:freshBotRematch(roomId,matchId,newMatch,code,privateId,member)
+   if migrated then
+    freshTransfer={matchId=newMatch,token=token,code=code,member=member}
+    -- Dispose the old bot before the old human leaves; never clear the new job's bot.
+    RaceBotController.removeProductionBot('Bot01')
+    return transferFresh(human)
+   end
+  end
 		local ok, record = pcall(function() return directory:nextStaging(roomId, members) end)
 		if not ok then warn("[KDMRoom] staging failed: " .. tostring(record)); return false end
 		if not record then
@@ -194,6 +235,11 @@ function RaceRoomCoordinator.start(payload)
 	end
 
 	local function leave(userId)
+        if freshTransfer then
+         local player=Players:GetPlayerByUserId(userId)
+         if player and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH' then pcall(function()directory:removeStaged(roomId,userId)end)end
+         return
+        end
 		pcall(function() directory:leaveMember(roomId, userId) end)
 		local session = RaceSession.active()
 		if not session or session:humanCount() == 0 then
@@ -234,7 +280,8 @@ function RaceRoomCoordinator.start(payload)
 							and current.raceJobId == game.JobId and #(current.stagedBots or {}) == 1
 					end, onLost=function()
 						local currentSession = RaceSession.active()
-						if not currentSession or currentSession:humanCount() == 0 then
+						if freshTransfer then return end
+                        if not currentSession or currentSession:humanCount() == 0 then
 							pcall(function() directory:remove(roomId) end)
 							stop();return
 						end
@@ -325,6 +372,7 @@ function RaceRoomCoordinator.start(payload)
 	task.spawn(function()
 		while active do
 			task.wait(5)
+            if freshTransfer then continue end
 			local ok, record = pcall(function() return directory:get(roomId) end)
 			if not ok then
 				warn("[KDMRoom] heartbeat lookup failed: " .. tostring(record))

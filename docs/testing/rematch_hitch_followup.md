@@ -161,3 +161,34 @@ do not report that second intervention as implemented by this change.
 Owner clarification: fresh-entry means reproducing Lobby exit/re-entry cleanup, not restarting the entire Roblox server. A possible later fresh-room handoff must preserve room/roster/reward continuation. This first minimap isolation does not implement that handoff.
 
 Validation:222-source compile,Rojo build,diff check;17 deferred ownership guards and existing1191 combat/NPC checks plus273 live-gated NPC checks and13 rear-preview checks PASS;150 Rematch receipt/session checks PASS. Studio render loop with active opponent map state:local marker1,rival markers0,rival collector calls0. Temporary QA bootstrap restored. No real third-Rematch hitch capture or mobile acceptance; recurrence remains OPEN.
+
+## Fresh room experiment — 2026-10-25
+
+Owner reports v1139 still hitches, now in round2. Rival minimap isolation is
+rejected; MINIMAP_RIVALS_ENABLED=true restores normal markers and collection.
+
+Next bounded experiment: FRESH_BOT_REMATCH_ENABLED=true sends an unqueued public
+Quick Race with exactly1 human+1 bot to a newly reserved job on Rematch. Same
+room ID,track and selection; new match ID,private reservation,assembly,bot and
+client lifecycle. The destination uses existing authenticated room admission and
+normal Quick Race bot creation/countdown. No global server restart and no
+network-ownership/physics/camera tuning. Studio uses the existing local path
+because Studio cannot establish a real reserved-server teleport. Other multiplayer
+rosters,private practice,queued/pending-arrival rooms retain existing staging.
+
+MemoryStore atomically transitions only the expected completed match. A unique
+admission token authorizes destination entry. Completed/requested reward streak
+is carried in server-only staged membership; client TeleportData cannot set it.
+Destination consumes a validated integer seed once. New rounds keep distinct
+receipt IDs. Source departure/onLost cleanup cannot remove the destination
+room. Transfer failure preserves results, clears the vote and permits retry of
+the same reservation/token; no automatic reward payout or multiplier increment.
+
+Validation:35 coordinator checks including new reservation/old-job departure/
+failed transfer retry/stale claim rejection;152 session/economy checks including
+once-only continuation import;282078 catalog/real arrival/token tests including
+forged TeleportData reward rejection;71 matching checks;17 persistent-room checks;
+13 warm-up record checks;existing network-ownership lifecycle/combat checks;
+222-source compile and Rojo release build PASS. This does not verify real
+teleport success, repeated full race completions or disappearance of the hitch.
+Published client comparison is required; issue remains OPEN.

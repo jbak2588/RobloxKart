@@ -1656,3 +1656,11 @@ No-opponent solo still has no multiplier. Existing base prizes remain unchanged
 (one-human bot race base1500); multiply only the base prize. Next Rematch UI
 shows multiplier only, never a precomputed amount. Retain immutable receipts,
 route eligibility, departure/track/reset guards and independent player streaks.
+
+Owner Rematch hitch experiment — 2026-10-25: rival minimap isolation failed
+mobile comparison and is reverted. Public unqueued Quick Race1H+1B Rematch now
+may migrate the same room to a fresh reserved job, preserving authenticated
+admission and server-only reward continuation. Other rosters/practice/queued
+arrivals retain current staging. Do not describe this as a global server restart
+or a verified hitch repair; real-client teleport/repeated-Rematch acceptance
+is pending. Preserve the manual server ownership guard.

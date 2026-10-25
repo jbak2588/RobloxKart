@@ -180,3 +180,36 @@ directory:queue(roomId,member(9,1));callbacks.onRoomPhase('WAITING',3)
 replies=remote.messages[#remote.messages][2]
 check(not replies.pendingInvites['9']and replies.invitationResponses['9'].state=='ACCEPTED','accepted member no longer awaiting response')
 print('PASS '..count..' coordinator checks including invitation decisions')
+
+-- Fresh reserved job experiment: only the affected unqueued1H+1B Quick Race.
+local freshId='room-fresh-bot';local oldId='match-old-bot'
+directory:createPersistent({id=freshId,matchId=oldId,trackId='Track01Race',hostUserId=1,hostName='Racer1',maxPlayers=4,quickMatch=true},'old-code','old-private')
+directory:stage(freshId,member(1),'fresh-original-token');directory:confirmArrival(freshId,1,'fresh-original-token','race-job')
+directory:addBot(freshId,{botId='Bot01',name='KDM Rookie [BOT]',kartId='Kart01',gridSlot=4})
+directory:startRound(freshId,1,2);directory:raceState(freshId,oldId,'RACING',2,'old-private','race-job')
+services.RunService={IsStudio=function()return false end}
+services.TeleportService={ReserveServerAsync=function()return 'fresh-access-code','fresh-private' end}
+local serial=0;services.HttpService={GenerateGUID=function()serial+=1;return 'fresh-server-token-'..serial end}
+modules.RaceConfig.FRESH_BOT_REMATCH_ENABLED=true
+local session={rewardRuns={[player]={completed=true,requested=true,multiplier=2}},rematchVotes={[player]=true}}
+modules.RaceSession.active=function()return session end
+local launches={};local failure
+modules.RaceLaunchPayload={buildMatch=function(mid,rid,ms,tid)return {matchId=mid,roomId=rid,trackId=tid,participantUserIds={ms[1].userId},selections={['1']={driverId=ms[1].driverId,kartId=ms[1].kartId}}}end}
+modules.RaceLaunchService={launchMatch=function(group,payload,failed,code,preserve)
+ failure=failed;table.insert(launches,{payload=payload,code=code,preserve=preserve});player:SetAttribute('KDMRoutePending','RACE_LAUNCH');return true
+end}
+modules.RaceBotController.hasProductionBot=function()return true end
+local fresh=Coordinator.start({roomId=freshId,matchId=oldId,trackId='Track01Race',participantUserIds={1}})
+check(fresh.onRoundReady({player})=='TRANSFER','fresh rematch suppresses same-job countdown')
+local migrated=directory:get(freshId)
+check(migrated.roomId==freshId and migrated.trackId=='Track01Race' and migrated.matchId~=oldId and migrated.privateServerId=='fresh-private','same room/track but fresh match and reserved job')
+check(migrated.state=='WAITING' and migrated.raceJobId=='' and #migrated.stagedBots==0,'destination rebuilds bot through normal Quick Race admission')
+check(migrated.stagedMembers[1].rewardNextMultiplier==3 and not migrated.stagedMembers[1].arrived,'authoritative continuation and unconsumed arrival token')
+check(launches[1].payload.rewardNextMultiplier==nil and launches[1].payload.admissionToken==migrated.stagedMembers[1].admissionToken,'payload carries admission only; reward read from server directory')
+check(launches[1].preserve and launches[1].code=='fresh-access-code','existing safe teleport failure mode retained')
+fresh.onRoomLeave(1)
+check(directory:get(freshId)~=nil and #directory:get(freshId).stagedMembers==1,'old job departure cannot delete new admission')
+player:SetAttribute('KDMRoutePending','');failure();check(not player:GetAttribute('RaceRematchReady') and session.rematchVotes[player]==nil,'failed transfer allows Rematch retry')
+check(fresh.onRoundReady({player})=='TRANSFER' and launches[2].code==launches[1].code and launches[2].payload.matchId==launches[1].payload.matchId,'retry reuses same reservation and continuation')
+check(not directory:freshBotRematch(freshId,oldId,'bad-match','bad-code','bad-private',member(1)),'stale source cannot claim a second destination')
+print('PASS '..count..' coordinator checks including fresh job/token/retry/reward continuation')

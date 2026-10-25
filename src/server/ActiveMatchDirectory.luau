@@ -343,6 +343,23 @@ function ActiveMatchDirectory:startRound(roomId, hostUserId, expectedCount)
 	end)
 end
 
+-- Atomic single-human bot-room handoff. Admission and reward continuation stay
+-- in server-only MemoryStore, never in client-authored TeleportData.
+function ActiveMatchDirectory:freshBotRematch(roomId,oldMatch,newMatch,accessCode,privateId,member)
+ return self:update(roomId,function(r)
+  if r.matchId~=oldMatch or r.state~='ROUND_COMPLETE' or not r.quickMatch
+   or #(r.currentRoundMembers or {})~=1 or r.currentRoundMembers[1].userId~=member.userId
+   or #(r.currentRoundBots or {})~=1 or #r.queued>0 or #(r.pendingArrivals or {})>0 then return nil end
+  r.matchId=newMatch;r.reservedServerAccessCode=accessCode;r.privateServerId=privateId;r.raceJobId=''
+  r.state='WAITING';r.roundId+=1;r.currentRacers=0;r.quickWarmup=false
+  r.stagedMembers={table.clone(member)};r.stagedMembers[1].arrived=false
+  r.stagedMembers[1].admissionExpiresAt=self.now()+self.ADMISSION_SECONDS
+  r.stagedBots={};r.currentRoundBots={};r.currentRoundMembers={};r.currentUserIds={}
+  r.hostUserId=member.userId;r.hostName=member.name
+  return r
+ end)
+end
+
 function ActiveMatchDirectory:nextStaging(roomId, rematchMembers)
 	return self:update(roomId, function(record)
 		if record.state ~= "ROUND_COMPLETE" then return nil end
