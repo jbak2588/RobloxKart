@@ -9,7 +9,7 @@ end
 check(policy.enabled(ws,true,0,0),'explicit Studio preview')
 check(not policy.enabled({GetAttribute=function()return nil end},true,0,0),'Studio requires opt-in')
 local geometry=luau.load(fs.readFile('src/shared/TrackGeometry.luau'),{environment={Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame}})()
-local env=luau.load(fs.readFile('src/client/Figure8DesertEnvironment.luau'),{environment={Color3=rb.Color3,game={GetService=function(_,n)return if n=='ReplicatedStorage'then {Shared={TrackGeometry='geometry'}}else {} end},require=function()return geometry end}})()
+local env=luau.load(fs.readFile('src/client/Figure8DesertEnvironment.luau'),{environment={Vector3=rb.Vector3,Color3=rb.Color3,game={GetService=function(_,n)return if n=='ReplicatedStorage'then {Shared={TrackGeometry='geometry'}}else {} end},require=function()return geometry end}})()
 local course=geometry.getCourse(geometry.getDefinition('PracticeFigure8V1'))
 for _,p in course.Samples do
  for _,dx in {-90,0,90}do for _,dz in {-90,0,90}do check(env.protected(p.X+dx,p.Z+dz),'terrain exclusion preserves road plus 90-stud recovery envelope')end end
@@ -31,6 +31,29 @@ for x=-96,96,4 do for z=240,432,4 do
  if height>0 then check(env.roadDistance(course.Samples,x,z)>=68,'island dune preserves road and recovery clearance')end
 end end
 check(dunePeak>8 and dunePeak<30,'one restrained original-profile island dune')
+for _,cliff in env.Cliffs do
+ local peak=0
+ for x=cliff.X-cliff.RadiusX,cliff.X+cliff.RadiusX,4 do
+  for z=cliff.Z-cliff.RadiusZ,cliff.Z+cliff.RadiusZ,4 do
+   local h=env.cliffHeight(surface,cliff,x,z);peak=math.max(peak,h)
+   if h>0 then
+    check(env.roadDistance(course.Samples,x,z)>=68,'cliff footprint outside road/recovery corridor')
+    check((rb.Vector3.new(x,0,z+26.79245283)).Magnitude>=130,'intersection center remains open')
+   end
+  end
+ end
+ check(peak>40 and peak<=cliff.Height,'original cliff profile has approved restrained height')
+end
+local signs={};local arcIndex=0
+for _,arc in geometry.getDefinition('PracticeFigure8V1').Segments do if arc[1]=='Arc'then
+ arcIndex+=1
+ for i=1,11 do local a=arc[5]+arc[6]*i/12
+  table.insert(signs,{Arc=arcIndex,Position=rb.Vector3.new(arc[2]+math.cos(a)*(arc[4]+48.5),0,arc[3]+math.sin(a)*(arc[4]+48.5))})
+ end
+end end
+local kept=env.selectChevrons(signs);local perArc={0,0,0,0}
+for p in kept do perArc[p.Arc]+=1 end
+for _,n in perArc do check(n==3,'three spaced signs per corner')end
 local resources=rb.deserializeModel(fs.readFile('src/assets/KDMDesertResources.rbxmx'))[1]
 check(#resources.Natural:GetChildren()==5,'original palette plus owner-approved dry tufts')
 for _,x in resources:GetDescendants()do check(not x:IsA('LuaSourceContainer'),'no imported template scripts')end

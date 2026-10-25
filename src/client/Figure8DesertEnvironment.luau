@@ -9,6 +9,39 @@ local sandTint=Color3.fromRGB(224,218,205)
 Environment.SourceScale=1
 Environment.ClearBounds={MinX=-400,MaxX=400,MinZ=-440,MaxZ=608}
 Environment.Dune={X=0,Z=338,RadiusX=84,RadiusZ=64}
+Environment.Cliffs={
+ {X=-230,Z=-25,RadiusX=60,RadiusZ=90,Height=110,Scale=.65,Angle=0},
+ {X=230,Z=-25,RadiusX=60,RadiusZ=90,Height=110,Scale=.65,Angle=math.pi},
+ {X=0,Z=190,RadiusX=45,RadiusZ=65,Height=60,Scale=.35,Angle=.35},
+}
+function Environment.cliffHeight(source,cliff,x,z)
+ local nx,nz=(x-cliff.X)/cliff.RadiusX,(z-cliff.Z)/cliff.RadiusZ
+ local r=nx*nx+nz*nz;if r>=1 then return 0 end
+ local c,s=math.cos(cliff.Angle),math.sin(cliff.Angle)
+ -- Original mesa face around source column (512,48), not a scaled boulder.
+ local ix=512+math.floor((nx*c-nz*s)*24)
+ local iz=48+math.floor((nx*s+nz*c)*24)
+ local row=source.Rows[ix];local offset=(iz-1)*4
+ local h=math.max(0,tonumber(row:sub(offset+1,offset+3),16)/4-8)
+ return math.min(cliff.Height,h*cliff.Scale)*math.clamp((1-r)/.25,0,1)
+end
+function Environment.selectChevrons(parts)
+ local keep={};local selected={}
+ for _,arc in Geometry.getDefinition('PracticeFigure8V1').Segments do
+  if arc[1]=='Arc'then for _,fraction in {.25,.5,.75}do
+   local angle=arc[5]+arc[6]*fraction
+   local target=Vector3.new(arc[2]+math.cos(angle)*arc[4],0,arc[3]+math.sin(angle)*arc[4])
+   local best,distance=nil,math.huge
+   for _,p in parts do if not keep[p]then
+    local point=Vector3.new(p.Position.X,0,p.Position.Z);local d=(point-target).Magnitude
+    local clear=true;for _,q in selected do if (point-q).Magnitude<20 then clear=false;break end end
+    if clear and d<distance then best,distance=p,d end
+   end end
+   if best and distance<85 then keep[best]=true;table.insert(selected,Vector3.new(best.Position.X,0,best.Position.Z))end
+  end end
+ end
+ return keep
+end
 function Environment.duneHeight(source,x,z)
  local d=Environment.Dune;local nx,nz=(x-d.X)/d.RadiusX,(z-d.Z)/d.RadiusZ
  local r=nx*nx+nz*nz;if r>=1 then return 0 end
@@ -115,6 +148,18 @@ function Environment.build(track)
  local samples=Geometry.getCourse(Geometry.getDefinition('PracticeFigure8V1')).Samples
  local adRails=Instance.new('Folder');adRails.Name='ParkSizeAdRails';adRails.Parent=model
  local railSites={};local originals=env and env:FindFirstChild('VisualRails')
+ local chevrons={}
+ if originals then for _,p in originals:GetChildren()do
+  if p:IsA('BasePart')and p:GetAttribute('ChevronDirection')then table.insert(chevrons,p)end
+ end end
+ local keptChevrons=Environment.selectChevrons(chevrons);local chevronCount=0
+ for _,p in chevrons do
+  if keptChevrons[p]then chevronCount+=1 else
+   railState[p]=p.LocalTransparencyModifier;p.LocalTransparencyModifier=1
+   for _,g in p:GetChildren()do if g:IsA('SurfaceGui')then railState[g]=g.Enabled;g.Enabled=false end end
+  end
+ end
+ model:SetAttribute('ChevronSignCount',chevronCount)
  if originals then for _,p in originals:GetChildren()do
   if p:IsA('BasePart')and not p:GetAttribute('ChevronDirection')then
    local gui=p:FindFirstChild('KDMBrandSurfaceGui')
@@ -252,9 +297,36 @@ function Environment.build(track)
    end
    terrain:WriteVoxels(region,4,materials,occupancy);table.insert(tiles,region);total+=1;task.wait()
   end end
+  -- Three approved near-course mesas. Bound each write to 64x64 horizontal
+  -- tiles, and keep the complete raised footprint outside road/recovery space.
+  for _,cliff in Environment.Cliffs do
+   local minX=math.floor((cliff.X-cliff.RadiusX)/64)*64
+   local maxX=math.ceil((cliff.X+cliff.RadiusX)/64)*64
+   local minZ=math.floor((cliff.Z-cliff.RadiusZ)/64)*64
+   local maxZ=math.ceil((cliff.Z+cliff.RadiusZ)/64)*64
+   for wx=minX,maxX-64,64 do for wz=minZ,maxZ-64,64 do
+    if not alive then return end
+    local minY=math.floor((groundY-8)/4)*4
+    local ny=math.ceil((groundY+cliff.Height-minY)/4)
+    local region=Region3.new(Vector3.new(wx,minY,wz),Vector3.new(wx+64,minY+ny*4,wz+64))
+    local materials,occupancy={},{}
+    for dx=1,16 do
+     materials[dx]={};occupancy[dx]={}
+     for y=1,ny do materials[dx][y]=table.create(16,Enum.Material.Air);occupancy[dx][y]=table.create(16,0)end
+     for dz=1,16 do
+      local h=Environment.cliffHeight(source,cliff,wx+(dx-.5)*4,wz+(dz-.5)*4)
+      for y=1,ny do local o=math.clamp((groundY-3+h-minY)/4-y+1,0,1)
+       materials[dx][y][dz]=if h>4 then Enum.Material.Sandstone else Enum.Material.Sand
+       occupancy[dx][y][dz]=o
+      end
+     end
+    end
+    terrain:WriteVoxels(region,4,materials,occupancy);table.insert(tiles,region);total+=1;task.wait()
+   end end
+  end
   if alive then
    finishLandscaping()
-   model:SetAttribute('DuneCount',1);model:SetAttribute('TerrainTiles',total);model:SetAttribute('TerrainReady',true);model:SetAttribute('TerrainBuildSeconds',os.clock()-started)
+   model:SetAttribute('CliffCount',#Environment.Cliffs);model:SetAttribute('DuneCount',1);model:SetAttribute('TerrainTiles',total);model:SetAttribute('TerrainReady',true);model:SetAttribute('TerrainBuildSeconds',os.clock()-started)
   end
  end)
  return model

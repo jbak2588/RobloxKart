@@ -1613,3 +1613,10 @@ overlaps; preserve corner chevrons. One sampled-source dune in the large Figure-
 island is an explicit exception to the rectangular terrain exclusion, only where
 its raised footprint stays at least 68 studs from the actual road centerline.
 Preserve planar driving surfaces, checkpoints, recovery and test-only publication.
+
+Owner crossing-cliff approval — 2026-10-25: three sampled-source mesas may occupy
+the two flanks of the central crossing and the large-loop interior. These are
+additional explicit terrain-exclusion exceptions: raised footprints must stay
+>=68 studs from the road centerline and >=130 studs from the crossing center.
+The desert candidate retains exactly three chevron sign panels per corner
+(12 total); keep original arrow imagery and directions. No production rollout.

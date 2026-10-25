@@ -134,3 +134,27 @@ CLIENT sync OK role=RACE; infield hidden=1, correct source sky, complete same co
 zero MessageErrors. This tests ordinary client capability/startup, not a live
 reserved-server teleport or a full driven lap. All temporary QA scripts, bootstrap
 changes and fixture remotes removed by Stop/restoration before publishing.
+
+## Crossing cliffs / three-sign corners — 2026-10-25
+
+Owner approved implementation after the read-only feasibility review. Added three
+static sampled-source mesas at (-230,-25),(230,-25),(0,190), ellipse radii60/90,
+60/90,45/65. Source patch around column512/48 is rotated/scaled, with an edge
+blend and height caps110/110/60; not a giant scaled decorative boulder. The raised
+footprints preserve >=68-stud actual road centerline clearance and >=130-stud
+crossing-center exclusion. Native voxel surface smoothing still needs device-view
+acceptance. No road, support, physics, checkpoints, routing or kart changes.
+
+Desert-only selection keeps three original chevron sign panels near quarter,
+half and three-quarter corner stations, with >=20-stud sign-center separation.
+Original image/direction retained; other panels/GUI hidden locally and restored
+on teardown. Ordinary LocalScript controller startup: zero MessageErrors,
+SOURCE_DESERT / TerrainReady,3 cliffs,1 dune,911 tiles (+30),19 ad panels,
+12 visible chevrons. Actual nearest-corner counts3/3/3/3. Existing170 palette
+instances and64 dry tufts retained. Desktop construction about4.74 seconds;
+not a mobile thermal/FPS result or full manually driven-lap acceptance.
+
+281908 focused terrain/source/clearance/chevron checks,43139 Figure-8 geometry
+checks,25 world-VFX/skid checks,222-source compile,Rojo XML and diff checks PASS.
+Temporary ordinary-client startup fixture removed before publication. Publish
+scope remains Universe10772198697 / Place106553302629620 only.
