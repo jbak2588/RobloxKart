@@ -114,8 +114,8 @@ load("src/shared/RaceRouteProgress.luau",shared,"RaceRouteProgress")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
 local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
-check(#catalog.Order==4 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Practice first/default")
-check(catalog.Order[2]=="Track01Race" and catalog.Order[3]=="Track02" and catalog.Order[4]=="Track03","two races follow Practice")
+check(#catalog.Order==5 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Green Figure-8 first/default")
+check(catalog.Order[2]=="Track01Desert" and catalog.Order[3]=="Track01Race" and catalog.Order[4]=="Track02" and catalog.Order[5]=="Track03","dual themes and three existing circuits")
 check(catalog.Entries.Track01.GeometryId=="PracticeFigure8V1" and catalog.Entries.Track01Race.GeometryId=="PracticeCircuitV1","Practice has dedicated geometry / Base frozen")
 check(catalog.Entries.Track01.MaxPlayers==4 and catalog.Entries.Track01.TargetLaps==3
  and catalog.Entries.Track01.MatchType=="PUBLIC_RACE","Practice public 1–4 / 3 laps")
@@ -128,13 +128,11 @@ check(catalog.previewKey(catalog.Entries.Track01)~=catalog.previewKey(catalog.En
  "shared geometry uses distinct preview key")
 check(string.find(catalog.capabilityLabel(catalog.Entries.Track01Race),"1–4 RACERS",1,true)~=nil,
  "public selection communicates flexible capacity")
-for i,cf in catalog.Entries.Track01.GridSlots do
- check(catalog.Entries.Track01Race.GridSlots[i]==({CF.new(-350,0,465),CF.new(-340,0,465),CF.new(-355,0,480),CF.new(-345,0,480)})[i],"unchanged Base V1 grid "..i)
-end
+for _,entry in catalog.Entries do check(#entry.GridSlots==entry.MaxPlayers,'aligned spawn catalog retains capacity '..entry.Id)end
 for _, id in catalog.Order do
  local kind=mode.resolve(id)
  check(kind=="RACE","mode "..id)
- local expected=if id=="Track01" then 3 else 2
+ local expected=if id=="Track01" or id=="Track01Desert" then 3 else 2
  check(catalog.Entries[id].TargetLaps==expected and mode.targetLaps(kind,id)==expected,"laps "..id)
  check(mode.label(kind,id)==("RACE / "..expected.." LAPS"),"label "..id)
 end
@@ -169,6 +167,7 @@ player:SetAttribute("SelectedTrackId","Track01")
 kart:SetAttribute("RaceStartCFrame",CF.new(0,0,20))
 child(server,"ModuleScript","PrototypeWorld")
 local kartContext={owner=player,kart=kart,chassis=chassis,seat=seat}
+function kartContext:setSpawnCFrame(frame) self.spawnCFrame=frame;self.kart:SetAttribute('RaceStartCFrame',frame) end
 local releasedKartContexts=0
 modules.PrototypeWorld={onDriftOutcome=function() end,getKartContext=function(p)
  if p==player then return kartContext end

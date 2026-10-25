@@ -378,4 +378,27 @@ function TrackGeometry.getCourse(definition)
 	}
 end
 
+-- Park-style road grid, left/right then the next row, measured back from GO.
+function TrackGeometry.getStartGridFrames(course)
+	local frames = {}
+	local samples = course.Samples
+	for row = 0, 3 do
+		local remaining = 30 + row * 30
+		local point, tangent = course.StartPosition, course.StartTangent
+		for index = #samples, 1, -1 do
+			local behind, ahead = samples[index], samples[index % #samples + 1]
+			local length = (ahead - behind).Magnitude
+			if length > 0 and remaining <= length then
+				point = ahead:Lerp(behind, remaining / length)
+				tangent = (ahead - behind).Unit
+				break
+			end
+			remaining -= length
+		end
+		local frame = CFrame.lookAt(point, point + tangent)
+		for _, side in {-1, 1} do table.insert(frames, frame * CFrame.new(side * 14, 0, 0)) end
+	end
+	return frames
+end
+
 return table.freeze(TrackGeometry)

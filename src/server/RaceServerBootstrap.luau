@@ -95,6 +95,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	started = true
 	activeMatchId = payload.matchId
 	local processed = {}
+	local arrivalSerial = 0
 	local roomDirectory = if payload.roomId then ActiveMatchDirectory.new(
 		MemoryStoreService:GetSortedMap(ActiveMatchDirectory.MAP_NAME)) else nil
 	local track = TrackCatalog.Entries[payload.trackId]
@@ -125,6 +126,9 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 	local function arrive(player)
 		if processed[player] then return end
 		processed[player] = true
+		-- Capture server entry order before storage/character waits can reorder it.
+		arrivalSerial += 1
+		local arrivalOrder = arrivalSerial
 		local plan, reason
 		local admissionToken
 		if roomDirectory then
@@ -190,6 +194,7 @@ function RaceServerBootstrap.start(payload, initialPlayer, initialJoinData)
 		player:SetAttribute("RaceMode", plan.mode)
 		player:SetAttribute("GridSlot", plan.gridSlot)
 		player:SetAttribute("ReadyOrder", plan.readyOrder)
+		player:SetAttribute("RaceArrivalOrder", arrivalOrder)
 		player:SetAttribute("RaceEntryError", "")
 		DriverAppearance.applyToCharacter(character, DriverCatalog.Entries[plan.driverId])
 		local visual = kart:FindFirstChild("Visual")

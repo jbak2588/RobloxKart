@@ -2,6 +2,20 @@
 
 Read this before editing the project.
 
+## Official starting-grid alignment — owner direction 2026-10-26
+
+For all five official tracks, actual GridSlots now match the painted Park-style
+bracket centers and forward headings: front left, front right, then the next
+row. Server entry order is captured before storage/character waits and retained
+through same-server Rematch. Humans precede the bot; one human plus one bot use
+the two front-row slots. Pack live participants at staging changes and Countdown,
+never during RACING or per frame. Keep the bot's final-slot logical admission
+reservation separate from its compact physical grid position. Existing server
+ownership/seating guards, race capacity (four), and eight painted brackets stay
+intact. Rookie Park's actual eight start anchors and allocation are unchanged.
+This supersedes the older instruction below to preserve official GridSlot
+coordinates; road/gate/kerb/checkpoint geometry remains unchanged.
+
 ## Start/finish paint standard — owner direction 2026-10-25
 
 All five official tracks and Rookie Park use four checker rows along travel,

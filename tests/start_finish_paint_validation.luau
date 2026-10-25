@@ -48,6 +48,13 @@ for _,id in catalog.Order do
  for i,slot in grid:GetChildren()do
   check(slot.Name=='Grid'..i and #slot:GetChildren()==3,id..' bracket has three strokes')
   local front=slot:FindFirstChild('Front')
+  local center=front.CFrame*rb.CFrame.new(0,0,7.5)
+  local expected=geometry.getStartGridFrames(course)[i]
+  check((center.Position-rb.Vector3.new(expected.Position.X,.11,expected.Position.Z)).Magnitude<.001,id..' paint follows common frame '..i)
+  if i<=entry.MaxPlayers then
+   check((entry.GridSlots[i].Position-expected.Position).Magnitude<.001,id..' actual spawn centered in painted bracket '..i)
+   check(entry.GridSlots[i].LookVector:Dot(expected.LookVector)>.99999,id..' spawn faces closed front of bracket '..i)
+  end
   check(front.Size==rb.Vector3.new(10,.02,.35),id..' Park-width front stroke')
   for _,part in slot:GetChildren()do
    table.insert(parts,part)

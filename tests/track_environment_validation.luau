@@ -58,7 +58,7 @@ function methods:Destroy() self.Parent=nil end
 local replicated=object("ReplicatedStorage")
 local shared=object("Folder"); shared.Name="Shared"; shared.Parent=replicated
 local geometryModule=object("ModuleScript"); geometryModule.Name="TrackGeometry"; geometryModule.Parent=shared
-local geometry=luau.load(fs.readFile("src/shared/TrackGeometry.luau"),{environment={Vector3=rb.Vector3,Vector2=rb.Vector2}})()
+local geometry=luau.load(fs.readFile("src/shared/TrackGeometry.luau"),{environment={Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=frames}})()
 local env={game={GetService=function(_,name) assert(name=="ReplicatedStorage"); return replicated end},
  require=function(module) assert(module==geometryModule); return geometry end,
  Instance={new=object},Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=frames,Color3=rb.Color3,Enum=rb.Enum,UDim2=rb.UDim2,UDim=rb.UDim}

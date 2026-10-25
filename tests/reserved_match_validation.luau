@@ -162,6 +162,7 @@ local function addPlayer(name,id,slot)
  seat.Occupant=human;human.SeatPart=seat
  kart:SetAttribute("RaceStartCFrame",chassis.CFrame)
  local context={owner=player,kart=kart,chassis=chassis,seat=seat}
+ function context:setSpawnCFrame(frame) self.spawnCFrame=frame;self.kart:SetAttribute('RaceStartCFrame',frame) end
  contexts[player]=context
  player:SetAttribute("SelectedTrackId","Track01Race")
  player:SetAttribute("ReadyOrder",slot)

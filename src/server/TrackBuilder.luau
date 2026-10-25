@@ -1018,33 +1018,19 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	checkerCount = 1
 	-- Park's native ] paint: two columns, four rows, three strokes per slot.
 	-- Follow the approach centerline so even curved approaches stay on asphalt.
-	-- Decorative only: TrackCatalog.GridSlots and capacity remain authoritative.
+	-- Spawn catalog centers are verified against these same road grid frames.
 	local grid = Instance.new("Folder")
 	grid.Name = "StartGrid"
 	grid.Parent = markingFolder
-	for row = 0, 3 do
-		local remaining = 30 + row * 30
-		local point, tangent = startPoint, startDirection
-		for index = #samples, 1, -1 do
-			local behind, ahead = samples[index], samples[index % #samples + 1]
-			local length = (ahead - behind).Magnitude
-			if remaining <= length then
-				point = ahead:Lerp(behind, remaining / length)
-				tangent = (ahead - behind).Unit
-				break
-			end
-			remaining -= length
-		end
-		local frame = CFrame.lookAt(roadPoint(point, 0.07), roadPoint(point + tangent, 0.07))
-		for column, side in {-1, 1} do
-			local slot = Instance.new("Folder")
-			slot.Name = "Grid" .. (row * 2 + column)
-			slot.Parent = grid
-			local paint = Color3.fromRGB(238, 246, 250)
-			createVisualPart(slot, "Front", Vector3.new(10, 0.02, 0.35), frame * CFrame.new(side * 14, 0, -7.5), paint, nil)
-			for _, arm in {-1, 1} do
-				createVisualPart(slot, "Arm", Vector3.new(0.35, 0.02, 4), frame * CFrame.new(side * 14 + arm * 5, 0, -5.5), paint, nil)
-			end
+	for index, center in TrackGeometry.getStartGridFrames(course) do
+		local frame = center + Vector3.new(0, roadY + 0.07, 0)
+		local slot = Instance.new("Folder")
+		slot.Name = "Grid" .. index
+		slot.Parent = grid
+		local paint = Color3.fromRGB(238, 246, 250)
+		createVisualPart(slot, "Front", Vector3.new(10, 0.02, 0.35), frame * CFrame.new(0, 0, -7.5), paint, nil)
+		for _, arm in {-1, 1} do
+			createVisualPart(slot, "Arm", Vector3.new(0.35, 0.02, 4), frame * CFrame.new(arm * 5, 0, -5.5), paint, nil)
 		end
 	end
 	testTrack:SetAttribute("StartFinishPaintVersion", 1)

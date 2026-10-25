@@ -65,8 +65,9 @@ local function budget(world)
  end;return result
 end
 for _,id in {'Track01Race','Track03'}do
- local entry=table.clone(catalog.Entries[id]);entry.BotAllowed=nil
- check(equal(entry,frozenCatalog.Entries[id]),'frozen full catalog except authorized Bot capability '..id)
+ local entry=table.clone(catalog.Entries[id]);entry.BotAllowed=nil;entry.GridSlots=nil
+ local frozen=table.clone(frozenCatalog.Entries[id]);frozen.GridSlots=nil
+ check(equal(entry,frozen),'frozen catalog except authorized Bot capability / aligned grid centers '..id)
  local now=builder.build(object('Folder'),catalog.Entries[id],0)
  local old=oldBuilder.build(object('Folder'),frozenCatalog.Entries[id],0)
  check(signature(now)==signature(old),'frozen complete generated world '..id)
@@ -145,7 +146,7 @@ for i,slot in track.GridSlots do
  local delta=slot.Position-c.StartPosition
  check(delta:Dot(c.StartTangent)<-20 and math.abs(delta:Dot(rb.Vector3.new(-c.StartTangent.Z,0,c.StartTangent.X)))<15,'grid behind gate within asphalt')
  local d=slot.Position-def.Crossover.Position
- check(math.abs(d.Z)>def.Crossover.VisualHalfLength+6,'all grid slots outside crossing/apron')
+ check(rb.Vector2.new(d.X,d.Z).Magnitude>=130,'aligned slots remain outside actual central crossing; obsolete square apron is absent')
  for j=1,i-1 do check((slot.Position-track.GridSlots[j].Position).Magnitude>=16,'grid spacing')end
 end
 local world=builder.build(object('Folder'),track,0);budgets.Track01=budget(world)

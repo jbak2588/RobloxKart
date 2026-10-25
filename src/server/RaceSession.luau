@@ -125,8 +125,10 @@ function RaceSession:orderedParticipants()
 	local players = {}
 	for player in self.participants do table.insert(players, player) end
 	table.sort(players, function(a, b)
-		local orderA = a:GetAttribute("ReadyOrder") or 0
-		local orderB = b:GetAttribute("ReadyOrder") or 0
+		local botA, botB = a:GetAttribute("IsBot")==true, b:GetAttribute("IsBot")==true
+		if botA ~= botB then return not botA end
+		local orderA = a:GetAttribute("RaceArrivalOrder") or a:GetAttribute("ReadyOrder") or 0
+		local orderB = b:GetAttribute("RaceArrivalOrder") or b:GetAttribute("ReadyOrder") or 0
 		if orderA == orderB then return (if a:GetAttribute("IsBot")==true then 0 else a.UserId or 0) < (if b:GetAttribute("IsBot")==true then 0 else b.UserId or 0) end
 		return orderA < orderB
 	end)

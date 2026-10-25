@@ -328,6 +328,24 @@ function RaceController.start(options)
 	local sessionElapsed = 0
 	local publishSession: (now: number) -> ()
 
+	-- Lifecycle-only placement. Keep the existing seated kart and authority guard.
+	local function alignStartGrid(resetWaiting: boolean)
+		if hubParkPreview then return end
+		local track = TrackCatalog.Entries[session.trackId]
+		for index, player in session:orderedParticipants() do
+			local racer = racers[player]
+			local grid = track and track.GridSlots and track.GridSlots[index]
+			local old = racer and racer.context.kart:GetAttribute("RaceStartCFrame")
+			if grid and typeof(old)=="CFrame" then
+				-- Preserve the accepted kart clearance above this track's ground.
+				local frame = CFrame.new(0, old.Position.Y-grid.Position.Y, 0) * grid
+				racer.context:setSpawnCFrame(frame)
+				if player:GetAttribute("GridSlot")~=index then player:SetAttribute("GridSlot",index) end
+				if resetWaiting then racer:enterWaitingLobby() end
+			end
+		end
+	end
+
 	local function createRacer(player: Player, context)
 		local kart, chassis, seat = context.kart, context.chassis, context.seat
 		local racer = RacerState.new(player, context,
@@ -931,6 +949,7 @@ function RaceController.start(options)
 		table.clear(session.finishOrder)
 		table.clear(session.rematchVotes)
 		table.clear(session.terminal)
+		alignStartGrid(false)
 		for place, player in session:orderedParticipants() do
 			setChanged(player,'RacePublicWarmup',publicWarmup)
 			local racer = racers[player]
@@ -1024,6 +1043,7 @@ function RaceController.start(options)
 		publicNextAt=0
 		setStartBlocked("")
 		session.phase = "WAITING"
+		alignStartGrid(reason == "INITIAL")
 		session.waitingReason = reason
 		if reason ~= "INITIAL" then
 			session.startingParticipantCount = 0
@@ -1135,6 +1155,7 @@ function RaceController.start(options)
 			return
 		end
 		updateComplete()
+		if session.phase == "WAITING" then alignStartGrid(true) end
 		publishSession(time())
 		updateRanking()
 		if persistentRoom and (session.phase == "RACING" or session.phase == "COMPLETE") then
@@ -1185,7 +1206,7 @@ function RaceController.start(options)
 			if arrivalDeadline == 0 then arrivalDeadline = now + RaceConfig.RESERVED_ROSTER_WAIT_SECONDS end
 			session.phase = "ARRIVAL"
 			session.waitingReason = "ARRIVAL"
-			racer:enterWaitingLobby()
+			alignStartGrid(true)
 			publishSession(now)
 			if session:count() >= expectedParticipantCount then startSharedCountdown(now) end
 		elseif track.MatchType == "PUBLIC_RACE" then
@@ -1255,7 +1276,7 @@ function RaceController.start(options)
 		local racer=createRacer(state,context);racer.targetLaps=self.targetLaps
 		racers[state]=racer;self:addBot(state,racer);self.itemsReady[state]=true
 		setChanged(state,"RaceItemsReady",true)
-		racer:enterWaitingLobby();publishSession(time());return true
+		alignStartGrid(true);publishSession(time());return true
 	end
 	function session:addTestBot(state,context)
 		if self:count()~=1 or self:humanCount()~=1 then return false end
