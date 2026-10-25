@@ -8,7 +8,7 @@ function Policy.allowed(config,context,userId,kind)
 end
 function Policy.indexScope(config,entry)
  local token=config.GeometryTokens[entry.geometryId]
- local geometries={Track01={PracticeFigure8V1=true},Track01Desert={PracticeFigure8V1=true},Track01Race={PracticeCircuitV1=true},
+ local geometries={Track01={PracticeFigure8V1=true},Track01Desert={PracticeFigure8V1=true},Track01Race={PracticeCircuitV1=true},Track01Metro={PracticeCircuitV1=true},
   Track02={PrototypeCircuitV2=true,PrototypeCircuitV2B=true},Track03={HardCircuitV1=true}}
  if not token or entry.rulesetId~=config.RulesetId
   or not geometries[entry.trackId] or not geometries[entry.trackId][entry.geometryId]

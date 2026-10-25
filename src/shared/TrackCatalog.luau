@@ -101,6 +101,15 @@ local TrackCatalog = {
 	},
 }
 
+-- New theme has its own room/record/rematch identity; the original Base is intact.
+local metro = table.clone(TrackCatalog.Entries.Track01Race)
+metro.Id = 'Track01Metro'
+metro.DisplayName = 'Metro City Circuit'
+metro.PreviewImageAssetId = '' -- Use the existing course-map fallback.
+metro.GridSlots = table.clone(TrackCatalog.Entries.Track01Race.GridSlots)
+TrackCatalog.Entries.Track01Metro = metro
+table.insert(TrackCatalog.Order, 4, metro.Id)
+
 function TrackCatalog.botAllowed(trackId)
 	local track = TrackCatalog.Entries[trackId]
 	return track ~= nil and track.BotAllowed == true and track.MatchType == "PUBLIC_RACE" and track.MaxPlayers >= 2

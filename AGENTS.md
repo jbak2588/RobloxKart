@@ -2,6 +2,16 @@
 
 Read this before editing the project.
 
+## Metro City Circuit — owner direction 2026-10-26
+
+Track01Metro is a separate public two-lap, four-racer city theme derived from
+Base's PracticeCircuitV1 route. Preserve original Base, other tracks, Hub and
+Race Now's Desert routing. Reuse inert building exteriors from city.rbxlx.
+Distant scenery uses the original template Sky, Atmosphere and color correction
+unchanged; never wrap the place in photos of the template's interior streets.
+The new track follows the existing checker/grid/chevron standards and authority.
+See docs/testing/metro_city_circuit_20261026.md. No Publish is authorized by this task.
+
 ## Official starting-grid alignment — owner direction 2026-10-26
 
 For all five official tracks, actual GridSlots now match the painted Park-style

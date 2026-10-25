@@ -6,6 +6,7 @@ local TrackBuilder = {}
 local TRACK_VISUAL_STYLE = {
 	Practice = { Version = 1, KerbRows = 1, SignEvery = 12, SignText = "KDM / PRACTICE" },
 	Base = { Version = 1, KerbRows = 1, SignEvery = 9, SignText = "KDM / BASE TRACK" },
+	Metro = { Version = 1, KerbRows = 2, SignEvery = 9, SignText = "KDM / METRO CITY" },
 	Standard = { Version = 1, KerbRows = 1, SignEvery = 6, SignText = "KDM / TECHNICAL" },
 	V2B = { Version = 1, KerbRows = 2, SignEvery = 6, SignText = "KDM / V2B CANDIDATE" },
 	Hard = { Version = 1, KerbRows = 2 },
@@ -76,7 +77,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local isHardCircuit = track.GeometryId == "HardCircuitV1"
 	local isFigure8 = track.GeometryId == "PracticeFigure8V1"
 	local isV2B = track.GeometryId == "PrototypeCircuitV2B"
-	local styleName = if isV2B then "V2B" elseif isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
+	local isMetro = track.Id == 'Track01Metro'
+	local styleName = if isMetro then "Metro" elseif isV2B then "V2B" elseif isHardCircuit then "Hard" elseif track.GeometryId == "PrototypeCircuitV2" then "Standard"
 		elseif track.Id == "Track01Race" then "Base" else "Practice"
 	local style = TRACK_VISUAL_STYLE[styleName]
 	local environmentVersion = if isFigure8 then 10 elseif isHardCircuit then 6 else 1
@@ -363,7 +365,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		Color3.fromRGB(84, 125, 79), Enum.Material.Grass
 	)
 
-	if isHardCircuit or isFigure8 or isV2B then
+	if isHardCircuit or isFigure8 or isV2B or isMetro then
 		local support = createPart(testTrack, "SafetyGround",
 			Vector3.new(bounds.MaxX - bounds.MinX + grassMargin * 2, 1, bounds.MaxZ - bounds.MinZ + grassMargin * 2),
 			CFrame.new((bounds.MinX + bounds.MaxX) * 0.5, groundTop - 0.5, (bounds.MinZ + bounds.MaxZ) * 0.5),
@@ -462,7 +464,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		-- continues along both edges, merging gentle spans to bound mobile parts.
 		if not isHardCircuit and not nearStart and bend >= kerbThreshold then cornerSegments[index] = true end
 
-		if not isFigure8 and not nearStart and bend >= barrierThreshold and index % barrierStride == 0
+		if not isFigure8 and not isMetro and not nearStart and bend >= barrierThreshold and index % barrierStride == 0
 			and not exitClearSegments[index] then
 			local outerSide = -innerSide
 			-- B-only starting probe; certified against actual Road boxes after all roads exist.
@@ -566,7 +568,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 
 	local singleKerbParts, doubleKerbParts, sharpGroupCount = 0, 0, 0
 	local doubleSegments = {}
-	if isHardCircuit or isFigure8 or isV2B then
+	if isHardCircuit or isFigure8 or isV2B or isMetro then
 		-- A sustained <=105-stud core enters the thick kerb band; <=140 holds it
 		-- through the shoulder of the bend. Ignore isolated one/two-sample spikes.
 		local sharpCore = math.atan(definition.SampleSpacing / 105)
@@ -607,8 +609,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		end
 		for row = 1, (if isFigure8 then 2 else style.KerbRows) do
 			local offset = roadWidth * 0.5 + 2.6 + (row - 1) * 3.6
-			local segment, stripe = (if isFigure8 then 1 else 2), 0
-			local lastAllowed = if isFigure8 then #samples else #samples - 1
+			local segment, stripe = (if isFigure8 or isMetro then 1 else 2), 0
+			local lastAllowed = if isFigure8 or isMetro then #samples else #samples - 1
 			while segment <= lastAllowed do
 				if inCrossover(samples[segment], 12) or inCrossover(samples[segment % #samples + 1], 12) then segment += 1; continue end
 				if row == 2 and not doubleSegments[segment] then segment += 1; continue end
@@ -1054,7 +1056,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	testTrack:SetAttribute("VisualPartCount", partCount)
 	testTrack:SetAttribute("EnvironmentPartCount", 1 + speedCueParts + (testTrack:GetAttribute("VisualRailPartCount") or 0) + (if isFigure8 then 2 + #PRACTICE_BILLBOARD_PARTS + (testTrack:GetAttribute("PracticeTreeCount") or 0) * 4 else 0))
 	testTrack:SetAttribute("EnvironmentCueVersion", environmentVersion)
-	if isHardCircuit or isFigure8 or isV2B then
+	if isHardCircuit or isFigure8 or isV2B or isMetro then
 		testTrack:SetAttribute("CornerZoneCount", #cornerZones)
 		testTrack:SetAttribute("SingleKerbPartCount", singleKerbParts)
 		testTrack:SetAttribute("DoubleKerbPartCount", doubleKerbParts)

@@ -1,0 +1,32 @@
+"""Compare the shipped inert resource palette against the original city place."""
+from pathlib import Path
+import hashlib
+import xml.etree.ElementTree as ET
+source=Path('C:/dev/rbxlx_data/city.rbxlx')
+assert hashlib.sha256(source.read_bytes()).hexdigest()=='da91339e3c6a5f5159c7cb471d3f9473aa03c13d241655283605045144ea5ff5'
+original=ET.parse(source).getroot()
+asset=ET.parse('src/assets/KDMMetroResources.rbxmx').getroot().find('Item')
+def name(n):return n.findtext("Properties/string[@name='Name']")
+def child(n,key):return next(v for v in n.findall('Item') if name(v)==key)
+def props(n):return {p.get('name'):(p.tag,''.join(''.join(p.itertext()).split())) for p in n.find('Properties')}
+allowed={'Folder','Model','MeshPart','Part','WedgePart','SurfaceAppearance','Texture','Decal','Sky','Atmosphere','ColorCorrectionEffect','MaterialVariant'}
+for n in asset.iter('Item'):assert n.get('class') in allowed,n.get('class')
+lighting=child(original,'Lighting')
+for item in child(asset,'Lighting').findall('Item'):
+ old=next(n for n in lighting.findall('Item') if n.get('class')==item.get('class') and name(n)==name(item))
+ before=props(old)
+ for key,value in props(item).items():assert before[key]==value,(item.get('class'),key)
+material=child(original,'MaterialService')
+for item in child(asset,'Materials').findall('Item'):
+ before=props(child(material,name(item)))
+ for key,value in props(item).items():assert before[key]==value,(name(item),key)
+mesh_ids={n.findtext("Properties/Content[@name='MeshId']/url") for n in original.iter('Item') if n.get('class')=='MeshPart'}
+parts=0
+for n in asset.iter('Item'):
+ if n.get('class') not in ('MeshPart','Part','WedgePart'):continue
+ parts+=1
+ if n.get('class')=='MeshPart':assert n.findtext("Properties/Content[@name='MeshId']/url") in mesh_ids
+ p=props(n)
+ for k,v in {'Anchored':'true','CanCollide':'false','CanTouch':'false','CanQuery':'false','CastShadow':'false'}.items():assert p[k]==('bool',v)
+assert parts==348
+print('PASS: original city hash, original Sky/Atmosphere/ColorCorrection/material values, original mesh identities, inert 348-part palette')

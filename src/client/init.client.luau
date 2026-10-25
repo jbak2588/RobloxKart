@@ -59,9 +59,11 @@ RaceItemUiController.start()
 -- Race loadouts are now fixed; there is no item-selection/preparation overlay.
 if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).start() end
 if role == "RACE" then TrackHorizonController.start() end
+if role == "RACE" then require(script:WaitForChild('MetroCityEnvironment')).start() end
 if role == "RACE" then TrackCircuitStructuresController.start() end
 Workspace:GetAttributeChangedSignal("KDMServerRole"):Connect(function()
 	if Workspace:GetAttribute("KDMServerRole") == "RACE" then
+		require(script:WaitForChild('MetroCityEnvironment')).start()
 		TrackCircuitStructuresController.start()
 	end
 end)

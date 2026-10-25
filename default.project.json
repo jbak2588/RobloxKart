@@ -34,6 +34,9 @@
       },
       "KDMDesertSource": {
         "$path": "src/assets/DesertSource"
+      },
+      "KDMMetroResources": {
+        "$path": "src/assets/KDMMetroResources.rbxmx"
       }
     },
 

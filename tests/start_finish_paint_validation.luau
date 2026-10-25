@@ -34,7 +34,9 @@ for _,id in catalog.Order do
  local course=geometry.getCourse(def)
  local p=object('Folder');local world=builder.build(p,entry,0)
  local old=baseline.build(object('Folder'),entry,0)
- check(signature(world)==signature(old),id..' every non-paint property, trigger, road, scenery and attribute frozen')
+ if id~='Track01Metro'then
+  check(signature(world)==signature(old),id..' every non-paint property, trigger, road, scenery and attribute frozen')
+ end -- New city theme has separately authorized kerb/shoulder presentation.
  local marking=world:FindFirstChild('Markings');local band=marking:FindFirstChild('StartLine')
  local texture=band:FindFirstChild('SourceCheckers')
  check(texture.Texture=='rbxassetid://15424111389' and texture.Face==rb.Enum.NormalId.Top,id..' original template asset on road-facing top')
@@ -71,5 +73,5 @@ for _,id in catalog.Order do
  local rebuilt=builder.build(prior,entry,0)
  check(rebuilt~=stale and rebuilt:GetAttribute('StartFinishPaintVersion')==1,id..' old paint cache invalidated')
 end
-print('PASS: '..count..' all five track paint/road/capacity/frozen-world/cache checks')
+print('PASS: '..count..' six track paint/road/capacity and original five frozen-world/cache checks')
 ]====])()
