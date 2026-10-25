@@ -23,9 +23,11 @@ for _,v in folder:GetDescendants()do
     check(math.abs(v.Size.Y-6.0)<.001 and math.abs(v.Size.Z-12.0)<.001,'chevron board is 6.0x12.0 studs')
     local expectedAsset=if dir=='Left'then'rbxassetid://125863354300599'else'rbxassetid://118109633914676'
     check(v:GetAttribute('ChevronAssetId')==expectedAsset,'chevron asset attribute matches turn direction')
-    for _,face in {'Left','Right'}do
+    local face=if v:FindFirstChild('KDMChevronSurfaceGui_Left')then 'Left'else 'Right'
+    check(not(v:FindFirstChild('KDMChevronSurfaceGui_Left')and v:FindFirstChild('KDMChevronSurfaceGui_Right')),'rear face is blank')
+    for _,face in {face}do
      local gui=v:FindFirstChild('KDMChevronSurfaceGui_'..face)
-     check(gui~=nil,'both Left and Right SurfaceGuis exist on chevron board')
+     check(gui~=nil,'one road-facing SurfaceGui exists on chevron board')
      local img=gui and gui:FindFirstChild('ChevronPanel')and gui.ChevronPanel:FindFirstChild('ChevronImage')
      check(img and img:IsA('ImageLabel')and img.Image==expectedAsset,'ChevronImage uses uploaded 1024x512 chevron asset')
      chevronImages+=1
@@ -40,7 +42,7 @@ local arch=folder.SponsorArch
 check(math.abs(arch.TopBeam.CFrame.Position.Y-arch.TopBeam.Size.Y/2-24.4)<.001,'Figure-8 vertical clearance preserved')
 check(arch.LeftBasePad.CFrame.Position.Z-arch.LeftBasePad.Size.Z/2>L.StartStraightZ+L.RoadWidth/2+L.KerbWidth+12,'pit-side pillar beyond road edge')
 check(rails==folder:GetAttribute('RailCount')and rails>40 and rails<250,'bounded rail budget')
-check(folder:GetAttribute('ChevronClusterCount')==18 and folder:GetAttribute('ChevronPartCount')==54 and chevronRails==54 and chevronImages==108,'all 18 Hub corners have 3 outer chevron boards with double-sided assets')
+check(folder:GetAttribute('ChevronClusterCount')==18 and folder:GetAttribute('ChevronPartCount')==54 and chevronRails==54 and chevronImages==54,'all 18 Hub corners have 3 outer chevron boards with single-sided assets')
 check(branding>=rails+2,'KDM panels and both arch faces')
 local tower=folder.LightingTowers.ParkTower4
 check((tower.BasePad.CFrame.Position-rb.Vector3.new(430,.4,-900)).Magnitude<.001,'northeast tower moved from behind forest to outer corner verge')

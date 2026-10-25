@@ -9,7 +9,7 @@ local world={GetServerTimeNow=function()return 1000+now end}
 local env={game={GetService=function(_,name)if name=='Workspace'then return world end;return {WaitForChild=function()return parent end}end},
  script={Parent=parent},require=function(k)return assert(modules[k],k)end,
  Instance=rb.Instance,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,ColorSequence=rb.ColorSequence,NumberSequence=rb.NumberSequence,Enum=rb.Enum,
- os={clock=function()return now end}}
+ os={clock=function()return now end},task={defer=function(callback)callback()end}}
 local function module(name,path)modules[name]=luau.load(fs.readFile(path),{environment=env})();return modules[name]end
 module('KDMGameplayBalance','src/shared/KDMGameplayBalance.luau')
 modules.KartConfig=require('./helpers/gameplay_config')('src/shared/KartConfig.luau')
@@ -211,6 +211,24 @@ check(not c:isNitro(p,expires+.01,1,false),'natural expiry still owns end time')
 c,p,q,r,s=fresh();tick(.01);c.isRookie=true;c.driveGeometry=parkGeometry
 pose(r,center.X+10000,center.Z+10000)
 check(not c:use(p,1,'Nitro') and p:GetAttribute('LobbyChargeNitro')==1,'physical island boundary retains safety rejection without consuming')
+-- Verify the Park-only Shield adapter restores manual ownership after weld events.
+c,p,q,r,s=fresh();tick(.01)
+local queue,writes={},0
+env.task.defer=function(callback)table.insert(queue,callback)end
+local function flush()local pending=queue;queue={};for _,callback in pending do callback()end end
+check(c:use(p,1,'Shield')and #queue>0,'Park Shield activation schedules deferred authority repair')
+local originalBody=r.body
+local fake={Parent=r.kart,Anchored=false,automatic=true}
+function fake:GetNetworkOwnershipAuto()return self.automatic end
+function fake:GetNetworkOwner()return nil end
+function fake:SetNetworkOwner(owner)check(owner==nil,'Park writes server ownership only');self.automatic=false;writes+=1 end
+r.body=fake;flush()
+check(writes==1 and not fake.automatic,'Park Shield weld restores manual server authority')
+c:reassertServerAuthority(c.actors[p]);flush();check(writes==1,'Park intact authority is not rewritten')
+fake.automatic=true;r.humanoid.SeatPart=nil
+c:reassertServerAuthority(c.actors[p]);flush();check(writes==1,'Park incomplete seat rejects repair')
+r.humanoid.SeatPart=r.seat;r.body=originalBody
+env.task.defer=function(callback)callback()end
 c:destroy();scene.root:Destroy()
 scene=nil
 print('PASS: '..n..' production practice loadout / PvP / bot / warning / hit / immunity / Smoke / Nitro / lifecycle checks')

@@ -93,6 +93,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		and previousTrack:FindFirstChild("Road")
 		and previousTrack:FindFirstChild("RaceTriggers")
 		and previousTrack:FindFirstChild("BarrierTriggers")
+		and previousTrack:GetAttribute("ChevronStandardVersion") == 1
 		and previousTrack:GetAttribute("BarrierForwardTangentVersion") == 1
 		and previousTrack:GetAttribute("EnvironmentCueVersion") == environmentVersion
 		and previousTrack:GetAttribute("VisualStyleVersion") == style.Version
@@ -762,27 +763,6 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		{ 236, 237, 238, 239 },
 		{ 242, 243, 244, 245 },
 	}
-	local curveRails = {
-		{ 25, 26, 27 },
-		{ 29, 30, 31 },
-		{ 33, 34, 35 },
-		{ 37, 38, 39 },
-		{ 41, 42, 43 },
-		{ 77, 78, 79 },
-		{ 81, 82, 83 },
-		{ 85, 86, 87 },
-		{ 89, 90, 91 },
-		{ 93, 94, 95 },
-		{ 165, 166, 167 },
-		{ 169, 170, 171 },
-		{ 173, 174, 175 },
-		{ 177, 178, 179 },
-		{ 191, 192, 193 },
-		{ 195, 196, 197 },
-		{ 199, 200, 201 },
-		{ 203, 204, 205 },
-	}
-
 	local plannedRails = {}
 	if isFigure8 then
 		for _, block in straightBlocks do
@@ -790,21 +770,43 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				table.insert(plannedRails, { idx = idx, isStraight = true, posInBlock = posInBlock })
 			end
 		end
-		for _, cluster in curveRails do
-			for posInCluster, idx in cluster do
-				table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = posInCluster })
+	end
+	-- One cluster of three boards per connected, same-direction corner.
+	-- Analytic arc tracks use the actual geometry arcs, never sample-index blocks.
+	local curves = {}
+	if definition.Segments then
+		for _, arc in definition.Segments do
+			if arc[1] == "Arc" then
+				local indices = {}
+				for _, fraction in { .25, .5, .75 } do
+					local angle = arc[5] + arc[6] * fraction
+					local target = Vector3.new(arc[2]+math.cos(angle)*arc[4],0,arc[3]+math.sin(angle)*arc[4])
+					local best, distance = 1, math.huge
+					for i, point in samples do
+						local d=(point-target).Magnitude
+						if d<distance then best,distance=i,d end
+					end
+					table.insert(indices,best)
+				end
+				table.insert(curves,indices)
 			end
 		end
 	else
-		-- General curve rails for Track01Race, Track02 (V2B), Track03 (Hard)
-		local nextRail = 4
-		for idx = 4, #samples - 4 do
-			if idx >= nextRail and turnAt(idx) >= kerbThreshold then
-				table.insert(plannedRails, { idx = idx, isStraight = false, posInBlock = 2 })
-				table.insert(plannedRails, { idx = math.min(idx + 1, #samples - 4), isStraight = false, posInBlock = 1 })
-				table.insert(plannedRails, { idx = math.min(idx + 2, #samples - 4), isStraight = false, posInBlock = 2 })
-				nextRail = idx + 6
-			end
+		local i=4
+		while i<=#samples-4 do
+			if turnAt(i)>=kerbThreshold then
+				local first,side=i, signedTurnAt(i)>0
+				repeat i+=1 until i>#samples-4 or turnAt(i)<kerbThreshold or (signedTurnAt(i)>0)~=side
+				local span=i-first-1
+				if span>=2 then
+					table.insert(curves,if span<4 then {first,first+1,i-1} else {first+math.floor(span*.25),first+math.floor(span*.5),first+math.floor(span*.75)})
+				end
+			else i+=1 end
+		end
+	end
+	for curveId,indices in curves do
+		for pos,idx in indices do
+			table.insert(plannedRails,{idx=idx,isStraight=false,posInBlock=pos,curveId=curveId})
 		end
 	end
 
@@ -883,7 +885,8 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		local assetId = if isLeftCurve then CHEVRON_SIGN_ASSETS.Left else CHEVRON_SIGN_ASSETS.Right
 		railPart:SetAttribute("ChevronDirection", if isLeftCurve then "Left" else "Right")
 		railPart:SetAttribute("ChevronAssetId", assetId)
-		for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local inwardFace = if railPart.CFrame.RightVector:Dot(-normalVector)>0 then Enum.NormalId.Right else Enum.NormalId.Left
+		for _, face in { inwardFace } do
 			local gui = Instance.new("SurfaceGui")
 			gui.Name = "KDMChevronSurfaceGui_" .. face.Name
 			gui.Face = face
@@ -966,6 +969,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 				chevronClusters += 1
 			end
 			chevronParts += 1
+			railPart:SetAttribute("ChevronCurveId", item.curveId)
 			attachChevronGuidance(railPart, bestNormal, isLeftCurve)
 			brandedRailParts += 1
 		elseif shouldBrand then
@@ -973,6 +977,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 			brandedRailParts += 1
 		end
 	end
+	testTrack:SetAttribute("ChevronStandardVersion", 1)
 	testTrack:SetAttribute("VisualRailPartCount", visualRailParts)
 	testTrack:SetAttribute("BrandedVisualRailCount", brandedRailParts)
 

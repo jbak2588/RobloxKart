@@ -33,7 +33,7 @@ local function signature(node)
   if item.Name:find('CenterDash') or item.Name:find('DirectionMarkers') or item.Name:find('ForwardChevron') or item.Name:find('CrossoverChevron') or item.Name:find('Chevron') or item.Name:find('VisualRails') then return end
   local props={};for key,value in item.props do if key~='Parent' then table.insert(props,key..'='..tostring(value))end end;table.sort(props)
   local attrs={};for key,value in item.attrs do
-   if key~='ChevronClusterCount' and key~='ChevronPartCount' and key~='VisualPartCount' and key~='EnvironmentPartCount' and key~='VisualRailPartCount' and key~='BrandedVisualRailCount' then
+   if key~='ChevronStandardVersion' and key~='ChevronClusterCount' and key~='ChevronPartCount' and key~='VisualPartCount' and key~='EnvironmentPartCount' and key~='VisualRailPartCount' and key~='BrandedVisualRailCount' then
     table.insert(attrs,key..'='..tostring(value))
    end
   end;table.sort(attrs)
@@ -152,7 +152,7 @@ local world=builder.build(object('Folder'),track,0);budgets.Track01=budget(world
 check(budgets.Track01.Part<=1400,'static polish remains inside mobile part budget')
 check(world:GetAttribute('PracticeTreeCount')>=8 and world:GetAttribute('PracticeTreeCount')<=18,'bounded native tree family')
 check(world:GetAttribute('PracticeBillboardPartCount')==42 and world:GetAttribute('PracticeSignalPartCount')==0,'sanitized donor structure / deferred signal')
-check(world:GetAttribute('ChevronClusterCount')==18 and world:GetAttribute('ChevronPartCount')==54,'Figure-8 18 outer curve chevron clusters (54 boards)')
+check(world:GetAttribute('ChevronClusterCount')==4 and world:GetAttribute('ChevronPartCount')==12,'Figure-8 four curves with three boards each')
 local visualRails=world:FindFirstChild('Environment'):FindFirstChild('VisualRails')
 local fig8ChevronRails=0
 for _,rail in (if visualRails then visualRails:GetChildren() else {})do
@@ -162,7 +162,9 @@ for _,rail in (if visualRails then visualRails:GetChildren() else {})do
   check(math.abs(rail.Size.Y-6.0)<.001 and math.abs(rail.Size.Z-12.0)<.001,'Figure-8 chevron board is 6.0x12.0 studs')
   local expectedAsset=if dir=='Left'then'rbxassetid://125863354300599'else'rbxassetid://118109633914676'
   check(rail:GetAttribute('ChevronAssetId')==expectedAsset,'Figure-8 chevron asset matches curve direction')
-  for _,face in {'Left','Right'}do
+  local face=if rail:FindFirstChild('KDMChevronSurfaceGui_Left')then 'Left'else 'Right'
+  check(not(rail:FindFirstChild('KDMChevronSurfaceGui_Left')and rail:FindFirstChild('KDMChevronSurfaceGui_Right')),'rear face blank')
+  for _,face in {face}do
    local gui=rail:FindFirstChild('KDMChevronSurfaceGui_'..face)
    local panel=gui and gui:FindFirstChild('ChevronPanel')
    local img=panel and panel:FindFirstChild('ChevronImage')
@@ -170,7 +172,7 @@ for _,rail in (if visualRails then visualRails:GetChildren() else {})do
   end
  end
 end
-check(fig8ChevronRails==54,'all 54 Figure-8 curve boards have double-sided chevron assets')
+check(fig8ChevronRails==12,'all 12 Figure-8 curve boards have single-sided chevron assets')
 check(budgets.Track01.Script==0 and budgets.Track01.LocalScript==0 and budgets.Track01.ModuleScript==0 and budgets.Track01.MeshPart==0,'no donor code or runtime mesh dependencies')
 local landmarks=world:FindFirstChild('Environment'):FindFirstChild('PracticeLandmarks')
 for _,model in landmarks:GetChildren()do

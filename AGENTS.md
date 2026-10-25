@@ -63,6 +63,18 @@ Owner now directs human-plus-bot Rematch to stay in the existing Race server.
 and reward-streak lifecycle. The fresh-job workaround is not the production path.
 Automated regression coverage is distinct from long-session real-device acceptance.
 
+Owner follow-up: Shield triggers the hitch in Park, Race Now and Solo Practice.
+Park/Hub uses LobbyPracticeCombat records rather than PrototypeWorld contexts;
+preserve its separate deferred, validated ownership repair on Shield shell/pulse
+creation and removal as well as the official Race repair.
+
+## Corner chevron standard — owner direction 2026-10-25
+
+All tracks, including Rookie Park: exactly three roadside chevron boards per
+corner, with graphics on the road-facing side only. Rear faces remain blank.
+Do not install multiple three-board clusters along one connected corner. Keep
+the existing road, kerbs, safety clearances and checkpoint geometry unchanged.
+
 ## Mission
 
 Commercial mobile-first Roblox arcade kart racing game.

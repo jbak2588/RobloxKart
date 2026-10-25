@@ -79,6 +79,18 @@ function Combat:valid(a)
   and r.humanoid.SeatPart==r.seat and r.seat.Occupant==r.humanoid
   and p:GetAttribute('RaceState')=='GARAGE' and p:GetAttribute('KDMRoutePending')~='RACE_LAUNCH'
 end
+-- Park / Hub uses separate kart records from PrototypeWorld. Restore ownership
+-- after Shield weld changes settle, only for the same live seated human record.
+function Combat:reassertServerAuthority(a)
+ if not a or not a.owner then return end
+ local r=a.record
+ task.defer(function()
+  if a.record~=r or not self:valid(a)or not r.kart.Parent or r.body.Anchored then return end
+  pcall(function()
+   if r.body:GetNetworkOwnershipAuto()or r.body:GetNetworkOwner()~=nil then r.body:SetNetworkOwner(nil)end
+  end)
+ end)
+end
 function Combat:feedback(a,message)
  if not a then return end
  a:SetAttribute('RacePracticeMessage',message)
@@ -95,8 +107,9 @@ function Combat:hitSound(a,id)
  p:SetAttribute('LobbyCombatHitSerial',(p:GetAttribute('LobbyCombatHitSerial')or 0)+1)
 end
 function Combat:pulseShield(a,now)
- if #self.shieldPulses>=32 then self.shieldPulses[1].visual:Destroy();table.remove(self.shieldPulses,1)end
+ if #self.shieldPulses>=32 then local old=table.remove(self.shieldPulses,1);old.visual:Destroy();self:reassertServerAuthority(old.actor)end
  table.insert(self.shieldPulses,{actor=a,kart=a.record.kart,born=now,visual=Visuals.shieldPulse(a.record.kart,a.record.body)})
+ self:reassertServerAuthority(a)
 end
 function Combat:publish(a,now)
  if not a.owner then return end
@@ -117,10 +130,10 @@ function Combat:add(player,record)
  self:feedback(a,'PRACTICE • ITEMS REFILL IN 6s')
 end
 function Combat:clearTransient(a)
- for i=#self.shieldPulses,1,-1 do if self.shieldPulses[i].actor==a then self.shieldPulses[i].visual:Destroy();table.remove(self.shieldPulses,i)end end
+ for i=#self.shieldPulses,1,-1 do if self.shieldPulses[i].actor==a then self.shieldPulses[i].visual:Destroy();table.remove(self.shieldPulses,i);self:reassertServerAuthority(a)end end
  self.missiles:clearPlayer(a);self.thunder:clearPlayer(a);self.smoke:clearPlayer(a)
  for i=#self.hazards,1,-1 do if self.hazards[i].owner==a then self.hazards[i].model:Destroy();table.remove(self.hazards,i)end end
- if a.shield then a.shield:Destroy();a.shield=nil end
+ if a.shield then a.shield:Destroy();a.shield=nil;self:reassertServerAuthority(a)end
  a.shieldEnd=nil;a.effect=nil;a.immune=nil;a.nitroEnd=nil;a.previous=nil
  a.record.kart:SetAttribute('KartNitroEndReason','cancelled')
  if a.slick then a.slick:stop()end
@@ -207,7 +220,7 @@ function Combat:use(player,generation,id,extra)
    a.nitroEnd=now+Kart.NITRO_DURATION;r.kart:SetAttribute('KartNitroEndReason','');return true
   elseif item=='Shield'then
    if a.shieldEnd and now<a.shieldEnd then return false,'SHIELD ACTIVE'end
-   if a.shield then a.shield:Destroy();a.shield=nil end
+   if a.shield then a.shield:Destroy();a.shield=nil;self:reassertServerAuthority(a)end
    a.shield=Visuals.shield(a.record.kart,a.record.body);a.shieldEnd=now+Config.SHIELD_DURATION
    a.record.kart:SetAttribute('KartShieldActive',true);self:pulseShield(a,now);return true
   elseif item=='Missile'or item=='Thunder'then
@@ -235,7 +248,7 @@ function Combat:resolve(target,source,id,now)
  if target.shieldEnd and now<target.shieldEnd then
   self:pulseShield(target,now)
   if target.owner then target.owner:SetAttribute('LobbyItemBlockedSerial',(target.owner:GetAttribute('LobbyItemBlockedSerial')or 0)+1)end
-  if target.shield then target.shield:Destroy();target.shield=nil end
+  if target.shield then target.shield:Destroy();target.shield=nil;self:reassertServerAuthority(target)end
   target.shieldEnd=nil;target.record.kart:SetAttribute('KartShieldActive',false)
   self:feedback(target,'BLOCKED!');if source~=target then self:feedback(source,string.upper(id)..' BLOCKED')end;return true,'blocked'
  end
@@ -281,7 +294,7 @@ function Combat:update(now,dt)
  for i=#self.shieldPulses,1,-1 do
   local p=self.shieldPulses[i];local age=now-p.born
   if age>=.3 or not p.visual.Parent or not self:valid(p.actor)or p.actor.record.kart~=p.kart then
-   p.visual:Destroy();table.remove(self.shieldPulses,i)
+   p.visual:Destroy();table.remove(self.shieldPulses,i);self:reassertServerAuthority(p.actor)
   else
    p.visual.Size=Vector3.new(9,6.5,11)*(.9+age*1.5)
    p.visual.Transparency=.45+age/.3*.55
@@ -344,7 +357,7 @@ function Combat:update(now,dt)
   local r=a.record;local k=r.kart
   if a.effect and now>=a.effect.untilTime then a.effect=nil;if a.slick then a.slick:stop()end end
   for id,key in {Slick='KartSlickActive',Missile='KartMissileHitActive',Thunder='KartThunderHitActive'}do k:SetAttribute(key,a.effect~=nil and a.effect.kind==id)end
-  if a.shieldEnd and now>=a.shieldEnd then if a.shield then a.shield:Destroy();a.shield=nil end;a.shieldEnd=nil;k:SetAttribute('KartShieldActive',false)end
+  if a.shieldEnd and now>=a.shieldEnd then if a.shield then a.shield:Destroy();a.shield=nil;self:reassertServerAuthority(a)end;a.shieldEnd=nil;k:SetAttribute('KartShieldActive',false)end
   if a.owner then
    local changed=false
    for id,untilTime in a.refill do if now>=untilTime then a.loadout.counts[id]=1;a.refill[id]=nil;changed=true end end

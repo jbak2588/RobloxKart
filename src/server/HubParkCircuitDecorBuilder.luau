@@ -169,11 +169,12 @@ local CHEVRON_SIGN_ASSETS = {
 	RightCompact = "rbxassetid://82868994615753", -- kdm_sign_chevron_right.png
 }
 
-local function attachChevronGuidance(railPart: Part, isLeftCurve: boolean)
+local function attachChevronGuidance(railPart: Part, isLeftCurve: boolean, outward: Vector3)
 	local assetId = if isLeftCurve then CHEVRON_SIGN_ASSETS.Left else CHEVRON_SIGN_ASSETS.Right
 	railPart:SetAttribute("ChevronDirection", if isLeftCurve then "Left" else "Right")
 	railPart:SetAttribute("ChevronAssetId", assetId)
-	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+	local inwardFace = if railPart.CFrame.RightVector:Dot(-outward)>0 then Enum.NormalId.Right else Enum.NormalId.Left
+	for _, face in { inwardFace } do
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "KDMChevronSurfaceGui_" .. face.Name
 		gui.Face = face
@@ -271,7 +272,9 @@ local function attachKdmBranding(railPart: Part, normalVector: Vector3)
 		end
 
 function Builder.build(root,origin,layout,spotlightPrefab)
- local existing=root:FindFirstChild('ParkCircuitStructures');if existing then return existing end
+ local existing=root:FindFirstChild('ParkCircuitStructures')
+ if existing and existing:GetAttribute('ChevronStandardVersion')==1 then return existing end
+ if existing then existing:Destroy()end
  local folder=Instance.new('Model');folder.Name='ParkCircuitStructures'
  -- Build in local coordinates, then translate once into the existing HUB datum.
  local arch,panel=buildSponsorArch(folder,0)
@@ -344,11 +347,13 @@ function Builder.build(root,origin,layout,spotlightPrefab)
     count+=1;chevronParts+=1
     local rail=createVisualPart(rails,'RailSegment'..count,Vector3.new(.5,railHeight,12),frame,
      if k%2==1 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230),Enum.Material.SmoothPlastic)
-    attachChevronGuidance(rail,isLeftCurve)
+    rail:SetAttribute('ChevronCurveId',chevronClusters)
+    attachChevronGuidance(rail,isLeftCurve,right*outerSide)
    end
   end
  end
  for _,p in folder:GetDescendants()do if p:IsA('BasePart')then p.CFrame+=origin end end
+ folder:SetAttribute('ChevronStandardVersion',1)
  folder:SetAttribute('ArchCount',1);folder:SetAttribute('TowerCount',4);folder:SetAttribute('RailCount',count)
  folder:SetAttribute('ChevronClusterCount',chevronClusters);folder:SetAttribute('ChevronPartCount',chevronParts)
  folder.Parent=root;return folder
