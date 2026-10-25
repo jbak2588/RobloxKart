@@ -30,10 +30,10 @@ end
 local function signature(node)
  local rows={}
  local function visit(item,path)
-  if item.Name:find('CenterDash') or item.Name:find('DirectionMarkers') or item.Name:find('ForwardChevron') or item.Name:find('CrossoverChevron') or item.Name:find('Chevron') or item.Name:find('VisualRails') then return end
+  if item.Name:find('StartLine') or item.Name=='StartGrid' or item.Name:find('CenterDash') or item.Name:find('DirectionMarkers') or item.Name:find('ForwardChevron') or item.Name:find('CrossoverChevron') or item.Name:find('Chevron') or item.Name:find('VisualRails') then return end
   local props={};for key,value in item.props do if key~='Parent' then table.insert(props,key..'='..tostring(value))end end;table.sort(props)
   local attrs={};for key,value in item.attrs do
-   if key~='ChevronStandardVersion' and key~='ChevronClusterCount' and key~='ChevronPartCount' and key~='VisualPartCount' and key~='EnvironmentPartCount' and key~='VisualRailPartCount' and key~='BrandedVisualRailCount' then
+   if key~='CheckerPartCount' and key~='StartFinishPaintVersion' and key~='StartFinishCheckerRows' and key~='StartGridRows' and key~='StartGridColumns' and key~='ChevronStandardVersion' and key~='ChevronClusterCount' and key~='ChevronPartCount' and key~='VisualPartCount' and key~='EnvironmentPartCount' and key~='VisualRailPartCount' and key~='BrandedVisualRailCount' then
     table.insert(attrs,key..'='..tostring(value))
    end
   end;table.sort(attrs)

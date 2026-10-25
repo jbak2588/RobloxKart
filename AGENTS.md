@@ -2,6 +2,18 @@
 
 Read this before editing the project.
 
+## Start/finish paint standard — owner direction 2026-10-25
+
+All five official tracks and Rookie Park use four checker rows along travel,
+reusing original Hub_n_lobby_original.rbxlx checker image 15424111389. The
+four-by-four white/transparent source image repeats at 8x8 studs over an
+8-stud-deep band. Keep two studs inside each road edge. Main-road starting
+brackets use Park's native three-stroke shape, two columns by four rows;
+official approaches follow the existing centerline. This is visual paint only:
+retain actual GridSlots, capacity, gates, route, driving and authority. Finish
+guidance keeps its banners/marker but must not overlay old two-row checker paint
+on the standardized server band. Ordinary checkpoint guidance is unchanged.
+
 ## Current race items / launch override — 2026-10-19
 
 The user-approved six-item flow supersedes historical four-slot/tactical-prep

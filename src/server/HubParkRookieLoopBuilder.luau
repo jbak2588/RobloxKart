@@ -206,10 +206,16 @@ function Builder.build(hub,ground)
   flat(marker,'Front',slot.x+7.5,slot.z,.35,10,paint,.07,false)
   for _,side in {-1,1}do flat(marker,'Arm',slot.x+5.5,slot.z+side*5,4,.35,paint,.07,false)end
  end
- for lane=0,15 do
-  flat(grid,'StartFinish',Layout.TrialFinishX,Layout.StartStraightZ-30+lane*4,2,4,
-   if lane%2==0 then Color3.new(1,1,1)else Color3.fromRGB(35,45,55),.07,false)
- end
+ -- Reuse the original template's four-by-four white/transparent checker image.
+ -- Eight studs along travel gives exactly four rows, with two-stud squares.
+ local checker=part(grid,'StartFinish',Vector3.new(8,.02,Layout.RoadWidth-4),
+  CFrame.new(origin+Vector3.new(Layout.TrialFinishX,.07,Layout.StartStraightZ)),Color3.new(1,1,1),false)
+ checker.Transparency=1
+ local texture=Instance.new('Texture');texture.Name='SourceCheckers'
+ texture.Texture='rbxassetid://15424111389';texture.Face=Enum.NormalId.Top
+ texture.StudsPerTileU=8;texture.StudsPerTileV=8;texture.Parent=checker
+ root:SetAttribute('StartFinishPaintVersion',1);root:SetAttribute('StartFinishCheckerRows',4)
+ root:SetAttribute('StartGridColumns',2);root:SetAttribute('StartGridRows',4)
  local starts=Instance.new('Folder');starts.Name='StartSlots';starts.Parent=root
  for i,slot in Layout.Slots do
   local pos=origin+Vector3.new(slot.x,Layout.height(slot.x,slot.z)+1.75,slot.z)

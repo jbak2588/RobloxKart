@@ -151,7 +151,13 @@ for i=1,8 do
  local start=root.StartSlots:FindFirstChild(tostring(i))
  check(start~=nil and start.CFrame.Position.Z==layout.Slots[i].z and start.CFrame.Position.X==layout.Slots[i].x,'actual main-road grid anchor '..i)
 end
-check(#root.SoloStartGrid:GetChildren()==24,'eight three-stroke road grid brackets plus finish paint')
+check(#root.SoloStartGrid:GetChildren()==9,'eight three-stroke road grid brackets plus one source checker band')
+local finishPaint=root.SoloStartGrid:FindFirstChild('StartFinish')
+local checker=finishPaint:FindFirstChild('SourceCheckers')
+check(checker.Texture=='rbxassetid://15424111389' and checker.StudsPerTileU==8 and checker.StudsPerTileV==8,'original 4x4 checker image, two-stud squares')
+check(finishPaint.Size.X==8 and finishPaint.Size.Z==layout.RoadWidth-4 and finishPaint.Transparency==1,'exactly four rows along +X, asphalt visible through image')
+check(not finishPaint.CanCollide and not finishPaint.CanTouch and not finishPaint.CanQuery and not finishPaint.CastShadow,'finish paint changes no Park contact/queries')
+for i=1,8 do check(#root.SoloStartGrid:FindFirstChild('Grid'..i):GetChildren()==3,'unchanged Park bracket '..i)end
 check(#root.TrialCheckpoints:GetChildren()==7,'six race-standard gates and finish, no custom banners')
 check(hub:GetAttribute('RookieParkOrigin')==rb.Vector3.zero,'road origin retained independently from relocated arrival')
 check((spawn.CFrame.Position-rb.Vector3.new(0,.75,-36)).Magnitude<.001 and spawn.CFrame==rb.CFrame.lookAt(rb.Vector3.new(0,.75,-36),rb.Vector3.new(0,.75,-37)),'arrival is on the pedestrian stem facing Park')

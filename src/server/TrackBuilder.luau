@@ -94,6 +94,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		and previousTrack:FindFirstChild("RaceTriggers")
 		and previousTrack:FindFirstChild("BarrierTriggers")
 		and previousTrack:GetAttribute("ChevronStandardVersion") == 1
+		and previousTrack:GetAttribute("StartFinishPaintVersion") == 1
 		and previousTrack:GetAttribute("BarrierForwardTangentVersion") == 1
 		and previousTrack:GetAttribute("EnvironmentCueVersion") == environmentVersion
 		and previousTrack:GetAttribute("VisualStyleVersion") == style.Version
@@ -1003,21 +1004,53 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local startPoint = course.StartPosition
 	local startDirection = course.StartTangent
 	local startCFrame = CFrame.lookAt(roadPoint(startPoint, 0.058), roadPoint(startPoint + startDirection, 0.058))
-	local checkerColumns = 10
-	local checkerRows = 2
-	for row = 1, checkerRows do
-		for column = 1, checkerColumns do
-			local offsetX = (column - 0.5 - checkerColumns * 0.5) * roadWidth / checkerColumns
-			local offsetZ = (row - 0.5 - checkerRows * 0.5) * 3 / checkerRows
-			createVisualPart(
-				markingFolder, "StartLine" .. row .. "_" .. column,
-				Vector3.new(roadWidth / checkerColumns, 0.035, 3 / checkerRows),
-				startCFrame * CFrame.new(offsetX, 0, offsetZ),
-				if (row + column) % 2 == 0 then Color3.fromRGB(20, 22, 24) else white, nil
-			)
-			checkerCount += 1
+	-- Original Hub_n_lobby_original.rbxlx SA_Racing_CheckPoint_a color map:
+	-- four-by-four white/transparent squares. One 8-stud tile gives four rows.
+	local checker = createVisualPart(markingFolder, "StartLine", Vector3.new(roadWidth - 4, 0.02, 8), startCFrame, white, nil)
+	checker.Transparency = 1
+	local texture = Instance.new("Texture")
+	texture.Name = "SourceCheckers"
+	texture.Texture = "rbxassetid://15424111389"
+	texture.Face = Enum.NormalId.Top
+	texture.StudsPerTileU = 8
+	texture.StudsPerTileV = 8
+	texture.Parent = checker
+	checkerCount = 1
+	-- Park's native ] paint: two columns, four rows, three strokes per slot.
+	-- Follow the approach centerline so even curved approaches stay on asphalt.
+	-- Decorative only: TrackCatalog.GridSlots and capacity remain authoritative.
+	local grid = Instance.new("Folder")
+	grid.Name = "StartGrid"
+	grid.Parent = markingFolder
+	for row = 0, 3 do
+		local remaining = 30 + row * 30
+		local point, tangent = startPoint, startDirection
+		for index = #samples, 1, -1 do
+			local behind, ahead = samples[index], samples[index % #samples + 1]
+			local length = (ahead - behind).Magnitude
+			if remaining <= length then
+				point = ahead:Lerp(behind, remaining / length)
+				tangent = (ahead - behind).Unit
+				break
+			end
+			remaining -= length
+		end
+		local frame = CFrame.lookAt(roadPoint(point, 0.07), roadPoint(point + tangent, 0.07))
+		for column, side in {-1, 1} do
+			local slot = Instance.new("Folder")
+			slot.Name = "Grid" .. (row * 2 + column)
+			slot.Parent = grid
+			local paint = Color3.fromRGB(238, 246, 250)
+			createVisualPart(slot, "Front", Vector3.new(10, 0.02, 0.35), frame * CFrame.new(side * 14, 0, -7.5), paint, nil)
+			for _, arm in {-1, 1} do
+				createVisualPart(slot, "Arm", Vector3.new(0.35, 0.02, 4), frame * CFrame.new(side * 14 + arm * 5, 0, -5.5), paint, nil)
+			end
 		end
 	end
+	testTrack:SetAttribute("StartFinishPaintVersion", 1)
+	testTrack:SetAttribute("StartFinishCheckerRows", 4)
+	testTrack:SetAttribute("StartGridColumns", 2)
+	testTrack:SetAttribute("StartGridRows", 4)
 	createRaceGate("StartFinish", startPoint, startDirection, "StartFinish", nil)
 	for index, checkpoint in checkpointSamples do
 		createRaceGate(

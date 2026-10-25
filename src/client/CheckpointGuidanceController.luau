@@ -81,6 +81,9 @@ function Controller.new(player,isDriving)
    local target=base*CFrame.new(side*(width/2+3),bounds.Y/2,0)
    flag:PivotTo(target*(cf:ToObjectSpace(pivot)));flag.Parent=folder
   end
+  -- The shared server start/finish band already has four source-image rows.
+  -- Keep checkpoint guidance paint, but never overlay its old two-row band on it.
+  if index~=0 or track:GetAttribute('StartFinishPaintVersion')~=1 then
   for row=1,2 do for column=1,16 do
    local offsetX=(column-.5-8)*width/16;local offsetZ=(row-1.5)*1.5
    local pos=base:PointToWorldSpace(Vector3.new(offsetX,0,offsetZ))
@@ -89,6 +92,7 @@ function Controller.new(player,isDriving)
    part.Color=if (row+column)%2==0 then Color3.fromRGB(245,245,245) else Color3.fromRGB(12,14,18)
    part.Material=Enum.Material.SmoothPlastic;safe(part);part.Parent=folder
   end end
+  end
   local anchor=Instance.new('Part');anchor.Name='MarkerAnchor';anchor.Size=Vector3.one;anchor.Transparency=1
   -- Float the pin tip between the upper portions of the original banners.
   -- Both banner sizes and the road surface determine height, including FINISH.
