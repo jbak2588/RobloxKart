@@ -61,6 +61,16 @@ function RaceSession:requestRewardRematch(player)
  local run=self.rewardRuns[player]
  if run then run.requested=true end
 end
+-- Quick Race's timed continuation is the same server-owned Rematch intent.
+-- Only an eligible completed run can continue; this grants no money itself.
+function RaceSession:requestAutomaticRewardRematch()
+ if self.phase~='COMPLETE' or self.mode~='RACE' then return end
+ for player,run in self.rewardRuns do
+  if self.participants[player] and player:GetAttribute('IsBot')~=true and run.completed then
+   self:requestRewardRematch(player)
+  end
+ end
+end
 function RaceSession:seedRewardContinuation(player,multiplier)
  if type(multiplier)=='number' and multiplier%1==0 and multiplier>=2 and multiplier<=2147483647 then
   self.rewardSeeds[player]=multiplier

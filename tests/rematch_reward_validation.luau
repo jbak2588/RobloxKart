@@ -126,3 +126,25 @@ check(imported:rewardMultiplier(p)==3,'new server imports server-authorized next
 imported.roundId+=1;imported:beginRewardRound()
 check(imported:rewardMultiplier(p)==1,'handoff seed is consumed once')
 print('PASS '..n..' Rematch checks including fresh job reward seed')
+
+-- Mixed button/timed continuation through cold jobs must never fall back to X1.
+local seed=nil
+for current=1,8 do
+ local job=Session.new('Track01Race','RACE',2);job:add(p,{});job:addBot(bot,{})
+ if seed then job:seedRewardContinuation(p,seed)end
+ job.roundId+=1;job:beginRewardRound()
+ check(job:rewardMultiplier(p)==current,'fresh job retains monotonically advancing multiplier')
+ job:completeRewardRound(p,true);job.phase='COMPLETE'
+ if current%2==0 then job:requestRewardRematch(p)else job:requestAutomaticRewardRematch()end
+ local run=job.rewardRuns[p]
+ check(run.completed and run.requested,'button and timed rematch both authorize continuation')
+ seed=if run.completed and run.requested then run.multiplier+1 else nil
+ check(seed==current+1,'handoff exports the next multiplier for automatic Rematch')
+end
+local invalidJob=Session.new('Track01Race','RACE',2);invalidJob:add(p,{});invalidJob:addBot(bot,{})
+invalidJob.roundId+=1;invalidJob:beginRewardRound();invalidJob:completeRewardRound(p,false);invalidJob.phase='COMPLETE'
+invalidJob:requestAutomaticRewardRematch()
+check(not invalidJob.rewardRuns[p].requested,'invalid/DNF run never gains automatic streak')
+invalidJob:completeRewardRound(p,true);invalidJob.phase='RACING';invalidJob:requestAutomaticRewardRematch()
+check(not invalidJob.rewardRuns[p].requested,'running round cannot request automatic reward continuation')
+print('PASS '..n..' Rematch checks including mixed timed/button fresh jobs through X8')

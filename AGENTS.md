@@ -1664,3 +1664,9 @@ admission and server-only reward continuation. Other rosters/practice/queued
 arrivals retain current staging. Do not describe this as a global server restart
 or a verified hitch repair; real-client teleport/repeated-Rematch acceptance
 is pending. Preserve the manual server ownership guard.
+
+Owner fresh-job mobile report — 2026-10-25: Rematch hitch no longer observed
+with fresh-job1H+1B routing. Preserve that path; exact leak/processing cause is
+not proven. Quick Race's timed auto-next must register the same eligible reward
+continuation intent as explicit Rematch before exporting the server-only streak.
+Skipping that intent caused intermittent X1 resets after timed transfers.

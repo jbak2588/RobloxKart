@@ -1341,7 +1341,11 @@ function RaceController.start(options)
 				-- Always provide the full 8-second window to view results and rewards.
 				publicNextAt = now + 8
 			end
-			if now>=publicNextAt then publicNextAt=now+5;prepareNextRoomRound()end
+			if now>=publicNextAt then
+                publicNextAt=now+5
+                session:requestAutomaticRewardRematch()
+                prepareNextRoomRound()
+            end
 		end
 		rankElapsed += deltaTime
 		if rankElapsed >= RaceConfig.RANK_UPDATE_INTERVAL then

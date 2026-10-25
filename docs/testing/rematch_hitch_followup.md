@@ -192,3 +192,25 @@ forged TeleportData reward rejection;71 matching checks;17 persistent-room check
 222-source compile and Rojo release build PASS. This does not verify real
 teleport success, repeated full race completions or disappearance of the hitch.
 Published client comparison is required; issue remains OPEN.
+
+## Owner fresh-job acceptance / automatic reward continuation — 2026-10-25
+
+Owner reports no Rematch hitch after v1142 fresh-job migration. This supports
+a race-job/session lifetime cause but does not identify a leaked object,connection
+or periodic processing source; do not call persistent profile growth the proven
+root cause. Preserve the accepted fresh-entry path.
+
+New user report: multiplier sometimes returns to X1 (next banner X2), while other
+runs reach X4/X5. Found a concrete asymmetric path: Remote Rematch sets the
+session reward run requested=true, but the eight-second Quick Race auto-next
+called prepareNextRoomRound without setting that intent. Fresh handoff exports
+only completed+requested runs, so auto-next could transfer no continuation seed.
+
+Fix: server-only requestAutomaticRewardRematch runs immediately before timed
+Quick Race handoff. It accepts only COMPLETE/RACE eligible human reward runs,
+uses the same request path, grants no money and retains all receipt/eligibility
+guards. New tests alternate automatic and button continuation across fresh
+sessions through X8; invalid and nonterminal paths stay excluded. 178 reward
+checks,35 coordinator checks,17 persistent room checks,222-source compile,Rojo
+release XML and diff check PASS. Real repeat-teleport payout still needs owner
+acceptance; do not report the simulated sequence as eight full published races.
