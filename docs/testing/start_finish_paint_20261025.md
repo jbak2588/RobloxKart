@@ -68,3 +68,21 @@ Validation:
 Final source synced to Edit. No temporary QA instances or bootstrap remain.
 No Roblox Publish. Published texture permission and real-device visual acceptance
 remain separate from Studio rendering and automated geometry checks.
+
+## Owner-authorized production Publish
+
+Owner explicitly requested Publish after the above checkpoint. Published via
+Studio's normal File > Publish action to Universe 10768420544 /
+Place 127925465904803. Studio Output confirmed success at 2026-10-25 23:09:07
+client-local time and linked publication **v1157**. The Edit session's old
+game.PlaceVersion value remained 1113; the new version is taken from the actual
+publication success output, not that cached property.
+
+Before Publish, checked all 222 production script sources against commit
+4c53388ec8a9156774106be9a4a20d138ff5d1af using normalized source length/checksum.
+Four manually synced modules differed only by one terminal newline; normalized
+those and verified their checksums. Set KDMBuildCommit to that code commit.
+Ran tools/repair_desert_mesh_prefabs.luau in Edit: all three actual prefab mesh
+IDs verified. No QA scene/bootstrap present. This publication also includes
+e3f7b3a's Track01Desert-only inward background relief. Real-device acceptance
+of the newly published presentation is not implied by successful publication.
