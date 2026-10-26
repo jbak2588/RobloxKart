@@ -163,7 +163,9 @@ shop.start();shop.start();check(#pg:GetChildren()==1,'idempotent Shop startup')
 shop.open();flush();local gui=pg.KDMGarageShop;local panel=gui.SafeRoot.Shop;local body=panel.Products
 check(gui.Enabled and p:GetAttribute('KDMShopOpen') and #calls==1 and calls[1][1]=='PROFILE','only profile read on open')
 check(previews[1].id=='Kart05' and previews[1].wing,'actual wing-equipped factory preview')
+check(panel.Status.Text:find('SCROLL DOWN',1,true),'footer guides users to the lower color list')
 local product=body.KartProduct
+check(product.KartActions.Owned.Text:find('50,000',1,true) and product.KartActions.BuyKart.Text:find('50,000',1,true),'hero and buy action show current kart price')
 check(product.ActualKartPreview~=nil and product.KartActions.Ownership.Text:find('One color'),'one permanent color-specific kart')
 local function controls()return body.KartProduct.KartActions end
 local cards=0

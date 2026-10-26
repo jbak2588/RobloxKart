@@ -184,9 +184,9 @@ function Controller.start()
  local selection = label(body, 'Selection', '', 358, 28, 13)
  surface('WingEquipmentCard',396,184)
  label(body,'WingEquipmentTitle','PERMANENT KDM V2 KARTS',402,24,16).Font=Enum.Font.GothamBold
- local wingPrice=label(body,'WingPrice','K$25,000 per color · Wing included',430,24,14);wingPrice.TextColor3=colors.Yellow
+ local wingPrice=label(body,'WingPrice','K$50,000 per color · Wing included',430,24,14);wingPrice.TextColor3=colors.Yellow
  local shop = button(body, 'OpenShop', 'GO TO SHOP', 464);shop.Size=UDim2.new(.5,-24,0,44)
- local buy = button(body, 'BuyWing', 'BUY · K$25,000', 464);buy.Position=UDim2.new(.5,0,0,464);buy.Size=UDim2.new(.5,-24,0,44)
+ local buy = button(body, 'BuyWing', 'BUY · K$50,000', 464);buy.Position=UDim2.new(.5,0,0,464);buy.Size=UDim2.new(.5,-24,0,44)
  StyleHelper.apply3DButton(buy, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
  local equip = button(body, 'EquipWing', 'EQUIP WING', 464);equip.Position=buy.Position;equip.Size=buy.Size
  StyleHelper.apply3DButton(equip, Color3.fromRGB(80, 190, 255), Color3.fromRGB(0, 140, 240), Color3.fromRGB(0, 95, 200), 12, 2.5)
@@ -217,7 +217,7 @@ function Controller.start()
  layoutProfile()
  local busy, passAvailable, passPrice, status = false, false, nil, ''
  local messages = {GUEST='Complete Test Drive to earn your starter K$5,000.', FOUND = '', SAVE_CONFIRMED = 'ACCOUNT SAVED', SAVE_UNCONFIRMED = 'Save not confirmed. Please try again.',
-  INSUFFICIENT_FUNDS = 'You need K$25,000.', ALREADY_OWNED = 'Wing already owned.', NOT_OWNED = 'Unlock the Wing first.',
+  INSUFFICIENT_FUNDS = 'You need K$50,000.', ALREADY_OWNED = 'Wing already owned.', NOT_OWNED = 'Unlock the Wing first.',
   ACCESS_BLOCKED = 'Account unavailable. Shop preview is still available.', RATE_LIMITED = 'Please wait a moment.',
   PASS_PROMPTED = 'Complete the Roblox purchase prompt.', HUB_REQUIRED = 'Return to the Lobby to purchase.'}
  local attributes = {'KDMWalletCash', 'KDMLifetimeEarned', 'KDMWingOwned', 'KDMWingEquipped', 'KDMWalletRevision', 'KDMEconomyState', 'SelectedKartId'}
@@ -241,8 +241,8 @@ function Controller.start()
    v.tile.Availability.Text=if owned then 'OWNED · WITH WING' else 'FREE RENTAL'
    v.name.Text = (if selected then '✓ ' else '')..v.entry.DisplayColorName
   end
-  buy.Active = not busy and view.owned == false and view.cash ~= '--' and tonumber(view.cash) >= 25000
-  buy.Text = 'BUY · K$25,000'
+  buy.Active = not busy and view.owned == false and view.cash ~= '--' and tonumber(view.cash) >= 50000
+  buy.Text = 'BUY · K$50,000'
   buy.Visible=view.owned~=true;equip.Visible=view.owned==true
   equip.Active = not busy and view.owned == true and view.equipped ~= nil
   equip.Text = if view.equipped == true then 'UNEQUIP WING' else 'EQUIP WING'

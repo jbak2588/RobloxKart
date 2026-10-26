@@ -112,6 +112,7 @@ function Controller.start()
   local f=Instance.new('Frame');f.Name=name;f.Size=UDim2.new(1,-8,0,height);f.BackgroundColor3=colors.Card;f.Parent=body;Layout.style(f);return f
  end
  local render,request
+ local browseHint='SCROLL DOWN TO VIEW ALL 7 KART COLORS ↓'
  local descriptions={Nitro='A short burst of speed.',Shield='Blocks one incoming attack.',Slick='Leaves a slippery pad behind.',Missile='Targets the racer just ahead.',Smoke='Leaves a cloud that obscures vision.',Thunder='Slows racers ahead of you.'}
  local messages={SAVE_UNCONFIRMED='Save not confirmed. Retry the same purchase.',INSUFFICIENT_FUNDS='Not enough K$.',ALREADY_OWNED='This kart is already owned.',NOT_OWNED='Purchase this kart first.',
   ACCESS_BLOCKED='Shop preview · purchases unavailable for this account.',RATE_LIMITED='Please wait, then retry.',STOCK_FULL='Inventory is full.',HUB_REQUIRED='Return to the Garage.'}
@@ -139,7 +140,7 @@ function Controller.start()
    if ok and type(r)=='table' and (r.status=='FOUND' or r.status=='GUEST') then
     for key,v in r do data[key]=v end
     if action=='PROFILE' or r.purchaseState=='SAVE_CONFIRMED' then
-     if r.purchaseState=='SAVE_CONFIRMED' then pending=nil;status.Text=if action=='BUY_ITEM' or action=='BUY_KART' then 'PURCHASE COMPLETE' else 'ACCOUNT SAVED' else status.Text=if r.status=='GUEST' then 'COMPLETE TEST DRIVE TO EARN K$5,000' else ''end
+     if r.purchaseState=='SAVE_CONFIRMED' then pending=nil;status.Text=if action=='BUY_ITEM' or action=='BUY_KART' then 'PURCHASE COMPLETE' else 'ACCOUNT SAVED' else status.Text='' end
     end
    else
     local code=if ok and type(r)=='table' then r.status else 'SAVE_UNCONFIRMED'
@@ -158,6 +159,7 @@ function Controller.start()
   end end);return b
  end
  render=function()
+  if status.Text=='' or status.Text==browseHint then status.Text=if tab=='KARTS' then browseHint else '' end
   title.Text='GARAGE SHOP · K$ '..tostring(data.cash or p:GetAttribute('KDMWalletCash') or '--')..(if root.AbsoluteSize.Y<260 and status.Text~='' then '\n'..status.Text else '')
   if not gui.Enabled then return end
   local full=Layout.forSize(root.AbsoluteSize);body.Size=UDim2.fromOffset(full.width-16,full.bodyHeight)
@@ -198,8 +200,8 @@ function Controller.start()
     local f=card('KartProduct',heroHeight);f.LayoutOrder=1
     local controls=Instance.new('Frame');controls.Name='KartActions';controls.Position=UDim2.new(.58,0,0,0);controls.Size=UDim2.new(.42,-8,1,0);controls.BackgroundTransparency=1;controls.Parent=f
     label(controls,'ProductTitle','KDM V2 · '..entry.DisplayColorName,4,32).TextSize=if mobile then 14 else 20
-    label(controls,'Owned',if owned then (if p:GetAttribute('SelectedKartId')==id then 'OWNED · SELECTED' else 'OWNED · PERMANENT') else 'K$25,000 · PERMANENT',40,28).TextColor3=if owned then colors.Cyan else colors.Yellow
-    local buy=buyButton(controls,if owned then 'UseKart' else 'BuyKart',if owned then 'USE THIS KART' else 'BUY KART · K$25,000',76,if owned then 'USE_KART' else 'BUY_KART',id)
+    label(controls,'Owned',if owned then (if p:GetAttribute('SelectedKartId')==id then 'OWNED · SELECTED' else 'OWNED · PERMANENT') else 'K$50,000 · PERMANENT',40,28).TextColor3=if owned then colors.Cyan else colors.Yellow
+    local buy=buyButton(controls,if owned then 'UseKart' else 'BuyKart',if owned then 'USE THIS KART' else 'BUY KART · K$50,000',76,if owned then 'USE_KART' else 'BUY_KART',id)
     buy.BackgroundColor3=if owned then colors.Blue else Color3.fromRGB(72,228,96)
     local hint=label(controls,'Ownership',if inventory then 'Owned permanently · Wing included\nSelect to use this kart.\nWingless karts: free rental.' else 'One color · Wing included\nSelected automatically after purchase.\nWingless karts: free rental.',124,if mobile then 52 else 84);hint.TextSize=if mobile then 10 else 13;hint.TextColor3=colors.Secondary
     viewport=Instance.new('ViewportFrame');viewport.Name='ActualKartPreview';viewport.Size=UDim2.new(.58,-16,1,-28);viewport.Position=UDim2.fromOffset(8,4);viewport.Active=true
@@ -235,7 +237,7 @@ function Controller.start()
      local function fitThumb()local cf=Framing.fit(model,thumb.AbsoluteSize.X/math.max(1,thumb.AbsoluteSize.Y),cam.FieldOfView);if cf then cam.CFrame=cf end end
      thumb:GetPropertyChangedSignal('AbsoluteSize'):Connect(fitThumb);task.defer(fitThumb)
      label(tile,'ColorName',e.DisplayColorName,h-42,20).TextSize=12
-     label(tile,'Ownership',if isOwned then 'OWNED' else 'K$25,000',h-22,20).TextColor3=if isOwned then colors.Cyan else colors.Yellow
+     label(tile,'Ownership',if isOwned then 'OWNED' else 'K$50,000',h-22,20).TextColor3=if isOwned then colors.Cyan else colors.Yellow
      tile.Activated:Connect(function()if not busy and os.clock()-draggedAt>.25 then colorIndex=table.find(variants,kartId);render()end end)
     end
    end

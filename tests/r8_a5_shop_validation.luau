@@ -14,11 +14,13 @@ local original=S.clone(p)
 local function op(kind,n,id)return {kind=kind,id=guid(n),userId=1,itemId=id}end
 local function apply(profile,o)local nextValue,code=Ops.reduce(o)(profile);return nextValue,code end
 -- New color-specific purchases and historical all-color ownership.
-local fresh=S.clone(p);fresh.wallet.cash=200000
+local poor=S.clone(p);poor.wallet.cash=49999
+local denied,why=apply(poor,op('BUY_KART',499,'Kart05'));check(not denied and why=='INSUFFICIENT_FUNDS','49999 cannot buy a 50000 kart')
+local fresh=S.clone(p);fresh.wallet.cash=400000
 for index,id in C.KartOrder do
  local buy=op('BUY_KART',500+index,id);local before=fresh.wallet.cash
  local nextValue,outcome=apply(fresh,buy)
- check(outcome=='APPLIED' and nextValue.wallet.cash==before-25000,'one color costs 25000 '..id)
+ check(outcome=='APPLIED' and nextValue.wallet.cash==before-50000,'one color costs 50000 '..id)
  check(nextValue.selection.kartId==id and nextValue.selection.revision==fresh.selection.revision+1,'purchase selects persisted default '..id)
  check(C.ownsKart(nextValue.cosmetics.ownedPartIds,id),'color owned '..id)
  if index<#C.KartOrder then check(not C.ownsKart(nextValue.cosmetics.ownedPartIds,C.KartOrder[index+1]),'purchase does not unlock another color') end
