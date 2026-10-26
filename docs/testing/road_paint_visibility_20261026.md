@@ -67,3 +67,26 @@ Real Android/iPhone driving and repeated full laps are NOT VERIFIED by these
 automated and emulator checks. No hardware FPS/heat or four-human acceptance is
 inferred. Production destination is Universe10768420544 / Place127925465904803,
 with HubParkV1Enabled=true. Publish receipt is recorded after release.
+
+## Release receipt
+
+Implementation ff96508990528a215f10d8988829f18ce62de574 was committed and pushed to
+origin/prototype/kart-physics; exact local/remote HEAD equality verified.
+Before Publish, all230 native Studio script sources matched repository checksums
+(newline-normalized Adler32), all3 Desert and2248 Metro source mesh identities
+passed their existing authoring gates, and no temporary QA objects remained.
+Workspace.KDMBuildCommit carries the implementation hash; HubParkV1Enabled=true.
+
+Studio Publish completed successfully to the existing Kart Drift Masters place.
+Native Output records the request at18:28:12.244 and successful new changes
+published at18:28:14.331 (Studio display clock). The final dialog says publication
+complete. The production universe/root-place pair was independently checked with
+the Roblox games API:10768420544 /127925465904803. No new place was created and no
+live-server restart was requested. The loaded Edit PlaceVersion remains1213;
+that cached value is not presented as the new publication's numeric version.
+
+Changed files: AGENTS.md; default.project.json; desert-preview.project.json;
+src/assets/KDMRoadMaterials.rbxmx; src/client/TrackRoadRibbon.luau;
+src/client/TrackSurfaceController.luau; tests/rookie_loop_skid_mark_validation.luau;
+tests/track_road_ribbon_validation.luau; this report. Release receipt is a
+documentation-only follow-up to the published implementation.
