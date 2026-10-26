@@ -1,6 +1,6 @@
 -- Pure, deterministic planning for the original city-template exterior palette.
 local Layout={TrackId='Track01Metro',GeometryId='PracticeCircuitV1',
- MaxBuildings=68,ShoulderClearance=24,
+ MaxBuildings=84,ShoulderClearance=24,
  Names={'Kit_A','Kit_B','Kit_C','Kit_D','Kit_E','Kit_F','Kit_G','Kit_H','Kit_H_2','Kit_I','Kit_J','Shop_14_bldg','Shop_28_bldg'},
  Bridges={{point=Vector3.new(-350,0,100),forward=Vector3.new(0,0,-1),name='Skybridge1'},
           {point=Vector3.new(-690,0,-100),forward=Vector3.new(0,0,1),name='Skybridge2'}},
@@ -58,11 +58,11 @@ end
 Layout.separated=separated
 function Layout.plan(geometry,course,width,profiles)
  local sites={};local minimum=width/2+Layout.ShoulderClearance
- local function place(name,point,forward,side,scale,block,bridge)
+ local function place(name,point,forward,side,scale,block,bridge,corner)
   local size=profiles[name]*scale;local right=Vector3.new(-forward.Z,0,forward.X)
   local center=point+right*(side*(minimum+4+size.Z/2))
   local frame=CFrame.lookAt(center,center-right*side)
-  local site={name=name,frame=frame,size=size,scale=scale,block=block,side=side,forward=forward,bridge=bridge}
+  local site={name=name,frame=frame,size=size,scale=scale,block=block,side=side,forward=forward,bridge=bridge,corner=corner}
   site.clearance=Layout.footprintDistance(course.Samples,frame,size)
   if site.clearance<minimum then return end
   for _,prior in sites do if not separated(site,prior,.15)then return end end
@@ -89,6 +89,23 @@ function Layout.plan(geometry,course,width,profiles)
    end
   end end
  end
+ -- Only fill the previously empty outer U-bends / the horseshoe behind staging.
+ -- Original straight blocks and bridge anchors are inserted unchanged above.
+ local curves={{-170,-300,180,math.pi,math.pi,5},
+  {110,200,100,math.pi,-math.pi,4},
+  {-550,450,140,math.pi,-math.pi/2,3},
+  {-490,450,140,math.pi/2,-math.pi/2,3}}
+ for curve,c in curves do
+  for i=1,c[6]do
+   local angle=c[4]+c[5]*(i-.5)/c[6]
+   local sign=if c[5]>0 then 1 else -1
+   local point=Vector3.new(c[1]+math.cos(angle)*c[3],0,c[2]+math.sin(angle)*c[3])
+   local forward=Vector3.new(-math.sin(angle)*sign,0,math.cos(angle)*sign)
+   local name=({'Kit_D','Kit_B','Shop_28_bldg','Kit_G','Shop_14_bldg'})[(curve+i-2)%5+1]
+   place(name,point,forward,-sign,1,'Corner'..curve..':'..i,nil,curve)
+  end
+ end
+ place('Shop_14_bldg',Vector3.new(-520,0,590),Vector3.xAxis,1,1,'StartRearShop',nil,5)
  for _,site in sites do
   local left,right=false,false
   for _,other in sites do if other~=site and other.block==site.block then
@@ -120,7 +137,7 @@ function Layout.forestPlan(geometry,course,width,sites,treeSize)
     local center=point+right*(side*(width/2+28+radius*scale+offset[2]))+forward*offset[1]
     local site={frame=CFrame.new(center),size=Vector3.new(radius*2*scale,1,radius*2*scale)}
     local clear=Layout.roadDistance(course.Samples,center.X,center.Z)>=width/2+24+radius*scale
-    for _,b in sites do if not separated(site,b,9)then clear=false;break end end
+    for _,b in sites do if not b.corner and not separated(site,b,9)then clear=false;break end end
     if clear then table.insert(group,{position=center,scale=scale,yaw=station*1.71+j,station=station})end
    end
    if #group>=3 then table.insert(groups,group)end
@@ -132,6 +149,10 @@ function Layout.forestPlan(geometry,course,width,sites,treeSize)
   for _,site in groups[index]do
    local clear=true
    for _,prior in trees do if (prior.position-site.position).Magnitude<radius*1.8 then clear=false;break end end
+   if clear then
+    local box={frame=CFrame.new(site.position),size=Vector3.new(radius*2*site.scale,1,radius*2*site.scale)}
+    for _,b in sites do if b.corner and not separated(box,b,9)then clear=false;break end end
+   end
    if clear then table.insert(trees,site)end
   end
  end

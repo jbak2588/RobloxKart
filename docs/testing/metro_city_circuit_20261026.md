@@ -1,6 +1,43 @@
 # Metro City Circuit — 2026-10-26
 
-## Current modular-kit street blocks
+## Latest U-bend infill / Desert road / tire-mark repair
+
+Owner requested additional buildings only at the U bends and behind staging,
+Desert Figure-8 road surface and restored Drift skid marks.
+
+Added 14 native kit/low-shop buildings (72 total): outer upper U (3), inner U (4),
+rear-start quarter bends (3+3), and one low shop on the rear straight. The prior
+58 building/bridge frames and scales are unchanged. Same footprint nonoverlap and
+24-stud shoulder tests apply (Studio minimum ~28). Existing pocket-tree positions
+outside added building footprints are retained; eight nearby trees yield to the
+new buildings, leaving 46. Source Sky, route, gates, actual grid and old five tracks
+remain unchanged. Studio scenery 11,404 parts plus 1,710 existing track parts.
+
+Road clones the actual KDMDesertResources.Materials.Racing_Asphalt_A variant,
+with the same 226/220/188 tint and Asphalt base. Texture maps, roughness/metalness
+maps and StudsPerTile match exactly. A Metro-local variant name avoids global
+material overrides. Reuse Desert's straightRoadLength helper to remove overlapping
+end caps from 245 nonphysical straight visual slices; authoritative centerline,
+support, gates and driving are untouched. Teardown restores size/color/variant.
+
+Skid cause: Metro's visual Road parts are non-queryable, while the old exhaust
+renderer used Raycast except on Figure-8. Extend the existing bounded road-top-plane
+sampler to the exact Metro ID + PracticeCircuitV1 combination. No query flags,
+physics, Trail count/lifetime, Drift thresholds, smoke or network ownership change.
+Ordinary Client native probe: both existing tire trails enable at road top + .04
+(Y=.105), even though an Include-Road Raycast still returns nil; airborne and
+outside-road probes disable both. No extra permanent mark geometry.
+
+Validation: Metro 6,327 checks PASS (each target area populated, prior 58 sites
+unchanged, full footprints/capacity/chevrons/original-five freeze). Metro and Figure-8
+skid-contact tests PASS including off-road/airborne rejection. Existing six-track
+paint 971 PASS, remote world-VFX and speed-VFX regressions PASS, 224 Luau sources
+compile and default Rojo build PASS. Native Client material comparison and complete
+road size/color/variant restoration PASS. No mobile/live-race acceptance claimed.
+No Publish performed. Temporary QA scenes/probe kart removed.
+
+## Previous modular-kit street blocks
+
 
 Owner request after rollback: retain Base-derived Metro; use the complete kit
 buildings for continuous street fronts, native low shops, pocket forests and the

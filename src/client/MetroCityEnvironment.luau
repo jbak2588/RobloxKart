@@ -4,6 +4,7 @@ local W=game:GetService('Workspace')
 local Lighting=game:GetService('Lighting')
 local Geometry=require(RS.Shared.TrackGeometry)
 local Layout=require(RS.Shared.MetroCityLayout)
+local DesertRoad=require(script.Parent.Figure8DesertEnvironment)
 local Environment={}
 local stop
 local function safe(p)
@@ -24,6 +25,9 @@ function Environment.build(track)
  for _,v in resources.Materials:GetChildren()do
   local clone=v:Clone();clone.Name='KDMMetro_'..v.Name;clone.Parent=materials;table.insert(copies,clone)
  end
+ -- Clone the accepted Desert road variant verbatim; no global material override.
+ local roadMaterial=RS:WaitForChild('KDMDesertResources'):WaitForChild('Materials'):WaitForChild('Racing_Asphalt_A'):Clone()
+ roadMaterial.Name='KDMMetro_Racing_Asphalt_A';roadMaterial.Parent=materials;table.insert(copies,roadMaterial)
  for _,key in {'Brightness','ClockTime','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
  for _,v in Lighting:GetChildren()do if v:IsA('Sky')or v:IsA('Atmosphere')or v:IsA('PostEffect')then v.Parent=backup end end
  for _,v in resources.Lighting:GetChildren()do
@@ -34,7 +38,7 @@ function Environment.build(track)
  Lighting.Ambient=Color3.fromRGB(10,9,12);Lighting.OutdoorAmbient=Color3.fromRGB(34,26,36)
  Lighting.EnvironmentDiffuseScale=1;Lighting.EnvironmentSpecularScale=1
  local function appearance(p,color,material,variant,hide)
-  saved[p]={p.Color,p.Material,p.MaterialVariant,p.LocalTransparencyModifier}
+  saved[p]={p.Color,p.Material,p.MaterialVariant,p.LocalTransparencyModifier,p.Size}
   p.Color=color;p.Material=material;p.MaterialVariant=variant or ''
   if hide then p.LocalTransparencyModifier=1 end
  end
@@ -43,10 +47,15 @@ function Environment.build(track)
  if ground then appearance(ground,Color3.fromRGB(115,114,119),Enum.Material.Concrete,'')end
  if env and env:FindFirstChild('SpeedCues')then for _,p in env.SpeedCues:GetDescendants()do if p:IsA('BasePart')then appearance(p,p.Color,p.Material,p.MaterialVariant,true)end end end
  local road=track:FindFirstChild('Road')
- if road then for _,p in road:GetChildren()do if p:IsA('BasePart')then appearance(p,Color3.fromRGB(60,61,68),Enum.Material.Asphalt,'')end end end
+ if road then for _,p in road:GetChildren()do if p:IsA('BasePart')then
+  appearance(p,Color3.fromRGB(226,220,188),Enum.Material.Asphalt,'KDMMetro_Racing_Asphalt_A')
+  local index=tonumber(p.Name:match('^Road(%d+)$'))
+  local length=index and DesertRoad.straightRoadLength(course.Samples,index)
+  if length and not p.CanCollide then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end
+ end end end
  model.Destroying:Connect(function()
   alive=false
-  for p,v in saved do if p.Parent then p.Color=v[1];p.Material=v[2];p.MaterialVariant=v[3];p.LocalTransparencyModifier=v[4]end end
+  for p,v in saved do if p.Parent then p.Color=v[1];p.Material=v[2];p.MaterialVariant=v[3];p.LocalTransparencyModifier=v[4];if p.Size~=v[5]then p.Size=v[5]end end end
   for _,v in copies do v:Destroy()end
   for _,v in backup:GetChildren()do v.Parent=Lighting end;backup:Destroy()
   for key,value in oldLight do Lighting[key]=value end
@@ -89,6 +98,7 @@ function Environment.build(track)
    end end
    clone.Name='StreetBuilding'..(count+1);clone:SetAttribute('SourceBuilding',site.name)
    clone:SetAttribute('RoadClearance',site.clearance-width/2);clone:SetAttribute('StreetBlock',site.block);clone.Parent=model
+   if site.corner then clone:SetAttribute('CornerInfill',site.corner)end
    count+=1;minimum=math.min(minimum,site.clearance-width/2)
    if count%3==0 then task.wait()end
   end

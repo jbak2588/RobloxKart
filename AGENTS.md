@@ -8,6 +8,11 @@ Owner rollback: cancel the native original-city import / MetroCityV1 / 45-stud
 road conversion. Keep Base-derived Metro, facade depth/pivot repair and matte
 separated kerbs. Facades stay parallel to the road. No Publish.
 
+Owner U-bend refinement: keep the established 58 straight/bridge sites; add
+buildings only to the outer U bends / rear-start horseshoe. Metro uses the exact
+Desert Racing_Asphalt_A road surface and bounded visual-road tire contact for
+non-queryable road slices. Preserve all driving/query/authority contracts.
+
 Owner modular-kit refinement: use the complete Endorsed Models/PrefabBuildings
 palette for continuous road-parallel blocks, two native low shops and both original
 Skybridge variants joining paired towers. Keep native beech pocket groves in gaps

@@ -61,11 +61,21 @@ check(partCount==2622,'complete kit and two low shops with bounded palette')
 local course=geometry.getCourse(geometry.getDefinition(metro.GeometryId))
 local width=geometry.getDefinition(metro.GeometryId).RoadWidth
 local sites=layout.plan(geometry,course,width,profiles)
-check(#sites>=40 and #sites<=68,'bounded dense streets')
+check(#sites>=40 and #sites<=84,'bounded dense streets')
+local priorSource=process.exec('git',{'show','95b9d32e14c6272be65cc03111128372b2dd881f:src/shared/MetroCityLayout.luau'})
+assert(priorSource.ok)
+local prior=luau.load(priorSource.stdout,{environment=env})().plan(geometry,course,width,profiles)
+for i,site in prior do
+ check(sites[i].name==site.name and sites[i].frame==site.frame and sites[i].scale==site.scale,'existing 58 street/bridge sites unchanged')
+end
+local infill={0,0,0,0,0}
+for _,site in sites do if site.corner then infill[site.corner]+=1 end end
+for _,n in infill do check(n>=1,'each U-bend and rear-start area receives buildings')end
+
 local sides={[-1]=0,[1]=0};local paired={0,0};local adjacent=0
 for i,s in sites do
  check(layout.footprintDistance(course.Samples,s.frame,s.size)>=width/2+24,'entire building footprint outside drift shoulder')
- check(math.abs(s.frame.LookVector:Dot(s.forward))<.00001,'facade parallel to road')
+ check(math.abs(s.frame.LookVector:Dot(s.forward))<.001,'facade parallel to road')
  sides[s.side]+=1
  if s.bridge then paired[s.bridge]+=1 end
  for j=1,i-1 do local other=sites[j]

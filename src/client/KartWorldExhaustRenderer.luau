@@ -225,8 +225,10 @@ function Renderer.new(kart)
   else
    local track=parent and parent:FindFirstChild("TestTrack")
    surfaceRoot=track and track:FindFirstChild("Road")
-   if surfaceRoot and track:GetAttribute('GeometryId')=='PracticeFigure8V1' then
-    -- Figure-8 Road slices are intentionally non-queryable. Keep that contract;
+   local geometry=track and track:GetAttribute('GeometryId')
+   local metro=track and track:GetAttribute('TrackId')=='Track01Metro' and geometry=='PracticeCircuitV1'
+   if surfaceRoot and (geometry=='PracticeFigure8V1' or metro) then
+    -- Figure-8 and Metro Road slices are intentionally non-queryable. Keep that contract;
     -- contact is the top plane of the bounded visual slices, not the grass support.
     visualRoads={}
     for _,p in surfaceRoot:GetChildren()do if p:IsA('BasePart')then table.insert(visualRoads,p)end end
