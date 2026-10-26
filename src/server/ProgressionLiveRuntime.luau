@@ -33,6 +33,7 @@ function Runtime.new(deps)
   return bound
  end
  function api.select(player,kartId) return not closing and deps.authorize(player) and core.select(player,kartId) end
+ function api.adopt(player,profile) return not closing and deps.authorize(player) and core.adopt(player,profile) end
  function api.selection(player,fallback) return core.selection(player,fallback) end
  function api.inspect(player) return core.inspect(player) end
  function api.remove(player)

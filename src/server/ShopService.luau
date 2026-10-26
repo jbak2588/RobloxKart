@@ -35,7 +35,10 @@ local function publish(player,p)
  for id,count in view.counts do player:SetAttribute('KDMStock'..id,count) end
 end
 local function transact(player,kind,op)
- return Service.transaction(Economy.accountAdapter(player,kind),op,function(p)publish(player,p)end,task.wait)
+ return Service.transaction(Economy.accountAdapter(player,kind),op,function(p)
+  publish(player,p)
+  if op.kind=='BUY_KART' or op.kind=='USE_KART' then require(script.Parent.ProgressionRuntimeBinding).adopt(player,p) end
+ end,task.wait)
 end
 function Service.deliverReserved(op,save,eligible,apply)
  if not eligible() then op.kind='REFUND_REFILL';save(op);return false end
@@ -66,11 +69,11 @@ local function profile(player)
  publish(player,r.value)
  local view=Ops.view(r.value)
  view.canPurchase=Economy.allowed(player,'shop')
- view.passAvailable=Economy.passAvailable();view.passId=Config.GamePassId
+ view.passAvailable=false
  return view
 end
 local function tryRefill(player,id)
- if busy[player] or player:GetAttribute('KDMInventoryAutoRefill')~=true or not Economy.allowed(player,'voucher') then return end
+ if not C.PaidItemUseEnabled or busy[player] or player:GetAttribute('KDMInventoryAutoRefill')~=true or not Economy.allowed(player,'voucher') then return end
  local Items=require(script.Parent.RaceItemController)
  local guid=Items.voucherTarget(player,id)
  if not S.guid(guid) then return end
@@ -106,28 +109,26 @@ function Service.start()
    or player:GetAttribute('KDMRoutePending')=='RACE_LAUNCH') then return {status='HUB_REQUIRED'} end
   if action=='PREPARE' then
    local body=itemId
-   if type(body)~='table' or (body.action~='BUY_WING' and body.action~='BUY_ITEM' and body.action~='EQUIP_WING' and body.action~='SET_AUTO_REFILL') then return {status='INVALID_OPERATION'} end
+   if type(body)~='table' or (body.action~='BUY_KART' and body.action~='BUY_ITEM' and body.action~='USE_KART') then return {status='INVALID_OPERATION'} end
    if body.action=='BUY_ITEM' and (type(body.itemId)~='string' or not C.Prices[body.itemId]) then return {status='INVALID_OPERATION'} end
-   if (body.action=='EQUIP_WING' or body.action=='SET_AUTO_REFILL') and type(body.value)~='boolean' then return {status='INVALID_OPERATION'} end
-   local op={kind=body.action,userId=player.UserId,itemId=if body.action=='BUY_WING' or body.action=='EQUIP_WING' then C.WingId else body.itemId}
-   if body.action=='EQUIP_WING' then op.equipped=body.value end
-   if body.action=='SET_AUTO_REFILL' then op.itemId=nil;op.enabled=body.value end
+   if (body.action=='BUY_KART' or body.action=='USE_KART') and (type(body.itemId)~='string' or not C.kartEntitlement(body.itemId)) then return {status='INVALID_OPERATION'} end
+   local op={kind=body.action,userId=player.UserId,itemId=body.itemId}
    return {status='PREPARED',id=tickets.issue(player,op)}
   end
-  if action~='PROFILE' and (not S.guid(requestId) or (action~='BUY_WING' and action~='BUY_ITEM' and action~='EQUIP_WING' and action~='SET_AUTO_REFILL')) then return {status='INVALID_OPERATION'} end
+  if action~='PROFILE' and (not S.guid(requestId) or (action~='BUY_KART' and action~='BUY_ITEM' and action~='USE_KART')) then return {status='INVALID_OPERATION'} end
   busy[player]=true;last[player]=os.clock()
   local ok,r=pcall(function()
    if action=='PROFILE' then return profile(player) end
-   local op={kind=action,id=requestId,userId=player.UserId,itemId=if action=='BUY_WING' or action=='EQUIP_WING' then C.WingId else itemId}
-   if action=='EQUIP_WING' then op.equipped=value end
-   if action=='SET_AUTO_REFILL' then op.itemId=nil;op.enabled=value end
+   local op={kind=action,id=requestId,userId=player.UserId,itemId=itemId}
    local authorized,reason=tickets.resolve(player,op)
    if not authorized then
     -- A restart/evicted ticket may still confirm an existing receipt, but
     -- absence must NEVER mint fresh authority or run a debit reducer.
     local read=Economy.accountAdapter(player,'read').read(S.userKey(player.UserId))
     if Ops.confirm(read,op) then
-     publish(player,read.value);local view=Ops.view(read.value);view.purchaseState='SAVE_CONFIRMED';return view
+     publish(player,read.value)
+     if action=='BUY_KART' or action=='USE_KART' then require(script.Parent.ProgressionRuntimeBinding).adopt(player,read.value) end
+     local view=Ops.view(read.value);view.purchaseState='SAVE_CONFIRMED';return view
     end
     return {status=reason}
    end
@@ -138,7 +139,7 @@ function Service.start()
  local function joined(player)
   refillAttempted[player]={}
   local function schedule()
-   if player:GetAttribute('RaceState')~='RACING' or player:GetAttribute('KDMInventoryAutoRefill')~=true then return end
+   if not C.PaidItemUseEnabled or player:GetAttribute('RaceState')~='RACING' or player:GetAttribute('KDMInventoryAutoRefill')~=true then return end
    queued[player]=true
    if pumping[player] then return end
    pumping[player]=true

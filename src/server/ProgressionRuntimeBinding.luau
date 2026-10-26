@@ -28,6 +28,12 @@ end
 function Binding.select(player,kartId)
  return runtime ~= nil and runtime.select(player,kartId)
 end
+function Binding.adopt(player,profile)
+ if runtime then return runtime.adopt~=nil and runtime.adopt(player,profile) end
+ if player:GetAttribute('RaceState')=='GARAGE' and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH'
+  and player:GetAttribute('LobbyDriveActive')~=true then player:SetAttribute('SelectedKartId',profile.selection.kartId);return true end
+ return false
+end
 function Binding.selection(player,fallback)
  return if runtime then runtime.selection(player,fallback) else fallback
 end

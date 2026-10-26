@@ -89,7 +89,7 @@ function HubUiController.start()
   if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true) or (rooms and rooms.Enabled) then return end
   if action=='SHOP' then
    if player:GetAttribute('LobbyDriveActive')==true or player:GetAttribute('LobbyDrivePending')==true or (player:GetAttribute('KDMRoutePending')~=nil and player:GetAttribute('KDMRoutePending')~='') then return end
-   require(script.Parent.GarageShopController).open('WINGS');return
+   require(script.Parent.GarageShopController).open('KARTS');return
   end
   Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end

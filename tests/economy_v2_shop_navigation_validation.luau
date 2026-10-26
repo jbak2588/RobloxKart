@@ -44,7 +44,7 @@ local inject=[[
 controller.close()
 local shopCalls=0
 child(client,'ModuleScript','GarageShopController')
-modules.GarageShopController={open=function(target)check(target=='WINGS','Hub targets existing Wing tab');shopCalls+=1 end}
+modules.GarageShopController={open=function(target)check(target=='KARTS','Hub targets existing Wing tab');shopCalls+=1 end}
 check(shortcuts.SHOP and shortcuts.SHOP.Activated.count()==1,'single Main Lobby SHOP handler')
 check(controller.shopContext()=='LOBBY','Main Lobby distinct from Garage despite GARAGE RaceState')
 shortcuts.SHOP.Activated:Fire();check(shopCalls==1,'Main Lobby directly calls single Shop API')

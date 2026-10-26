@@ -139,7 +139,7 @@ case('A15','feature OFF and public Studio switch prohibition',function()
  check(binding.KDM_PROGRESS_KART_PERSISTENCE_ENABLED==false and not binding.enabled(),'default off')
  local p=player(1);check(not binding.bind(p) and binding.selection(p,'Kart07')=='Kart07' and not p.attrs.KartSaveState,'OFF no profile or UI work')
  local a=fixture({});check(not pcall(binding.installStudioMock,a),'live install rejected')
- studio=true;binding.installStudioMock(a);check(binding.enabled(),'trusted Studio injection only');binding.bind(p);binding.select(p,'Kart09');check(p.attrs.SelectedKartId=='Kart09','actual facade routes to mock');binding.shutdown();check(not binding.enabled(),'cleanup disables facade')
+ studio=true;binding.installStudioMock(a);check(binding.enabled(),'trusted Studio injection only');binding.bind(p);binding.select(p,'Kart09');check(p.attrs.SelectedKartId=='Kart09','actual facade routes to mock');p.attrs.KDMRoutePending='RACE_LAUNCH';check(not binding.adopt(p,profile(1,'Kart06',8)) and p.attrs.SelectedKartId=='Kart09','binding cannot fall back around runtime launch guard');p.attrs.KDMRoutePending=nil;binding.shutdown();check(not binding.enabled(),'cleanup disables facade')
 end)
 case('A16','late load after race departure cannot replace pinned kart',function()
  for _,state in {'PRE_RACE','RACING','FINISHED','RACE_LAUNCH'} do
@@ -149,6 +149,26 @@ case('A16','late load after race departure cannot replace pinned kart',function(
   check(p.attrs.SelectedKartId=='Kart05' and a.selection(p,'Kart09')=='Kart05','departure choice preserved '..state)
   check(p.attrs.KartSaveState~='SAVE_CONFIRMED' and not a.select(p,'Kart09'),'no false confirmed selection or mid-race change '..state)
  end
+end)
+case('A17','confirmed kart purchase supersedes queued selection and keeps later CAS usable',function()
+ local queue={};local a,store=fixture({['u:1']=profile(1,'Kart07',4)},queue);local p=player(1);a.bind(p)
+ a.select(p,'Kart08');check(#queue==1,'old rental selection queued')
+ local purchase=profile(1,'Kart06',5);purchase.selection.lastOpId='shop-confirmed'
+ -- Simulate the independently committed Shop transaction before adopting its read-back.
+ store.commit(store.beginUpdate('u:1',function()return purchase,'APPLIED'end))
+ check(a.adopt(p,purchase) and a.selection(p,'Kart05')=='Kart06','purchase adopts actual saved selection')
+ table.remove(queue,1)();check(store.snapshot()['u:1'].selection.kartId=='Kart06' and p.attrs.SelectedKartId=='Kart06','stale pending callback cannot overwrite purchase')
+ a.select(p,'Kart09');table.remove(queue,1)();check(store.snapshot()['u:1'].selection.kartId=='Kart09','next explicit rental selection uses adopted CAS revision')
+ p.attrs.RaceState='RACING';check(not a.adopt(p,purchase),'shop readback cannot replace pinned race selection')
+end)
+case('A18','late initial read cannot replace a confirmed shop selection revision',function()
+ local a,store=fixture({['u:1']=profile(1,'Kart07',4)});local p=player(1)
+ store.inject({delayRead=true});a.bind(p);store.inject({})
+ local purchase=profile(1,'Kart06',5);purchase.selection.lastOpId='shop-confirmed'
+ store.commit(store.beginUpdate('u:1',function()return purchase,'APPLIED'end))
+ check(a.adopt(p,purchase),'adopt while initial read is pending')
+ a.completeLoad(p);check(a.selection(p,'Kart05')=='Kart06','old read does not restore prior kart')
+ a.select(p,'Kart09');check(store.snapshot()['u:1'].selection.kartId=='Kart09','old read does not replace purchase CAS revision')
 end)
 local passed=0;for _,row in rows do if row.status=='PASS' then passed+=1 end end
 print('RESULT_JSON '..serde.encode('json',{rows=rows,passed=passed,total=#rows,checks=checks,liveDataStoreCalls=0,actualRejoin=false,serviceRecreation=true}))

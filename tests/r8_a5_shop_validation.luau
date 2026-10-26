@@ -13,6 +13,31 @@ p.futureInventory={preserved=true};p.records.scoped={};p.purchaseHistory={old={p
 local original=S.clone(p)
 local function op(kind,n,id)return {kind=kind,id=guid(n),userId=1,itemId=id}end
 local function apply(profile,o)local nextValue,code=Ops.reduce(o)(profile);return nextValue,code end
+-- New color-specific purchases and historical all-color ownership.
+local fresh=S.clone(p);fresh.wallet.cash=200000
+for index,id in C.KartOrder do
+ local buy=op('BUY_KART',500+index,id);local before=fresh.wallet.cash
+ local nextValue,outcome=apply(fresh,buy)
+ check(outcome=='APPLIED' and nextValue.wallet.cash==before-25000,'one color costs 25000 '..id)
+ check(nextValue.selection.kartId==id and nextValue.selection.revision==fresh.selection.revision+1,'purchase selects persisted default '..id)
+ check(C.ownsKart(nextValue.cosmetics.ownedPartIds,id),'color owned '..id)
+ if index<#C.KartOrder then check(not C.ownsKart(nextValue.cosmetics.ownedPartIds,C.KartOrder[index+1]),'purchase does not unlock another color') end
+ check(not nextValue.cosmetics.ownedPartIds[C.WingId],'new buyer never receives global Wing entitlement')
+ local retry=apply(nextValue,buy);check(S.canonical(retry)==S.canonical(nextValue),'purchase ACK retry does not debit or revise again')
+ local duplicate,reason=apply(nextValue,op('BUY_KART',600+index,id));check(not duplicate and reason=='ALREADY_OWNED','duplicate purchase rejected')
+ fresh=nextValue
+end
+local legacy=S.clone(p);legacy.cosmetics.ownedPartIds[C.WingId]=true
+for _,id in C.KartOrder do check(Ops.view(legacy).ownedKarts[id],'legacy owner keeps every color') end
+check(not C.ownsKart(legacy.cosmetics.ownedPartIds,'Kart01'),'legacy Wing never changes Sprint family')
+local used=apply(fresh,op('USE_KART',700,'Kart05'))
+check(used.wallet.cash==fresh.wallet.cash and used.selection.kartId=='Kart05','owned selection is free and persistent')
+local rejected,reason=apply(p,op('USE_KART',701,'Kart05'));check(not rejected and reason=='NOT_OWNED','cannot equip unowned premium kart')
+rejected,reason=apply(p,op('BUY_KART',702,'Kart01'));check(not rejected and reason=='INVALID_OPERATION','rental-only Sprint cannot be sold')
+local restored=serde.decode('json',serde.encode('json',fresh));check(schema.validate(restored,S.userKey(1)) and Ops.view(restored).ownedKarts.Kart11,'new ownership survives serialization')
+local stored=S.clone(fresh);stored.shopInventory={counts={Nitro=9},autoRefill=true,revision=1}
+check(not C.PaidItemUseEnabled and not Ops.view(stored).autoRefill and Ops.view(stored).counts.Nitro==9,'old automatic-refill preference paused without deleting stock')
+check(C.Prices.Nitro==5000 and C.Prices.Missile==4000 and C.Prices.Thunder==3500 and C.Prices.Slick==2500 and C.Prices.Smoke==2500 and C.Prices.Shield==2500,'approved authoritative prices')
 local wing=op('BUY_WING',1,C.WingId)
 local value,code=apply(p,wing);check(value==nil and code=='INSUFFICIENT_FUNDS','mock K$805 cannot buy Wing')
 check(S.canonical(p)==S.canonical(original),'failed purchase never mutates input')
@@ -31,7 +56,7 @@ equip.id=guid(5);equip.equipped=true;value=apply(value,equip)
 check(value.cosmetics.equippedPartIdsBySlot.Wing==C.WingId,'re-equip uses permanent entitlement')
 check(value.selection.kartId=='Kart09' and value.futureInventory.preserved and value.purchaseHistory.old.preserved and value.wallet.lifetimeEarned==900,'existing account fields preserved')
 p=S.clone(original)
-p.wallet.cash=5000
+p.wallet.cash=25000
 for i,id in C.Order do
  local buy=op('BUY_ITEM',10+i,id);local before=p.wallet.cash;p=apply(p,buy)
  check(p.wallet.cash==before-C.Prices[id] and p.shopInventory.counts[id]==1,'price and permanent stock '..id)
@@ -92,22 +117,22 @@ trace={};check(not Service.deliverReserved(S.clone(delivered),saveDelivery,funct
 local unused=S.clone(delivered);unused.kind='REFUND_UNUSED_REFILL'
 local refunded=apply(p,unused);check(refunded.shopInventory.counts.Smoke==p.shopInventory.counts.Smoke+1,'known unused finalized voucher restored')
 local again=apply(refunded,unused);check(again.shopInventory.counts.Smoke==refunded.shopInventory.counts.Smoke,'finalized compensation replay cannot duplicate stock')
-local saved=S.clone(original);local ackLoss=false;local readFailure=false;local writes=0;local publications=0
+local saved=S.clone(original);saved.wallet.cash=10000;local ackLoss=false;local readFailure=false;local writes=0;local publications=0
 local backend={GetAsync=function(_,_,options)check(options.UseCache==false,'uncached read-back');if readFailure then error('timeout')end return S.clone(saved)end,
  UpdateAsync=function(_,_,callback)local value=callback(S.clone(saved));if value then saved=value;writes+=1 end;if ackLoss then error('lost ACK')end return value end}
 local a=Adapter.new({schema=schema,key=S.userKey(1),authorize=function()return true end,getStore=function()return backend end,getOptions=function()return {UseCache=false}end,budget=function()return true end})
 local buy=op('BUY_ITEM',100,'Nitro');buy.transaction={version=1,issuedAt=1791650100000};ackLoss=true
 local r=Service.transaction(a,buy,function()publications+=1 end,function()end)
-check(r.purchaseState=='SAVE_CONFIRMED' and writes==1 and saved.wallet.cash==555,'unknown write ACK resolved by durable receipt read-back')
+check(r.purchaseState=='SAVE_CONFIRMED' and writes==1 and saved.wallet.cash==5000,'unknown write ACK resolved by durable receipt read-back')
 r=Service.transaction(a,buy,function()end,function()end);check(r.purchaseState=='SAVE_CONFIRMED' and writes==1,'retry after lost response never rewrites or recharges')
 readFailure=true;r=Service.transaction(a,op('BUY_ITEM',101,'Smoke'),function()error('must not publish')end,function()end)
-check(r.status=='SAVE_UNCONFIRMED' and saved.wallet.cash==555,'read timeout never claims success or mutates account')
+check(r.status=='SAVE_UNCONFIRMED' and saved.wallet.cash==5000,'read timeout never claims success or mutates account')
 readFailure=false;ackLoss=false
 backend.UpdateAsync=function(_,_,callback)local value=callback(S.clone(saved));if value then saved=value;writes+=1 end;readFailure=true;error('ACK plus read outage')end
 buy=op('BUY_ITEM',102,'Smoke');buy.transaction={version=1,issuedAt=1791650100000};r=Service.transaction(a,buy,function()error('unverified success')end,function()end)
 check(r.status=='SAVE_UNCONFIRMED' and saved.shopInventory.counts.Smoke==1,'committed but unreadable purchase remains unconfirmed')
 readFailure=false;r=Service.transaction(a,buy,function()end,function()end)
-check(r.purchaseState=='SAVE_CONFIRMED' and saved.shopInventory.counts.Smoke==1 and saved.wallet.cash==305,'same client GUID reconciles after reconnect/outage')
+check(r.purchaseState=='SAVE_CONFIRMED' and saved.shopInventory.counts.Smoke==1 and saved.wallet.cash==2500,'same client GUID reconciles after reconnect/outage')
 
 local raceCatalog=load('src/shared/RaceItemCatalog.luau');local slots=load('src/shared/RaceItemSlots.luau',{script={Parent={WaitForChild=function(_,n)return n end}},require=function()return raceCatalog end})
 local loadout=load('src/server/RaceLoadout.luau',{game={GetService=function()return {WaitForChild=function()return {WaitForChild=function(_,n)return n end}end}end},require=function(n)return if n=='RaceItemCatalog' then raceCatalog else slots end})

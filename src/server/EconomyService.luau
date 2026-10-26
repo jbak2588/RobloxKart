@@ -3,6 +3,7 @@ local Service={}
 local Shared=game:GetService('ReplicatedStorage'):WaitForChild('Shared')
 local S=require(Shared.KDMProgressionSchema)
 local schema=S.new(require(Shared.KartCatalog),{utcMs=function()return DateTime.now().UnixTimestampMillis end,jsonEncode=function(v)return game:GetService('HttpService'):JSONEncode(v)end})
+local ShopCatalog=require(Shared.KDMShopCatalog)
 local Config=require(script.Parent.EconomyConfig)
 local Policy=require(script.Parent.EconomyPolicy)
 local Ops=require(script.Parent.EconomyOperations)
@@ -52,8 +53,9 @@ function Service.publishProfile(player,p)
  player:SetAttribute('KDMWalletRevision',p.wallet.ledgerRevision)
  player:SetAttribute('KDMWalletCash',p.wallet.cash)
  player:SetAttribute('KDMLifetimeEarned',p.wallet.lifetimeEarned or 0)
- player:SetAttribute('KDMWingOwned',p.cosmetics.ownedPartIds[Config.WingId]==true)
- player:SetAttribute('KDMWingEquipped',p.cosmetics.equippedPartIdsBySlot.Wing==Config.WingId)
+ for _,id in ShopCatalog.KartOrder do player:SetAttribute('KDMOwned'..id,ShopCatalog.ownsKart(p.cosmetics.ownedPartIds,id)) end
+ local owned=ShopCatalog.playerOwnsKart(player,player:GetAttribute('SelectedKartId'))
+ player:SetAttribute('KDMWingOwned',owned);player:SetAttribute('KDMWingEquipped',owned)
  local event=S.finishEvent(p)
  player:SetAttribute('KDMWelcomeSeen',event.seen)
  player:SetAttribute('KDMFirstFinishClaimed',event.claimed)
@@ -65,7 +67,7 @@ function Service.publishProfile(player,p)
 end
 local function publicProfile(p)
  return {status='FOUND',cash=p.wallet.cash,lifetimeEarned=p.wallet.lifetimeEarned or 0,kartId=p.selection.kartId,
-  wingOwned=p.cosmetics.ownedPartIds[Config.WingId]==true,wingEquipped=p.cosmetics.equippedPartIdsBySlot.Wing==Config.WingId}
+  wingOwned=ShopCatalog.ownsKart(p.cosmetics.ownedPartIds,p.selection.kartId),wingEquipped=ShopCatalog.ownsKart(p.cosmetics.ownedPartIds,p.selection.kartId)}
 end
 local function readAccount(player)
  if not Service.allowed(player,'read') then return {status='ACCESS_BLOCKED'} end
@@ -220,6 +222,7 @@ function Service.start()
  local remote=Instance.new('RemoteFunction');remote.Name='KDMEconomy';remote.Parent=storage
  remote.OnServerInvoke=function(player,action,equipped)
   if closing then return {status='CLOSING'} end
+  if action=='BUY_WING' or action=='EQUIP_WING' or action=='PASS' then return {status='UNAVAILABLE'} end
   if not Service.allowed(player,if action=='PROFILE' then 'read' elseif action=='BUY_WING' or action=='PASS' then 'shop' else 'purchase') then return {status='ACCESS_BLOCKED'} end
   if busy[player] or last[player] and os.clock()-last[player]<1 then return {status='RATE_LIMITED'} end
   if action~='PROFILE' and (player:GetAttribute('RaceState')~='GARAGE' or player:GetAttribute('LobbyDriveActive')==true
@@ -265,6 +268,10 @@ function Service.start()
  local players=game:GetService('Players')
  local function joined(p)
   if closing then return end
+  p:GetAttributeChangedSignal('SelectedKartId'):Connect(function()
+   local owned=ShopCatalog.playerOwnsKart(p,p:GetAttribute('SelectedKartId'))
+   p:SetAttribute('KDMWingOwned',owned);p:SetAttribute('KDMWingEquipped',owned)
+  end)
   joining+=1
   task.spawn(function()
    pcall(function()

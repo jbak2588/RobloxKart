@@ -104,6 +104,7 @@ local function load(path, parent, name)
 end
 local config=load("src/shared/KartConfig.luau",shared,"KartConfig")
 load('src/shared/KDMV2WingDefinition.luau',shared,'KDMV2WingDefinition')
+load('src/shared/KDMShopCatalog.luau',shared,'KDMShopCatalog')
 config=table.clone(config); config.DEBUG_TELEMETRY=false; modules.KartConfig=config
 local catalog=load("src/shared/RaceItemCatalog.luau",shared,"RaceItemCatalog")
 for _, id in {"Nitro","Slick","Shield","Smoke"} do check(catalog[id].Id==id,"stable ID "..id) end

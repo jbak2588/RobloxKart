@@ -55,6 +55,9 @@ function Coordinator.select(player,kartId)
  end
  return runtimes[player]~=nil and runtimes[player].select(player,kartId)
 end
+function Coordinator.adopt(player,profile)
+ return runtimes[player]~=nil and runtimes[player].adopt(player,profile)
+end
 function Coordinator.selection(player,fallback)
  return if runtimes[player] then runtimes[player].selection(player,fallback) else fallback
 end

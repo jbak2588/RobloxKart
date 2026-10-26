@@ -162,7 +162,7 @@ function Controller.start()
  local earnings = label(body, 'LifetimeRaceEarnings', '', 58, 58, 16);earnings.Font=Enum.Font.GothamBold
  earnings.Position=UDim2.new(.5,8,0,58);earnings.Size=UDim2.new(.5,-36,0,58)
  local wing = label(body, 'Wing', '', 126, 28, 13)
- local heading = label(body, 'Collection', 'KDM V2 · 7 FREE COLOR VARIANTS', 166, 28, 14); heading.Font = Enum.Font.GothamBold
+ local heading = label(body, 'Collection', 'KDM V2 · KART COLLECTION', 166, 28, 14); heading.Font = Enum.Font.GothamBold
  local variants = {}
  for _, id in catalog.Order do
   local entry = catalog.Entries[id]
@@ -183,8 +183,8 @@ function Controller.start()
  end
  local selection = label(body, 'Selection', '', 358, 28, 13)
  surface('WingEquipmentCard',396,184)
- label(body,'WingEquipmentTitle','PERMANENT WING',402,24,16).Font=Enum.Font.GothamBold
- local wingPrice=label(body,'WingPrice','K$25,000 · ONE WING / ALL V2 COLORS',430,24,14);wingPrice.TextColor3=colors.Yellow
+ label(body,'WingEquipmentTitle','PERMANENT KDM V2 KARTS',402,24,16).Font=Enum.Font.GothamBold
+ local wingPrice=label(body,'WingPrice','K$25,000 per color · Wing included',430,24,14);wingPrice.TextColor3=colors.Yellow
  local shop = button(body, 'OpenShop', 'GO TO SHOP', 464);shop.Size=UDim2.new(.5,-24,0,44)
  local buy = button(body, 'BuyWing', 'BUY · K$25,000', 464);buy.Position=UDim2.new(.5,0,0,464);buy.Size=UDim2.new(.5,-24,0,44)
  StyleHelper.apply3DButton(buy, Color3.fromRGB(255, 235, 90), Color3.fromRGB(255, 195, 25), Color3.fromRGB(215, 140, 0), 12, 2.5)
@@ -230,13 +230,15 @@ function Controller.start()
   kart.Text = 'KART · '..view.kart
   wallet.Text = 'AVAILABLE K$\n'..view.cash
   earnings.Text = 'LIFETIME EARNINGS\nK$ '..view.earned
-  wing.Text = 'WING  ·  '..view.wing
-  selection.Text = 'SELECTED COLOR · '..view.color..'  /  FREE GARAGE SELECTION'
+  wing.Text = if view.owned==nil then 'SELECTED KART · UNAVAILABLE' elseif view.owned then 'SELECTED KART · OWNED PERMANENTLY' else 'SELECTED KART · FREE RENTAL'
+  selection.Text = 'SELECTED COLOR · '..view.color..'  /  '..(if view.owned then 'OWNED KART' else 'FREE RENTAL')
   for _, v in variants do
    local selected = a.SelectedKartId == v.id
    v.tile.BackgroundColor3 = if selected then colors.Light else colors.Card
    v.border.Color=if selected then colors.Cyan else colors.Secondary
    v.border.Thickness=if selected then 2 else 1;v.border.Transparency=if selected then 0 else .7
+   local owned=player:GetAttribute('KDMOwned'..v.id)==true
+   v.tile.Availability.Text=if owned then 'OWNED · WITH WING' else 'FREE RENTAL'
    v.name.Text = (if selected then '✓ ' else '')..v.entry.DisplayColorName
   end
   buy.Active = not busy and view.owned == false and view.cash ~= '--' and tonumber(view.cash) >= 25000
@@ -246,6 +248,9 @@ function Controller.start()
   equip.Text = if view.equipped == true then 'UNEQUIP WING' else 'EQUIP WING'
   pass.Active = not busy and view.owned == false and passAvailable and passPrice ~= nil
   pass.Text = if passAvailable and passPrice then 'PERMANENT WING · '..passPrice..' Robux' else '50 Robux target · COMING SOON'
+  buy.Visible=false;equip.Visible=false;pass.Visible=false
+  buy.Active=false;equip.Active=false;pass.Active=false
+  shop.Size=UDim2.new(1,-32,0,44);shop.Text='VIEW KARTS / BUY'
   shop.Active = not busy
   for _, b in {buy, equip, pass, shop} do b.TextTransparency = if b.Active then 0 else .5 end
   statusLabel.Text = if status ~= '' then status elseif view.cash == '--' then 'ACCOUNT UNAVAILABLE · --' else 'SERVER-CONFIRMED ACCOUNT'
@@ -277,12 +282,12 @@ function Controller.start()
  end)
  close.Activated:Connect(closeProfile); dismiss.Activated:Connect(closeProfile)
  local function openShop()
-  closeProfile(); require(script.Parent.GarageShopController).open('WINGS')
+  closeProfile(); require(script.Parent.GarageShopController).open('KARTS')
  end
  shop.Activated:Connect(function() if shop.Active and actionTap() then openShop() end end)
  buy.Activated:Connect(function() if buy.Active and actionTap() then openShop() end end)
- equip.Activated:Connect(function() if equip.Active and actionTap() then invoke('EQUIP_WING', player:GetAttribute('KDMWingEquipped') ~= true) end end)
- pass.Activated:Connect(function() if pass.Active and actionTap() then invoke('PASS') end end)
+ equip.Activated:Connect(function() if equip.Active and actionTap() then openShop() end end)
+ pass.Activated:Connect(function() if pass.Active and actionTap() then openShop() end end)
  local function update()
   gui.Enabled = player:GetAttribute('RaceState') == 'GARAGE' and player:GetAttribute('HubOverlayOpen') ~= true
    and player:GetAttribute('KDMShopOpen') ~= true and player:GetAttribute('LobbyDriveActive') ~= true

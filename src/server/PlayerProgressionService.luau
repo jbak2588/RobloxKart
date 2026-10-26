@@ -102,6 +102,10 @@ function Service.new(deps)
    session.blocked=true;publish(player,session,"READ_ONLY",result.reason or result.state);return
   end
   if not result.profile then session.blocked=true;publish(player,session,"ERROR","LOAD_UNAVAILABLE");return end
+  -- A read begun before a confirmed shop selection cannot replace its CAS base.
+  if session.adoptedRevision and result.profile.selection.revision<session.adoptedRevision then
+   publish(player,session,'SAVED');return
+  end
   session.profile, session.absent = result.profile, result.state == "NEW"
   if session.generation == 0 then
    apply(player,session,result.profile.selection.kartId)
@@ -159,6 +163,15 @@ function Service.new(deps)
   apply(player,session,kartId)
   if session.blocked then publish(player,session,"READ_ONLY","SESSION_ONLY")
   else publish(player,session,"PENDING");api.flush(player) end
+  return true
+ end
+ function api.adopt(player,profile)
+  local session=sessions[player]
+  if not session or raceLocked(player,session) or not schema.validate(profile,session.key) then return false end
+  if session.profile and session.profile.selection.revision>profile.selection.revision then return false end
+  session.generation+=1;session.profile=S.clone(profile);session.absent=false;session.adoptedRevision=profile.selection.revision
+  session.request=nil;session.desired=profile.selection.kartId
+  apply(player,session,profile.selection.kartId);publish(player,session,'SAVED')
   return true
  end
  function api.selection(player,fallback)

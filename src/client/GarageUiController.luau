@@ -474,10 +474,10 @@ function GarageUiController.start()
 	end
 
 	local previousButton = makeButton(backdrop, "BACK", UDim2.new(0.5, -270, 0.84, 0))
-	local shopButton=makeButton(backdrop,'GO TO SHOP',UDim2.fromOffset(12,14))
+	local shopButton=makeButton(backdrop,'BUY KARTS',UDim2.fromOffset(12,14))
 	shopButton.Size=UDim2.fromOffset(104,44)
 	shopButton.BackgroundColor3=Theme.Panel;shopButton.TextSize=12
-	shopButton.Activated:Connect(function()require(script.Parent.GarageShopController).open('WINGS')end)
+	shopButton.Activated:Connect(function()require(script.Parent.GarageShopController).open('KARTS')end)
 	local cycleButton = makeButton(backdrop, "SELECT", UDim2.new(0.5, -85, 0.84, 0))
 	local nextButton = makeButton(backdrop, "READY", UDim2.new(0.5, 100, 0.84, 0))
 	local inviteGui = Instance.new("ScreenGui")
@@ -1258,7 +1258,7 @@ function GarageUiController.start()
 	end
 
 	local function showPreview(kind: string, selectedId: string)
-		local key = kind .. ":" .. selectedId .. ':' .. tostring(player:GetAttribute('KDMWingEquipped')==true)
+		local key = kind .. ":" .. selectedId .. ':' .. tostring(require(Shared.KDMShopCatalog).playerOwnsKart(player,selectedId))
 		if previewKey == key then
 			return
 		end
@@ -1271,7 +1271,7 @@ function GarageUiController.start()
 		camera.FieldOfView = 40
 		camera.Parent = viewport
 		if kind == "Kart" then
-			local visual = KartVisualFactory.createVisual(KartCatalog.Entries[selectedId],player:GetAttribute('KDMWingEquipped')==true)
+			local visual = KartVisualFactory.createVisual(KartCatalog.Entries[selectedId],require(Shared.KDMShopCatalog).playerOwnsKart(player,selectedId))
 			visual.Name = "PreviewKart"
 			for _, part in visual:GetDescendants() do
 				if part:IsA("BasePart") then

@@ -135,23 +135,26 @@ local p=object('Player','LocalPlayer');p:SetAttribute('RaceState','GARAGE')
 local pg=child(p,'PlayerGui','PlayerGui');local ws=object('Workspace');ws:SetAttribute('KDMServerRole','HUB')
 local rs=object('ReplicatedStorage');local shared=child(rs,'Folder','Shared');local remote=child(rs,'RemoteFunction','KDMShop')
 local input=object('UserInputService');local queue,delays,calls={}, {}, {};local guid=0
-local response={status='FOUND',cash=805,wingOwned=false,wingEquipped=false,counts={Nitro=0,Thunder=3},canPurchase=true,autoRefill=false,passAvailable=false}
-function remote:InvokeServer(...)table.insert(calls,{...});return response end
+local response={status='FOUND',cash=805,wingOwned=false,wingEquipped=false,ownedKarts={},counts={Nitro=0,Thunder=3},canPurchase=true,autoRefill=false,passAvailable=false}
+function remote:InvokeServer(action,...)
+ if action=='PREPARE' then guid+=1;return {status='PREPARED',id=string.format('12345678-1234-1234-1234-%012d',guid)} end
+ table.insert(calls,{action,...});return response
+end
 local catalog=load('src/shared/KartCatalog.luau',{Color3=rb.Color3,Enum=rb.Enum})
 local shopCatalog=load('src/shared/KDMShopCatalog.luau')
 local style=load('src/client/ShopLayout.luau',{Color3=rb.Color3,Instance={new=object},UDim=rb.UDim,Enum=rb.Enum})
 local icons=load('src/client/KDMIconCatalog.luau')
 local previews={};local garageOpen=0
-local modules={C=shopCatalog,K=catalog,Style=style,Icons=icons,G={close=function()end,open=function()garageOpen+=1 end},
+local modules={Helper={applyCloseButton=function()end,apply3DButton=function()end},C=shopCatalog,K=catalog,Style=style,Icons=icons,G={close=function()end,open=function()garageOpen+=1 end},
  Factory={createVisual=function(entry,wing)table.insert(previews,{id=entry.Id,wing=wing});return object('Model','PreviewKart')end},
  Framing={fit=function()return rb.CFrame.identity end}}
 shared.KDMShopCatalog='C';shared.KartCatalog='K';shared.KartVisualFactory='Factory';shared.KartPreviewFraming='Framing'
 local env={game={GetService=function(_,name)
  if name=='Players'then return {LocalPlayer=p}elseif name=='ReplicatedStorage'then return rs elseif name=='UserInputService'then return input
  elseif name=='HttpService'then return {GenerateGUID=function()guid+=1;return string.format('12345678-1234-1234-1234-%012d',guid)end}
- elseif name=='MarketplaceService'then return {GetProductInfoAsync=function()error('disabled payments must not load')end}end;error(name)end},
+ elseif name=='RunService' then return {RenderStepped=signal()} elseif name=='MarketplaceService'then return {GetProductInfoAsync=function()error('disabled payments must not load')end}end;error(name)end},
  workspace=ws,Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vector2,Vector3=rb.Vector3,CFrame=rb.CFrame,Color3=rb.Color3,Enum=rb.Enum,
- script={Parent={KDMIconCatalog='Icons',ShopLayout='Style',GarageUiController='G'}},require=function(id)return assert(modules[id],tostring(id))end,
+ script={Parent={KDMIconCatalog='Icons',ShopLayout='Style',GarageUiController='G',KDMUiStyleHelper='Helper'}},require=function(id)return assert(modules[id],tostring(id))end,
  task={defer=function(fn)fn()end,spawn=function(fn)table.insert(queue,fn)end,delay=function(_,fn)table.insert(delays,fn)end}}
 local shop=load('src/client/GarageShopController.luau',env)
 local function flush()while #queue>0 do table.remove(queue,1)()end end
@@ -159,14 +162,15 @@ local function tap(b)assert(b,'missing button');b.Activated:Fire()end
 shop.start();shop.start();check(#pg:GetChildren()==1,'idempotent Shop startup')
 shop.open();flush();local gui=pg.KDMGarageShop;local panel=gui.SafeRoot.Shop;local body=panel.Products
 check(gui.Enabled and p:GetAttribute('KDMShopOpen') and #calls==1 and calls[1][1]=='PROFILE','only profile read on open')
-check(previews[#previews].id=='Kart05' and previews[#previews].wing,'original factory preview')
-local wing=body.WingProduct
-check(wing.ActualWingPreview~=nil and wing.Ownership.Text:find('All 7'),'one permanent Wing, actual viewport')
-local function controls()return body.WingProduct:FindFirstChild('WingActions')or body.WingProduct end
-local last=previews[#previews].wing;tap(controls().Compare);check(previews[#previews].wing~=last,'with/without Wing comparison')
-for _=1,7 do tap(controls().Color)end
-check(#previews>=9 and #catalog.Order==11,'all seven color variants cycle with legacy catalog retained')
-tap(controls().BuyWing);check(gui.SafeRoot.PurchaseConfirmation.Visible and #calls==1,'Wing BUY opens confirmation only')
+check(previews[1].id=='Kart05' and previews[1].wing,'actual wing-equipped factory preview')
+local product=body.KartProduct
+check(product.ActualKartPreview~=nil and product.KartActions.Ownership.Text:find('One color'),'one permanent color-specific kart')
+local function controls()return body.KartProduct.KartActions end
+local cards=0
+for _,id in shopCatalog.KartOrder do check(body.KartCards[id]~=nil,'one card per purchasable color '..id);cards+=1 end
+check(cards==7 and #catalog.Order==11,'seven purchase cards with free rental catalog preserved')
+tap(body.KartCards.Kart11);check(controls().ProductTitle.Text:find('Black'),'card selects black hero')
+tap(controls().BuyKart);check(gui.SafeRoot.PurchaseConfirmation.Visible and #calls==1,'kart BUY opens confirmation only')
 tap(gui.SafeRoot.PurchaseConfirmation.Cancel);check(not gui.SafeRoot.PurchaseConfirmation.Visible,'cancel purchase')
 tap(panel['RACE ITEMS']);check(#calls==1,'tab switch never buys')
 local grid=body.ItemGrid;check(grid.ItemSlots.ClassName=='UIGridLayout' and grid.FindFirstChildOfClass==nil,'native grid in own container')
@@ -200,10 +204,10 @@ response={status='FOUND',cash=765,counts={Thunder=4,Nitro=0},wingOwned=false,can
 tap(body.PendingPurchase.Retry);flush();check(calls[3][1]=='BUY_ITEM' and calls[3][2]=='Thunder' and calls[3][3]==pendingId,'retry same item and GUID despite selected Shield')
 check(not body.PendingPurchase and panel.Status.Text=='PURCHASE COMPLETE','success only after confirmed save')
 check(panel.SelectedItemDetail.SelectedName.Text:find('SHIELD'),'confirmation/retry preserves current selected item')
-tap(panel['MY INVENTORY']);check(panel.SelectedItemDetail.AutoRefill.Text=='AUTO REFILL: OFF','existing refill state')
-tap(panel.SelectedItemDetail.AutoRefill);tap(confirm.Confirm)
-response={status='FOUND',cash=765,counts={Thunder=4},canPurchase=true,autoRefill=true,purchaseState='SAVE_CONFIRMED'};flush()
-check(calls[#calls][1]=='SET_AUTO_REFILL' and calls[#calls][4]==true and panel.SelectedItemDetail.AutoRefill.Text=='AUTO REFILL: ON','existing auto refill remote and state')
+tap(panel['MY INVENTORY']);check(body.EmptyKartInventory~=nil,'empty owned-kart inventory explains free rentals')
+tap(panel.InventorySections.ITEMS)
+check(panel.SelectedItemDetail.StoredOnly.Text:find('STORED') and not panel.SelectedItemDetail.StoredOnly.Active,'purchased items stored without automatic consumption control')
+check(panel.SelectedItemDetail.AutoRefill==nil,'automatic refill control removed')
 tap(panel['RACE ITEMS'])
 local before=#calls
 local touch={UserInputType=rb.Enum.UserInputType.Touch,Position=rb.Vector3.new(100,160,0)}
@@ -214,8 +218,8 @@ check(#calls==before and not confirm.Visible,'drag cannot select/buy/confirm')
 input.InputEnded:Fire(touch)
 p:SetAttribute('RaceState','RACING');check(not gui.Enabled and not p:GetAttribute('KDMShopOpen'),'race transition closes Shop')
 p:SetAttribute('RaceState','GARAGE');response={status='FOUND',cash=0,counts={},canPurchase=false,wingOwned=false};shop.open();flush()
-tap(panel.WINGS)
-check(panel.Wallet.Text:find('K%$ 0') and not controls().BuyWing.Active,'confirmed zero distinct, purchase blocked')
+tap(panel.KARTS)
+check(panel.Wallet.Text:find('K%$ 0') and not controls().BuyKart.Active,'confirmed zero distinct, purchase blocked')
 for _,o in pg:GetDescendants()do if o.ClassName=='TextButton' and (o.Name=='Pass')then check(not o.Active,'Robux stays inactive')end end
 for _,size in {{750,324},{706,281},{648,223},{1142,628},{1280,662},{1920,1022}}do
  local l=style.forSize({X=size[1],Y=size[2]});local c=style.gridForWidth(l.width-24,l.bodyHeight)
@@ -223,9 +227,17 @@ for _,size in {{750,324},{706,281},{648,223},{1142,628},{1280,662},{1920,1022}}d
  check(c.priceY+(if c.icon==72 then 26 else 18)<=c.height,'price never overlaps/escapes the card')
  check(c.nameY+18<=c.countY and c.countY+16<=c.priceY,'name quantity and price do not overlap')
 end
+-- Short safe canvases keep a usable item action and scroll full-size choices.
+p:SetAttribute('RaceState','GARAGE');shop.open('MY INVENTORY');flush()
+for _,size in {rb.Vector2.new(473,182),rb.Vector2.new(473,240)} do
+ safeSize=size;gui.SafeRoot:GetPropertyChangedSignal('AbsoluteSize'):Fire()
+ if not panel.SelectedItemDetail then tap(panel['MY INVENTORY']) end
+ check(panel.Products.AbsoluteSize.Y>=44 and panel.SelectedItemDetail.AbsoluteSize.Y>=44,'short inventory viewport and detail remain usable')
+ check(panel.SelectedItemDetail.StoredOnly.AbsoluteSize.Y>=44,'stored-only action remains full-size')
+ check(body.ItemGrid.Nitro.AbsoluteSize.Y>=44,'short inventory scrolls full-size item choices')
+end
 local current=fs.readFile('src/client/GarageShopController.luau')
-local baseline=fs.readFile('artifacts/economy-v2-ui2/baseline/src/client/GarageShopController.luau')
-local function pipeline(s)return s:match('( request=function.-) local function buyButton'):gsub("PURCHASE SUCCESS · SAVE CONFIRMED","PURCHASE COMPLETE"):gsub('\r\n','\n')end
-check(pipeline(current)==pipeline(baseline),'pending/GUID/retry/timeout/epoch/remote/confirmation save pipeline unchanged except visible success copy')
+check(current:find("remote:InvokeServer('PREPARE'",1,true) and current:find('op.id=ticket.id',1,true),'server-issued identity before purchase')
+check(current:find("request(pending.action,pending.item,pending.value)",1,true),'uncertain request keeps original identity')
 fs.writeFile('artifacts/economy-v2-ui2-r1/shop-mock-results.json',require('@lune/serde').encode('json',{checks=count,requests=#calls,liveDataStoreCalls=0}))
 print('PASS UI2 actual Shop controller: '..count..' checks; isolated mocks, live calls ZERO')

@@ -169,8 +169,9 @@ for _, name in { "TrackMapRenderer", "GaragePresence", "KartInputController", "M
 	child(client, "ModuleScript", name)
 end
 for _, name in { "DriverCatalog", "KartCatalog", "TrackCatalog", "TrackGeometry", "KartVisualFactory",
-	"KartPreviewFraming", "DriverAppearance", "KDMUiTheme" } do child(shared, "ModuleScript", name) end
+	"KartPreviewFraming", "DriverAppearance", "KDMUiTheme", "KDMShopCatalog" } do child(shared, "ModuleScript", name) end
 local modules = {
+ KDMShopCatalog=luau.load(fs.readFile("src/shared/KDMShopCatalog.luau"))(),
  KDMUiTheme=luau.load(fs.readFile("src/shared/KDMUiTheme.luau"),{environment={Color3=rb.Color3}})(),
 	DriverCatalog = { DefaultId = "Driver01", Order = { "Driver01", "Driver02" }, Entries = { Driver01 = { DisplayName = "Driver" }, Driver02 = {DisplayName = "Driver Two"} } },
 	KartCatalog = { DefaultId="Kart01", Order = { "Kart01", "Kart02" }, Entries = { Kart01 = { Id="Kart01", VisualModelName="SprintV1", DisplayName = "Kart", BodyColor=rb.Color3.new(1,0,0) }, Kart02 = {Id="Kart02", VisualModelName="SprintV1",DisplayName = "Kart Two",BodyColor=rb.Color3.new(1,1,1)} } },

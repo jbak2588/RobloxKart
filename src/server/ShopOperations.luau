@@ -26,7 +26,8 @@ function Ops.new(S,schema,C,Economy)
   local valid=type(op)=='table' and S.integer(op.userId) and op.userId>0 and S.guid(op.id)
   if not valid then return function()return nil,'INVALID_OPERATION'end end
   if op.kind=='BUY_WING' or op.kind=='EQUIP_WING' then return Economy.reduce(S,schema,op) end
-  valid=(op.kind=='BUY_ITEM' and C.Prices[op.itemId]~=nil)
+  valid=((op.kind=='BUY_KART' or op.kind=='USE_KART') and C.kartEntitlement(op.itemId)~=nil)
+   or (op.kind=='BUY_ITEM' and C.Prices[op.itemId]~=nil)
    or (op.kind=='SET_AUTO_REFILL' and type(op.enabled)=='boolean')
    or ((op.kind=='REFILL' or op.kind=='REFUND_REFILL' or op.kind=='REFUND_UNUSED_REFILL' or op.kind=='FINALIZE_REFILL') and C.Prices[op.itemId]~=nil and S.guid(op.roundGuid))
   if not valid then return function()return nil,'INVALID_OPERATION'end end
@@ -48,7 +49,12 @@ function Ops.new(S,schema,C,Economy)
     previous=prepared
    end
    local old=stock(previous);local amount=old.counts[copy.itemId] or 0
-   if copy.kind=='BUY_ITEM' then
+   if copy.kind=='BUY_KART' then
+    if C.ownsKart(previous.cosmetics.ownedPartIds,copy.itemId) then return nil,'ALREADY_OWNED' end
+    if previous.wallet.cash<C.KartPrice then return nil,'INSUFFICIENT_FUNDS' end
+   elseif copy.kind=='USE_KART' then
+    if not C.ownsKart(previous.cosmetics.ownedPartIds,copy.itemId) then return nil,'NOT_OWNED' end
+   elseif copy.kind=='BUY_ITEM' then
     if previous.wallet.cash<C.Prices[copy.itemId] then return nil,'INSUFFICIENT_FUNDS' end
     if amount>=C.MaxStock then return nil,'STOCK_FULL' end
    elseif copy.kind=='REFILL' then
@@ -66,7 +72,13 @@ function Ops.new(S,schema,C,Economy)
    end
    if not receipt and S.count(previous.receipts)>=schema.maxReceipts then return nil,'RECEIPT_CAPACITY' end
    local p=S.clone(previous);p.shopInventory=S.clone(old)
-   if copy.kind=='BUY_ITEM' then
+   if copy.kind=='BUY_KART' or copy.kind=='USE_KART' then
+    if copy.kind=='BUY_KART' then
+     p.wallet.cash-=C.KartPrice;p.cosmetics.ownedPartIds[C.kartEntitlement(copy.itemId)]=true
+    end
+    if not S.integer(p.selection.revision+1) then return nil,'SELECTION_CAPACITY' end
+    p.selection={kartId=copy.itemId,revision=p.selection.revision+1,lastOpId=copy.id}
+   elseif copy.kind=='BUY_ITEM' then
     p.wallet.cash-=C.Prices[copy.itemId];p.shopInventory.counts[copy.itemId]=amount+1
    elseif copy.kind=='REFILL' then p.shopInventory.counts[copy.itemId]=amount-1
    elseif copy.kind=='REFUND_REFILL' or copy.kind=='REFUND_UNUSED_REFILL' then
@@ -90,8 +102,10 @@ function Ops.new(S,schema,C,Economy)
  function api.view(p)
   local inv=stock(p);local counts={}
   for _,id in C.Order do counts[id]=inv.counts[id] or 0 end
-  return {status='FOUND',cash=p.wallet.cash,wingOwned=p.cosmetics.ownedPartIds[C.WingId]==true,
-   wingEquipped=p.cosmetics.equippedPartIdsBySlot.Wing==C.WingId,counts=counts,autoRefill=inv.autoRefill}
+  local ownedKarts={}
+  for _,id in C.KartOrder do ownedKarts[id]=C.ownsKart(p.cosmetics.ownedPartIds,id) end
+  return {ownedKarts=ownedKarts,kartId=p.selection.kartId,status='FOUND',cash=p.wallet.cash,wingOwned=ownedKarts[p.selection.kartId]==true,
+   wingEquipped=ownedKarts[p.selection.kartId]==true,counts=counts,autoRefill=C.PaidItemUseEnabled and inv.autoRefill}
  end
  return api
 end

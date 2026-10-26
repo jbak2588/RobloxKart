@@ -417,7 +417,7 @@ function PrototypeWorld.start(options)
 			local driver=context.owner
 			local visual=kart:FindFirstChild('Visual')
 			if visual then require(ReplicatedStorage.Shared.KDMV2WingDefinition).attach(visual,kartDefinition(kart:GetAttribute('KartId')),
-				driver~=nil and driver:GetAttribute('KDMWingOwned')==true and driver:GetAttribute('KDMWingEquipped')==true) end
+				driver~=nil and require(ReplicatedStorage.Shared.KDMShopCatalog).playerOwnsKart(driver,kart:GetAttribute('KartId'))) end
 		end
 		local function restoreDriverCollision()
 			if driverCollisionBinding then driverCollisionBinding:restore(); driverCollisionBinding = nil end
@@ -1458,7 +1458,7 @@ function PrototypeWorld.start(options)
 			if not selectVisual(existing, definition) then return nil end
 			local visual=existing.kart:FindFirstChild('Visual')
 			if visual then require(ReplicatedStorage.Shared.KDMV2WingDefinition).attach(visual,definition,
-				player:GetAttribute('KDMWingOwned')==true and player:GetAttribute('KDMWingEquipped')==true) end
+				require(ReplicatedStorage.Shared.KDMShopCatalog).playerOwnsKart(player,definition.Id)) end
 			existing:setSpawnCFrame(startCFrame)
 			return existing
 		end

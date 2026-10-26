@@ -10,7 +10,7 @@ function Controller.start()
  local Icons=require(script.Parent.KDMIconCatalog);local Layout=require(script.Parent.ShopLayout)
  local Garage=require(script.Parent.GarageUiController);local Http=game:GetService('HttpService')
  local StyleHelper=require(script.Parent.KDMUiStyleHelper)
- local Market=game:GetService('MarketplaceService')
+
  local playerGui=p:WaitForChild('PlayerGui');if playerGui:FindFirstChild('KDMGarageShop') then return end
  local colors=Layout.colors()
  local gui=Instance.new('ScreenGui');gui.Name='KDMGarageShop';gui.ResetOnSpawn=false;gui.DisplayOrder=35
@@ -35,7 +35,7 @@ function Controller.start()
   b.BackgroundColor3=color
  end
  flatButton(close,Color3.fromRGB(255,55,55))
- local tabs={};for _,name in {'WINGS','RACE ITEMS','MY INVENTORY'}do tabs[name]=button(panel,name,if name=='WINGS' then 'KART PARTS' else name,56)end
+ local tabs={};for _,name in {'KARTS','RACE ITEMS','MY INVENTORY'}do tabs[name]=button(panel,name,if name=='KARTS' then 'BUY KARTS' else name,56)end
  local body=Instance.new('ScrollingFrame');body.Name='Products';body.BackgroundTransparency=1;body.BorderSizePixel=0
  body.ScrollBarThickness=6;body.CanvasSize=UDim2.new();body.Parent=panel
  body.Active=true;body.ScrollingDirection=Enum.ScrollingDirection.Y
@@ -43,10 +43,11 @@ function Controller.start()
  list:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()body.CanvasSize=UDim2.fromOffset(0,list.AbsoluteContentSize.Y)end)
  -- Own only a shop-list touch. A dragged purchase button must never activate.
  local inputService=game:GetService('UserInputService')
+ local orbitInput=nil
  local scrollTouch,scrollStart,scrollOrigin=nil,0,0
  local draggedAt=-math.huge
  body.InputBegan:Connect(function(input)
-  if input.UserInputType==Enum.UserInputType.Touch and not scrollTouch then
+  if input.UserInputType==Enum.UserInputType.Touch and not scrollTouch and not orbitInput then
    scrollTouch=input;scrollStart=input.Position.Y;scrollOrigin=body.CanvasPosition.Y
   end
  end)
@@ -71,39 +72,37 @@ function Controller.start()
  StyleHelper.apply3DButton(no, Color3.fromRGB(120, 140, 170), Color3.fromRGB(70, 90, 120), Color3.fromRGB(40, 60, 90), 12, 2.5)
  flatButton(yes,colors.Yellow);yes.TextColor3=colors.Background
  flatButton(no,colors.Panel)
- local data={counts={},canPurchase=false};local busy=false;local pending=nil;local epoch=0;local tab='WINGS'
- local previewWing=true;local variants={};local colorIndex=1;local preview=nil;local viewport=nil;local camera=nil
- local passPrice=nil;local confirmAction=nil;local restoreGarage=false
+ local data={counts={},ownedKarts={},canPurchase=false};local busy=false;local pending=nil;local epoch=0;local tab='KARTS'
+ local inventorySection='KARTS';local variants={};local colorIndex=1;local preview=nil;local viewport=nil;local camera=nil
+ local confirmAction=nil;local restoreGarage=false
  local selectedItem=C.Order[1]
  for _,id in Karts.Order do if Karts.Entries[id].VisualModelName=='KDMV2' then table.insert(variants,id)end end
- local function fitPreview()
-  if preview and viewport and camera then
-   -- Static hero, not an orbit: fit this viewing angle's actual visible corners.
-   local cf
-   local low,high=Vector3.new(math.huge,math.huge,math.huge),Vector3.new(-math.huge,-math.huge,-math.huge)
-   local points={}
-   for _,part in preview:GetDescendants()do if part:IsA('BasePart') and part.Transparency<1 then
-    for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
-     local point=part.CFrame:PointToWorldSpace(part.Size*Vector3.new(x,y,z)*.5)
-     low=low:Min(point);high=high:Max(point);table.insert(points,point)
-    end end end
-   end end
-   if #points>0 and viewport.AbsoluteSize.X>0 and viewport.AbsoluteSize.Y>0 then
-    local center=(low+high)*.5;local direction=Vector3.new(-1,.18,-1).Unit
-    local right=Vector3.yAxis:Cross(direction).Unit;local up=direction:Cross(right)
-    local orientation=CFrame.fromMatrix(center,right,up,direction)
-    local tangent=math.tan(math.rad(camera.FieldOfView)*.5);local aspect=viewport.AbsoluteSize.X/viewport.AbsoluteSize.Y
-    local distance=.1
-    for _,point in points do local p=orientation:PointToObjectSpace(point)
-     distance=math.max(distance,p.Z+math.abs(p.X)/(tangent*aspect*.88),p.Z+math.abs(p.Y)/(tangent*.90),p.Z+.1)
-    end
-    cf=CFrame.fromMatrix(center+direction*distance,right,up,direction)
-   else cf=Framing.fit(preview,viewport.AbsoluteSize.X/math.max(1,viewport.AbsoluteSize.Y),camera.FieldOfView,true)end
-   if cf then camera.CFrame=cf end
-  end
+ local orbitConnection=nil;local orbitX=0;local orbitIdle=0
+ local yaw=math.rad(225);local pitch=.22;local center=Vector3.zero;local distance=20
+ local function updateCamera()
+  if not camera then return end
+  local direction=Vector3.new(math.sin(yaw)*math.cos(pitch),math.sin(pitch),math.cos(yaw)*math.cos(pitch))
+  local right=Vector3.yAxis:Cross(direction).Unit
+  camera.CFrame=CFrame.fromMatrix(center+direction*distance,right,direction:Cross(right),direction)
  end
+ local function fitPreview()
+  if not preview or not viewport or not camera then return end
+  local cf,target=Framing.fit(preview,viewport.AbsoluteSize.X/math.max(1,viewport.AbsoluteSize.Y),camera.FieldOfView,true)
+  if not cf or not target then return end
+  center=target;distance=(cf.Position-target).Magnitude;pitch=math.asin((cf.Position.Y-target.Y)/distance);updateCamera()
+ end
+ inputService.InputChanged:Connect(function(input)
+  if not orbitInput then return end
+  if input~=orbitInput and not (orbitInput.UserInputType==Enum.UserInputType.MouseButton1 and input.UserInputType==Enum.UserInputType.MouseMovement) then return end
+  local dx=input.Position.X-orbitX;orbitX=input.Position.X;yaw-=math.rad(dx*.32);updateCamera()
+  if math.abs(dx)>1 then draggedAt=os.clock() end
+ end)
+ inputService.InputEnded:Connect(function(input)if input==orbitInput then orbitInput=nil;orbitIdle=2.5 end end)
+ inputService.WindowFocusReleased:Connect(function()orbitInput=nil;orbitIdle=2.5 end)
  local function clearCards()
-  scrollTouch=nil
+  scrollTouch=nil;orbitInput=nil
+  if orbitConnection then orbitConnection:Disconnect();orbitConnection=nil end
+  local nav=panel:FindFirstChild('InventorySections');if nav then nav:Destroy() end
   local fixed=panel:FindFirstChild('SelectedItemDetail');if fixed then fixed:Destroy()end
   preview,viewport,camera=nil,nil,nil
   for _,o in body:GetChildren()do if o~=list then o:Destroy()end end
@@ -114,7 +113,7 @@ function Controller.start()
  end
  local render,request
  local descriptions={Nitro='A short burst of speed.',Shield='Blocks one incoming attack.',Slick='Leaves a slippery pad behind.',Missile='Targets the racer just ahead.',Smoke='Leaves a cloud that obscures vision.',Thunder='Slows racers ahead of you.'}
- local messages={SAVE_UNCONFIRMED='Save not confirmed. Retry the same purchase.',INSUFFICIENT_FUNDS='Not enough K$.',ALREADY_OWNED='Wing already owned.',
+ local messages={SAVE_UNCONFIRMED='Save not confirmed. Retry the same purchase.',INSUFFICIENT_FUNDS='Not enough K$.',ALREADY_OWNED='This kart is already owned.',NOT_OWNED='Purchase this kart first.',
   ACCESS_BLOCKED='Shop preview · purchases unavailable for this account.',RATE_LIMITED='Please wait, then retry.',STOCK_FULL='Inventory is full.',HUB_REQUIRED='Return to the Garage.'}
  local function confirm(action,item,text,value)
   if busy or pending then status.Text='Finish or retry the pending purchase first.';return end
@@ -140,16 +139,12 @@ function Controller.start()
    if ok and type(r)=='table' and (r.status=='FOUND' or r.status=='GUEST') then
     for key,v in r do data[key]=v end
     if action=='PROFILE' or r.purchaseState=='SAVE_CONFIRMED' then
-     if r.purchaseState=='SAVE_CONFIRMED' then pending=nil;status.Text=if action=='BUY_ITEM' or action=='BUY_WING' then 'PURCHASE COMPLETE' else 'ACCOUNT SAVED' else status.Text=if r.status=='GUEST' then 'COMPLETE TEST DRIVE TO EARN K$5,000' else ''end
+     if r.purchaseState=='SAVE_CONFIRMED' then pending=nil;status.Text=if action=='BUY_ITEM' or action=='BUY_KART' then 'PURCHASE COMPLETE' else 'ACCOUNT SAVED' else status.Text=if r.status=='GUEST' then 'COMPLETE TEST DRIVE TO EARN K$5,000' else ''end
     end
    else
     local code=if ok and type(r)=='table' then r.status else 'SAVE_UNCONFIRMED'
     status.Text=messages[code] or 'Account unavailable. Please retry.'
     if code~='SAVE_UNCONFIRMED' and code~='RATE_LIMITED' then pending=nil end
-   end
-   if data.passAvailable and data.passId and data.passId>0 then
-    local priceOK,info=pcall(function()return Market:GetProductInfoAsync(data.passId,Enum.InfoType.GamePass)end)
-    passPrice=if priceOK and info.IsForSale and type(info.PriceInRobux)=='number' then info.PriceInRobux else nil
    end
    render()
   end)
@@ -158,8 +153,7 @@ function Controller.start()
   local b=button(parent,name,text,y);b.Active=data.canPurchase and not busy and not pending
   b.TextTransparency=if b.Active then 0 else .5
   b.Activated:Connect(function()if b.Active and os.clock()-draggedAt>.15 then
-   local prompt=if action=='SET_AUTO_REFILL' then (if value then 'Enable automatic voucher refills?\nUses owned stock for empty active slots, max 2 per race.' else 'Turn automatic voucher refills OFF?')
-    elseif action=='EQUIP_WING' then text..' your owned Wing?' else text..'\nConfirm this purchase?'
+   local prompt=if action=='USE_KART' then 'Use this owned kart as your default?' else text..'\nConfirm this purchase?'
    confirm(action,item,prompt,value)
   end end);return b
  end
@@ -171,52 +165,84 @@ function Controller.start()
   clearCards();for name,b in tabs do b.BackgroundColor3=if name==tab then colors.Blue else colors.Card
    local stroke=b:FindFirstChild('ArcadeStroke');stroke.Color=if name==tab then colors.Cyan else colors.Secondary;stroke.Transparency=if name==tab then 0 else .7
   end
-  if tab=='WINGS' then
-   local l=Layout.forSize(root.AbsoluteSize)
-   local wide=true
-   local mobile=root.AbsoluteSize.Y<440
-   local h=if mobile then math.max(80,l.bodyHeight-8) else math.max(240,l.previewHeight)
-   local f=card('WingProduct',if mobile then math.max(l.bodyHeight,224) else math.max(h+40,326))
-   local productTitle=label(f,'ProductTitle','KDM V2 WING',4,28);productTitle.TextSize=20;productTitle.Visible=not mobile
-   local controls=f
-   if wide then
-    controls=Instance.new('Frame');controls.Name='WingActions';controls.Position=UDim2.new(.60,0,0,40);controls.Size=UDim2.new(.40,-8,0,if mobile then 176 else 280);controls.BackgroundTransparency=1;controls.Parent=f
+  local compactInventory=tab=='MY INVENTORY' and full.bodyHeight<140
+  local inventoryHeader=if tab=='MY INVENTORY' and not compactInventory then 48 else 0
+  tabs['MY INVENTORY'].Text=if compactInventory then 'INVENTORY · '..inventorySection..' ↔' else 'MY INVENTORY'
+  body.Position=UDim2.fromOffset(8,full.bodyY+inventoryHeader)
+  body.Size=UDim2.fromOffset(full.width-16,full.bodyHeight-inventoryHeader)
+  if inventoryHeader>0 then
+   local nav=Instance.new('Frame');nav.Name='InventorySections';nav.BackgroundTransparency=1
+   nav.Position=UDim2.fromOffset(8,full.bodyY);nav.Size=UDim2.new(1,-16,0,44);nav.Parent=panel
+   for index,section in {'KARTS','ITEMS'} do
+    local b=button(nav,section,if section=='KARTS' then 'OWNED KARTS' else 'OWNED ITEMS',0)
+    b.Position=UDim2.new((index-1)*.5,4,0,0);b.Size=UDim2.new(.5,-8,0,44)
+    b.BackgroundColor3=if inventorySection==section then colors.Blue else colors.Card
+    b.Activated:Connect(function()inventorySection=section;body.CanvasPosition=Vector2.zero;render()end)
    end
-   viewport=Instance.new('ViewportFrame');viewport.Name='ActualWingPreview';viewport.Size=UDim2.new(1,-16,0,h);viewport.Position=UDim2.fromOffset(8,38)
-   if mobile then viewport.Position=UDim2.fromOffset(8,4)end
-   if wide then viewport.Size=UDim2.new(.60,-16,0,h)end
-   viewport.BackgroundColor3=Color3.fromRGB(38,76,132);viewport.Ambient=Color3.fromRGB(215,225,240);viewport.LightColor=Color3.fromRGB(255,255,255);viewport.Parent=f;Layout.style(viewport,'Panel')
-   camera=Instance.new('Camera');camera.FieldOfView=36;camera.Parent=viewport;viewport.CurrentCamera=camera
-   local world=Instance.new('WorldModel');world.Parent=viewport
-   preview=Factory.createVisual(Karts.Entries[variants[colorIndex]],previewWing)
-   for _,o in preview:GetDescendants()do if o:IsA('BasePart')then o.Anchored=true;o.CanCollide=false;o.CanTouch=false;o.CanQuery=false end end
-   preview.Parent=world
-   viewport:GetPropertyChangedSignal('AbsoluteSize'):Connect(fitPreview);task.defer(fitPreview)
-   local y=if mobile then -38 else 0
-   local state=if data.wingOwned then (if data.wingEquipped then 'OWNED · EQUIPPED' else 'OWNED · UNEQUIPPED') elseif data.status=='FOUND' then 'NOT OWNED' else 'UNAVAILABLE'
-   label(controls,'Owned',state..(if mobile then ' · K$25,000' else ''),y,if mobile then 22 else 28).TextColor3=colors.Cyan
-   local price=label(controls,'WingPrice','K$25,000 · PERMANENT',y+30,32);price.TextSize=20;price.TextColor3=colors.Yellow;price.Visible=not mobile
-   if data.wingOwned then
-    buyButton(controls,'Equip',if data.wingEquipped then 'UNEQUIP' else 'EQUIP',(if mobile then y+26 else y+68),'EQUIP_WING',C.WingId,not data.wingEquipped).BackgroundColor3=colors.Blue
+  end
+  if tab=='KARTS' or (tab=='MY INVENTORY' and inventorySection=='KARTS') then
+   local inventory=tab=='MY INVENTORY'
+   local ids={}
+   for _,id in C.KartOrder do if not inventory or (data.ownedKarts and data.ownedKarts[id]) then table.insert(ids,id) end end
+   if inventory and #ids==0 then
+    local empty=card('EmptyKartInventory',116)
+    label(empty,'Empty','No purchased karts yet. Wingless karts are free rentals.',8,44)
+    local browse=button(empty,'Browse','BROWSE 7 KDM V2 KARTS',64)
+    browse.Activated:Connect(function()tab='KARTS';render()end)
    else
-    local buy=buyButton(controls,'BuyWing','BUY · K$25,000',(if mobile then y+26 else y+68),'BUY_WING',C.WingId);buy.BackgroundColor3=if buy.Active then Color3.fromRGB(72,228,96) else colors.Card;buy.TextColor3=if buy.Active then Color3.fromRGB(18,34,64) else colors.Secondary
-   end
-   local color=button(controls,'Color','COLOR · '..Karts.Entries[variants[colorIndex]].DisplayColorName,if mobile then y+76 else y+120)
-   color.Activated:Connect(function()if os.clock()-draggedAt>.25 then colorIndex=colorIndex%#variants+1;render()end end)
-   local compare=button(controls,'Compare',if previewWing then '✓ WITH WING · COMPARE' else 'WITHOUT WING · COMPARE',if mobile then y+124 else y+172)
-   compare.BackgroundColor3=colors.Blue
-   compare.Activated:Connect(function()if os.clock()-draggedAt>.25 then previewWing=not previewWing;render()end end)
-   if not data.wingOwned then
-    local pass=button(controls,'Pass',if passPrice then tostring(passPrice)..' Robux · PERMANENT WING' else 'Robux · COMING SOON',if mobile then y+172 else y+224)
-    pass.Active=data.canPurchase and data.passAvailable==true and passPrice~=nil and not busy and not pending
-    pass.TextTransparency=if pass.Active then 0 else .5
-    pass.Activated:Connect(function()if not pass.Active or os.clock()-draggedAt<=.25 then return end
-     confirmAction={pass=true};confirmText.Text='Permanent KDM V2 Wing\n'..tostring(passPrice)..' Robux · Roblox will confirm the final price.';confirmation.Visible=true
+    if not table.find(ids,variants[colorIndex]) then colorIndex=table.find(variants,ids[1]) or 1 end
+    local id=variants[colorIndex];local entry=Karts.Entries[id]
+    local owned=data.ownedKarts and data.ownedKarts[id]==true
+    local mobile=root.AbsoluteSize.Y<440
+    local heroHeight=if mobile then 180 else 238
+    local f=card('KartProduct',heroHeight);f.LayoutOrder=1
+    local controls=Instance.new('Frame');controls.Name='KartActions';controls.Position=UDim2.new(.58,0,0,0);controls.Size=UDim2.new(.42,-8,1,0);controls.BackgroundTransparency=1;controls.Parent=f
+    label(controls,'ProductTitle','KDM V2 · '..entry.DisplayColorName,4,32).TextSize=if mobile then 14 else 20
+    label(controls,'Owned',if owned then (if p:GetAttribute('SelectedKartId')==id then 'OWNED · SELECTED' else 'OWNED · PERMANENT') else 'K$25,000 · PERMANENT',40,28).TextColor3=if owned then colors.Cyan else colors.Yellow
+    local buy=buyButton(controls,if owned then 'UseKart' else 'BuyKart',if owned then 'USE THIS KART' else 'BUY KART · K$25,000',76,if owned then 'USE_KART' else 'BUY_KART',id)
+    buy.BackgroundColor3=if owned then colors.Blue else Color3.fromRGB(72,228,96)
+    local hint=label(controls,'Ownership',if inventory then 'Owned permanently · Wing included\nSelect to use this kart.\nWingless karts: free rental.' else 'One color · Wing included\nSelected automatically after purchase.\nWingless karts: free rental.',124,if mobile then 52 else 84);hint.TextSize=if mobile then 10 else 13;hint.TextColor3=colors.Secondary
+    viewport=Instance.new('ViewportFrame');viewport.Name='ActualKartPreview';viewport.Size=UDim2.new(.58,-16,1,-28);viewport.Position=UDim2.fromOffset(8,4);viewport.Active=true
+    viewport.BackgroundColor3=colors.Panel;viewport.Ambient=Color3.fromRGB(215,225,240);viewport.LightColor=Color3.new(1,1,1);viewport.Parent=f;Layout.style(viewport,'Panel')
+    camera=Instance.new('Camera');camera.FieldOfView=36;camera.Parent=viewport;viewport.CurrentCamera=camera
+    local world=Instance.new('WorldModel');world.Parent=viewport;preview=Factory.createVisual(entry,true);preview.Parent=world
+    for _,o in preview:GetDescendants()do if o:IsA('BasePart')then o.Anchored=true;o.CanCollide=false;o.CanTouch=false;o.CanQuery=false end end
+    label(f,'RotateHint','DRAG TO ROTATE',heroHeight-24,20).Size=UDim2.new(.58,-16,0,20)
+    viewport.InputBegan:Connect(function(input)
+     if confirmation.Visible or orbitInput then return end
+     if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+      scrollTouch=nil;orbitInput=input;orbitX=input.Position.X;orbitIdle=2.5
+     end
     end)
+    viewport:GetPropertyChangedSignal('AbsoluteSize'):Connect(fitPreview);task.defer(fitPreview)
+    orbitConnection=game:GetService('RunService').RenderStepped:Connect(function(dt)
+     if orbitInput or confirmation.Visible then return end
+     if orbitIdle>0 then orbitIdle=math.max(0,orbitIdle-dt);return end
+     yaw=(yaw+dt*math.pi*2/7)%(math.pi*2);updateCamera()
+    end)
+    local columns=if full.width<520 then 2 else 4
+    local h=if mobile then 94 else 124
+    local gridFrame=card('KartCards',math.ceil(#ids/columns)*(h+8));gridFrame.LayoutOrder=2;gridFrame.BackgroundTransparency=1
+    local grid=Instance.new('UIGridLayout');grid.CellSize=UDim2.new(1/columns,-8,0,h);grid.CellPadding=UDim2.fromOffset(8,8);grid.FillDirectionMaxCells=columns;grid.SortOrder=Enum.SortOrder.LayoutOrder;grid.Parent=gridFrame
+    for index,kartId in ids do
+     local e=Karts.Entries[kartId];local isOwned=data.ownedKarts and data.ownedKarts[kartId]==true
+     local tile=Instance.new('TextButton');tile.Name=kartId;tile.Text='';tile.LayoutOrder=index;tile.Parent=gridFrame
+     local border=Layout.style(tile);border.Color=if kartId==id then colors.Cyan else colors.Secondary;border.Transparency=if kartId==id then 0 else .7
+     local thumb=Instance.new('ViewportFrame');thumb.Name='KartThumbnail';thumb.BackgroundTransparency=1;thumb.Position=UDim2.fromOffset(4,2);thumb.Size=UDim2.new(1,-8,1,-42);thumb.Ambient=Color3.fromRGB(215,225,240);thumb.Parent=tile
+     local cam=Instance.new('Camera');cam.FieldOfView=36;cam.Parent=thumb;thumb.CurrentCamera=cam
+     local w=Instance.new('WorldModel');w.Parent=thumb;local model=Factory.createVisual(e,true);model.Parent=w
+     for _,o in model:GetDescendants()do if o:IsA('BasePart')then o.Anchored=true;o.CanCollide=false;o.CanTouch=false;o.CanQuery=false end end
+     local function fitThumb()local cf=Framing.fit(model,thumb.AbsoluteSize.X/math.max(1,thumb.AbsoluteSize.Y),cam.FieldOfView);if cf then cam.CFrame=cf end end
+     thumb:GetPropertyChangedSignal('AbsoluteSize'):Connect(fitThumb);task.defer(fitThumb)
+     label(tile,'ColorName',e.DisplayColorName,h-42,20).TextSize=12
+     label(tile,'Ownership',if isOwned then 'OWNED' else 'K$25,000',h-22,20).TextColor3=if isOwned then colors.Cyan else colors.Yellow
+     tile.Activated:Connect(function()if not busy and os.clock()-draggedAt>.25 then colorIndex=table.find(variants,kartId);render()end end)
+    end
    end
-   label(f,'Ownership','One Wing · All 7 V2 colors · No performance bonus',if mobile then 178 elseif wide then math.max(h+8,286) else h+274,44).TextColor3=colors.Secondary
   else
    local itemLayout=Layout.itemsForSize(root.AbsoluteSize)
+   itemLayout.gridHeight-=inventoryHeader;itemLayout.detailY+=inventoryHeader;itemLayout.detailHeight-=inventoryHeader
+   itemLayout.height=math.max(44,math.min(164,math.floor((itemLayout.gridHeight-itemLayout.gap)/2)))
    body.Size=UDim2.fromOffset(itemLayout.gridWidth,itemLayout.gridHeight)
    local gridFrame=card('ItemGrid',0);gridFrame.LayoutOrder=1;gridFrame.BackgroundTransparency=1
    local grid=Instance.new('UIGridLayout');grid.Name='ItemSlots';grid.SortOrder=Enum.SortOrder.LayoutOrder;grid.Parent=gridFrame
@@ -276,19 +302,19 @@ function Controller.start()
    local short=itemLayout.detailHeight<150;local bottom=itemLayout.mode=='B'
    local name=label(detail,'SelectedName',selectedItem:upper()..(if tab=='MY INVENTORY' then '' else ' · K$ '..C.Prices[selectedItem]),4,24);name.TextSize=if short then 13 else 18
    local count=label(detail,'SelectedQuantity','OWNED: '..quantity(selectedItem),28,20);count.TextSize=12
+   if itemLayout.detailHeight<100 then name.Visible=false;count.Visible=false end
    local desc=label(detail,'Description',descriptions[selectedItem],56,48);desc.TextColor3=colors.Secondary;desc.Visible=not short
    local icon=Instance.new('ImageLabel');icon.Name='SelectedImage';icon.Image=Icons.Items[selectedItem];icon.Size=UDim2.fromOffset(72,72);icon.Position=UDim2.fromOffset(10,112);icon.BackgroundTransparency=1;icon.Parent=detail;icon.Visible=itemLayout.detailHeight>=260
    local y=itemLayout.detailHeight-48
    local buy
    if tab=='MY INVENTORY' then
-    buy=buyButton(detail,'AutoRefill',if data.autoRefill then 'AUTO REFILL: ON' else 'AUTO REFILL: OFF',y,'SET_AUTO_REFILL',nil,not data.autoRefill)
-    desc.Text='Owned vouchers only.\n1 per item · max 2 per race.'
+    buy=button(detail,'StoredOnly','STORED · RACE USE COMING LATER',y);buy.Active=false;buy.TextSize=11
+    desc.Text='Purchased stock is saved. Automatic use is paused.'
    else
-    buy=buyButton(detail,'Buy','BUY 1 VOUCHER · K$'..C.Prices[selectedItem],y,'BUY_ITEM',selectedItem)
+    buy=buyButton(detail,'Buy','BUY 1 ITEM · K$'..C.Prices[selectedItem],y,'BUY_ITEM',selectedItem)
    end
-   buy.BackgroundColor3=if tab=='MY INVENTORY' then colors.Blue elseif buy.Active then Color3.fromRGB(72,228,96) else colors.Card
-   buy.TextColor3=if tab=='MY INVENTORY' then colors.White elseif buy.Active then Color3.fromRGB(18,34,64) else colors.Secondary
-   if not buy.Active then buy.BackgroundColor3=colors.Card;buy.TextColor3=colors.Secondary end
+   buy.BackgroundColor3=if buy.Active then Color3.fromRGB(72,228,96) else colors.Card
+   buy.TextColor3=if buy.Active then colors.Background else colors.Secondary
    if bottom then
     name.Size=UDim2.new(.45,-16,0,24);count.Position=UDim2.fromOffset(8,24);count.Size=UDim2.new(.45,-16,0,18)
     buy.Position=UDim2.new(.45,4,0,0);buy.Size=UDim2.new(.55,-12,0,44)
@@ -306,7 +332,7 @@ function Controller.start()
  local function layout()
   local l=Layout.forSize(root.AbsoluteSize);panel.Position=UDim2.fromOffset(math.floor((root.AbsoluteSize.X-l.width)/2),math.floor((root.AbsoluteSize.Y-l.height)/2));panel.Size=UDim2.fromOffset(l.width,l.height)
   title.Size=UDim2.new(1,-64,0,44);title.TextSize=if root.AbsoluteSize.Y<260 then 14 else 20;close.Position=UDim2.new(1,-8,0,0)
-  for i,name in {'WINGS','RACE ITEMS','MY INVENTORY'}do tabs[name].Position=UDim2.fromOffset(8+(i-1)*(l.tabWidth+4),l.tabsY);tabs[name].Size=UDim2.fromOffset(l.tabWidth,44)end
+  for i,name in {'KARTS','RACE ITEMS','MY INVENTORY'}do tabs[name].Position=UDim2.fromOffset(8+(i-1)*(l.tabWidth+4),l.tabsY);tabs[name].Size=UDim2.fromOffset(l.tabWidth,44)end
   body.Position=UDim2.fromOffset(8,l.bodyY);body.Size=UDim2.new(1,-16,0,l.bodyHeight)
   status.Position=UDim2.fromOffset(8,l.footerY-8);status.TextSize=12;status.Size=UDim2.new(1,-16,0,l.footerHeight)
   status.Visible=l.footerHeight>0
@@ -326,6 +352,7 @@ function Controller.start()
   if p:GetAttribute('RaceState')~='GARAGE' or p:GetAttribute('LobbyDriveActive')==true or p:GetAttribute('LobbyDrivePending')==true
    or (p:GetAttribute('KDMRoutePending')~=nil and p:GetAttribute('KDMRoutePending')~='') or (rooms and rooms.Enabled) or context==nil then return false end
   body.CanvasPosition=Vector2.zero;restoreGarage=context=='KART';if restoreGarage then Garage.close()end;p:SetAttribute('KDMProfileOpen',false);p:SetAttribute('KDMShopOpen',true);gui.Enabled=true
+  if targetTab=='WINGS' then targetTab='KARTS' end
   if tabs[targetTab] then tab=targetTab end
   colorIndex=table.find(variants,p:GetAttribute('SelectedKartId')) or colorIndex;layout();render();request('PROFILE');return true
  end
@@ -333,14 +360,18 @@ function Controller.start()
  yes.Activated:Connect(function()
   if not confirmation.Visible or not confirmAction then return end
   local a=confirmAction;confirmation.Visible=false;confirmAction=nil
-  if a.pass then task.spawn(function()local ok,r=pcall(function()return RS.KDMEconomy:InvokeServer('PASS')end);status.Text=if ok and r.status=='PASS_PROMPTED' then 'Complete the Roblox purchase prompt.' else 'Pass unavailable.'end)
-  else request(a.action,a.item,a.value)end
+  request(a.action,a.item,a.value)
  end)
- for name,b in tabs do b.Activated:Connect(function()confirmation.Visible=false;tab=name;body.CanvasPosition=Vector2.zero;render()end)end
+ for name,b in tabs do b.Activated:Connect(function()
+  confirmation.Visible=false
+  if name=='MY INVENTORY' and tab==name and Layout.forSize(root.AbsoluteSize).bodyHeight<140 then inventorySection=if inventorySection=='KARTS' then 'ITEMS' else 'KARTS' end
+  tab=name;body.CanvasPosition=Vector2.zero;render()
+ end)end
  root:GetPropertyChangedSignal('AbsoluteSize'):Connect(layout)
  for _,attr in {'KDMWalletCash','KDMWingOwned','KDMWingEquipped','KDMInventoryAutoRefill'}do
   p:GetAttributeChangedSignal(attr):Connect(function()
    data.cash=p:GetAttribute('KDMWalletCash');data.wingOwned=p:GetAttribute('KDMWingOwned')==true;data.wingEquipped=p:GetAttribute('KDMWingEquipped')==true
+   for _,id in C.KartOrder do data.ownedKarts[id]=C.playerOwnsKart(p,id) end
    if gui.Enabled then render()end
   end)
  end

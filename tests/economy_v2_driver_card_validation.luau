@@ -159,7 +159,7 @@ check(body.Wallet.Text~='AVAILABLE K$\n999999','remote response cannot inject di
 local attrs={KDMEconomyState='FOUND',KDMWalletRevision=74,KDMWalletCash=940,KDMLifetimeEarned=900,KDMWingOwned=false,KDMWingEquipped=false,SelectedKartId='Kart09'}
 for k,v in attrs do player:SetAttribute(k,v)end
 check(body.Wallet.Text=='AVAILABLE K$\n940','wallet attribute')
-check(body.BuyWing.Visible and not body.EquipWing.Visible,'unowned action never covered by equip')
+check(not body.BuyWing.Visible and not body.EquipWing.Visible,'unowned action never covered by equip')
 check(body.LifetimeRaceEarnings.Text:find('900') and not body.LifetimeRaceEarnings.Text:find('940'),'race earnings independent from wallet/grant')
 check(body.Kart.Text:find('Metal Blue') and body.Kart09.ColorName.Text=='✓ Metal Blue','catalog selection highlighted')
 local variants=0
@@ -180,17 +180,12 @@ for _,value in {-1,math.huge,0/0,12.5,'940'}do
  player:SetAttribute('KDMWalletCash',value);check(body.Wallet.Text=='AVAILABLE K$\n--','malformed currency fails closed')
 end
 player:SetAttribute('KDMWalletCash',0);check(body.Wallet.Text=='AVAILABLE K$\n0','confirmed actual zero preserved')
-player:SetAttribute('KDMWalletCash',26000);check(body.BuyWing.Active,'existing Wing purchase route available')
-activate(body.BuyWing);check(shops==1 and not card.Visible,'buy routes to existing Shop confirmation')
-activate(profileButton);activate(body.OpenShop);check(shops==2 and not card.Visible,'shop preview independent of affordability')
+player:SetAttribute('KDMWalletCash',26000);check(not body.BuyWing.Visible and not body.EquipWing.Visible and not body.GamePass.Visible,'legacy Wing purchase/equip actions removed')
+activate(body.OpenShop);check(shops==1 and not card.Visible,'profile routes to kart shop')
 activate(profileButton)
-player:SetAttribute('KDMWingOwned',true);check(body.EquipWing.Active and not body.BuyWing.Active,'owned Wing enables equip only')
-check(body.EquipWing.Visible and not body.BuyWing.Visible,'owned equipment action replaces purchase')
-activate(body.EquipWing);check(calls[#calls][1]=='EQUIP_WING' and calls[#calls][2]==true,'existing server equip request')
-check(player:GetAttribute('KDMWingEquipped')==false,'client never grants equipment')
-player:SetAttribute('KDMWingEquipped',true);activate(body.EquipWing)
-check(calls[#calls][2]==false and body.Wing.Text:find('OWNED / EQUIPPED'),'server equipped state / unequip request')
-player:SetAttribute('KDMWingEquipped',nil);check(not body.EquipWing.Active and body.Wing.Text:find('UNKNOWN'),'missing equipment not inferred false')
+player:SetAttribute('KDMOwnedKart09',true);player:SetAttribute('KDMWingOwned',true)
+check(body.Wing.Text:find('OWNED PERMANENTLY'),'selected owned kart described correctly')
+player:SetAttribute('KDMWingEquipped',true);check(not body.EquipWing.Visible,'premium kart requires no separate Wing toggle')
 local listeners=player:GetAttributeChangedSignal('KDMWalletCash'):count()
 controller.start();check(#pg:GetChildren()==2 and player:GetAttributeChangedSignal('KDMWalletCash'):count()==listeners,'idempotent startup')
 local before=#calls
