@@ -32,7 +32,7 @@ function Environment.build(track)
  roadMaterial.Name='KDMMetro_Racing_Asphalt_A'
  -- Exact Desert surface; texture-map properties remain authoring-only.
  roadMaterial.Parent=materials;table.insert(copies,roadMaterial)
- for _,key in {'Brightness','ClockTime','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
+ for _,key in {'Brightness','ClockTime','GeographicLatitude','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
  for _,v in Lighting:GetChildren()do if v:IsA('Sky')or v:IsA('Atmosphere')or v:IsA('PostEffect')then v.Parent=backup end end
  for _,v in resources.Lighting:GetChildren()do
   if v:IsA('Atmosphere')then continue end -- Owner requested clear city visibility.

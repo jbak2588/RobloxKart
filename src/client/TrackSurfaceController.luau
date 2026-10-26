@@ -22,7 +22,7 @@ function Controller.build(track,park)
  end
  local function hide(p)remember(p);p.LocalTransparencyModifier=1 end
  local function hideGui(g)saved[g]={g.Enabled};g.Enabled=false end
- if not park then for k,v in Standard.Lighting do light[k]=Lighting[k];Lighting[k]=v end end
+ for k,v in (if park then Standard.Sun else Standard.Lighting)do light[k]=Lighting[k];Lighting[k]=v end
  local grade=Instance.new('ColorCorrectionEffect');grade.Name='KDMDesertRoadGrade'
  if not park then grade.Brightness=-.02;grade.Contrast=.08;grade.Saturation=.04;grade.Parent=Lighting;table.insert(copies,grade)else grade:Destroy()end
  local smooth=park or track:GetAttribute('TrackId')=='Track01'
@@ -38,7 +38,15 @@ function Controller.build(track,park)
   groundY=if ground then ground.Position.Y+ground.Size.Y/2 else 0
  end
  local roads=0;local kerbs=0
- local roadListener,treeListener
+ local roadListener,treeListener,markingListener
+ local raised={};local raisedCount=0
+ local function liftMarking(p)
+  if not p:IsA('BasePart')or raised[p]then return end
+  local target=if park then (p.Name=='Kerb'or p.Name=='EdgeLine')else (track:GetAttribute('TrackId')=='Track01'and(p.Name:match('^LeftEdge%d+$')or p.Name:match('^RightEdge%d+$')or p:GetAttribute('GuidanceKind')=='OuterEdge'))
+  if not target then return end
+  remember(p);raised[p]=true;p.CFrame+=Vector3.yAxis*Standard.MarkingLift;raisedCount+=1
+  model:SetAttribute('RaisedMarkingCount',raisedCount)
+ end
  local function road(p)
   if not p:IsA('BasePart')or p.CanCollide then return end
   remember(p);p.Color=Standard.RoadTint;p.Material=Enum.Material.Asphalt;p.MaterialVariant=material.Name
@@ -46,7 +54,7 @@ function Controller.build(track,park)
   local length=samples and index and Desert.straightRoadLength(samples,index)
   if length then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end
   if smooth then
-   if (park and p.Name=='Road')or index then hide(p)else table.insert(copies,Ribbon.matte(p))end
+   if (park and p.Name=='Road')or index then hide(p)else table.insert(copies,Ribbon.matte(p,if park then Standard.ParkRoadTint else nil))end
   end
   roads+=1
  end
@@ -68,12 +76,17 @@ function Controller.build(track,park)
    p.Material=Enum.Material.Concrete;p.MaterialVariant='';kerbs+=1
   end end end
  end
- if smooth then Ribbon.build(model,track,park,material.Name)end
+ if smooth then
+  Ribbon.build(model,track,park,material.Name)
+  for _,p in track:GetDescendants()do liftMarking(p)end
+  markingListener=track.DescendantAdded:Connect(liftMarking)
+ end
  model.Parent=track
  model.Destroying:Connect(function()
   alive=false
   if roadListener then roadListener:Disconnect()end
   if treeListener then treeListener:Disconnect()end
+  if markingListener then markingListener:Disconnect()end
   for p,v in saved do if p.Parent then
    if p:IsA('SurfaceGui')then p.Enabled=v[1]
    else p.Color=v[1];p.Material=v[2];p.MaterialVariant=v[3];p.CFrame=v[4];p.Size=v[5];p.LocalTransparencyModifier=v[6];p.Reflectance=v[7]end

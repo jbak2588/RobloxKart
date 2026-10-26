@@ -3,6 +3,7 @@ local RS=game:GetService('ReplicatedStorage')
 local W=game:GetService('Workspace')
 local Lighting=game:GetService('Lighting')
 local Geometry=require(RS.Shared.TrackGeometry)
+local Surface=require(RS.Shared.TrackSurfaceStandard)
 local Environment={}
 -- Softer mobile daylight; tint the sand instead of washing out the whole HUD.
 local sandTint=Color3.fromRGB(224,218,205)
@@ -183,7 +184,7 @@ function Environment.build(track)
   floor.CFrame=CFrame.new(x,groundY+.025,z);floor.Material=Enum.Material.Sand;floor.MaterialVariant='KDMDesert_Racing_Sand_A';floor.Color=sandTint
   floor.Anchored=true;floor.CanCollide=false;floor.CanTouch=false;floor.CanQuery=false;floor.CastShadow=false;floor.Parent=model
  end end
- local oldLight={Brightness=Lighting.Brightness,ExposureCompensation=Lighting.ExposureCompensation,ClockTime=Lighting.ClockTime,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient,EnvironmentDiffuseScale=Lighting.EnvironmentDiffuseScale,EnvironmentSpecularScale=Lighting.EnvironmentSpecularScale}
+ local oldLight={Brightness=Lighting.Brightness,ExposureCompensation=Lighting.ExposureCompensation,ClockTime=Lighting.ClockTime,GeographicLatitude=Lighting.GeographicLatitude,Ambient=Lighting.Ambient,OutdoorAmbient=Lighting.OutdoorAmbient,EnvironmentDiffuseScale=Lighting.EnvironmentDiffuseScale,EnvironmentSpecularScale=Lighting.EnvironmentSpecularScale}
  local lightBackup=Instance.new('Folder');local newLight={}
  for _,x in Lighting:GetChildren()do if x:IsA('Sky')or x:IsA('Atmosphere')or x:IsA('PostEffect')then x.Parent=lightBackup end end
  for _,x in resources.Lighting:GetChildren()do
@@ -191,7 +192,7 @@ function Environment.build(track)
   if c:IsA('ColorCorrectionEffect')then c.Brightness=-.02;c.Contrast=.08;c.Saturation=.04 end
   c.Parent=Lighting;table.insert(newLight,c)
  end
- Lighting.Brightness=2;Lighting.ExposureCompensation=-.2;Lighting.ClockTime=15.883889
+ Lighting.Brightness=2;Lighting.ExposureCompensation=-.2;Lighting.ClockTime=Surface.Sun.ClockTime;Lighting.GeographicLatitude=Surface.Sun.GeographicLatitude
  Lighting.Ambient=Color3.fromRGB(130,128,120);Lighting.OutdoorAmbient=Color3.fromRGB(145,145,140)
  Lighting.EnvironmentDiffuseScale=.8;Lighting.EnvironmentSpecularScale=.25
  model.Parent=track

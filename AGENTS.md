@@ -2,6 +2,17 @@
 
 Read this before editing the project.
 
+## High sun / stable roadside paint — owner direction 2026-10-26
+
+All selectable official tracks and Rookie Park use ClockTime13 and latitude23.5
+(native sun elevation75 degrees). This supersedes the prior afternoon sun / Park
+clock preservation only; retain Park brightness, exposure and color effects.
+Park asphalt uses the darker neutral ParkRoadTint165/170/180, with existing matte
+Desert albedo. Raise Park kerb/edge visuals and Green edge/guidance white lines
+by.20 studs to keep distant paint above asphalt. No per-frame paint generation,
+streaming changes, physical collider/route/grid/authority changes. No Publish;
+commit/push after validation. Retired Track02 remains excluded.
+
 ## Track surface / scenery cleanup — owner direction 2026-10-26
 
 No Publish for this task; commit/push only. Work one track at a time.

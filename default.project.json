@@ -94,6 +94,8 @@
           0
         ],
         "Brightness": 2,
+        "ClockTime": 13,
+        "GeographicLatitude": 23.5,
         "GlobalShadows": true,
         "Outlines": false,
         "Technology": "Voxel"

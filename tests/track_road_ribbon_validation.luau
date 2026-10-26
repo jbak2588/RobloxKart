@@ -28,7 +28,8 @@ for _,park in {true,false}do
  local model=object('Model');R.build(model,t,park,'ignored')
  local faces=0
  for _,p in parts do if p.class=='WedgePart'then
-  faces+=1;check(p.Size.Y>0 and p.Size.Z>0,'no degenerate road faces')
+  faces+=1;check(p.Color==(if park then S.ParkRoadTint else S.RoadTint),'Park-only dark tint; Green albedo unchanged')
+  check(p.Size.Y>0 and p.Size.Z>0,'no degenerate road faces')
   local top=p.CFrame.Position.Y+.005
   check(math.abs(top-(if park then .02 else .065))<.00001,'accepted road top / skid datum retained')
  end end

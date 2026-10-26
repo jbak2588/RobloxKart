@@ -12,4 +12,11 @@ check(standard.RoadTint==rb.Color3.fromRGB(226,220,188),'Desert road tint')
 check(standard.Lighting.Brightness==2 and standard.Lighting.ExposureCompensation==-.2 and standard.Lighting.EnvironmentSpecularScale==.25,'Desert exposure / reflection reference')
 local source=fs.readFile('src/assets/KDMDesertResources.rbxmx')
 for _,id in {'15217440826','15217430764','15217430840'}do check(source:find('rbxassetid://'..id,1,true)~=nil,'original Desert map retained '..id)end
+check(standard.Sun.ClockTime==13 and standard.Sun.GeographicLatitude==23.5,'high sun at 1 pm with tropical latitude')
+check(standard.Lighting.ClockTime==standard.Sun.ClockTime and standard.Lighting.GeographicLatitude==standard.Sun.GeographicLatitude,'all official themes share sun settings')
+check(standard.ParkRoadTint.R<standard.RoadTint.R*.8 and standard.ParkRoadTint.B>standard.ParkRoadTint.R,'Park dark neutral tint')
+check(standard.MarkingLift>=.2,'distant paint clearance above asphalt')
+local project=require('@lune/serde').decode('json',fs.readFile('default.project.json'))
+local lighting=project.tree.Lighting['$properties']
+check(lighting.ClockTime==standard.Sun.ClockTime and lighting.GeographicLatitude==standard.Sun.GeographicLatitude,'Rojo default sun matches runtime themes before client startup')
 print('PASS: '..n..' surface reference / selected list / theme isolation checks')
