@@ -2,6 +2,17 @@
 
 Read this before editing the project.
 
+## Road paint visibility hotfix — owner direction 2026-10-26
+
+Owner authorizes validation, commit/push and production Publish for Base grid
+road flicker, Park edge-line draw-in and Green return-to-finish bracket visibility.
+Park/Green matte asphalt uses preauthored KDM_Road_Albedo_Matte (Desert albedo only),
+never separate road Texture/Decal layers whose depth bias can obscure raised paint.
+Base shares polygon edges while retaining Desert PBR; hide its overlapping strips.
+Green's24 bracket strokes clear the highest crossing by.04, including late paint.
+Preserve road/collider/route/grid/ownership contracts and current lighting/tints.
+See docs/testing/road_paint_visibility_20261026.md. Hardware acceptance is separate.
+
 ## Green crossing / checkpoint checker visibility — owner direction 2026-10-26
 
 Green Island hides all24 CrossoverGuidance divider/outer-edge paint parts, including

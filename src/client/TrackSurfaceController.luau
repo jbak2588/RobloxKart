@@ -26,7 +26,8 @@ function Controller.build(track,park)
  local grade=Instance.new('ColorCorrectionEffect');grade.Name='KDMDesertRoadGrade'
  if not park then grade.Brightness=-.02;grade.Contrast=.08;grade.Saturation=.04;grade.Parent=Lighting;table.insert(copies,grade)else grade:Destroy()end
  local smooth=park or track:GetAttribute('TrackId')=='Track01'
- local material=if smooth then RS:WaitForChild('KDMMetroResources').Materials.Metro_Racing_Asphalt_Matte:Clone()else RS:WaitForChild('KDMDesertResources').Materials.Racing_Asphalt_A:Clone()
+ local sharedEdges=smooth or track:GetAttribute('TrackId')=='Track01Race'
+ local material=if smooth then RS:WaitForChild('KDMRoadMaterials').KDM_Road_Albedo_Matte:Clone()else RS:WaitForChild('KDMDesertResources').Materials.Racing_Asphalt_A:Clone()
  material.Name='KDMStandard_Racing_Asphalt_A';material.Parent=game.MaterialService;table.insert(copies,material)
  local samples,width,groundY
  if park then
@@ -54,8 +55,8 @@ function Controller.build(track,park)
   local index=tonumber(p.Name:match('^Road(%d+)$'))
   local length=samples and index and Desert.straightRoadLength(samples,index)
   if length then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end
-  if smooth then
-   if (park and p.Name=='Road')or index then hide(p)else table.insert(copies,Ribbon.matte(p,if park then Standard.ParkRoadTint else nil))end
+  if sharedEdges then
+   if (park and p.Name=='Road')or index then hide(p)else Ribbon.matte(p,if park then Standard.ParkRoadTint else nil,material.Name)end
   end
   roads+=1
  end
@@ -77,8 +78,27 @@ function Controller.build(track,park)
    p.Material=Enum.Material.Concrete;p.MaterialVariant='';kerbs+=1
   end end end
  end
+ if sharedEdges then
+  Ribbon.build(model,track,park,material.Name,not smooth)
+ end
  if smooth then
-  Ribbon.build(model,track,park,material.Name)
+  -- Green's rear grid rows lie on the higher crossing ribbons. Establish a
+  -- single static clearance above their highest face, including late paint.
+  local paintTop=groundY+(if park then .02 else .12)
+  local env=track:FindFirstChild('Environment')
+  if not park and env then for _,r in env:GetChildren()do
+   if r:IsA('BasePart')and r.Name:match('^CrossoverRibbon')then paintTop=math.max(paintTop,r.Position.Y+r.Size.Y/2)end
+  end end
+  local originalLift=liftMarking
+  liftMarking=function(p)
+   local grid=track:FindFirstChild('Markings');grid=grid and grid:FindFirstChild('StartGrid')
+   if not park and grid and p:IsA('BasePart')and p:IsDescendantOf(grid)and not raised[p]then
+    remember(p);raised[p]=true
+    p.CFrame+=Vector3.yAxis*math.max(0,paintTop+.04-(p.Position.Y-p.Size.Y/2))
+    return
+   end
+   originalLift(p)
+  end
   for _,p in track:GetDescendants()do liftMarking(p)end
   markingListener=track.DescendantAdded:Connect(liftMarking)
  end

@@ -11,7 +11,7 @@ require('./helpers/world_vfx_harness')(2,1,function(h)
  assert(h.workspace.lastRayParams.FilterDescendantsInstances[1]==floor,'park tire contact targets queryable support')
  for _,t in r.trails do
   assert(t.Enabled,'both tire marks enabled during grounded drift')
-  assert(math.abs(t.Attachment0.WorldPosition.Y-.41)<.0001,'mark above .37 visual road, not hidden at support height')
+  assert(math.abs(t.Attachment0.WorldPosition.Y-.06)<.0001,'mark above current .02 visual road with .04 clearance')
  end
  h.workspace.noGround=true;r:update(.05,true)
  for _,t in r.trails do assert(not t.Enabled,'airborne drift leaves no floating tire mark')end

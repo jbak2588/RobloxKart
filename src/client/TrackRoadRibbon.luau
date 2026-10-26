@@ -4,18 +4,15 @@ local Geometry=require(RS.Shared.TrackGeometry)
 local Park=require(RS.Shared.HubParkRookieLoopLayout)
 local Standard=require(RS.Shared.TrackSurfaceStandard)
 local Ribbon={}
-function Ribbon.matte(part,tint)
+function Ribbon.matte(part,tint,variant)
  tint=tint or Standard.RoadTint
  part.Color=tint
  -- Preserve Desert albedo, remove its wet PBR response on the two rejected roads.
- part.Material=Enum.Material.Concrete;part.MaterialVariant='';part.Reflectance=0
- local t=Instance.new('Texture');t.Name='DesertMatteAlbedo'
- t.Texture='rbxassetid://15217440826';t.Color3=tint
- t.Face=if part:IsA('WedgePart')then(if part.CFrame.RightVector.Y>0 then Enum.NormalId.Right else Enum.NormalId.Left)else Enum.NormalId.Top
- t.StudsPerTileU=24;t.StudsPerTileV=24;t.Parent=part
- return t
+ -- Texture/Decal depth bias can cover raised paint at grazing angles. Bake
+ -- the same albedo into the actual opaque material instead of a second face.
+ part.Material=Enum.Material.Concrete;part.MaterialVariant=variant;part.Reflectance=0
 end
-function Ribbon.triangle(parent,a,b,c,variant,tint)
+function Ribbon.triangle(parent,a,b,c,variant,tint,pbr)
  local ab,ac,bc=b-a,c-a,c-b
  if ab:Dot(ab)>ac:Dot(ac)and ab:Dot(ab)>bc:Dot(bc)then c,a=a,c
  elseif ac:Dot(ac)>bc:Dot(bc)then a,b=b,a end
@@ -29,11 +26,13 @@ function Ribbon.triangle(parent,a,b,c,variant,tint)
   local p=Instance.new('WedgePart');p.Name='AsphaltFace'
   p.Size=Vector3.new(.01,h,length);p.CFrame=CFrame.fromMatrix((s[1]+s[2])/2,s[3],up,s[4])
   p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false;p.CastShadow=false
-  Ribbon.matte(p,tint);p.Parent=parent;count+=1
+  if pbr then p.Color=Standard.RoadTint;p.Material=Enum.Material.Asphalt;p.MaterialVariant=variant
+  else Ribbon.matte(p,tint,variant)end
+  p.Parent=parent;count+=1
  end
  return count
 end
-function Ribbon.build(model,track,park,variant)
+function Ribbon.build(model,track,park,variant,pbr)
  local points={};local half,y
  if park then
   local origin=track:GetAttribute('Origin');y=origin.Y+.015
@@ -42,7 +41,7 @@ function Ribbon.build(model,track,park,variant)
   half=(Park.RoadWidth+2*Park.KerbWidth+1)/2
  else
   points=Geometry.getCourse(Geometry.getDefinition(track:GetAttribute('GeometryId'))).Samples
-  local ground=track:FindFirstChild('SafetyGround');y=(if ground then ground.Position.Y+ground.Size.Y/2 else 0)+.060
+  local ground=track:FindFirstChild('SafetyGround')or workspace:FindFirstChild('Baseplate');y=(if ground then ground.Position.Y+ground.Size.Y/2 else 0)+.060
   half=track:GetAttribute('RoadWidth')/2
  end
  -- Collapse exactly collinear interior stations. Curves retain every source sample.
@@ -62,8 +61,8 @@ function Ribbon.build(model,track,park,variant)
  for i,a in edges do
   if (i-1)%64==0 then batch=Instance.new('Folder');batch.Name='AsphaltBatch' end
   local b=edges[i%#edges+1]
-  count+=Ribbon.triangle(batch,a[1],b[1],b[2],variant,if park then Standard.ParkRoadTint else nil)
-  count+=Ribbon.triangle(batch,a[1],b[2],a[2],variant,if park then Standard.ParkRoadTint else nil)
+  count+=Ribbon.triangle(batch,a[1],b[1],b[2],variant,if park then Standard.ParkRoadTint else nil,pbr)
+  count+=Ribbon.triangle(batch,a[1],b[2],a[2],variant,if park then Standard.ParkRoadTint else nil,pbr)
   if i%64==0 or i==#edges then batch.Parent=model end
  end
  model:SetAttribute('SharedEdgeRoadFaces',count)

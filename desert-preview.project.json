@@ -6,6 +6,9 @@
       "$path": "src/replicatedFirst"
     },
     "ReplicatedStorage": {
+      "KDMRoadMaterials": {
+        "$path": "src/assets/KDMRoadMaterials.rbxmx"
+      },
       "KDMHorizonMountainPrefabs": {
         "$path": "src/assets/KDMHorizonMountainPrefabs.rbxmx"
       },

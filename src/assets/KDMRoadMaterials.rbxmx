@@ -1,0 +1,17 @@
+<roblox version="4">
+  <Item class="Folder" referent="KDMRoadMaterials">
+    <Properties><string name="Name">KDMRoadMaterials</string></Properties>
+    <Item class="MaterialVariant" referent="KDMRoadMatte">
+      <Properties>
+        <string name="Name">KDM_Road_Albedo_Matte</string>
+        <token name="BaseMaterial">816</token>
+        <Content name="ColorMap"><url>rbxassetid://15217440826</url></Content>
+        <Content name="NormalMap"><null /></Content>
+        <Content name="RoughnessMap"><null /></Content>
+        <Content name="MetalnessMap"><null /></Content>
+        <float name="StudsPerTile">24</float>
+        <token name="MaterialPattern">1</token>
+      </Properties>
+    </Item>
+  </Item>
+</roblox>
