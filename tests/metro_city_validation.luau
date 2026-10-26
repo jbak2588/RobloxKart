@@ -61,6 +61,25 @@ check(partCount==2522,'only complete kit buildings in palette')
 local course=geometry.getCourse(geometry.getDefinition(metro.GeometryId))
 local width=geometry.getDefinition(metro.GeometryId).RoadWidth
 local sites=layout.plan(geometry,course,width,profiles)
+local lamps,rails=layout.roadsidePlan(geometry,course,width,sites)
+check(#lamps>=30 and #lamps<=80 and #lamps%2==0,'bounded alternating source streetlights')
+check(#rails>=8 and #rails<=100,'bounded Park rail gap infill')
+for i,lamp in lamps do
+ check(lamp.side==(if i%2==1 then -1 else 1),'alternating lamp side')
+ check(layout.footprintDistance(course.Samples,lamp.frame,rb.Vector3.new(3.3,21.1,5.6))>=width/2+12,'lamp outside recovery clearance')
+end
+for _,rail in rails do
+ check(layout.footprintDistance(course.Samples,rail.frame,rb.Vector3.new(.5,4.5,20))>=width/2+16,'ad rail outside recovery shoulder')
+ local f=rail.frame.LookVector
+ local p=rail.frame.Position-rail.outward*(width/2+25)
+ for _,b in sites do
+  local delta=b.frame.Position-p
+  local half=(math.abs(f:Dot(b.frame.RightVector))*b.size.X+math.abs(f:Dot(b.frame.LookVector))*b.size.Z)/2
+  check(not(delta:Dot(rail.outward)>0 and delta:Dot(rail.outward)<350 and math.abs(delta:Dot(f))<half+34.99),'no rail in building frontage')
+ end
+end
+print('Decor stations',#lamps,'lamps',#rails,'Park rails')
+
 check(#sites>=40 and #sites<=104,'bounded dense streets')
 local priorSource=process.exec('git',{'show','543beaa38776dba1544bdbc4a07d96078787c582:src/shared/MetroCityLayout.luau'})
 assert(priorSource.ok)

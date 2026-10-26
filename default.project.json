@@ -2,11 +2,9 @@
   "name": "RobloxKart",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedFirst": {
       "$path": "src/replicatedFirst"
     },
-
     "ReplicatedStorage": {
       "KDMHorizonMountainPrefabs": {
         "$path": "src/assets/KDMHorizonMountainPrefabs.rbxmx"
@@ -39,13 +37,11 @@
         "$path": "src/assets/KDMMetroResources.rbxmx"
       }
     },
-
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
       }
     },
-
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
@@ -53,7 +49,6 @@
         }
       }
     },
-
     "Workspace": {
       "$properties": {
         "FilteringEnabled": true
@@ -86,6 +81,9 @@
             2048
           ]
         }
+      },
+      "$attributes": {
+        "HubParkV1Enabled": true
       }
     },
     "Lighting": {

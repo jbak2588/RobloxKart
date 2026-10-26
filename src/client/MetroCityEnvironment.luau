@@ -5,6 +5,7 @@ local Lighting=game:GetService('Lighting')
 local Geometry=require(RS.Shared.TrackGeometry)
 local Layout=require(RS.Shared.MetroCityLayout)
 local DesertRoad=require(script.Parent.Figure8DesertEnvironment)
+local brandRail=require(RS.Shared.KDMRailBranding)
 local Environment={}
 local stop
 local function safe(p)
@@ -27,7 +28,10 @@ function Environment.build(track)
  end
  -- Clone the accepted Desert road variant verbatim; no global material override.
  local roadMaterial=RS:WaitForChild('KDMDesertResources'):WaitForChild('Materials'):WaitForChild('Racing_Asphalt_A'):Clone()
- roadMaterial.Name='KDMMetro_Racing_Asphalt_A';roadMaterial.Parent=materials;table.insert(copies,roadMaterial)
+ roadMaterial.Name='KDMMetro_Racing_Asphalt_A'
+ -- Retain Desert's asphalt color/roughness, suppress sparkling micro normals.
+ roadMaterial.NormalMap=''
+ roadMaterial.Parent=materials;table.insert(copies,roadMaterial)
  for _,key in {'Brightness','ClockTime','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
  for _,v in Lighting:GetChildren()do if v:IsA('Sky')or v:IsA('Atmosphere')or v:IsA('PostEffect')then v.Parent=backup end end
  for _,v in resources.Lighting:GetChildren()do
@@ -37,7 +41,7 @@ function Environment.build(track)
  end
  Lighting.Brightness=2.5;Lighting.ClockTime=14.5;Lighting.ExposureCompensation=.1
  Lighting.Ambient=Color3.fromRGB(30,30,35);Lighting.OutdoorAmbient=Color3.fromRGB(70,65,75)
- Lighting.EnvironmentDiffuseScale=1;Lighting.EnvironmentSpecularScale=1
+ Lighting.EnvironmentDiffuseScale=1;Lighting.EnvironmentSpecularScale=0
  local function appearance(p,color,material,variant,hide)
   saved[p]={p.Color,p.Material,p.MaterialVariant,p.LocalTransparencyModifier,p.Size}
   p.Color=color;p.Material=material;p.MaterialVariant=variant or ''
@@ -85,6 +89,22 @@ function Environment.build(track)
    end
   end
   local sites=Layout.plan(Geometry,course,width,profiles)
+  local lampSites,railSites=Layout.roadsidePlan(Geometry,course,width,sites)
+  for i,site in lampSites do
+   if not alive then return end
+   local clone=resources.StreetLamp_A:Clone();clone.PrimaryPart=nil;clone.WorldPivot=CFrame.identity
+   local cf,size=clone:GetBoundingBox()
+   clone:PivotTo((site.frame+Vector3.new(0,groundY+size.Y/2,0))*cf:ToObjectSpace(clone:GetPivot()))
+   for _,p in clone:GetDescendants()do if p:IsA('BasePart')then safe(p);if p.MaterialVariant~=''then p.MaterialVariant='KDMMetro_'..p.MaterialVariant end end end
+   clone.Name='StreetLamp'..i;clone:SetAttribute('StationSide',site.side);clone.Parent=model
+   if i%12==0 then task.wait()end
+  end
+  for i,site in railSites do
+   if not alive then return end
+   local rail=part('ParkAdRail'..i,Vector3.new(.5,4.5,20),site.frame+Vector3.new(0,groundY+2.25,0),if i%2==0 then Color3.fromRGB(180,65,65)else Color3.fromRGB(220,225,230))
+   brandRail(rail,site.outward)
+  end
+  model:SetAttribute('StreetLampCount',#lampSites);model:SetAttribute('AdRailCount',#railSites)
   local parts,count,minimum=0,0,math.huge
   for _,site in sites do
    if not alive or not track.Parent then return end

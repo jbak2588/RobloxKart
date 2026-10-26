@@ -1,5 +1,52 @@
 # Metro City Circuit — 2026-10-26
 
+## Roadside / checkpoint release candidate
+
+Owner explicitly authorizes Commit / Push followed by Publish after verifying
+Rookie Racing Park HUB. Baseline d4a8f2e matched origin at task start.
+
+Metro-only asphalt keeps Desert's color/roughness/tiling, removes the micro
+NormalMap and disables environment specular for a matte road. Restore the prior
+specular setting and all source materials on scene teardown. Other tracks retain
+their source material and lighting. No physics/authority/route/gate changes.
+
+Extract the original StreetLights/StreetLamp_A as four inert parts (three native
+meshes plus source LightSource); preserve source PBR, dimensions and shape. No
+source spotlights/Beams/scripts cloned. Total Metro palette 2,536 parts.
+64 lamps at uniform arc-length stations (~85 studs), alternating sides; every
+lamp footprint stays at least 12 studs outside the road. 46 Park-style KDM rails
+use the same road-facing 20 x 4.5 artwork, alternating red/white. Full projected
+building widths plus 35 studs and a 350-stud outward frontage search exclude ads
+from facades/entrances. Rails stay >=16 studs outside asphalt, avoid lamps and
+remain inert. 83 buildings, two skybridges and 62 Park Maples retained.
+
+Wrong-way / rejected finish does not advance/reset server progress. Ordinary pins
+fade outside 350 studs and can be occluded by city buildings. While authoritative
+RaceCheckpointMissed>0, the same required pin uses a 2,000-stud range, minimum
+56px width and AlwaysOnTop; kart overlap, near fade and camera direction checks
+still apply. Accepted checkpoint clears the missed mirror and restores ordinary
+range/occlusion. Missing visual folders can rebuild on missed/reset events.
+Native Client verified unchanged next=1, missed pin visible at 600 studs, hidden
+when facing away, visible again on turning back, then next=2 restores range350.
+This is a presentation/mirror test, not a claimed manual reverse-driven lap.
+
+Native production-bound Studio reports Universe10768420544 / Place127925465904803,
+pre-release PlaceVersion1161, persisted HubParkV1Enabled=true. Ordinary HUB startup
+creates HubParkRookieLoopG2 with ROOKIE_LOOP_V1; no legacy LobbyFrontTestDriveZone.
+All 215 primary server/client/shared scripts match the repository modulo trailing
+newlines. Default Rojo builds now explicitly carry the Park flag, avoiding a
+fresh-build fallback to the old front drive zone. Policy retains role/ID/Bot gates.
+
+PASS: Metro 11,131; source resource audit; checkpoint marker 1,730 (including nine
+missed-distance checks); six-track paint971; skid25; checkpoint/DNF21; Park
+startup20 / world initialization674; lap/presentation6,932; route recovery3,185;
+continuity/reverse/two-lap86,203; 225 Luau sources compile; default Rojo release.
+Native candidate before final frontage widening had14,655 scenery parts; final
+candidate removes33 rails. Existing Studio DataStore API-access warnings remain;
+no new live DataStore, four-human mobile or device performance acceptance claimed.
+Publish result will be recorded after the authorized release action.
+
+
 ## Current clear landscape and full-track overview
 
 Owner refinements replace the remaining gray floor / partial shops / beech trees,

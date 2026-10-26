@@ -90,6 +90,9 @@ def main():
     buildings=named(city,'CityTemplateBuildings')
     for i,bridge in enumerate([m for m in buildings.findall('Item') if name(m)=='Skybridge'],1):
         candidates.append(('Skybridge'+str(i),[p for p in bridge.iter('Item') if p.get('class') in ('Part','MeshPart','WedgePart')],'Bridge'))
+    lamps=next(n for n in city.iter('Item') if name(n)=='StreetLights')
+    lamp=next(n for n in lamps.findall('Item') if name(n)=='StreetLamp_A')
+    candidates.append(('StreetLamp_A',[p for p in lamp.iter('Item') if p.get('class') in ('Part','MeshPart')],'Lamp'))
     count=0
     for key,parts,kind in candidates:
         low,high=bounds(parts);center=[(low[i]+high[i])/2 for i in range(3)]

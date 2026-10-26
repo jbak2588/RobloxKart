@@ -9,12 +9,14 @@ local active
 local renderSerial=0
 -- SizeOffset anchors the bottom centre (pin tip) at the floating world point.
 -- Scale with perspective rather than drawing the same 210px sign at any depth.
-function Controller.markerMetrics(depth,viewportHeight,fov,distance)
- if depth<=0 or distance<=26 or distance>350 then return 0,0,0 end
+function Controller.markerMetrics(depth,viewportHeight,fov,distance,missed)
+ local limit=if missed then 2000 else 350
+ if depth<=0 or distance<=26 or distance>limit then return 0,0,0 end
  local focal=viewportHeight/(2*math.tan(math.rad(fov)*.5))
  local width=math.min(focal*24/depth,200,viewportHeight*.36)
+ if missed then width=math.max(width,math.min(56,viewportHeight*.36))end
  local nearAlpha=math.clamp((distance-26)/24,0,1)
- local farAlpha=math.clamp((350-distance)/100,0,1)
+ local farAlpha=math.clamp((limit-distance)/100,0,1)
  return width,width*7/16,nearAlpha*farAlpha
 end
 function Controller.markerOverlaps(tipX,tipY,width,height,bounds)
@@ -62,7 +64,7 @@ function Controller.new(player,isDriving)
    if o:IsA('BasePart') and ((index==0 and o:GetAttribute('GateType')=='StartFinish') or (index>0 and o:GetAttribute('CheckpointIndex')==index)) then gate=o;break end
   end end
   if not gate then clear();return end
-  if currentGate==gate and currentTrack==track then return end
+  if currentGate==gate and currentTrack==track and folder and folder.Parent and markerGui and markerGui.Parent then return end
   clear()
   local road=surfaceRoad(track,gate);local resources=RS:FindFirstChild('KDMRacePresentationResources')
   if not road or not resources then return end
@@ -135,9 +137,15 @@ function Controller.new(player,isDriving)
    end
   end
   local anchor=markerGui.Parent.Position
+  -- A rejected finish keeps the same authoritative next checkpoint. Its pin
+  -- must remain discoverable beyond the ordinary 350-stud approach range,
+  -- including behind city buildings, until that checkpoint is accepted.
+  local missed=(player:GetAttribute('RaceCheckpointMissed')or 0)>0
+  markerGui.MaxDistance=if missed then 2000 else 350
+  markerGui.AlwaysOnTop=missed
   local point,onScreen=camera:WorldToViewportPoint(anchor)
   local origin=cachedChassis and cachedChassis.Position or camera.CFrame.Position
-  local width,height,alpha=Controller.markerMetrics(point.Z,camera.ViewportSize.Y,camera.FieldOfView,(origin-anchor).Magnitude)
+  local width,height,alpha=Controller.markerMetrics(point.Z,camera.ViewportSize.Y,camera.FieldOfView,(origin-anchor).Magnitude,missed)
   local bounds
   local function protect(worldPoint)
    local v=camera:WorldToViewportPoint(worldPoint)
@@ -171,7 +179,7 @@ function Controller.new(player,isDriving)
   if pending or closed then return end;pending=true
   task.defer(function()pending=false;update()end)
  end
- for _,key in {'ParkTrialPhase','ParkTrialCheckpoint','LobbyDriveActive','RaceState','RaceNextCheckpoint','RaceCheckpointCount','RaceCurrentLap','RaceCompletedLaps','RaceSessionId','RaceResetSerial','SelectedTrackId','KDMRoutePending'} do
+ for _,key in {'ParkTrialPhase','ParkTrialCheckpoint','LobbyDriveActive','RaceState','RaceNextCheckpoint','RaceCheckpointCount','RaceCheckpointMissed','RaceFinishMissedSerial','RaceCurrentLap','RaceCompletedLaps','RaceSessionId','RaceResetSerial','SelectedTrackId','KDMRoutePending'} do
   table.insert(connections,player:GetAttributeChangedSignal(key):Connect(schedule))
  end
  table.insert(connections,Workspace.DescendantAdded:Connect(function(o)if o.Name=='RaceTriggers' or o:GetAttribute('RaceGate')==true then schedule()end end))

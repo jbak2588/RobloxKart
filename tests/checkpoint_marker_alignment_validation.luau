@@ -33,4 +33,13 @@ for _,height in {390,430,600,900,1080}do
  end
 end
 check(not C.markerOverlaps(0,0,100,50,nil),'missing driver remains safe')
-print('PASS: '..n..' production marker perspective/proximity/protected-screen checks')
+
+
+for _,d in {351,600,1200,1899}do
+ local w,h,a=C.markerMetrics(d,430,75,d,true)
+ check(w>=56 and a>0,'missed checkpoint remains discoverable outside ordinary approach range')
+ local _,_,ordinary=C.markerMetrics(d,430,75,d,false);check(ordinary==0,'normal approach keeps its range')
+end
+local _,_,behind=C.markerMetrics(-10,430,75,600,true);check(behind==0,'missed pin still respects camera direction')
+
+print('PASS: '..n..' production marker perspective/proximity/missed-checkpoint checks')

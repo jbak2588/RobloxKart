@@ -56,6 +56,43 @@ local function separated(a,b,gap)
  return false
 end
 Layout.separated=separated
+-- Regular arc-length stations alternate left/right around the entire circuit.
+function Layout.roadsidePlan(geometry,course,width,buildings)
+ local lamps,rails={},{}
+ local stations=math.max(2,math.floor(course.CenterlineLength/85))
+ if stations%2==1 then stations+=1 end
+ for i=0,stations-1 do
+  local fraction=(i+.5)/stations
+  local p=geometry.getSampleAtFraction(course.Samples,fraction)
+  local f=geometry.getTangentAtFraction(course.Samples,fraction)
+  local side=if i%2==0 then -1 else 1
+  local outward=Vector3.new(-f.Z,0,f.X)*side
+  local center=p+outward*(width/2+20)
+  table.insert(lamps,{frame=CFrame.lookAt(center,center-outward),side=side,fraction=fraction})
+ end
+ for i=0,math.floor(course.CenterlineLength/38)-1 do
+  local fraction=(i+.5)/math.floor(course.CenterlineLength/38)
+  local p=geometry.getSampleAtFraction(course.Samples,fraction)
+  local f=geometry.getTangentAtFraction(course.Samples,fraction)
+  for _,side in {-1,1}do
+   local outward=Vector3.new(-f.Z,0,f.X)*side
+   local center=p+outward*(width/2+25)
+   local frame=CFrame.lookAt(center,center+f)
+   local clear=Layout.footprintDistance(course.Samples,frame,Vector3.new(.5,4.5,20))>=width/2+16
+   -- Project the complete facade width onto the road tangent. Reserve its
+   -- entire frontage, rather than merely avoiding physical wall collisions.
+   for _,b in buildings do
+    local delta=b.frame.Position-p
+    local half=(math.abs(f:Dot(b.frame.RightVector))*b.size.X+math.abs(f:Dot(b.frame.LookVector))*b.size.Z)/2
+    if delta:Dot(outward)>0 and delta:Dot(outward)<350 and math.abs(delta:Dot(f))<half+35 then clear=false;break end
+   end
+   for _,lamp in lamps do if (lamp.frame.Position-center).Magnitude<18 then clear=false;break end end
+   for _,rail in rails do if (rail.frame.Position-center).Magnitude<30 then clear=false;break end end
+   if clear then table.insert(rails,{frame=frame,outward=outward})end
+  end
+ end
+ return lamps,rails
+end
 function Layout.plan(geometry,course,width,profiles)
  local sites={};local minimum=width/2+Layout.ShoulderClearance
  local function place(name,point,forward,side,scale,block,bridge,corner)

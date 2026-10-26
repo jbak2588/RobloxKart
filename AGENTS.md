@@ -4,6 +4,14 @@ Read this before editing the project.
 
 ## Metro City Circuit — owner direction 2026-10-26
 
+Latest owner release direction supersedes earlier No Publish statements for this
+release: reduce Metro road sparkle, add original alternating city lamps and Park
+KDM ad rails only in frontage-free gaps; verify missed-checkpoint guidance and
+Rookie Racing Park HUB, then Commit / Push / Publish. Keep the exact production
+Universe 10768420544 / Place 127925465904803. Default builds retain
+Workspace.HubParkV1Enabled=true; role/ID/Bot policy gates remain authoritative.
+
+
 Owner rollback: cancel the native original-city import / MetroCityV1 / 45-stud
 road conversion. Keep Base-derived Metro, facade depth/pivot repair and matte
 separated kerbs. Facades stay parallel to the road. No Publish.
