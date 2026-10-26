@@ -219,16 +219,15 @@ function Renderer.new(kart)
    if parent and parent:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' then
     surfaceRoot=parent:FindFirstChild('G2SafetyGround')
     -- Park road slices deliberately cannot be queried. Raycast the existing
-    -- flat support, then draw on the visual road top (.35 high + .02 offset).
-    tireSurfaceLift=.37
+    -- Flat support top is the datum; the current Park asphalt top is +.02.
+    tireSurfaceLift=.02
    end
   else
    local track=parent and parent:FindFirstChild("TestTrack")
    surfaceRoot=track and track:FindFirstChild("Road")
    local geometry=track and track:GetAttribute('GeometryId')
-   local metro=track and track:GetAttribute('TrackId')=='Track01Metro' and geometry=='PracticeCircuitV1'
-   if surfaceRoot and (geometry=='PracticeFigure8V1' or metro) then
-    -- Figure-8 and Metro Road slices are intentionally non-queryable. Keep that contract;
+   if surfaceRoot and (geometry=='PracticeFigure8V1' or geometry=='PracticeCircuitV1' or geometry=='HardCircuitV1') then
+    -- Official Road slices are intentionally non-queryable. Keep that contract;
     -- contact is the top plane of the bounded visual slices, not the grass support.
     visualRoads={}
     for _,p in surfaceRoot:GetChildren()do if p:IsA('BasePart')then table.insert(visualRoads,p)end end

@@ -77,5 +77,5 @@ for _,id in catalog.Order do
  local rebuilt=builder.build(prior,entry,0)
  check(rebuilt~=stale and rebuilt:GetAttribute('StartFinishPaintVersion')==1,id..' old paint cache invalidated')
 end
-print('PASS: '..count..' six track paint/road/capacity and original five frozen-world/cache checks')
+print('PASS: '..count..' selectable-track paint/road/capacity and frozen-world/cache checks')
 ]====])()

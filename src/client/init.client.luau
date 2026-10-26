@@ -61,6 +61,7 @@ if role == 'RACE' then require(script:WaitForChild('PublicRaceStatusView')).star
 if role == "RACE" then TrackHorizonController.start() end
 if role == "RACE" then require(script:WaitForChild('MetroCityEnvironment')).start() end
 if role == "RACE" then TrackCircuitStructuresController.start() end
+require(script:WaitForChild('TrackSurfaceController')).start()
 Workspace:GetAttributeChangedSignal("KDMServerRole"):Connect(function()
 	if Workspace:GetAttribute("KDMServerRole") == "RACE" then
 		require(script:WaitForChild('MetroCityEnvironment')).start()

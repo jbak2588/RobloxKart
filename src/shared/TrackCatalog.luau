@@ -1,6 +1,6 @@
 local TrackCatalog = {
 	DefaultId = "Track01",
-	Order = { "Track01", "Track01Desert", "Track01Race", "Track02", "Track03" },
+	Order = { "Track01", "Track01Desert", "Track01Race", "Track03" },
 	Entries = {
 		Track01 = {
 			Id = "Track01",

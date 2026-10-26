@@ -6,6 +6,7 @@ local Geometry=require(RS.Shared.TrackGeometry)
 local Layout=require(RS.Shared.MetroCityLayout)
 local DesertRoad=require(script.Parent.Figure8DesertEnvironment)
 local brandRail=require(RS.Shared.KDMRailBranding)
+local Surface=require(RS.Shared.TrackSurfaceStandard)
 local Environment={}
 local stop
 local function safe(p)
@@ -27,21 +28,19 @@ function Environment.build(track)
   local clone=v:Clone();clone.Name='KDMMetro_'..v.Name;clone.Parent=materials;table.insert(copies,clone)
  end
  -- Clone the accepted Desert road variant verbatim; no global material override.
- local roadMaterial=resources.Materials:WaitForChild('Metro_Racing_Asphalt_Matte'):Clone()
+ local roadMaterial=RS:WaitForChild('KDMDesertResources').Materials.Racing_Asphalt_A:Clone()
  roadMaterial.Name='KDMMetro_Racing_Asphalt_A'
- -- Texture-map properties are authoring-only. Clone the preauthored matte asset;
- -- ordinary LocalScripts cannot assign NormalMap (Studio command tests can).
+ -- Exact Desert surface; texture-map properties remain authoring-only.
  roadMaterial.Parent=materials;table.insert(copies,roadMaterial)
  for _,key in {'Brightness','ClockTime','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
  for _,v in Lighting:GetChildren()do if v:IsA('Sky')or v:IsA('Atmosphere')or v:IsA('PostEffect')then v.Parent=backup end end
  for _,v in resources.Lighting:GetChildren()do
   if v:IsA('Atmosphere')then continue end -- Owner requested clear city visibility.
   local clone=v:Clone()
+  if clone:IsA('ColorCorrectionEffect')then clone.Brightness=-.02;clone.Contrast=.08;clone.Saturation=.04 end
   clone.Parent=Lighting;table.insert(copies,clone)
  end
- Lighting.Brightness=2.5;Lighting.ClockTime=14.5;Lighting.ExposureCompensation=.1
- Lighting.Ambient=Color3.fromRGB(30,30,35);Lighting.OutdoorAmbient=Color3.fromRGB(70,65,75)
- Lighting.EnvironmentDiffuseScale=1;Lighting.EnvironmentSpecularScale=0
+ for key,value in Surface.Lighting do Lighting[key]=value end
  local function appearance(p,color,material,variant,hide)
   saved[p]={p.Color,p.Material,p.MaterialVariant,p.LocalTransparencyModifier,p.Size}
   p.Color=color;p.Material=material;p.MaterialVariant=variant or ''
@@ -55,7 +54,7 @@ function Environment.build(track)
  if env and env:FindFirstChild('SpeedCues')then for _,p in env.SpeedCues:GetDescendants()do if p:IsA('BasePart')then appearance(p,p.Color,p.Material,p.MaterialVariant,true)end end end
  local road=track:FindFirstChild('Road')
  if road then for _,p in road:GetChildren()do if p:IsA('BasePart')then
-  appearance(p,Color3.fromRGB(226,220,188),Enum.Material.Asphalt,'KDMMetro_Racing_Asphalt_A')
+  appearance(p,Surface.RoadTint,Enum.Material.Asphalt,'KDMMetro_Racing_Asphalt_A')
   local index=tonumber(p.Name:match('^Road(%d+)$'))
   local length=index and DesertRoad.straightRoadLength(course.Samples,index)
   if length and not p.CanCollide then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end

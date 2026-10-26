@@ -2,6 +2,30 @@
 
 Read this before editing the project.
 
+## Track surface / scenery cleanup — owner direction 2026-10-26
+
+No Publish for this task; commit/push only. Work one track at a time.
+Desert remains the road albedo/tint reference. Base/Hard/Metro keep the accepted
+Desert PBR and daylight. Park/Green's rejected shimmering roads instead use
+shared-edge asphalt polygons and matte Desert albedo without wet normal/roughness
+response. Park retains its pre-cleanup lighting/grade; never apply the common
+Desert lighting to Park. Keep accepted other road/kerb appearance unchanged.
+Desert's last-row bracket paint clears crossover ribbons by .04 studs; actual
+GridSlots/headings and authority are unchanged.
+Ad panels use Park/Desert/Metro20 x4.5 x.5; keep corner chevron count/graphics.
+Green/Base/Hard receive preview-inspired perimeter/infield groves using CityMaple
+(the broad, spreading yellow-green Park species), with varied scale/yaw and
+buried root collars. Do not use the rejected round-crown NaturalTreeA/B layer;
+Green's old horizon NaturalTrees are locally hidden/replaced by preview groves.
+Use Lobby CityRhododendron / CityLaurel / CityFern around the new trees.
+Retain Park243 trees, Metro scenery and Desert vegetation.
+V2B TEST (Track02) is removed from TrackCatalog.Order and outside cleanup /
+verification scope. Keep its legacy Entries ID for old records/payload safety.
+Verify skid trails on non-queryable visual road planes for all selected official
+tracks; Park's current asphalt top is+.02 above its support, not+.37. Preserve
+server driving, automatic GO, slots, admission and manual ownership invariants.
+
+
 ## Metro City Circuit — owner direction 2026-10-26
 
 PV1192 correction: ordinary LocalScripts cannot write MaterialVariant.NormalMap.

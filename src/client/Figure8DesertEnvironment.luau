@@ -140,6 +140,22 @@ function Environment.build(track)
  if roads then for _,p in roads:GetChildren()do softenRoad(p)end end
  local roadEnv=track:FindFirstChild('Environment')
  if roadEnv then for _,p in roadEnv:GetChildren()do if p.Name:match('^CrossoverRibbon')then softenRoad(p)end end end
+ -- The fourth-row brackets cross the higher crossover ribbon. Keep every
+ -- stroke above the highest local road face, without moving start anchors.
+ local paintFrames={}
+ local grid=track:FindFirstChild('Markings')
+ grid=grid and grid:FindFirstChild('StartGrid')
+ if grid then for _,p in grid:GetDescendants()do if p:IsA('BasePart')then
+  local highest=p.Position.Y-p.Size.Y/2
+  for _,folder in {roads,roadEnv}do if folder then for _,r in folder:GetChildren()do
+   if r:IsA('BasePart')and(r.Name:match('^Road%d+$')or r.Name:match('^CrossoverRibbon'))then
+    local v=r.CFrame:PointToObjectSpace(p.Position)
+    if math.abs(v.X)<=r.Size.X/2+5 and math.abs(v.Z)<=r.Size.Z/2+5 then highest=math.max(highest,r.Position.Y+r.Size.Y/2)end
+   end
+  end end end
+  paintFrames[p]=p.CFrame;p.CFrame+=Vector3.yAxis*math.max(0,highest+.04-(p.Position.Y-p.Size.Y/2))
+ end end end
+ model.Destroying:Connect(function()for p,frame in paintFrames do if p.Parent then p.CFrame=frame end end end)
  local function appearance(part)
   table.insert(saved,{part=part,material=part.Material,variant=part.MaterialVariant,color=part.Color,localTransparency=part.LocalTransparencyModifier})
   part.Material=Enum.Material.Sand;part.MaterialVariant='KDMDesert_Racing_Sand_A';part.Color=sandTint
