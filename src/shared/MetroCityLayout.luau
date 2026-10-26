@@ -1,7 +1,7 @@
 -- Pure, deterministic planning for the original city-template exterior palette.
 local Layout={TrackId='Track01Metro',GeometryId='PracticeCircuitV1',
- MaxBuildings=84,ShoulderClearance=24,
- Names={'Kit_A','Kit_B','Kit_C','Kit_D','Kit_E','Kit_F','Kit_G','Kit_H','Kit_H_2','Kit_I','Kit_J','Shop_14_bldg','Shop_28_bldg'},
+ MaxBuildings=104,ShoulderClearance=24,
+ Names={'Kit_A','Kit_B','Kit_C','Kit_D','Kit_E','Kit_F','Kit_G','Kit_H','Kit_H_2','Kit_I','Kit_J'},
  Bridges={{point=Vector3.new(-350,0,100),forward=Vector3.new(0,0,-1),name='Skybridge1'},
           {point=Vector3.new(-690,0,-100),forward=Vector3.new(0,0,1),name='Skybridge2'}},
  Boulevards={{Vector3.new(-350,0,370),Vector3.new(-350,0,-240)},
@@ -77,7 +77,7 @@ function Layout.plan(geometry,course,width,profiles)
   for _,side in {-1,1}do for block=1,2 do
    local specs={};local span=0
    for j=1,3 do
-    local name=if j==3 then (if (avenue+block)%2==0 then 'Shop_14_bldg'else 'Shop_28_bldg')else regular[(avenue*3+block*2+j+(if side==1 then 2 else 0))%#regular+1]
+    local name=if j==3 then (if (avenue+block)%2==0 then 'Kit_D'else 'Kit_C')else regular[(avenue*3+block*2+j+(if side==1 then 2 else 0))%#regular+1]
     local scale=1+((avenue+block+j)%3)*.04
     table.insert(specs,{name=name,scale=scale,width=profiles[name].X*scale});span+=profiles[name].X*scale+.6
    end
@@ -90,22 +90,22 @@ function Layout.plan(geometry,course,width,profiles)
   end end
  end
  -- Only fill the previously empty outer U-bends / the horseshoe behind staging.
- -- Original straight blocks and bridge anchors are inserted unchanged above.
- local curves={{-170,-300,180,math.pi,math.pi,5},
-  {110,200,100,math.pi,-math.pi,4},
-  {-550,450,140,math.pi,-math.pi/2,3},
-  {-490,450,140,math.pi/2,-math.pi/2,3}}
+ -- Straight blocks use the complete-kit replacements; bridge anchors stay fixed.
+ local curves={{-170,-300,180,math.pi,math.pi,11},
+  {110,200,100,math.pi,-math.pi,8},
+  {-550,450,140,math.pi,-math.pi/2,4},
+  {-490,450,140,math.pi/2,-math.pi/2,4}}
  for curve,c in curves do
   for i=1,c[6]do
    local angle=c[4]+c[5]*(i-.5)/c[6]
    local sign=if c[5]>0 then 1 else -1
    local point=Vector3.new(c[1]+math.cos(angle)*c[3],0,c[2]+math.sin(angle)*c[3])
    local forward=Vector3.new(-math.sin(angle)*sign,0,math.cos(angle)*sign)
-   local name=({'Kit_D','Kit_B','Shop_28_bldg','Kit_G','Shop_14_bldg'})[(curve+i-2)%5+1]
+   local name=({'Kit_D','Kit_B','Kit_C','Kit_G','Kit_D'})[(curve+i-2)%5+1]
    place(name,point,forward,-sign,1,'Corner'..curve..':'..i,nil,curve)
   end
  end
- place('Shop_14_bldg',Vector3.new(-520,0,590),Vector3.xAxis,1,1,'StartRearShop',nil,5)
+ place('Kit_D',Vector3.new(-520,0,590),Vector3.xAxis,1,1,'StartRearShop',nil,5)
  for _,site in sites do
   local left,right=false,false
   for _,other in sites do if other~=site and other.block==site.block then
@@ -124,38 +124,33 @@ function Layout.plan(geometry,course,width,profiles)
  end
  return sites
 end
+-- Seeded variation is stable across Rematch while avoiding repeated size/headings.
+local function random(seed)return (math.sin(seed*12.9898+78.233)*43758.5453)%1 end
 function Layout.forestPlan(geometry,course,width,sites,treeSize)
- local groups={};local radius=math.sqrt(treeSize.X^2+treeSize.Z^2)/2
- for station=0,39 do
-  local point=geometry.getSampleAtFraction(course.Samples,(station+.5)/40)
-  local forward=geometry.getTangentAtFraction(course.Samples,(station+.5)/40)
+ local radius=math.sqrt(treeSize.X^2+treeSize.Z^2)/2
+ local candidates={}
+ for station=0,59 do
+  local point=geometry.getSampleAtFraction(course.Samples,(station+.5)/60)
+  local forward=geometry.getTangentAtFraction(course.Samples,(station+.5)/60)
   local right=Vector3.new(-forward.Z,0,forward.X)
-  for _,side in {-1,1}do
-   local group={}
-   for j,offset in {{0,0},{-18,25},{18,25},{-30,48},{30,48}}do
-    local scale=1.2+((station+j)%4)*.08
-    local center=point+right*(side*(width/2+28+radius*scale+offset[2]))+forward*offset[1]
-    local site={frame=CFrame.new(center),size=Vector3.new(radius*2*scale,1,radius*2*scale)}
-    local clear=Layout.roadDistance(course.Samples,center.X,center.Z)>=width/2+24+radius*scale
-    for _,b in sites do if not b.corner and not separated(site,b,9)then clear=false;break end end
-    if clear then table.insert(group,{position=center,scale=scale,yaw=station*1.71+j,station=station})end
-   end
-   if #group>=3 then table.insert(groups,group)end
-  end
+  for _,side in {-1,1}do for layer=0,2 do
+   local seed=station*17+side*103+layer*47
+   local scale=.8+random(seed)*.45
+   local center=point+right*(side*(width/2+28+radius*scale+layer*radius*1.6))+forward*((random(seed+11)-.5)*24)
+   local box={frame=CFrame.new(center),size=Vector3.new(radius*2*scale,1,radius*2*scale)}
+   local clear=Layout.roadDistance(course.Samples,center.X,center.Z)>=width/2+24+radius*scale
+   for _,b in sites do if not separated(box,b,8)then clear=false;break end end
+   if clear then table.insert(candidates,{position=center,scale=scale,yaw=random(seed+29)*math.pi*2,station=station,radius=radius*scale})end
+  end end
  end
- local trees={};local pick=math.min(20,#groups)
- for i=1,pick do
-  local index=math.floor((i-.5)*#groups/pick)+1
-  for _,site in groups[index]do
-   local clear=true
-   for _,prior in trees do if (prior.position-site.position).Magnitude<radius*1.8 then clear=false;break end end
-   if clear then
-    local box={frame=CFrame.new(site.position),size=Vector3.new(radius*2*site.scale,1,radius*2*site.scale)}
-    for _,b in sites do if b.corner and not separated(box,b,9)then clear=false;break end end
-   end
-   if clear then table.insert(trees,site)end
-  end
+ local accepted={}
+ for _,site in candidates do
+  local clear=true
+  for _,other in accepted do if (other.position-site.position).Magnitude<(other.radius+site.radius)*.72 then clear=false;break end end
+  if clear then table.insert(accepted,site)end
  end
+ local trees={};local count=math.min(64,#accepted)
+ for i=1,count do table.insert(trees,accepted[math.floor((i-.5)*#accepted/count)+1])end
  return trees
 end
 return table.freeze(Layout)

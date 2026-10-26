@@ -57,20 +57,21 @@ for _,name in layout.Names do
  end
  profiles[name]=high-low;check(math.abs(low.Y)<.001,'building grounded in source prefab')
 end
-check(partCount==2622,'complete kit and two low shops with bounded palette')
+check(partCount==2522,'only complete kit buildings in palette')
 local course=geometry.getCourse(geometry.getDefinition(metro.GeometryId))
 local width=geometry.getDefinition(metro.GeometryId).RoadWidth
 local sites=layout.plan(geometry,course,width,profiles)
-check(#sites>=40 and #sites<=84,'bounded dense streets')
-local priorSource=process.exec('git',{'show','95b9d32e14c6272be65cc03111128372b2dd881f:src/shared/MetroCityLayout.luau'})
+check(#sites>=40 and #sites<=104,'bounded dense streets')
+local priorSource=process.exec('git',{'show','543beaa38776dba1544bdbc4a07d96078787c582:src/shared/MetroCityLayout.luau'})
 assert(priorSource.ok)
-local prior=luau.load(priorSource.stdout,{environment=env})().plan(geometry,course,width,profiles)
-for i,site in prior do
- check(sites[i].name==site.name and sites[i].frame==site.frame and sites[i].scale==site.scale,'existing 58 street/bridge sites unchanged')
-end
+local priorLayout=luau.load(priorSource.stdout,{environment=env})()
+check(equal(layout.Bridges,priorLayout.Bridges),'existing bridge anchors unchanged')
+check(not asset:FindFirstChild('CityBeech') and not asset:FindFirstChild('Shop_14_bldg') and not asset:FindFirstChild('Shop_28_bldg'),'old tree / incomplete shop resources removed')
+for _,site in sites do check(not site.name:match('^Shop_'),'no incomplete box shops placed')end
 local infill={0,0,0,0,0}
 for _,site in sites do if site.corner then infill[site.corner]+=1 end end
 for _,n in infill do check(n>=1,'each U-bend and rear-start area receives buildings')end
+check(infill[1]>=6 and infill[2]>=5,'both U outsides have a denser continuous building sequence')
 
 local sides={[-1]=0,[1]=0};local paired={0,0};local adjacent=0
 for i,s in sites do
@@ -89,16 +90,21 @@ end
 check(sides[-1]>15 and sides[1]>15,'buildings on both road sides')
 check(paired[1]==2 and paired[2]==2,'two complete bridge/tower pairs')
 check(adjacent>=15,'continuous adjoining street fronts')
-local tree=asset:FindFirstChild('CityBeech');local treeLow,treeHigh=rb.Vector3.new(math.huge,math.huge,math.huge),rb.Vector3.new(-math.huge,-math.huge,-math.huge)
+local parkAssets=rb.deserializeModel(fs.readFile('src/assets/KDMHubForestTreePrefabs.rbxmx'))[1]
+local tree=parkAssets:FindFirstChild('CityMaple');local treeLow,treeHigh=rb.Vector3.new(math.huge,math.huge,math.huge),rb.Vector3.new(-math.huge,-math.huge,-math.huge)
 for _,p in tree:GetChildren()do for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
  local v=p.CFrame:PointToWorldSpace(p.Size*rb.Vector3.new(x,y,z)/2);treeLow=treeLow:Min(v);treeHigh=treeHigh:Max(v)
 end end end end
 local trees=layout.forestPlan(geometry,course,width,sites,treeHigh-treeLow)
-check(#trees>=35 and #trees<=100,'native pocket groves fill gaps / corners')
+check(#trees>=24 and #trees<=64,'native pocket groves fill gaps / corners')
+local smallest,largest,firstYaw=math.huge,0,nil;local varied=false
 for _,t in trees do
+ smallest=math.min(smallest,t.scale);largest=math.max(largest,t.scale)
+ if firstYaw and math.abs(firstYaw-t.yaw)>.5 then varied=true end;firstYaw=firstYaw or t.yaw
  local frame=rb.CFrame.new(t.position)*rb.CFrame.Angles(0,t.yaw,0)
  check(layout.footprintDistance(course.Samples,frame,(treeHigh-treeLow)*t.scale)>=width/2+24,'complete rotated grove footprint outside recovery shoulder')
 end
+check(largest-smallest>.2 and varied,'seeded random maple sizes and headings vary')
 local samples={rb.Vector3.new(-20,0,0),rb.Vector3.new(20,0,0)}
 check(layout.footprintDistance(samples,frames.identity,rb.Vector3.new(10,10,10))==0,'detect crossing through rectangle without endpoint inside')
 check(math.abs(layout.footprintDistance(samples,rb.CFrame.new(0,0,10),rb.Vector3.new(10,10,10))-5)<.0001,'exact edge distance')

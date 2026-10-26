@@ -31,11 +31,12 @@ function Environment.build(track)
  for _,key in {'Brightness','ClockTime','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
  for _,v in Lighting:GetChildren()do if v:IsA('Sky')or v:IsA('Atmosphere')or v:IsA('PostEffect')then v.Parent=backup end end
  for _,v in resources.Lighting:GetChildren()do
+  if v:IsA('Atmosphere')then continue end -- Owner requested clear city visibility.
   local clone=v:Clone()
   clone.Parent=Lighting;table.insert(copies,clone)
  end
- Lighting.Brightness=2;Lighting.ClockTime=15.5;Lighting.ExposureCompensation=0
- Lighting.Ambient=Color3.fromRGB(10,9,12);Lighting.OutdoorAmbient=Color3.fromRGB(34,26,36)
+ Lighting.Brightness=2.5;Lighting.ClockTime=14.5;Lighting.ExposureCompensation=.1
+ Lighting.Ambient=Color3.fromRGB(30,30,35);Lighting.OutdoorAmbient=Color3.fromRGB(70,65,75)
  Lighting.EnvironmentDiffuseScale=1;Lighting.EnvironmentSpecularScale=1
  local function appearance(p,color,material,variant,hide)
   saved[p]={p.Color,p.Material,p.MaterialVariant,p.LocalTransparencyModifier,p.Size}
@@ -43,8 +44,10 @@ function Environment.build(track)
   if hide then p.LocalTransparencyModifier=1 end
  end
  local env=track:FindFirstChild('Environment')
- if env and env:FindFirstChild('Infield')then appearance(env.Infield,Color3.fromRGB(115,114,119),Enum.Material.Concrete,'')end
- if ground then appearance(ground,Color3.fromRGB(115,114,119),Enum.Material.Concrete,'')end
+ if env and env:FindFirstChild('Infield')then appearance(env.Infield,Color3.fromRGB(72,121,72),Enum.Material.Grass,'')end
+ if ground then appearance(ground,Color3.fromRGB(72,121,72),Enum.Material.Grass,'')end
+ local baseplate=W:FindFirstChild('Baseplate')
+ if baseplate and baseplate~=ground then appearance(baseplate,Color3.fromRGB(72,121,72),Enum.Material.Grass,'')end
  if env and env:FindFirstChild('SpeedCues')then for _,p in env.SpeedCues:GetDescendants()do if p:IsA('BasePart')then appearance(p,p.Color,p.Material,p.MaterialVariant,true)end end end
  local road=track:FindFirstChild('Road')
  if road then for _,p in road:GetChildren()do if p:IsA('BasePart')then
@@ -65,8 +68,10 @@ function Environment.build(track)
   p.Material=material or Enum.Material.SmoothPlastic;p.MaterialVariant=variant or '';safe(p);p.Parent=model;return p
  end
  local bounds=course.Bounds;local cx,cz=(bounds.MinX+bounds.MaxX)/2,(bounds.MinZ+bounds.MaxZ)/2
- part('CityFoundation',Vector3.new(3600,.02,3600),CFrame.new(cx,groundY-.02,cz),Color3.fromRGB(116,113,114),Enum.Material.Concrete,'')
- -- Original Sky already contains the distant hazy city. No surrounding photo walls.
+ for _,x in {-1,1}do for _,z in {-1,1}do
+  part('CityGrassFoundation',Vector3.new(1800,.02,1800),CFrame.new(cx+x*900,groundY-.02,cz+z*900),Color3.fromRGB(72,121,72),Enum.Material.Grass,'')
+ end end
+ -- Retain the original distant-city Sky without surrounding photo walls.
  model.Parent=track
  task.spawn(function()
   local started=os.clock();local profiles={}
@@ -99,6 +104,11 @@ function Environment.build(track)
    clone.Name='StreetBuilding'..(count+1);clone:SetAttribute('SourceBuilding',site.name)
    clone:SetAttribute('RoadClearance',site.clearance-width/2);clone:SetAttribute('StreetBlock',site.block);clone.Parent=model
    if site.corner then clone:SetAttribute('CornerInfill',site.corner)end
+   local padFrame=site.frame*CFrame.new(0,0,-10)
+   local padSize=Vector3.new(size.X+.4,.04,size.Z+20)
+   if Layout.footprintDistance(course.Samples,padFrame,padSize)>=width/2+6 then
+    part('BuildingForecourt',padSize,padFrame+Vector3.new(0,groundY+.16,0),Color3.fromRGB(235,230,225),Enum.Material.Concrete,'KDMMetro_Sidewalk_A')
+   end
    count+=1;minimum=math.min(minimum,site.clearance-width/2)
    if count%3==0 then task.wait()end
   end
@@ -118,17 +128,30 @@ function Environment.build(track)
    for _,p in clone:GetDescendants()do if p:IsA('BasePart')then safe(p);parts+=1;if p.MaterialVariant~=''then p.MaterialVariant='KDMMetro_'..p.MaterialVariant end end end
    clone.Name='UpperFloorSkybridge'..i;clone:SetAttribute('MinimumClearance',55);clone.Parent=model;bridges+=1
   end
-  -- Small native beech groves occupy curved verges / deliberate gaps between blocks.
-  local tree=resources.CityBeech;tree.PrimaryPart=nil;tree.WorldPivot=CFrame.identity
-  local _,treeSize=tree:GetBoundingBox();local trees=Layout.forestPlan(Geometry,course,width,sites,treeSize)
+  -- Exact dominant Rookie Park asset, planted using Park's accepted root collar.
+  local tree=RS:WaitForChild('KDMHubForestTreePrefabs'):WaitForChild('CityMaple')
+  local lo,hi=Vector3.new(math.huge,math.huge,math.huge),Vector3.new(-math.huge,-math.huge,-math.huge)
+  for _,p in tree:GetDescendants()do if p:IsA('BasePart')then
+   for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
+    local v=p.CFrame:PointToWorldSpace(p.Size*Vector3.new(x,y,z)/2)
+    lo=Vector3.new(math.min(lo.X,v.X),math.min(lo.Y,v.Y),math.min(lo.Z,v.Z))
+    hi=Vector3.new(math.max(hi.X,v.X),math.max(hi.Y,v.Y),math.max(hi.Z,v.Z))
+   end end end
+  end end
+  local trunk=tree.Trunk
+  local base=Vector3.new((lo.X+hi.X)/2,trunk.CFrame:PointToWorldSpace(Vector3.new(0,-trunk.Size.Y/2,0)).Y+2,(lo.Z+hi.Z)/2)
+  local trees=Layout.forestPlan(Geometry,course,width,sites,hi-lo)
   for i,site in trees do
    if not alive then return end
-   local clone=tree:Clone();clone:ScaleTo(site.scale);local cf,size=clone:GetBoundingBox()
-   local frame=CFrame.new(site.position+Vector3.new(0,groundY+size.Y/2,0))*CFrame.Angles(0,site.yaw,0)
-   clone:PivotTo(frame*cf:ToObjectSpace(clone:GetPivot()))
-   for _,p in clone:GetDescendants()do if p:IsA('BasePart')then safe(p);parts+=1;if p.MaterialVariant~=''then p.MaterialVariant='KDMMetro_'..p.MaterialVariant end end end
-   clone.Name='PocketGroveTree'..i;clone.Parent=model
-   if i%3==1 then part('PocketGroveBed',Vector3.new(22,.03,22),CFrame.new(site.position+Vector3.new(0,groundY+.045,0)),Color3.fromRGB(76,99,64),Enum.Material.Grass)end
+   local clone=tree:Clone()
+   local frame=CFrame.new(site.position+Vector3.new(0,groundY-.2,0))*CFrame.Angles(0,site.yaw,0)
+   for _,p in clone:GetDescendants()do if p:IsA('BasePart')then
+    local original=p.CFrame;p.Size*=site.scale
+    p.CFrame=frame*CFrame.new((original.Position-base)*site.scale)*original.Rotation
+    safe(p);parts+=1
+   end end
+   clone.Name='PocketGroveTree'..i;clone:SetAttribute('CuratedPrefab','CityMaple')
+   clone:SetAttribute('PlantScale',site.scale);clone:SetAttribute('PlantYaw',site.yaw);clone.Parent=model
    if i%8==0 then task.wait()end
   end
   local sidewalks=0
@@ -150,7 +173,7 @@ function Environment.build(track)
    model:SetAttribute('ScenePartCount',sceneParts)
    model:SetAttribute('MinimumBuildingShoulder',if minimum<math.huge then minimum else 0)
    model:SetAttribute('SidewalkCount',sidewalks);model:SetAttribute('BackdropCount',0)
-   model:SetAttribute('DistantCityStyle','ORIGINAL_TEMPLATE_SKY_AND_ATMOSPHERE')
+   model:SetAttribute('DistantCityStyle','ORIGINAL_TEMPLATE_SKY_CLEAR_ATMOSPHERE');model:SetAttribute('AtmosphereMode','REMOVED');model:SetAttribute('TreeSpecies','CityMaple')
    model:SetAttribute('BuildSeconds',os.clock()-started);model:SetAttribute('Ready',true)
   end
  end)

@@ -8,6 +8,16 @@ Owner rollback: cancel the native original-city import / MetroCityV1 / 45-stud
 road conversion. Keep Base-derived Metro, facade depth/pivot repair and matte
 separated kerbs. Facades stay parallel to the road. No Publish.
 
+Owner landscape/visibility refinement: replace all Metro beech trees with the
+existing Rookie Park dominant CityMaple prefab, seeded varied scale/yaw, grounded
+with Park's root-collar method. Use complete Kit_* buildings only; remove partial
+Shop_* / fabricated shop shells. Fill both U outsides more continuously. All empty
+flooring is grass or paved forecourts, including the underlying Baseplate visually.
+Complete-kit replacements may repack the earlier straight sites; bridge anchors stay fixed.
+Metro now omits Atmosphere (source Haze was 2.03 / Density .325) and uses brighter
+local daylight. Keep the original source Sky and color correction. Restore prior
+Lighting and ground appearance on teardown; other tracks / Park remain unchanged.
+
 Owner U-bend refinement: keep the established 58 straight/bridge sites; add
 buildings only to the outer U bends / rear-start horseshoe. Metro uses the exact
 Desert Racing_Asphalt_A road surface and bounded visual-road tire contact for
@@ -22,8 +32,8 @@ Do not restore the native-city street-layout conversion. Base stays unchanged.
 Track01Metro is a separate public two-lap, four-racer city theme derived from
 Base's PracticeCircuitV1 route. Preserve original Base, other tracks, Hub and
 Race Now's Desert routing. Reuse inert building exteriors from city.rbxlx.
-Distant scenery uses the original template Sky, Atmosphere and color correction
-unchanged; never wrap the place in photos of the template's interior streets.
+Distant scenery retains the original template Sky and color correction; Metro
+Atmosphere follows the newer visibility override above; never wrap the place in photos of the template's interior streets.
 The new track follows the existing checker/grid/chevron standards and authority.
 See docs/testing/metro_city_circuit_20261026.md. No Publish is authorized by this task.
 

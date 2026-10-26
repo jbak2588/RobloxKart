@@ -1,6 +1,60 @@
 # Metro City Circuit — 2026-10-26
 
-## Latest U-bend infill / Desert road / tire-mark repair
+## Current clear landscape and full-track overview
+
+Owner refinements replace the remaining gray floor / partial shops / beech trees,
+extend both U outsides, reduce the thick atmosphere and capture the complete course.
+
+All 83 placed buildings use complete native Kit_* models. Remove both partial
+Shop_14_bldg / Shop_28_bldg resources and their fabricated StreetShell parts, plus
+the old Metro CityBeech resource. Building palette: 2,522 parts plus two five-part
+native bridges (2,532 total). Existing bridge anchors, Base-derived route, Desert
+road material, skid repair, actual slots, gates and other five tracks stay intact.
+Both U outsides now have eight buildings each; rear-start quarters have four each
+plus the rear-straight building. Full rotated footprints retain the 24-stud shoulder.
+
+Metro trees directly clone ReplicatedStorage.KDMHubForestTreePrefabs.CityMaple,
+the dominant Rookie Park species. Source Park files/placements are unchanged.
+Plant with the same Trunk bottom + two-source-stud root collar and -.2-stud target
+used by Park, preserving native mesh orientation; seeded scale .8–1.25 and yaw
+0–360 degrees vary per site while remaining stable through Rematch. 62 Maples.
+World-axis prefab bounds and conservative canopy radius certify recovery clearance.
+No original beech tree clones remain in the Metro scene or its private palette.
+
+Every exposed ground layer (Infield, SafetyGround, underlying Baseplate and four
+1800-stud backdrop tiles) uses Grass, RGB72/121/72. Paved forecourts under each
+building extend to the existing 34-stud sidewalks; certify each forecourt at least
+six studs outside the asphalt before creation. No gray fallback floor remains in
+these layers. All appearance changes and the Baseplate are restored on teardown.
+
+Source atmosphere was Haze 2.02999997, Density .324999988, Glare .300000012.
+Native overhead comparison: Haze=0 with unchanged density remains heavily veiled;
+removing the Atmosphere gives clear course visibility. Metro therefore clones Sky
+and source ColorCorrection only, omitting Atmosphere. Local Brightness2.5,
+ClockTime14.5, exposure .1, Ambient30/30/35 and OutdoorAmbient70/65/75 brighten the
+scene. This overrides the older source-atmosphere preservation direction for Metro
+only. Prior Lighting objects/settings are restored on teardown.
+
+Native final census: 83 buildings / 13,709 building parts, two bridges, 62 Maples,
+390 sidewalk strips; 14,320 scenery parts / 16,030 total track parts, excluding
+karts/avatars and the inert 2,532-part palette. Build ~2.33s in final Edit capture.
+Mobile performance/heat and published real-human racing remain unverified.
+
+Native captures (unmodified Studio raster output):
+- artifacts/metro-city/metro-full-overview-clear-20261026.jpg (full course/buildings)
+- artifacts/metro-city/metro-haze-zero-comparison-20261026.jpg (density still present)
+The camera is an elevated oblique view fitted from road/building world bounds;
+all road extrema and both U sections are visible. Atmosphere removal, grass,
+complete building models, exact Park meshes/root collars and all static-safe flags
+verified natively. Studio window activation was needed to refresh its capture.
+
+Validation: Metro layout 7,137 PASS; source hash/mesh/material audit PASS; six-track
+paint 971 PASS; Metro skid 25 PASS; unchanged Park 3,671,426 PASS; 224 Luau sources
+compile; default/desert-preview Rojo builds PASS. Native ordinary Client teardown
+checks cover Lighting, Baseplate color/material and temporary materials. No Publish.
+
+## Earlier U-bend infill / Desert road / tire-mark repair
+
 
 Owner requested additional buildings only at the U bends and behind staging,
 Desert Figure-8 road surface and restored Drift skid marks.
