@@ -130,6 +130,18 @@ def main():
                     if prop.tag in ('SharedString', 'UniqueId', 'BinaryString', 'SecurityCapabilities') or prop.get('name') in {'SourceAssetId','DefinesCapabilities','TexturePack','EmissiveMaskContent'}:
                         props.remove(prop)
                 folder.append(clean)
+        if folder_name == 'Materials':
+            desert=ET.parse('src/assets/KDMDesertResources.rbxmx').getroot()
+            matte=copy.deepcopy(next(n for n in desert.iter('Item') if name(n)=='Racing_Asphalt_A'))
+            matte.set('referent','MetroMatteAsphalt')
+            props=matte.find('Properties')
+            for prop in list(props):
+                if prop.tag in ('SharedString','UniqueId','BinaryString','SecurityCapabilities') or prop.get('name') in {'SourceAssetId','DefinesCapabilities','TexturePack','EmissiveMaskContent'}:
+                    props.remove(prop)
+            props.find("string[@name='Name']").text='Metro_Racing_Asphalt_Matte'
+            normal=props.find("Content[@name='NormalMap']")
+            normal.clear();normal.set('name','NormalMap');ET.SubElement(normal,'null')
+            folder.append(matte)
     ET.indent(out)
     TARGET.write_bytes(ET.tostring(out, encoding='utf-8'))
     print('parts', count, 'bytes', TARGET.stat().st_size)

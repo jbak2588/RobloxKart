@@ -97,6 +97,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		and previousTrack:FindFirstChild("BarrierTriggers")
 		and previousTrack:GetAttribute("ChevronStandardVersion") == 1
 		and previousTrack:GetAttribute("StartFinishPaintVersion") == 1
+		and previousTrack:GetAttribute("GridLaunchHeadingVersion") == 2
 		and previousTrack:GetAttribute("BarrierForwardTangentVersion") == 1
 		and previousTrack:GetAttribute("EnvironmentCueVersion") == environmentVersion
 		and previousTrack:GetAttribute("VisualStyleVersion") == style.Version
@@ -1043,6 +1044,7 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 		end
 	end
 	testTrack:SetAttribute("StartFinishPaintVersion", 1)
+	testTrack:SetAttribute("GridLaunchHeadingVersion", 2)
 	testTrack:SetAttribute("StartFinishCheckerRows", 4)
 	testTrack:SetAttribute("StartGridColumns", 2)
 	testTrack:SetAttribute("StartGridRows", 4)

@@ -18,6 +18,14 @@ for item in child(asset,'Lighting').findall('Item'):
  for key,value in props(item).items():assert before[key]==value,(item.get('class'),key)
 material=child(original,'MaterialService')
 for item in child(asset,'Materials').findall('Item'):
+ if name(item)=='Metro_Racing_Asphalt_Matte':
+  desert=ET.parse('src/assets/KDMDesertResources.rbxmx').getroot()
+  before=props(next(n for n in desert.iter('Item') if name(n)=='Racing_Asphalt_A'))
+  for key,value in props(item).items():
+   if key=='Name':continue
+   if key=='NormalMap':assert value==('Content','');continue
+   assert before[key]==value,(name(item),key)
+  continue
  before=props(child(material,name(item)))
  for key,value in props(item).items():assert before[key]==value,(name(item),key)
 mesh_ids={n.findtext("Properties/Content[@name='MeshId']/url") for n in original.iter('Item') if n.get('class')=='MeshPart'}

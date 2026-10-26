@@ -24,14 +24,16 @@ local function signature(root)
  local function visit(n,path)
   local values={}
   for k,v in n.props do if k~='Parent'then table.insert(values,k..'='..tostring(v))end end
-  for k,v in n.attrs do table.insert(values,'@'..k..'='..tostring(v))end
+  for k,v in n.attrs do if k~='GridLaunchHeadingVersion'then table.insert(values,'@'..k..'='..tostring(v))end end
   table.sort(values);table.insert(result,path..'|'..table.concat(values,';'))
   for _,c in n:GetChildren()do visit(c,path..'/'..c.Name)end
  end
  visit(root,'');return table.concat(result,'\n')
 end
 for _,id in oldCatalog.Order do
- check(equal(catalog.Entries[id],oldCatalog.Entries[id]),id..' entire catalog entry unchanged')
+ local normalized=table.clone(catalog.Entries[id]);normalized.PreviewImageAssetId=oldCatalog.Entries[id].PreviewImageAssetId;normalized.GridSlots=oldCatalog.Entries[id].GridSlots
+ check(equal(normalized,oldCatalog.Entries[id]),id..' catalog unchanged except approved preview / launch heading')
+ for i,frame in catalog.Entries[id].GridSlots do check((frame.Position-oldCatalog.Entries[id].GridSlots[i].Position).Magnitude<.001,id..' existing grid centers preserved')end
  check(signature(builder.build(object('Folder'),catalog.Entries[id],0))==signature(oldBuilder.build(object('Folder'),oldCatalog.Entries[id],0)),id..' every generated property unchanged')
 end
 check(catalog.RaceNowDefaultId==oldCatalog.RaceNowDefaultId,'Race Now routing unchanged')

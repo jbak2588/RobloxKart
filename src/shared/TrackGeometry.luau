@@ -395,8 +395,13 @@ function TrackGeometry.getStartGridFrames(course)
 			end
 			remaining -= length
 		end
-		local frame = CFrame.lookAt(point, point + tangent)
-		for _, side in {-1, 1} do table.insert(frames, frame * CFrame.new(side * 14, 0, 0)) end
+		local approach = CFrame.lookAt(point, point + tangent)
+		-- Keep bracket centers on the approach, but aim every kart into the
+		-- start straight. A curve tangent here launched Base 10--22 degrees right.
+		for _, side in {-1, 1} do
+			local center=(approach * CFrame.new(side * 14, 0, 0)).Position
+			table.insert(frames,CFrame.lookAt(center,center+course.StartTangent))
+		end
 	end
 	return frames
 end

@@ -4,6 +4,16 @@ Read this before editing the project.
 
 ## Metro City Circuit — owner direction 2026-10-26
 
+PV1192 correction: ordinary LocalScripts cannot write MaterialVariant.NormalMap.
+Metro clones preauthored Metro_Racing_Asphalt_Matte; no runtime map assignments.
+Validate theme startup through the ordinary Client initializer, not only through
+privileged Studio command calls. Observe delayed track identity/road replication.
+Paint/GridSlot centers stay fixed, but all rows face the start straight rather
+than curved approach tangents (GridLaunchHeadingVersion2). Preserve allocation,
+seating, automatic GO boost and manual server ownership. Owner preview assets:
+Metro125455433974318 / Desert83402336096508.
+
+
 Latest owner release direction supersedes earlier No Publish statements for this
 release: reduce Metro road sparkle, add original alternating city lamps and Park
 KDM ad rails only in frontage-free gaps; verify missed-checkpoint guidance and

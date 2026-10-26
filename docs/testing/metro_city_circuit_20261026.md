@@ -1,5 +1,51 @@
 # Metro City Circuit — 2026-10-26
 
+## PV1192 theme / automatic launch correction
+
+Owner reproduced Metro showing the old Base and a rightward launch, and supplied
+Metro125455433974318 / Desert83402336096508 preview assets. Baseline25a3a8a matched
+origin. Reproduced in an ordinary RACE Client initializer: Metro build aborted at
+NormalMap assignment with "lacking capability Plugin". Previous command-tool
+build/teardown probes ran with authoring privileges and did not certify ordinary
+LocalScript capability. This is the confirmed missing-city cause; Base correctly
+retains its original appearance, while Metro must have the separate city scene.
+
+Author Metro_Racing_Asphalt_Matte in KDMMetroResources from Desert's original
+Racing_Asphalt_A, retaining color/roughness/tiling and omitting NormalMap/packed
+map content. Runtime only clones the prepared MaterialVariant; no texture-map
+setter remains. Track attribute changes and Road child arrivals now re-evaluate
+eligibility; complete RoadSegmentCount is required before scene construction.
+
+Grid centers were on the curved approach and inherited 10.2/21.6-degree rightward
+headings for Base/Metro rows1/2. Retain every center and left/right entry allocation;
+aim all painted rows and four actual kart slots along course.StartTangent instead.
+V2B and Hard get their same straight-start heading across rows; Green/Desert
+already had the same heading. GridLaunchHeadingVersion2 rejects cached old paint.
+No route, gate, road, physics, boost, seating, ownership or Park anchors change.
+
+Native ordinary Client startup now builds Ready city scene:83 buildings,2 bridges,
+64 lamps,46 Park ad rails,62 Maples /14,622 scenery parts. Ordinary Base startup
+has Track01Race and zero Metro scene. Replacing it with Metro whose TrackId and
+GeometryId arrive late still automatically builds the complete scene. No Metro
+runtime capability errors in either corrected startup/late-metadata run.
+
+Actual seated server kart automatic GO, no steering:3.0008s /181 Heartbeat samples,
+214.9524 studs forward, maximum lateral movement0.4036 studs, offTrack=false,
+manual server network ownership retained. This is a native single-human launch;
+4-human and mobile acceptance are not inferred. The first temporary seat harness
+used a dead initial Humanoid; a fresh live character and an ordinary server Script
+were used for the measured run. Temporary initialization/QA scripts are excluded.
+
+PASS:2,221 paint/grid/250-stud zero-steer corridor checks across all six tracks and
+all four racer slots;11,151 Metro layout/preservation checks;93 real-controller
+entry/order/1H1B/GO/Rematch/departure checks;3,185 route recovery;86,203 continuity/
+reverse/two-lap checks;25 skid;225 sources compile;source/material audit and Rojo.
+Source palette remains2,536 inert parts; one additional authored matte material.
+Owner preview IDs are wired in TrackCatalog for both Garage and room icons.
+Both images also reached IsLoaded=true in visible ordinary Client ImageLabels.
+Release result follows after validated commit/push and correction Publish.
+
+
 ## Roadside / checkpoint release candidate
 
 Owner explicitly authorizes Commit / Push followed by Publish after verifying

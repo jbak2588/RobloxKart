@@ -8,7 +8,7 @@ local catalog=luau.load(fs.readFile('src/shared/TrackCatalog.luau'),{environment
 local oldSource=process.exec('git',{'show','e3f7b3a1370264af85ba70c3f7345c8fa867caef:src/server/TrackBuilder.luau'})
 assert(oldSource.ok)
 local baseline=luau.load(oldSource.stdout,{environment=env})()
-local excluded={VisualPartCount=true,CheckerPartCount=true,StartFinishPaintVersion=true,StartFinishCheckerRows=true,StartGridColumns=true,StartGridRows=true}
+local excluded={GridLaunchHeadingVersion=true,VisualPartCount=true,CheckerPartCount=true,StartFinishPaintVersion=true,StartFinishCheckerRows=true,StartGridColumns=true,StartGridRows=true}
 local function signature(root)
  local result={}
  local function visit(node,path)
@@ -46,6 +46,8 @@ for _,id in catalog.Order do
  local grid=marking:FindFirstChild('StartGrid')
  check(#grid:GetChildren()==8 and world:GetAttribute('StartGridColumns')==2 and world:GetAttribute('StartGridRows')==4,id..' two columns, four rows')
  check(#entry.GridSlots==4 and entry.MaxPlayers==4,id..' paint does not increase capacity')
+ if id=='Track01Metro'then check(entry.PreviewImageAssetId=='rbxassetid://125455433974318','Metro supplied preview asset')end
+ if id=='Track01Desert'then check(entry.PreviewImageAssetId=='rbxassetid://83402336096508','Desert supplied preview asset')end
  local parts={band}
  for i,slot in grid:GetChildren()do
   check(slot.Name=='Grid'..i and #slot:GetChildren()==3,id..' bracket has three strokes')
@@ -56,6 +58,8 @@ for _,id in catalog.Order do
   if i<=entry.MaxPlayers then
    check((entry.GridSlots[i].Position-expected.Position).Magnitude<.001,id..' actual spawn centered in painted bracket '..i)
    check(entry.GridSlots[i].LookVector:Dot(expected.LookVector)>.99999,id..' spawn faces closed front of bracket '..i)
+   check(entry.GridSlots[i].LookVector:Dot(course.StartTangent)>.99999,id..' spawn aims into start straight '..i)
+   for travel=0,250,5 do check(distance(course.Samples,entry.GridSlots[i].Position+entry.GridSlots[i].LookVector*travel)<def.RoadWidth/2-2,id..' zero-steer automatic launch stays in corridor '..i..' / '..travel)end
   end
   check(front.Size==rb.Vector3.new(10,.02,.35),id..' Park-width front stroke')
   for _,part in slot:GetChildren()do

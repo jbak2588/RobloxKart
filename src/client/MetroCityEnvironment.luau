@@ -27,10 +27,10 @@ function Environment.build(track)
   local clone=v:Clone();clone.Name='KDMMetro_'..v.Name;clone.Parent=materials;table.insert(copies,clone)
  end
  -- Clone the accepted Desert road variant verbatim; no global material override.
- local roadMaterial=RS:WaitForChild('KDMDesertResources'):WaitForChild('Materials'):WaitForChild('Racing_Asphalt_A'):Clone()
+ local roadMaterial=resources.Materials:WaitForChild('Metro_Racing_Asphalt_Matte'):Clone()
  roadMaterial.Name='KDMMetro_Racing_Asphalt_A'
- -- Retain Desert's asphalt color/roughness, suppress sparkling micro normals.
- roadMaterial.NormalMap=''
+ -- Texture-map properties are authoring-only. Clone the preauthored matte asset;
+ -- ordinary LocalScripts cannot assign NormalMap (Studio command tests can).
  roadMaterial.Parent=materials;table.insert(copies,roadMaterial)
  for _,key in {'Brightness','ClockTime','ExposureCompensation','Ambient','OutdoorAmbient','EnvironmentDiffuseScale','EnvironmentSpecularScale'}do oldLight[key]=Lighting[key]end
  for _,v in Lighting:GetChildren()do if v:IsA('Sky')or v:IsA('Atmosphere')or v:IsA('PostEffect')then v.Parent=backup end end
@@ -201,23 +201,32 @@ function Environment.build(track)
 end
 function Environment.start()
  if stop then return end
- local connections={};local active;local pending=false;local closed=false
+ local connections={};local trackConnections={};local watched;local active;local pending=false;local closed=false
+ local schedule
  local function clear()local previous=active;active=nil;if previous then previous:Destroy()end end
  local function update()
   if closed then return end
   local proto=W:FindFirstChild('Prototype');local track=proto and proto:FindFirstChild('TestTrack')
+  if watched~=track then
+   for _,c in trackConnections do c:Disconnect()end;table.clear(trackConnections);watched=track
+   if track then for _,key in {'TrackId','GeometryId','RoadSegmentCount'}do
+    table.insert(trackConnections,track:GetAttributeChangedSignal(key):Connect(function()schedule()end))
+   end end
+  end
   if track and Layout.eligible(W:GetAttribute('KDMServerRole'),track:GetAttribute('TrackId'),track:GetAttribute('GeometryId'))then
-   if not active or active.Parent~=track then clear();active=Environment.build(track)end
+   local road=track:FindFirstChild('Road')
+   local expected=track:GetAttribute('RoadSegmentCount')or math.huge
+   if road and #road:GetChildren()>=expected and (not active or active.Parent~=track)then clear();active=Environment.build(track)end
   else clear()end
  end
- local function schedule()
+ schedule=function()
   if pending or closed then return end;pending=true
   task.defer(function()pending=false;update()end)
  end
- table.insert(connections,W.DescendantAdded:Connect(function(o)if o.Name=='TestTrack'or o.Name=='Road'then schedule()end end))
+ table.insert(connections,W.DescendantAdded:Connect(function(o)if o.Name=='TestTrack'or o.Name=='Road'or (watched and o.Parent==watched:FindFirstChild('Road'))then schedule()end end))
  table.insert(connections,W.DescendantRemoving:Connect(function(o)if active and (o==active.Parent or o==active)then clear();schedule()end end))
  table.insert(connections,W:GetAttributeChangedSignal('KDMServerRole'):Connect(schedule))
- stop=function()closed=true;clear();for _,c in connections do c:Disconnect()end;stop=nil end
+ stop=function()closed=true;clear();for _,c in connections do c:Disconnect()end;for _,c in trackConnections do c:Disconnect()end;stop=nil end
  update()
 end
 function Environment.destroy()if stop then stop()end end
