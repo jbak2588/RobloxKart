@@ -19,4 +19,9 @@ check(standard.MarkingLift>=.2,'distant paint clearance above asphalt')
 local project=require('@lune/serde').decode('json',fs.readFile('default.project.json'))
 local lighting=project.tree.Lighting['$properties']
 check(lighting.ClockTime==standard.Sun.ClockTime and lighting.GeographicLatitude==standard.Sun.GeographicLatitude,'Rojo default sun matches runtime themes before client startup')
+for _,id in {'Track01','Track01Desert','Track01Race','Track01Metro','Track03','Track02'}do
+ for _,kind in {'RacingDivider','OuterEdge','Other'}do
+  check(standard.hideCrossingPaint(id,kind)==(id=='Track01'and kind~='Other'),'only Green crossing paint removed')
+ end
+end
 print('PASS: '..n..' surface reference / selected list / theme isolation checks')

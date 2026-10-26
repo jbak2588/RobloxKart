@@ -42,7 +42,8 @@ function Controller.build(track,park)
  local raised={};local raisedCount=0
  local function liftMarking(p)
   if not p:IsA('BasePart')or raised[p]then return end
-  local target=if park then (p.Name=='Kerb'or p.Name=='EdgeLine')else (track:GetAttribute('TrackId')=='Track01'and(p.Name:match('^LeftEdge%d+$')or p.Name:match('^RightEdge%d+$')or p:GetAttribute('GuidanceKind')=='OuterEdge'))
+  if Standard.hideCrossingPaint(track:GetAttribute('TrackId'),p:GetAttribute('GuidanceKind'))then hide(p);return end
+  local target=if park then (p.Name=='Kerb'or p.Name=='EdgeLine')else (track:GetAttribute('TrackId')=='Track01'and(p.Name:match('^LeftEdge%d+$')or p.Name:match('^RightEdge%d+$')))
   if not target then return end
   remember(p);raised[p]=true;p.CFrame+=Vector3.yAxis*Standard.MarkingLift;raisedCount+=1
   model:SetAttribute('RaisedMarkingCount',raisedCount)

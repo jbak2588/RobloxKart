@@ -42,4 +42,10 @@ for _,d in {351,600,1200,1899}do
 end
 local _,_,behind=C.markerMetrics(-10,430,75,600,true);check(behind==0,'missed pin still respects camera direction')
 
+for _,id in {'Track01','Track01Desert','Track01Race','Track01Metro','Track03','Track02'}do
+ local track={GetAttribute=function(_,key)return if key=='TrackId'then id else nil end}
+ check(C.checkerLift(track)==(if id=='Track01'then .265 else .065),'checker lift scoped to Green; other/retired identity unchanged')
+end
+local park={GetAttribute=function(_,key)return if key=='DriveGeometry'then 'ROOKIE_LOOP_V1'else nil end}
+check(C.checkerLift(park)==.265,'Park checker clear of matte road at a distance')
 print('PASS: '..n..' production marker perspective/proximity/missed-checkpoint checks')

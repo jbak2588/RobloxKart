@@ -7,6 +7,9 @@ Standard.Lighting={Brightness=2,ExposureCompensation=-.2,ClockTime=Standard.Sun.
  Ambient=Color3.fromRGB(130,128,120),OutdoorAmbient=Color3.fromRGB(145,145,140),
  EnvironmentDiffuseScale=.8,EnvironmentSpecularScale=.25}
 Standard.Tracks={Track01=true,Track01Race=true,Track03=true}
+function Standard.hideCrossingPaint(id,kind)
+ return id=='Track01'and(kind=='RacingDivider'or kind=='OuterEdge')
+end
 function Standard.eligible(role,id,park)
  return (role=='RACE' and Standard.Tracks[id]==true)or(role=='HUB' and park==true)
 end

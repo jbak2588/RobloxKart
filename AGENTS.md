@@ -2,6 +2,15 @@
 
 Read this before editing the project.
 
+## Green crossing / checkpoint checker visibility — owner direction 2026-10-26
+
+Green Island hides all24 CrossoverGuidance divider/outer-edge paint parts, including
+late descendants; retain both asphalt ribbons, route and checkpoint gates. Park and
+Green next-checkpoint two-row bands use.265 road-plane lift instead of.065 to remain
+clear of the matte road / Green crossing at a distance. Other tracks retain.065.
+Keep the existing next-required-gate, missed-gate pin, finish four-row band and
+server progress authority. No Publish; commit/push only after validation.
+
 ## High sun / stable roadside paint — owner direction 2026-10-26
 
 All selectable official tracks and Rookie Park use ClockTime13 and latitude23.5

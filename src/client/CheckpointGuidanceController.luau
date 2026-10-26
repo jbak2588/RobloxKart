@@ -43,6 +43,11 @@ local function surfaceY(road,x,z)
  local top=road.CFrame:PointToWorldSpace(Vector3.new(0,road.Size.Y/2,0));local n=road.CFrame.UpVector
  return top.Y-(n.X*(x-top.X)+n.Z*(z-top.Z))/math.max(n.Y,.1)
 end
+-- Checker parts are present as soon as this becomes the required gate. Keep
+-- the two reported matte tracks clear of asphalt at distant shallow angles.
+function Controller.checkerLift(track)
+ return if track:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'or track:GetAttribute('TrackId')=='Track01'then .265 else .065
+end
 function Controller.new(player,isDriving)
  local currentGate,currentTrack,folder,markerGui,markerFrame
  local cachedSeat,cachedChassis,cachedCorners
@@ -90,7 +95,7 @@ function Controller.new(player,isDriving)
    local offsetX=(column-.5-8)*width/16;local offsetZ=(row-1.5)*1.5
    local pos=base:PointToWorldSpace(Vector3.new(offsetX,0,offsetZ))
    local part=Instance.new('Part');part.Name='CheckpointChecker';part.Size=Vector3.new(width/16,.025,1.5)
-   part.CFrame=base*CFrame.new(offsetX,surfaceY(road,pos.X,pos.Z)-y+.065,offsetZ)
+   part.CFrame=base*CFrame.new(offsetX,surfaceY(road,pos.X,pos.Z)-y+Controller.checkerLift(track),offsetZ)
    part.Color=if (row+column)%2==0 then Color3.fromRGB(245,245,245) else Color3.fromRGB(12,14,18)
    part.Material=Enum.Material.SmoothPlastic;safe(part);part.Parent=folder
   end end
