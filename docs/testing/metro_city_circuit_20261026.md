@@ -31,7 +31,7 @@ when facing away, visible again on turning back, then next=2 restores range350.
 This is a presentation/mirror test, not a claimed manual reverse-driven lap.
 
 Native production-bound Studio reports Universe10768420544 / Place127925465904803,
-pre-release PlaceVersion1161, persisted HubParkV1Enabled=true. Ordinary HUB startup
+loaded Edit snapshot PlaceVersion1161 (not the latest cloud-version number), persisted HubParkV1Enabled=true. Ordinary HUB startup
 creates HubParkRookieLoopG2 with ROOKIE_LOOP_V1; no legacy LobbyFrontTestDriveZone.
 All 215 primary server/client/shared scripts match the repository modulo trailing
 newlines. Default Rojo builds now explicitly carry the Park flag, avoiding a
@@ -44,7 +44,17 @@ continuity/reverse/two-lap86,203; 225 Luau sources compile; default Rojo release
 Native candidate before final frontage widening had14,655 scenery parts; final
 candidate removes33 rails. Existing Studio DataStore API-access warnings remain;
 no new live DataStore, four-human mobile or device performance acceptance claimed.
-Publish result will be recorded after the authorized release action.
+Release source committed/pushed as cbd9b74650c58471053e79026e0ae027798692b0
+before Publish. Studio Publish succeeded as v1192, confirmed by native Output:
+"place published", "add publish notes to v1192", and the named KDM success line.
+Production target remains Universe10768420544 / Place127925465904803. Marketplace
+Updated confirms 2026-10-26T06:23:15.168Z (13:23 Jakarta). KDMBuildCommit on the
+published snapshot is cbd9b74650c58471053e79026e0ae027798692b0 and the persisted
+Park flag is true. Verified all2,248 Metro native mesh identities before Publish;
+no temporary QA scenes were present. No running servers were forcibly restarted.
+The loaded Edit PlaceVersion remains1161 after Publish, so it is not used as the
+release receipt; the Studio v1192 success output is the release evidence.
+Published mobile visuals/heat and live multiplayer acceptance remain separate.
 
 
 ## Current clear landscape and full-track overview
