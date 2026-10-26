@@ -57,21 +57,38 @@ for _,name in layout.Names do
  end
  profiles[name]=high-low;check(math.abs(low.Y)<.001,'building grounded in source prefab')
 end
-check(partCount==357,'bounded nine-building exterior palette')
+check(partCount==2622,'complete kit and two low shops with bounded palette')
 local course=geometry.getCourse(geometry.getDefinition(metro.GeometryId))
 local width=geometry.getDefinition(metro.GeometryId).RoadWidth
 local sites=layout.plan(geometry,course,width,profiles)
-check(#sites>=60 and #sites<=96,'bounded dense streets')
-local sides={[-1]=0,[1]=0};local quarters={0,0,0,0}
+check(#sites>=40 and #sites<=68,'bounded dense streets')
+local sides={[-1]=0,[1]=0};local paired={0,0};local adjacent=0
 for i,s in sites do
  check(layout.footprintDistance(course.Samples,s.frame,s.size)>=width/2+24,'entire building footprint outside drift shoulder')
- sides[s.side]+=1;quarters[math.floor(s.station/layout.Stations*4)+1]+=1
+ check(math.abs(s.frame.LookVector:Dot(s.forward))<.00001,'facade parallel to road')
+ sides[s.side]+=1
+ if s.bridge then paired[s.bridge]+=1 end
  for j=1,i-1 do local other=sites[j]
-  check((s.frame.Position-other.frame.Position).Magnitude>=s.radius+other.radius+5,'building bounds do not overlap')
+  check(layout.separated(s,other,.14),'building rectangles do not overlap')
+  if s.block==other.block then
+   local delta=math.abs((s.frame.Position-other.frame.Position):Dot(s.forward))-(s.size.X+other.size.X)/2
+   if delta>.1 and delta<1 then adjacent+=1 end
+  end
  end
 end
-check(sides[-1]>20 and sides[1]>20,'buildings on both road sides')
-for _,n in quarters do check(n>=10,'scenery throughout lap')end
+check(sides[-1]>15 and sides[1]>15,'buildings on both road sides')
+check(paired[1]==2 and paired[2]==2,'two complete bridge/tower pairs')
+check(adjacent>=15,'continuous adjoining street fronts')
+local tree=asset:FindFirstChild('CityBeech');local treeLow,treeHigh=rb.Vector3.new(math.huge,math.huge,math.huge),rb.Vector3.new(-math.huge,-math.huge,-math.huge)
+for _,p in tree:GetChildren()do for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
+ local v=p.CFrame:PointToWorldSpace(p.Size*rb.Vector3.new(x,y,z)/2);treeLow=treeLow:Min(v);treeHigh=treeHigh:Max(v)
+end end end end
+local trees=layout.forestPlan(geometry,course,width,sites,treeHigh-treeLow)
+check(#trees>=35 and #trees<=100,'native pocket groves fill gaps / corners')
+for _,t in trees do
+ local frame=rb.CFrame.new(t.position)*rb.CFrame.Angles(0,t.yaw,0)
+ check(layout.footprintDistance(course.Samples,frame,(treeHigh-treeLow)*t.scale)>=width/2+24,'complete rotated grove footprint outside recovery shoulder')
+end
 local samples={rb.Vector3.new(-20,0,0),rb.Vector3.new(20,0,0)}
 check(layout.footprintDistance(samples,frames.identity,rb.Vector3.new(10,10,10))==0,'detect crossing through rectangle without endpoint inside')
 check(math.abs(layout.footprintDistance(samples,rb.CFrame.new(0,0,10),rb.Vector3.new(10,10,10))-5)<.0001,'exact edge distance')

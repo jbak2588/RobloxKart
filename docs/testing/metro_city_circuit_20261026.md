@@ -1,5 +1,54 @@
 # Metro City Circuit — 2026-10-26
 
+## Current modular-kit street blocks
+
+Owner request after rollback: retain Base-derived Metro; use the complete kit
+buildings for continuous street fronts, native low shops, pocket forests and the
+native elevated building-to-building bridges. No native street-layout conversion.
+
+Read-only source Endorsed Models/PrefabBuildings contains 11 top-level building
+models (including two distinct H models). Reuse all 11 under unique Kit_* names,
+plus City_Template 14_bldg / 28_bldg low shops, both five-part Skybridge models and
+the two-part BeechwoodTree_Var02 street tree. Source palette: 2,634 parts total;
+2,622 in building/shop models. Full original exterior MeshIds/PBR maps retained.
+Only the two old partial low-shop models keep the recessed solid depth repair;
+complete kit models use their actual native structure. No imported scripts,
+vehicles or dynamic source lights. Source Sky/Atmosphere/color correction unchanged.
+
+Final layout: 58 buildings, two bridges, 54 native trees in pocket groups and 390
+wide sidewalk strips. Each long boulevard has compact, wall-adjacent three-building
+blocks including a low shop. Facades stay parallel to the road. Building footprint
+clearance is at least 28 studs beyond the asphalt edge in Studio. Native bridge
+ends enter the paired Kit_I tower fronts; lowest bridge support is 55 studs above
+ground. Road-visible rear faces and exposed stepped/end side walls remain. Hidden
+shared decoration is culled only where another building/absence of route visibility
+hides it. Groves use varied scale/rotation and the complete rotated canopy footprint
+stays beyond the 24-stud recovery shoulder. Trees are grouped rather than allocated
+to the earliest part of the lap. Sidewalks span 34 studs from the kerb-side frontage
+to the buildings, with separated overlapping planes to prevent texture flicker.
+
+Final Studio Edit census: 9,855 building parts; 10,382 scenery parts including
+bridges/trees/beds/sidewalks; 12,092 total track BaseParts. This excludes avatars,
+karts and the inert 2,634-part ReplicatedStorage source palette. Build about 1.52s
+in the local Edit check; a prior grove-density variant built in 1.28s on ordinary
+Client. These are local construction measurements, not mobile frame-rate evidence.
+Part count is higher than the old partial-facade layout; mobile heat/FPS and actual
+published multiplayer acceptance remain unverified.
+
+Validation: Metro geometry/layout/continuous adjacency/whole-footprint clearance,
+paired bridge towers, forests, frozen five prior worlds and paint checks PASS.
+Metro validation 5,341 checks; six-track paint 971; race modes 168; Metro Bot 125;
+224 Luau sources compile. Source hash/Sky/material/mesh audit PASS. Ordinary Client
+build verified all parts safe, both bridges overhead, exact source Sky and complete
+Lighting/material teardown. Only existing Studio DataStore permission warning.
+Default and desert-preview Rojo builds PASS. No Publish performed. QA scene/cache
+and temporary source backup are removed from Studio.
+
+Screenshot: artifacts/metro-city/modular-blocks-skybridge.jpg.
+
+## Earlier authoring checkpoints (superseded layout counts below)
+
+
 New Track01Metro / Metro City Circuit preserves Base's PracticeCircuitV1 course,
 checkpoints and aligned starting anchors, with separate room/rematch/record identity.
 Public race: 1–4 racers, two laps, same optional Bot contract as Base.

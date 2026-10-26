@@ -28,5 +28,5 @@ for n in asset.iter('Item'):
  if n.get('class')=='MeshPart':assert n.findtext("Properties/Content[@name='MeshId']/url") in mesh_ids
  p=props(n)
  for k,v in {'Anchored':'true','CanCollide':'false','CanTouch':'false','CanQuery':'false','CastShadow':'false'}.items():assert p[k]==('bool',v)
-assert parts==357
-print('PASS: original city hash, original Sky/Atmosphere/ColorCorrection/material values, original mesh identities, inert 357-part palette')
+assert parts==2634
+print('PASS: original city hash, original Sky/Atmosphere/ColorCorrection/material values, original mesh identities, inert 2634-part modular palette')

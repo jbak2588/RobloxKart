@@ -8,6 +8,12 @@ Owner rollback: cancel the native original-city import / MetroCityV1 / 45-stud
 road conversion. Keep Base-derived Metro, facade depth/pivot repair and matte
 separated kerbs. Facades stay parallel to the road. No Publish.
 
+Owner modular-kit refinement: use the complete Endorsed Models/PrefabBuildings
+palette for continuous road-parallel blocks, two native low shops and both original
+Skybridge variants joining paired towers. Keep native beech pocket groves in gaps
+and curves, continuous sidewalk frontage, and road-visible side/rear details.
+Do not restore the native-city street-layout conversion. Base stays unchanged.
+
 Track01Metro is a separate public two-lap, four-racer city theme derived from
 Base's PracticeCircuitV1 route. Preserve original Base, other tracks, Hub and
 Race Now's Desert routing. Reuse inert building exteriors from city.rbxlx.

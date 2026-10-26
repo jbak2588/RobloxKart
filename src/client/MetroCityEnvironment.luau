@@ -82,29 +82,62 @@ function Environment.build(track)
    local target=site.frame+Vector3.new(0,groundY+size.Y/2,0)
    clone:PivotTo(target*cf:ToObjectSpace(clone:GetPivot()))
    for _,p in clone:GetDescendants()do if p:IsA('BasePart')then
+    -- Shared side/rear decoration is invisible inside a continuous street block.
+    if (p.Name:match('_Rear$') and site.exposedRear==false)or (p.Name:match('_Side$') and not site.exposedSide and not site.bridge)then p:Destroy();continue end
     safe(p);parts+=1
     if p.MaterialVariant~=''then p.MaterialVariant='KDMMetro_'..p.MaterialVariant end
    end end
    clone.Name='StreetBuilding'..(count+1);clone:SetAttribute('SourceBuilding',site.name)
-   clone:SetAttribute('RoadClearance',site.clearance-width/2);clone.Parent=model
+   clone:SetAttribute('RoadClearance',site.clearance-width/2);clone:SetAttribute('StreetBlock',site.block);clone.Parent=model
    count+=1;minimum=math.min(minimum,site.clearance-width/2)
    if count%3==0 then task.wait()end
   end
-  -- Source sidewalk material on separate, nonphysical shoulder strips.
+  local buildingParts=parts
+  -- Reuse the original upper-floor bridge mesh between paired native towers.
+  local bridges=0
+  for i,b in Layout.Bridges do
+   if not alive then return end
+   local pair=0;for _,site in sites do if site.bridge==i then pair+=1 end end
+   if pair~=2 then continue end
+   local prefab=resources:FindFirstChild(b.name);prefab.PrimaryPart=nil;prefab.WorldPivot=CFrame.identity
+   local clone=prefab:Clone();local _,original=clone:GetBoundingBox()
+   clone:ScaleTo((width+2*Layout.ShoulderClearance+28)/original.Z)
+   local cf,size=clone:GetBoundingBox();local right=Vector3.new(-b.forward.Z,0,b.forward.X)
+   local frame=CFrame.lookAt(b.point+Vector3.new(0,groundY+55+size.Y/2,0),b.point+right+Vector3.new(0,groundY+55+size.Y/2,0))
+   clone:PivotTo(frame*cf:ToObjectSpace(clone:GetPivot()))
+   for _,p in clone:GetDescendants()do if p:IsA('BasePart')then safe(p);parts+=1;if p.MaterialVariant~=''then p.MaterialVariant='KDMMetro_'..p.MaterialVariant end end end
+   clone.Name='UpperFloorSkybridge'..i;clone:SetAttribute('MinimumClearance',55);clone.Parent=model;bridges+=1
+  end
+  -- Small native beech groves occupy curved verges / deliberate gaps between blocks.
+  local tree=resources.CityBeech;tree.PrimaryPart=nil;tree.WorldPivot=CFrame.identity
+  local _,treeSize=tree:GetBoundingBox();local trees=Layout.forestPlan(Geometry,course,width,sites,treeSize)
+  for i,site in trees do
+   if not alive then return end
+   local clone=tree:Clone();clone:ScaleTo(site.scale);local cf,size=clone:GetBoundingBox()
+   local frame=CFrame.new(site.position+Vector3.new(0,groundY+size.Y/2,0))*CFrame.Angles(0,site.yaw,0)
+   clone:PivotTo(frame*cf:ToObjectSpace(clone:GetPivot()))
+   for _,p in clone:GetDescendants()do if p:IsA('BasePart')then safe(p);parts+=1;if p.MaterialVariant~=''then p.MaterialVariant='KDMMetro_'..p.MaterialVariant end end end
+   clone.Name='PocketGroveTree'..i;clone.Parent=model
+   if i%3==1 then part('PocketGroveBed',Vector3.new(22,.03,22),CFrame.new(site.position+Vector3.new(0,groundY+.045,0)),Color3.fromRGB(76,99,64),Enum.Material.Grass)end
+   if i%8==0 then task.wait()end
+  end
   local sidewalks=0
   for i=1,#course.Samples,2 do
    if not alive or not track.Parent then return end
    local a,b=course.Samples[i],course.Samples[(i+1)%#course.Samples+1]
    local tangent=(b-a).Unit;local right=Vector3.new(-tangent.Z,0,tangent.X)
    for _,side in {-1,1}do
-    local center=(a+b)/2+right*(side*(width/2+12))
-    part('Sidewalk',Vector3.new(9,.04,(b-a).Magnitude+1),CFrame.lookAt(Vector3.new(center.X,groundY+.055,center.Z),Vector3.new(center.X,groundY+.055,center.Z)+tangent),Color3.fromRGB(235,230,225),Enum.Material.Concrete,'KDMMetro_Sidewalk_A')
+    local center=(a+b)/2+right*(side*(width/2+25))
+    part('ContinuousSidewalk',Vector3.new(34,.04,(b-a).Magnitude+2),CFrame.lookAt(Vector3.new(center.X,groundY+.10+(i%4)*.01,center.Z),Vector3.new(center.X,groundY+.10+(i%4)*.01,center.Z)+tangent),Color3.fromRGB(235,230,225),Enum.Material.Concrete,'KDMMetro_Sidewalk_A')
     sidewalks+=1
    end
    if i%16==1 then task.wait()end
   end
   if alive then
-   model:SetAttribute('BuildingCount',count);model:SetAttribute('BuildingPartCount',parts)
+   model:SetAttribute('SkybridgeCount',bridges);model:SetAttribute('PocketGroveTreeCount',#trees)
+   model:SetAttribute('BuildingCount',count);model:SetAttribute('BuildingPartCount',buildingParts)
+   local sceneParts=0;for _,p in model:GetDescendants()do if p:IsA('BasePart')then sceneParts+=1 end end
+   model:SetAttribute('ScenePartCount',sceneParts)
    model:SetAttribute('MinimumBuildingShoulder',if minimum<math.huge then minimum else 0)
    model:SetAttribute('SidewalkCount',sidewalks);model:SetAttribute('BackdropCount',0)
    model:SetAttribute('DistantCityStyle','ORIGINAL_TEMPLATE_SKY_AND_ATMOSPHERE')
