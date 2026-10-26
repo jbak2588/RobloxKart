@@ -61,3 +61,18 @@ PASS: original resource hash/material/lighting/mesh identity and intrinsic-size
 validation;11143 Metro layout/frozen-world checks;230 source compilation; default
 Rojo build;git diff --check. Real Android/iPhone full-lap acceptance remains
 separate. Temporary QA startup/camera objects are excluded from release.
+
+## Production release
+
+Owner explicitly approved immediate Publish after reviewing the repaired candidate.
+Implementation fed3a9d77584060a4391706cb31336e3eb12f1fd was pushed and exact
+local/remote equality verified. All230 native Studio sources matched repository
+checksums,3 Desert and2248 Metro mesh authoring checks passed, original Server
+was re-enabled, QA objects removed, and HubParkV1Enabled remained true.
+The Rojo release also retains all2248 positive serialized InitialSize values.
+
+Production Publish succeeded as v1220 to Universe10768420544 /
+Place127925465904803. Native Studio Output records publication request19:02:55.938,
+success19:02:59.196, the v1220 notes link and named Kart Drift Masters success
+line19:02:59.199 (Studio display clock). Workspace.KDMBuildCommit identifies
+fed3a9d. No live-server restart requested. This receipt is documentation-only.
