@@ -29,12 +29,29 @@ for item in child(asset,'Materials').findall('Item'):
  before=props(child(material,name(item)))
  for key,value in props(item).items():assert before[key]==value,(name(item),key)
 mesh_ids={n.findtext("Properties/Content[@name='MeshId']/url") for n in original.iter('Item') if n.get('class')=='MeshPart'}
+intrinsic_sizes={}
+for n in original.iter('Item'):
+ if n.get('class')!='MeshPart':continue
+ mesh=n.findtext("Properties/Content[@name='MeshId']/url")
+ size=n.find("Properties/Vector3[@name='InitialSize']")
+ if size is not None:
+  intrinsic_sizes.setdefault(mesh,set()).add(tuple(float(size.findtext(k)) for k in ('X','Y','Z')))
 parts=0
+meshes=0
 for n in asset.iter('Item'):
  if n.get('class') not in ('MeshPart','Part','WedgePart'):continue
  parts+=1
- if n.get('class')=='MeshPart':assert n.findtext("Properties/Content[@name='MeshId']/url") in mesh_ids
+ if n.get('class')=='MeshPart':
+  mesh=n.findtext("Properties/Content[@name='MeshId']/url")
+  assert mesh in mesh_ids
+  size=n.find("Properties/Vector3[@name='InitialSize']")
+  assert size is not None,('missing serialized intrinsic mesh size',name(n))
+  values=tuple(float(size.findtext(k)) for k in ('X','Y','Z'))
+  assert min(values)>0,('invalid intrinsic mesh size',name(n))
+  assert values in intrinsic_sizes[mesh],('intrinsic size differs from original city',name(n))
+  meshes+=1
  p=props(n)
  for k,v in {'Anchored':'true','CanCollide':'false','CanTouch':'false','CanQuery':'false','CastShadow':'false'}.items():assert p[k]==('bool',v)
 assert parts==2536
-print('PASS: original city hash, original Sky/Atmosphere/ColorCorrection/material values, original mesh identities, inert 2536-part modular palette')
+assert meshes==2248
+print('PASS: original city hash, original lighting/materials, all2248 original intrinsic mesh sizes and identities, inert2536-part palette')

@@ -9,7 +9,7 @@ SOURCE = Path('C:/dev/rbxlx_data/city.rbxlx')
 TARGET = Path('src/assets/KDMMetroResources.rbxmx')
 PART_PROPS = {'Name', 'CFrame', 'size', 'Size', 'Color3uint8', 'Color', 'Material',
               'MaterialVariantSerialized', 'MeshId', 'TextureID', 'Transparency',
-              'Reflectance', 'DoubleSided', 'RenderFidelity', 'shape'}
+              'Reflectance', 'DoubleSided', 'RenderFidelity', 'InitialSize', 'shape'}
 IMAGE_PROPS = {'Name', 'AlphaMode', 'Color', 'ColorMap', 'MetalnessMap', 'NormalMap',
                'RoughnessMap', 'Texture', 'Color3', 'Transparency', 'Face',
                'StudsPerTileU', 'StudsPerTileV', 'OffsetStudsU', 'OffsetStudsV'}

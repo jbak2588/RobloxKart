@@ -2,6 +2,16 @@
 
 Read this before editing the project.
 
+## Metro mesh scale regression — owner report 2026-10-26
+
+Metro extraction must preserve all2248 MeshPart InitialSize values from city.rbxlx.
+Missing serialized intrinsic sizes rendered huge walls over valid road corridors,
+even though server MeshId and building bounding-box clearance tests passed.
+Validate positive MeshSize on ordinary client source AND runtime clones, plus
+native start/checkpoint views. Edit/server ApplyMesh alone is insufficient.
+Keep placement/layout/road/physics/authority unchanged. See
+docs/testing/metro_intrinsic_mesh_size_20261026.md.
+
 ## Road paint visibility hotfix — owner direction 2026-10-26
 
 Owner authorizes validation, commit/push and production Publish for Base grid

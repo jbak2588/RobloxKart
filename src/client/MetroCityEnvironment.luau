@@ -108,8 +108,9 @@ function Environment.build(track)
   for _,site in sites do
    if not alive or not track.Parent then return end
    local prefab=resources:FindFirstChild(site.name);local missing=false
-   for _,p in prefab:GetDescendants()do if p:IsA('MeshPart')and p.MeshId==''then missing=true;break end end
-   if missing then warn('[KDMMetro] missing mesh: '..site.name);continue end
+   for _,p in prefab:GetDescendants()do if p:IsA('MeshPart')and
+    (p.MeshId==''or math.min(p.MeshSize.X,p.MeshSize.Y,p.MeshSize.Z)<=0)then missing=true;break end end
+   if missing then warn('[KDMMetro] invalid mesh identity/intrinsic size: '..site.name);continue end
    local clone=prefab:Clone();clone:ScaleTo(clone:GetScale()*site.scale)
    local cf,size=clone:GetBoundingBox()
    local target=site.frame+Vector3.new(0,groundY+size.Y/2,0)
