@@ -43,7 +43,12 @@ reverse/two-lap checks;25 skid;225 sources compile;source/material audit and Roj
 Source palette remains2,536 inert parts; one additional authored matte material.
 Owner preview IDs are wired in TrackCatalog for both Garage and room icons.
 Both images also reached IsLoaded=true in visible ordinary Client ImageLabels.
-Release result follows after validated commit/push and correction Publish.
+Correction source committed/pushed as d36102e14de5dbd605b1b82f6cb9be19b3bc32a5,
+then Published successfully to the same production place as v1196. Studio Output
+confirms "add notes to v1196" and named KDM success at14:00:30 Jakarta;
+Marketplace Updated=2026-10-26T07:00:32.73Z. Published KDMBuildCommit=d36102e,
+Park flag remains true, original server initializer restored, no QA scenes/scripts
+in Edit at Publish. No forced live-server restart or new mobile acceptance claimed.
 
 
 ## Roadside / checkpoint release candidate
