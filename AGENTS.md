@@ -4,6 +4,10 @@ Read this before editing the project.
 
 ## Metro City Circuit — owner direction 2026-10-26
 
+Owner rollback: cancel the native original-city import / MetroCityV1 / 45-stud
+road conversion. Keep Base-derived Metro, facade depth/pivot repair and matte
+separated kerbs. Facades stay parallel to the road. No Publish.
+
 Track01Metro is a separate public two-lap, four-racer city theme derived from
 Base's PracticeCircuitV1 route. Preserve original Base, other tracks, Hub and
 Race Now's Desert routing. Reuse inert building exteriors from city.rbxlx.

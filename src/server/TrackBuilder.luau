@@ -6,7 +6,7 @@ local TrackBuilder = {}
 local TRACK_VISUAL_STYLE = {
 	Practice = { Version = 1, KerbRows = 1, SignEvery = 12, SignText = "KDM / PRACTICE" },
 	Base = { Version = 1, KerbRows = 1, SignEvery = 9, SignText = "KDM / BASE TRACK" },
-	Metro = { Version = 1, KerbRows = 2, SignEvery = 9, SignText = "KDM / METRO CITY" },
+	Metro = { Version = 2, KerbRows = 2, SignEvery = 9, SignText = "KDM / METRO CITY" },
 	Standard = { Version = 1, KerbRows = 1, SignEvery = 6, SignText = "KDM / TECHNICAL" },
 	V2B = { Version = 1, KerbRows = 2, SignEvery = 6, SignText = "KDM / V2B CANDIDATE" },
 	Hard = { Version = 1, KerbRows = 2 },
@@ -149,6 +149,10 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 	local white = Color3.fromRGB(245, 245, 235)
 	local kerbRed = Color3.fromRGB(205, 48, 45)
 	local kerbWhite = Color3.fromRGB(238, 236, 229)
+	if isMetro then
+		white = Color3.fromRGB(211, 211, 204)
+		kerbWhite = Color3.fromRGB(205, 203, 195)
+	end
 	local isPractice = track.GeometryId == "PracticeCircuitV1" or isFigure8
 	local kerbThreshold = math.rad(if isPractice then 5 else 3.5)
 	if isHardCircuit or isV2B then kerbThreshold = math.atan(definition.SampleSpacing / 350) end
@@ -640,10 +644,13 @@ function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
 						end
 						if foldsInnerRow then continue end
 					end
+					-- Separate alternating end caps, kerb rows and the white road edge.
+					local elevation = if isMetro then 0.14 + (row - 1) * 0.08 + (stripe % 2) * 0.035 else 0.025
 					local part = createSegment(kerbFolder,
 						(if side < 0 then "LeftKerb" else "RightKerb") .. "Row" .. row .. "_" .. segment,
-						roadPoint(edgeAt(segment, offset, side), 0.025), roadPoint(edgeAt(last + 1, offset, side), 0.025),
-						3.5, 0.07, 1.6, if stripe % 2 == 0 then kerbRed else kerbWhite, nil)
+						roadPoint(edgeAt(segment, offset, side), elevation), roadPoint(edgeAt(last + 1, offset, side), elevation),
+						3.5, 0.07, 1.6, if stripe % 2 == 0 then kerbRed else kerbWhite,
+						if isMetro then Enum.Material.Concrete else nil)
 					part:SetAttribute("KerbRow", row)
 					part:SetAttribute("KerbSide", side)
 					part:SetAttribute("FirstSegment", segment)

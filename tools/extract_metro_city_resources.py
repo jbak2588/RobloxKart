@@ -68,6 +68,37 @@ def inert_part(item, origin, front, index):
                 ip.append(copy.deepcopy(p))
     return node
 
+def close_street_shell(model, count):
+    """Recess a lightweight solid body behind the retained native facade."""
+    entries=[]
+    for item in model.findall('Item'):
+        p=item.find('Properties');pos,rot=frame(p);size=vector(p,'size')
+        ext=[sum(abs(rot[i][j])*size[j]/2 for j in range(3)) for i in range(3)]
+        entries.append((item,pos,ext))
+    low=[min(pos[i]-ext[i] for _,pos,ext in entries) for i in range(3)]
+    high=[max(pos[i]+ext[i] for _,pos,ext in entries) for i in range(3)]
+    height=high[1]-low[1]
+    facades=[pos[2] for item,pos,ext in entries if item.get('class')=='MeshPart'
+             and ext[1]*2>height*.30 and ext[2]<2.5 and ext[0]>3]
+    assert facades, 'No native front facade'
+    facades.sort();front=facades[len(facades)//2]+1.0
+    back=max(high[2]-.6,front+8);left,right=low[0]+.8,high[0]-.8
+    candidates=[entry for entry in entries if entry[0].get('class')=='Part' and entry[2][1]*2>height*.5]
+    donor=max(candidates or entries,key=lambda e:e[2][1])[0].find('Properties')
+    core=ET.SubElement(model,'Item',{'class':'Part','referent':'MetroShell'+name(model)})
+    props=ET.SubElement(core,'Properties');ET.SubElement(props,'string',{'name':'Name'}).text='StreetShell'
+    for key in ('Color3uint8','Material','MaterialVariantSerialized'):
+        value=next((v for v in donor if v.get('name')==key),None)
+        if value is not None:props.append(copy.deepcopy(value))
+    cf=ET.SubElement(props,'CoordinateFrame',{'name':'CFrame'})
+    for key,value in zip(['X','Y','Z'],[(left+right)/2,(low[1]+high[1])/2,(front+back)/2]):ET.SubElement(cf,key).text=str(value)
+    for i in range(3):
+        for j in range(3):ET.SubElement(cf,f'R{i}{j}').text=str(int(i==j))
+    sz=ET.SubElement(props,'Vector3',{'name':'size'})
+    for key,value in zip(['X','Y','Z'],[right-left,height,back-front]):ET.SubElement(sz,key).text=str(value)
+    for key,value in {'Anchored':True,'CanCollide':False,'CanTouch':False,'CanQuery':False,'CastShadow':False}.items():ET.SubElement(props,'bool',{'name':key}).text=str(value).lower()
+    return count+1
+
 def main():
     source = ET.parse(SOURCE).getroot()
     workspace = named(source, 'Workspace')
@@ -99,7 +130,8 @@ def main():
         for p in parts:
             count += 1
             model.append(inert_part(p, [center[0], low[1], center[2]], front, count))
-        print(building, len(parts), 'source-front', front)
+        count = close_street_shell(model, count)
+        print(building, len(parts)+1, 'source-front', front)
     # Only source atmosphere/sky and a small, bounded material palette.
     for service_name, folder_name, classes in [
         ('Lighting', 'Lighting', {'Sky', 'Atmosphere', 'ColorCorrectionEffect'}),

@@ -63,7 +63,12 @@ function Environment.build(track)
   local started=os.clock();local profiles={}
   for _,name in Layout.Names do
    local prefab=resources:FindFirstChild(name)
-   if prefab then local _,size=prefab:GetBoundingBox();profiles[name]=size end
+   if prefab then
+    -- A first mesh can give a Model an implicit 90/180-degree pivot. The facade
+    -- is canonical -Z; set its bounds axes without moving any source parts.
+    prefab.PrimaryPart=nil;prefab.WorldPivot=CFrame.identity
+    local _,size=prefab:GetBoundingBox();profiles[name]=size
+   end
   end
   local sites=Layout.plan(Geometry,course,width,profiles)
   local parts,count,minimum=0,0,math.huge

@@ -74,3 +74,26 @@ visual QA or separately authorized Publish. It restores source mesh content whil
 preserving size/frame/texture. Current Studio prefabs used native mesh creation.
 Regenerate resources with python tools/extract_metro_city_resources.py;
 never edit the source city template.
+
+
+## Owner rollback after native-city experiment
+
+Owner cancelled importing the original city street layout. Removed the uncommitted
+MetroCityV1 / 45-stud conversion, original-city chunk palette, custom spawn anchors,
+record token and narrower-road bot steering. TrackGeometry, TrackCatalog,
+RaceBotSteering, RaceRecordConfig and RaceRecordPolicy are restored to c1c812f.
+The cancelled candidate is locally recoverable under
+artifacts/metro-city/cancelled-native-20261026/ and is not production content.
+
+Metro again uses Base's PracticeCircuitV1 with its existing aligned GridSlots.
+Retained the earlier native facade pivot repair, nine recessed StreetShell bodies
+(357 palette parts), matte kerbs and separated alternating kerb/road-edge planes.
+Facades are parallel to the road, without the diagonal approach-angle experiment.
+Original Sky/Atmosphere remain unchanged. No original-city street conversion or
+photo walls remain in the shipped source or Studio palette.
+
+Rollback checks: Metro 4,249 PASS; all six start/finish paint checks 971 PASS,
+including the five prior worlds unchanged; original resource identity/property
+checks PASS; 224 Luau files compile; Rojo default build and diff checks PASS.
+Studio Edit verifies PracticeCircuitV1 and no OriginalCity resource/MetroCityV1.
+No Publish performed. Source city file remains unchanged.

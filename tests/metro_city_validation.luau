@@ -57,7 +57,7 @@ for _,name in layout.Names do
  end
  profiles[name]=high-low;check(math.abs(low.Y)<.001,'building grounded in source prefab')
 end
-check(partCount==348,'bounded nine-building exterior palette')
+check(partCount==357,'bounded nine-building exterior palette')
 local course=geometry.getCourse(geometry.getDefinition(metro.GeometryId))
 local width=geometry.getDefinition(metro.GeometryId).RoadWidth
 local sites=layout.plan(geometry,course,width,profiles)
