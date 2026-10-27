@@ -140,6 +140,7 @@ function KartAudioController.start()
 
 		local wasMissileHit = kart:GetAttribute("KartMissileHitActive") == true
 		local wasThunderHit = kart:GetAttribute("KartThunderHitActive") == true
+		local finishEngine=AudioRuntime.newFinishEngineEnvelope()
 		local function updateBoostAudio(dt)
 			boostAudio:step(dt, kart:GetAttribute("KartBoosting") == true,
 				kart:GetAttribute("KartNitroActive") == true, kart:GetAttribute("KartNitroEndReason"),
@@ -180,7 +181,9 @@ function KartAudioController.start()
 					local raceState = player:GetAttribute("RaceState")
 					local finishedStop = player:GetAttribute("RaceFinishPhase") == "PRESENT"
 						and (raceState == "FINISHING" or raceState == "FINISHED")
-					local audioSpeed = if finishedStop then 0 else forwardSpeed
+					local preStart = raceState ~= "RACING" and raceState ~= "FINISHING" and raceState ~= "FINISHED"
+     local idleOnly = finishedStop or preStart -- a late RACING finish lock must not snap the engine to idle
+     local audioSpeed = if idleOnly then 0 else forwardSpeed
 					local speed = math.abs(audioSpeed)
 					local normalRatio = math.clamp(speed / KartConfig.MAX_FORWARD_SPEED, 0, 1)
 					local boostRatio = math.clamp((speed - KartConfig.MAX_FORWARD_SPEED)
@@ -188,14 +191,21 @@ function KartAudioController.start()
 					local targetPitch = AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED
 						+ (AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED - AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED) * normalRatio
 						+ (AudioConfig.ENGINE.MAX_PLAYBACK_SPEED - AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED) * boostRatio
-					if not finishedStop and kart:GetAttribute("KartBoosting") == true then
+					if not idleOnly and kart:GetAttribute("KartBoosting") == true then
 						targetPitch += AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS
 					end
 					targetPitch = math.clamp(targetPitch, 0.7, 1.55)
 					local targetVolume = AudioConfig.ENGINE.IDLE_VOLUME
 						+ (AudioConfig.ENGINE.NORMAL_VOLUME - AudioConfig.ENGINE.IDLE_VOLUME) * normalRatio
 						+ (AudioConfig.ENGINE.MAX_VOLUME - AudioConfig.ENGINE.NORMAL_VOLUME) * boostRatio
-					local alpha = 1 - math.exp(-AudioConfig.ENGINE.RESPONSE * deltaTime)
+     if AudioRuntime.gasEngineTargets then
+      targetPitch,targetVolume=AudioRuntime.gasEngineTargets(targetPitch,targetVolume,speed,
+       not idleOnly and kart:GetAttribute('KartGasPedalActive')==true,
+       kart:GetAttribute('KartBoosting')==true,kart:GetAttribute('KartNitroActive')==true,time())
+     end
+					local finishing=(raceState=="FINISHING" or raceState=="FINISHED")
+     targetPitch,targetVolume=finishEngine:step(finishing,targetPitch,targetVolume,deltaTime)
+     local alpha = if idleOnly or finishing then 1 else 1 - math.exp(-AudioConfig.ENGINE.RESPONSE * deltaTime)
 					local fixedPitch = engineDiagnostic ~= nil and engineDiagnostic:isFixed()
 					local diagActive = player:GetAttribute("KartEngineLoopTestMode") ~= nil
 						and player:GetAttribute("KartEngineLoopTestMode") ~= "NORMAL"

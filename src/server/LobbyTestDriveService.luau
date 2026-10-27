@@ -5,6 +5,7 @@ local Physics=game:GetService("PhysicsService")
 local Workspace=game:GetService("Workspace")
 local Shared=ReplicatedStorage:WaitForChild("Shared")
 local Policy=require(Shared:WaitForChild("LobbyDrivePolicy"))
+local GasPedal=require(Shared:WaitForChild('GasPedalPolicy'))
 local Geometry=require(Shared:WaitForChild("LobbyDriveGeometry")).create(Policy)
 local KartConfig=require(Shared:WaitForChild("KartConfig"))
 local Catalog=require(Shared:WaitForChild("KartCatalog"))
@@ -21,6 +22,7 @@ local started,remote,zone,canEnter,straightCourse=false,nil,nil,nil,nil
 local practice
 local timeTrial
 local nextGridSlot=0
+local parkEdgeGuards={}
 local presence
 local forwardSpeed=Policy.Forward
 local function allowedHub()
@@ -83,7 +85,7 @@ function Service.stop(player,reason,returnToHub)
  if timeTrial then timeTrial:remove(player)end
  record.returnToHub=returnToHub;closing[player]=record
  records[player]=nil;generation(player)
- record.throttle,record.steering,record.speed=0,0,0
+ record.throttle,record.steering,record.speed=0,0,0;record.gasHeld=false
  player:SetAttribute("LobbyDrivePending",true);player:SetAttribute("LobbyDriveActive",false)
  if presence then presence:refresh() end
  if record.destroying then record.destroying:Disconnect() end
@@ -269,14 +271,17 @@ function Service.start(driveZone,eligibility)
    if practice then practice:use(player,id,first)end;return
   end
   if action=="Input" then
+   local gas=select(1,...)
+   if select('#',...)>1 or (gas~=nil and type(gas)~='boolean')then return end
    local r=records[player]
    if not r or not r.seated or id~=r.generation or not Policy.validAxes(first,second)
     or player.Character~=r.character or r.humanoid.Health<=0 or r.seat.Occupant~=r.humanoid or r.humanoid.SeatPart~=r.seat
     or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH" then return end
    -- Preserve release/press edges even between regular input packets, as in race.
-   if os.clock()-r.lastInput<1/90 and (drift==true)==r.drift then return end
+   if os.clock()-r.lastInput<1/90 and (drift==true)==r.drift and (gas==true)==r.gasHeld then return end
    Drift.input(r.training,drift==true,os.clock(),os.clock()-r.lastInput<=Policy.InputTimeout)
-   r.throttle,r.steering,r.lastInput=math.clamp(first,-1,1),math.clamp(second,-1,1),os.clock();r.drift=drift==true;return
+   r.throttle,r.steering,r.lastInput=math.clamp(first,-1,1),math.clamp(second,-1,1),os.clock();r.drift=drift==true
+   r.gasHeld=gas==true and GasPedal.enabled(game.GameId,game.PlaceId,Workspace:GetAttribute('KDMGasPedalEnabled'));return
   end
   if type(id)~="number" or id~=id or id<0 or id>1e9 or id%1~=0 then return end
   if action=="Drive" then
@@ -340,7 +345,12 @@ function Service.start(driveZone,eligibility)
    local right=Vector3.new(-f.Z,0,f.X)
    local physical=Vector3.new(body.AssemblyLinearVelocity.X,0,body.AssemblyLinearVelocity.Z)
    -- Respect actual wall stops: never keep accelerating into a rail with stale commanded speed.
-   if not offTrack and math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then r.speed=physical:Dot(f) end
+   if math.abs(r.speed)>5 and math.abs(physical:Dot(f))<math.abs(r.speed)*.3 then
+    -- Physical stops apply on grass too. Reject opposite-sign contact jitter;
+    -- it must not turn a reverse command back into repeated forward braking.
+    local actual=physical:Dot(f)
+    r.speed=if r.speed>0 then math.max(0,actual)else math.min(0,actual)
+   end
    -- Fresh brake/reverse/coast input is integrated once by LobbyDriftSession.
    -- Its stale-input branch only clears Drift, so retain timeout coasting here.
    if os.clock()-r.lastInput>Policy.InputTimeout then
@@ -409,7 +419,12 @@ function Service.start(driveZone,eligibility)
     r.training.straightExitActive=r.straightExitActive
     if r.speed<=forwardSpeed then r.straightExitActive=false;r.straightBoostReturnActive=false end
    else r.training.straightExitActive=false end
-   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,forwardSpeed,nitro,offTrack)
+   local pedalCap,gasActive=GasPedal.cap(forwardSpeed,r.gasHeld,
+    GasPedal.enabled(game.GameId,game.PlaceId,Workspace:GetAttribute('KDMGasPedalEnabled')),
+    now-r.lastInput<=Policy.InputTimeout and (not r.trial or r.trial.phase=='RUNNING'),not offTrack,throttle,
+    r.training.boost,nitro or r.training.nitroExit,r.training.active or hit~=nil or r.kart:GetAttribute('RaceControlsLocked')==true)
+   if r.kart:GetAttribute('KartGasPedalActive')~=gasActive then r.kart:SetAttribute('KartGasPedalActive',gasActive)end
+   local slideLateral,slideYaw,projected,budget=Drift.step(r.training,now,dt,physical:Dot(f),physical:Dot(right),r.speed,throttle,steering,now-r.lastInput<=Policy.InputTimeout,normalYaw,r.yaw,pedalCap,nitro,offTrack)
    if r.training.boost and r.training.boostPress~=r.practiceBoostPress then
     r.practiceBoostPress=r.training.boostPress;practice:boost(player)
    end
@@ -424,6 +439,39 @@ function Service.start(driveZone,eligibility)
    local nearWall=clearance<=Policy.EscapeClearance and not isRookieLoop
    if nearWall and math.abs(f:Dot(normal))<=Policy.GlancingNormal then
     local x,z=Policy.slide(velocity.X,velocity.Z,nx,nz);velocity=Vector3.new(x,0,z)
+   end
+   -- Native head-on contacts can remain wedged even with an accepted reverse
+   -- command. Only release a measured stationary chassis from the actual rim.
+   if isRookieLoop and throttle<0 and r.speed<0 and physical.Magnitude<5 then
+    if #parkEdgeGuards==0 then
+     local scenery=zone:FindFirstChild('IslandScenery')
+     if scenery then for _,guard in scenery:GetChildren()do
+      if guard.Name=='IslandEdgeGuard' and guard:IsA('BasePart') and guard.CanCollide then table.insert(parkEdgeGuards,guard)end
+     end end
+    end
+    local contact,gap
+    for _,guard in parkEdgeGuards do if guard.Parent then
+     local n,d=Policy.parkReverseContact(body.CFrame,body.Size,guard.CFrame,guard.Size)
+     if n then contact,gap=n,d;break end
+    end end
+    if contact then
+     if not r.reverseWallPosition or (pos-r.reverseWallPosition).Magnitude>.15 then
+      r.reverseWallPosition=pos;r.reverseWallTime=0
+     else r.reverseWallTime=(r.reverseWallTime or 0)+dt end
+     if r.reverseWallTime>=.35 and now>=(r.reverseWallNext or 0)and (r.reverseWallCount or 0)<2 then
+      local distance=math.clamp(.30-gap,0,1)
+      local proposed=pos+contact*distance
+      if distance>0 and inside(proposed,0)then
+       r.kart:PivotTo(body.CFrame+contact*distance)
+       r.reverseWallCount=(r.reverseWallCount or 0)+1;r.reverseWallNext=now+1;r.reverseWallTime=0
+       r.kart:SetAttribute('ParkReverseReleaseSerial',(r.kart:GetAttribute('ParkReverseReleaseSerial')or 0)+1)
+       r.kart:SetAttribute('ParkReverseReleaseDistance',distance)
+      end
+     end
+    else r.reverseWallTime=0;r.reverseWallPosition=nil end
+   else
+    r.reverseWallTime=0;r.reverseWallPosition=nil
+    if throttle>=0 or physical.Magnitude>5 then r.reverseWallCount=0 end
    end
    local maxCap = if nitro then KartConfig.NITRO_MAX_SPEED else KartConfig.MINI_BOOST_MAX_SPEED
    if velocity.Magnitude>maxCap then velocity=velocity.Unit*maxCap end

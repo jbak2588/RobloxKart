@@ -1,3 +1,4 @@
+local Mobile=require(script.Parent.MobileControlView)
 local View={}
 function View.start()
  local player=game:GetService('Players').LocalPlayer
@@ -22,7 +23,16 @@ function View.start()
   local left=math.max(12,band.Min.X+origin.X+8)
   local right=math.min(gui.AbsoluteSize.X-12,band.Max.X+origin.X-8)
   if map and map.Visible then right=math.min(right,map.AbsolutePosition.X-gui.AbsolutePosition.X-8)end
-  local width=math.max(0,math.min(600,right-left))
+  -- Resolve the current separate QA map every layout, including late creation.
+  local qa=Mobile.controlsV1Enabled() and viewport.X>viewport.Y
+  if qa then
+   local layer=gui.Parent:FindFirstChild('KDMRaceMinimap')
+   local currentMap=layer and layer:FindFirstChild('RaceMiniMap')
+   local mapLeft=if currentMap then currentMap.AbsolutePosition.X-gui.AbsolutePosition.X else gui.AbsoluteSize.X-12-math.clamp(math.floor(viewport.Y*.20),48,112)
+   right=math.min(right,mapLeft-12)
+  end
+  local measured=if qa then game:GetService('TextService'):GetTextSize(text.Text,text.TextSize,text.Font,Vector2.new(2000,40)).X else 600
+  local width=math.max(0,math.min(if qa then measured+24 else 600,right-left))
   local height=math.max(28,math.min(40,band.Height-8))
   text.Position=UDim2.fromOffset((left+right)/2,math.max(4,origin.Y+band.Min.Y+(band.Height-height)/2))
   text.Size=UDim2.fromOffset(width,height)
@@ -39,7 +49,15 @@ function View.start()
  for _,name in {'RacePublicWarmup','RacePublicJoinNotice','RacePrivatePractice','RaceState'}do table.insert(connections,player:GetAttributeChangedSignal(name):Connect(update))end
  for _,name in {'AbsoluteSize','AbsolutePosition'}do table.insert(connections,gui:GetPropertyChangedSignal(name):Connect(layout))end
  table.insert(connections,service:GetPropertyChangedSignal('TopbarInset'):Connect(layout))
- if map then for _,name in {'AbsolutePosition','AbsoluteSize','Visible'}do table.insert(connections,map:GetPropertyChangedSignal(name):Connect(layout))end end
+ local function watchMap(node)
+  for _,name in {'AbsolutePosition','AbsoluteSize','Visible'}do table.insert(connections,node:GetPropertyChangedSignal(name):Connect(layout))end
+ end
+ if map then watchMap(map)end
+ local qaLayer=gui.Parent:FindFirstChild('KDMRaceMinimap')
+ local qaMap=qaLayer and qaLayer:FindFirstChild('RaceMiniMap');if qaMap then watchMap(qaMap)end
+ if gui.Parent.DescendantAdded then table.insert(connections,gui.Parent.DescendantAdded:Connect(function(node)
+  if node.Name=='RaceMiniMap' and node.Parent and node.Parent.Name=='KDMRaceMinimap' then watchMap(node);layout()end
+ end))end
  gui.Destroying:Connect(function()for _,connection in connections do connection:Disconnect()end end)
  update()
 end

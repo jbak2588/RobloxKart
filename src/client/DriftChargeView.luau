@@ -66,8 +66,15 @@ function Gauge.create(root, debugEnabled)
 		wasActive=false,wasReady=false,wasBoosting=false,lastProgress=0,lastSerial=nil,lastText="",success=false}
 	function self:layout(size,mobile,wheel,origin,driftButton)
 		local l=View.layout(size)
-		if mobile then
-			frame.Size=UDim2.fromOffset(l.driftWidth*.65,l.gaugeHeight)
+		if mobile and l.controlsV1 then
+   local r=l.controlsV1.gauge
+   if driftButton then
+    local controlsOrigin=driftButton.Parent.AbsolutePosition-(origin or Vector2.zero)
+    frame.Size=UDim2.fromOffset(r.width,r.height)
+    frame.Position=UDim2.fromOffset(controlsOrigin.X+r.x+r.width/2,controlsOrigin.Y+r.y+r.height)
+   else frame.Size=UDim2.fromOffset(r.width,r.height);frame.Position=UDim2.fromOffset(r.x+r.width/2,r.y+r.height) end
+  elseif mobile then
+   frame.Size=UDim2.fromOffset(l.driftWidth*.65,l.gaugeHeight)
 			if driftButton and driftButton.AbsoluteSize.X>0 and size.X>0 and size.Y>0 then
 				-- Use complete rendered bounds, including the new image outer border.
 				-- across safe-area containers; 10px leaves 7px for the 3px READY stroke.

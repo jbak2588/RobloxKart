@@ -11,6 +11,73 @@ function View.setViewportBottomInset(fullHeight, deviceHeight)
 end
 local ink = Color3.fromRGB(225, 246, 255)
 
+function View.nitroBar(parent)
+ local root=Instance.new('Frame');root.Name='NitroChargeBar';root.BackgroundTransparency=1
+ root.Position=UDim2.new(0,0,1,-7);root.Size=UDim2.new(1,0,0,6);root.Visible=false;root.Parent=parent
+ local cells={}
+ return {root=root,update=function(_,progress,total,enabled)
+  root.Visible=enabled==true
+  for i=1,total do
+   if not cells[i]then
+    local b=Instance.new('Frame');b.BorderSizePixel=0;b.Parent=root;cells[i]=b
+   end
+   local b=cells[i];b.Visible=true;b.Position=UDim2.new((i-1)/total,0,0,0);b.Size=UDim2.new(1/total,-4,1,0)
+   b.BackgroundColor3=if i<=progress then Color3.fromRGB(65,225,245)else Color3.fromRGB(45,60,70)
+   b.BackgroundTransparency=if i<=progress then .1 else .5
+  end
+  for i=total+1,#cells do cells[i].Visible=false end
+ end}
+end
+
+-- Explicit rollout flag for the approved private QA and production Place pairs.
+function View.controlsV1Enabled(context)
+ local universeId,placeId,flag
+ if context then universeId,placeId,flag=context.universeId,context.placeId,context.flag
+ elseif game and workspace then universeId,placeId,flag=game.GameId,game.PlaceId,workspace:GetAttribute('KDMControlsV1Preview')end
+ return flag==true and ((universeId==10772198697 and placeId==106553302629620)
+  or (universeId==10768420544 and placeId==127925465904803))
+end
+function View.controlsV1Layout(size)
+ local w,h=size.X,size.Y
+ local scale=math.clamp(math.min(w/1600,h/739),.64,1.15)
+ if h<280 then scale=math.min(scale,math.max(.48,(h-40)/360)) end
+ local function box(cx,cy,bw,bh)
+  local width,height=math.floor(math.max(48,bw*scale)),math.floor(math.max(48,bh*scale))
+  cx=math.clamp(cx,12+width/2,w-12-width/2);cy=math.clamp(cy,12+height/2,h-12-height/2)
+  return {x=cx-width/2,y=cy-height/2,width=width,height=height}
+ end
+ -- Bottom edges meet the digital speed's text baseline. Keep a literal 15px
+ -- finger gap; safe-area coordinates already exclude the phone notch.
+ local floor=h-26;local d=math.floor(math.max(48,108*scale));local g=d
+ local brake=math.floor(math.max(48,64*scale));local right=w-12
+ local buttons={ForwardLeft=box(12+d/2,floor-d/2,108,108),ForwardRight=box(12+d+15+d/2,floor-d/2,108,108),
+  Drift=box(right-d-15-d/2,floor-d/2,108,108),Gas=box(right-d/2,floor-d/2,108,108),
+  BrakeReverse=box(right-brake/2,floor-d-12-brake/2,64,64)}
+ local drift=buttons.Drift
+ local mapSide=math.clamp(math.floor(h*.20),48,112)
+ local columns=4
+ local slot=if h<280 then 32 elseif h<300 then 36 elseif h<=340 then 40 else 44
+ local gap=6;local width=slot*columns+gap*(columns-1);local itemHeight=slot*2+gap
+ local map={x=w-12-mapSide,y=8,width=mapSide,height=mapSide}
+ local brakeCenter=buttons.BrakeReverse.x+buttons.BrakeReverse.width/2
+ local secondTop=buttons.BrakeReverse.y+(buttons.BrakeReverse.height-slot)/2
+ local top=math.min(secondTop-slot-gap,buttons.BrakeReverse.y-slot-8);local itemX=w-12-width
+ itemX=math.floor(itemX);top=math.floor(math.max(12,top))
+ local progressWidth=math.min(220,w*.3)
+ local items={x=itemX,top=math.max(12,top),width=width,slot=slot,gap=gap,columns=columns,
+  secondTop=math.floor(secondTop),secondX=math.floor(drift.x+drift.width/2-(2*slot+gap)/2),progressX=(w-progressWidth)/2,progressWidth=progressWidth,
+  progressTop=h-92,progressHeight=30}
+ local clockWidth=math.min(180,w-360)
+ local clock={x=w*.5-clockWidth/2,y=8,width=clockWidth,height=44}
+ local textWidth=math.floor(progressWidth*.66)
+ local gaugeX=items.progressX+textWidth+6
+ local gaugeWidth=progressWidth-textWidth-6
+ return {buttons=buttons,map=map,items=items,clock=clock,
+  notice={x=clock.x,y=58,width=clock.width,height=32},
+  gauge={x=gaugeX,y=items.progressTop+3,width=gaugeWidth,height=10},
+  speed={x=w*.5-80,y=h-54,width=160,height=42}}
+end
+
 function View.layout(size: Vector2)
 	local portrait = size.X < 500 and size.Y > size.X
 	local margin = if size.X >= 700 then 20 else 12
@@ -68,7 +135,7 @@ function View.layout(size: Vector2)
 		local highestDriveTop = math.max(steerBottom + steerHeight, rightDriftBottom + driftHitHeight + 28)
 		loadoutBottom = math.max(loadoutBottom, highestDriveTop + 12)
 	end
-	return {
+	local result = {
 		speedTop = math.clamp(size.Y*0.004, 2, 4), speedHeight = 56,
 		margin = margin, action = action, slot = slot, gap = 8,
 		joystick = diameter, wheel = math.min(112, size.X * 0.18),
@@ -97,6 +164,17 @@ function View.layout(size: Vector2)
 		gaugeHeight = if size.Y < 320 and not portrait then 8 else 12,
 		driftGaugeGap = if size.Y < 320 and not portrait then 0 else 8,
 	}
+ if View.controlsV1Enabled() and size.X>size.Y and size.X>=600 then
+  local v=View.controlsV1Layout(size);local b=v.buttons
+  result.controlsV1=v;result.slot=v.items.slot;result.gap=v.items.gap
+  result.steerLeftX=b.ForwardLeft.x;result.steerBottom=size.Y-b.ForwardLeft.y-b.ForwardLeft.height
+  result.steerTotalWidth=b.ForwardRight.x+b.ForwardRight.width-b.ForwardLeft.x;result.steerHeight=b.ForwardLeft.height
+  result.sideWidth=b.ForwardLeft.width;result.sideHeight=b.ForwardLeft.height;result.sideVisualWidth=b.ForwardLeft.width
+  result.brake=b.BrakeReverse.width;result.rightBrakeX=b.BrakeReverse.x;result.rightBrakeBottom=size.Y-b.BrakeReverse.y-b.BrakeReverse.height
+  result.driftWidth=b.Drift.width;result.driftHeight=b.Drift.height;result.driftHitWidth=b.Drift.width;result.driftHitHeight=b.Drift.height
+  result.rightDriftX=b.Drift.x;result.rightDriftBottom=size.Y-b.Drift.y-b.Drift.height;result.driftGaugeGap=13
+ end
+ return result
 end
 
 -- Digital-only reverse AUTO occupies the unused lower-right pad corner.
@@ -112,6 +190,9 @@ end
 
 -- Align the phone minimap with the speed HUD in the top-right band.
 function View.minimapLayout(size: Vector2, speedTop: number?)
+ if View.controlsV1Enabled() and size.X>size.Y and size.X>=600 then
+  local r=View.controlsV1Layout(size).map;return {x=r.x,y=r.y,side=r.width}
+ end
 	local side = if size.Y < 330 then 96 elseif size.Y < 390 then 104 else 112
 	return {x=size.X-12-side, y=(speedTop or 0)+2, side=side}
 end
@@ -119,7 +200,12 @@ end
 -- Social controls occupy the former left item lane, away from the right thumb.
 function View.inviteLayout(size: Vector2, mapX: number, mapY: number, mapWidth: number, mapHeight: number, roomVisible: boolean?)
 	local l = View.layout(size)
-	local width, height = if size.Y < 360 then 108 else 118, if size.Y < 360 then 30 else 32
+ if l.controlsV1 then
+  local top=l.controlsV1.buttons.ForwardLeft.y
+  return {x=12,y=72,width=118,height=30,statusY=44,panelX=12,panelY=108,panelWidth=176,
+   rows=math.clamp(math.floor((top-108-52-8)/28),1,4)}
+ end
+ local width, height = if size.Y < 360 then 108 else 118, if size.Y < 360 then 30 else 32
 	local x = 12
 	local statusY = if size.Y < 360 then 60 else 100
 	local y = statusY + (if roomVisible then 26 else 0)
@@ -154,7 +240,10 @@ end
 
 -- Six-item race HUD belongs above the right thumb controls and charge gauge.
 function View.itemLayout(size: Vector2, slotCount: number)
-	local l = View.layout(size)
+ local l = View.layout(size)
+ if l.controlsV1 and slotCount==6 then
+  local items=table.clone(l.controlsV1.items);items.bottom=size.Y-items.secondTop-items.slot;return items
+ end
 	if slotCount == 6 then
 		local controlTop=size.Y-l.rightDriftBottom-math.max(l.brake,l.driftHitHeight)
 		local progressHeight=24
@@ -229,6 +318,21 @@ function View.stroke(parent, thickness: number)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = parent
 	return stroke
+end
+
+-- Inset overlay keeps a full outline inside clipped ScrollingFrames and above art.
+function View.styleItem(button)
+ button.BackgroundColor3=Color3.fromRGB(28,30,34);button.BackgroundTransparency=.52
+ local corner=button:FindFirstChildOfClass('UICorner')
+ if not corner then View.round(button,UDim.new(.28,0))else corner.CornerRadius=UDim.new(.28,0)end
+ local frame=button:FindFirstChild('ItemOutline')
+ if not frame then
+  frame=Instance.new('Frame');frame.Name='ItemOutline';frame.BackgroundTransparency=1;frame.BorderSizePixel=0
+  frame.Position=UDim2.fromOffset(1,1);frame.Size=UDim2.new(1,-2,1,-2);frame.Active=false;frame.ZIndex=button.ZIndex+6
+  View.round(frame,UDim.new(.28,0));local stroke=View.stroke(frame,1)
+  stroke.Color=Color3.new(1,1,1);stroke.Transparency=.35;frame.Parent=button
+ end
+ return frame
 end
 
 function View.icon(parent: Instance, kind: string, zIndex: number?)

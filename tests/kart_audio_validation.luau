@@ -205,15 +205,78 @@ kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-70)
 for _=1,240 do engineHeartbeat:Fire(1/60) end
 player:SetAttribute("RaceState","FINISHING");player:SetAttribute("RaceFinishPhase","ROLL")
 for _=1,120 do engineHeartbeat:Fire(1/60) end
-assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED,"ROLL still uses real movement")
+assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED,"ROLL fades preceding engine smoothly")
 for _,state in {"FINISHING","FINISHED"} do
  player:SetAttribute("RaceState",state);player:SetAttribute("RaceFinishPhase","PRESENT")
  kart:SetAttribute("KartBoosting",true)
  for _=1,240 do engineHeartbeat:Fire(1/60) end
  assert(math.abs(idleEngine.PlaybackSpeed-config.ENGINE.IDLE_PLAYBACK_SPEED)<1e-6,"stopped finish idle pitch")
- assert(math.abs(idleEngine.Volume-config.ENGINE.IDLE_VOLUME)<1e-6,"stopped finish idle volume")
+ assert(idleEngine.Volume<1e-6,"finish fades to silence")
 end
 player:SetAttribute("RaceState","RACING");player:SetAttribute("RaceFinishPhase",nil);kart:SetAttribute("KartBoosting",false)
 for _=1,240 do engineHeartbeat:Fire(1/60) end
 assert(idleEngine.PlaybackSpeed>config.ENGINE.IDLE_PLAYBACK_SPEED+.1,"rematch returns to normal dynamic V1 audio")
 print("PASS: stopped PRESENT idle pitch/volume, stale velocity, ROLL and Rematch audio")
+
+-- GAS is a sustained load on the existing engine, never another launch cue.
+kart:SetAttribute('KartBoosting',false);kart:SetAttribute('KartNitroActive',false)
+kart:SetAttribute('KartGasPedalActive',true)
+local p70,v70=runtime.gasEngineTargets(1.3,.6,70,true,false,false,0)
+local p90,v90=runtime.gasEngineTargets(1.353333333,.6133333,90,true,false,false,0)
+assert(p70>1.3 and p90>p70 and v90>=v70,'GAS raises engine output during70 to90 acceleration')
+assert(math.abs(p90-(config.ENGINE.MAX_PLAYBACK_SPEED+config.ENGINE.BOOST_PLAYBACK_BONUS)*.95)<1e-6,'90 target pitch is95 percent of Mini Boost engine')
+for i=0,120 do
+ local p,v=runtime.gasEngineTargets(1.353333333,.6133333,90,true,false,false,i/60)
+ assert(p>=p90-.00601 and p<=p90+.00601 and v<=config.ENGINE.MAX_VOLUME,'bounded sustained high-load flutter and volume')
+end
+for _,state in {{false,false,false},{true,true,false},{true,false,true}}do
+ local p,v=runtime.gasEngineTargets(1.48,.62,90,unpack(state))
+ assert(p==1.48 and v==.62,'release/Boost/Nitro preserves existing sound target')
+end
+kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-90)
+for i=1,120 do clock+=1/60;engineHeartbeat:Fire(1/60)end
+assert(idleEngine.PlaybackSpeed>1.39 and idleEngine.PlaybackSpeed<1.42,'actual engine heartbeat sustains GAS load at90')
+kart:SetAttribute('KartGasPedalActive',false)
+for i=1,120 do clock+=1/60;engineHeartbeat:Fire(1/60)end
+assert(math.abs(idleEngine.PlaybackSpeed-1.353333333)<.001,'actual release restores normal engine blend')
+print('PASS: GAS engine acceleration /95 percent Boost pitch / bounded heat flutter / release and boost priority')
+
+-- Repeated Rematch countdown must ignore previous velocity and stale boost/GAS.
+for attempt=1,5 do
+ player:SetAttribute('RaceState','RACING');kart:SetAttribute('RaceControlsLocked',false)
+ kart:SetAttribute('KartGasPedalActive',true);kart:SetAttribute('KartBoosting',true)
+ kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-100)
+ for _=1,120 do engineHeartbeat:Fire(1/60)end
+ for _,state in {'PRE_RACE','COUNTDOWN'}do
+  player:SetAttribute('RaceState',state);engineHeartbeat:Fire(1/60)
+  assert(math.abs(idleEngine.PlaybackSpeed-config.ENGINE.IDLE_PLAYBACK_SPEED)<1e-6,'Rematch idle pitch before GO '..attempt)
+  assert(math.abs(idleEngine.Volume-config.ENGINE.IDLE_VOLUME)<1e-6,'Rematch idle volume before GO '..attempt)
+ end
+end
+print('PASS five repeated Rematch stale velocity / GAS / Boost pre-GO idle cycles')
+
+local envelope=runtime.newFinishEngineEnvelope(3.3)
+envelope:step(false,1.4,.62,0)
+local pitch,volume=envelope:step(true,.78,0,1/60)
+assert(math.abs(volume-.62)<1e-6 and math.abs(pitch-1.4)<1e-6,'finish retains crossing engine despite zero velocity/lock')
+local previous=volume
+for i=1,198 do
+ pitch,volume=envelope:step(true,.78,0,1/60)
+ assert(volume<=previous+1e-6 and previous-volume<.01,'continuous monotonic finish fade')
+ previous=volume
+ if i==144 then assert(volume>0,'no hard stop when front camera starts at2.4s')end
+end
+assert(volume<1e-6,'silent by end of3.3s roll and camera transition')
+local _,reset=envelope:step(false,1.3,.6,0);assert(reset==.6,'Replay/Rematch clears finish envelope')
+print('PASS shared Park/race finish envelope: crossing continuity / monotonic3.3s fade / camera boundary / replay reset')
+
+player:SetAttribute('RaceState','RACING');player:SetAttribute('RaceFinishPhase',nil)
+kart:SetAttribute('KartGasPedalActive',false);kart:SetAttribute('KartBoosting',false)
+kart:SetAttribute('RaceControlsLocked',false);kart.children.Chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-70)
+for _=1,120 do engineHeartbeat:Fire(1/60)end
+local before=idleEngine.Volume
+kart:SetAttribute('RaceControlsLocked',true);engineHeartbeat:Fire(1/60)
+assert(math.abs(idleEngine.Volume-before)<.01,'finish lock arriving before phase/state never snaps running engine')
+player:SetAttribute('RaceState','FINISHING');player:SetAttribute('RaceFinishPhase','ROLL');engineHeartbeat:Fire(1/60)
+assert(idleEngine.Volume>.5,'crossing engine retained when finish state follows lock')
+print('PASS finish lock / state replication-order continuity')

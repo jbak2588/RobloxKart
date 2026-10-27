@@ -58,7 +58,7 @@ function Session.step(s,now,dt,forward,lateral,speed,throttle,steering,valid,nor
   if speed>0 then
    speed=toward(speed,0,Config.BRAKE_FORCE*-throttle*dt)
   else
-   local revCap=if offTrack then Config.MAX_REVERSE_SPEED*0.8 else Config.MAX_REVERSE_SPEED
+   local revCap=Config.MAX_REVERSE_SPEED -- held reverse uses the same70 cap on grass and road
    speed=toward(speed,-revCap,Config.REVERSE_ACCELERATION*-throttle*dt)
   end
  else

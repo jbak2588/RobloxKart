@@ -41,6 +41,7 @@ function Controller.start()
  local exhaust=nil
  local speedGauge=nil
  local engineAB=nil
+ local finishEngine=Audio.newFinishEngineEnvelope()
  local focused=true;local cameraBody=nil;local previousTarget=nil;local savedFov=nil;local engine,engineSecondary,engineLooper,diagnostic=nil,nil,nil,nil
  local boostAudio=nil
  local missileHitCue=nil;local previousMissileHit=false
@@ -96,6 +97,27 @@ function Controller.start()
   return player:GetAttribute('LobbyDriveActive')==true and seatKart()~=nil and not suspended and focused and not pending
  end)
  local trialView
+ local parkMap,parkDot,parkMapPoint,parkMapGui
+ if MobileView.controlsV1Enabled() then
+  local layout=require(RS.Shared.HubParkRookieLoopLayout)
+  local points=layout.sample(layout.Segments)
+  local minX,maxX,minZ,maxZ=math.huge,-math.huge,math.huge,-math.huge
+  for _,p in points do minX=math.min(minX,p.x);maxX=math.max(maxX,p.x);minZ=math.min(minZ,p.z);maxZ=math.max(maxZ,p.z)end
+  local extent=math.max(maxX-minX,maxZ-minZ)*1.14
+  parkMapPoint=function(x,z)return Vector2.new(.5+(x-(minX+maxX)/2)/extent,.5-(z-(minZ+maxZ)/2)/extent)end
+  parkMapGui=Instance.new('ScreenGui');parkMapGui.Name='KDMParkMinimap';parkMapGui.ScreenInsets=Enum.ScreenInsets.DeviceSafeInsets
+  parkMapGui.ResetOnSpawn=false;parkMapGui.DisplayOrder=21;parkMapGui.Parent=gui.Parent
+  gui.Destroying:Connect(function()parkMapGui:Destroy()end)
+  parkMap=Instance.new('Frame');parkMap.Name='ParkMinimap';parkMap.BackgroundTransparency=1;parkMap.Parent=parkMapGui
+  for i=1,#points-1 do
+   local a,b=parkMapPoint(points[i].x,points[i].z),parkMapPoint(points[i+1].x,points[i+1].z)
+   local delta=b-a;local line=Instance.new('Frame');line.AnchorPoint=Vector2.new(.5,.5);line.Position=UDim2.fromScale((a.X+b.X)/2,(a.Y+b.Y)/2)
+   line.Size=UDim2.new(delta.Magnitude,1,0,2);line.Rotation=math.deg(math.atan2(delta.Y,delta.X));line.BorderSizePixel=0;line.BackgroundColor3=Color3.fromRGB(230,238,245);line.Parent=parkMap
+  end
+  parkDot=Instance.new('Frame');parkDot.Name='Driver';parkDot.AnchorPoint=Vector2.new(.5,.5);parkDot.Size=UDim2.fromOffset(7,7)
+  parkDot.BorderSizePixel=0;parkDot.BackgroundColor3=Color3.fromRGB(65,225,245);parkDot.Parent=parkMap
+  local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(1,0);corner.Parent=parkDot
+ end
  local smokeView=SmokeView.new(player:WaitForChild('PlayerGui'),player,true)
  local postDrive=PostDriveView.new(gui.Parent,function()
   local rooms=gui.Parent:FindFirstChild('KDMMatchRooms')
@@ -131,6 +153,7 @@ function Controller.start()
   if engine then engine:Stop();engine:Destroy();engine=nil end
   if engineSecondary then engineSecondary:Stop();engineSecondary:Destroy();engineSecondary=nil end
   engineLooper=nil
+  finishEngine=Audio.newFinishEngineEnvelope()
   if diagnostic then diagnostic:destroy();diagnostic=nil end
   if cameraBody then
    local camera=Workspace.CurrentCamera;local h=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -167,10 +190,12 @@ function Controller.start()
   request("Stop",function(ok) if ok then handoffComplete=true;resume() end end)
   return true
  end)
- Input.setLobbyInputSender(function(throttle,steering,drift)
+ Input.setLobbyInputSender(function(throttle,steering,drift,gas)
   local kart=seatKart();if not kart or player:GetAttribute("LobbyDriveActive")~=true then return end
-  if suspended or not focused or GuiService.MenuIsOpen or UIS:GetFocusedTextBox() then throttle,steering,drift=0,0,false end
-  remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),throttle,steering,drift==true)
+  if suspended or not focused or GuiService.MenuIsOpen or UIS:GetFocusedTextBox() then throttle,steering,drift,gas=0,0,false,false end
+  if MobileView.controlsV1Enabled() and Workspace:GetAttribute('KDMGasPedalEnabled')==true then
+   remote:FireServer('Input',player:GetAttribute('LobbyDriveGeneration'),throttle,steering,drift==true,gas==true)
+  else remote:FireServer("Input",player:GetAttribute("LobbyDriveGeneration"),throttle,steering,drift==true) end
  end)
  remote.OnClientEvent:Connect(function(action,id,gen,ok,message,returned)
   if action~="Reply" or not pending or id~=pending.id then return end
@@ -237,12 +262,32 @@ function Controller.start()
   local touch=gui.Parent:FindFirstChild("RobloxKartTouchDriving")
   local controls=touch and touch:FindFirstChild("Controls")
   local size=if controls then controls.AbsoluteSize else Workspace.CurrentCamera.ViewportSize
-  local l=LobbyLayout.apply(MobileView.layout(size),size)
+  local l=MobileView.layout(size);if not l.controlsV1 then l=LobbyLayout.apply(l,size) end
+  if parkMap then
+   parkMap.Visible=l.controlsV1~=nil and active and gui.Enabled
+   if l.controlsV1 then
+    local r=MobileView.controlsV1Layout(parkMapGui.AbsoluteSize).map
+    parkMap.Position=UDim2.fromOffset(r.x,r.y);parkMap.Size=UDim2.fromOffset(r.width,r.height)
+    local kart=seatKart();local body=kart and kart:FindFirstChild('Chassis');local center=driveZone:GetAttribute('Center')
+    if body and center then local p=parkMapPoint(body.Position.X-center.X,body.Position.Z-center.Z);parkDot.Position=UDim2.fromScale(p.X,p.Y)end
+   end
+  end
   local navigation=gui.Parent:FindFirstChild("KDMHubNavigation")
   local wallet=navigation and navigation:FindFirstChild("WalletCapsule")
   local walletBottom=if wallet then wallet.AbsolutePosition.Y+wallet.AbsoluteSize.Y-canvas.AbsolutePosition.Y else nil
   local practiceLayout=practiceView:update(driving and gui.Enabled,l,walletBottom,seatKart())
   local rewardHud=gui.Parent:FindFirstChild('KDMActivityReward')
+  if l.controlsV1 and rewardHud then
+   local progress=rewardHud:FindFirstChild('Progress')
+   if progress then
+    local r=l.controlsV1.clock
+    progress.AnchorPoint=Vector2.zero
+    progress.Position=UDim2.fromOffset(r.x,r.y)
+    progress.Size=UDim2.fromOffset(r.width,r.height)
+    progress.TextSize=10
+    progress.TextWrapped=true
+   end
+  end
   combatView:layout(UDim2.new(.5,0,0,6),nil,
    rewardHud and rewardHud.Enabled and rewardHud:FindFirstChild('Progress'))
   charge.Visible=driving;gauge.Visible=driving
@@ -251,6 +296,13 @@ function Controller.start()
   gauge.Position=UDim2.fromOffset(practiceLayout.x,practiceLayout.gaugeY);gauge.Size=UDim2.fromOffset(practiceLayout.width,practiceLayout.gaugeHeight)
   local segmentWidth=(practiceLayout.width-16)/5
   for i,segment in segments do segment.Size=UDim2.fromOffset(segmentWidth,practiceLayout.gaugeHeight);segment.Position=UDim2.fromOffset((i-1)*(segmentWidth+4),0) end
+  if l.controlsV1 then
+   local r=l.controlsV1.gauge;local controlsOrigin=if controls then controls.AbsolutePosition-canvas.AbsolutePosition else Vector2.zero
+   charge.Visible=false
+   gauge.Position=UDim2.fromOffset(controlsOrigin.X+r.x,controlsOrigin.Y+r.y);gauge.Size=UDim2.fromOffset(r.width,r.height)
+   local segmentWidth=(r.width-16)/5
+   for i,segment in segments do segment.Size=UDim2.fromOffset(segmentWidth,r.height);segment.Position=UDim2.fromOffset((i-1)*(segmentWidth+4),0) end
+  end
   local exit=LobbyLayout.shortcuts(canvas.AbsoluteSize,MobileView)
   button.AnchorPoint=Vector2.zero
   button.Position=UDim2.fromOffset(exit.x+6,exit.y+4)
@@ -289,9 +341,9 @@ function Controller.start()
   end
   -- Reuse the accepted race analog dials + digital readout. This is local
   -- presentation only: no speed attributes, remotes or driving writes.
-  if driveZone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' then
+  if driveZone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1' or (Input.isTouchPreferred() and MobileView.controlsV1Enabled()) then
    if not speedGauge then
-    speedGauge=require(script.Parent:WaitForChild('V2GaugeController')).new(gui.Parent,'ANALOG',MobileView)
+    speedGauge=require(script.Parent:WaitForChild('V2GaugeController')).new(gui.Parent,if Input.isTouchPreferred() and MobileView.controlsV1Enabled() then 'DIGITAL' else 'ANALOG',MobileView)
     speedGauge.gui.Name='KDMLobbySpeedHud'
    end
    speedGauge.gui.Enabled=gui.Enabled and phase~="FINISHING" and phase~="FINISHED" and phase~="INVALID"
@@ -313,6 +365,9 @@ function Controller.start()
   if thunderHit and not previousThunderHit then Audio.playOnce(thunderHitCue) end
   previousThunderHit=thunderHit
   charge.Text=if kart:GetAttribute('KartBoosting') then 'MINI BOOST' elseif kart:GetAttribute('LobbyDriftReady') then 'BOOST READY • RELEASE' else string.format('BOOST CHARGE %d%%',math.floor((kart:GetAttribute('LobbyDriftCharge') or 0)*100))
+  if l.controlsV1 then
+   charge.Text=if kart:GetAttribute('KartBoosting') then 'BOOST' elseif kart:GetAttribute('LobbyDriftReady') then 'READY' else string.format('%d%%',math.floor((kart:GetAttribute('LobbyDriftCharge') or 0)*100))
+  end
   for i,segment in segments do segment.BackgroundColor3=if kart:GetAttribute('LobbyDriftReady') then Color3.fromRGB(255,218,67) elseif (kart:GetAttribute('LobbyDriftCharge') or 0)*5>=i then Color3.fromRGB(111,211,245) else Color3.fromRGB(26,40,56) end
   local f=body.CFrame.LookVector;f=Vector3.new(f.X,0,f.Z).Unit
   local target=body.Position
@@ -343,15 +398,17 @@ function Controller.start()
    finishCameraStart,finishCameraElapsed=nil,nil
    camera.CFrame=Motion.step(camera.CFrame,previousTarget,target,desired,6,dt);camera.Focus=CFrame.new(target);previousTarget=target
   end
-  if engine and present then Audio.stop(engine);Audio.stop(engineSecondary)
-  elseif engine then
+  if engine then
    if not engine.IsPlaying then engine:Play()end
    local speed=math.abs(body.AssemblyLinearVelocity:Dot(body.CFrame.LookVector))
    local ratio=math.clamp(speed/KartConfig.MAX_FORWARD_SPEED,0,1)
    local bonus=math.clamp((speed-KartConfig.MAX_FORWARD_SPEED)/(KartConfig.MINI_BOOST_MAX_SPEED-KartConfig.MAX_FORWARD_SPEED),0,1)
    local pitch=AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*ratio+(AudioConfig.ENGINE.MAX_PLAYBACK_SPEED-AudioConfig.ENGINE.NORMAL_PLAYBACK_SPEED)*bonus+(if boosting then AudioConfig.ENGINE.BOOST_PLAYBACK_BONUS else 0)
    local volume=AudioConfig.ENGINE.IDLE_VOLUME+(AudioConfig.ENGINE.NORMAL_VOLUME-AudioConfig.ENGINE.IDLE_VOLUME)*ratio+(AudioConfig.ENGINE.MAX_VOLUME-AudioConfig.ENGINE.NORMAL_VOLUME)*bonus
-   local alpha=1-math.exp(-AudioConfig.ENGINE.RESPONSE*dt)
+   if Audio.gasEngineTargets then pitch,volume=Audio.gasEngineTargets(pitch,volume,speed,kart:GetAttribute('KartGasPedalActive')==true,boosting,nitro,Workspace:GetServerTimeNow())end
+   local finishing=player:GetAttribute('ParkTrialFinishPhase')=='ROLL' or present
+   pitch,volume=finishEngine:step(finishing,pitch,volume,dt)
+   local alpha=if finishing then 1 else 1-math.exp(-AudioConfig.ENGINE.RESPONSE*dt)
    local fixedPitch=diagnostic~=nil and diagnostic:isFixed()
    local diagActive=player:GetAttribute("KartEngineLoopTestMode")~=nil and player:GetAttribute("KartEngineLoopTestMode")~="NORMAL"
    if fixedPitch then engine.PlaybackSpeed=1 end

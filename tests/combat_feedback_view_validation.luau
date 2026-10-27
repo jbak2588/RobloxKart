@@ -92,7 +92,7 @@ check(cue.TextSize==17 and cue.BackgroundTransparency==.25 and cue.AbsoluteSize.
 local speedGui,speed,warning=object("ScreenGui"),object("Frame"),object("TextLabel")
 speed.Parent=speedGui;warning.Parent=gui
 speedGui.origin=rb.Vector2.zero;speedGui.bounds=rb.Vector2.new(932,430)
-speed.AnchorPoint=rb.Vector2.new(.5,0);speed.Position=rb.UDim2.new(.5,0,0,2);speed.Size=rb.UDim2.fromOffset(160,56)
+speed.AnchorPoint=rb.Vector2.new(.5,0);speed.Position=rb.UDim2.new(.5,0,1,-56);speed.Size=rb.UDim2.fromOffset(160,56)
 warning.Position=rb.UDim2.new(.5,0,0,64);warning.AnchorPoint=rb.Vector2.new(.5,0);warning.Size=rb.UDim2.fromOffset(240,40)
 local function rect(o) local p,s=o.AbsolutePosition,o.AbsoluteSize;return {p.X,p.Y,p.X+s.X,p.Y+s.Y} end
 local function overlaps(a,b) return a[1]<b[3] and b[1]<a[3] and a[2]<b[4] and b[2]<a[4] end
@@ -102,7 +102,7 @@ for _,case in {{932,430,44,58,844,332},{844,390,48,58,748,303},{852,393,64,58,72
 		warning.Visible=incoming;view:layout(rb.UDim2.new(.5,0,0,64),warning.Size,warning,speed)
 		local badge,safe,speedRect=rect(cue),rect(gui),rect(speed)
 		check(badge[1]>=safe[1] and badge[2]>=safe[2] and badge[3]<=safe[3] and badge[4]<=safe[4],"badge within notch-safe screen")
-		check(badge[2]>=speedRect[4]+6,"badge below actual speed panel across different GUI insets")
+		check(cue.Position.Y.Offset<=40,"bottom speed panel never pushes feedback down")
 		if incoming then check(badge[2]>=rect(warning)[4]+6,"incoming gets priority above result") end
 		local lap={safe[1]+12,safe[2]+8,safe[1]+182,safe[2]+163}
 		local map={safe[3]-112,safe[2]+36,safe[3]-12,safe[2]+136}
@@ -111,6 +111,20 @@ for _,case in {{932,430,44,58,844,332},{844,390,48,58,748,303},{852,393,64,58,72
 		local road={safe[1]+case[5]*.4,safe[2]+case[6]*.5,safe[1]+case[5]*.6,safe[4]}
 		for _,r in {lap,map,room,items,road,speedRect} do check(not overlaps(badge,r),"badge clears driving HUD/road") end
 	end
+end
+-- Caller offsets, QA flags, portrait and bottom gauges can never move combat centrally.
+for _,size in {rb.Vector2.new(1600,739),rb.Vector2.new(750,332),rb.Vector2.new(600,240),rb.Vector2.new(390,780)}do
+ gui.bounds=size;gui.origin=rb.Vector2.zero
+ speed.Position=rb.UDim2.new(.5,0,1,-56)
+ for _,flag in {false,true}do
+  gui:SetAttribute('KDMControlsV1Preview',flag)
+  for _,shown in {false,true}do
+   warning.Visible=shown;warning.Position=rb.UDim2.new(.5,0,.5,50)
+   view:layout(rb.UDim2.new(.5,0,.5,180),rb.UDim2.fromOffset(200,40),warning,speed);tick()
+   check(cue.Position.Y.Scale==0 and cue.Position.Y.Offset==(if shown then 40 else 6),'top result band ignores all central fallbacks')
+   check(warning.Position.Y.Scale==0 and warning.Position.Y.Offset==6,'incoming warning has same fixed top band')
+  end
+ end
 end
 local before=#logs;tick();tick();check(#logs==before,"no Heartbeat diagnostic spam")
 player:SetAttribute("RaceState","GARAGE");result("MISSILE_HIT")

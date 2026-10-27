@@ -100,6 +100,29 @@ function Controller.start()
 		b.Visible = state.mode == "Buttons"
 		drivingButtons[action] = {button = b, outline = outline, icon = IconView.new(b,action,cache,View)}
 	end
+ local gas,gasStroke=button('Gas');gas.Visible=false
+ local v1Labels={};local previewLayout=nil
+ local function glyph(b,text)
+  local t=Instance.new('TextLabel');t.Name='ControlsV1Glyph';t.BackgroundTransparency=1;t.Size=UDim2.fromScale(1,1)
+  t.Text=text;t.Font=Enum.Font.GothamBold;t.TextColor3=Color3.fromRGB(245,245,245);t.TextSize=14;t.Active=false;t.Visible=false;t.Parent=b;return t
+ end
+ v1Labels.ForwardLeft=glyph(drivingButtons.ForwardLeft.button,'◀')
+ v1Labels.ForwardRight=glyph(drivingButtons.ForwardRight.button,'▶')
+ v1Labels.BrakeReverse=glyph(drivingButtons.BrakeReverse.button,'BRAKE')
+ v1Labels.Drift=glyph(drift,'DRIFT');v1Labels.Gas=glyph(gas,'GAS')
+ local notice=Instance.new('TextLabel');notice.Name='ControlsV1PreviewNotice';notice.BackgroundTransparency=1
+ notice.Text='UI PREVIEW / GAS SPEED NOT CONNECTED';notice.TextWrapped=true;notice.TextSize=10;notice.Font=Enum.Font.GothamBold
+ notice.TextColor3=Color3.fromRGB(245,220,140);notice.TextStrokeTransparency=.35;notice.Active=false;notice.Visible=false;notice.Parent=root
+ local function neutral(b,outline,label,held)
+  b.BackgroundColor3=if held and b==gas then Color3.fromRGB(32,47,50) else Color3.fromRGB(28,30,34)
+  b.BackgroundTransparency=if held then .33 else .52
+  outline.Enabled=true;outline.Color=Color3.fromRGB(225,230,235);outline.Thickness=1;outline.Transparency=if held then .15 else .35
+  local corner=b:FindFirstChildOfClass("UICorner");if corner then corner.CornerRadius=UDim.new(.28,0)end
+  label.Visible=true;label.TextTransparency=if controlsEnabled then 0 else .4
+  local steering=b==drivingButtons.ForwardLeft.button or b==drivingButtons.ForwardRight.button
+  label.Font=if steering then Enum.Font.GothamBlack else Enum.Font.GothamBold
+  label.TextSize=if steering then 40 elseif b==drivingButtons.BrakeReverse.button then 10 else 12
+ end
 	local touches, connections, kartConnections = {}, {}, {}
 	local autoTouch,backwardTouch=nil,nil
 	local function ownsAuto(input) return input==autoTouch or input==backwardTouch end
@@ -112,11 +135,15 @@ function Controller.start()
 	end
 	local function publish()
 		Input.setTouchActions(state:actions())
+  if Input.setGasHeld then Input.setGasHeld(controlsEnabled and state.gasOwner~=nil) end
+  gui:SetAttribute('GasPreviewHeld',state.gasOwner~=nil)
 		for action,control in drivingButtons do
 			local held=state:isPressed(action)
 			local loaded=control.icon:update(controlsEnabled,held)
 			control.outline.Enabled=not loaded
 			control.outline.Thickness=if held then 4 else 2
+			control.outline.Color=Color3.fromRGB(225,246,255)
+			control.outline.Transparency=0
 			control.button.BackgroundTransparency=if loaded then 1 else .18
 			control.button.BackgroundColor3=if held then Color3.fromRGB(36,107,137) else Color3.fromRGB(19,39,54)
 		end
@@ -147,6 +174,21 @@ function Controller.start()
 		drift.BackgroundTransparency=if loaded then 1 else .18
 		driftStroke.Thickness = if next(state.driftOwners) then 4 else 2
 		drift.BackgroundColor3 = if next(state.driftOwners) then Color3.fromRGB(36, 107, 137) else Color3.fromRGB(19, 39, 54)
+  gas.Visible=previewLayout~=nil and state.mode=='Buttons'
+  for _,label in v1Labels do label.Visible=false end
+  notice.Visible=previewLayout~=nil and player.UserId==game.CreatorId
+   and workspace:GetAttribute('KDMGasPedalEnabled')~=true
+  if previewLayout then
+   for action,control in drivingButtons do
+    if v1Labels[action] then
+     control.icon.image.Visible=false;control.icon.fallback.root.Visible=false
+     neutral(control.button,control.outline,v1Labels[action],state:isPressed(action))
+    end
+   end
+   driftIcon.image.Visible=false;driftIcon.fallback.root.Visible=false
+   neutral(drift,driftStroke,v1Labels.Drift,next(state.driftOwners)~=nil)
+   neutral(gas,gasStroke,v1Labels.Gas,state.gasOwner~=nil)
+  end
 	end
 	local function reset()
 		autoTouch,backwardTouch=nil,nil
@@ -203,7 +245,12 @@ function Controller.start()
 		-- Release follows the owning InputObject globally, even outside the button.
 		connect(control.button.InputEnded, release)
 	end
-	local function displacement(input)
+ connect(gas.InputBegan,function(input)
+  if not previewLayout or input.UserInputType~=Enum.UserInputType.Touch or not canDrive() or touches[input] or ownsAuto(input) then return end
+  if state:pressGas(input) then watch(input);publish() end
+ end)
+ connect(gas.InputEnded,release)
+ local function displacement(input)
 		local center = joystick.AbsolutePosition + joystick.AbsoluteSize/2
 		local radius = math.max(1, (joystick.AbsoluteSize.X-thumb.AbsoluteSize.X)/2-4)
 		local zone = gui:GetAttribute("JoystickDeadZone")
@@ -223,6 +270,20 @@ function Controller.start()
 	connect(UserInputService.InputEnded, release)
 	connect(UserInputService.InputChanged, function(input)
 		if input == state.owner and canDrive() then state:move(input, displacement(input)); publish() end
+  -- A held GAS finger may move to BRAKE or DRIFT without lifting.
+  -- Brake takes negative-throttle ownership immediately instead of leaving GAS held.
+  if previewLayout and input==state.gasOwner and canDrive() then
+   local brake=drivingButtons.BrakeReverse.button
+   local pos,size=brake.AbsolutePosition,brake.AbsoluteSize
+   if input.Position.X>=pos.X and input.Position.X<=pos.X+size.X and input.Position.Y>=pos.Y and input.Position.Y<=pos.Y+size.Y then
+    state:release(input);state:pressButton(input,'BrakeReverse');publish()
+   else
+    pos,size=drift.AbsolutePosition,drift.AbsoluteSize
+    if input.Position.X>=pos.X and input.Position.X<=pos.X+size.X and input.Position.Y>=pos.Y and input.Position.Y<=pos.Y+size.Y then
+     state:release(input);state:pressDrift(input);publish()
+    end
+   end
+  end
 	end)
 	if auto then
 		connect(auto.InputBegan,function(input)
@@ -249,7 +310,8 @@ function Controller.start()
 	local function layout()
 		reset()
 		local l = View.layout(root.AbsoluteSize)
-		if Input.isLobbyDriving() then l=LobbyLayout.apply(l,root.AbsoluteSize) end
+		if Input.isLobbyDriving() and not l.controlsV1 then l=LobbyLayout.apply(l,root.AbsoluteSize) end
+  previewLayout=if state.mode=='Buttons' then l.controlsV1 else nil
 		local backwardLayout=if autoBackward then View.autoBackwardLayout(l,root.AbsoluteSize) else nil
 		joystick.Size = UDim2.fromOffset(l.joystick, l.joystick)
 		joystick.Position = UDim2.new(1, -l.margin, 1, -l.margin)
@@ -311,6 +373,17 @@ function Controller.start()
 			drift.Position = UDim2.new(0,l.driftX,1,-l.driftBottom)
 			use.Position = UDim2.new(0,l.useX,1,-l.useBottom)
 		end
+  if previewLayout then
+   for name,r in previewLayout.buttons do
+    local b=if name=='Gas' then gas elseif name=='Drift' then drift else drivingButtons[name].button
+    b.AnchorPoint=Vector2.zero;b.Position=UDim2.fromOffset(r.x,r.y);b.Size=UDim2.fromOffset(r.width,r.height)
+   end
+   local n=previewLayout.notice;notice.Position=UDim2.fromOffset(n.x,n.y);notice.Size=UDim2.fromOffset(n.width,n.height)
+  else
+   drift.AnchorPoint=Vector2.new(0,1)
+   for _,c in drivingButtons do c.button.AnchorPoint=Vector2.new(0,1) end
+  end
+  publish()
 	end
 	local function bindKart(value)
 		for _, c in kartConnections do c:Disconnect() end
@@ -352,6 +425,7 @@ function Controller.start()
 	connect(gui:GetPropertyChangedSignal("Enabled"), reset)
 	connect(root:GetPropertyChangedSignal("Visible"), function() if not root.Visible then reset() end end)
 	connect(root:GetPropertyChangedSignal("AbsoluteSize"), layout)
+ if workspace and workspace.GetAttributeChangedSignal then connect(workspace:GetAttributeChangedSignal('KDMControlsV1Preview'),layout) end
 	layout()
 	local hiddenTouchGui, previousEnabled = nil, nil
 	local function defaultControls(hidden)

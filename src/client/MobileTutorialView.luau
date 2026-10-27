@@ -193,7 +193,9 @@ function Tutorial.create(parent: Instance, onDismiss)
 		title.Text = data[1]
 		diagram.Text = if page == 1 then "" else data[2]
 		diagram.Visible = page == 2
-		description.Text = data[3]
+		description.Text = if page==1 and MobileView.controlsV1Enabled() then
+   (if workspace:GetAttribute('KDMGasPedalEnabled')==true then 'LEFT / RIGHT · BRAKE / REVERSE · DRIFT\nGAS: HOLD FOR 90 STUDS/S ON TRACK — NO EXTRA BOOST'
+    else 'LEFT / RIGHT · BRAKE / REVERSE · DRIFT\nGAS: UI PREVIEW ONLY — SPEED NOT CONNECTED')else data[3]
 		itemCaptions.Visible = page == 3
 		gaugeExamples.Visible = page == 2
 		table.clear(controlViews)

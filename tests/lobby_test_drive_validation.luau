@@ -6,14 +6,14 @@ for _,v in {{'RACE','',false},{'HUB','reserved',false},{'HUB','private',false},{
 for _,v in {{0,0},{1,-1},{.5,.75}} do check(p.validAxes(unpack(v)),'finite axes') end
 for _,v in {{0/0,0},{0,math.huge},{-math.huge,0},{'1',0},{0,{}}} do check(not p.validAxes(unpack(v)),'malformed input rejected') end
 -- Simulate a real start, brake/reverse and release at two mobile/server cadences.
-check(p.Reverse==50,'Lobby reverse maximum is 50 studs/s')
+check(p.Reverse==70,'Lobby reverse maximum is 70 studs/s')
 for _,dt in {1/30,1/60} do
  local speed,distance=0,0
  for _=1,math.floor(3/dt) do speed=p.advance(speed,1,dt);distance+=speed*dt;check(speed<=60 and speed>=0,'forward capped each step') end
  check(math.abs(speed-60)<.001 and distance<240,'60 reachable on straight')
- for _=1,math.floor(2.5/dt) do speed=p.advance(speed,-1,dt);check(speed>=-50 and speed<=60,'brake/reverse cap every step') end
- check(math.abs(speed+50)<.001,'reverse reached')
- for _=1,math.floor(3/dt) do speed=p.advance(speed,0,dt) end
+ for _=1,math.floor(3.5/dt) do speed=p.advance(speed,-1,dt);check(speed>=-70 and speed<=60,'brake/reverse cap every step') end
+ check(math.abs(speed+70)<.001,'reverse reached')
+ for _=1,math.floor(4.5/dt) do speed=p.advance(speed,0,dt) end
  check(math.abs(speed)<.001,'release coasts to stop')
 end
 local points=p.route(p.Radius)

@@ -4,9 +4,9 @@ local rb=require('@lune/roblox')
 local p=luau.load(fs.readFile('src/shared/LobbyDrivePolicy.luau'))()
 local geometry=luau.load(fs.readFile('src/shared/LobbyDriveGeometry.luau'))().create(p)
 local n=0;local function check(v,label)assert(v,label);n+=1 end
-check(p.Forward==60 and p.Reverse==50 and p.TurnRadius==50 and p.DriftTurnRadius==35,'approved Lobby policy')
+check(p.Forward==60 and p.Reverse==70 and p.TurnRadius==50 and p.DriftTurnRadius==35,'approved Lobby policy')
 for _,dt in {1/30,1/60,.05} do for _,input in {-10,-1,0,1,10} do
- local s=0;for _=1,300 do s=p.advance(s,input,dt);check(s>=-50 and s<=60,'oversized finite axes cannot overspeed') end
+ local s=0;for _=1,300 do s=p.advance(s,input,dt);check(s>=-70 and s<=60,'oversized finite axes cannot overspeed') end
 end end
 for angle=0,359,3 do
  local a=math.rad(angle);local nx,nz=math.cos(a),math.sin(a)

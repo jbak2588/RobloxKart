@@ -99,11 +99,18 @@ function View.new(gui, player, onClear, practice)
 		table.insert(connections, player:GetAttributeChangedSignal("LobbyPracticeMessageSerial"):Connect(function()
 			local text = player:GetAttribute("LobbyPracticeMessage")
 			if type(text) ~= "string" or not sync() then return end
-			if View.isPracticeResult(text) then
+			if text ~= "" then
 				show(text, cyan, 1.2, false)
 			end
 		end))
 	end
+ if practice then
+  local function incomingPractice()
+   local n=(player:GetAttribute('LobbyMissileIncomingCount')or 0)+(player:GetAttribute('LobbyThunderIncomingCount')or 0)
+   if n>0 and sync()then show('INCOMING! • SHIELD',cyan,1.2,false)end
+  end
+  for _,name in {'LobbyMissileIncomingCount','LobbyThunderIncomingCount'}do table.insert(connections,player:GetAttributeChangedSignal(name):Connect(incomingPractice))end
+ end
 	local function diagnostic(message)
 		if KartConfig.DEBUG_TELEMETRY then print("[CombatFeedbackView] "..message) end
 	end
@@ -148,24 +155,20 @@ function View.new(gui, player, onClear, practice)
 		table.insert(connections, player:GetAttributeChangedSignal(attr):Connect(function() clear(true); kart=nil; sync() end))
 	end
 	table.insert(connections, player.CharacterRemoving:Connect(function() clear(true); kart=nil end))
-	local warning, speedPanel
+	local warning, speedPanel, fallbackSize
 	local fallbackPosition = UDim2.new(0.5, 0, 0, 6)
-	local function placeBadge()
-		local size = gui.AbsoluteSize
-		local x = size.X * fallbackPosition.X.Scale + fallbackPosition.X.Offset
-		local y = if size.X < 600 then 180 else 6
-		if speedPanel and speedPanel.Parent then
-			x = speedPanel.AbsolutePosition.X + speedPanel.AbsoluteSize.X/2 - gui.AbsolutePosition.X
-			y = math.max(y, speedPanel.AbsolutePosition.Y + speedPanel.AbsoluteSize.Y - gui.AbsolutePosition.Y + 6)
-		end
-		if warning and warning.Visible then
-			y = math.max(y, warning.AbsolutePosition.Y + warning.AbsoluteSize.Y - gui.AbsolutePosition.Y + 6)
-		end
-		local width = math.min(240, math.max(0, size.X-24))
-		cue.Position = UDim2.fromOffset(math.clamp(x, width/2+12, math.max(width/2+12, size.X-width/2-12)),
-			math.clamp(y, 0, math.max(0, size.Y-34)))
-		cue.Size = UDim2.fromOffset(width, 34)
-	end
+ -- One final layout owner for every combat result and incoming warning.
+ -- Never follow bottom speed panels, item rows, caller offsets or short-screen fallbacks.
+ local function placeBadge()
+  local size=gui.AbsoluteSize;local width=math.min(320,math.max(0,size.X-24))
+  local y=6
+  if not practice and warning and warning.Parent then
+   warning.AnchorPoint=Vector2.new(.5,0);warning.Position=UDim2.new(.5,0,0,6)
+   warning.Size=UDim2.fromOffset(width,28)
+   if warning.Visible then y=40 end
+  end
+  cue.Position=UDim2.fromOffset(size.X/2,y);cue.Size=UDim2.fromOffset(width,34)
+ end
 	table.insert(connections, RunService.Heartbeat:Connect(function()
 		local current = sync()
 		if current then observeHits(current) end
@@ -178,7 +181,7 @@ function View.new(gui, player, onClear, practice)
 	end))
 	local self = {}
 	function self:layout(position, _size, incoming, speed)
-		fallbackPosition, warning, speedPanel = position, incoming, speed
+		fallbackPosition, warning, speedPanel, fallbackSize = position, incoming, speed, _size
 		placeBadge()
 	end
 	function self:destroy()

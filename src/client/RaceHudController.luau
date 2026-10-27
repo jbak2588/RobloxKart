@@ -90,6 +90,11 @@ function RaceHudController.start()
 	mobileTopGui.ScreenInsets = Enum.ScreenInsets.None
 	mobileTopGui.DisplayOrder = 11
 	mobileTopGui.Parent = playerGui
+ local previousMap=playerGui:FindFirstChild('KDMRaceMinimap');if previousMap then previousMap:Destroy()end
+ local mobileMapGui=Instance.new('ScreenGui');mobileMapGui.Name='KDMRaceMinimap'
+ mobileMapGui.ResetOnSpawn=false;mobileMapGui.DisplayOrder=11
+ mobileMapGui.ScreenInsets=Enum.ScreenInsets.DeviceSafeInsets;mobileMapGui.Parent=playerGui
+ screenGui.Destroying:Connect(function()mobileMapGui:Destroy()end)
 
 	local frame = Instance.new("Frame")
 	frame.Name = "Panel"
@@ -216,7 +221,7 @@ function RaceHudController.start()
 		button.Font = Enum.Font.GothamBold
 		button.ZIndex = 22
 		button.Parent = quitDialog
-		addCorner(button, 5)
+		ResultView.button(button)
 		return button
 	end
 	local cancelQuitButton = dialogButton("Cancel", "CANCEL", 14, Color3.fromRGB(60, 83, 105))
@@ -417,13 +422,13 @@ function RaceHudController.start()
 	lobbyPanel.BackgroundTransparency = 0.12
 	lobbyPanel.Visible = false
 	lobbyPanel.Parent = screenGui
-	addCorner(lobbyPanel, 7)
+	ResultView.panel(lobbyPanel)
 	local lobbyStatus = createLabel(lobbyPanel, "Status", 1)
 	lobbyStatus.Position = UDim2.fromOffset(8, 4)
 	lobbyStatus.Size = UDim2.new(1, -16, 0, 30)
 	lobbyStatus.Text = "RACERS  1 / 4"
 	lobbyStatus.TextSize = 12
-	lobbyStatus.TextColor3 = Color3.fromRGB(255, 225, 70)
+	lobbyStatus.TextColor3 = Color3.new(1,1,1)
 	local function lobbyButton(name, label, x, color)
 		local button = Instance.new("TextButton")
 		button.Name = name
@@ -435,7 +440,7 @@ function RaceHudController.start()
 		button.TextSize = 14
 		button.Font = Enum.Font.GothamBold
 		button.Parent = lobbyPanel
-		addCorner(button, 5)
+		ResultView.button(button)
 		return button
 	end
 	local autoReadySerial = player:GetAttribute("RaceItemsAutoReadySerial") or 0
@@ -463,7 +468,7 @@ function RaceHudController.start()
 	availabilityPanel.BackgroundTransparency = 0.12
 	availabilityPanel.Visible = false
 	availabilityPanel.Parent = screenGui
-	addCorner(availabilityPanel, 7)
+	ResultView.panel(availabilityPanel)
 	local racingInvitesOpen = false
 	local updateHud
 	local racingInviteToggle = Instance.new("TextButton")
@@ -490,12 +495,12 @@ function RaceHudController.start()
 	availabilityHeading.Position = UDim2.fromOffset(8, 4)
 	availabilityHeading.Size = UDim2.new(1, -16, 0, 22)
 	availabilityHeading.TextSize = 17
-	availabilityHeading.TextColor3 = Color3.fromRGB(255, 225, 70)
+	availabilityHeading.TextColor3 = Color3.new(1,1,1)
 	local availabilityTitle = createLabel(availabilityPanel, "AvailableTitle", 2)
 	availabilityTitle.Position = UDim2.fromOffset(8, 28)
 	availabilityTitle.Size = UDim2.new(1, -16, 0, 20)
 	availabilityTitle.TextSize = 13
-	availabilityTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+	availabilityTitle.TextColor3 = Color3.new(1,1,1)
 	availabilityTitle.TextTruncate=Enum.TextTruncate.AtEnd
 	local availabilityRows = {}
 	local roomRacerRows = require(script.Parent:WaitForChild("RaceRoomRacerRows"))
@@ -508,7 +513,8 @@ function RaceHudController.start()
 				row.button.Text = if row.botAction == "AddBot" then "ADD BOT" else "REMOVE"
 				row.button.Active = row.botAction ~= nil
 				row.button.AutoButtonColor = row.button.Active
-				row.button.BackgroundColor3 = Color3.fromRGB(45,130,235)
+				ResultView.button(row.button)
+    row.button.BackgroundTransparency=if row.button.Active then .25 else .55
 				continue
 			end
 			local state=inviteStates[row.userId]
@@ -516,7 +522,8 @@ function RaceHudController.start()
 			row.button.Text=if phase=="SENDING" then "SENDING..." elseif phase=="PENDING" then "WAITING" elseif phase=="FAILED" then "RETRY" else "INVITE"
 			row.button.Active=phase=="AVAILABLE" or phase=="FAILED"
 			row.button.AutoButtonColor=row.button.Active
-			row.button.BackgroundColor3=if row.button.Active then Color3.fromRGB(45,130,235) else Color3.fromRGB(65,78,94)
+			ResultView.button(row.button)
+   row.button.BackgroundTransparency=if row.button.Active then .25 else .55
 		end
 	end
 	local function markInvitePending(userId, state, expiresAt)
@@ -545,7 +552,7 @@ function RaceHudController.start()
 		invite.TextSize = 12
 		invite.Text = "INVITE"
 		invite.Parent = availabilityPanel
-		addCorner(invite, 4)
+		ResultView.button(invite)
 		availabilityRows[index] = {label = row, button = invite, userId = nil}
 		invite.Activated:Connect(function()
 			local botRow = availabilityRows[index]
@@ -1046,6 +1053,22 @@ function RaceHudController.start()
 				end
 			end
 		end
+  if mobile then
+   local v=MobileView.layout(screenGui.AbsoluteSize).controlsV1
+   if v then
+    local origin=screenGui.AbsolutePosition-mobileTopGui.AbsolutePosition
+    speedPanel.AnchorPoint=Vector2.new(.5,0)
+    speedPanel.Position=UDim2.fromOffset(origin.X+v.speed.x+v.speed.width/2,origin.Y+v.speed.y)
+    speedPanel.Size=UDim2.fromOffset(v.speed.width,v.speed.height)
+    local map=MobileView.controlsV1Layout(mobileMapGui.AbsoluteSize).map
+    miniMapPanel.Parent=mobileMapGui;miniMapPanel.AnchorPoint=Vector2.new(1,0)
+    miniMapPanel.Position=UDim2.fromOffset(map.x+map.width,map.y)
+    miniMapPanel.Size=UDim2.fromOffset(map.width,map.height)
+     miniMapPanel.BackgroundTransparency=1
+    roomQueueLabel.AnchorPoint=Vector2.zero;roomQueueLabel.Position=UDim2.fromOffset(v.clock.x,v.clock.y)
+    roomQueueLabel.Size=UDim2.fromOffset(v.clock.width,18);roomQueueLabel.TextSize=11
+   end
+  end
 		local waitingLobby = player:GetAttribute("RaceState") == "PRE_RACE"
 			and player:GetAttribute("RaceMatchStatus") == "WAITING"
 		local shortLobby = viewportSize.Y < 320
@@ -1444,7 +1467,7 @@ function RaceHudController.start()
 		autoReadyNotice.Visible=false
 		lobbyStart.Active=lobbyWaiting and isHost
 		lobbyStart.AutoButtonColor=lobbyStart.Active
-		lobbyStart.BackgroundTransparency=if lobbyStart.Active then 0 else .55
+		lobbyStart.BackgroundTransparency=if lobbyStart.Active then .25 else .55
 		lobbyStart.Visible=lobbyWaiting and isHost
 		lobbyStart.Text=if participantCount==1 then "START SOLO" else "START RACE"
 		if player:GetAttribute('RaceHostStartRequired')==true then
@@ -1453,6 +1476,8 @@ function RaceHudController.start()
 		elseif player:GetAttribute('RacePublicMatch')==true then
 			lobbyStart.Active=false;lobbyStart.Text='AUTO START'
 		end
+  ResultView.button(lobbyStart)
+  lobbyStart.BackgroundTransparency=if lobbyStart.Active or lobbyStart.Text=='AUTO START' then .25 else .55
 		lobbyLeave.Visible = lobbyWaiting
 		lobbyLeave.Text = if participantCount == 1 and isHost then "CANCEL" else "LEAVE"
 		lobbyLeave.Position = UDim2.fromOffset(if isHost then 132 else 70, 34)
@@ -1768,6 +1793,7 @@ function RaceHudController.start()
 			targetSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 		end
 		local desiredMode=if performanceMonitor then performanceMonitor.gaugeMode() else 'ANALOG'
+  if Input.isTouchPreferred() and MobileView.controlsV1Enabled() then desiredMode='DIGITAL' end
 		if gaugeController and gaugeMode~=desiredMode then gaugeController:destroy();gaugeController=nil end
 		if gaugeEnabled and not gaugeController then
 			gaugeMode=desiredMode

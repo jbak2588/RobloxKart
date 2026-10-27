@@ -3,6 +3,7 @@ local fixture=fs.readFile('tests/race_result_hud_validation.luau')
 local prefix=fixture:sub(1,assert(fixture:find('local controller=luau.load',1,true))-1)
 local scenario=[=[
 common.workspace=workspace
+modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment=common})()
 local top=child(playerGui,'ScreenGui','RobloxKartMobileTopHud')
 top.ScreenInsets=rb.Enum.ScreenInsets.None
 local map=child(top,'Frame','RaceMiniMap');map.Size=rb.UDim2.fromOffset(104,104)
@@ -27,6 +28,18 @@ for _,size in {rb.Vector2.new(1024,461),rb.Vector2.new(800,370),rb.Vector2.new(7
  player:SetAttribute('RacePublicJoinNotice','')
 end
 player:SetAttribute('RaceState','FINISHED');check(not public.Visible,'finished clears recruitment banner')
+-- The private QA map lives outside the old mobile top HUD and may appear late.
+common.game.GameId=10772198697;common.game.PlaceId=106553302629620
+workspace:SetAttribute('KDMControlsV1Preview',true)
+services.TextService={GetTextSize=function(_,text,size)return rb.Vector2.new(#text*size*.5,size)end}
+local layer=child(playerGui,'ScreenGui','KDMRaceMinimap')
+local qaMap=child(layer,'Frame','RaceMiniMap');qaMap.Position=rb.UDim2.fromOffset(680,8);qaMap.Size=rb.UDim2.fromOffset(60,60)
+map.Visible=false
+player:SetAttribute('RaceState','RACING');player:SetAttribute('RacePrivatePractice',true)
+player:SetAttribute('RacePublicJoinNotice','')
+check(public.AbsolutePosition.X+public.AbsoluteSize.X<=qaMap.AbsolutePosition.X-12,'separate QA map clearance')
+check(public.AbsoluteSize.X<=#public.Text*public.TextSize*.5+24,'banner wraps measured text width')
+common.game.GameId=nil;common.game.PlaceId=nil;workspace:SetAttribute('KDMControlsV1Preview',false)
 local route=luau.load(fs.readFile('src/client/RaceRouteTransitionView.luau'),{environment=common})()
 route.start();local gui=playerGui.KDMRaceRouteTransition
 check(not gui.Enabled,'no transition at rest')

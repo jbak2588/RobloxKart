@@ -5,6 +5,7 @@ local Workspace = game:GetService("Workspace")
 local physicsAvailable, PhysicsService = pcall(function() return game:GetService("PhysicsService") end)
 
 local KartConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig"))
+local GasPedal=require(ReplicatedStorage.Shared:WaitForChild('GasPedalPolicy'))
 local KartCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartCatalog"))
 local TrackCatalog = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackCatalog"))
 local KartVisualFactory = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartVisualFactory"))
@@ -793,7 +794,7 @@ function PrototypeWorld.start(options)
 			return false
 		end
 
-		function context:receiveControl(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
+		function context:receiveControl(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown, gasHeld: unknown)
 			if context.botParticipant then return end
 			if type(throttle) ~= "number" or type(steering) ~= "number" then
 				return
@@ -827,6 +828,7 @@ function PrototypeWorld.start(options)
 				steering = validatedSteering,
 				driftRequested = if type(driftRequested) == "boolean" then driftRequested else false,
 				lastUpdate = time(),
+    gasHeld=gasHeld==true and GasPedal.enabled(game.GameId,game.PlaceId,Workspace:GetAttribute('KDMGasPedalEnabled')),
 			}
 		end
 
@@ -1189,6 +1191,13 @@ function PrototypeWorld.start(options)
 				player ~= nil and player:GetAttribute("RaceState") == "RACING" and not offTrack
 				and not context.driftActive and not context.missileHitActive and not context.thunderHitActive)
 			local normalForwardCap = if context.straightEligible then KartConfig.STRAIGHT_MAX_SPEED else KartConfig.MAX_FORWARD_SPEED
+   local gasActive
+   normalForwardCap,gasActive=GasPedal.cap(normalForwardCap,context.control and context.control.gasHeld,
+    GasPedal.enabled(game.GameId,game.PlaceId,Workspace:GetAttribute('KDMGasPedalEnabled')),
+    hasValidInput and player~=nil and player:GetAttribute('RaceState')=='RACING',not offTrack,throttle,
+    context.boostActive,context.nitro.active or context.nitro.exiting,
+    context.driftActive or context.missileHitActive or context.thunderHitActive or context.crashActive or context.slick.active or kart:GetAttribute('RaceControlsLocked')==true)
+   if kart:GetAttribute('KartGasPedalActive')~=gasActive then kart:SetAttribute('KartGasPedalActive',gasActive)end
 			context.normalForwardCap = normalForwardCap
 			if context.nitro.active or context.nitro.exiting or context.boostActive then context.straightBoostReturnActive = true end
 			-- Natural Boost overspeed keeps its existing return rate, even when the
@@ -1524,9 +1533,9 @@ function PrototypeWorld.start(options)
 		end
 		context.kart:Destroy()
 	end
-	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown)
+	remoteEvent.OnServerEvent:Connect(function(player: Player, throttle: unknown, steering: unknown, driftRequested: unknown, gasHeld: unknown)
 		local context = ownerContexts[player]
-		if context then context:receiveControl(player, throttle, steering, driftRequested) end
+		if context then context:receiveControl(player, throttle, steering, driftRequested,gasHeld) end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		PrototypeWorld.destroyKartContext(player)

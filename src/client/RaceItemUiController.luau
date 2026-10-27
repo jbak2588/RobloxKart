@@ -106,6 +106,7 @@ function RaceItemUiController.start()
 	progressLabel.TextXAlignment = Enum.TextXAlignment.Center
 	progressLabel.TextYAlignment = Enum.TextYAlignment.Center
 	progressLabel.Parent = nitroProgress
+ local nitroBar=if MobileView.nitroBar then MobileView.nitroBar(nitroProgress)else nil
 	local bonusLabel = Instance.new("TextLabel")
 	bonusLabel.Name = "DriftBonusNitro"
 	bonusLabel.Size = UDim2.fromScale(1, 1)
@@ -190,6 +191,11 @@ function RaceItemUiController.start()
 				elseif charges > 0 then MobileView.itemAccent(id) else symbols.borderColor
 			symbols.border.Thickness = if chosen or emergency then 3 else 1
 			symbols.border.Transparency = if charges == 0 then 0.7 elseif chosen or emergency then 0 else 0.5
+   if mobile and MobileView.layout(gui.AbsoluteSize).controlsV1 then
+    MobileView.styleItem(button);symbols.count.BackgroundTransparency=1
+    symbols.border.Enabled=false;symbols.border.Color=Color3.new(1,1,1)
+    symbols.border.Thickness=1;symbols.border.Transparency=.35
+   end
 		end
 		label.Visible = racing and deployed and not emergencyReady and not (preview and preview:isVisible())
 		label.Text = "SLICK DEPLOYED"
@@ -203,6 +209,14 @@ function RaceItemUiController.start()
 		progressLabel.Text = if pending then string.format("NITRO CHARGE  %d/%d\nBONUS PENDING", threshold, threshold)
 			else string.format("NITRO CHARGE  %d/%d", count, threshold)
 		bonusLabel.Visible = bonusFlashVisible
+  if nitroBar then
+   local enabled=mobile and MobileView.layout(gui.AbsoluteSize).controlsV1~=nil
+   nitroBar:update(count,threshold,enabled)
+   if enabled then
+    local v=MobileView.layout(gui.AbsoluteSize).controlsV1
+    progressLabel.Size=UDim2.fromOffset(v.gauge.x-v.items.progressX-6,18)
+   else progressLabel.Size=UDim2.fromScale(1,1)end
+  end
 	end
 	preview = SlickRearPreview.new(gui, refresh)
 	local combatView = CombatFeedbackView.new(gui, player, function()
@@ -240,21 +254,42 @@ function RaceItemUiController.start()
 			local groupWidth = items.width
 			local progressHeight = items.progressHeight
 			for index, button in buttons do
-				local column=if index<=4 then index-1 else index-5
-				button.Position = UDim2.fromOffset(items.x+column*(l.slot+l.gap),
-					(if index<=4 then items.top else items.secondTop)+l.slot)
+				local visualIndex=if l.controlsV1 then ({2,4,1,3,6,5})[index] else index
+    local column=if l.controlsV1 then (visualIndex-1)%items.columns elseif index<=4 then index-1 else index-5
+    local row=if l.controlsV1 then math.floor((visualIndex-1)/items.columns) elseif index<=4 then 0 else 1
+    button.Position = UDim2.fromOffset(items.x+column*(l.slot+l.gap),items.top+row*(l.slot+6)+l.slot)
 				button.Size = UDim2.fromOffset(l.slot, l.slot)
+    if l.controlsV1 then
+     if row==1 then button.Position=UDim2.fromOffset(items.secondX+column*(l.slot+l.gap),items.secondTop+l.slot)end
+     MobileView.styleItem(button)
+     mobileIcons[index].count.BackgroundTransparency=1
+     mobileIcons[index].border.Enabled=false
+    end
 			end
 			label.Position = UDim2.new(0, items.x, 1, -items.bottom)
 			label.Size = UDim2.fromOffset(groupWidth, l.slot)
 			nitroProgress.Position = UDim2.fromOffset(items.x, items.progressTop)
 			nitroProgress.Size = UDim2.fromOffset(groupWidth, progressHeight)
+   if l.controlsV1 then
+    nitroProgress.Position=UDim2.fromOffset(l.controlsV1.items.progressX,items.progressTop)
+    nitroProgress.Size=UDim2.fromOffset(l.controlsV1.items.progressWidth,progressHeight)
+    progressLabel.TextXAlignment=Enum.TextXAlignment.Left
+    progressLabel.Size=UDim2.fromOffset(l.controlsV1.gauge.x-l.controlsV1.items.progressX-6,18)
+   end
 			progressLabel.TextSize = if progressHeight < 30 then 10 else 13
 			preview:layout(true, label.Position)
-			local panel = gui:FindFirstChild("SlickRearPreview")
-			if panel then panel.Size = UDim2.fromOffset(groupWidth, math.clamp(gui.AbsoluteSize.Y-items.bottom-116,44,112)) end
+   if l.controlsV1 then
+    local v=l.controlsV1;combat.AnchorPoint=Vector2.new(.5,0)
+    combat.Position=UDim2.fromOffset(v.clock.x+v.clock.width/2,6)
+    combat.Size=UDim2.fromOffset(v.clock.width,32);combat.TextSize=11
+   end
+   local panel = gui:FindFirstChild("SlickRearPreview")
+			if panel then
+    panel.Size = UDim2.fromOffset(groupWidth,if l.controlsV1 then 54 else math.clamp(gui.AbsoluteSize.Y-items.bottom-116,44,112))
+    if l.controlsV1 then panel.AnchorPoint=Vector2.zero;panel.Position=UDim2.fromOffset(12,math.min(150,gui.AbsoluteSize.Y*.4)) end
+   end
 			if gui.AbsoluteSize.X < 600 then
-				combat.Position = UDim2.new(0.5, 0, 0, 180)
+				combat.Position = UDim2.new(0.5, 0, 0, 6)
 				combat.Size = UDim2.fromOffset(math.min(300, gui.AbsoluteSize.X-24), 40)
 			end
 		else
@@ -265,7 +300,9 @@ function RaceItemUiController.start()
 		local topHud = gui.Parent:FindFirstChild("RobloxKartMobileTopHud")
 		local raceHud = gui.Parent:FindFirstChild("RobloxKartRaceHud")
 		local speedHud = if mobile then topHud else raceHud
-		combatView:layout(combat.Position, combat.Size, combat, speedHud and speedHud:FindFirstChild("Speedometer"))
+  local v1=mobile and MobileView.layout(gui.AbsoluteSize).controlsV1~=nil
+  gui:SetAttribute('KDMControlsV1Preview',v1)
+  combatView:layout(combat.Position,combat.Size,combat,if not v1 and speedHud then speedHud:FindFirstChild('Speedometer') else nil)
 		refresh()
 	end
 	local viewportConnection = nil

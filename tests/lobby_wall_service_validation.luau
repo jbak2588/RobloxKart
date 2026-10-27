@@ -14,6 +14,7 @@ local shared={WaitForChild=function(_,name)return {Name=name}end}
 local rs={WaitForChild=function()return shared end}
 local source=fs.readFile('src/server/LobbyTestDriveService.luau'):gsub('return Service%s*$','Service.inject=function(player,record) record.qualification=Qualification.new();records[player]=record end;return Service')
 local modules={KDMStraightSpeedResolver=luau.load(fs.readFile('src/server/KDMStraightSpeedResolver.luau'),{environment={Vector3=rb.Vector3}})(),LobbyDrivePresence=luau.load(fs.readFile('src/server/LobbyDrivePresence.luau'))(),TestDriveQualification=luau.load(fs.readFile('src/server/TestDriveQualification.luau'))(),LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=policy,LobbyDriveGeometry={create=function()return geometry end},KartConfig=config,KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
+modules.GasPedalPolicy=luau.load(fs.readFile('src/shared/GasPedalPolicy.luau'))()
 local service=luau.load(source,{environment={script={Parent={KDMStraightSpeedResolver={Name='KDMStraightSpeedResolver'},LobbyDrivePresence={Name='LobbyDrivePresence'},EconomyService={Name='EconomyService'},TestDriveQualification={Name='TestDriveQualification'},LobbyDriftSession={Name='LobbyDriftSession'},LobbyPracticeCombat={Name='LobbyPracticeCombat'}}},game={PrivateServerId='',GetService=function(_,name)return ({Players=players,ReplicatedStorage=rs,RunService=run,PhysicsService=physics,Workspace=workspace})[name]end},require=function(m)return modules[m.Name]end,Instance={new=function()return {OnServerEvent=signal}end},task={spawn=function(fn)fn()end},Vector3=rb.Vector3,CFrame=rb.CFrame,os={clock=function()return now end}}})()
 local center=rb.Vector3.new(120,0,766)
 local zone={Destroying=signal,GetAttribute=function()return center end}
@@ -92,6 +93,55 @@ body.Position=rb.Vector3.new(0,1.75,960);body.CFrame=rb.CFrame.new(body.Position
 check(geometry.inside(-120,74,0)and geometry.inside(-120,194,0),'island sweep endpoints individually inside')
 heartbeat(.05)
 check(body.Position==r.safe.Position,'cross-island jump detected even with legal endpoint')
+-- Park grass / boundary contact: stale forward budgets cannot trap held reverse.
+r.training=training.new();r.boundaryPrevious=nil;r.throttle=-1;r.steering=0;r.speed=80;r.yaw=0
+body.CFrame=safe;body.Position=safe.Position;body.AssemblyLinearVelocity=rb.Vector3.new(0,0,-.2)
+now+=.05;r.lastInput=now;heartbeat(.05)
+check(r.speed==0,'wall-stopped forward budget brakes to zero first')
+for i=1,80 do
+ now+=.05;r.lastInput=now
+ -- Follow the previous commanded motion after leaving the contact.
+ body.AssemblyLinearVelocity=body.CFrame.LookVector*r.speed
+ local before=r.speed;heartbeat(.05)
+ check(r.speed<=before+1e-6 and r.speed>=-70,'held reverse ramps monotonically to70')
+ check(before-r.speed<=config.REVERSE_ACCELERATION*.05+1e-6,'reverse never jumps to cap')
+end
+check(math.abs(r.speed+70)<1e-6,'held reverse reaches70 after progressive acceleration')
+-- Opposite-sign contact jitter must not overwrite the reverse budget as forward.
+r.speed=-10;body.AssemblyLinearVelocity=body.CFrame.LookVector*.2;now+=.05;r.lastInput=now;heartbeat(.05)
+check(r.speed<0,'small forward contact jitter still permits backing away')
+-- Measured Park-only head-on stall releases the real rim contact, never speed.
+local oldGet=zone.GetAttribute;local oldFind=zone.FindFirstChild
+zone.GetAttribute=function(_,key)return if key=='DriveGeometry'then 'ROOKIE_LOOP_V1'else center end
+body.Size=rb.Vector3.new(6,1,8);r.training=training.new();r.boundaryPrevious=nil;r.speed=0;r.throttle=-1;r.steering=0
+body.CFrame=rb.CFrame.new(safe.Position)*rb.CFrame.Angles(0,-math.pi/2,0);body.Position=body.CFrame.Position
+local guard={Name='IslandEdgeGuard',CanCollide=true,Parent=true,CFrame=rb.CFrame.new(safe.Position+rb.Vector3.new(5.1,1,0)),Size=rb.Vector3.new(2,3,100),IsA=function()return true end}
+zone.FindFirstChild=function(_,name)return if name=='IslandScenery'then {GetChildren=function()return {guard}end}else nil end
+local pivotCount=#pivots
+for _=1,12 do now+=.05;r.lastInput=now;body.AssemblyLinearVelocity=rb.Vector3.zero;heartbeat(.05)end
+check(#pivots==pivotCount+1 and kartAttrs.ParkReverseReleaseSerial==1,'only sustained stationary head-on reverse releases contact')
+check(kartAttrs.ParkReverseReleaseDistance>0 and kartAttrs.ParkReverseReleaseDistance<=1,'release is bounded to one stud')
+check(body.Position.X<safe.Position.X and math.abs(body.Position.Y-safe.Position.Y)<1e-6,'release moves inward without height or heading change')
+check(r.speed<0 and r.speed>=-config.REVERSE_ACCELERATION*.05*12,'release never grants reverse speed')
+local normal=policy.parkReverseContact(rb.CFrame.new(safe.Position)*rb.CFrame.Angles(0,-math.pi/2+.4,0),body.Size,guard.CFrame,guard.Size)
+check(normal==nil,'oblique collision does not qualify')
+normal=policy.parkReverseContact(rb.CFrame.new(safe.Position-rb.Vector3.new(3,0,0))*rb.CFrame.Angles(0,-math.pi/2,0),body.Size,guard.CFrame,guard.Size)
+check(normal==nil,'kart clear of actual wall does not qualify')
+-- Even3-stud contact jitter can be physically stationary at the wall.
+local atWall=rb.CFrame.new(safe.Position)*rb.CFrame.Angles(0,-math.pi/2,0)
+r.reverseWallCount=0;r.reverseWallTime=0;r.reverseWallPosition=nil;r.reverseWallNext=0
+body.CFrame=atWall;body.Position=safe.Position;r.boundaryPrevious=nil
+local releaseBefore=kartAttrs.ParkReverseReleaseSerial
+for _=1,12 do now+=.05;r.lastInput=now;body.AssemblyLinearVelocity=body.CFrame.LookVector*3;heartbeat(.05)end
+check(kartAttrs.ParkReverseReleaseSerial==releaseBefore+1,'stationary contact jitter up to3 permits bounded release')
+local countBefore=#pivots
+r.throttle=0;body.CFrame=atWall;body.Position=safe.Position;r.boundaryPrevious=nil
+for _=1,12 do now+=.05;r.lastInput=now;body.AssemblyLinearVelocity=rb.Vector3.zero;heartbeat(.05)end
+check(#pivots==countBefore,'no brake input never moves the kart')
+r.throttle=-1;r.reverseWallTime=0;r.reverseWallPosition=nil
+for _=1,12 do now+=.05;r.lastInput=now;body.AssemblyLinearVelocity=body.CFrame.LookVector*-10;heartbeat(.05)end
+check(#pivots==countBefore,'already moving reverse never receives a release correction')
+zone.GetAttribute=oldGet;zone.FindFirstChild=oldFind;r.boundaryPrevious=nil
 print('PASS: '..n..' real service heartbeat cooldown, limit, safe fallback, steering and slide checks')
 
 local qualified=0

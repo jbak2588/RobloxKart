@@ -86,7 +86,9 @@
         }
       },
       "$attributes": {
-        "HubParkV1Enabled": true
+        "HubParkV1Enabled": true,
+        "KDMControlsV1Preview": true,
+        "KDMGasPedalEnabled": true
       }
     },
     "Lighting": {

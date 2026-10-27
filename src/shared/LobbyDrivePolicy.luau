@@ -1,6 +1,6 @@
 -- Lobby-only parameters. Never used by the race controller or KartConfig.
 local Policy = {
- Forward = 60, ParkForward = 80, Reverse = 50, Acceleration = 36, Brake = 70, Coast = 18,
+ Forward = 60, ParkForward = 80, Reverse = 70, Acceleration = 36, Brake = 70, Coast = 18,
  TurnRadius = 50, DriftTurnRadius = 35, InputTimeout = .5,
  Radius = 50, HalfStraight = 120, RoadWidth = 32, Shoulder = 16,
  OuterRadius = 90, FootprintMargin = 7,
@@ -13,6 +13,23 @@ function Policy.forwardSpeed(geometryId,kartConfig)
  -- Owner-approved RookieLoop override. Official RACE KartConfig stays unchanged.
  return if geometryId=='ROOKIE_LOOP_V1' then Policy.ParkForward else Policy.Forward
 end
+-- Contact with the actual stone-rim OBB, not the road/grass boundary.
+-- Return the normal pointing from the wall toward the kart and signed hull gap.
+function Policy.parkReverseContact(frame,size,wallFrame,wallSize)
+ local p=wallFrame:PointToObjectSpace(frame.Position)
+ if math.abs(p.Y)>wallSize.Y/2+size.Y/2 then return nil end
+ local normal=wallFrame.RightVector*(if p.X<0 then -1 else 1)
+ if frame.LookVector:Dot(normal)>-.98 then return nil end
+ local half=size/2
+ local extent=math.abs(frame.RightVector:Dot(normal))*half.X+math.abs(frame.LookVector:Dot(normal))*half.Z
+ local tangent=wallFrame.LookVector
+ local reach=math.abs(frame.RightVector:Dot(tangent))*half.X+math.abs(frame.LookVector:Dot(tangent))*half.Z
+ if math.abs(p.Z)>wallSize.Z/2+reach then return nil end
+ local gap=math.abs(p.X)-wallSize.X/2-extent
+ if gap< -1 or gap>.25 then return nil end
+ return normal,gap
+end
+
 function Policy.slide(x,z,nx,nz)
  local outward=math.max(0,x*nx+z*nz)
  return x-nx*outward,z-nz*outward

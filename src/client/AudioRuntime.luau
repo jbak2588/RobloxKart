@@ -7,6 +7,34 @@ local FlameEnvelope = require(script.Parent:WaitForChild("BoostFlameEnvelope"))
 
 local AudioRuntime = {}
 
+-- A held GAS is engine load, never another Boost start or gameplay effect.
+-- Keep the accepted loop and smoother; at90 the pitch is95% of Mini Boost's
+-- engine pitch with a small bounded high-load flutter, below the real Boost.
+-- Shared Park/race finish envelope: 2.4s roll + 0.9s front-camera transition.
+-- Capture the preceding engine target so a lock or stale zero velocity cannot cut it.
+function AudioRuntime.newFinishEngineEnvelope(duration)
+ local elapsed,lastPitch,lastVolume,startPitch,startVolume=nil,nil,nil,nil,nil
+ return {step=function(_,finishing,pitch,volume,dt)
+  if not finishing then elapsed=nil;lastPitch=pitch;lastVolume=volume;return pitch,volume end
+  if elapsed==nil then elapsed=0;startPitch=lastPitch or pitch;startVolume=lastVolume or volume
+  else elapsed+=math.max(0,dt)end
+  local t=math.clamp(elapsed/(duration or 3.3),0,1);local gain=1-t*t*(3-2*t)
+  return AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED+(startPitch-AudioConfig.ENGINE.IDLE_PLAYBACK_SPEED)*gain,startVolume*gain
+ end}
+end
+
+function AudioRuntime.gasEngineTargets(pitch,volume,speed,active,boosting,nitro,now)
+ if active~=true or boosting==true or nitro==true then return pitch,volume end
+ local e=AudioConfig.ENGINE
+ local ramp=math.clamp((math.abs(speed)-70)/20,0,1)
+ local weight=.35+.65*ramp
+ local peak=(e.MAX_PLAYBACK_SPEED+e.BOOST_PLAYBACK_BONUS)*.95
+ local heat=math.clamp((math.abs(speed)-86)/4,0,1)
+ local flutter=(math.sin((now or 0)*math.pi*22)*.004+math.sin((now or 0)*math.pi*34)*.002)*heat
+ local target=math.max(pitch,e.NORMAL_PLAYBACK_SPEED+(peak-e.NORMAL_PLAYBACK_SPEED)*weight)+flutter
+ return math.clamp(target,.7,1.55),math.min(e.MAX_VOLUME,math.max(volume,e.NORMAL_VOLUME+(e.MAX_VOLUME-e.NORMAL_VOLUME)*.95*weight))
+end
+
 function AudioRuntime.isConfigured(soundId: unknown): boolean
 	return type(soundId) == "string" and soundId:match("%S") ~= nil
 end

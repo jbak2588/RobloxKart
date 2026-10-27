@@ -14,6 +14,12 @@ local PerformanceMonitor = perfModule and requireModule(perfModule)
 local raceItemRemote: RemoteEvent? = nil
 local touchActions = { throttle = 0, steering = 0, drift = false }
 local touchEnabled = false
+local gasHeld=false
+local function gasEnabled()
+ return ((game.GameId==10772198697 and game.PlaceId==106553302629620)
+  or (game.GameId==10768420544 and game.PlaceId==127925465904803))
+  and game:GetService('Workspace'):GetAttribute('KDMGasPedalEnabled')==true
+end
 local touchUpdate: ((number) -> ())? = nil
 local touchEdgeSender: (() -> ())? = nil
 local lobbySender = nil
@@ -35,6 +41,14 @@ end
 
 function KartInputController.resetTouchActions()
 	touchActions.throttle, touchActions.steering, touchActions.drift = 0, 0, false
+ gasHeld=false
+end
+
+function KartInputController.setGasHeld(held)
+ local nextHeld=held==true and gasEnabled()
+ if gasHeld==nextHeld then return end
+ gasHeld=nextHeld
+ if touchEnabled and touchEdgeSender then touchEdgeSender() end
 end
 
 function KartInputController.isTouchDriftHeld(): boolean
@@ -127,6 +141,7 @@ function KartInputController.start()
 	local lastThrottle = 0
 	local lastSteering = 0
 	local lastDriftRequested = false
+ local lastGasHeld=false
 	local timeSinceSend = KartConfig.INPUT_SEND_INTERVAL
 	local wasDriving = false
 
@@ -138,7 +153,8 @@ function KartInputController.start()
 			-- Lobby has its own timeout-based transport. Heartbeat calls are not
 			-- forced: still send held touch/keyboard axes before the server timeout.
 			local throttle, steering, drift = getInputAxes()
-			lobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift)
+   if gasEnabled() then lobbySender(if neutral then 0 else throttle,if neutral then 0 else steering,not neutral and drift,not neutral and gasHeld and touchEnabled)
+   else lobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift) end
 			timeSinceSend = 0
 			return
 		end
@@ -155,6 +171,7 @@ function KartInputController.start()
 			or steering ~= lastSteering
 			or driftRequested ~= lastDriftRequested
 			or driving ~= wasDriving
+   or (gasEnabled() and gasHeld~=lastGasHeld)
 
 		local sendInterval = math.max(KartConfig.INPUT_SEND_INTERVAL or MIN_SEND_INTERVAL, MIN_SEND_INTERVAL)
 		local keepAlive = driving and timeSinceSend >= KEEP_ALIVE_INTERVAL
@@ -169,11 +186,14 @@ function KartInputController.start()
 		end
 
 		if shouldSend then
-			remoteEvent:FireServer(throttle, steering, driftRequested)
+   local gas=not neutral and driving and touchEnabled and gasHeld
+   if gasEnabled() then remoteEvent:FireServer(throttle,steering,driftRequested,gas)
+   else remoteEvent:FireServer(throttle, steering, driftRequested) end
 			if PerformanceMonitor then PerformanceMonitor.inputSent(throttle, steering, driftRequested) end
 			lastThrottle = throttle
 			lastSteering = steering
 			lastDriftRequested = driftRequested
+   lastGasHeld=gas
 			wasDriving = driving
 			timeSinceSend = 0
 		end

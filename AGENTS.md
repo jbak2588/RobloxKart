@@ -2,6 +2,136 @@
 
 Read this before editing the project.
 
+## Production mobile-controls release — owner approval 2026-10-27
+
+Owner now explicitly authorizes official Publish plus commit/push of the validated
+mobile-controls release. This supersedes the earlier private-only / no-Git limits
+for this release. Target exactly Universe10768420544 / Place127925465904803.
+Enable mobile layout and held GAS using explicit flags for the exact production
+and QA pairs only; default builds retain Park Hub and both release flags. Preserve
+all gameplay/ownership constraints and record unresolved real-device acceptance.
+Keep the private QA experience Private. No main changes or server restart implied.
+
+## iPhone BRAKE hit target / Park item labels — owner report 2026-10-27
+
+Owner confirms BRAKE has no pressed visual even before a collision on iPhone.
+Park's DisplayOrder21 PracticeItems ScrollingFrame covered the lower row's empty
+area above the DisplayOrder20 BRAKE button. Fixed six-item layouts must hide and
+disable that scrolling container and parent each item directly to SafeCanvas at
+its own bounds. No transparent interactive container may overlap driving controls.
+Preserve a real hit-stack regression at BRAKE, direct item actions and cleanup.
+Park fixed items use icon plus bottom-right quantity only, matching official items;
+no item-name or cooldown caption. Legacy tiny/scroll layouts remain separate.
+This revision changes UI hit targets/presentation only. Keep reverse70 ramp and
+bounded wall release. Private QA Publish only; no Git commit/push.
+
+## Park head-on rim reverse release — owner follow-up 2026-10-27
+
+Owner confirms reverse70 ramp but still reports complete head-on immobilization
+at the island rim; do not attribute this to moving a finger from GAS. Verify an
+actual grid-to-wall approach and brake-only input, not placement near a wall.
+Park alone may release an actually stationary reverse-commanded head-on rim
+contact: use the real IslandEdgeGuard OBB, alignment within≈11 degrees, at least
+.35s with≤.15-stud displacement and<5-stud contact jitter. Correct inward only,
+no more than1 stud per correction,1s cooldown, maximum2 per continuous stall.
+Never grant speed, change heading/height, alter the wall, reseat, or write network
+ownership. Normal moving reverse, oblique contact and no brake must not trigger.
+Keep reverse70 / acceleration22 and all existing authority/recovery rules.
+Successful natural captures and controlled stall-injection tests are distinct
+from reproducing the owner's exact real-device stall. Private QA Publish only.
+
+## Held brake / reverse70 — owner direction 2026-10-27
+
+Owner requests BRAKE recovery from Park's outer island wall and reverse maximum70.
+Shared KartConfig.MAX_REVERSE_SPEED and Lobby policy agree at70; Park grass uses
+that same reverse maximum. Keep REVERSE_ACCELERATION22 and BRAKE_FORCE70: forward
+motion decelerates to zero first, then held negative throttle ramps toward-70.
+Never jump to reverse cap or combine GAS/Nitro/Boost with negative throttle.
+QA touch input supports an intentional held GAS finger moving into BRAKE as well
+as DRIFT; BRAKE takes negative-throttle ownership immediately. Wall-stop command
+reconciliation preserves the existing command sign against opposite-sign contact
+jitter and no longer references an undeclared offTrack local. Preserve ownership,
+collision geometry, recovery boundaries, Drift/forward tuning and race authority.
+Private QA Publish only; no Git commit/push or production Publish.
+
+## Official pre-race panel appearance — owner direction 2026-10-27
+
+Official race waiting/available-racers panels reuse ResultPresentationView.panel:
+blue70/110/135 at.4 transparency, pale white border and rounded corners. Start,
+Cancel/Leave and Invite/Add Bot controls reuse the results cyan button style at.25
+transparency; unavailable/waiting controls retain disabled visual distinction.
+Titles and counts use white text. Preserve all room, invitation, bot, automatic
+start, cancellation and admission logic. Private QA Publish only; no Git writes.
+
+## Top-only feedback / unified item frames — owner direction 2026-10-27
+
+Private QA revision6 supersedes prior fully transparent item backgrounds. Items
+share driving buttons' neutral28/30/34 fill at.52 transparency. Use shared rounded
+item frames with1px white inset overlay outlines above artwork, not clipped strokes
+at ScrollingFrame edges. BRAKE / GAS / rightmost Missile share the same integer-pixel
+right edge. Steering glyphs are filled ◀ / ▶; size and input ownership are unchanged.
+Every combat hit, target lock, block and incoming message stays in the top HUD band
+across Park and official tracks. CombatFeedbackView owns final placement: top6px,
+or40px when an incoming warning occupies the first row. Never follow bottom speed
+panels, item rows, caller offsets or portrait/short-screen central fallbacks.
+Practice charge/progress widgets must not display combat events in the driving view.
+Keep pre-GO immediate idle, but FINISHING must preserve the crossing engine target
+and fade through the2.4s roll plus.9s camera transition, resetting on Replay/Rematch.
+Do not immediately stop Park's engine at PRESENT. Physics/authority remain unchanged.
+Private QA Publish only; no Git commit/push or production Publish.
+
+## Rounded mobile controls / pre-GO idle — owner direction 2026-10-27
+
+Private QA revision5 supersedes the earlier item anchor and circular controls.
+All five driving buttons use thin white rounded-rectangle outlines. DRIFT is
+left of GAS, equal in size; smaller BRAKE follows GAS above it. SHIELD / NITRO
+sit immediately above DRIFT at BRAKE's vertical level. The other four items stay
+above this row, right-aligned inside the safe area; transparent backgrounds and
+thin white borders apply. No item fallback toward the screen center.
+The top practice/warm-up notice sizes to its text and clears the separate minimap.
+Pre-race / Countdown / control-locked engine audio uses idle immediately, ignoring
+stale Rematch velocity, GAS and Boost attributes. No new physics or ownership writes.
+Keep existing validated ownership guards; automated checks are distinct from
+long-session real-device hitch acceptance. Private QA Publish only, no Git writes.
+
+## Fixed mobile item rows / GAS audio — owner direction 2026-10-27
+
+In the private QA mobile layout, center SHIELD / NITRO behind BRAKE and place
+SMOKE / SLICK / THUNDER / MISSILE immediately above that pair. Both rows stay
+anchored to BRAKE on the right at every supported size; never fall back toward
+the screen center. Item backgrounds remain fully transparent. All track minimaps
+use Park's separate DeviceSafeInsets top-right placement and transparent background.
+Left-align NITRO CHARGE with its bar and put the Drift charge gauge beside the text.
+Held GAS ramps the existing engine loop toward95% of boost pitch, with a bounded
+high-load flutter near90 studs/s. Release restores normal audio; Boost / Nitro
+retain priority. No physics/ownership changes from this audio revision.
+Only the designated private QA Place may be published; no Git commit/push.
+
+## Held GAS / mobile layout — owner direction 2026-10-27
+
+Latest owner approval supersedes the earlier UI-only GAS restriction: while held
+on the track, GAS raises the normal forward cap to90 studs/s. Release immediately
+removes the pedal modifier and existing acceleration/deceleration resumes.
+Do not stack it with Nitro/Mini Boost or override Drift, off-road, combat, Brake,
+input timeout or manual server ownership. GasPedalPolicy is server authoritative,
+default OFF and currently restricted to the exact private QA Universe/Place pair.
+Button bottom edges align with the digital speed text underline; steering targets
+match DRIFT size with15px between them. GAS is left of the right-edge DRIFT,
+smaller BRAKE above GAS. Transparent six-item rows sit just above BRAKE, Nitro
+charge/bar above centered digital speed, transparent minimap at mobile top-right.
+No production Publish or Git commit/push approval is granted by this QA revision.
+
+## Park Hub baseline — owner direction 2026-10-27
+
+All future Hub work uses the new Hub connected to Rookie Racing Park.
+Do not use the retired showroom/test-drive world as a QA baseline. Preserve
+HubParkV1Enabled=true through scoped Rojo attribute synchronization and verify
+the ordinary startup binds HubParkRookieLoopG2, TEST DRIVE and Return Lobby.
+Owner has requested removal of the retired test-drive implementation; until
+that cleanup is complete, do not describe the legacy code as already removed.
+The mobile-controls QA release remains restricted to Universe10772198697 /
+Place106553302629620, with no Git commit/push or production Publish approval.
+
 ## Metro mesh scale regression — owner report 2026-10-26
 
 Metro extraction must preserve all2248 MeshPart InitialSize values from city.rbxlx.

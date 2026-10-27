@@ -1,5 +1,6 @@
 local Controller={}
 function Controller.digitalLayout(size,layout)
+ if layout and layout.controlsV1 then return {width=160,bottom=12,textSize=24} end
 	local bottom,width=8,180
 	if layout then
 		local left=layout.driftX+layout.driftHitWidth+8
