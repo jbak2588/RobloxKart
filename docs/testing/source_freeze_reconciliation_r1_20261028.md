@@ -197,7 +197,8 @@ f5ebec8 snapshot; this does not invent undocumented historical human approvals.
 | src/shared/RaceRouteProgress.luau | d843f12 | Reduce race hot-path work and enable two-account live diagnostics |
 | src/shared/TrackCatalog.luau | 7085949 | Fix track surface flicker and skid contact; plant Park-species preview groves |
 | src/shared/TrackGeometry.luau | d36102e | Fix Metro client material permissions and straighten race grid launch |
-| src/shared/KDMSpeedSensation.luau | c5baa5 + local Phase1 | HEAD matches original; exactly55→50,80→90,High delta3→5 approved by R1 D |
+| src/shared/KDMSpeedSensation.luau |
+c5baa5 + local Phase1 | HEAD matches original; exactly55→50,80→90,High delta3→5 approved by R1 D |
 
 
 ## Complete suite result and remaining failures

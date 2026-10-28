@@ -1,9 +1,9 @@
 # KDM Speed VFX V3.2 — Orange Cruise Rocket Flame (Nitro 120 Baseline Ratio, Drift Flame Retained, KDMSpeedVortex Retired)
 
-**Date**: 2026-10-28  
-**Scope**: Client Speed VFX (`src/client/KartWorldSpeedRenderer.luau`)  
-**Target QA Experience**: Universe `10772198697` / Place `106553302629620` (`KDM_New_Hub`, Private, Version 124+)  
-**Production Experience**: Universe `10768420544` / Place `127925465904803` (**STRICTLY UNTOUCHED**)  
+**Date**: 2026-10-28
+**Scope**: Client Speed VFX (`src/client/KartWorldSpeedRenderer.luau`)
+**Target QA Experience**: Universe `10772198697` / Place `106553302629620` (`KDM_New_Hub`, Private, Version 124+)
+**Production Experience**: Universe `10768420544` / Place `127925465904803` (**STRICTLY UNTOUCHED**)
 **Status**: `PRIVATE_QA_READY_FOR_DEVICE_TEST` (Automated Pass, Real-Device Mobile Evaluation Ready)
 
 ---

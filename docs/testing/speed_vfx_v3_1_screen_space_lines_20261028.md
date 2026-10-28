@@ -1,9 +1,9 @@
 # KDM Speed VFX V3.1 — 2D Screen-space Arcade Speed Lines (Zero Frame Drop)
 
-**Date**: 2026-10-28  
-**Scope**: Client Speed VFX Architectural Transition (`src/client/KartWorldSpeedRenderer.luau`)  
-**Target QA Experience**: Universe `10772198697` / Place `106553302629620` (`KDM_New_Hub`, Private)  
-**Production Experience**: Universe `10768420544` / Place `127925465904803` (**STRICTLY UNTOUCHED**)  
+**Date**: 2026-10-28
+**Scope**: Client Speed VFX Architectural Transition (`src/client/KartWorldSpeedRenderer.luau`)
+**Target QA Experience**: Universe `10772198697` / Place `106553302629620` (`KDM_New_Hub`, Private)
+**Production Experience**: Universe `10768420544` / Place `127925465904803` (**STRICTLY UNTOUCHED**)
 **Status**: `PRIVATE_QA_READY_FOR_DEVICE_TEST` (Automated Pass, Real-Device Mobile Evaluation Pending)
 
 ---
