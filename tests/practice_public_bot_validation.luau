@@ -17,23 +17,30 @@ local acceptedHashes={
  ["src/shared/KDMGameplayBalance.luau"]="75c5a17623f3d58f4afeada496f3dd00c5a49fec031ed2c37acb1a183dd001a1",
  ["src/server/RacerCollisionIsolation.luau"]="00c72c2aecaa1cb7e7cde6f4bfab80e7596ebd5c4f4f6be005cc31f6713e4eb9",
 }
+local historical=table.find(process.args,'--historical')~=nil
+local release=require('./helpers/release_source_freeze')
+local manifest=serde.decode('json',fs.readFile('tests/fixtures/source_freeze_release_f5ebec8.json'))
 local n=0
 local function check(v,label)assert(v,label);n+=1 end
 local catalog=luau.load(fs.readFile('src/shared/TrackCatalog.luau'),{environment={CFrame=rb.CFrame}})()
 for _,id in catalog.Order do
  local t=catalog.Entries[id]
  check(t.MatchType=='PUBLIC_RACE' and t.MinPlayers==1 and t.MaxPlayers==4,'public 1–4 '..id)
- check(t.TargetLaps==(if id=='Track01' then 3 else 2),'lap authority '..id)
- check(catalog.botAllowed(id)==(id=='Track01' or id=='Track01Race'),'single Bot capability '..id)
+ check(t.TargetLaps==(if id=='Track01' or id=='Track01Desert' then 3 else 2),'lap authority '..id)
+ check(catalog.botAllowed(id)==(id=='Track01' or id=='Track01Desert' or id=='Track01Race' or id=='Track01Metro'),'single Bot capability '..id)
 end
 check(not catalog.botAllowed('Unknown') and not catalog.botAllowed(nil),'unknown denied')
 check(catalog.capabilityLabel(catalog.Entries.Track01)=='PUBLIC RACE • 1–4 RACERS • 3 LAPS','natural Practice label')
 for _,path in {'src/shared/TrackCatalog.luau','src/server/RaceBotController.luau','src/server/RaceRoomCoordinator.luau','src/server/ActiveMatchDirectory.luau','src/server/RaceController.luau',
  'src/shared/TrackGeometry.luau','src/server/TrackBuilder.luau','src/server/RaceBotSteering.luau','src/server/PrototypeWorld.luau','src/shared/KartConfig.luau','src/shared/KDMGameplayBalance.luau','src/server/RacerCollisionIsolation.luau'} do
  local current=fs.readFile(path)
- check(serde.hash('sha256',inverse(current))==acceptedHashes[path],'exact accepted bytes except P2B capability '..path)
+ if historical then
+ check(serde.hash('sha256',inverse(current))==acceptedHashes[path],'historical P2B bytes '..path)
+ else check(release.accepts(manifest,path,current),'current approved release integrity '..path)end
  local mutation=current..'\n-- unrelated change\n'
- check(serde.hash('sha256',inverse(mutation))~=acceptedHashes[path],'freeze detects unrelated bytes '..path)
+ if historical then
+ check(serde.hash('sha256',inverse(mutation))~=acceptedHashes[path],'historical mutation rejection '..path)
+ else check(not release.accepts(manifest,path,mutation),'current mutation rejection '..path)end
 end
 for _,id in {'Track01Race','Track01'} do
  local result=process.exec('lune',{'run','tests/production_bot_validation.luau',id})

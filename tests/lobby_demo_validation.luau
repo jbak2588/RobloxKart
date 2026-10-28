@@ -80,8 +80,9 @@ local instances={new=function()
  function f:Destroy()self.Parent=nil;destroyed+=1 end
  return f
 end}
+local rb=require("@lune/roblox")
 local game={PrivateServerId="",GetService=function(_,name)
- return if name=="Players"then players elseif name=="Workspace"then world else {Shared={LobbyDemoRoute=route}}
+ return if name=="Players"then players elseif name=="Workspace"then world else {Shared={LobbyDemoRoute=route,LobbyPracticePolicy=luau.load(fs.readFile("src/shared/LobbyPracticePolicy.luau"),{environment={Color3=rb.Color3}})()}}
 end}
 local service=luau.load(fs.readFile("src/server/LobbyDemoService.luau"),{environment={game=game,require=function(x)return x end,Instance=instances}})()
 local zone={Parent={},Destroying=signal()}

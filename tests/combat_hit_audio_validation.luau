@@ -59,7 +59,7 @@ kart:SetAttribute('RaceResetSerial',0);h.Health=0;practice('Missile');check(#pla
 h.Health=100;h.SeatPart=nil;practice('Missile');check(#played==4,'unseated driver silent')
 h.SeatPart=seat;p:SetAttribute('LobbyDriveActive',false);practice('Missile');check(#played==4,'finished drive ignores delayed hit')
 check(stops>0,'lifecycle transitions stop prior sounds')
-check(sounds[3].SoundId=='rbxassetid://83211426606907' and sounds[3].SoundId==config.ASSETS.NITRO_START and sounds[3].SoundId~=config.ASSETS.BOOST_START and sounds[3].Volume==.75 and not sounds[3].Looped,'Missile launch preserves original KDM explosion independently of turbine tuning')
+check(sounds[3].SoundId==config.COMBAT.MissileLaunch.Asset and sounds[3].Volume==config.COMBAT.MissileLaunch.Volume and not sounds[3].Looped,'Missile launch preserves original KDM explosion independently of turbine tuning')
 p:SetAttribute('RaceState','RACING');p:SetAttribute('RaceSessionId','r')
 p:SetAttribute('RaceMissileFiredSessionId','r');p:SetAttribute('RaceMissileFiredResetSerial',0)
 p:SetAttribute('RaceMissileLaunchSerial',1);check(#played==4,'warning/activation serial alone does not play launch audio')

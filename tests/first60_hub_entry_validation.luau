@@ -103,7 +103,7 @@ check(matchRoomServiceSource:find('action==\'FirstRace\'', 1, true) ~= nil, "6. 
 check(matchRoomServiceSource:find('createRoom(player,\'DEFAULT\',nil,true,true)', 1, true) ~= nil, "6. FirstRace creates dedicated solo first race room, distinct from QuickPlay")
 
 -- 7 & 8. Public QuickPlay Matchmaking candidate lookup & new room creation
-check(matchRoomServiceSource:find('for _,r in records do if publicTrack(r.trackId)and Discovery.rank(r)then candidate=r;break end end', 1, true) ~= nil,
+check(matchRoomServiceSource:find('for _,r in records do if publicTrack(r.trackId)and (not requestedTrackId or r.trackId==requestedTrackId)and Discovery.rank(r)then candidate=r;break end end', 1, true) ~= nil,
 	"7. QuickPlay prioritizes existing public race candidate matching Discovery ranking")
 check(matchRoomServiceSource:find('if not candidate then', 1, true) ~= nil, "8. QuickPlay creates new public race if no candidate available")
 check(matchRoomServiceSource:find('quickMatch=true,initializing=true', 1, true) ~= nil, "8. New candidate is flagged as quickMatch with AutoStart")

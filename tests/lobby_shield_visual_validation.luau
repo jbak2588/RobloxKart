@@ -18,6 +18,7 @@ require('./helpers/world_vfx_harness')(2,2,function(h)
  h.tick(.01)
  for _,k in h.karts do
   local effect=k:FindFirstChild('KDMShieldWorld')
+  print('R3_TRACE Shield',k.Name,effect~=nil,h.count(k,'Model','KDMShieldWorld'))
   check(effect~=nil and h.count(k,'Model','KDMShieldWorld')==1,'same Shield renderer used by both practice clients')
   check(effect:FindFirstChild('EnergyShell').Material==h.karts[2]:FindFirstChild('KDMShieldWorld'):FindFirstChild('EnergyShell').Material,'same ForceField material')
   check(effect:FindFirstChild('SoftGlow')~=nil and h.count(effect,'Trail')==8 and h.count(effect,'Part','Orbit')==8,'full race soft glow and eight orbit trails')

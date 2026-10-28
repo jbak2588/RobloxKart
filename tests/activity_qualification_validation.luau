@@ -4,7 +4,7 @@ local S=load('src/shared/KDMProgressionSchema.luau')
 local catalog=load('src/shared/KartCatalog.luau',{Color3=rb.Color3,Enum=rb.Enum})
 local schema=S.new(catalog)
 local config=load('src/server/EconomyConfig.luau')
-local modules={KDMProgressionSchema=S,KartCatalog=catalog,EconomyConfig=config,EconomyPolicy=load('src/server/EconomyPolicy.luau'),
+local modules={KDMShopCatalog=load("src/shared/KDMShopCatalog.luau"),KDMProgressionSchema=S,KartCatalog=catalog,EconomyConfig=config,EconomyPolicy=load('src/server/EconomyPolicy.luau'),
  EconomyOperations=load('src/server/EconomyOperations.luau'),ProgressionDataStoreAdapter={},RaceRecordOperations=load('src/server/RaceRecordOperations.luau')}
 local function node(name)return setmetatable({Name=name},{__index=function(_,id)return node(id)end})end
 local rs={WaitForChild=function(_,id)return node(id)end}

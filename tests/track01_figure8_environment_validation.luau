@@ -34,26 +34,26 @@ check(road03.Color == Color3.fromRGB(48, 51, 56), "Track03 road color strictly p
 -- 2. Track01 Part Budget & Counts
 check(world01:GetAttribute("GeometryId") == "PracticeFigure8V1", "Track01 is PracticeFigure8V1")
 check(world01:GetAttribute("EnvironmentCueVersion") == 10, "Track01 environment cue version incremented to 10 for dense crossover and cluster layout")
-check(world01:GetAttribute("SpeedCueObjectCount") == 8, "Track01 has exactly 8 SpeedCue objects")
-check(world01:GetAttribute("SpeedCuePartCount") == 16, "Track01 has exactly 16 SpeedCue parts (2 parts per cue)")
-check(world01:GetAttribute("VisualRailPartCount") == 130, "Track01 has 130 dense outer VisualRail segments")
-check(world01:GetAttribute("BrandedVisualRailCount") == 37, "Track01 has 37 branded KDM VisualRails")
+check(world01:GetAttribute("SpeedCueObjectCount") == 0, "Track01 has no legacy SpeedCue objects in current approved builder")
+check(world01:GetAttribute("SpeedCuePartCount") == 0, "Track01 has no legacy SpeedCue parts")
+check(world01:GetAttribute("VisualRailPartCount") == 88, "Track01 has 88 dense outer VisualRail segments")
+check(world01:GetAttribute("BrandedVisualRailCount") == 31, "Track01 has 31 branded KDM VisualRails")
 check(world01:GetAttribute("BarrierPartCount") == 0, "Track01 barrier count remains strictly 0 (no physics barrier in Figure8)")
 check(world01:GetAttribute("BarrierTriggerPartCount") == 0, "Track01 barrier trigger count remains strictly 0")
 check(#world01:FindFirstChild("RaceTriggers"):GetChildren() == 7, "RaceTriggers contains exactly 7 gates (6 CP + 1 Finish)")
 
 local newVisualParts = world01:GetAttribute("VisualPartCount")
-check(newVisualParts == 1366, "exact Track01 visual part count: 1220 base + 16 SpeedCues + 130 VisualRails = 1366")
+check(newVisualParts == 1054, "current approved Green visual part total1054, including88 rails and no legacy SpeedCues")
 check(newVisualParts <= 1400, "Track01 strictly adheres to <=1400 mobile part ceiling")
 
 -- 3. P1 Noncolliding & Scenery Flags and SurfaceGui Branding Layout
 local speedCues = world01:FindFirstChild("Environment"):FindFirstChild("SpeedCues")
 local visualRails = world01:FindFirstChild("Environment"):FindFirstChild("VisualRails")
 
-check(#speedCues:GetChildren() == 16, "SpeedCues folder contains 16 visual parts")
-check(#visualRails:GetChildren() == 130, "VisualRails folder contains 130 visual parts")
+check(#speedCues:GetChildren() == 0, "SpeedCues folder empty after approved scenery cleanup")
+check(#visualRails:GetChildren() == 88, "VisualRails folder contains 88 visual parts")
 
-local brandedCount, plainCount = 0, 0
+local brandedCount, plainCount, chevronCount = 0, 0, 0
 for _, p in visualRails:GetChildren() do
 	check(p.Anchored == true, "visual rail part anchored")
 	check(p.CanCollide == false, "visual rail non-collidable")
@@ -76,12 +76,14 @@ for _, p in visualRails:GetChildren() do
 		check(text.Font == rb.Enum.Font.GothamBold, "KDMText uses bold font")
 		check(text.TextColor3 == Color3.fromRGB(255, 255, 255), "KDMText is crisp white")
 		brandedCount += 1
+	elseif p:GetAttribute("ChevronCurveId") then
+  chevronCount+=1;check(p:FindFirstChild("KDMChevronSurfaceGui_Left")~=nil or p:FindFirstChild("KDMChevronSurfaceGui_Right")~=nil,"curve guidance has one road-facing chevron surface")
 	else
 		plainCount += 1
 	end
 end
-check(brandedCount == 37, "exactly 37 branded VisualRails across track")
-check(plainCount == 93, "exactly 93 plain red/white VisualRails")
+check(brandedCount == 19 and chevronCount==12 and brandedCount+chevronCount==world01:GetAttribute("BrandedVisualRailCount"), "exactly 31 branded VisualRails across track")
+check(plainCount == 57, "exactly 57 plain red/white VisualRails")
 
 -- 4. Bounding Edge Distance & Safety Clearance
 local definition = geometry.getDefinition(track01.GeometryId)
@@ -144,6 +146,6 @@ local rebuilt = builder.build(p0Folder, track01, 0)
 check(rebuilt ~= world01, "cache invalidation on EnvironmentCueVersion change")
 check(#p0Folder:GetChildren() == 1, "prior track cleaned up after rebuild")
 
-print("PASS: " .. checks .. " Track01 Figure8 P0/P1 road color, safety clearances (SpeedCue=" .. string.format("%.1f", minEdgeClearance) .. ", Rail=" .. string.format("%.1f", minRailEdgeClearance) .. "), flags and budget checks")
+print("PASS: " .. checks .. " Track01 Figure8 current road color, retired SpeedCues0, rail safety clearance (Rail=" .. string.format("%.1f", minRailEdgeClearance) .. "), flags and budget checks")
 ]====])()
 

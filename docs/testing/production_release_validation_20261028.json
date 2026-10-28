@@ -1,0 +1,1528 @@
+{
+  "baseline": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+  "total": 249,
+  "pass": 229,
+  "historicalFailures": [
+    "bot_internal_control_validation.luau",
+    "chevron_standard_validation.luau",
+    "finish_source_freeze_validation.luau",
+    "item_aftershock_validation.luau",
+    "lobby_palette_validation.luau",
+    "lobby_terminology_validation.luau",
+    "park_a1_island_visual_validation.luau",
+    "park_a2_landscaping_validation.luau",
+    "practice_figure8_geometry_validation.luau",
+    "r8_perf_p0_validation.luau",
+    "r8_perf_p1_validation.luau",
+    "rookie_loop_demo_validation.luau",
+    "speed_sensation_validation.luau",
+    "straight_speed_validation.luau",
+    "track02_published_binding_validation.luau",
+    "track_environment_validation.luau",
+    "track_h3_flow_validation.luau",
+    "track_v2_geometry_validation.luau",
+    "track_visual_standard_validation.luau",
+    "v2_gauge_v1_audio_validation.luau"
+  ],
+  "newFailures": [],
+  "fullSuitePass": false,
+  "currentReleasePass": true,
+  "sourceIntegrityChecks": 683,
+  "projectScriptsMatched": 222,
+  "tests": [
+    {
+      "test": "active_match_directory_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "activity_qualification_validation.luau",
+      "code": 0,
+      "seconds": 0.2,
+      "failure": null
+    },
+    {
+      "test": "all_track_skid_contact_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "avatar_identity_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "boost_audio_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "boost_flame_fade_validation.luau",
+      "code": 0,
+      "seconds": 0.2,
+      "failure": null
+    },
+    {
+      "test": "bot_curve_pursuit_validation.luau",
+      "code": 0,
+      "seconds": 0.33,
+      "failure": null
+    },
+    {
+      "test": "bot_internal_control_validation.luau",
+      "code": 1,
+      "seconds": 0.16,
+      "failure": "C:\\dev\\RobloxKart\\tests\\bot_internal_control_validation:5: entire human input/physics/items unchanged; only exact Bot extension excluded\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\bot_internal_control_validation', Line 5\n[Stack End]\n\n"
+    },
+    {
+      "test": "bot_route_continuity_validation.luau",
+      "code": 0,
+      "seconds": 48.41,
+      "failure": null
+    },
+    {
+      "test": "camera_motion_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "checkpoint_marker_alignment_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "chevron_standard_validation.luau",
+      "code": 1,
+      "seconds": 0.31,
+      "failure": "Track01Metro driving geometry unchanged\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'luau.load(...)', Line 17\n    Script 'luau.load(...)', Line 88\n    Script 'C:\\dev\\RobloxKart\\tests\\chevron_standard_validation', Line 45\n[Stack End]\n\n"
+    },
+    {
+      "test": "combat_feedback_view_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "combat_hit_audio_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "compact_hub_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "current_release_contracts_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "datastore_idempotency_validation.luau",
+      "code": 0,
+      "seconds": 23.0,
+      "failure": null
+    },
+    {
+      "test": "drift_telemetry_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "driver_finish_celebration_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "driver_pedal_pose_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "economy_v2_arcade_shop_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "economy_v2_driver_card_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "economy_v2_shop_navigation_validation.luau",
+      "code": 0,
+      "seconds": 0.91,
+      "failure": null
+    },
+    {
+      "test": "economy_v2_visual_fidelity_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "event_auto_bot_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "f60_c1_visual_layout_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "f60_c2_lobby_layout_validation.luau",
+      "code": 0,
+      "seconds": 0.75,
+      "failure": null
+    },
+    {
+      "test": "figure8_desert_validation.luau",
+      "code": 0,
+      "seconds": 42.16,
+      "failure": null
+    },
+    {
+      "test": "figure8_skid_contact_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "finish_celebration_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "finish_outcome_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "finish_presentation_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "finish_runner_up_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "finish_sequence_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "finish_source_freeze_validation.luau",
+      "code": 1,
+      "seconds": 0.09,
+      "failure": "C:\\dev\\RobloxKart\\tests\\finish_source_freeze_validation:3: frozen server/gameplay/N1/cache/audio src/client/FinishCameraComposition.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\finish_source_freeze_validation', Line 3\n    Script 'C:\\dev\\RobloxKart\\tests\\finish_source_freeze_validation', Line 6\n[Stack End]\n\n"
+    },
+    {
+      "test": "first60_hub_entry_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "first_race_onboarding_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "four_player_race_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "gameplay_balance_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "garage_h2_flow_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "garage_h2_kart_display_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "garage_polish_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "garage_transition_validation.luau",
+      "code": 0,
+      "seconds": 0.7,
+      "failure": null
+    },
+    {
+      "test": "garage_two_player_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "gas_pedal_validation.luau",
+      "code": 0,
+      "seconds": 1.05,
+      "failure": null
+    },
+    {
+      "test": "global_race_matchmaking_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "h1_drive_presence_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "h1_shared_drive_service_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "hub_next_action_guidance_validation.luau",
+      "code": 0,
+      "seconds": 0.72,
+      "failure": null
+    },
+    {
+      "test": "hub_park_arrival_camera_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "hub_park_circuit_decor_validation.luau",
+      "code": 0,
+      "seconds": 1.78,
+      "failure": null
+    },
+    {
+      "test": "hub_park_island_validation.luau",
+      "code": 0,
+      "seconds": 1.59,
+      "failure": null
+    },
+    {
+      "test": "hub_park_reference_course_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "hub_park_rookie_loop_validation.luau",
+      "code": 0,
+      "seconds": 1.56,
+      "failure": null
+    },
+    {
+      "test": "hub_park_startup_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "hub_park_world_initialization_validation.luau",
+      "code": 0,
+      "seconds": 0.78,
+      "failure": null
+    },
+    {
+      "test": "hub_world_progression_validation.luau",
+      "code": 0,
+      "seconds": 0.69,
+      "failure": null
+    },
+    {
+      "test": "impact_camera_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "invite_handoff_ui_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "invited_public_start_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "item_aftershock_validation.luau",
+      "code": 1,
+      "seconds": 0.78,
+      "failure": "C:\\dev\\RobloxKart\\tests\\item_aftershock_validation:3: exact L1/K2 canonical freeze src/client/KDMItemVFXController.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\item_aftershock_validation', Line 3\n    Script 'C:\\dev\\RobloxKart\\tests\\item_aftershock_validation', Line 73\n[Stack End]\n\n"
+    },
+    {
+      "test": "item_local_vfx_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "item_preparation_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "item_vfx_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "item_world_vfx_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "kart_audio_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "kart_contact_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "kart_v2_production_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "kart_visual_validation.luau",
+      "code": 0,
+      "seconds": 1.62,
+      "failure": null
+    },
+    {
+      "test": "kdm_control_icon_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "kdm_driver_grip_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "kdm_icon_catalog_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lap_item_refill_validation.luau",
+      "code": 0,
+      "seconds": 0.2,
+      "failure": null
+    },
+    {
+      "test": "lobby_create_security_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "lobby_create_ui_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "lobby_demo_boost_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "lobby_demo_feedback_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_demo_validation.luau",
+      "code": 0,
+      "seconds": 21.58,
+      "failure": null
+    },
+    {
+      "test": "lobby_drive_mobile_fix_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_driving_polish_validation.luau",
+      "code": 0,
+      "seconds": 0.2,
+      "failure": null
+    },
+    {
+      "test": "lobby_palette_validation.luau",
+      "code": 1,
+      "seconds": 0.25,
+      "failure": "C:\\dev\\RobloxKart\\tests\\lobby_palette_validation:6: non-color source frozen GarageUiController\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\lobby_palette_validation', Line 6\n    Script 'C:\\dev\\RobloxKart\\tests\\lobby_palette_validation', Line 11\n[Stack End]\n\n"
+    },
+    {
+      "test": "lobby_post_drive_return_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_post_drive_view_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "lobby_practice_combat_validation.luau",
+      "code": 0,
+      "seconds": 0.55,
+      "failure": null
+    },
+    {
+      "test": "lobby_practice_layout_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "lobby_practice_view_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "lobby_reference_oval_builder_validation.luau",
+      "code": 0,
+      "seconds": 1.34,
+      "failure": null
+    },
+    {
+      "test": "lobby_shield_visual_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "lobby_showroom_test_drive_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "lobby_side_wings_validation.luau",
+      "code": 0,
+      "seconds": 2.55,
+      "failure": null
+    },
+    {
+      "test": "lobby_speed_gauge_validation.luau",
+      "code": 0,
+      "seconds": 0.08,
+      "failure": null
+    },
+    {
+      "test": "lobby_surface_drift_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_terminology_validation.luau",
+      "code": 1,
+      "seconds": 0.12,
+      "failure": "C:\\dev\\RobloxKart\\tests\\lobby_terminology_validation:3: all non-display catalog fields unchanged Track01Race\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\lobby_terminology_validation', Line 3\n    Script 'C:\\dev\\RobloxKart\\tests\\lobby_terminology_validation', Line 23\n[Stack End]\n\n"
+    },
+    {
+      "test": "lobby_test_drive_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_title_persistence_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_title_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "lobby_training_drift_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "lobby_vnext_showroom_loop_validation.luau",
+      "code": 0,
+      "seconds": 0.47,
+      "failure": null
+    },
+    {
+      "test": "lobby_wall_service_validation.luau",
+      "code": 0,
+      "seconds": 0.42,
+      "failure": null
+    },
+    {
+      "test": "m3_a2_presence_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "m3_a2_room_display_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "match_room_service_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "match_room_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "metro_city_validation.luau",
+      "code": 0,
+      "seconds": 5.41,
+      "failure": null
+    },
+    {
+      "test": "metro_skid_contact_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "missile_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "mobile_controls_v1_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "mobile_hud_polish_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "mobile_reverse_transition_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "mobile_touch_validation.luau",
+      "code": 0,
+      "seconds": 0.25,
+      "failure": null
+    },
+    {
+      "test": "multiplayer_foundation_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "multiplayer_presentation_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "p0_race_identity_integration_validation.luau",
+      "code": 0,
+      "seconds": 0.31,
+      "failure": null
+    },
+    {
+      "test": "park_a1_island_visual_validation.luau",
+      "code": 1,
+      "seconds": 1.59,
+      "failure": "PASS: 3671426 G2/manual-zone checks; 1557 road strips; min radius 59.52; OFF/ON/RACE/grass validated\nC:\\dev\\RobloxKart\\tests\\park_a1_island_visual_validation:4: accepted driving/gate source unchanged: src/shared/HubParkRookieLoopLayout.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\park_a1_island_visual_validation', Line 4\n    Script 'C:\\dev\\RobloxKart\\tests\\park_a1_island_visual_validation', Line 7\n[Stack End]\n\n"
+    },
+    {
+      "test": "park_a2_landscaping_validation.luau",
+      "code": 1,
+      "seconds": 1.67,
+      "failure": "PASS: 3671426 G2/manual-zone checks; 1557 road strips; min radius 59.52; OFF/ON/RACE/grass validated\nC:\\dev\\RobloxKart\\tests\\park_a2_landscaping_validation:5: approved road/drive/gate unchanged: src/server/HubParkRookieLoopBuilder.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\park_a2_landscaping_validation', Line 5\n    Script 'C:\\dev\\RobloxKart\\tests\\park_a2_landscaping_validation', Line 16\n[Stack End]\n\n"
+    },
+    {
+      "test": "park_driver_feedback_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "park_flat_recovery_validation.luau",
+      "code": 0,
+      "seconds": 1.83,
+      "failure": null
+    },
+    {
+      "test": "performance_followup_validation.luau",
+      "code": 0,
+      "seconds": 7.39,
+      "failure": null
+    },
+    {
+      "test": "performance_vfx_followup_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "persistent_room_race_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "pit_garage_art_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "player_preferences_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "practice_crossover_visual_validation.luau",
+      "code": 0,
+      "seconds": 0.2,
+      "failure": null
+    },
+    {
+      "test": "practice_figure8_feasibility_validation.luau",
+      "code": 0,
+      "seconds": 0.23,
+      "failure": null
+    },
+    {
+      "test": "practice_figure8_geometry_validation.luau",
+      "code": 1,
+      "seconds": 0.41,
+      "failure": "frozen complete generated world Track01Race\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'luau.load(...)', Line 17\n    Script 'luau.load(...)', Line 133\n    Script 'C:\\dev\\RobloxKart\\tests\\practice_figure8_geometry_validation', Line 239\n[Stack End]\n\n"
+    },
+    {
+      "test": "practice_figure8_race_validation.luau",
+      "code": 0,
+      "seconds": 2.25,
+      "failure": null
+    },
+    {
+      "test": "practice_public_bot_validation.luau",
+      "code": 0,
+      "seconds": 0.5,
+      "failure": null
+    },
+    {
+      "test": "practice_three_lap_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "production_bot_validation.luau",
+      "code": 0,
+      "seconds": 0.25,
+      "failure": null
+    },
+    {
+      "test": "profile_records_integration_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "public_autostart_gate_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "public_kart_selection_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "public_race_controller_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "public_race_status_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "public_warmup_records_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_a1_progression_mock_validation.luau",
+      "code": 0,
+      "seconds": 0.27,
+      "failure": null
+    },
+    {
+      "test": "r8_a2_garage_binding_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_a2_progression_runtime_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "r8_a2l1_canary_guidance_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_a2l_datastore_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_boost_wire_validation.luau",
+      "code": 0,
+      "seconds": 0.94,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_controller_validation.luau",
+      "code": 0,
+      "seconds": 0.2,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_hud_validation.luau",
+      "code": 0,
+      "seconds": 0.23,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_personal_records_view_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_records_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_runtime_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "r8_a3_service_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "r8_a3b_eligibility_diagnostics_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_a3b_full_race_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "r8_a3b_hud_validation.luau",
+      "code": 0,
+      "seconds": 0.28,
+      "failure": null
+    },
+    {
+      "test": "r8_a3b_integration_validation.luau",
+      "code": 0,
+      "seconds": 0.38,
+      "failure": null
+    },
+    {
+      "test": "r8_a3b_records_scroll_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "r8_a3b_route_anchor_validation.luau",
+      "code": 0,
+      "seconds": 0.88,
+      "failure": null
+    },
+    {
+      "test": "r8_a4_economy_validation.luau",
+      "code": 0,
+      "seconds": 3.83,
+      "failure": null
+    },
+    {
+      "test": "r8_a4_final_rank_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "r8_a4_hud_validation.luau",
+      "code": 0,
+      "seconds": 0.25,
+      "failure": null
+    },
+    {
+      "test": "r8_a4_runtime_validation.luau",
+      "code": 0,
+      "seconds": 0.28,
+      "failure": null
+    },
+    {
+      "test": "r8_a4_wing_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_a5_shop_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "r8_a6_b_canary_grant_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "r8_a6_public_cash_validation.luau",
+      "code": 0,
+      "seconds": 0.55,
+      "failure": null
+    },
+    {
+      "test": "r8_d1_slide_validation.luau",
+      "code": 0,
+      "seconds": 0.42,
+      "failure": null
+    },
+    {
+      "test": "r8_d1_world_validation.luau",
+      "code": 0,
+      "seconds": 1.05,
+      "failure": null
+    },
+    {
+      "test": "r8_d2_physics_validation.luau",
+      "code": 0,
+      "seconds": 0.28,
+      "failure": null
+    },
+    {
+      "test": "r8_d2_presentation_validation.luau",
+      "code": 0,
+      "seconds": 0.27,
+      "failure": null
+    },
+    {
+      "test": "r8_d3_physics_validation.luau",
+      "code": 0,
+      "seconds": 0.26,
+      "failure": null
+    },
+    {
+      "test": "r8_d3_world_validation.luau",
+      "code": 0,
+      "seconds": 1.25,
+      "failure": null
+    },
+    {
+      "test": "r8_d4_camera_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "r8_d4_restore_camera_validation.luau",
+      "code": 0,
+      "seconds": 0.31,
+      "failure": null
+    },
+    {
+      "test": "r8_p2b_record_diagnostics_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "r8_p2b_record_reset_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_display_lifecycle_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_gauge_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_monitors_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_p0_validation.luau",
+      "code": 1,
+      "seconds": 0.12,
+      "failure": "C:\\dev\\RobloxKart\\tests\\r8_perf_p0_validation:4: exact observer wrapper found\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\r8_perf_p0_validation', Line 4\n    Script 'C:\\dev\\RobloxKart\\tests\\r8_perf_p0_validation', Line 27\n[Stack End]\n\n"
+    },
+    {
+      "test": "r8_perf_p1_validation.luau",
+      "code": 1,
+      "seconds": 0.19,
+      "failure": "C:\\dev\\RobloxKart\\tests\\r8_perf_p1_validation:4: exact full simulation preservation\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\r8_perf_p1_validation', Line 4\n    Script 'C:\\dev\\RobloxKart\\tests\\r8_perf_p1_validation', Line 88\n[Stack End]\n\n"
+    },
+    {
+      "test": "r8_perf_p2_validation.luau",
+      "code": 0,
+      "seconds": 0.27,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_p2b_validation.luau",
+      "code": 0,
+      "seconds": 0.19,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_p2c_validation.luau",
+      "code": 0,
+      "seconds": 0.51,
+      "failure": null
+    },
+    {
+      "test": "r8_perf_partner_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "race_audio_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "race_bot_validation.luau",
+      "code": 0,
+      "seconds": 1.33,
+      "failure": null
+    },
+    {
+      "test": "race_checkpoint_and_dnf_reward_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "race_grid_placement_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "race_item_reset_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "race_item_validation.luau",
+      "code": 0,
+      "seconds": 0.98,
+      "failure": null
+    },
+    {
+      "test": "race_jump_guard_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "race_launch_routing_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "race_loadout_slots_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "race_mode_validation.luau",
+      "code": 0,
+      "seconds": 0.74,
+      "failure": null
+    },
+    {
+      "test": "race_network_ownership_validation.luau",
+      "code": 0,
+      "seconds": 1.0,
+      "failure": null
+    },
+    {
+      "test": "race_presentation_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "race_result_hud_validation.luau",
+      "code": 0,
+      "seconds": 0.25,
+      "failure": null
+    },
+    {
+      "test": "race_results_cache_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "race_room_coordinator_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "race_route_validation.luau",
+      "code": 0,
+      "seconds": 1.31,
+      "failure": null
+    },
+    {
+      "test": "race_start_boost_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "rematch_reward_validation.luau",
+      "code": 0,
+      "seconds": 0.38,
+      "failure": null
+    },
+    {
+      "test": "remote_world_vfx_validation.luau",
+      "code": 0,
+      "seconds": 0.48,
+      "failure": null
+    },
+    {
+      "test": "repeatable_nitro_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "reserved_arrival_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "reserved_match_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "rojo_asset_preload_validation.luau",
+      "code": 0,
+      "seconds": 0.14,
+      "failure": null
+    },
+    {
+      "test": "rookie_loop_bot_targeting_validation.luau",
+      "code": 0,
+      "seconds": 0.47,
+      "failure": null
+    },
+    {
+      "test": "rookie_loop_demo_validation.luau",
+      "code": 1,
+      "seconds": 0.33,
+      "failure": "C:\\dev\\RobloxKart\\tests\\rookie_loop_demo_validation:6: legacy demo/audience/physics/RACE untouched src/shared/KartConfig.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\rookie_loop_demo_validation', Line 6\n    Script 'C:\\dev\\RobloxKart\\tests\\rookie_loop_demo_validation', Line 26\n[Stack End]\n\n"
+    },
+    {
+      "test": "rookie_loop_fleet_validation.luau",
+      "code": 0,
+      "seconds": 2.77,
+      "failure": null
+    },
+    {
+      "test": "rookie_loop_manual_drive_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "rookie_loop_skid_mark_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "rookie_park_trial_session_validation.luau",
+      "code": 0,
+      "seconds": 1.09,
+      "failure": null
+    },
+    {
+      "test": "rookie_park_trial_validation.luau",
+      "code": 0,
+      "seconds": 5.08,
+      "failure": null
+    },
+    {
+      "test": "rookie_park_trial_view_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "route_continuity_validation.luau",
+      "code": 0,
+      "seconds": 31.75,
+      "failure": null
+    },
+    {
+      "test": "shield_restore_validation.luau",
+      "code": 0,
+      "seconds": 0.22,
+      "failure": null
+    },
+    {
+      "test": "six_item_race_ui_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "slick_spin_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "slick_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "smoke_effect_view_validation.luau",
+      "code": 0,
+      "seconds": 0.09,
+      "failure": null
+    },
+    {
+      "test": "smoke_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "source_freeze_release_validation.luau",
+      "code": 0,
+      "seconds": 0.3,
+      "failure": null
+    },
+    {
+      "test": "speed_sensation_camera_validation.luau",
+      "code": 0,
+      "seconds": 0.16,
+      "failure": null
+    },
+    {
+      "test": "speed_sensation_qa_target_r2_validation.luau",
+      "code": 0,
+      "seconds": 0.12,
+      "failure": null
+    },
+    {
+      "test": "speed_sensation_validation.luau",
+      "code": 1,
+      "seconds": 0.09,
+      "failure": "PASS: 1663 speed profile/priority/cadence checks; checking unchanged source-freeze fixture next\nC:\\dev\\RobloxKart\\tests\\speed_sensation_validation:4: frozen gameplay/geometry/audio/exhaust src/client/FinishCameraComposition.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\speed_sensation_validation', Line 4\n    Script 'C:\\dev\\RobloxKart\\tests\\speed_sensation_validation', Line 75\n[Stack End]\n\n"
+    },
+    {
+      "test": "speed_world_vfx_validation.luau",
+      "code": 0,
+      "seconds": 0.72,
+      "failure": null
+    },
+    {
+      "test": "start_finish_paint_validation.luau",
+      "code": 0,
+      "seconds": 3.89,
+      "failure": null
+    },
+    {
+      "test": "starter_drive_hint_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "straight_speed_kart_validation.luau",
+      "code": 0,
+      "seconds": 1.0,
+      "failure": null
+    },
+    {
+      "test": "straight_speed_validation.luau",
+      "code": 1,
+      "seconds": 0.25,
+      "failure": "PracticeCircuitV1 {\"eligible\":225,\"falsePositiveSamples\":0,\"longest\":909.8716735839844,\"maxCandidateSegments\":18,\"meanExitToSharpVertex\":81.1884111404419,\"percent\":57.69230769230769,\"samples\":390,\"shortest\":405.94257831573486}\nPrototypeCircuitV2 {\"eligible\":26,\"falsePositiveSamples\":0,\"longest\":126.00546360015869,\"maxCandidateSegments\":27,\"meanExitToSharpVertex\":19.60085334777832,\"percent\":10.15625,\"samples\":256,\"shortest\":56.00225830078125}\nHardCircuitV1 {\"eligible\":80,\"falsePositiveSamples\":0,\"longest\":741.5513458251953,\"maxCandidateSegments\":21,\"meanExitToSharpVertex\":23.319104194641113,\"percent\":18.64801864801865,\"samples\":429,\"shortest\":377.77108001708984}\nC:\\dev\\RobloxKart\\tests\\straight_speed_validation:7: unchanged balance DRIFT\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\straight_speed_validation', Line 7\n    Script 'C:\\dev\\RobloxKart\\tests\\straight_speed_validation', Line 75\n[Stack End]\n\n"
+    },
+    {
+      "test": "studio_offline_memory_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "template_visual_asset_validation.luau",
+      "code": 0,
+      "seconds": 0.11,
+      "failure": null
+    },
+    {
+      "test": "thunder_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "track01_figure8_environment_validation.luau",
+      "code": 0,
+      "seconds": 0.56,
+      "failure": null
+    },
+    {
+      "test": "track02_barrier_safety_b_validation.luau",
+      "code": 0,
+      "seconds": 1.5,
+      "failure": null
+    },
+    {
+      "test": "track02_published_binding_validation.luau",
+      "code": 1,
+      "seconds": 0.11,
+      "failure": "C:\\dev\\RobloxKart\\tests\\track02_published_binding_validation:5: PV545 Catalog parity\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\track02_published_binding_validation', Line 5\n[Stack End]\n\n"
+    },
+    {
+      "test": "track02_raceability_b_validation.luau",
+      "code": 0,
+      "seconds": 1.24,
+      "failure": null
+    },
+    {
+      "test": "track03_four_player_validation.luau",
+      "code": 0,
+      "seconds": 0.78,
+      "failure": null
+    },
+    {
+      "test": "track_circuit_structures_validation.luau",
+      "code": 0,
+      "seconds": 0.64,
+      "failure": null
+    },
+    {
+      "test": "track_diorama_orbit_validation.luau",
+      "code": 0,
+      "seconds": 0.51,
+      "failure": null
+    },
+    {
+      "test": "track_diorama_validation.luau",
+      "code": 0,
+      "seconds": 0.88,
+      "failure": null
+    },
+    {
+      "test": "track_environment_validation.luau",
+      "code": 1,
+      "seconds": 0.38,
+      "failure": "C:\\dev\\RobloxKart\\tests\\track_environment_validation:17: Legacy gameplay output exactly matches accepted baseline\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\track_environment_validation', Line 17\n    Script 'C:\\dev\\RobloxKart\\tests\\track_environment_validation', Line 431\n[Stack End]\n\n"
+    },
+    {
+      "test": "track_h3_flow_validation.luau",
+      "code": 1,
+      "seconds": 0.17,
+      "failure": "C:\\dev\\RobloxKart\\tests\\track_h3_flow_validation:12: P1C preview + exact P2B fields only; all other catalog bytes frozen\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\track_h3_flow_validation', Line 12\n[Stack End]\n\n"
+    },
+    {
+      "test": "track_horizon_environment_validation.luau",
+      "code": 0,
+      "seconds": 1.17,
+      "failure": null
+    },
+    {
+      "test": "track_preview_planting_validation.luau",
+      "code": 0,
+      "seconds": 3.91,
+      "failure": null
+    },
+    {
+      "test": "track_road_ribbon_validation.luau",
+      "code": 0,
+      "seconds": 0.25,
+      "failure": null
+    },
+    {
+      "test": "track_surface_standard_validation.luau",
+      "code": 0,
+      "seconds": 0.17,
+      "failure": null
+    },
+    {
+      "test": "track_v2_geometry_validation.luau",
+      "code": 1,
+      "seconds": 0.77,
+      "failure": "Nitro A: samples 3..31 length 391.76 heading 3.270 setup 70 studs\nNitro B: samples 318..346 length 391.76 heading 2.694 setup 70 studs\nC:\\dev\\RobloxKart\\tests\\track_v2_geometry_validation:8: unchanged catalog gameplay entry Track01Race\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\track_v2_geometry_validation', Line 8\n    Script 'C:\\dev\\RobloxKart\\tests\\track_v2_geometry_validation', Line 91\n[Stack End]\n\n"
+    },
+    {
+      "test": "track_visual_standard_validation.luau",
+      "code": 1,
+      "seconds": 0.38,
+      "failure": "Track01 exact Markings geometry/flags/attributes\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'luau.load(...)', Line 17\n    Script 'luau.load(...)', Line 95\n    Script 'C:\\dev\\RobloxKart\\tests\\track_visual_standard_validation', Line 76\n[Stack End]\n\n"
+    },
+    {
+      "test": "two_player_race_validation.luau",
+      "code": 0,
+      "seconds": 0.27,
+      "failure": null
+    },
+    {
+      "test": "v2_gauge_v1_audio_validation.luau",
+      "code": 1,
+      "seconds": 0.19,
+      "failure": "C:\\dev\\RobloxKart\\tests\\v2_gauge_v1_audio_validation:3: stable assets/input plus approved audio exception src/shared/AudioConfig.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests\\v2_gauge_v1_audio_validation', Line 3\n    Script 'C:\\dev\\RobloxKart\\tests\\v2_gauge_v1_audio_validation', Line 14\n[Stack End]\n\n"
+    },
+    {
+      "test": "v2_public_multiplayer_validation.luau",
+      "code": 0,
+      "seconds": 1.64,
+      "failure": null
+    }
+  ]
+}

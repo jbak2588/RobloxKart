@@ -134,6 +134,7 @@ sorted=ranking.sort({
 })
 check(sorted[1].state=="RACING","active racer outranks DNF")
 
+catalog.Entries.Track01Race.GridSlots={CF.new(-5,0,30),CF.new(5,0,30),CF.new(-5,0,20),CF.new(5,0,20)} -- matches this fixture's synthetic gates
 local prototype=child(services.Workspace,"Folder","Prototype")
 local track=child(prototype,"Model","TestTrack")
 track:SetAttribute("TrackId","Track01Race")
@@ -163,6 +164,7 @@ local function addPlayer(name,id,slot)
  seat.Occupant=human;human.SeatPart=seat
  kart:SetAttribute("RaceStartCFrame",chassis.CFrame)
  local context={owner=player,kart=kart,chassis=chassis,seat=seat}
+ function context:setSpawnCFrame(frame) self.spawnCFrame=frame;self.kart:SetAttribute("RaceStartCFrame",frame)end
  contexts[player]=context
  player:SetAttribute("SelectedTrackId","Track01Race")
  player:SetAttribute("ReadyOrder",slot)
@@ -177,6 +179,7 @@ local e,ce=addPlayer("E",5,5)
 child(server,"ModuleScript","PrototypeWorld")
 local released={}
 modules.PrototypeWorld={
+ reassertServerAuthority=function(p) assert(contexts[p],"live mocked player");return true end,
  getKartContext=function(p) return contexts[p] end,
  releaseKartContext=function(p) released[p]=(released[p] or 0)+1 end,
 }

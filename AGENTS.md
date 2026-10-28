@@ -2,6 +2,17 @@
 
 Read this before editing the project.
 
+## Speed sensation / V3.2 production release — owner approval 2026-10-28
+
+Owner confirms mobile testing complete and authorizes consolidation, commit/push
+on prototype/kart-physics and official Publish to Universe10768420544 /
+Place127925465904803. Include FOV50/90/delta5, accepted V3.2 orange cruise flame
+(retained during Drift; no wheel vortex or screen-space lines), R3 invalid-finish
+zero reward and public-label encoding repair, plus current-release validation.
+Keep original N1/N2 fixtures and the20 historical failures visible; no claim of
+FULL_SUITE_PASS. No new overtaking mode, physics/ownership tuning, main changes,
+QA access changes or server restart. See docs/testing/production_release_20261028.md.
+
 ## Production mobile-controls release — owner approval 2026-10-27
 
 Owner now explicitly authorizes official Publish plus commit/push of the validated

@@ -9,6 +9,7 @@ for _,c in {{0,0,0,false},{.5,.75,.5,false},{1,.375,.5,false},{1,.75,1,true}} do
 	local progress,ready=T.progress(c[1],c[2],config)
 	assert(progress==c[3] and ready==c[4],"progress uses both independent requirements")
 end
+config=table.clone(config);config.DEBUG_TELEMETRY=true -- This fixture explicitly tests diagnostic logging.
 local k,logs=kart(),{}
 local t=T.new(k,config,function(line)table.insert(logs,line)end)
 assert(k.attrs.KartDriftChargeProgress==0 and not k.attrs.KartDriftChargeReady,"initial clear")

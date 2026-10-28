@@ -24,7 +24,7 @@ local sessionType = load("src/server/RaceSession.luau", {
 })
 local config = load("src/shared/RaceItemConfig.luau", {})
 local function kart()
-	return { GetAttribute = function(_, name) return name == "RaceControlsLocked" end }
+	return { attrs={}, GetAttribute = function(self,name)return self.attrs[name] or name=="RaceControlsLocked"end, SetAttribute=function(self,name,value)self.attrs[name]=value end }
 end
 local function context(player)
 	local chassis = { Position = rb.Vector3.zero }
@@ -33,7 +33,8 @@ local function context(player)
 		{ new = function() return { active = false } end },
 		{ new = function() return { clear = function() end } end })
 end
-local a, b = {}, {}
+local function player()return {attrs={},SetAttribute=function(self,k,v)self.attrs[k]=v end,GetAttribute=function(self,k)return self.attrs[k]end}end
+local a, b = player(), player()
 local ca, cb = context(a), context(b)
 check(ca ~= cb and ca.owner == a and cb.owner == b, "separate kart identities")
 ca.control = { throttle = 1, steering = -1, driftRequested = true }

@@ -2,7 +2,7 @@ local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox
 local B=luau.load(fs.readFile('src/shared/KDMPerformanceBuffer.luau'))()
 local n=0
 local function check(v,label)assert(v,label);n+=1 end
-for _,id in {11700555357,11736539305} do
+for _,id in {11700555357,11734277722} do
  check(B.allowed(false,id,10768420544,127925465904803),'approved diagnostic account')
  check(not B.allowed(false,id,1,127925465904803),'wrong experience blocked')
  check(not B.allowed(false,id,10768420544,1),'wrong place blocked')
@@ -14,7 +14,7 @@ local function signal()return {Connect=function(self,fn)self.fn=fn;return {Conne
 local attrs={RaceState='RACING',OfficialRoundGuid='round1',RaceSessionId=1}
 local function player(id)return {UserId=id,Character={},GetAttribute=function(_,k)return attrs[k]end,
  PlayerGui={FindFirstChild=function()return {GetAttribute=function()return true end}end}} end
-local primary,partner,other=player(11700555357),player(11736539305),player(99)
+local primary,partner,other=player(11700555357),player(11734277722),player(99)
 local sent={}
 local remote={Name='KDMPerfSnapshot',OnClientEvent=signal(),OnServerEvent=signal(),FireClient=function(_,p,r)table.insert(sent,{p=p,row=r})end}
 local storage={Shared={KDMPerformanceBuffer='BUFFER',KartConfig='CONFIG'},FindFirstChild=function()return remote end}

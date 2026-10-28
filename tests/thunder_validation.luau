@@ -96,7 +96,7 @@ local function getKart(p)
 		and c.seat.Occupant and c.kart:GetAttribute("RaceControlsLocked")~=true then return c.kart,c.chassis end
 end
 local boostOutcome
-for name,result in {PrototypeWorld={getRaceKart=getKart,getKartContext=function(p) return contexts[p] end,
+for name,result in {PrototypeWorld={reassertServerAuthority=function(p)assert(contexts[p],"authority repair requires current mock context");return true end,getRaceKart=getKart,getKartContext=function(p) return contexts[p] end,
 	onDriftOutcome=function(f) boostOutcome=f end,activateNitro=function(p) contexts[p].kart:SetAttribute("KartNitroActive",true);return true end,
 	applyThunderHit=function(p)
   local kart=contexts[p].kart

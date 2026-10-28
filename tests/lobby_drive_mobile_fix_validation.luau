@@ -20,7 +20,8 @@ for _,size in {rb.Vector2.new(801,334),rb.Vector2.new(844,300),rb.Vector2.new(93
  check(hud.y>=58+12 and hud.x==16,'Boost label and bar below wallet')
  check(hud.x+hud.width<=size.X-12,'Boost bar safe width')
  check(math.abs(hud.exitX-l.driftX-(l.driftHitWidth-l.driftWidth)/2)<.01,'Exit aligned with visible Drift artwork')
- if l.driftX+l.driftHitWidth>left then check(size.Y-l.driftBottom<=shortcut.y,'portrait Drift above pad/shortcuts') end
+ if l.driftX+l.driftHitWidth>left then check(size.Y-l.driftBottom<=padTop,'portrait Drift above actual right pad') end
+ check(size.Y-l.driftBottom<=shortcut.y or driftTop>=shortcut.y+shortcut.height,'Drift and shortcut rectangles never overlap vertically')
  -- A Lobby layout must not mutate the shared race layout or inset behavior.
  check(view.layout(size).padBottom~=12,'race layout remains unchanged')
 end

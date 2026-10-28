@@ -49,7 +49,7 @@ for i,gate in c.CheckpointSamples do
  check(shift<(if i<=4 then .01 elseif i==5 then 3 else 161),'approved proposed station displacement '..i)
 end
 local catalog=luau.load(fs.readFile('src/shared/TrackCatalog.luau'),{environment={CFrame=rb.CFrame}})()
-check(catalog.Entries.Track02.GeometryId=='PrototypeCircuitV2','production catalog still legacy; B diagnostic only')
+check(catalog.Entries.Track02.GeometryId=='PrototypeCircuitV2B' and not table.find(catalog.Order,'Track02'),'retired V2B remains compatibility Entry only')
 check(catalog.Entries.Track02.TargetLaps==2 and catalog.Entries.Track02.MaxPlayers==4,'capacity/laps')
 for _,slot in catalog.Entries.Track02.GridSlots do check(H.onRoad(world,slot.Position),'all four grid slots legal') end
 local route=luau.load(fs.readFile('src/shared/RaceRouteProgress.luau'),{environment={Vector3=rb.Vector3}})()

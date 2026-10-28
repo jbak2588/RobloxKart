@@ -7,7 +7,7 @@ local function signal()
 end
 local methods={}
 local function object(class)
- local props={ClassName=class,Name=class,Destroying=signal(),DescendantAdded=signal(),DescendantRemoving=signal()}
+ local props={ClassName=class,Name=class,Destroying=signal(),ChildAdded=signal(),ChildRemoved=signal(),DescendantAdded=signal(),DescendantRemoving=signal()}
  return setmetatable({props=props,children={},signals={},attrs={}}, {__index=function(self,k)return methods[k] or props[k] end,
  __newindex=function(self,k,v)
   if k=="Parent" and props.Parent~=v then
@@ -15,7 +15,7 @@ local function object(class)
    while ancestor do ancestor.DescendantRemoving:Fire(self);ancestor=ancestor.Parent end
    if props.Parent then local i=table.find(props.Parent.children,self);if i then table.remove(props.Parent.children,i) end end
    props[k]=v
-   if v then table.insert(v.children,self) end
+   if v then table.insert(v.children,self);v.ChildAdded:Fire(self) end
    ancestor=v;while ancestor do ancestor.DescendantAdded:Fire(self);ancestor=ancestor.Parent end
   else props[k]=v end
  end})
@@ -50,7 +50,7 @@ return function(racers,rounds,exercise)
  local workspace=object("Workspace")
  function workspace:Raycast(origin,_direction,_params)
   self.rayCount=(self.rayCount or 0)+1;self.lastRayParams=_params
-  if self.noGround then return nil end
+  if self.noGround or math.abs(origin.X)>100 or math.abs(origin.Z)>10000 then return nil end
   return {Position=rb.Vector3.new(origin.X,0,origin.Z),Normal=rb.Vector3.yAxis,
    Instance={FindFirstAncestor=function(_,name)return if name=='Road' then {} else nil end}}
  end
@@ -129,7 +129,7 @@ return function(racers,rounds,exercise)
   tick(.01);tick(.31)
   for _,k in karts do
    check(not k:FindFirstChild("KDMShieldWorld"),"expiry removes Shield model")
-   check(count(k,"Attachment","ShieldRear")==0 and count(k,"Trail")==4,"expiry leaves Drift pair plus two disabled persistent speed trails")
+   check(count(k,"Attachment","ShieldRear")==0 and count(k,"Trail")==6,"expiry leaves Drift pair plus four disabled persistent speed trails")
    for _,p in k:GetDescendants() do if p.Name:find("KDMSpeedTrail",1,true) then check(not p.Enabled,"idle speed trails disabled independently of Shield") end end
    for _,p in k:GetDescendants() do if p.Name=="RearEmitter" then check(not p.Enabled,"expired boosts stop remote emission") end end
   end

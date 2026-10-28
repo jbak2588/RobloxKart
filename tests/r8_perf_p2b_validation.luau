@@ -2,7 +2,7 @@ local fs,luau,rb,serde=require('@lune/fs'),require('@lune/luau'),require('@lune/
 local Buffer=luau.load(fs.readFile('src/shared/KDMPerformanceBuffer.luau'))()
 local now=0
 local attrs={RaceState='RACING',OfficialRoundGuid='round1'}
-local services={Players={LocalPlayer={UserId=11700555357,GetAttribute=function(_,k)return attrs[k]end}},
+local services={Players={LocalPlayer={Name="TestDriver",UserId=11700555357,GetAttribute=function(_,k)return attrs[k]end}},
  RunService={IsStudio=function()return false end},Stats={GetTotalMemoryUsageMb=function()return 100 end},HttpService={}}
 local env={game={GameId=10768420544,PlaceId=127925465904803,ReplicatedStorage={Shared={KDMPerformanceBuffer={}}},
  GetService=function(_,k)return services[k] end},require=function()return Buffer end,os={clock=function()return now end},
@@ -47,7 +47,7 @@ check(client.summary().frames==1 and client.summary().frameGaps==0,'mode reset d
 local hud=fs.readFile('src/client/RaceHudController.luau')
 check(hud:find("updateHud('BOT_POLL',true)",1,true) and hud:find("updateHud('LOCAL:'..attributeName,false)",1,true),'actual event source tags')
 local source=fs.readFile('src/client/RacePerformanceMonitor.luau')
-check(source:find("summaryScroll.CanvasSize",1,true) and source:find("{'frameInterval','callbackTotal'",1,true),'render evidence first and full summary scrollable')
+check(source:find("summaryScroll.CanvasSize",1,true) and source:find("{'frameInterval','serverFrame','serverKartStep'",1,true) and source:find("'callbackTotal'",1,true),'render evidence first and full summary scrollable')
 check(source:find("if not canChoose() then return end",1,true),'GO transition cannot change modes through stale visible button')
 -- Execute the actual staging/result view, including a delayed save response.
 local heartbeat,objects=nil,{}

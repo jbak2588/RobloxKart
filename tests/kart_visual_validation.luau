@@ -96,7 +96,7 @@ for _, row in { {"ExhaustLeft",-1}, {"ExhaustRight",1} } do
     assert((rearTip-anchor.Position).Magnitude < 0.00001, "Pipe/FX origin mismatch")
 end
 assert(sprint.PrimaryPart==sprint.StaticRoot and sprint.StaticRoot.CFrame==CFrame.identity)
-assert((sprint.SteeringPivot.CFrame.Position-Vector3.new(0,1.65,-1.05)).Magnitude < 0.00001)
+assert((sprint.SteeringPivot.CFrame.Position-Vector3.new(0,.85,-.95)).Magnitude < 0.00001)
 print("PASS: two exhaust tips/anchors and unchanged chassis-local/steering origins")
 local root=sprint.StaticRoot
 assert(root.FrontBumper.Color==definition.BodyColor and root.Nose.Color==definition.AccentColor)

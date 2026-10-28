@@ -5,7 +5,7 @@ local cut=assert(source:find('controller.start()',1,true))
 local scenario=[====[
 controller.start();controller.start()
 check(render~=nil,'one existing chase binding')
-for _,state in {{70,false,false,76.944},{80,false,false,78},{100,true,false,81},{100,false,true,85},{100,true,true,85}} do
+for _,state in {{70,false,false,77.5},{80,false,false,79.21875},{90,false,false,80},{100,true,false,81},{100,false,true,85},{100,true,true,85}} do
  chassis.AssemblyLinearVelocity=rb.Vector3.new(0,0,-state[1])
  kart.attrs.KartBoosting=state[2];kart.attrs.KartNitroActive=state[3]
  for _=1,180 do render(1/60) end
@@ -17,7 +17,7 @@ for _,state in {{70,false,false,76.944},{80,false,false,78},{100,true,false,81},
  kart.attrs.KartShieldActive=false
 end
 kart.attrs.KartNitroActive=false;kart.attrs.KartBoosting=false
-render(.1);check(camera.FieldOfView>78 and camera.FieldOfView<85,'Nitro decays into physical High rather than snap')
+render(.1);check(camera.FieldOfView>80 and camera.FieldOfView<85,'Nitro decays into physical High rather than snap')
 for _=1,180 do render(1/60)end
 for _,reason in {'RaceControlsLocked','KartOffTrack'} do
  kart.attrs[reason]=true;for _=1,180 do render(1/60)end

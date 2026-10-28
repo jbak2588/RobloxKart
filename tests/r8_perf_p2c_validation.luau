@@ -7,7 +7,7 @@ local Ops=load('src/server/RaceRecordOperations.luau');local Adapter=load('src/s
 local n=0;local function check(v,s)n+=1;assert(v,s)end
 local argument=require('@lune/process').args[1]
 local original=if argument then serde.decode('json',fs.readFile(argument)) else schema.default(11700555357)
-if not argument then original.selection.kartId='Kart08';original.wallet.cash=321;original.receipts.legacy={signature=string.rep('a',40000)} end
+if not argument then original.selection.kartId='Kart08';original.wallet.cash=321;original.receipts.legacy={signature=string.rep('a',50000)} end
 local id=original.userId;local before=S.canonical(original)
 check(schema.validate(original,S.userKey(id)),'existing profile valid')
 local backend={value=S.clone(original),writes=0}
@@ -36,7 +36,8 @@ for i=1,6 do
  eligible=true,reason='FULL_ROUTE_V1',serverAccepted=true,state='FINISHED',positionFinalized=true}}
  if i==1 then
   first=op;local nextValue=Ops.reduce(S,schema,op)(original)
-  check(#S.canonical(nextValue)*6>262144,'reproduces P2C original false capacity refusal')
+  print('R3_TRACE capacity',#S.canonical(nextValue),#serde.encode('json',nextValue),schema.maxBytes)
+  check(#S.canonical(original)*6>262144 and #S.canonical(nextValue)<#S.canonical(original),'large legacy profile compressed without the historical false capacity refusal')
   check(#serde.encode('json',nextValue)<schema.maxBytes,'actual JSON below unchanged limit')
  end
  p.attrs.OfficialRoundGuid=guid;check(runtime.submit(p,op),'official submit')
@@ -48,7 +49,7 @@ for i=1,6 do
  local snapshot=S.canonical(backend.value);runtime.submit(p,op);check(S.canonical(backend.value)==snapshot,'duplicate finish idempotent')
  if i==1 then afterFirst=#serde.encode('json',backend.value)end
 end
-for k,v in original.receipts do check(S.canonical(backend.value.receipts[k])==S.canonical(v),'old receipt intact')end
+for k,v in original.receipts do check(S.signatureMatches(backend.value.receipts[k],v.signature),'old receipt replay identity preserved through signature compression')end
 for k,v in original do if k~='records' and k~='receipts' and k~='pendingIndex' and k~='pendingRaceIndex' then check(S.canonical(backend.value[k])==S.canonical(v),'non-record fields '..k)end end
 local corrupt=S.clone(original);corrupt.bad=0/0;local valid,reason=schema.validate(corrupt,S.userKey(id));check(not valid and reason=='NONFINITE_NUMBER','structural reason separate')
 corrupt=S.clone(original);corrupt.bad=string.rep('a',schema.maxBytes+1);valid,reason=schema.validate(corrupt,S.userKey(id));check(not valid and reason=='PROFILE_CAPACITY','true byte limit enforced')

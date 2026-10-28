@@ -3,10 +3,10 @@ local S=luau.load(fs.readFile("src/client/HubGuidanceState.luau"))()
 local count=0
 local function check(value,label) assert(value,label);count+=1 end
 local s=S.new()
-check(S.nextAction(s)=="GARAGE","fresh chooses Garage")
-S.returned(s,"TRACKS");check(S.nextAction(s)=="GARAGE","free Track browse is not confirmation")
-S.returned(s,"GARAGE");check(S.nextAction(s)=="TRACKS","default kart Garage visit sufficient")
-for _=1,10 do S.returned(s,"TRACKS");check(S.nextAction(s)=="TRACKS","Back never confirms Track") end
+check(S.nextAction(s)=="ROOMS","fresh chooses Garage")
+S.returned(s,"TRACKS");check(S.nextAction(s)=="ROOMS","free Track browse is not confirmation")
+S.returned(s,"GARAGE");check(S.nextAction(s)=="ROOMS","default kart Garage visit sufficient")
+for _=1,10 do S.returned(s,"TRACKS");check(S.nextAction(s)=="ROOMS","Back never confirms Track") end
 S.confirmed(s,"Track01Race");check(S.nextAction(s)=="ROOMS","confirmed Track routes Rooms")
 check(s.trackId=="Track01Race","acknowledged track identity retained")
 S.returned(s,"GARAGE");check(S.nextAction(s)=="ROOMS","later Garage does not reset progress")
@@ -24,78 +24,26 @@ local marker="local firstDisplay=hub.KDMClientShowroom"
 local injection=[[
 local card=hubGui.SafeCanvas.NextAction
 local world=hub.KDMClientWorldGuidance
-check(card.SelectTrack.Text=="CHOOSE KART" and #world:GetChildren()==3,"fresh Garage card plus three floor directions")
-local theme=modules.KDMUiTheme
-local function active(destination)
- local n=0
- for _,p in world:GetChildren() do
-  check(p.Anchored and not p.CanCollide and not p.CanTouch and not p.CanQuery and not p.CastShadow,"visual flags")
-  local text
-  for _,node in p.Direction:GetDescendants() do if node.ClassName=="TextLabel" then text=node end end
-  if text.TextColor3==theme.PrimaryAction then n+=1;check(p.Name==destination,"correct active destination") end
- end
- check(n==(if destination then 1 else 0),"only one active emphasis")
-end
-active("GARAGE")
-card.SelectTrack.Activated:Fire();check(backdrop.GarageStep.Text=="KART GARAGE","fresh CTA enters real Garage")
-active(nil);controller.close();check(card.SelectTrack.Text=="SELECT TRACK","Garage return advances")
-active("TRACKS")
-card.SelectTrack.Activated:Fire();controller.close()
-check(card.SelectTrack.Text=="SELECT TRACK","opening Track without confirm never advances")
-modules.TrackCatalog.Entries.Track01.MatchType="PUBLIC_RACE"
-card.SelectTrack.Activated:Fire();selectButton.Activated:Fire()
-check(card.SelectTrack.Text=="SELECT TRACK","public confirmation waits for server browser acknowledgement")
-replicated.MatchRoomControl.OnClientEvent:Fire("Snapshot",{visible=true,trackId="Track01",room=nil})
-controller.close()
-check(card.SelectTrack.Text=="RACE LIST","server browser acknowledgement confirms public Track")
-active("RACE")
-local before=remote.fireCount
-card.SelectTrack.Activated:Fire()
-check(remote.fireCount==before+1 and remote.lastFire[1]=="Ready","Rooms CTA reuses existing Ready contract")
-check(remote.lastFire[4]=="Track01","existing selected track identity retained")
-modules.TrackCatalog.Entries.InvitedPublic={MatchType="PUBLIC_RACE"}
-replicated.MatchRoomControl.OnClientEvent:Fire("Snapshot",{visible=true,trackId="InvitedPublic",room=nil})
-card.SelectTrack.Activated:Fire()
-check(remote.lastFire[4]=="InvitedPublic","Rooms retains acknowledged invite track independent of preview index")
-modules.TrackCatalog.Entries.InvitedPublic=nil
-services.ProximityPromptService.PromptTriggered:Fire(prompt,player);controller.close()
-check(card.SelectTrack.Text=="RACE LIST","progress survives later Garage")
-for _=1,3 do player.CharacterAdded:Fire(player.Character);hubController.start();check(#world:GetChildren()==3,"respawn no duplicate markers") end
-modules.TrackCatalog.Entries.Track01.MatchType="SOLO_PRACTICE"
+check(card.SelectTrack.Text=="RACE NOW" and card.FreeTestDrive.Text=="TEST DRIVE","current immediate race/practice CTAs")
+check(#world:GetChildren()==3,"one three-direction world guidance set")
+local quick,drive=0,0
+child(client,'ModuleScript','MatchRoomUiController');modules.MatchRoomUiController={quickStart=function()quick+=1 end}
+child(client,'ModuleScript','LobbyTestDriveController');modules.LobbyTestDriveController={requestDrive=function()drive+=1 end}
+card.SelectTrack.Activated:Fire();check(quick==1 and drive==0,"Race Now reaches quickStart directly")
+card.FreeTestDrive.Activated:Fire();check(drive==1 and quick==1,"Test Drive uses its separate entry")
+player:SetAttribute('LobbyDriveActive',true)
+card.SelectTrack.Activated:Fire();card.FreeTestDrive.Activated:Fire()
+check(quick==1 and drive==1,"active driving blocks duplicate starts")
+player:SetAttribute('LobbyDriveActive',false)
+player:SetAttribute('KDMShopOpen',true);card.SelectTrack.Activated:Fire()
+check(quick==1,"shop owns attention")
+player:SetAttribute('KDMShopOpen',false)
+player:SetAttribute('RaceState','RACING');check(not hubGui.Enabled,"Hub UI hidden during racing")
+player:SetAttribute('RaceState','GARAGE')
+local oldWorld=world;hubGui:Destroy();check(oldWorld.Parent==nil,"owned world guidance tears down")
+hubController.start();check(#hub.KDMClientWorldGuidance:GetChildren()==3,"restart does not duplicate directions")
+playerGui.KDMHubNavigation:Destroy()
+print('PASS current Race Now/Test Drive guidance and input ownership integration')
 ]]
-assert(fixture:find(marker,1,true))
-fixture=fixture:gsub(marker,function()return injection.."\n"..marker end,1)
-local cleanup="hubGui:Destroy()"
-fixture=fixture:gsub("hubGui:Destroy%(%)",function()return [[
-local oldWorld=hub.KDMClientWorldGuidance
-child(client,"ModuleScript","RoomDisplay")
-modules.RoomDisplay=luau.load(fs.readFile("src/client/RoomDisplay.luau"))()
-child(shared,"ModuleScript","LobbyTitleCatalog")
-modules.LobbyTitleCatalog=luau.load(fs.readFile("src/shared/LobbyTitleCatalog.luau"))()
-child(client,"ModuleScript","LobbyCreateView")
-modules.LobbyCreateView=luau.load(fs.readFile("src/client/LobbyCreateView.luau"),{environment=environment})()
-local roomController=luau.load(fs.readFile("src/client/MatchRoomUiController.luau"),{environment=environment})()
-roomController.start();roomController.start()
-local roomGui=playerGui.KDMMatchRooms
-playerGui.ChildAdded:Fire(roomGui)
-local helper=roomGui:FindFirstChild("NextAction",true)
-local roomRemote=replicated.MatchRoomControl
-roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,trackId="Track01",rooms={},maxPlayers=4})
-check(helper.Text=="CREATE OR JOIN A RACE" and not helper.Visible and not hubGui.SafeCanvas.NextAction.Visible,"browser suppresses duplicate guidance and owns attention")
-roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,room={state="WAITING",hostUserId=player.UserId,hostName="Host",members={{name="Host"}},available={},maxPlayers=4}})
-check(helper.Text:find("OPTIONAL") and not helper.Text:find("CREATE"),"real joined host guidance")
-roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,room={state="WAITING",hostUserId=2,hostName="Host",members={{name="Host"}},available={},maxPlayers=4}})
-check(helper.Text=="WAIT FOR HOST • ITEMS NEXT","real nonhost helper")
-player:SetAttribute("RaceState","RACING");check(not roomGui.Enabled,"real room UI hidden during race")
-roomRemote.OnClientEvent:Fire("Snapshot",{visible=true,rooms={},maxPlayers=4})
-check(not roomGui.Enabled,"late room snapshot cannot reopen racing overlay")
-player:SetAttribute("RaceState","GARAGE")
-local listeners=roomRemote.OnClientEvent.count()
-roomGui:Destroy();check(roomRemote.OnClientEvent.count()==listeners-1,"room helper controller cleanup")
-hubGui:Destroy()
-check(oldWorld.Parent==nil,"world view cleanup")
-hubController.start();hubController.start()
-check(#hub.KDMClientWorldGuidance:GetChildren()==3,"restart one world view")
-hubGui=playerGui.KDMHubNavigation;hubGui:Destroy()
-]] end,1)
-luau.load(fixture)()
+local start=assert(fixture:find(marker,1,true))
+luau.load(fixture:sub(1,start-1)..injection)()

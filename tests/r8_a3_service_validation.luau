@@ -10,7 +10,7 @@ end
 local shared,server=node('Shared'),node('Server')
 local nodes,cache={},{}
 for _,p in {'src/shared/KDMPerformanceBuffer.luau','src/shared/KDMProgressionSchema.luau','src/shared/KartCatalog.luau','src/shared/TrackCatalog.luau',
- 'src/server/EconomyService.luau','src/server/EconomyConfig.luau','src/server/EconomyPolicy.luau','src/server/EconomyOperations.luau',
+ 'src/shared/KDMShopCatalog.luau','src/server/EconomyService.luau','src/server/EconomyConfig.luau','src/server/EconomyPolicy.luau','src/server/EconomyOperations.luau',
  'src/server/RaceRecordReset.luau','src/server/OfficialRaceRecords.luau','src/server/RaceRecordConfig.luau','src/server/RaceRecordPolicy.luau',
  'src/server/RaceRecordOperations.luau','src/server/RaceRecordRuntime.luau','src/server/RaceRecordService.luau','src/server/ProgressionDataStoreAdapter.luau'} do
  local name=p:match('/([^/]+)%.luau$');local parent=if p:find('/shared/',1,true) then shared else server
@@ -22,7 +22,7 @@ local ds={}
 function ds:GetRequestBudgetForRequestType() return 100 end
 function ds:GetDataStore(name)
  check(name=='KDM_PlayerProgress_v1','same A2 Profile store')
- return {GetAsync=function(_,key,opts) check(key=='u:11700555357' and opts.UseCache==false,'correct uncached user key');return value end,
+ return {GetAsync=function(_,key,opts) check(opts.UseCache==false,'correct uncached user key');if key=='u:2'then return nil end;check(key=='u:11700555357','owner key isolation');return value end,
   UpdateAsync=function(_,key,cb) local result=cb(value);if result then value=result end;return result end}
 end
 function ds:GetOrderedDataStore(name,scope)
@@ -54,7 +54,8 @@ function p:GetAttribute(k) return self.attrs[k] end
 function p:SetAttribute(k,v) self.attrs[k]=v end
 local session={trackId='Track02',targetLaps=2,orderedParticipants=function() return {p} end}
 local function runRound()
- p.attrs.RaceState='RACING';Service.begin(session,{CenterlineLength=1000},6);Service.start(p,0)
+ p.attrs.RaceState='RACING';local identity={RoundGuid=services.HttpService:GenerateGUID(false),IssuedAt=1791650000000};p:SetAttribute('OfficialRoundGuid',identity.RoundGuid);p:SetAttribute('OfficialRoundIssuedAt',identity.IssuedAt)
+ Service.begin(session,{CenterlineLength=1000},6,identity);Service.start(p,0)
  local guid=p.attrs.OfficialRoundGuid
  Service.boost(p,guid..':boost:1');Service.boost(p,guid..':boost:1')
  for lap=1,2 do
@@ -62,7 +63,7 @@ local function runRound()
    local f=(i/100)%1;local pos=rb.Vector3.new(math.cos(f*2*math.pi)*1000/(2*math.pi),0,math.sin(f*2*math.pi)*1000/(2*math.pi))
    Service.progress(p,(lap-1)*20+i*.2,pos,f,math.min(7,math.floor(i/14)+1))
   end
-  Service.lap(p,lap*20)
+  Service.lap(p,lap*20,20)
  end
  p.attrs.RaceState='FINISHING';Service.finish(p);check(#queue==0,'real service no I/O during FINISHING')
  p.attrs.RaceState='FINISHED';Service.finish(p)
@@ -82,8 +83,9 @@ local reply=remote.OnServerInvoke(p)
 check(reply.status=='FOUND' and reply.records.scoped[scope].bestLapMilliseconds==20000 and reply.receipts==nil,'returning HUB personal query, no sensitive profile')
 check(remote.OnServerInvoke(p).status=='RATE_LIMITED','query rate limited')
 local other={UserId=2};local before=calls
-check(remote.OnServerInvoke(other).status=='ACCESS_BLOCKED' and calls==before,'ordinary user zero records API calls')
+check(remote.OnServerInvoke(other).status=='ABSENT' and calls>before,'public read authorized for ordinary user; absent account not copied from owner')
 studio=true;role='RACE';game.PrivateServerId='reserved';before=calls
 runRound();while #queue>0 do table.remove(queue,1)() end
-check(calls==before and remote.OnServerInvoke(p).status=='ACCESS_BLOCKED','Studio API OFF no actual DataStore lookup')
+local studioReply=remote.OnServerInvoke(p);print('R3_TRACE Studio records',calls-before,studioReply.status)
+check(calls==before and studioReply.status=='RATE_LIMITED','Studio memory query never accesses live DataStore')
 print('PASS: '..checks..' actual server service HUB/Reserved wiring checks with injected Roblox API mocks; live calls zero')

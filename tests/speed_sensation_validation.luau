@@ -6,10 +6,11 @@ local function fov(v,mini,nitro,enabled,off)
  local tier,alpha=speed.resolve(v,mini,nitro,enabled,off)
  return speed.targetFov(75,tier,alpha),tier,alpha
 end
-for _,v in {0,30,55,60,70,80,100,-20} do
+check(speed.HIGH_SPEED_START==50 and speed.HIGH_SPEED_FULL==90 and speed.Profiles.HIGH_SPEED.FovDelta==5,'Phase 1 explicit High profile')
+for _,v in {0,30,50,55,60,70,80,90,100,-20} do
  for _,state in {{false,false},{true,false},{false,true},{true,true}} do
   local f,t=fov(v,state[1],state[2],true,false)
-  local expected=if v<0 then 'NONE' elseif state[2] then 'NITRO' elseif state[1] then 'MINI_BOOST' elseif v>55 then 'HIGH_SPEED' else 'NONE'
+  local expected=if v<0 then 'NONE' elseif state[2] then 'NITRO' elseif state[1] then 'MINI_BOOST' elseif v>50 then 'HIGH_SPEED' else 'NONE'
   check(t==expected,'tier state/speed '..v..' '..t)
   check(f>=75 and f<=85,'bounded FOV')
   check(select(2,fov(v,state[1],state[2],false,false))=='NONE','locked/non-racing suppressed')
@@ -17,13 +18,14 @@ for _,v in {0,30,55,60,70,80,100,-20} do
  end
 end
 check(fov(70,false,false,true,false)<fov(80,false,false,true,false),'Straight80 greater than normal70')
+check(fov(70,false,false,true,false)==77.5 and fov(90,false,false,true,false)==80,'normal70 to held GAS90 widens FOV by2.5 degrees')
 check(fov(100,true,false,true,false)==81 and fov(100,false,true,true,false)==85,'equal physical speed different boost state')
 local prior=75
-for v=0,120 do local f=fov(v,false,false,true,false);check(f>=prior and f<=78,'smooth capped high ramp');prior=f end
+for v=0,120 do local f=fov(v,false,false,true,false);check(f>=prior and f<=80,'smooth capped high ramp');prior=f end
 for _,v in {0/0,math.huge,-math.huge} do check(select(2,fov(v,true,true,true,false))=='NONE','invalid speed suppressed')end
 for _,fps in {30,60,120} do
  local current=75
- for _,target in {78,81,85,78,75} do
+ for _,target in {77.5,80,81,85,80,75} do
   local initial=current
   for frame=1,fps do
    local nextValue=speed.stepFov(current,target,1/fps)
@@ -37,6 +39,16 @@ end
 check(speed.stepFov(81,85,0/0)==81 and speed.stepFov(81,85,-1)==81,'invalid dt cannot corrupt FOV')
 check(not pcall(function()speed.Profiles.NITRO.FovDelta=99 end),'frozen cosmetic profile')
 check(not fs.readFile('src/shared/KDMSpeedSensation.luau'):find('KartShieldActive',1,true),'no Shield input in pure resolver')
+local mixed,elapsed=75,0
+for _,fps in {30,60,30,60} do
+ for _=1,fps/2 do
+  local previous=mixed
+  mixed=speed.stepFov(mixed,80,1/fps);elapsed+=1/fps
+  check(mixed>=previous and mixed<=80,'30/60 FPS switching is monotonic')
+ end
+ check(math.abs(mixed-(80-5*math.exp(-10*elapsed)))<1e-10,'30/60 FPS switch preserves elapsed-time easing')
+end
+print('PASS: '..n..' speed profile/priority/cadence checks; checking unchanged source-freeze fixture next')
 local fixture=serde.decode('json',fs.readFile('tests/fixtures/speed_sensation_starting_hashes.json'))
 check(fixture.baseline=='5c704d5b0caf2b73e76c545617447006d14247bb','explicit N1 baseline')
 for path,hash in fixture.hashes do

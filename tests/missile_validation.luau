@@ -81,7 +81,7 @@ local function getKart(player)
 	if c and player.Parent and player:GetAttribute("RaceState")=="RACING" and c.kart.Parent and c.chassis.Parent
 		and c.seat.Occupant and c.kart:GetAttribute("RaceControlsLocked")==false then return c.kart,c.chassis end
 end
-local world={getRaceKart=getKart,getKartContext=function(p) return contexts[p] end,
+local world={reassertServerAuthority=function(p)assert(contexts[p],"authority repair requires current mock context");return true end,getRaceKart=getKart,getKartContext=function(p) return contexts[p] end,
 	onDriftOutcome=function() end,activateNitro=function() return true end,
 	applyMissileHit=function(p) effectCount+=1;contexts[p].kart:SetAttribute("KartMissileHitActive",true);return true end,
 	applySlickHit=function() effectCount+=1;return true end}
@@ -207,7 +207,7 @@ check(target:GetAttribute("RaceChargeShield")==1 and not contexts[target].kart:G
 	"direct Shield use rejects all client-supplied payloads without spending")
 remote.OnServerEvent:Fire(target,"UseItem","Shield")
 check(contexts[target].kart:GetAttribute("KartShieldActive") and target:GetAttribute("RaceChargeShield")==0
-	and target:GetAttribute("RaceChargeNitro")==1 and target:GetAttribute("SelectedRaceItemId")=="Nitro",
+	and target:GetAttribute("RaceChargeNitro")==1 and target:GetAttribute("SelectedRaceItemId")=="Slick",
 	"one direct Shield use request activates and consumes only Shield while preserving selection")
 local directShell=contexts[target].kart:FindFirstChild("RaceItemShield")
 for _=1,10 do remote.OnServerEvent:Fire(target,"UseItem","Shield") end
@@ -297,7 +297,7 @@ reset()
 check(source:GetAttribute("RaceChargeMissile")==1 and target:GetAttribute("RaceMissileIncomingCount")==0,"new round refills and clears incoming")
 local loadout=Loadout.new();loadout:prepare()
 check(loadout.counts.Nitro==1 and loadout.counts.Slick==1 and loadout.counts.Shield==1
-	and loadout.counts.Missile==1 and loadout.counts.Smoke==0,"four equal temporary base resources")
+	and loadout.counts.Missile==1 and loadout.counts.Smoke==1 and loadout.counts.Thunder==1,"six equal temporary base resources")
 for _=1,5 do loadout:recordBoost(5) end
 check(loadout.bonusAwardCount==1 and loadout.counts.Nitro==2 and not loadout:grantBonusNitro(),"bonus remains capped at two once per race")
 

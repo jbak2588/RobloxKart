@@ -327,6 +327,7 @@ modules.PrototypeWorld = { acquireKartContext = function(_, spawn, kartId)
 		setSpawnCFrame = function(self, frame) self.spawn = frame end }
 end, releaseKartContext = function() end }
 modules.RaceController = { isRosterLocked = function() return false end }
+modules.RaceSession={active=function()return nil end}
 local baseplate = { Position = V.new(0, -10, 0), Size = V.new(2048, 20, 2048),
 	IsA = function(_, class) return class == "BasePart" end }
 services.Workspace = {
@@ -335,7 +336,8 @@ services.Workspace = {
 }
 players.PlayerAdded = signal()
 players.GetPlayers = function() return { player } end
-local humanoid = { Health = 100 }
+local humanoid = { Health = 100,SetStateEnabled=function()end }
+environment.Enum=rb.Enum
 local root = { Anchored = true }
 local character = { WaitForChild = function(_, name)
 	return if name == "Humanoid" then humanoid else root
@@ -353,7 +355,7 @@ for _, trackId in { "Track01", "Track02" } do
 	check(Bootstrap.plan(payload, 42).trackId == trackId, "bootstrap plan selects " .. trackId)
 	check(Bootstrap.start(payload, player, initialJoinData), "validated initial arrival starts")
 	check(player:GetAttribute("SelectedTrackId") == trackId and player:GetAttribute("SelectedDriverId") == "Driver02"
-		and player:GetAttribute("SelectedKartId") == "Kart02" and player:GetAttribute("RaceMaxPlayers") == 1
+		and player:GetAttribute("SelectedKartId") == "Kart02" and player:GetAttribute("RaceMaxPlayers") == modules.TrackCatalog.Entries[trackId].MaxPlayers
 		and player:GetAttribute("GridSlot") == 1 and player:GetAttribute("RaceState") == "PRE_RACE",
 		"arrival restores validated selections and grid for " .. trackId)
 	check(seats[#seats].Occupant == humanoid and root.Anchored == false
@@ -440,7 +442,7 @@ local function runBootstrapFailure(expectedReason, scenario)
 	function casePlayer:GetAttribute(name) return self.attrs[name] end
 	casePlayer.GetJoinData = function() return { SourceGameId = 987654, TeleportData = payload } end
 	local caseRoot = { Anchored = false }
-	local caseHumanoid = { Health = 100 }
+	local caseHumanoid = { Health = 100,SetStateEnabled=function()end }
 	if scenario ~= "no_character" then
 		casePlayer.Character = { WaitForChild = function(_, name)
 			if name == "HumanoidRootPart" then return caseRoot end
@@ -484,7 +486,7 @@ local delayedPlayer = { UserId = 42, Parent = players, attrs = { RaceState = "GA
 function delayedPlayer:SetAttribute(name, value) self.attrs[name] = value end
 function delayedPlayer:GetAttribute(name) return self.attrs[name] end
 local delayedRoot = { Anchored = false }
-local delayedHumanoid = { Health = 100 }
+local delayedHumanoid = { Health = 100,SetStateEnabled=function()end }
 delayedPlayer.Character = { WaitForChild = function(_, name)
 	return if name == "HumanoidRootPart" then delayedRoot else delayedHumanoid
 end, PivotTo = function() end }
@@ -517,13 +519,15 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 	end }
 	local startupWorkspace = { Prototype = {PlayerSpawn={}}, SetAttribute = function(_, name, value) calls[name] = value end }
 	startupWorkspace.GetAttribute=function(_,name) return calls[name] end
-	local startupReplicated = {}
+	local startupReplicated = {Shared={Figure8DesertPolicy={Name="Figure8DesertPolicy"}}}
 	local startupServices = { Players = startupPlayers, Workspace = startupWorkspace,
 		ReplicatedStorage = startupReplicated,
 		MemoryStoreService = { GetSortedMap = function() return {} end },
 		HttpService = { GenerateGUID = function() error("real JobId must not generate a GUID") end },
 		RunService = { IsStudio = function() return studio end } }
 	local startupModules = {
+ Figure8DesertPolicy={enabled=function()return false end},
+ HubParkStartup={snapshot=function()end,prepare=function()end,enabled=function()return false end,bind=function()end},
 		EconomyService = { start = function() calls.economy = true end },
 		ShopService = { start = function() calls.shop = true end },
 		RaceRecordService = { startQuery = function() calls.records = true end },
@@ -556,7 +560,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
 		task = { spawn = function() end },
 		print = function(message) table.insert(calls.logs, message) end,
 		warn = function(message) calls.warned = true; table.insert(calls.warnings, message) end,
-		script = { WaitForChild = function(_, name) return { Name = name } end },
+		script = { Parent={WaitForChild=function(_,name)return{Name=name}end},WaitForChild = function(_, name) return { Name = name } end },
 		require = function(module) return assert(startupModules[module.Name], module.Name) end }
 	luau.load(fs.readFile("src/server/init.server.luau"), { environment = env })()
 	return calls

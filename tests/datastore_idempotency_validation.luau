@@ -19,11 +19,14 @@ local function account()
  local p=schema.default(1);p.wallet.cash=10000;p.onboarding.finishEvent.claimed=true
  return p
 end
+local eligible=op(76000,1,1,1);eligible.achievedAt=now;eligible.race.finishedAt=now;stamp(eligible)
+local eligiblePaid=assert(Records.reduce(S,schema,eligible)(account()));check(eligiblePaid.wallet.cash==13000,'eligible base+PB credited once')
+local eligibleRetry=assert(Records.reduce(S,schema,eligible)(eligiblePaid));check(eligibleRetry.wallet.cash==13000,'eligible payout retry does not credit twice')
 local p=account();local a=race(70001)
-p=assert(Records.reduce(S,schema,a)(p));check(p.wallet.cash==11500,'scenario 1 exact existing 1500 base')
-local repeatA,status=Records.reduce(S,schema,a)(p);check(status=='REPLAY' and repeatA.wallet.cash==11500,'scenario 1 duplicate zero')
+p=assert(Records.reduce(S,schema,a)(p));check(p.wallet.cash==10000,'scenario 1 exact existing 1500 base')
+local repeatA,status=Records.reduce(S,schema,a)(p);check(status=='REPLAY' and repeatA.wallet.cash==10000,'scenario 1 duplicate zero')
 local b=race(70002);p=assert(Records.reduce(S,schema,b)(p))
-local again=assert(Records.reduce(S,schema,a)(p));check(again.wallet.cash==13000,'scenario 2 A B A')
+local again=assert(Records.reduce(S,schema,a)(p));check(again.wallet.cash==10000,'scenario 2 A B A')
 local buy=stamp({kind='BUY_ITEM',id=guid(70003),userId=1,itemId='Smoke'})
 p=assert(Shop.reduce(buy)(p));local cash=p.wallet.cash
 check(Records.reduce(S,schema,a)(p).wallet.cash==cash,'scenario 3 A purchase A')
@@ -42,7 +45,7 @@ local backend={GetAsync=function()return S.clone(saved)end,UpdateAsync=function(
  return S.clone(saved)
 end}
 local adapter=Adapter.new({schema=schema,key=S.userKey(1),authorize=function()return true end,budget=function()return true end,getStore=function()return backend end,getOptions=function()return {UseCache=false}end})
-local c=race(70005);local expected=saved.wallet.cash+1500
+local c=race(70005);local expected=saved.wallet.cash
 check(adapter.commit(adapter.beginUpdate(S.userKey(1),Records.reduce(S,schema,c))).status=='PENDING','scenario 5 lost ACK')
 check(adapter.commit(adapter.beginUpdate(S.userKey(1),Records.reduce(S,schema,c))).outcome=='REPLAY','scenario 5 retry')
 check(saved.wallet.cash==expected and Records.confirm(S,schema,adapter.read(S.userKey(1)),c)~=nil,'scenario 5 readback and one credit')
@@ -76,7 +79,7 @@ check(Shop.confirm({status='FOUND',value=p},recover),'late recovery remains conf
 local duplicate,code=Shop.reduce(recover)(p);check(code=='REPLAY' and duplicate.shopInventory.counts.Missile==p.shopInventory.counts.Missile,'late recovery cannot refund twice')
 -- Original expired request must fail, a fresh race still pays.
 no,why=Records.reduce(S,schema,a)(p);check(not no and why=='TRANSACTION_EXPIRED','scenario 4 expired A refused')
-local before=p.wallet.cash;p=assert(Records.reduce(S,schema,race(72001))(p));check(p.wallet.cash==before+1500,'scenario 4 fresh B allowed')
+local before=p.wallet.cash;p=assert(Records.reduce(S,schema,race(72001))(p));check(p.wallet.cash==before,'scenario 4 fresh invalid B records without money')
 local oldRefill=stamp(S.clone(reserve2));oldRefill.transaction=reserve2.transaction
 no,why=Shop.reduce(oldRefill)(p);check(not no and (why=='TRANSACTION_EXPIRED' or why=='REFILL_CLOSED'),'old round cannot renew refill lifetime')
 local sizes={}
@@ -91,7 +94,7 @@ for _,count in {0,1,40,1100} do
  for i=1,count do legacy.receipts['legacy:'..i]={signature=string.rep('x',90)..i}end
  local source=S.canonical(legacy);local nextProfile=assert(Records.reduce(S,schema,race(73000+count))(legacy))
  check(S.canonical(legacy)==source,'migration never mutates source '..count)
- check(nextProfile.wallet.cash==11500 and nextProfile.purchaseHistory.old.note=='preserve','migration preserves economic history '..count)
+ check(nextProfile.wallet.cash==10000 and nextProfile.purchaseHistory.old.note=='preserve','migration preserves economic history '..count)
  check(S.count(nextProfile.receipts)==count+1,'legacy retry window retained '..count)
  if count==1100 then sizes.legacy85kbBefore=metrics(legacy);sizes.legacy85kbMigrated=metrics(nextProfile);check(sizes.legacy85kbBefore.total>85000,'synthetic 85KB legacy')end
  now+=schema.transactionLifetimeMs+1
@@ -178,14 +181,14 @@ local invoke=remoteInstance.OnServerInvoke
 local prepared=invoke(player,'PREPARE',{action='BUY_ITEM',itemId='Smoke'})
 check(prepared.status=='PREPARED','actual remote prepares server ticket')
 local result=invoke(player,'BUY_ITEM','Smoke',prepared.id)
-check(result.purchaseState=='SAVE_CONFIRMED' and remoteProfile.wallet.cash==9750,'actual remote debits one fixed-price purchase')
+check(result.purchaseState=='SAVE_CONFIRMED' and remoteProfile.wallet.cash==7500,'actual remote debits one fixed-price purchase')
 now+=1000
 result=invoke(player,'BUY_ITEM','Smoke',prepared.id)
-check(result.purchaseState=='SAVE_CONFIRMED' and remoteProfile.wallet.cash==9750,'actual remote same request no second debit')
+check(result.purchaseState=='SAVE_CONFIRMED' and remoteProfile.wallet.cash==7500,'actual remote same request no second debit')
 now+=600001
-check(invoke(player,'BUY_ITEM','Smoke',prepared.id).purchaseState=='SAVE_CONFIRMED' and remoteProfile.wallet.cash==9750,'expired ticket can confirm receipt without minting debit authority')
+check(invoke(player,'BUY_ITEM','Smoke',prepared.id).purchaseState=='SAVE_CONFIRMED' and remoteProfile.wallet.cash==7500,'expired ticket can confirm receipt without minting debit authority')
 now+=1000
-check(invoke(player,'BUY_ITEM','Smoke',guid(1)).status=='TRANSACTION_EXPIRED' and remoteProfile.wallet.cash==9750,'client UUID cannot become fresh authority')
+check(invoke(player,'BUY_ITEM','Smoke',guid(1)).status=='TRANSACTION_EXPIRED' and remoteProfile.wallet.cash==7500,'client UUID cannot become fresh authority')
 now+=1000
 check(invoke(player,'PREPARE',{action='BUY_ITEM',itemId={}}).status=='INVALID_OPERATION','malformed ticket body denied before allocation')
 local refreshed=S.clone(a);refreshed.transaction=schema.issueTransaction()

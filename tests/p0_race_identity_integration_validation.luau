@@ -12,6 +12,11 @@ local serde=require('@lune/serde')
 local S=load('src/shared/KDMProgressionSchema.luau',shared,'KDMProgressionSchema')
 local karts=load('src/shared/KartCatalog.luau',shared,'KartCatalog')
 local shopCatalog=load('src/shared/KDMShopCatalog.luau',shared,'KDMShopCatalog')
+check(shopCatalog.PaidItemUseEnabled==false,'current public policy pauses paid consumption')
+if MODE=='LEGACY_OPT_IN'then
+ -- Test-only opt-in exercises retained transaction defenses; never enables runtime policy.
+ local enabled=table.clone(shopCatalog);enabled.PaidItemUseEnabled=true;modules.KDMShopCatalog=enabled
+end
 load('src/shared/KDMPerformanceBuffer.luau',shared,'KDMPerformanceBuffer')
 load('src/server/EconomyConfig.luau',server,'EconomyConfig')
 load('src/server/EconomyPolicy.luau',server,'EconomyPolicy')
@@ -52,7 +57,7 @@ if MODE=='LOAD_FAILURE' then
  child(server,'ModuleScript','RaceRecordService') -- require cannot resolve -> actual pcall failure
 elseif MODE=='BEGIN_FAILURE' then
  child(server,'ModuleScript','RaceRecordService');modules.RaceRecordService={begin=function()error('injected observer begin failure')end}
-elseif MODE=='NORMAL' then
+elseif MODE=='NORMAL' or MODE=='LEGACY_OPT_IN' then
  load('src/server/RaceRecordConfig.luau',server,'RaceRecordConfig')
  load('src/server/RaceRecordPolicy.luau',server,'RaceRecordPolicy')
  load('src/server/RaceRecordOperations.luau',server,'RaceRecordOperations')
@@ -85,7 +90,11 @@ local guid=a:GetAttribute('OfficialRoundGuid');local issued=a:GetAttribute('Offi
 check(S.guid(guid) and S.integer(issued) and b:GetAttribute('OfficialRoundGuid')==guid and b:GetAttribute('OfficialRoundIssuedAt')==issued,'shared identity/time independent of observer '..MODE)
 check(guidCalls==1,'one GUID at GO; records observer reuses it '..MODE)
 expectedGuid=guid;drain()
-if MODE=='NORMAL' then
+if MODE=='NORMAL'then
+ local before=S.canonical(profiles[S.userKey(a.UserId)]);a:SetAttribute('RaceChargeSmoke',0);drain()
+ check(S.canonical(profiles[S.userKey(a.UserId)])==before and delivered==0,'current policy consumes no paid stock or receipt even with stored autoRefill=true')
+end
+if MODE=='LEGACY_OPT_IN' then
  local profile=profiles[S.userKey(a.UserId)]
  check(profile.shopInventory.counts.Smoke==3,'initial stock before service refill')
  lostAck=true -- actual ShopService transaction resolves committed RESERVED ACK loss
@@ -133,6 +142,6 @@ check(session.phase=='RACING' and a:GetAttribute('OfficialRoundGuid')~=guid and 
 check(a:GetAttribute('OfficialRoundIssuedAt')>issued,'rematch time newly issued '..MODE)
 print('PASS '..count..' actual controller/economy/shop integration checks '..MODE)
 ]]
-for _,mode in (ONLY_MODE and {ONLY_MODE} or {'MISSING','LOAD_FAILURE','BEGIN_FAILURE','NORMAL'}) do
+for _,mode in (ONLY_MODE and {ONLY_MODE} or {'MISSING','LOAD_FAILURE','BEGIN_FAILURE','NORMAL','LEGACY_OPT_IN'}) do
  luau.load(prefix..setup,{debugName='P0-exception-'..mode,environment={MODE=mode,CONFIG_LOADER=require('./helpers/gameplay_config'),CONTROLLER_OVERRIDE=CONTROLLER_OVERRIDE}})()
 end

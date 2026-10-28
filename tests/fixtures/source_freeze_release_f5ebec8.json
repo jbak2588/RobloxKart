@@ -1,0 +1,705 @@
+{
+  "approval": "Owner Source Freeze Baseline Reconciliation R1: exact f5ebec8 release plus only the three FOV Phase1 constants. Commit subjects are provenance, not independent evidence of human approval.",
+  "approvedHead": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+  "files": {
+    "src/client/AudioRuntime.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "69ddf3b110ed53c1a59d1155fdb87e3e0ba780f63be0f3638a6790c06b926f66",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/CombatFeedbackView.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "75acf3bb1090623f0a0e6e64b719aa48a59b6a2d8aa19fb995f88c2f7d9b5460",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/DriftChargeController.luau": {
+      "lastCommit": "647be04b28e63f23e2826cfb0bc1e50b9cad2232",
+      "sha256": "e6af913096373fccb948be47ba70cc7c76591deeb492b5b0081a1f66d2b85d08",
+      "subject": "fix: keep drift charge gauge visible across mobile layouts"
+    },
+    "src/client/DriftChargeView.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "933f8b173ee3c4363efacc824f8031b917ac2173da166f91ad7204064c194fe6",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/DriverCelebrationController.luau": {
+      "lastCommit": "ce1738e61965a1f4528f766ed86f6f704d2ee317",
+      "sha256": "6146b4fd64fd522082e2943e6523100f14648915f78de546b97dd9acb23158e5",
+      "subject": "Add Park two-lap Replay rewards and shared finish presentation"
+    },
+    "src/client/EngineLoopDiagnostic.luau": {
+      "lastCommit": "1843cb69482115e739c9e49d6fe1d9143b393e3a",
+      "sha256": "aaab9fa214a89d952f68217bd9ef315a790ac4d8f029652ba700890e0f8a7fe5",
+      "subject": "test: add engine loop seam diagnostics"
+    },
+    "src/client/FinishCameraComposition.luau": {
+      "lastCommit": "46b64f81421e1d205592abf14ca8fe690df5ba98",
+      "sha256": "0ab3c26d8ef5e1869d1189414e0e3d7aa5cf46ba5cabf3aa017b36602e2f634b",
+      "subject": "Align Rookie Park checkpoints and finish presentation with Figure-8"
+    },
+    "src/client/FinishCelebrationController.luau": {
+      "lastCommit": "ce1738e61965a1f4528f766ed86f6f704d2ee317",
+      "sha256": "b4871164a1315b304cf384ca0ece8228e528209049d2b24dcc6eb912e759c518",
+      "subject": "Add Park two-lap Replay rewards and shared finish presentation"
+    },
+    "src/client/GaragePresence.luau": {
+      "lastCommit": "a74bd80f002c80d79b974698247e6fd7ba5224ef",
+      "sha256": "fc2cc2c67e943cd18f4e8b38b4ad7d310a2ab9293d1264072c41c8ab9b8b45e7",
+      "subject": "feat: complete garage visual polish and invite feedback"
+    },
+    "src/client/GarageTexturePreload.luau": {
+      "lastCommit": "36d03c29130934215cd1fd75b7f519a6262f4fa5",
+      "sha256": "fca61aeeece21a107c457b86c849b27de80acff1ef3bd693cc8176d79ef3fcbc",
+      "subject": "feat: polish KDM V2 garage and mobile finish presentation"
+    },
+    "src/client/GarageUiController.luau": {
+      "lastCommit": "0fff18605e7dcc5722eebe999d0134acd4f299ae",
+      "sha256": "d86135fb1eca210d83f3fae151ae69f11c0d54a7d792c77ed3be69295ae74240",
+      "subject": "Sell permanent KDM V2 karts per color and update shop inventory"
+    },
+    "src/client/HubArrivalCameraController.luau": {
+      "lastCommit": "4fc6eadf792c1981c7cb9794af036ac947b28af1",
+      "sha256": "5a2e0139a76dd5d0fcb63c3a38c5a783c3d93ae4de559a37d5eb1d1a7239c0c3",
+      "subject": "Move Park arrival and seven walk-up PLAY exhibits to the T plaza"
+    },
+    "src/client/HubGuidanceState.luau": {
+      "lastCommit": "a878818899016bce234b36ad4ec3e95c1e7f69f8",
+      "sha256": "f917d30878a11e15be934f89d43b08a08099e75a5413e16844cda952cdb284bb",
+      "subject": "Finalize F60 lobby UI and lighting polish"
+    },
+    "src/client/HubGuidanceView.luau": {
+      "lastCommit": "a878818899016bce234b36ad4ec3e95c1e7f69f8",
+      "sha256": "a6ee3b6d1e29a7cda5ce1416cd52ea4cacd4ad782e84c4304bda8f9bbbb46edc",
+      "subject": "Finalize F60 lobby UI and lighting polish"
+    },
+    "src/client/HubUiController.luau": {
+      "lastCommit": "0fff18605e7dcc5722eebe999d0134acd4f299ae",
+      "sha256": "c09c0b04d26083ddf64e99989c631393b2e06dfe129f8dd5cf43c80d12e69cb9",
+      "subject": "Sell permanent KDM V2 karts per color and update shop inventory"
+    },
+    "src/client/HubWorldGuidanceView.luau": {
+      "lastCommit": "a878818899016bce234b36ad4ec3e95c1e7f69f8",
+      "sha256": "587ec6e6f247b3110c9f87c63b988f73ba83826bf29b92627f15ef455aaccefa",
+      "subject": "Finalize F60 lobby UI and lighting polish"
+    },
+    "src/client/KDMControlIconView.luau": {
+      "lastCommit": "08685b3dc392df677702b920d385e5f9be856bbb",
+      "sha256": "d0655d1e2af058d5ba52ba54b8c8bf5ad98446b5b8b8e2a2516fc195015a60ce",
+      "subject": "Preserve PV680 accepted auto reverse controls and engine loop audio"
+    },
+    "src/client/KDMDriverGripController.luau": {
+      "lastCommit": "ce1738e61965a1f4528f766ed86f6f704d2ee317",
+      "sha256": "223e71cd0c16fe6ea7feb1be1426d887237393e674fc6c34d764efc9995f67cd",
+      "subject": "Add Park two-lap Replay rewards and shared finish presentation"
+    },
+    "src/client/KDMIconCatalog.luau": {
+      "lastCommit": "08685b3dc392df677702b920d385e5f9be856bbb",
+      "sha256": "e1bdd9e895fb2e4acd2290836bf072e6c4af058f0086d711cfe0ecbf3063a5ca",
+      "subject": "Preserve PV680 accepted auto reverse controls and engine loop audio"
+    },
+    "src/client/KDMImpactCameraController.luau": {
+      "lastCommit": "29076cdf30da458bfa259d62579eee8ca2698807",
+      "sha256": "a4a040c9849afe65957c2ea2ade9aa4a79cf7636ed226287030a0dca2e1039ad",
+      "subject": "Fix Hub test drive off-track stutter loop and bind camera shake and haptics"
+    },
+    "src/client/KDMItemIconView.luau": {
+      "lastCommit": "c1d31ed68f3b2f3a8057bb6af5b806a91d8163ef",
+      "sha256": "4e285c151179fd53d15c45d45f92214645c57ed8837bc43f6e5095ab7fb9a68a",
+      "subject": "feat: integrate KDM 3D race item icons"
+    },
+    "src/client/KDMItemVFXController.luau": {
+      "lastCommit": "81f3df15e6cf766f2dff703c616cf0502e3bb964",
+      "sha256": "9e2a46c8e858d5b11d28135d4669665934a59a119f3d994ea9b2b84c8cd48535",
+      "subject": "Add staggered 4-bot fleet with distinct colors and full hit reactions on Hub test track"
+    },
+    "src/client/KartAudioController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "13924daf0feca87bb61cc9dcf0aca8d4fc872d51263fdcc36c2f441deb836b22",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/KartCameraController.luau": {
+      "lastCommit": "46b64f81421e1d205592abf14ca8fe690df5ba98",
+      "sha256": "43b087493399e00184528b2072725116917dbf34530e10d54713baf181b6d0e6",
+      "subject": "Align Rookie Park checkpoints and finish presentation with Figure-8"
+    },
+    "src/client/KartEffectsController.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "27dfd51b71dc5e9af2204ebc488954d7ae2f08c0d4dd1cd696458db13389947d",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/client/KartInputController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "3b592e249de53312eadc1773b4b341416d06920c54775209d2cdaa0f029dbca9",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/KartVisualMotionController.luau": {
+      "lastCommit": "b5aa3a88bb9fd58b846f9d651c0e4641bd8016a9",
+      "sha256": "0adcc999f2601e7702f9e38a3f71ec7122b5d49fbdd47fe399528d062a2cc431",
+      "subject": "feat: sharpen drift action and restore tire feedback"
+    },
+    "src/client/KartWorldExhaustRenderer.luau": {
+      "lastCommit": "70859496fa303f4fa84c4c9dfe1b4a5a83b77902",
+      "sha256": "7f9000663994e3e08c1807adf8afccc4cbf82186a884a8fc96407e874d462be8",
+      "subject": "Fix track surface flicker and skid contact; plant Park-species preview groves"
+    },
+    "src/client/KartWorldSpeedRenderer.luau": {
+      "lastCommit": "fc5baa5c8238ff35b9eef226d52f37e915c5579e",
+      "sha256": "18739a2e978708c6817c71af063d4f6a86dc243fcad42c4ca2dcd8aa0c03c843",
+      "subject": "feat: add KDM speed sensation VFX"
+    },
+    "src/client/KartWorldVFXController.luau": {
+      "lastCommit": "ce1738e61965a1f4528f766ed86f6f704d2ee317",
+      "sha256": "dc258569bf98392543d7235a80fecfece916445a8b6ca925b1cb7f304bb5a50d",
+      "subject": "Add Park two-lap Replay rewards and shared finish presentation"
+    },
+    "src/client/LobbyCreateView.luau": {
+      "lastCommit": "9e918123881b2d9ef3560713838d5182fc7e6fab",
+      "sha256": "0b60db4fd30b1b3bc5bf6c309ecb82de9b3daeb307ad2397edb2085677e89378",
+      "subject": "Route public racers into shared cross-track rooms"
+    },
+    "src/client/LobbyPracticeView.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "62a7087e88b05b8079a03378ee62ab884888a861a20970201cbe32ba1640ccbf",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/LobbyTestDriveController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "f0ccccaf664b6f94ab9628bdc8d9424dfa372bef6d72ec882b651304e431573d",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/MatchRoomUiController.luau": {
+      "lastCommit": "ec573ed189e85e97805a349d8ee0e5c2f5edc312",
+      "sha256": "00486c4455ae83ab68d6ad39be477cd37077376a4902218c87677030d5b6a193",
+      "subject": "feat(hub): simplify first-entry racing UI and CTA hierarchy"
+    },
+    "src/client/MobileControlView.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "93bfc27969cf5584f43fb02ea972e3406918fa36a82124cd2d1d792747219f3f",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/MobileTutorialView.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "1d33c69ef999c6919a01f91da6b88b7d97fdf3dcce20965a76b51efaf62b572a",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/PublicRaceStatusView.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "fe537f84b08acf0285f0f4d00934a7d774c29b7ad0c525a8a44d32549e926962",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/RaceAudioController.luau": {
+      "lastCommit": "e872b1683d370bc7bff6f78ad8c08c4087213ab8",
+      "sha256": "63c47a9181304a45d4c1642e65bd888c32e35f7ab18854aa9690583d82891223",
+      "subject": "Add lap cues, straight driver legs and boost acceleration audio"
+    },
+    "src/client/RaceHudController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "02806ced54e592f0640fbed700c2548f09de5bb332f17b9fb2e962a6a2261756",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/RaceItemUiController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "c0e74e28ad4c0735a322ed53adac9d02e7e16eb900fe2f8585fa6bf688a40c33",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/RaceMinimapRivals.luau": {
+      "lastCommit": "13bfe6172cbf1dfe2410cde45a93f4efe2498832",
+      "sha256": "abab39656cb0d2afb8539b42ce86c883aadfe016dbcabc188bfe033bbf7611d3",
+      "subject": "feat: add server AI race test driver"
+    },
+    "src/client/RaceResultsCache.luau": {
+      "lastCommit": "a7e551fac3031c395f4febf6e4ebfc208f8b4639",
+      "sha256": "79ff1658be97cd09cd268248c72dda7202d12c10a83bbce12b6d6f0784907622",
+      "subject": "fix: prune stale KDM race result entries"
+    },
+    "src/client/RaceRoomRacerRows.luau": {
+      "lastCommit": "a715d1ad8521fa6235db340c57a0a4986e851fe4",
+      "sha256": "f65404cc20e42292d24f0b2ae239b109366fd73434199507b171b910a7e9e689",
+      "subject": "feat: finalize inviteable production race bot"
+    },
+    "src/client/RoomDisplay.luau": {
+      "lastCommit": "9e918123881b2d9ef3560713838d5182fc7e6fab",
+      "sha256": "e55443827fd80b92ad939f01f5844e4e2d65bb9d72f0a97f4612bed0c7d73880",
+      "subject": "Route public racers into shared cross-track rooms"
+    },
+    "src/client/ShieldEffectsController.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "3a5efead4c2524a096c852eb63f238d72dcf8a5f3912d15c4ada4bad4e8f3610",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/client/ShieldWorldRenderer.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "b8a21afc99aecfc5bc622f621100039c417f3fe4f5289bf11aab7b0755ecac39",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/client/SlickRearPreview.luau": {
+      "lastCommit": "28869cad809cf2008d268daf5e597f995838b2f5",
+      "sha256": "3033a6d0b12dfc1534a7634f4b67102bdece6a5e86b0c4d365c8afba5186e5b4",
+      "subject": "fix: improve missile counterplay and slick lane denial"
+    },
+    "src/client/SmokeEffectView.luau": {
+      "lastCommit": "c23a0488b3e5ea2d185081e3a8aeaa55414aa6e5",
+      "sha256": "a130cf1fd19096123a64cd9213071e2ac801cb777d86443dc1aebd3205fed7fd",
+      "subject": "feat(lobby): add practice items against bot and seated drivers"
+    },
+    "src/client/TacticalLoadoutController.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "e6382c22bbf5716fcdaf0e6760045d4b5f724578062d64730df7ec600adaa2e0",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/client/TouchDrivingController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "1cf4b21f92a2fb9d6ebf78d3bdccc29db049018c9281cfe35fb683f58b913aed",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/TouchDrivingModel.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "de24f5a7573ced683e9768dc3d65db558ec1a0fed4a39d4876e727c5dacd7b92",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/TrackDioramaController.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "3c174eabb3d3cc09c66927ca0429dda68263edce82fe1e702d8e3698318ce94e",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/client/TrackDioramaOrbit.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "ba4fe9f3a8945c4fa5aa8844b7839a89712a459ed4c2ba26353c0da56e454b7c",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/client/TrackMapRenderer.luau": {
+      "lastCommit": "7e7ab5ab2d5c9d09698e2c393e6c9781674d1204",
+      "sha256": "c84bf921687031134606e7e23b131588d2e76465c6bf657fb3edd223715562a1",
+      "subject": "feat: complete arcade garage visual layer"
+    },
+    "src/client/TrackPreviewBuilder.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "e1833d020940a594f5b30fef9eaa2326dfdb37a0914a0c90d06961dcf2aae5b8",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/client/V2DonorGauge.luau": {
+      "lastCommit": "e5937ac9ec6f2058f0d4026bd6c9ec362db7fe08",
+      "sha256": "7b872c8c259e5a7e21caa1e24d422d56170be922bfc951c2d95021c3e689fc18",
+      "subject": "Adjust mobile driving HUD layout to prevent Brake and speedometer overlap"
+    },
+    "src/client/V2DonorGaugeTemplate.rbxmx": {
+      "lastCommit": "5e96305920b32301b77a291c8daf8c72a34aafea",
+      "sha256": "d6678a8030c2a40e4613bb0c4ca6029e5a6df5e6a42209aac5f6eef6c7b7afbd",
+      "subject": "feat: pair V2 race gauge with V1 kart audio"
+    },
+    "src/client/V2GaugeController.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "725a485ccfb746a2efd49afdd761e9db1f3931fee30d325da7169f5bf0fa0402",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/client/V2GaugePresentation.luau": {
+      "lastCommit": "77c54ba1686d7401895e18932fe8d5378cf62e7d",
+      "sha256": "17e4b5816a2cf9c180a1c06c5c52c15385d318d234823738440642eb69590b76",
+      "subject": "feat: refine race gauge scale and speed-synced RPM"
+    },
+    "src/client/init.client.luau": {
+      "lastCommit": "70859496fa303f4fa84c4c9dfe1b4a5a83b77902",
+      "sha256": "9a910cf7e8afcf0c7c93d6f545dc6e145b3304b2b5b1accf7c9fc75baeab50e6",
+      "subject": "Fix track surface flicker and skid contact; plant Park-species preview groves"
+    },
+    "src/server/ActiveMatchDirectory.luau": {
+      "lastCommit": "f3b6e492e0f57b191007160bb0e9f92b7f5176bf",
+      "sha256": "4633bae8b725f1a158ba6ecc58189c684433417b87d14db3f5bbba4ae946ae0a",
+      "subject": "Restore minimap rivals and trial fresh-job bot race Rematches"
+    },
+    "src/server/CompactHubBuilder.luau": {
+      "lastCommit": "7aae5e17f1b7c7d17929de62e5fd1b7eb05e2344",
+      "sha256": "487d4a0b41356673a174ba7aa4f299d65c9b3ed66ba61199a8d708565b11347c",
+      "subject": "Finalize RookieLoop HUB course and manual test drive"
+    },
+    "src/server/DriftTelemetry.luau": {
+      "lastCommit": "81fd8752f507399c4d390c8cc74102027bea1ffd",
+      "sha256": "bb8b2863f2fb8fa98f66d67f7bd2e94efd37efe55e806ece23a7fad198321268",
+      "subject": "feat: add controlled arcade rear slide drift"
+    },
+    "src/server/GarageController.luau": {
+      "lastCommit": "7aae5e17f1b7c7d17929de62e5fd1b7eb05e2344",
+      "sha256": "5b80e74b54e0d588cba5a51e8f293e2215b3232a7394be18adddd6c8373b73ce",
+      "subject": "Finalize RookieLoop HUB course and manual test drive"
+    },
+    "src/server/HomingMissileService.luau": {
+      "lastCommit": "cc9cbdfeaef869c7bc406a6e35a00c4cbbbac24b",
+      "sha256": "44a09cb264713fa6006e2666eb76a24a4eb83525623ecb3f8f98580e5ed233e8",
+      "subject": "Play approved boost onset when Missile actually fires"
+    },
+    "src/server/KDMServerPresence.luau": {
+      "lastCommit": "76e42d332ed8c903639642ce1afb5f297cea81fb",
+      "sha256": "2d8138dd9d0106ee57661958bb91ac4e6a39cde8d3824882944409582faa53e8",
+      "subject": "fix: use unique studio presence job key"
+    },
+    "src/server/KDMStraightSpeedResolver.luau": {
+      "lastCommit": "09f82653106f59e73089a84e43d13c58c145a928",
+      "sha256": "9f013174ccbf39d50de322804a68175f2e9dc25f696f9ed294f7ca21588e40ef",
+      "subject": "feat: add server-authoritative straight-line speed 80"
+    },
+    "src/server/KartContext.luau": {
+      "lastCommit": "6835b53a7816361bcd4dd933df5be3c63f057cf6",
+      "sha256": "6745f64d890549ae6eb74f10b9beb7ba423c0363c306ea0d8b827cfe9434da4a",
+      "subject": "feat: add auto homing missile prototype"
+    },
+    "src/server/KartUprightRecovery.luau": {
+      "lastCommit": "6bd469fcf720899160b00e5e3df92e251fbda94f",
+      "sha256": "9d81461173694c0418197d17e9ee72e450c21f5598f215cf74da52ac93cb5e77",
+      "subject": "fix: prevent multiplayer kart rollover"
+    },
+    "src/server/LobbyDriftSession.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "f6c21e65b854aee67ac022cc5bc8f24843f2b00bc0902de2412ddb13570caaa5",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/server/LobbyTestDriveService.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "8f64daa269cac4d705db45f86ec15f7eb95411ae19c1419f8840bf58d510670a",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/server/LobbyTitleService.luau": {
+      "lastCommit": "6a08230eb8d305547b34d8f901cd9cd8f7c164af",
+      "sha256": "8ed1c037dfc2232e8287ad48f5b0dea25ee007dd5c6b62a452633cac03ec706a",
+      "subject": "feat: finalize KDM track and lobby UX"
+    },
+    "src/server/MatchRoomRegistry.luau": {
+      "lastCommit": "1baa589f7aeaa091ad0334a5b4f18fd34a9a737e",
+      "sha256": "3b381a0fd98590c6d50534a19fc289d05794f973487274cec420be66cdf0b3fd",
+      "subject": "feat: persist active race rooms and queue next rounds"
+    },
+    "src/server/MatchRoomService.luau": {
+      "lastCommit": "3214d4732f142ea908277ab220d9082fd77593ab",
+      "sha256": "277e4cacda7a3f388350ca58576d585f510b5b080ba69cdc67fe91f7bbbdb675",
+      "subject": "Release separate desert Figure-8 track for Race Now"
+    },
+    "src/server/NitroState.luau": {
+      "lastCommit": "6e53847c254952464dc7cdce07e9af514551ab53",
+      "sha256": "ad0e22107a1bd17239b688eafe65390ff2e4a9e1a7fbc4a8de543975194dee5f",
+      "subject": "Synchronize boost audio and preserve off-road Nitro use"
+    },
+    "src/server/PlayerPreferences.luau": {
+      "lastCommit": "d3b9f6d4554ce8d4ce79efc9b413074e8c7a17e8",
+      "sha256": "79aac512e4fa9336b8ef21742216387e1355012f509d54fb0c3a062a4df979f5",
+      "subject": "feat: add race lobby and drift streak rewards"
+    },
+    "src/server/PrototypeWorld.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "849c2d20179daf2e5d080007a52569ac0530d5b3523e2669a91f7b447e44a2c3",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/server/RaceArrivalPlan.luau": {
+      "lastCommit": "6d0d530ab1244cb747ac0b6589aecf029afa0d75",
+      "sha256": "62ef77e285944511e12bd5e7fa17ad845d36cacd57f23d02f8c33054741f01c3",
+      "subject": "feat: add concurrent base circuit match rooms"
+    },
+    "src/server/RaceBotController.luau": {
+      "lastCommit": "0c54d0c4a6ab17f04119f2149b1ff3bfa4cf9305",
+      "sha256": "ea5b825b856e6463dbc29392dfa77d6d0bc670d6030549a58a6caee41837431c",
+      "subject": "Lower Race Bot Sprint V1 seating and cockpit geometry to match low racing posture"
+    },
+    "src/server/RaceBotSteering.luau": {
+      "lastCommit": "749f8726bd789997e5cbb6e6f54cca5b6a4a9e01",
+      "sha256": "ac791bc076f553d2976b3cc9f41c5fb58e6e279094680377d31435acc14c78a7",
+      "subject": "fix: improve KDM bot curve pursuit"
+    },
+    "src/server/RaceController.luau": {
+      "lastCommit": "13c1f483eddb957f0441dfd6aca410bf0f0421f4",
+      "sha256": "5b3ef3e43757536a72bff239177b2576a62133d11193d0b3782aee3f1bc5ef6d",
+      "subject": "Align official racer starts to painted grids in entry order"
+    },
+    "src/server/RaceItemController.luau": {
+      "lastCommit": "c7668602a367512c89c5f7466b2c604c4c44d8fc",
+      "sha256": "82d13dcb3f2409770e60c2bd1dc34ef72e31ea643b82fd43674c4db404951c4d",
+      "subject": "Reassert server authority on race item weld and race start to eliminate periodic hitch"
+    },
+    "src/server/RaceItemGeometry.luau": {
+      "lastCommit": "3f3254b62da3b5dc5b7fb9c7f0eeceb7b1af90df",
+      "sha256": "283a9c07c8980490ed94b5c16d5a3436f077022cc6f8f1cc07aaa5e7c6b7a45f",
+      "subject": "balance: strengthen smoke screen impact"
+    },
+    "src/server/RaceItemVisuals.luau": {
+      "lastCommit": "47e3e39e5fe5d1154d478b4643d1299c989ace17",
+      "sha256": "32ab4c6657eb51520a829c4962943761d5100b021df61ee9cdb8b6303cb3992a",
+      "subject": "feat(combat, hud, economy): persistent checkpoint miss alert, active DNF rewards, and damage smoke plume"
+    },
+    "src/server/RaceLaunchPayload.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "b8bbb7b080e3a7c3618d9daf15e715306b2b0b1f4bba4c6f56985fe5d019d7c9",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/server/RaceLaunchService.luau": {
+      "lastCommit": "1abeea6b20dc84f314b845b1ffce812430265cfb",
+      "sha256": "dbbab2b075cc60f1f7fd44682fae3c2df91874030686cd2c6474ce03918eb70a",
+      "subject": "feat(kdm): checkpoint R8 kart persistence and returning player guidance"
+    },
+    "src/server/RaceLoadout.luau": {
+      "lastCommit": "7a5309f756854a88fd0f000d6afa81b7ae07b9f1",
+      "sha256": "6635f12212f483bf89e1bb15d4dce00a2b65789dd5937efe06cfa99c300b7ef8",
+      "subject": "feat(race): offer all six items and remove preparation gate"
+    },
+    "src/server/RaceRanking.luau": {
+      "lastCommit": "271f6d9afa7aad51545f639be401b8ae5eba372c",
+      "sha256": "94a5aa0320213c51ec99770639cb808a280aa4559eefea07229f10221e1d7019",
+      "subject": "feat: expand public races to four players"
+    },
+    "src/server/RaceRoomCoordinator.luau": {
+      "lastCommit": "f3b6e492e0f57b191007160bb0e9f92b7f5176bf",
+      "sha256": "10f610c41cdf7c83f0afbb16c7c18a4be2ea2135d7054829f7a25a3141ae02f8",
+      "subject": "Restore minimap rivals and trial fresh-job bot race Rematches"
+    },
+    "src/server/RaceServerBootstrap.luau": {
+      "lastCommit": "13c1f483eddb957f0441dfd6aca410bf0f0421f4",
+      "sha256": "77a8e0dce974638362defc5e04d914effcb2583c0bfc7a6eaa9f28b823903d07",
+      "subject": "Align official racer starts to painted grids in entry order"
+    },
+    "src/server/RaceSession.luau": {
+      "lastCommit": "13c1f483eddb957f0441dfd6aca410bf0f0421f4",
+      "sha256": "31f9987baad1af95628e0a43a15ad7293d9b310f00c8071b9bbc9ec4ccc292fb",
+      "subject": "Align official racer starts to painted grids in entry order"
+    },
+    "src/server/RacerCollisionIsolation.luau": {
+      "lastCommit": "6bd469fcf720899160b00e5e3df92e251fbda94f",
+      "sha256": "00c72c2aecaa1cb7e7cde6f4bfab80e7596ebd5c4f4f6be005cc31f6713e4eb9",
+      "subject": "fix: prevent multiplayer kart rollover"
+    },
+    "src/server/RacerState.luau": {
+      "lastCommit": "17cc993214d2925eaa99933b3dd316ed528af91f",
+      "sha256": "629ec3fd19b43ba6d60e03ec4ffc7ca7f6f19dd6f0458dd388d5e70f7b7230ce",
+      "subject": "refactor: establish multiplayer kart and race contexts"
+    },
+    "src/server/RoomSocialDirectory.luau": {
+      "lastCommit": "aa8206bdc45b35f449cd6c92af019ccf818f5423",
+      "sha256": "20d4e7eb8020e7c36ab7229f4a73f6abac14241f366e3488756b3ba34cafe465",
+      "subject": "Wait for host start after public race invitations"
+    },
+    "src/server/ServerRuntime.luau": {
+      "lastCommit": "6d0d530ab1244cb747ac0b6589aecf029afa0d75",
+      "sha256": "41c22f7b124fc9f40d648508bc140d4587261fa295fd60d48e83cd39495c775b",
+      "subject": "feat: add concurrent base circuit match rooms"
+    },
+    "src/server/SlickMotion.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "5933fada74f6bef65fdcecf92a21d3af07438d95d048f6c5f109618106f5f59b",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/server/SmokeHazardService.luau": {
+      "lastCommit": "3f3254b62da3b5dc5b7fb9c7f0eeceb7b1af90df",
+      "sha256": "9ecac7c591d69593692a794e0e2b0c6d83d1e63254e3d328c1e00e67512fdeea",
+      "subject": "balance: strengthen smoke screen impact"
+    },
+    "src/server/TacticalLoadoutService.luau": {
+      "lastCommit": "7a5309f756854a88fd0f000d6afa81b7ae07b9f1",
+      "sha256": "58ff64af302d9b95864c5a97d7e46eed05c5307d1b6c1c98c07d199eee9665bb",
+      "subject": "feat(race): offer all six items and remove preparation gate"
+    },
+    "src/server/ThunderStrikeService.luau": {
+      "lastCommit": "64fe30f4a4430892a3229de94b21f818ce37e65f",
+      "sha256": "93fad22089165032923e995ac671e27b2a0fb9f43a7b1f10db3538bfd894ae5e",
+      "subject": "Add delayed Missile-style explosion and world light to Thunder hits"
+    },
+    "src/server/TrackBuilder.luau": {
+      "lastCommit": "d36102e14de5dbd605b1b82f6cb9be19b3bc32a5",
+      "sha256": "1998f72ac37ea716418560f2fb75e70b362a4c848db0cb61499ca6c96f451a5e",
+      "subject": "Fix Metro client material permissions and straighten race grid launch"
+    },
+    "src/server/init.server.luau": {
+      "lastCommit": "dfe728bde10a9a37051bba0a80def69d0fcd3db9",
+      "sha256": "f61f4097fba7bb80f51803268f15ff901b685b3bfe22f2498f650ca9ab595054",
+      "subject": "Add source-template Figure-8 desert theme for isolated staging"
+    },
+    "src/shared/AudioConfig.luau": {
+      "lastCommit": "4d5c067a39b2ebf487a622ed815601fc632545a6",
+      "sha256": "c50ccc3837450f51aefaa922c04cadc1f4632d309ea5f9cd87a08eda33ac5314",
+      "subject": "Restore original KDM boost sound at 20 percent lower pitch"
+    },
+    "src/shared/ChaseCameraMotion.luau": {
+      "lastCommit": "83c24303ccf5485d51dff6c99e1554ce3f3a4a8f",
+      "sha256": "6771e0a25a5e79de2e25164b86755c0cb4568785c6888cc54bb3aac5cb7a96d0",
+      "subject": "feat: add permanent practice and three-lap race selections"
+    },
+    "src/shared/DriverAppearance.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "3a4578c0ac740c5c3034f63d91000e9c71ce31d1a8283b48ae4d1b9c0444f6c4",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/shared/DriverCatalog.luau": {
+      "lastCommit": "32053c7bb4d61f229c882aeddd058ac0c6e5b66a",
+      "sha256": "cdc2c408844d93b596627882e3403dd8b37a9b2690949a1f78e99fe269ab832b",
+      "subject": "feat: add garage selection and seated grid race entry"
+    },
+    "src/shared/GasPedalPolicy.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "edc308fb1ee0ddc67d88695307159f07a3198306031c4c1fa5431838344a2b70",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/shared/Hello.luau": {
+      "lastCommit": "d5eaf195b35371420474550e30ecda6299bea49a",
+      "sha256": "68de9377a853c5dd3863901c12e8f29802b9d6d3dd01b99e44a8d332755cca8f",
+      "subject": "feat: establish kart physics prototype v0.1.2"
+    },
+    "src/shared/KDMFinishPresentation.luau": {
+      "lastCommit": "ce1738e61965a1f4528f766ed86f6f704d2ee317",
+      "sha256": "2eeba898a622f66f369104d2e1af124ed642032214b67ec35715ff40f83564fd",
+      "subject": "Add Park two-lap Replay rewards and shared finish presentation"
+    },
+    "src/shared/KDMGameplayBalance.luau": {
+      "lastCommit": "36a1c7898c150dd111910b1482c0058c383b0df5",
+      "sha256": "4a58edae6b2c8847b766ef725c249c52cbc99b23e2c36a1d6d6d6ba580e0c057",
+      "subject": "Tune off-track grass speed to 60 studs/s and reduce bonus nitro drift requirement to 3"
+    },
+    "src/shared/KDMImpactCameraMotion.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "31a112dec71068aaf10fd76f29ad39d2c2ed78dcc5d69e7d7081d5b4a09ad3b6",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/shared/KDMItemVFXConfig.luau": {
+      "lastCommit": "47e3e39e5fe5d1154d478b4643d1299c989ace17",
+      "sha256": "ba4e0150ac739bd31db053fa7e27074b1f3d7a9bab4d8fc89bd9ccfe6e742310",
+      "subject": "feat(combat, hud, economy): persistent checkpoint miss alert, active DNF rewards, and damage smoke plume"
+    },
+    "src/shared/KDMPitGarageArt.rbxm": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "a36a3d57c1fbbe421a330e3aaa7f6d93afd62b4b9bd76abf313a8f12e04d23fa",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/shared/KDMShieldGeometry.luau": {
+      "lastCommit": "f21c65370079033c72602e63cc40b79306e99236",
+      "sha256": "dd897769c8d31f97a6f89f38eebe04824de923ec159dba25a3dde8724be07185",
+      "subject": "feat: finalize KDM palette and item impact VFX"
+    },
+    "src/shared/KDMSpeedSensation.luau": {
+      "lastCommit": "fc5baa5c8238ff35b9eef226d52f37e915c5579e",
+      "sha256": "54df42b823b45fc14e2057169f636b150fd41ad05c6ab42e879925244d311013",
+      "subject": "feat: add KDM speed sensation VFX"
+    },
+    "src/shared/KDMUiTheme.luau": {
+      "lastCommit": "06a7342a5ee82115b2e9440cd4f31578ea2a21f1",
+      "sha256": "f88fe69c73ba9cab18e7e92f5c4923bba7ff482be711ede6167c5cdba403fde6",
+      "subject": "feat(ui): overhaul lobby and shop UI to bright Roblox arcade racing theme"
+    },
+    "src/shared/KDMV2Geometry.rbxmx": {
+      "lastCommit": "7d06917d3b8b6729985e5dc627c274f53ff95aa7",
+      "sha256": "5ce51303f94f2ccbfa5ae43dcf32ad59eb8349788bf08ba353abae106d033e4c",
+      "subject": "feat: integrate KDM V2 production karts and driver grip"
+    },
+    "src/shared/KDMV2VisualDefinition.luau": {
+      "lastCommit": "e5f36e2e939a1ae088551904992db9d7d9097aeb",
+      "sha256": "0ec9b9064d764502fade1312b85e773e757608cda41b86bf90b8a0c37c6aef46",
+      "subject": "Lower VisualSeat to align gear stick lever and steering mount with new wheel position"
+    },
+    "src/shared/KDMWorldAssets.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "06e039a62ce916b1e685993010e42fa22eafe9e147503106a1ba73f0e958315d",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/shared/KartCatalog.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "91b3a74742891aab8898ea1cf01816c98bde3908ecb7ff62132a6fe4e389335d",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/shared/KartConfig.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "5218cfb564a3852cf30e17cf03b3403e841b70ce319f8b7f5f47f854a0c14562",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/shared/KartPreviewFraming.luau": {
+      "lastCommit": "a74bd80f002c80d79b974698247e6fd7ba5224ef",
+      "sha256": "b310e75a82a5096305fb46a680f54be6d7a5544db022aa6bc99f41fd06618a77",
+      "subject": "feat: complete garage visual polish and invite feedback"
+    },
+    "src/shared/KartVisualFactory.luau": {
+      "lastCommit": "0c54d0c4a6ab17f04119f2149b1ff3bfa4cf9305",
+      "sha256": "e5a89e5f19d1cfa36547eabd9052f4e50c7b9b252cc6bca689c0fcae7d33fb8a",
+      "subject": "Lower Race Bot Sprint V1 seating and cockpit geometry to match low racing posture"
+    },
+    "src/shared/LobbyDrivePolicy.luau": {
+      "lastCommit": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+      "sha256": "711ccf2e6ebe061c58c221685a0a83c044697f23dd2400712f3459be53356c1b",
+      "subject": "Ship mobile controls, Park touch input fix and gradual reverse"
+    },
+    "src/shared/LobbyTitleCatalog.luau": {
+      "lastCommit": "a5b3dbef7ce352824708893df4929c5756b309fc",
+      "sha256": "4f7b3273cd9a3449c42e74fd62f19930cac09e50360144f2348997064750f2f2",
+      "subject": "feat(kdm): R7-L2 lobby UX and R7-L3 test drive checkpoint"
+    },
+    "src/shared/RaceConfig.luau": {
+      "lastCommit": "e383a03abe3c713b3d461c3d9553a49ff2415cb9",
+      "sha256": "7470d6f6d3e6eef9bdf74bf5c84ba4c427b1b63fae14be39196304a6a83a6b5a",
+      "subject": "Restore same-server bot Rematch after Shield authority repair"
+    },
+    "src/shared/RaceItemCatalog.luau": {
+      "lastCommit": "e74d492296a67fb91251e51589100f5c6d51625c",
+      "sha256": "f15b796450f0c56178f07589b02c2925576aeb0707716741e990934b30d8a6d7",
+      "subject": "feat: add multi-target thunder item"
+    },
+    "src/shared/RaceItemConfig.luau": {
+      "lastCommit": "dd739b88296b360ea21c889b9213dcaf103488d4",
+      "sha256": "ae0a8b89362d8ab8d5209d8970db2479f5cebb8dbce4f66c1cc7a816b95caa6e",
+      "subject": "checkpoint: preserve R7 UI and I1 prototype state"
+    },
+    "src/shared/RaceItemSlots.luau": {
+      "lastCommit": "7a5309f756854a88fd0f000d6afa81b7ae07b9f1",
+      "sha256": "c708229847bfdde204531c4d816d26e6dabbf5882a2d8da84ddc167a4b4a317f",
+      "subject": "feat(race): offer all six items and remove preparation gate"
+    },
+    "src/shared/RaceMode.luau": {
+      "lastCommit": "a2f7ccdfba605254aeae3aef1daebfc3bd951736",
+      "sha256": "d7162a09219a050c6c3446b26380069fe0423f1b102e10db8e8e97736576ee44",
+      "subject": "feat: add track capabilities and lobby racer invites"
+    },
+    "src/shared/RaceResultFormat.luau": {
+      "lastCommit": "3ede8bd29bca07666708d24c180d4f389fcd9321",
+      "sha256": "25108e1fb92ab58c69f2f5a056964291eccfd5acf5873c0751628e71839642a1",
+      "subject": "feat: finalize finish presentation for beta"
+    },
+    "src/shared/RaceRouteProgress.luau": {
+      "lastCommit": "d843f1290677fa21269eae264320340a92ce85da",
+      "sha256": "36a5b8bb19861165d917a4ed55f84a5849ace7a45e8d52624ca85edac41f6069",
+      "subject": "Reduce race hot-path work and enable two-account live diagnostics"
+    },
+    "src/shared/TrackCatalog.luau": {
+      "lastCommit": "70859496fa303f4fa84c4c9dfe1b4a5a83b77902",
+      "sha256": "1bff4afe01bbc844b131a9de2f6efc26b46493c701f5b4dafc943f04662104fd",
+      "subject": "Fix track surface flicker and skid contact; plant Park-species preview groves"
+    },
+    "src/shared/TrackGeometry.luau": {
+      "lastCommit": "d36102e14de5dbd605b1b82f6cb9be19b3bc32a5",
+      "sha256": "a924cd176fb511406337d47dd77d49e532da4bcc1356e21333efca2089b94762",
+      "subject": "Fix Metro client material permissions and straighten race grid launch"
+    }
+  },
+  "fovPhase1": {
+    "approval": "Owner R1 section D: 55 to50;80 to90;HIGH_SPEED delta3 to5 only",
+    "path": "src/shared/KDMSpeedSensation.luau",
+    "sha256": "a1bdca31a8c1dbae506aaab0857a96b330ce7b1353d1a909803ea3b4c5c98e15"
+  },
+  "historicalArtifacts": {
+    "tests/finish_source_freeze_validation.luau": "33601f07a702a92537e047148350fa3d340b9d08f604e2c3cf44d342b2618d25",
+    "tests/fixtures/l2_presentation_changes.json": "4b6ad7c9f0506c4d8f6ecca0b8b78574f7954af4d75b70cf214a2b7a85a6209b",
+    "tests/fixtures/n2_source_freeze.json": "aef534de48853288dba2ef4cdd07b2bbe9b2bc57d5d0af9176d148b4348400f0",
+    "tests/fixtures/speed_sensation_starting_hashes.json": "14ea01536820ef1b7d06d0bc84c085492528232aac64388b259468773bf358f6",
+    "tests/helpers/l2_presentation_freeze.luau": "c608b1a66f5a30e995cc362f3067e686451208e4094adee99f6ce5a48fe07119",
+    "tests/helpers/n2_hud_presentation_freeze.luau": "81c2e308bf9dbfefb4789a33f63c7616b335e4b42c92f74948e3664740955290"
+  },
+  "ownerR3DisplayPatch": {
+    "after": "\t\treturn string.format(\"PUBLIC RACE \u2022 %d\u2013%d RACERS \u2022 %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
+    "approval": "Owner explicit2026-10-28: display encoding only; no laps/capacity/behavior change",
+    "before": "\t\treturn string.format(\"PUBLIC RACE \u00e2\u20ac\u00a2 %d\u00e2\u20ac\u201c%d RACERS \u00e2\u20ac\u00a2 %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
+    "path": "src/shared/TrackCatalog.luau",
+    "sha256": "eebffe03e07c34f77756fa9f9698910b53fe673e252146dd3b972c31fbf72cd5"
+  },
+  "ownerR3PolicyPatch": {
+    "after": "   -- Owner R3: an ineligible finish grants no base, PB, event or Rematch money.\n   if copy.race and copy.race.eligible then\n    money.base=if copy.round.humanCount>=2 then (({3500,2500,2000,1500})[copy.economy.humanPosition] or 1500)\n      elseif copy.round.botCount>0 then 1500 else 1000\n   end\n",
+    "approval": "Owner explicit2026-10-28: second item approved; ineligible finish grants zero. No other economy tuning approved.",
+    "before": "   -- Base completion reward is guaranteed for completing the race (minimum K$1,000)\n   money.base=if copy.round.humanCount>=2 then (({3500,2500,2000,1500})[copy.economy.humanPosition] or 1500)\n     elseif copy.round.botCount>0 then 1500 else 1000\n",
+    "path": "src/server/RaceRecordOperations.luau",
+    "sha256": "5fd432caf39f6b09cc1c06a8ade16a52af9b74730dc3bf8b51dc47a71a6306bc"
+  },
+  "schema": 1,
+  "scope": "Union of all historical N1/N2 targets plus exact src files changed by f5ebec8; immutable canonical LF full-file hashes, no normalization exceptions.",
+  "speedV2Phase1Patch": {
+    "approval": "Owner Phase 1 V3.2: Radiant Orange Cruise Rocket Flame (Nitro 120 Baseline Ratio, Drift Flame Retained, KDMSpeedVortex Retired) + Demoted Trail (length <= 6 studs)",
+    "path": "src/client/KartWorldSpeedRenderer.luau",
+    "sha256": "0c606e01d8c63e3938430730d49ca033663033fd648bb833690bb300e2e0e1fb"
+  }
+}

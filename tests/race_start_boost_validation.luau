@@ -15,7 +15,7 @@ local outcomes=0;world.onDriftOutcome(function(_,outcome)if outcome=='BOOST'then
 local ctx=world.getKartContext(player)
 local adapter=fs.readFile('src/server/RaceController.luau'):match('(function racer:startRace%(startTime: number%).-\n\t\tend)')
 assert(adapter,'real race GO adapter')
-local racer={};local env={racer=racer,context=ctx,kart=kart,chassis=chassis,player=player,
+local racer={};local env={PrototypeWorld=world,racer=racer,context=ctx,kart=kart,chassis=chassis,player=player,
  resetOffTrackState=function()end,clearGateState=function()end,setRaceState=function(p,v)p:SetAttribute('RaceState',v)end,record=function()end}
 luau.load(adapter,{environment=env})()
 for _,id in {'Track01','Track01Race','Track02','Track03'}do

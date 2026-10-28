@@ -1,14 +1,14 @@
 -- Cosmetic-only profiles shared by the existing camera and world observer.
 -- No gameplay writes, services, instances or Shield input.
 local Speed = {}
-Speed.HIGH_SPEED_START = 55
-Speed.HIGH_SPEED_FULL = 80
+Speed.HIGH_SPEED_START = 50
+Speed.HIGH_SPEED_FULL = 90
 Speed.ATTACK_RESPONSE = 10
 Speed.RELEASE_RESPONSE = 5
 Speed.MAX_FOV = 87
 Speed.Profiles = table.freeze({
 	NONE = table.freeze({FovDelta=0, TrailCount=0, Lifetime=0, Width=0, Transparency=1, LightEmission=0}),
-	HIGH_SPEED = table.freeze({FovDelta=3, TrailCount=2, Lifetime=.10, Width=.14, Transparency=.84, LightEmission=.10}),
+	HIGH_SPEED = table.freeze({FovDelta=5, TrailCount=2, Lifetime=.10, Width=.14, Transparency=.84, LightEmission=.10}),
 	MINI_BOOST = table.freeze({FovDelta=6, TrailCount=4, Lifetime=.20, Width=.26, Transparency=.50, LightEmission=.35}),
 	NITRO = table.freeze({FovDelta=10, TrailCount=4, Lifetime=.32, Width=.40, Transparency=.28, LightEmission=.60}),
 })

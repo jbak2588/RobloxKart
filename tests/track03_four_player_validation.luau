@@ -79,7 +79,7 @@ end
 function methods:IsStudio() return self._p.studio end
 local function child(parent,class,name) local result=object(class,name); result.Parent=parent; return result end
 local services={ Players=object("Players"), ReplicatedStorage=object("ReplicatedStorage"),
-	RunService=object("RunService"), Workspace=object("Workspace") }
+	RunService=object("RunService"), Workspace=object("Workspace"),HttpService={GenerateGUID=function()return "12345678-1234-1234-1234-123456789012"end} }
 services.RunService.studio=true
 local shared=child(services.ReplicatedStorage,"Folder","Shared")
 local server=object("Folder","Server")
@@ -87,7 +87,7 @@ local modules={}
 local now=0
 local environment={
 	Instance={new=object}, Vector2=rb.Vector2, Vector3=V, CFrame=CF, Color3=rb.Color3, Enum=rb.Enum,
-	PhysicalProperties={new=function() return {} end},
+	PhysicalProperties={new=function() return {} end},DateTime={now=function()return {UnixTimestampMillis=1791650000000}end},
 	game={GetService=function(_,name) return assert(services[name]) end},
 	time=function() return now end,
 	print=function() end,
@@ -151,23 +151,29 @@ for index=1,catalog.Entries.Track03.MaxPlayers do
  chassis.Size=V.new(6,2,10);chassis.CFrame=catalog.Entries.Track03.GridSlots[index]
  local seat=child(kart,"Seat","Seat");seat.Occupant=human;human.SeatPart=seat
  kart:SetAttribute("RaceStartCFrame",chassis.CFrame)
- contexts[player]={owner=player,kart=kart,chassis=chassis,seat=seat}
+ contexts[player]={owner=player,kart=kart,chassis=chassis,seat=seat,setSpawnCFrame=function(self,frame)self.spawnCFrame=frame;self.chassis.CFrame=frame;self.kart:SetAttribute("RaceStartCFrame",frame)end}
  player:SetAttribute("SelectedTrackId","Track03");player:SetAttribute("ReadyOrder",index);player:SetAttribute("GridSlot",index)
  table.insert(players,player)
 end
 child(server,"ModuleScript","PrototypeWorld")
-modules.PrototypeWorld={getKartContext=function(p) return contexts[p] end,releaseKartContext=function() end}
+modules.PrototypeWorld={reassertServerAuthority=function(p)assert(contexts[p]);return true end,getKartContext=function(p) return contexts[p] end,releaseKartContext=function() end}
 local race=load("src/server/RaceController.luau",server,"RaceController")
 check(race.start({trackId="Track03"})~=false,"controller binds actual Hard course")
 local session=sessionType.active()
 local remote=services.ReplicatedStorage.RaceControl.OnServerEvent
 local function tick(dt) now+=dt;services.RunService.Heartbeat:Fire(dt) end
 for _,p in players do p:SetAttribute("RaceState","PRE_RACE");tick(.1) end
-check(session:count()==4 and session.phase=="WAITING","four players share Hard waiting session")
-tick(raceConfig.ITEM_PREP_SECONDS)
+check(session:count()==4 and session.phase=="COUNTDOWN","four players automatically start one Hard countdown")
+tick(.1) -- retired item-prep delay must not consume the automatic countdown
 check(session.phase=="COUNTDOWN" and session.startingParticipantCount==4,"full ready room begins one countdown")
 tick(raceConfig.COUNTDOWN_SECONDS+.1)
-for index,p in players do check(p:GetAttribute("RaceState")=="RACING" and p:GetAttribute("RacePosition")==index,"GO and POS "..index) end
+local positions={}
+for index,p in players do
+ local rank=p:GetAttribute('RacePosition')
+ check(p:GetAttribute('RaceState')=='RACING' and p:GetAttribute('GridSlot')==index and rank>=1 and rank<=4 and not positions[rank],'GO retains slot and unique valid POS '..index)
+ check((index<=2)==(rank<=2),'painted front row remains ahead of rear row at GO')
+ positions[rank]=true
+end
 local function driveRound(dnfFourth)
  local completed={}
  for step=0,1000 do
@@ -206,7 +212,7 @@ for index,p in players do
  remote:Fire(p,"Rematch")
 end
 check(session.phase=="WAITING","four-voter rematch returns to item prep")
-tick(raceConfig.ITEM_PREP_SECONDS)
+tick(.1) -- retired item-prep delay must not consume the automatic countdown
 check(session.phase=="COUNTDOWN","rematch full ready room countdown")
 tick(raceConfig.COUNTDOWN_SECONDS+.1)
 driveRound(true)

@@ -46,7 +46,9 @@ check(p.wallet.cash==38500 and p.wallet.lifetimeEarned==13500,'repeat credits')
 for _,state in {'DNF','FORFEIT','FINISHING'} do local bad=S.clone(first);bad.verification.state=state;check(not Records.valid(S,bad),'terminal reject '..state)end
 local invalid=op(103,2,1,1);invalid.race.eligible=false;invalid.race.reason='INVALID_ROUTE_OR_TIMER_RESET'
 local before=p.wallet.cash;p=Records.reduce(S,schema,invalid)(p)
-check(p.wallet.cash==before and p.receipts[Records.receiptKey(invalid)].money.total==0,'ineligible zero')
+-- Owner confirmed2026-10-28: ineligible finish grants no base/PB/event money.
+-- Owner explicitly authorized the scoped source gate; historical baseline remains intact.
+check(p.wallet.cash==before and p.receipts[Records.receiptKey(invalid)].money.total==0,'owner contract: ineligible finish pays zero')
 local bad=S.clone(first);bad.race.positionFinalized=false;check(not Records.valid(S,bad),'provisional forbidden')
 bad=S.clone(first);bad.economy.humanPosition=3;check(not Records.valid(S,bad),'rank beyond humans')
 bad=S.clone(first);bad.userId=99;check(not Records.valid(S,bad),'bot/nonmember forbidden')
@@ -67,7 +69,7 @@ local off=Economy.reduce(S,schema,eq)(bought);check(off.cosmetics.equippedPartId
 eq.id=guid(503);eq.equipped=true;local on=Economy.reduce(S,schema,eq)(off)
 local reconnect=serde.decode('json',serde.encode('json',on));check(schema.validate(reconnect,'u:1') and reconnect.cosmetics.equippedPartIdsBySlot.Wing=='KDM_V2_WING','rejoin restores inventory equip')
 for _,field in {'selection','inventory'} do check(S.canonical(on[field])==S.canonical(original[field]),'preserve '..field)end
-check(on.receipts.legacy == nil and on.purchaseHistory.old.method=='LEGACY' and on.cosmetics.ownedPartIds.Wheel,'legacy receipts pruned but purchases cosmetics remain')
+check(on.receipts.legacy ~= nil and S.signatureMatches(on.receipts.legacy,'unmodified') and on.purchaseHistory.old.method=='LEGACY' and on.cosmetics.ownedPartIds.Wheel,'legacy receipt identity and purchases/cosmetics remain')
 local concurrent=Records.reduce(S,schema,op(105,2,1,1,53000))(on)
 check(concurrent.cosmetics.ownedPartIds.KDM_V2_WING and concurrent.wallet.cash==on.wallet.cash+5000,'purchase/race CAS preserves both')
 check(not Economy.confirm(S,schema,{status='ERROR'},buy),'failed read never success')
@@ -136,3 +138,29 @@ check(not S.finishEvent(seenOnly).claimed and seenOnly.wallet.cash==previousBonu
 local corrupted=S.clone(paidAgain);corrupted.onboarding.finishEvent.claimed='true'
 check(not schema.validate(corrupted,S.userKey(1)),'malformed campaign state rejected')
 print('PASS campaign rollout economy '..checks..' checks')
+
+-- R3 owner exception: invalid first completion neither credits nor consumes event/PB eligibility.
+local function zeroInvalid(module)
+ local fresh=schema.default(1);fresh.wallet.cash=777;fresh.wallet.lifetimeEarned=555
+ fresh.purchaseHistory={keep={value=42}};fresh.selection.kartId='Kart09'
+ local request=op(99001,4,0,1,30000);request.race.eligible=false;request.race.reason='INVALID_ROUTE_OR_TIMER_RESET';request.bestLapMilliseconds=nil;request.verification.fullLapValid=false
+ local result,status=module.reduce(S,schema,request)(fresh)
+ assert(result and status=='APPLIED','invalid result still has one durable receipt')
+ local money=result.receipts[module.receiptKey(request)].money
+ assert(result.wallet.cash==777 and result.wallet.lifetimeEarned==555 and money.base==0 and money.bestRace==0 and money.bestLap==0 and money.firstFinish==0 and money.total==0,'ineligible means zero in every payment channel')
+ assert(not S.finishEvent(result).claimed and result.selection.kartId=='Kart09' and result.purchaseHistory.keep.value==42,'invalid preserves campaign eligibility and existing data')
+ local retry,why=module.reduce(S,schema,request)(result)
+ assert(why=='REPLAY' and S.canonical(retry)==S.canonical(result),'invalid ACK retry is also idempotent')
+ local valid=op(99002,4,0,1,30000)
+ local paid=module.reduce(S,schema,valid)(result)
+ assert(paid.wallet.cash==10777 and S.finishEvent(paid).claimed,'later eligible finish keeps full base/PB/event entitlement')
+ return true
+end
+check(zeroInvalid(Records),'zero invalid / later eligible / durable replay contract')
+local raw=fs.readFile('src/server/RaceRecordOperations.luau')
+local before='if copy.race and copy.race.eligible then'
+local start=assert(raw:find(before,1,true))
+local mutant=raw:sub(1,start-1)..'if true then'..raw:sub(start+#before)
+local broken=luau.load(mutant,{debugName='R3_INJECT_INVALID_BASE_BUG'})()
+check(not pcall(zeroInvalid,broken),'restoring unconditional base bug is detected by real reducer test')
+print('PASS owner R3 invalid eligibility, event preservation and injected-defect rejection '..checks..' checks')

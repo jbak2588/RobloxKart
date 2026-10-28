@@ -33,8 +33,9 @@ for _,r in roads do
  end
 end
 for _,kerb in world.Kerbs:GetChildren() do check(kerb.Anchored and not kerb.CanCollide and not kerb.CanTouch and not kerb.CanQuery and not kerb.CastShadow,'kerb visual-only') end
-local directions=world.DirectionMarkers;check(directions~=nil,'candidate forward cues')
-for _,cluster in directions:GetChildren() do
+local directions=world.DirectionMarkers
+check(directions==nil,'retired V2B omits unguaranteed forward cues per visual safety contract')
+for _,cluster in (if directions then directions:GetChildren()else {}) do
  local index=cluster:GetAttribute('SampleIndex');local tangent=(p[index%#p+1]-p[(index-2)%#p+1]).Unit
  local a=cluster:FindFirstChild('Arrow0Wing-1');local b=cluster:FindFirstChild('Arrow0Wing1')
  check((a.CFrame.LookVector+b.CFrame.LookVector).Unit:Dot(tangent)>=.95,'arrow apex direction')

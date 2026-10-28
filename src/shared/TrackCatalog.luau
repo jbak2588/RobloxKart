@@ -118,7 +118,7 @@ end
 function TrackCatalog.capabilityLabel(track)
 	local laps = string.format("%d %s", track.TargetLaps, if track.TargetLaps == 1 then "LAP" else "LAPS")
 	if track.MatchType == "PUBLIC_RACE" then
-		return string.format("PUBLIC RACE â€¢ %dâ€“%d RACERS â€¢ %s", track.MinPlayers, track.MaxPlayers, laps)
+		return string.format("PUBLIC RACE • %d–%d RACERS • %s", track.MinPlayers, track.MaxPlayers, laps)
 	end
 	return string.format("%s â€¢ %s", if track.MatchType == "SOLO_PRACTICE" then "SOLO PRACTICE" else "SOLO PROTOTYPE", laps)
 end

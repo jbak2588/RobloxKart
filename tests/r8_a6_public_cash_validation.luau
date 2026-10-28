@@ -114,11 +114,13 @@ local function fixture(userId,backend)
  f.Economy=requireNode(nodes.EconomyService);f.Records=requireNode(nodes.RaceRecordService);f.Shop=requireNode(nodes.ShopService)
  f.Ops=requireNode(nodes.RaceRecordOperations);f.Runtime=requireNode(nodes.RaceRecordRuntime)
  check(f.lookups==0,'production module loading has zero store calls')
+ function f.qualify()local result=f.Economy.qualifyActivity(p,"TEST_DRIVE",{complete=true,movingMilliseconds=30000,distance=300});check(result.status=="FOUND","activity qualification confirmed");return result end
  function f.start()f.Economy.start();f.Shop.start();f.Records.startQuery();f.drain()end
  function f.invoke(name,action,...)f.now+=2;return f.remotes[name].OnServerInvoke(p,action,...)end
  function f.runRound(finish)
   f.race();local session={trackId='Track02',targetLaps=2,orderedParticipants=function()return {p}end}
-  f.Records.begin(session,{CenterlineLength=1000},6);f.Records.start(p,0)
+  local identity={RoundGuid=guid(1000+f.serial),IssuedAt=1791650000000};f.serial+=1;p:SetAttribute('OfficialRoundGuid',identity.RoundGuid);p:SetAttribute('OfficialRoundIssuedAt',identity.IssuedAt)
+  f.Records.begin(session,{CenterlineLength=1000},6,identity);f.Records.start(p,0)
   for lap=1,2 do
    for i=0,100 do
     local fraction=(i/100)%1;local pos=rb.Vector3.new(math.cos(fraction*2*math.pi)*1000/(2*math.pi),0,math.sin(fraction*2*math.pi)*1000/(2*math.pi))
@@ -134,6 +136,10 @@ local function fixture(userId,backend)
  return f
 end
 local f=fixture();f.start()
+check(f.account()==nil and f.player.attrs.KDMWalletCash==0 and f.player.attrs.KDMEconomyState=='GUEST','join/read alone cannot mint starter cash')
+local qualification=f.Economy.qualifyActivity(f.player,'TEST_DRIVE',{complete=true,movingMilliseconds=30000,distance=300})
+check(qualification.status=='FOUND','server activity creates qualified account')
+print('R3_TRACE fresh',f.account()~=nil,f.player.attrs.KDMEconomyState,f.player.attrs.KDMWalletCash)
 check(f.account().wallet.cash==5000 and f.player.attrs.KDMWalletCash==5000,'new general account confirmed starter cash')
 check(f.indexCalls==0 and f.market==0,'no public index or payment lookup')
 local old=schema.default(2);old.wallet.cash=805;old.wallet.lifetimeEarned=900;old.wallet.ledgerRevision=9;old.selection.kartId='Kart09'
@@ -143,37 +149,39 @@ check(schema.validate(old,S.userKey(2)),select(2,schema.validate(old,S.userKey(2
 local original=S.canonical(old)
 f=fixture(2,{values={['u:2']=S.clone(old)},reads=0,writes=0,budget=100});f.start()
 check(S.canonical(f.account())==original and f.backend.writes==0,'mock existing K$805 and all ownership preserved without writes')
-check(f.player.attrs.KDMWalletCash==805 and f.player.attrs.KDMWingOwned and f.player.attrs.KDMWingEquipped,'server-confirmed Garage attrs')
-for _,action in {'BUY_WING','PASS'}do local before=f.backend.writes;check(f.invoke('KDMEconomy',action).status=='ACCESS_BLOCKED' and f.backend.writes==before,'legacy public purchase blocked '..action)end
+check(f.player.attrs.KDMWalletCash==805 and f.player.attrs.KDMOwnedKart05 and f.player.attrs.KDMOwnedKart11,'server-confirmed Garage attrs')
+for _,action in {'BUY_WING','PASS'}do local before=f.backend.writes;check(f.invoke('KDMEconomy',action).status=='UNAVAILABLE' and f.backend.writes==before,'legacy public purchase blocked '..action)end
 for _,action in {'BUY_WING','BUY_ITEM','SET_AUTO_REFILL','EQUIP_WING'}do
  local before=f.backend.writes;check(f.invoke('KDMShop',action,'Nitro',guid(88),true).status=='ACCESS_BLOCKED' and f.backend.writes==before,'shop mutation blocked '..action)
 end
 check(f.invoke('KDMShop','PROFILE').canPurchase==false and f.market==0,'public exhibition read cannot enable sale')
 f.runRound();f.drain()
-check(f.account().wallet.cash==3305 and f.player.attrs.KDMWalletCash==3305 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','actual official normal finish earns existing solo+PB 2500')
+check(f.account().wallet.cash==8305 and f.player.attrs.KDMWalletCash==8305 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','actual official normal finish earns existing solo+PB 2500')
 local writes=f.backend.writes;f.Records.finish(f.player,{totalTime=40,position=1,humanPosition=1,positionFinalized=true});f.drain()
-check(f.account().wallet.cash==3305 and f.backend.writes==writes,'collector duplicate finish rejected')
+check(f.account().wallet.cash==8305 and f.backend.writes==writes,'collector duplicate finish rejected')
 check(f.account().selection.kartId=='Kart09' and f.account().shopInventory.counts.Nitro==2 and f.account().cosmetics.ownedPartIds.KDM_V2_WING,'reward preserves kart Wing stock')
 check(f.indexCalls==0 and f.market==0,'general rewards do not enable index/payment')
-local rejoined=fixture(2,f.backend);rejoined.start();check(rejoined.player.attrs.KDMWalletCash==3305,'new server reconnect reads accumulated balance')
-f=fixture();f.start();f.runRound(false);f.player.attrs.RaceState='DNF';f.Records.finish(f.player);f.drain()
+local rejoined=fixture(2,f.backend);rejoined.start();check(rejoined.player.attrs.KDMWalletCash==8305,'new server reconnect reads accumulated balance')
+f=fixture();f.start();f.qualify();f.runRound(false);f.player.attrs.RaceState='DNF';f.Records.finish(f.player);f.drain()
+print('R3_TRACE fresh',f.account()~=nil,f.player.attrs.KDMEconomyState,f.player.attrs.KDMWalletCash)
 check(f.account().wallet.cash==5000 and f.player.attrs.RaceMoneyState=='NONE','DNF/leave earns no reward')
 f=fixture();f.race();f.runRound();f.drain()
-check(f.account().wallet.cash==7500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','first finish initializes absent reserved account safely')
+check(f.account().wallet.cash==12500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','first finish initializes absent reserved account safely')
 f=fixture();f.race();f.backend.concurrent=function(b,key)b.values[key]=S.clone(old)end
-f.runRound();f.drain();check(f.account().wallet.cash==3305 and f.account().shopInventory.counts.Nitro==2,'concurrent initialization never overwrites existing K$805')
+f.runRound();f.drain();check(f.account().wallet.cash==8305 and f.account().shopInventory.counts.Nitro==2,'concurrent initialization never overwrites existing K$805')
 f=fixture();f.backend.readFail=true;f.start()
 check(not f.account() and f.backend.writes==0 and f.player.attrs.KDMWalletCash==nil,'failed initial read never fabricates zero or overwrites')
 f.runRound();f.drain();check(f.backend.writes==0 and f.player.attrs.RaceMoneyState=='SAVE_PENDING','failed reward read no false credit')
-f=fixture();f.start();f.backend.writeFail=true;f.runRound();f.drain()
+f=fixture();f.start();f.qualify();f.backend.writeFail=true;f.runRound();f.drain()
+print('R3_TRACE fresh',f.account()~=nil,f.player.attrs.KDMEconomyState,f.player.attrs.KDMWalletCash)
 check(f.account().wallet.cash==5000 and f.player.attrs.RaceMoneyState=='SAVE_PENDING' and f.player.attrs.KDMWalletCash==5000,'all write attempts fail closed')
 f=fixture();f.race();f.backend.writeFail=true;f.runRound();f.step();check(f.player.attrs.RaceMoneyState=='SAVE_PENDING','unknown absent initialization retries')
-f.backend.writeFail=false;f.drain();check(f.account().wallet.cash==7500,'initialization write retry recovers')
-f=fixture();f.start();f.backend.ackLost=true;f.runRound();f.drain()
-check(f.account().wallet.cash==7500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','ACK loss reconciles by durable receipt')
-f=fixture();f.start();f.backend.writes=0;f.backend.failReadAfterWrite=true;f.runRound();f.step()
-check(f.account().wallet.cash==7500 and f.player.attrs.KDMWalletCash==5000 and f.player.attrs.RaceMoneyState=='SAVE_PENDING','unconfirmed write stays hidden')
-f.backend.failReadAfterWrite=false;f.drain();check(f.account().wallet.cash==7500 and f.player.attrs.KDMWalletCash==7500,'read retry confirms exactly once')
+f.backend.writeFail=false;f.drain();check(f.account().wallet.cash==12500,'initialization write retry recovers')
+f=fixture();f.start();f.qualify();f.backend.ackLost=true;f.runRound();f.drain()
+check(f.account().wallet.cash==12500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','ACK loss reconciles by durable receipt')
+f=fixture();f.start();f.qualify();f.backend.writes=0;f.backend.failReadAfterWrite=true;f.runRound();f.step()
+check(f.account().wallet.cash==12500 and f.player.attrs.KDMWalletCash==5000 and f.player.attrs.RaceMoneyState=='SAVE_PENDING','unconfirmed write stays hidden')
+f.backend.failReadAfterWrite=false;f.drain();check(f.account().wallet.cash==12500 and f.player.attrs.KDMWalletCash==12500,'read retry confirms exactly once')
 for _,bad in {'future','corrupt','deleted'}do
  local profile=S.clone(old);if bad=='future'then profile.schemaVersion=999 elseif bad=='corrupt'then profile.wallet.cash=-1 else profile.deleted=true end
  f=fixture(2,{values={['u:2']=profile},reads=0,writes=0,budget=100});local before=S.canonical(profile);f.start();f.runRound();f.drain()
@@ -181,12 +189,12 @@ for _,bad in {'future','corrupt','deleted'}do
 end
 f=fixture();f.backend.budget=0;f.start();f.runRound();f.drain()
 check(f.stores==0 and f.backend.writes==0 and not f.account(),'zero budget no store lookup/default')
-f=fixture(11700555357);f.start();check(f.Economy.allowed(f.player,'shop') and f.invoke('KDMShop','PROFILE').canPurchase,'existing canary policy retained')
+f=fixture(11700555357);f.start();f.qualify();check(f.Economy.allowed(f.player,'shop') and f.invoke('KDMShop','PROFILE').canPurchase,'existing canary policy retained')
 f.race();check(f.Economy.allowed(f.player,'voucher'),'canary voucher unchanged')
 f=fixture();f.studio=true;f.start();f.runRound();f.drain()
 check(f.lookups==0 and f.backend.writes==0,'real Studio policy always denies live datastore, even public candidate')
 -- Two independent server runtimes share the same fake atomic backend and immutable round receipt.
-f=fixture();f.start();local other=fixture(2,f.backend);other.start();f.race();other.race()
+f=fixture();f.start();f.qualify();local other=fixture(2,f.backend);other.start();f.race();other.race()
 local round=S.freezeRound({RoundGuid=guid(99),TrackId='Track02',GeometryId='PrototypeCircuitV2B',RulesetId='KDM_R8A3_RULES_V1',diagnostic=false,roster={{IsBot=false,UserId=2}}})
 local op={kind='OFFICIAL_RECORD',userId=2,round=round,bestLapMilliseconds=20000,bestRaceBoosts=0,achievedAt=1791650000000,
  verification={state='FINISHED',serverAccepted=true,targetLaps=2,completedLaps=2,fullLapValid=true,provenance='FULL_ROUTE_V1',boostIdentity='SERVER_SERIAL_V1'},economy={version=1,humanPosition=1},
@@ -203,15 +211,15 @@ local function runtime(server)
 end
 local a,b=runtime(f),runtime(other);f.player.attrs.OfficialRoundGuid=guid(99);other.player.attrs.OfficialRoundGuid=guid(99)
 check(a.submit(f.player,op) and b.submit(other.player,op),'independent servers accept same immutable envelope')
-f.drain();other.drain();check(f.account().wallet.cash==7500 and f.backend.writes==2,'cross-server replay reads receipt, one reward plus one init')
+f.drain();other.drain();check(f.account().wallet.cash==12500 and f.backend.writes==2,'cross-server replay reads receipt, one reward plus one init')
 local different=S.clone(op);different.bestRaceBoosts=1;check(not b.submit(other.player,different),'same round changed payload rejected')
 local stale=S.clone(f.account());stale.wallet.cash=0;stale.wallet.ledgerRevision=0;f.Economy.publishProfile(f.player,stale)
-check(f.player.attrs.KDMWalletCash==7500,'stale result cannot regress confirmed wallet')
+check(f.player.attrs.KDMWalletCash==12500,'stale result cannot regress confirmed wallet')
 local op2=S.clone(op);op2.round.RoundGuid=guid(100);op2.race.roundGuid=guid(100);op2.achievedAt+=1;op2.race.finishedAt+=1
 f.player.attrs.OfficialRoundGuid=guid(100);f.backend.writeFail=true;a.submit(f.player,op2);f.step();f.backend.writeFail=false
-a.shutdown();check(f.account().wallet.cash==8500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','graceful shutdown drains accepted retry')
+a.shutdown();check(f.account().wallet.cash==13500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','graceful shutdown drains accepted retry')
 check(not a.submit(f.player,op),'shutdown refuses new submissions')
-local disconnected=fixture(2,f.backend);disconnected.start();check(disconnected.player.attrs.KDMWalletCash==8500,'shutdown then reconnect preserved')
+local disconnected=fixture(2,f.backend);disconnected.start();check(disconnected.player.attrs.KDMWalletCash==13500,'shutdown then reconnect preserved')
 local closeJoin=fixture();closeJoin.Economy.start();closeJoin.close[1]()
-check(closeJoin.account().wallet.cash==5000 and closeJoin.invoke('KDMEconomy','PROFILE').status=='CLOSING','graceful close drains scheduled new account and refuses new remote')
+check(closeJoin.account()==nil and closeJoin.invoke('KDMEconomy','PROFILE').status=='CLOSING','graceful close drains scheduled new account and refuses new remote')
 print('PASS: '..checks..' R8-A6 public policy, actual account/official race/Shop facades, outages, reconnect and independent-server atomic mock checks; live DataStore calls ZERO')

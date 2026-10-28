@@ -91,7 +91,7 @@ local function getKart(p)
 		and c.seat.Occupant and c.kart:GetAttribute("RaceControlsLocked")~=true then return c.kart,c.chassis end
 end
 local boostOutcome
-for name,result in {PrototypeWorld={getRaceKart=getKart,getKartContext=function(p) return contexts[p] end,
+for name,result in {PrototypeWorld={getRaceKart=getKart,getKartContext=function(p) return contexts[p] end,reassertServerAuthority=function(p)assert(contexts[p]);return true end,
 	onDriftOutcome=function(f) boostOutcome=f end,activateNitro=function(p) contexts[p].kart:SetAttribute("KartNitroActive",true);return true end,
 	applySlickHit=function() error("Smoke must never call Slick physics") end,
 	applyMissileHit=function() error("Smoke must never call Missile physics") end},
@@ -120,7 +120,7 @@ local function prepare(p,ids)
  contexts[p].kart.Parent=prototype;p.Parent=services.Players;contexts[p].seat.Occupant={}
  p:SetAttribute("RaceState","GARAGE");session.phase="WAITING"
  p:SetAttribute("RaceState","PRE_RACE");session.itemsReady[p]=nil;session.itemPrepareDeadlines[p]=now+10
- if ids then tick(.21);assert(choose(p,ids)) end
+ if ids then tick(.21);assert(not choose(p,ids),"retired tactical selection cannot change fixed six-item loadout") end
  p:SetAttribute("RaceState","COUNTDOWN");p:SetAttribute("RaceState","RACING")
 end
 local function snapshot(p)
@@ -147,7 +147,7 @@ for _,p in players do prepare(p) end
 -- A: untouched production defaults.
 local before=snapshot(owner);fall(owner);same(owner,before,"untouched fall")
 check(owner:GetAttribute("RaceChargeNitro")==1 and owner:GetAttribute("RaceChargeMissile")==1,"default charges never erased")
--- B: consumed Nitro/Shield, custom Smoke in place of Missile; no refill exploit.
+-- B: consumed Nitro/Shield, fixed six-slot Smoke; retired selection cannot change it.
 prepare(owner,{"Slick","Shield","Smoke"});use(owner,"Nitro");use(owner,"Shield")
 check(owner:GetAttribute("RaceChargeNitro")==0 and owner:GetAttribute("RaceChargeShield")==0
  and owner:GetAttribute("RaceChargeSlick")==1 and owner:GetAttribute("RaceChargeSmoke")==1,"partially consumed fixture 0/1/0/1")
@@ -156,35 +156,35 @@ check(not contexts[owner].kart:GetAttribute("KartShieldActive"),"active Shield r
 for _=1,3 do fall(owner);same(owner,before,"repeated partial fall") end
 use(owner,"Shield");check(owner:GetAttribute("RaceChargeShield")==0 and not contexts[owner].kart:GetAttribute("KartShieldActive"),"empty Shield remains unusable after resets")
 use(owner,"Smoke");check(owner:GetAttribute("RaceChargeSmoke")==0,"remaining charge usable through normal direct UseItem after fall")
--- C: custom order/selection survives, including a consumed Missile.
+-- C: fixed order and current selection survive, including a consumed Missile.
 prepare(owner,{"Shield","Missile","Smoke"})
 owner:SetAttribute("RacePosition",2);b:SetAttribute("RacePosition",1)
 use(owner,"Missile");remote.OnServerEvent:Fire(owner,"Select","Smoke")
 check(owner:GetAttribute("RaceChargeMissile")==0 and owner:GetAttribute("SelectedRaceItemId")=="Smoke","custom 1/1/0/1 and selected Smoke fixture")
 before=snapshot(owner);fall(owner);same(owner,before,"custom order fall")
-check(owner:GetAttribute("RaceItemSlot2")=="Shield" and owner:GetAttribute("RaceItemSlot4")=="Smoke","tactical order intact")
+check(owner:GetAttribute("RaceItemSlot2")=="Missile" and owner:GetAttribute("RaceItemSlot3")=="Smoke" and owner:GetAttribute("RaceItemSlot5")=="Nitro" and owner:GetAttribute("RaceItemSlot6")=="Shield","fixed six-slot order intact")
 -- D/E: earned progress and both award guards survive without granting another reward.
 prepare(owner)
-for _=1,3 do boostOutcome(owner,"BOOST") end
-before=snapshot(owner);fall(owner);same(owner,before,"3-of-5 fall")
-check(owner:GetAttribute("DriftBonusProgress")==3,"3/5 still 3/5")
 for _=1,2 do boostOutcome(owner,"BOOST") end
-check(owner:GetAttribute("RaceChargeNitro")==2 and owner:GetAttribute("DriftBonusNitroAwarded"),"fifth boost grants exactly one bonus")
+before=snapshot(owner);fall(owner);same(owner,before,"2-of-3 fall")
+check(owner:GetAttribute("DriftBonusProgress")==2,"2/3 remains unchanged")
+boostOutcome(owner,"BOOST")
+check(owner:GetAttribute("RaceChargeNitro")==2 and owner:GetAttribute("DriftBonusNitroAwarded"),"third boost grants exactly one bonus")
 use(owner,"Nitro");use(owner,"Nitro")
 before=snapshot(owner);fall(owner);same(owner,before,"earned bonus fall")
 check(not Items.grantBonusNitro(owner),"direct grant without a completed cycle rejects after fall")
-for _=1,5 do boostOutcome(owner,"BOOST") end
+for _=1,3 do boostOutcome(owner,"BOOST") end
 check(owner:GetAttribute("RaceChargeNitro")==1 and owner:GetAttribute("DriftBonusProgress")==0
  and owner:GetAttribute("DriftBonusNitroAwarded"),"next completed cycle awards after reset")
 -- Pending state, accepted/rejected use and repeated cycles through the production controller.
 prepare(owner)
 for cycle=1,3 do
- for _=1,5 do boostOutcome(owner,"BOOST") end
+ for _=1,3 do boostOutcome(owner,"BOOST") end
  check(owner:GetAttribute("DriftBonusAwardCount")==cycle and owner:GetAttribute("DriftBonusProgress")==0,"controller repeated cycle "..cycle)
  if cycle<3 then use(owner,"Nitro") end
 end
-for _=1,5 do boostOutcome(owner,"BOOST") end
-check(owner:GetAttribute("DriftBonusPending") and owner:GetAttribute("DriftBonusProgress")==5,"full controller inventory stores pending")
+for _=1,3 do boostOutcome(owner,"BOOST") end
+check(owner:GetAttribute("DriftBonusPending") and owner:GetAttribute("DriftBonusProgress")==3,"full controller inventory stores pending")
 before=snapshot(owner);fall(owner);same(owner,before,"pending fall")
 for _=1,20 do boostOutcome(owner,"BOOST") end
 same(owner,before,"pending extra BOOST freeze")
@@ -197,8 +197,8 @@ check(owner:GetAttribute("RaceChargeNitro")==2 and not owner:GetAttribute("Drift
  and owner:GetAttribute("DriftBonusProgress")==0 and owner:GetAttribute("DriftBonusAwardCount")==4,"controller accepted use atomically settles pending")
 -- Four distinct progress states and combat do not share reward ownership.
 for _,p in players do prepare(p,{"Shield","Missile","Smoke"}) end
-for _=1,4 do boostOutcome(owner,"BOOST") end
-for _=1,10 do boostOutcome(b,"BOOST") end
+for _=1,2 do boostOutcome(owner,"BOOST") end
+for _=1,6 do boostOutcome(b,"BOOST") end
 for _=1,2 do boostOutcome(d,"BOOST") end
 local bBefore,cBefore,dBefore=snapshot(b),snapshot(c),snapshot(d)
 boostOutcome(owner,"BOOST")
@@ -227,6 +227,6 @@ for _,boundary in {"GARAGE","session","destroy","leave"} do
  elseif boundary=="leave" then services.Players.PlayerRemoving:Fire(owner)
  else owner:SetAttribute("RaceState",boundary) end
  for _,id in {"Nitro","Slick","Shield","Missile","Smoke"} do check(owner:GetAttribute("RaceCharge"..id)==0,"full teardown zero "..boundary.." "..id) end
- for i=1,4 do check(owner:GetAttribute("RaceItemSlot"..i)=="","full teardown clears slot "..boundary.." "..i) end
+ for i=1,6 do check(owner:GetAttribute("RaceItemSlot"..i)=="","full teardown clears slot "..boundary.." "..i) end
 end
 print("PASS: "..checks.." production fall-reset inventory/lifecycle checks (mocked; published fall retest required)")

@@ -4,7 +4,7 @@ source..=[[
 set('RaceState','FINISHED');set('RaceTotalLaps',2);set('RaceParticipantCount',1)
 set('RaceRecordSaveState','SAVE_CONFIRMED');set('RaceMoneyState','SAVE_PENDING')
 check(results.RecordSave.Text:find('PAYMENT UNCONFIRMED',1,true) and not results.RecordSave.Text:find('K$50',1,true),'pending never reports payout')
-set('RaceMoney_base',35);set('RaceMoney_bestRace',10);set('RaceMoney_bestLap',5);set('RaceMoney_total',50);set('RaceMoneyState','SAVE_CONFIRMED')
+set('RaceMoney_firstFinish',0);set('RaceMoney_rematchMultiplier',1);set('RaceMoney_base',35);set('RaceMoney_bestRace',10);set('RaceMoney_bestLap',5);set('RaceMoney_total',50);set('RaceMoneyState','SAVE_CONFIRMED')
 check(results.RecordSave.Text:find('K$50',1,true) and results.RecordSave.Text:find('BASE 35',1,true)
  and results.RecordSave.Text:find('RACE PB 10',1,true) and results.RecordSave.Text:find('LAP PB 5',1,true),'confirmed breakdown')
 for _,size in {rb.Vector2.new(749,323),rb.Vector2.new(844,390),rb.Vector2.new(932,430)} do

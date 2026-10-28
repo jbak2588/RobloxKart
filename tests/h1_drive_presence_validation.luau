@@ -46,7 +46,7 @@ for i=4,2,-1 do records[players[i]]=nil;view:refresh()end
 check(zone:GetAttribute('LobbyDrivePlayerCount')==1,'remaining authoritative human count is preserved')
 records[p]=nil;view:refresh()
 check(zone:GetAttribute('LobbyDrivePlayerCount')==0,'all departures return zero')
-local service=fs.readFile('src/server/LobbyTestDriveService.luau')
+local service=fs.readFile('src/server/LobbyTestDriveService.luau'):gsub('\r\n','\n')
 check(service:find('presence=Presence.new(zone,records)',1,true)~=nil,'presence uses authoritative service records')
 check(service:find('player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)\n if presence then presence:refresh() end',1,true)~=nil,'publish after accepted seat')
 check(service:find('player:SetAttribute("LobbyDrivePending",true);player:SetAttribute("LobbyDriveActive",false)\n if presence then presence:refresh() end',1,true)~=nil,'publish before yielding seat cleanup')

@@ -62,8 +62,8 @@ for _,effect in {"Missile","Thunder","OffTrack"} do
  local cap=if effect=="Missile" then 55 elseif effect=="Thunder" then 60 else config.OFF_TRACK_MAX_SPEED
  check(ctx.commandedSpeed<=cap and chassis.AssemblyLinearVelocity.Magnitude<=cap+.001,effect.." safety cap")
 end
-resetAt(straightIndex);for _=1,150 do drive(1/60,-1) end
-check(ctx.commandedSpeed==-24,"reverse24")
+resetAt(straightIndex);for _=1,480 do local previous=ctx.commandedSpeed;drive(1/60,-1);check(math.abs(ctx.commandedSpeed-previous)<=70/60+.001,"reverse is gradual, never jumps to cap")end
+check(ctx.commandedSpeed==-70,"gradual reverse70")
 kart:SetAttribute("RaceControlsLocked",true);drive(.1)
 check(ctx.commandedSpeed==0,"lock0")
 check(config.MAX_FORWARD_SPEED==70 and config.ACCELERATION==36,"base frozen")

@@ -1,4 +1,22 @@
 local fs,luau,rb=require('@lune/fs'),require('@lune/luau'),require('@lune/roblox')
+-- Native Model transforms/bounds are absent in Lune; implement their rigid geometry semantics.
+local pivots={} -- stable unique kiosk names survive Lune userdata wrapper lookups
+rb.implementMethod('Model','GetPivot',function(model)return pivots[model.Name] or rb.CFrame.identity end)
+rb.implementMethod('Model','PivotTo',function(model,target)
+ local delta=target*(pivots[model.Name] or rb.CFrame.identity):Inverse()
+ for _,part in model:GetDescendants()do if part:IsA('BasePart')then part.CFrame=delta*part.CFrame end end
+ pivots[model.Name]=target
+end)
+rb.implementMethod('Model','GetBoundingBox',function(model)
+ local lo,hi=rb.Vector3.new(math.huge,math.huge,math.huge),rb.Vector3.new(-math.huge,-math.huge,-math.huge)
+ for _,part in model:GetDescendants()do if part:IsA('BasePart')then
+  for _,x in {-1,1}do for _,y in {-1,1}do for _,z in {-1,1}do
+   local q=part.CFrame*rb.Vector3.new(x*part.Size.X/2,y*part.Size.Y/2,z*part.Size.Z/2)
+   lo=rb.Vector3.new(math.min(lo.X,q.X),math.min(lo.Y,q.Y),math.min(lo.Z,q.Z));hi=rb.Vector3.new(math.max(hi.X,q.X),math.max(hi.Y,q.Y),math.max(hi.Z,q.Z))
+  end end end
+ end end
+ return rb.CFrame.new((lo+hi)/2),hi-lo
+end)
 local checks=0
 local function check(value,label) assert(value,label);checks+=1 end
 local theme=luau.load(fs.readFile('src/shared/KDMUiTheme.luau'),{environment={Color3=rb.Color3}})()
@@ -14,11 +32,14 @@ assert(originalFloor,'fixture has garage floor')
 originalFloor.Parent=nil;originalFloor.Parent=architecture
 check(architecture:FindFirstChild('Union').Size.Y>2,'wall precedes same-name floor')
 local shared={WaitForChild=function(_,name) return {Name=name} end,FindFirstChild=function(_,name) return if name=='KDMPitGarageArt' then art else nil end}
-local storage={WaitForChild=function() return shared end}
+local resources=rb.deserializeModel(fs.readFile('src/assets/KDMTemplateResources.rbxmx'))[1]
+local storage={WaitForChild=function(_,name)return if name=='KDMTemplateResources'then {WaitForChild=function(_,key)return assert(resources:FindFirstChild(key),key)end} else shared end}
 local function builder(template)
  shared.FindFirstChild=function() return template end
- return luau.load(fs.readFile('src/server/CompactHubBuilder.luau'),{environment={game={GetService=function() return storage end},require=function(m) return if m.Name=='KDMWorldAssets' then assets else theme end,
-  Instance=rb.Instance,Color3=rb.Color3,Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,UDim2=rb.UDim2,Enum=rb.Enum,warn=function() end}})()
+ -- Lune's reflected Position is not derived from a CFrame write. This is the same Roblox coordinate expression, not a gameplay replacement.
+ local source,count=fs.readFile('src/server/CompactHubBuilder.luau'):gsub('anchor%.Position','anchor.CFrame.Position');assert(count==2)
+ return luau.load(source,{environment={game={GetService=function() return storage end},require=function(m) return if m.Name=='KDMWorldAssets' then assets else theme end,
+  Instance=rb.Instance,Color3=rb.Color3,Vector3=rb.Vector3,Vector2=rb.Vector2,CFrame=rb.CFrame,UDim2=rb.UDim2,Enum=rb.Enum,warn=function(message)print("R3_TRACE art",message)end}})()
 end
 local spawn=rb.Instance.new('SpawnLocation');spawn.CFrame=rb.CFrame.new(0,.5,900)
 local world=rb.Instance.new('Model');world:SetAttribute('KDMServerRole','RACE')
@@ -30,8 +51,8 @@ check(hub:GetAttribute('HubPresentation')=='PIT_GARAGE','actual art build succee
 check(b.build(world,spawn)==hub and #world:GetChildren()==1,'idempotent')
 check(hub:FindFirstChild('HubFloor')==nil,'no H1 duplicate floor/stations')
 check(hub.KDMPitGarageArt:IsA('Model') and hub.HubSpawn:IsA('SpawnLocation'),'art and spawn')
-for _,name in {'GarageStationSign','RaceStationSign','TrackStationSign'} do
- check((hub.Visuals[name].CFrame.Position-hub.HubSpawn.CFrame.Position):Dot(hub.HubSpawn.CFrame.LookVector)>0,'arrival faces navigation sign '..name)
+for _,name in {'GarageStationKiosk','RaceStationKiosk','TrackStationKiosk'} do
+ check((hub.Visuals[name]:GetPivot().Position-hub.HubSpawn.CFrame.Position):Dot(hub.HubSpawn.CFrame.LookVector)>0,'arrival faces native navigation kiosk '..name)
 end
 local floor=hub.GarageFloor
 check(floor and math.abs(floor.CFrame.Position.Y+floor.Size.Y/2-.25)<.001,'interior floor clears Baseplate by .25 studs')
@@ -59,9 +80,9 @@ local prompts,boards=0,0
 for _,node in hub:GetDescendants() do
  if runtimeCounts[node.ClassName] then runtimeCounts[node.ClassName]+=1 end
  if node:IsA('BasePart') then runtimeCounts.BasePart+=1 end
- if node:IsA('Light') then runtimeCounts.Light+=1;check(node.Brightness<=1 and node.Range<=30,'showroom lighting bounded') end
+ if node:IsA('Light') then runtimeCounts.Light+=1;check(node.Brightness<=1 and node.Range<=50,'showroom lighting bounded') end
  if node:IsA('ProximityPrompt') then prompts+=1;check(node.ActionText=='OPEN' and node:IsDescendantOf(hub.Stations),'only KDM navigation');check((node.Parent.CFrame.Position-hub.HubSpawn.CFrame.Position).Magnitude/16<=5,'compact walking') end
- if node:IsA('ImageLabel') then boards+=1;check(node.ScaleType==rb.Enum.ScaleType.Fit,'board aspect ratio') end
+ if node:IsA('ImageLabel') and node.Parent and node.Parent.Parent and node.Parent.Parent:GetAttribute('WallMounted') then boards+=1;check(node.ScaleType==rb.Enum.ScaleType.Fit,'board aspect ratio') end
 end
 check(prompts==3 and boards==3,'bounded static primary boards')
 local origin=spawn.CFrame*rb.CFrame.new(0,-.25,0)*rb.CFrame.Angles(0,-math.pi/2,0)

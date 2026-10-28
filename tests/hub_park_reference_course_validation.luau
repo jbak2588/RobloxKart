@@ -26,8 +26,9 @@ check(straight>=100*2+180,'Mini Boost effect plus runway allowance')
 check(not layout.pitOpening({section='StartStraight',x=300}),'extended straight keeps safety edge beyond pit exit')
 check(layout.pitOpening({section='StartStraight',x=140}),'existing pit exit remains open')
 check(layout.DefaultEnabled==false,'remains opt-in')
-for i=2,#layout.Slots do
- check(layout.Slots[i-1].x>layout.Slots[i].x,'lowest free index fills front to rear in +X travel direction')
+for i=1,#layout.Slots,2 do
+ check(layout.Slots[i].x==layout.Slots[i+1].x and layout.Slots[i].z~=layout.Slots[i+1].z,'paired row has distinct lane centers')
+ if i>1 then check(layout.Slots[i-2].x>layout.Slots[i].x,'rows progress front to rear')end
 end
 check(policy.forwardSpeed('ROOKIE_LOOP_V1',{MAX_FORWARD_SPEED=70})==80,'RookieLoop owner-approved 80 stud normal speed')
 check(policy.forwardSpeed('ROOKIE_LOOP_V1',{MAX_FORWARD_SPEED=73})==80,'PARK cap independent of official race configuration')

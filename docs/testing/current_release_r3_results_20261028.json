@@ -1,0 +1,1653 @@
+{
+  "summary": {
+    "baseline": "f5ebec8c7f86dac5c488f90a0a01041d147cf4a2",
+    "originMatches": true,
+    "baselineFullSuite": {
+      "total": 247,
+      "pass": 172,
+      "fail": 75
+    },
+    "r3FullSuite": {
+      "total": 249,
+      "pass": 229,
+      "fail": 20
+    },
+    "previousFailuresResolved": 55,
+    "newFailures": [],
+    "currentRelease": {
+      "pass": 229,
+      "fail": 0
+    },
+    "historical": {
+      "fail": 20,
+      "passClaimed": false,
+      "originalArtifactsPreserved": true
+    },
+    "integrityChecks": 682,
+    "protectedSources": 133,
+    "rojoBuild": {
+      "status": "PASS",
+      "project": "default.project.json",
+      "path": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-r3-phir5whc\\KDM-R3.rbxlx",
+      "sha256": "fc8666ba8289fc3d49e93583ced0f0177ef6e22af7df71cace7a0241a5c76a6d"
+    },
+    "PRIVATE_FOV_VISUAL_QA": "READY_FOR_MANUAL_MOBILE_QA",
+    "FULL_RELEASE": "NOT_READY",
+    "commit": false,
+    "push": false,
+    "publish": false
+  },
+  "sourceExceptions": {
+    "ownerR3PolicyPatch": {
+      "path": "src/server/RaceRecordOperations.luau",
+      "approval": "Owner explicit2026-10-28: second item approved; ineligible finish grants zero. No other economy tuning approved.",
+      "before": "   -- Base completion reward is guaranteed for completing the race (minimum K$1,000)\n   money.base=if copy.round.humanCount>=2 then (({3500,2500,2000,1500})[copy.economy.humanPosition] or 1500)\n     elseif copy.round.botCount>0 then 1500 else 1000\n",
+      "after": "   -- Owner R3: an ineligible finish grants no base, PB, event or Rematch money.\n   if copy.race and copy.race.eligible then\n    money.base=if copy.round.humanCount>=2 then (({3500,2500,2000,1500})[copy.economy.humanPosition] or 1500)\n      elseif copy.round.botCount>0 then 1500 else 1000\n   end\n",
+      "sha256": "5fd432caf39f6b09cc1c06a8ade16a52af9b74730dc3bf8b51dc47a71a6306bc"
+    },
+    "ownerR3DisplayPatch": {
+      "path": "src/shared/TrackCatalog.luau",
+      "before": "\t\treturn string.format(\"PUBLIC RACE â€¢ %dâ€“%d RACERS â€¢ %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
+      "after": "\t\treturn string.format(\"PUBLIC RACE • %d–%d RACERS • %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
+      "sha256": "eebffe03e07c34f77756fa9f9698910b53fe673e252146dd3b972c31fbf72cd5",
+      "approval": "Owner explicit2026-10-28: display encoding only; no laps/capacity/behavior change"
+    }
+  },
+  "preserved": {
+    "src/shared/KDMSpeedSensation.luau": true,
+    "tests/speed_sensation_camera_validation.luau": true,
+    "tests/speed_sensation_validation.luau": true,
+    "docs/testing/source_freeze_r1_audit_20261028.json": true,
+    "docs/testing/source_freeze_r1_validation_20261028.json": true,
+    "docs/testing/source_freeze_reconciliation_r1_20261028.md": true,
+    "docs/testing/speed_sensation_r2_comparison_20261028.json": true,
+    "docs/testing/speed_sensation_r2_readiness_20261028.md": true,
+    "docs/testing/speed_sensation_v2_phase1_20261028.md": true
+  },
+  "changedR3Tests": [
+    "tests/activity_qualification_validation.luau",
+    "tests/combat_hit_audio_validation.luau",
+    "tests/datastore_idempotency_validation.luau",
+    "tests/drift_telemetry_validation.luau",
+    "tests/first60_hub_entry_validation.luau",
+    "tests/four_player_race_validation.luau",
+    "tests/gameplay_balance_validation.luau",
+    "tests/h1_drive_presence_validation.luau",
+    "tests/helpers/world_vfx_harness.luau",
+    "tests/hub_park_reference_course_validation.luau",
+    "tests/hub_world_progression_validation.luau",
+    "tests/kart_v2_production_validation.luau",
+    "tests/kart_visual_validation.luau",
+    "tests/lobby_demo_validation.luau",
+    "tests/lobby_drive_mobile_fix_validation.luau",
+    "tests/lobby_practice_view_validation.luau",
+    "tests/lobby_shield_visual_validation.luau",
+    "tests/missile_validation.luau",
+    "tests/multiplayer_foundation_validation.luau",
+    "tests/p0_race_identity_integration_validation.luau",
+    "tests/pit_garage_art_validation.luau",
+    "tests/practice_public_bot_validation.luau",
+    "tests/public_warmup_records_validation.luau",
+    "tests/r8_a2l1_canary_guidance_validation.luau",
+    "tests/r8_a3_hud_validation.luau",
+    "tests/r8_a3_service_validation.luau",
+    "tests/r8_a4_economy_validation.luau",
+    "tests/r8_a4_hud_validation.luau",
+    "tests/r8_a4_runtime_validation.luau",
+    "tests/r8_a6_public_cash_validation.luau",
+    "tests/r8_d2_presentation_validation.luau",
+    "tests/r8_perf_p2b_validation.luau",
+    "tests/r8_perf_p2c_validation.luau",
+    "tests/r8_perf_partner_validation.luau",
+    "tests/race_item_reset_validation.luau",
+    "tests/race_launch_routing_validation.luau",
+    "tests/race_mode_validation.luau",
+    "tests/race_start_boost_validation.luau",
+    "tests/repeatable_nitro_validation.luau",
+    "tests/rookie_loop_fleet_validation.luau",
+    "tests/rookie_loop_manual_drive_validation.luau",
+    "tests/smoke_validation.luau",
+    "tests/straight_speed_kart_validation.luau",
+    "tests/thunder_validation.luau",
+    "tests/track01_figure8_environment_validation.luau",
+    "tests/track02_barrier_safety_b_validation.luau",
+    "tests/track02_raceability_b_validation.luau",
+    "tests/track03_four_player_validation.luau",
+    "tests/track_horizon_environment_validation.luau",
+    "tests/two_player_race_validation.luau",
+    "tests/v2_public_multiplayer_validation.luau",
+    "tests/current_release_contracts_validation.luau"
+  ],
+  "results": [
+    {
+      "test": "active_match_directory_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "activity_qualification_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "all_track_skid_contact_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "avatar_identity_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "boost_audio_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "boost_flame_fade_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.203
+    },
+    {
+      "test": "bot_curve_pursuit_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.282
+    },
+    {
+      "test": "bot_internal_control_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/bot_internal_control_validation:5: entire human input/physics/items unchanged; only exact Bot extension excluded",
+      "seconds": 0.14
+    },
+    {
+      "test": "bot_route_continuity_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 46.953
+    },
+    {
+      "test": "camera_motion_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "checkpoint_marker_alignment_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "chevron_standard_validation.luau",
+      "code": 1,
+      "error": "Track01Metro driving geometry unchanged",
+      "seconds": 0.313
+    },
+    {
+      "test": "combat_feedback_view_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "combat_hit_audio_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "compact_hub_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "current_release_contracts_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "datastore_idempotency_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 23.015
+    },
+    {
+      "test": "drift_telemetry_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "driver_finish_celebration_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "driver_pedal_pose_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "economy_v2_arcade_shop_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.14
+    },
+    {
+      "test": "economy_v2_driver_card_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "economy_v2_shop_navigation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.781
+    },
+    {
+      "test": "economy_v2_visual_fidelity_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.157
+    },
+    {
+      "test": "event_auto_bot_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "f60_c1_visual_layout_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "f60_c2_lobby_layout_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.687
+    },
+    {
+      "test": "figure8_desert_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 39.079
+    },
+    {
+      "test": "figure8_skid_contact_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.14
+    },
+    {
+      "test": "finish_celebration_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "finish_outcome_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "finish_presentation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "finish_runner_up_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "finish_sequence_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "finish_source_freeze_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/finish_source_freeze_validation:3: frozen server/gameplay/N1/cache/audio src/client/FinishCameraComposition.luau",
+      "seconds": 0.093
+    },
+    {
+      "test": "first60_hub_entry_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "first_race_onboarding_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "four_player_race_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "gameplay_balance_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "garage_h2_flow_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "garage_h2_kart_display_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "garage_polish_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "garage_transition_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.64
+    },
+    {
+      "test": "garage_two_player_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "gas_pedal_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.938
+    },
+    {
+      "test": "global_race_matchmaking_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "h1_drive_presence_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.14
+    },
+    {
+      "test": "h1_shared_drive_service_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "hub_next_action_guidance_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.672
+    },
+    {
+      "test": "hub_park_arrival_camera_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "hub_park_circuit_decor_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.547
+    },
+    {
+      "test": "hub_park_island_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.453
+    },
+    {
+      "test": "hub_park_reference_course_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "hub_park_rookie_loop_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.407
+    },
+    {
+      "test": "hub_park_startup_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "hub_park_world_initialization_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.75
+    },
+    {
+      "test": "hub_world_progression_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.641
+    },
+    {
+      "test": "impact_camera_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "invite_handoff_ui_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "invited_public_start_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "item_aftershock_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/item_aftershock_validation:3: exact L1/K2 canonical freeze src/client/KDMItemVFXController.luau",
+      "seconds": 0.703
+    },
+    {
+      "test": "item_local_vfx_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "item_preparation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "item_vfx_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.219
+    },
+    {
+      "test": "item_world_vfx_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "kart_audio_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "kart_contact_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "kart_v2_production_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "kart_visual_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.313
+    },
+    {
+      "test": "kdm_control_icon_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "kdm_driver_grip_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "kdm_icon_catalog_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "lap_item_refill_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "lobby_create_security_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "lobby_create_ui_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "lobby_demo_boost_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "lobby_demo_feedback_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "lobby_demo_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 19.797
+    },
+    {
+      "test": "lobby_drive_mobile_fix_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "lobby_driving_polish_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.187
+    },
+    {
+      "test": "lobby_palette_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/lobby_palette_validation:6: non-color source frozen GarageUiController",
+      "seconds": 0.234
+    },
+    {
+      "test": "lobby_post_drive_return_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "lobby_post_drive_view_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "lobby_practice_combat_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.438
+    },
+    {
+      "test": "lobby_practice_layout_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "lobby_practice_view_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "lobby_reference_oval_builder_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.172
+    },
+    {
+      "test": "lobby_shield_visual_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "lobby_showroom_test_drive_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "lobby_side_wings_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 2.125
+    },
+    {
+      "test": "lobby_speed_gauge_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "lobby_surface_drift_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "lobby_terminology_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/lobby_terminology_validation:3: all non-display catalog fields unchanged Track01Race",
+      "seconds": 0.125
+    },
+    {
+      "test": "lobby_test_drive_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "lobby_title_persistence_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "lobby_title_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "lobby_training_drift_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "lobby_vnext_showroom_loop_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.437
+    },
+    {
+      "test": "lobby_wall_service_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.391
+    },
+    {
+      "test": "m3_a2_presence_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "m3_a2_room_display_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.078
+    },
+    {
+      "test": "match_room_service_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "match_room_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "metro_city_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 4.578
+    },
+    {
+      "test": "metro_skid_contact_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "missile_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.14
+    },
+    {
+      "test": "mobile_controls_v1_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "mobile_hud_polish_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "mobile_reverse_transition_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "mobile_touch_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.266
+    },
+    {
+      "test": "multiplayer_foundation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "multiplayer_presentation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "p0_race_identity_integration_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.281
+    },
+    {
+      "test": "park_a1_island_visual_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/park_a1_island_visual_validation:4: accepted driving/gate source unchanged: src/shared/HubParkRookieLoopLayout.luau",
+      "seconds": 1.453
+    },
+    {
+      "test": "park_a2_landscaping_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/park_a2_landscaping_validation:5: approved road/drive/gate unchanged: src/server/HubParkRookieLoopBuilder.luau",
+      "seconds": 1.485
+    },
+    {
+      "test": "park_driver_feedback_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "park_flat_recovery_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.703
+    },
+    {
+      "test": "performance_followup_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 6.828
+    },
+    {
+      "test": "performance_vfx_followup_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "persistent_room_race_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "pit_garage_art_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "player_preferences_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "practice_crossover_visual_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.203
+    },
+    {
+      "test": "practice_figure8_feasibility_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.234
+    },
+    {
+      "test": "practice_figure8_geometry_validation.luau",
+      "code": 1,
+      "error": "frozen complete generated world Track01Race",
+      "seconds": 0.375
+    },
+    {
+      "test": "practice_figure8_race_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 2.0
+    },
+    {
+      "test": "practice_public_bot_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.453
+    },
+    {
+      "test": "practice_three_lap_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "production_bot_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.266
+    },
+    {
+      "test": "profile_records_integration_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "public_autostart_gate_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "public_kart_selection_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "public_race_controller_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "public_race_status_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "public_warmup_records_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "r8_a1_progression_mock_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.25
+    },
+    {
+      "test": "r8_a2_garage_binding_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "r8_a2_progression_runtime_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "r8_a2l1_canary_guidance_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "r8_a2l_datastore_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "r8_a3_boost_wire_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.953
+    },
+    {
+      "test": "r8_a3_controller_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.219
+    },
+    {
+      "test": "r8_a3_hud_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.328
+    },
+    {
+      "test": "r8_a3_personal_records_view_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "r8_a3_records_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "r8_a3_runtime_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "r8_a3_service_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.14
+    },
+    {
+      "test": "r8_a3b_eligibility_diagnostics_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "r8_a3b_full_race_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "r8_a3b_hud_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.235
+    },
+    {
+      "test": "r8_a3b_integration_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.343
+    },
+    {
+      "test": "r8_a3b_records_scroll_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "r8_a3b_route_anchor_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.86
+    },
+    {
+      "test": "r8_a4_economy_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 3.437
+    },
+    {
+      "test": "r8_a4_final_rank_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "r8_a4_hud_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.234
+    },
+    {
+      "test": "r8_a4_runtime_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.25
+    },
+    {
+      "test": "r8_a4_wing_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "r8_a5_shop_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.14
+    },
+    {
+      "test": "r8_a6_b_canary_grant_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "r8_a6_public_cash_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.437
+    },
+    {
+      "test": "r8_d1_slide_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.313
+    },
+    {
+      "test": "r8_d1_world_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.875
+    },
+    {
+      "test": "r8_d2_physics_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.234
+    },
+    {
+      "test": "r8_d2_presentation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.235
+    },
+    {
+      "test": "r8_d3_physics_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.234
+    },
+    {
+      "test": "r8_d3_world_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.016
+    },
+    {
+      "test": "r8_d4_camera_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "r8_d4_restore_camera_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.265
+    },
+    {
+      "test": "r8_p2b_record_diagnostics_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "r8_p2b_record_reset_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "r8_perf_display_lifecycle_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "r8_perf_gauge_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "r8_perf_monitors_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "r8_perf_p0_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/r8_perf_p0_validation:4: exact observer wrapper found",
+      "seconds": 0.109
+    },
+    {
+      "test": "r8_perf_p1_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/r8_perf_p1_validation:4: exact full simulation preservation",
+      "seconds": 0.156
+    },
+    {
+      "test": "r8_perf_p2_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.25
+    },
+    {
+      "test": "r8_perf_p2b_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "r8_perf_p2c_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.422
+    },
+    {
+      "test": "r8_perf_partner_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "race_audio_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "race_bot_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.156
+    },
+    {
+      "test": "race_checkpoint_and_dnf_reward_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "race_grid_placement_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "race_item_reset_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "race_item_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.828
+    },
+    {
+      "test": "race_jump_guard_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "race_launch_routing_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "race_loadout_slots_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "race_mode_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.656
+    },
+    {
+      "test": "race_network_ownership_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.844
+    },
+    {
+      "test": "race_presentation_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "race_result_hud_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.234
+    },
+    {
+      "test": "race_results_cache_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "race_room_coordinator_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "race_route_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.156
+    },
+    {
+      "test": "race_start_boost_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "rematch_reward_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.343
+    },
+    {
+      "test": "remote_world_vfx_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.438
+    },
+    {
+      "test": "repeatable_nitro_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "reserved_arrival_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "reserved_match_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "rojo_asset_preload_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "rookie_loop_bot_targeting_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.468
+    },
+    {
+      "test": "rookie_loop_demo_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/rookie_loop_demo_validation:6: legacy demo/audience/physics/RACE untouched src/shared/KartConfig.luau",
+      "seconds": 0.313
+    },
+    {
+      "test": "rookie_loop_fleet_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 2.407
+    },
+    {
+      "test": "rookie_loop_manual_drive_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "rookie_loop_skid_mark_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "rookie_park_trial_session_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.859
+    },
+    {
+      "test": "rookie_park_trial_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 4.578
+    },
+    {
+      "test": "rookie_park_trial_view_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.141
+    },
+    {
+      "test": "route_continuity_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 32.359
+    },
+    {
+      "test": "shield_restore_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.188
+    },
+    {
+      "test": "six_item_race_ui_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "slick_spin_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.11
+    },
+    {
+      "test": "slick_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "smoke_effect_view_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "smoke_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "source_freeze_release_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.266
+    },
+    {
+      "test": "speed_sensation_camera_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.156
+    },
+    {
+      "test": "speed_sensation_qa_target_r2_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "speed_sensation_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/speed_sensation_validation:4: frozen gameplay/geometry/audio/exhaust src/client/FinishCameraComposition.luau",
+      "seconds": 0.094
+    },
+    {
+      "test": "speed_world_vfx_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.562
+    },
+    {
+      "test": "start_finish_paint_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 3.532
+    },
+    {
+      "test": "starter_drive_hint_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.125
+    },
+    {
+      "test": "straight_speed_kart_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.906
+    },
+    {
+      "test": "straight_speed_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/straight_speed_validation:7: unchanged balance DRIFT",
+      "seconds": 0.25
+    },
+    {
+      "test": "studio_offline_memory_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.094
+    },
+    {
+      "test": "template_visual_asset_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.109
+    },
+    {
+      "test": "thunder_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "track01_figure8_environment_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.547
+    },
+    {
+      "test": "track02_barrier_safety_b_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.265
+    },
+    {
+      "test": "track02_published_binding_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/track02_published_binding_validation:5: PV545 Catalog parity",
+      "seconds": 0.11
+    },
+    {
+      "test": "track02_raceability_b_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.172
+    },
+    {
+      "test": "track03_four_player_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.687
+    },
+    {
+      "test": "track_circuit_structures_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.594
+    },
+    {
+      "test": "track_diorama_orbit_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.5
+    },
+    {
+      "test": "track_diorama_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.734
+    },
+    {
+      "test": "track_environment_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/track_environment_validation:17: Legacy gameplay output exactly matches accepted baseline",
+      "seconds": 0.313
+    },
+    {
+      "test": "track_h3_flow_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/track_h3_flow_validation:12: P1C preview + exact P2B fields only; all other catalog bytes frozen",
+      "seconds": 0.172
+    },
+    {
+      "test": "track_horizon_environment_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.843
+    },
+    {
+      "test": "track_preview_planting_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 3.219
+    },
+    {
+      "test": "track_road_ribbon_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "track_surface_standard_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.093
+    },
+    {
+      "test": "track_v2_geometry_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/track_v2_geometry_validation:8: unchanged catalog gameplay entry Track01Race",
+      "seconds": 0.547
+    },
+    {
+      "test": "track_visual_standard_validation.luau",
+      "code": 1,
+      "error": "Track01 exact Markings geometry/flags/attributes",
+      "seconds": 0.297
+    },
+    {
+      "test": "two_player_race_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 0.172
+    },
+    {
+      "test": "v2_gauge_v1_audio_validation.luau",
+      "code": 1,
+      "error": "C:\\dev\\RobloxKart\\tests/v2_gauge_v1_audio_validation:3: stable assets/input plus approved audio exception src/shared/AudioConfig.luau",
+      "seconds": 0.14
+    },
+    {
+      "test": "v2_public_multiplayer_validation.luau",
+      "code": 0,
+      "error": "",
+      "seconds": 1.516
+    }
+  ],
+  "riskEvidence": {
+    "public_warmup_records_validation": "R3_TRACE warmup COMPLETE FINISHED DNF 66.3\nPASS 13 public warm-up completed-race observer checks\n",
+    "r8_a4_runtime_validation": "PASS: 60 API-shape records runtime outage, replay, concurrent selection and index-repair checks\nR3_TRACE ACK 12500 7500 true\nR3_TRACE Studio records 0 RATE_LIMITED\nPASS: 40 actual server service HUB/Reserved wiring checks with injected Roblox API mocks; live calls zero\n",
+    "r8_a6_public_cash_validation": "R3_TRACE fresh true FOUND 5000\nR3_TRACE fresh true FOUND 5000\nR3_TRACE fresh true FOUND 5000\nPASS: 476 R8-A6 public policy, actual account/official race/Shop facades, outages, reconnect and independent-server atomic mock checks; live DataStore calls ZERO\n",
+    "lobby_shield_visual_validation": "R3_TRACE Shield Kart_1 true 1\nR3_TRACE Shield Kart_2 true 1\nPASS: 82 production world-VFX checks (2 racers, 2 repeated cycles)\nPASS: 14 actual local/remote practice Shield parity, block flash, exhaust ownership and expiry checks\n",
+    "rookie_loop_manual_drive_validation": "R3_TRACE origin true -65 0 1\nPASS 3358 RookieLoop manual drive corridor / pit / start / containment checks\n",
+    "r8_perf_p2c_validation": "R3_TRACE capacity 3207 3013 3000000\nPASS: 78 P2C save/receipt/nonrecord preservation, byte-limit and public-OFF assertions\n"
+  },
+  "privateStudio": {
+    "universe": 10772198697,
+    "place": 106553302629620,
+    "editVersionObserved": 104,
+    "candidateStartObserved": 50,
+    "parkHub": true,
+    "trialPhase": "RUNNING",
+    "seated": true,
+    "published": false,
+    "afterProbe": "Play stopped, original55/80/delta3 restored in Edit",
+    "privateAccessSettingReverified": false,
+    "exactOriginalFovRestored": true
+  },
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-r3-phir5whc\\full",
+  "additionalHistoricalModes": [
+    {
+      "test": "practice_public_bot_validation",
+      "mode": "--historical",
+      "code": 1,
+      "log": "C:\\dev\\RobloxKart\\tests/practice_public_bot_validation:24: historical P2B bytes src/shared/TrackCatalog.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests/practice_public_bot_validation', Line 24\n    Script 'C:\\dev\\RobloxKart\\tests/practice_public_bot_validation', Line 38\n[Stack End]\n\n"
+    },
+    {
+      "test": "v2_public_multiplayer_validation",
+      "mode": "--historical",
+      "code": 1,
+      "log": "C:\\dev\\RobloxKart\\tests/v2_public_multiplayer_validation:10: historical checkpoint/fixture preserved src/shared/TrackGeometry.luau\n[Stack Begin]\n    Script '[C]' - function 'assert'\n    Script 'C:\\dev\\RobloxKart\\tests/v2_public_multiplayer_validation', Line 10\n    Script 'C:\\dev\\RobloxKart\\tests/v2_public_multiplayer_validation', Line 49\n[Stack End]\n\n"
+    }
+  ]
+}

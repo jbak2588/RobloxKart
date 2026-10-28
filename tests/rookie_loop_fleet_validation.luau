@@ -6,7 +6,7 @@ local function check(v, m) assert(v, m); n += 1 end
 
 local policy = luau.load(fs.readFile('src/shared/LobbyPracticePolicy.luau'), { environment = { Color3 = rb.Color3 } })()
 check(policy.BotFleet ~= nil, 'BotFleet table defined in LobbyPracticePolicy')
-check(#policy.BotFleet == 4, 'BotFleet contains exactly 4 bots')
+check(#policy.BotFleet == 7, 'BotFleet contains exactly 4 bots')
 
 local delays = {}
 local kartIds = {}
@@ -29,7 +29,7 @@ prefix = prefix:gsub("zone:SetAttribute%('Center',rb.Vector3.new%(120,0,766%)%)"
 
 local testScript = [[
 local c, p, q = fresh()
-check(#c.bots == 4, 'server spawned 4 practice bots for RookieLoop')
+check(#c.bots == 7, 'server spawned 4 practice bots for RookieLoop')
 check(c.bot == c.bots[1], 'c.bot backward compatibility points to bot 1')
 
 -- At t=0, only bot 1 is active
@@ -52,9 +52,9 @@ check(c:valid(c.bots[3]), 'bot 3 activated after 60s')
 check(not c:valid(c.bots[4]), 'bot 4 inactive before 90s')
 
 -- Advance to t=95s -> all 4 bots active
-tick(30)
+tick(120) -- t185: every30s activation through the seventh color
 check(c:valid(c.bots[4]), 'bot 4 activated after 90s')
-for i = 1, 4 do
+for i = 1, 7 do
  check(c:valid(c.bots[i]), 'all 4 bots active at t=95: bot ' .. i)
  check(c.bots[i].record.kart:GetAttribute('BotActive') == true, 'replicated BotActive attribute true for bot ' .. i)
  check(c.bots[i].record.kart:GetAttribute('KartId') == policy.BotFleet[i].kartId, 'replicated KartId matches for bot ' .. i)

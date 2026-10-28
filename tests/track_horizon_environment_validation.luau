@@ -1,7 +1,7 @@
 -- Comprehensive validation for KDM Low-Poly Horizon Environment (H0 + H1 + H1-C1 + H1-C2 + H1-C3 + H1-C4).
 -- Verifies H1-C4 Full Natural Tree Replacement (16 Natural Trees = 4 original + 12 replacements, 32 MeshParts)
--- + Server PracticePine suppression on RACE Track01 (VisualPartCount 1366 -> 1318, PracticeTreeCount = 0)
--- + Server PracticePine preservation on HUB Track01 (VisualPartCount = 1366, PracticeTreeCount = 12)
+-- + Server PracticePine suppression on RACE Track01 (VisualPartCount 1054 -> 1006, PracticeTreeCount = 0)
+-- + Server PracticePine preservation on HUB Track01 (VisualPartCount = 1054, PracticeTreeCount = 12)
 -- + H1-C2 Green Valley Ground Continuity (GroundTransition: 6 seamless non-colliding parts)
 -- + H1-C1 Mountain Meshes (Mountains: HorizonMountainA & HorizonMountainB),
 -- zero-tolerance guards against Lobby/Hub pollution, exact Figure8 clearance (>= 25 studs crown clearance from road edge),
@@ -255,16 +255,16 @@ local track01Race = catalog.Entries.Track01Race
 local track02 = catalog.Entries.Track02
 local track03 = catalog.Entries.Track03
 
--- 1. Verify Non-RACE Server TrackBuilder Output (VisualRails=130, SpeedCues=16, Base=1220 => Total=1366, PracticePines=12)
+-- 1. Verify Non-RACE Server TrackBuilder Output (current VisualRails=88, SpeedCues=0, Total=1054, PracticePines=12)
 local prototypeFolder = object("Folder")
 prototypeFolder.Name = "Prototype"
 prototypeFolder.Parent = workspace
 
 workspace:SetAttribute("KDMServerRole", "HUB")
 local world01Hub = builder.build(prototypeFolder, track01, 0)
-check(world01Hub:GetAttribute("VisualPartCount") == 1366, "HUB Track01 server VisualPartCount preserved at 1366")
-check(world01Hub:GetAttribute("VisualRailPartCount") == 130, "HUB Track01 server VisualRailPartCount unchanged at 130")
-check(world01Hub:GetAttribute("SpeedCuePartCount") == 16, "HUB Track01 server SpeedCuePartCount unchanged at 16")
+check(world01Hub:GetAttribute("VisualPartCount") == 1054, "HUB Track01 server VisualPartCount preserved at 1054")
+check(world01Hub:GetAttribute("VisualRailPartCount") == 88, "HUB Track01 server VisualRailPartCount unchanged at 88")
+check(world01Hub:GetAttribute("SpeedCuePartCount") == 0, "HUB Track01 server SpeedCuePartCount current0")
 check(world01Hub:GetAttribute("PracticeTreeCount") == 12, "HUB Track01 server PracticeTreeCount preserved at 12")
 check(world01Hub:GetAttribute("NaturalTreeLegacyAnchorCount") == 12, "HUB Track01 publishes 12 legacy tree anchors")
 
@@ -275,10 +275,10 @@ for _, c in hubLandmarks:GetChildren() do
 end
 check(hubPineCount == 12, "HUB Track01 Environment.PracticeLandmarks contains exactly 12 PracticePine models")
 
--- 2. Verify RACE Server TrackBuilder Output (PracticePines=0, VisualPartCount = 1366 - 48 = 1318)
+-- 2. Verify RACE Server TrackBuilder Output (PracticePines=0, VisualPartCount = 1054 - 48 = 1006)
 workspace:SetAttribute("KDMServerRole", "RACE")
 local world01Active = builder.build(prototypeFolder, track01, 0)
-check(world01Active:GetAttribute("VisualPartCount") == 1318, "RACE Track01 server VisualPartCount reduced by 48 to 1318")
+check(world01Active:GetAttribute("VisualPartCount") == 1006, "RACE Track01 server VisualPartCount reduced by 48 to 1006")
 check(world01Active:GetAttribute("PracticeTreeCount") == 0, "RACE Track01 server PracticeTreeCount is strictly 0")
 check(world01Active:GetAttribute("NaturalTreeLegacyAnchorCount") == 12, "RACE Track01 publishes 12 legacy tree anchors")
 
@@ -653,7 +653,7 @@ end
 -- Verify default.project.json configuration for Terrain Decoration
 local projJson = fs.readFile("default.project.json")
 check(projJson:find('"Decoration": true', 1, true) ~= nil, "default.project.json has Terrain.Decoration = true")
-check(projJson:find('"GrassLength": 0.7', 1, true) ~= nil, "default.project.json has Terrain.GrassLength = 0.7")
+check(projJson:find('"GrassLength": 0.1', 1, true) ~= nil, "default.project.json has Terrain.GrassLength = 0.1")
 
 horizonController.destroy()
 

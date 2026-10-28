@@ -10,9 +10,10 @@ for _,route in {layout.Segments,layout.Pit.segments}do
  end
 end
 for _,s in layout.Slots do check(geom.inside(s.x,s.z,7),'manual spawn on pit, not grass')end
-check(not geom.inside(0,0),'Lobby island excluded')
+print('R3_TRACE origin',geom.inside(0,0),geom.contact(0,0))
+check(geom.inside(0,0) and geom.contact(0,0)<0,'origin is island land but outside drivable road contact')
 check(not geom.inside(2000,2000),'outside rejected')
-check(geom.crossesBoundary(-200,layout.StartStraightZ,-200,280),'jump through island rejected')
+check(geom.crossesBoundary(0,0,layout.Island.maxX+100,0),'jump through island rejected')
 check(math.abs(layout.Plaza.z+58)<.01 and layout.Walkway.z+layout.Walkway.length/2>=-24,'short walkway reaches building entrance')
 local policy=luau.load(fs.readFile('src/shared/LobbyDrivePolicy.luau'))()
 for _,s in layout.Slots do check(policy.fits(geom,s.x,s.z,1,0),'full rectangular kart fits start')end

@@ -20,7 +20,7 @@ require('./helpers/world_vfx_harness')(4,4,function(h)
  for _,kart in h.karts do
   local n=0
   for _,o in kart:GetDescendants() do if o.Name=='DriftTireTrail' then
-   n+=1;assert(o.Enabled and o.Lifetime==6.0,'persistent grounded marks visible')
+   n+=1;assert(o.Enabled and o.Lifetime==2.5,'persistent grounded marks visible')
    assert(math.abs(o.Attachment0.WorldPosition.Y-.04)<1e-6,'visual road projection above physical support')
   end end
   assert(n==2,'one rear tire pair per kart')
@@ -30,7 +30,7 @@ require('./helpers/world_vfx_harness')(4,4,function(h)
  h.workspace.noGround=true;h.tick(.05)
  for _,kart in h.karts do for _,o in kart:GetDescendants() do if o.Name=='DriftTireTrail' then assert(not o.Enabled,'no aerial marks')end end end
  h.workspace.noGround=false;h.tick(.05)
- for _,kart in h.karts do kart.PrimaryPart.CFrame=rb.CFrame.new(300,0,0) end
+ for _,kart in h.karts do kart.PrimaryPart.CFrame=rb.CFrame.new(3000,0,0) end
  h.tick(.05)
  for _,kart in h.karts do for _,o in kart:GetDescendants() do if o.Name=='DriftTireTrail' then assert(not o.Enabled,'no marks outside visual road')end end end
  for _,kart in h.karts do kart.PrimaryPart.CFrame=rb.CFrame.identity end

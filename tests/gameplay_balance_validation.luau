@@ -74,6 +74,7 @@ local KartConfig = {
 return table.freeze(KartConfig)
 
 end)()
+check(loadConfig('src/shared/KartConfig.luau').OFF_TRACK_BOOST_SPEED_MULTIPLIER==.80,'approved off-track boost multiplier')
 local actualKartConfig = loadConfig("src/shared/KartConfig.luau")
 for key, value in expectedKartConfig do
 	check(actualKartConfig[key] == value and type(actualKartConfig[key]) == type(value), "baseline KartConfig "..key)
@@ -81,7 +82,7 @@ end
 local straightKeys = {STRAIGHT_SPEED_ENABLED=true,STRAIGHT_MAX_SPEED=80,STRAIGHT_LOOK_AHEAD=90,
  STRAIGHT_ENTER_MAX_TURN=4,STRAIGHT_EXIT_MAX_TURN=7,STRAIGHT_EVALUATION_INTERVAL=.10,STRAIGHT_EXIT_DECELERATION=20}
 for key,expected in straightKeys do check(actualKartConfig[key]==expected,"K1A adapter "..key) end
-for key in actualKartConfig do check(expectedKartConfig[key] ~= nil or straightKeys[key] ~= nil or key=='ARCADE_DRIFT' or key=='DRIFT_CAMERA' or key=='V2_FINISH_CAMERA_HEIGHT' or key=='V2_FINISH_CAMERA_SIDE', "no unapproved public key "..key) end
+for key in actualKartConfig do check(expectedKartConfig[key] ~= nil or straightKeys[key] ~= nil or key=='ARCADE_DRIFT' or key=='DRIFT_CAMERA' or key=='V2_FINISH_CAMERA_HEIGHT' or key=='V2_FINISH_CAMERA_SIDE' or key=='OFF_TRACK_BOOST_SPEED_MULTIPLIER', "no unapproved public key "..key) end
 for key,value in balance.DRIFT.RearSlide do check(actualKartConfig.ARCADE_DRIFT[key]==value,'approved D1 tuning adapter '..key) end
 check(type(balance.DRIFT.MinSpeed) == "number" and actualKartConfig.DRIFT_MIN_SPEED == balance.DRIFT.MinSpeed, "adapter DRIFT_MIN_SPEED")
 check(type(balance.DRIFT.ExitSpeed) == "number" and actualKartConfig.DRIFT_EXIT_SPEED == balance.DRIFT.ExitSpeed, "adapter DRIFT_EXIT_SPEED")

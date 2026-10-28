@@ -28,9 +28,9 @@ env.require = function(module) if module==wingScript then return wing end;assert
 local factory = luau.load(fs.readFile('src/shared/KartVisualFactory.luau'),{environment=env})()
 local catalog = luau.load(fs.readFile('src/shared/KartCatalog.luau'),{environment=env})()
 check(catalog.DefaultId=='Kart05' and #catalog.Order==11,'Cyan default and eleven selections')
-local sprintSeat=rb.CFrame.new(0,1.5,.5)
+local sprintSeat=rb.CFrame.new(0,.06,.5)
 local v2Seat=builder.DriverSeatLocalCFrame
-check(v2Seat:FuzzyEq(rb.CFrame.new(0,.06000018119812012,.5),.000001),'measured source-to-bucket Seat contract')
+check(v2Seat:FuzzyEq(rb.CFrame.new(0,-.79,.5),.000001),'measured source-to-bucket Seat contract')
 check(v2Seat~=sprintSeat,'V2 cannot accidentally retain Sprint Seat')
 for index=1,4 do
  check(factory.getDriverSeatLocalCFrame(catalog.Entries['Kart0'..index])==sprintSeat,'Sprint Seat unchanged')
@@ -85,7 +85,9 @@ for _, id in v2Ids do
   if row.size then
    local part=atPath(visual,row.path)
    check(part.ClassName==row.class and part.Size:FuzzyEq(rb.Vector3.new(table.unpack(row.size)),.00001),'approved size/class')
-   check(part.CFrame:FuzzyEq(rb.CFrame.new(table.unpack(row.cf)),.00001),'approved local position/orientation')
+   local expectedFrame=rb.CFrame.new(table.unpack(row.cf))
+   if row.path[1]=='SteeringPivot' or row.path[#row.path]=='VisualSeat' then expectedFrame=expectedFrame*rb.CFrame.new(0,-.65,.25)end
+   check(part.CFrame:FuzzyEq(expectedFrame,.00001),'approved lowered wheel/seat local position/orientation')
    if row.mesh then
     check(part.MeshContent.Uri==row.mesh,'approved original mesh')
     check(part.InitialSize:FuzzyEq(rb.Vector3.new(table.unpack(row.meshSize)),.00002),'native serialized mesh size is preserved')
