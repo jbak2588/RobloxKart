@@ -2,6 +2,18 @@
 
 Read this before editing the project.
 
+## Park seated-avatar collision isolation — owner approval 2026-10-28
+
+Owner authorizes Park-only avatar contact isolation, commit/push and official
+Publish. Assign ParkDriver only during Rookie Park kart sessions, including
+Countdown/finish/Replay; late accessory handles inherit it. Disable contact with
+ParkDriver/LobbyAvatar/LobbyKart, retain ordinary world collision and existing
+kart-to-boundary rules. After weld teardown return to LobbyAvatar; restore exact
+original groups on character cleanup. Walking Hub and official driver policies,
+course/start/finish geometry, motion and server ownership remain unchanged.
+See docs/testing/park_driver_collision_20261028.md; native proxy contact evidence
+is distinct from reproducing two actual mobile drivers' finish-line encounter.
+
 ## Speed sensation / V3.2 production release — owner approval 2026-10-28
 
 Owner confirms mobile testing complete and authorizes consolidation, commit/push

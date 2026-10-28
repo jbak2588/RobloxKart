@@ -12,6 +12,8 @@ VFX_PATH = 'src/client/KartWorldSpeedRenderer.luau'
 # Owner accepted mobile-tested V3.2 and authorized production release2026-10-28.
 # Pin independently of the manifest; retain every historical/base hash.
 VFX_SHA256 = '0c606e01d8c63e3938430730d49ca033663033fd648bb833690bb300e2e0e1fb'
+PARK_PATH = 'src/server/LobbyTestDriveService.luau'
+PARK_SHA256 = '7af484a2ee7f089f673d938c04d6e3fae33d7ead8abe1e208d8dfb36bbbfbd3a'
 FOV_CHANGES = [('Speed.HIGH_SPEED_START = 55', 'Speed.HIGH_SPEED_START = 50'),
                ('Speed.HIGH_SPEED_FULL = 80', 'Speed.HIGH_SPEED_FULL = 90'),
                ('HIGH_SPEED = table.freeze({FovDelta=3,', 'HIGH_SPEED = table.freeze({FovDelta=5,')]
@@ -68,7 +70,8 @@ def audit():
                          and digest(canonical(current))==r3['sha256']
                          and canonical(current).count(r3['after'].encode())==1
                          and canonical(current).replace(r3['after'].encode(),r3['before'].encode(),1)==canonical(base) for r3 in patches)
-            category = ('OWNER_VFX_V3_2' if path == VFX_PATH and digest(canonical(current)) == VFX_SHA256
+            category = ('OWNER_PARK_DRIVER_COLLISION' if path == PARK_PATH and digest(canonical(current)) == PARK_SHA256
+                        else 'OWNER_VFX_V3_2' if path == VFX_PATH and digest(canonical(current)) == VFX_SHA256
                         else 'OWNER_R3_POLICY_PATCH' if owner_patch else 'FOV_PHASE1' if local_changed and path == FOV_PATH and canonical(current) == candidate
                         else 'UNKNOWN_LOCAL' if local_changed else 'APPROVED_HEAD' if base_hash not in [expected, *alternatives] else 'HISTORICAL_MATCH')
             rows.append(dict(family=family, path=path, expected=expected, alternatives=alternatives,
@@ -109,6 +112,12 @@ if __name__ == '__main__':
             assert entry['sha256']==digest(original), path
             assert entry['lastCommit']==git('log','-1','--format=%H',APPROVED,'--',path).decode().strip(), path
             allowed=[original]
+            if path==PARK_PATH:
+                assert manifest['parkDriverCollisionPatch']['path']==PARK_PATH
+                assert manifest['parkDriverCollisionPatch']['sha256']==PARK_SHA256
+                current_park=canonical((ROOT/path).read_bytes())
+                assert digest(current_park)==PARK_SHA256, 'Park collision-only source must match exact reviewed approval'
+                allowed.append(current_park)
             if path==VFX_PATH:
                 assert manifest['speedV2Phase1Patch']['path']==VFX_PATH
                 assert manifest['speedV2Phase1Patch']['sha256']==VFX_SHA256

@@ -695,6 +695,11 @@
     "path": "src/server/RaceRecordOperations.luau",
     "sha256": "5fd432caf39f6b09cc1c06a8ade16a52af9b74730dc3bf8b51dc47a71a6306bc"
   },
+  "parkDriverCollisionPatch": {
+    "approval": "Owner2026-10-28: Park-only seated avatar isolation, original groups restored, commit/push and production Publish authorized.",
+    "path": "src/server/LobbyTestDriveService.luau",
+    "sha256": "7af484a2ee7f089f673d938c04d6e3fae33d7ead8abe1e208d8dfb36bbbfbd3a"
+  },
   "schema": 1,
   "scope": "Union of all historical N1/N2 targets plus exact src files changed by f5ebec8; immutable canonical LF full-file hashes, no normalization exceptions.",
   "speedV2Phase1Patch": {

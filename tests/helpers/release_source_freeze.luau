@@ -35,6 +35,10 @@ function Freeze.accepts(manifest,path,source)
   if serde.hash('sha256',restored)==entry.sha256 then return true,'FOV_PHASE1' end
  end
  local speedV2=manifest.speedV2Phase1Patch
+ local park=manifest.parkDriverCollisionPatch
+ if park and path=='src/server/LobbyTestDriveService.luau' and path==park.path and hash==park.sha256 then
+  return true,'PARK_DRIVER_COLLISION'
+ end
  if speedV2 and path==speedV2.path and hash==speedV2.sha256 then
   return true,'SPEED_V2_PHASE1'
  end

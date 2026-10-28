@@ -36,7 +36,7 @@ local function generation(player)
  player:SetAttribute("LobbyDriveGeneration",generations[player]);return generations[player]
 end
 function Service.configureCollision()
- for _,name in {"LobbyKart","LobbyAvatar","LobbyBoundary"} do
+ for _,name in {"LobbyKart","LobbyAvatar","LobbyBoundary","ParkDriver"} do
   if not Physics:IsCollisionGroupRegistered(name) then Physics:RegisterCollisionGroup(name) end
  end
  Physics:CollisionGroupSetCollidable("LobbyKart","LobbyKart",false)
@@ -46,10 +46,18 @@ function Service.configureCollision()
  Physics:CollisionGroupSetCollidable("LobbyBoundary","Default",false)
  Physics:CollisionGroupSetCollidable("LobbyBoundary","LobbyAvatar",false)
  Physics:CollisionGroupSetCollidable("LobbyBoundary","LobbyKart",true)
+ -- Park drivers remain world-collidable, but cannot push another seated
+ -- driver (or a walking Hub avatar) through their SeatWeld assemblies.
+ Physics:CollisionGroupSetCollidable("ParkDriver","ParkDriver",false)
+ Physics:CollisionGroupSetCollidable("ParkDriver","LobbyAvatar",false)
+ Physics:CollisionGroupSetCollidable("ParkDriver","LobbyKart",false)
+ Physics:CollisionGroupSetCollidable("ParkDriver","LobbyBoundary",false)
+ Physics:CollisionGroupSetCollidable("ParkDriver","Default",true)
  for _,name in {"RacerKart","RacerDriver"} do
   if Physics:IsCollisionGroupRegistered(name) then
    Physics:CollisionGroupSetCollidable("LobbyBoundary",name,false)
    Physics:CollisionGroupSetCollidable("LobbyKart",name,false)
+   Physics:CollisionGroupSetCollidable("ParkDriver",name,false)
   end
  end
 end
@@ -63,11 +71,23 @@ local function bindCharacter(player,character)
  restoreCharacter(player)
  if not started then return end
  local parts={}
+ local binding={parts=parts,character=character,parkDriver=false}
  local function assign(part)
-  if part:IsA("BasePart") then parts[part]=part.CollisionGroup;part.CollisionGroup="LobbyAvatar" end
+  if part:IsA("BasePart") then
+   if parts[part]==nil then parts[part]=part.CollisionGroup end
+   part.CollisionGroup=if binding.parkDriver then "ParkDriver" else "LobbyAvatar"
+  end
  end
  for _,part in character:GetDescendants() do assign(part) end
- bindings[player]={parts=parts,added=character.DescendantAdded:Connect(assign)}
+ binding.added=character.DescendantAdded:Connect(assign);bindings[player]=binding
+end
+local function setParkDriver(player,active)
+ local binding=bindings[player]
+ if not binding or binding.character~=player.Character then return end
+ binding.parkDriver=active
+ for part in binding.parts do
+  if part.Parent then part.CollisionGroup=if active then "ParkDriver" else "LobbyAvatar" end
+ end
 end
 local function inside(position,margin)
  local c=zone:GetAttribute("Center");return Geometry.inside(position.X-c.X,position.Z-c.Z,margin)
@@ -101,6 +121,7 @@ function Service.stop(player,reason,returnToHub)
  while record.humanoid.Parent and (record.humanoid.SeatPart==record.seat or record.seat.Occupant==record.humanoid) and os.clock()<deadline do RunService.Heartbeat:Wait() end
  record.kart:Destroy()
  RunService.Heartbeat:Wait();RunService.Heartbeat:Wait()
+ setParkDriver(player,false)
  local function validReturn()
   return record.returnToHub and player.Parent and player.Character==record.character
    and record.character.Parent and record.humanoid.Health>0 and not record.humanoid.SeatPart
@@ -193,6 +214,8 @@ local function drive(player,previewKartId)
  local record={qualification=Qualification.new(),kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
   throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,boundaryPrevious=frame.Position,slot=slot,seated=false,training=Drift.new()}
  records[player]=record
+ -- Only Rookie Park has a timeTrial adapter; legacy Hub driving is unchanged.
+ if timeTrial then setParkDriver(player,true) end
  record.gridFrame=frame
  record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
   local occupant=seat.Occupant

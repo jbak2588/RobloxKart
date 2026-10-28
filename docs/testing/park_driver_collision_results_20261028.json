@@ -1,0 +1,33 @@
+{
+  "baseline": "f3c9babab74f09f403813df6fa3883adaeb9ffd2",
+  "total": 250,
+  "pass": 230,
+  "historicalFailures": [
+    "bot_internal_control_validation.luau",
+    "chevron_standard_validation.luau",
+    "finish_source_freeze_validation.luau",
+    "item_aftershock_validation.luau",
+    "lobby_palette_validation.luau",
+    "lobby_terminology_validation.luau",
+    "park_a1_island_visual_validation.luau",
+    "park_a2_landscaping_validation.luau",
+    "practice_figure8_geometry_validation.luau",
+    "r8_perf_p0_validation.luau",
+    "r8_perf_p1_validation.luau",
+    "rookie_loop_demo_validation.luau",
+    "speed_sensation_validation.luau",
+    "straight_speed_validation.luau",
+    "track02_published_binding_validation.luau",
+    "track_environment_validation.luau",
+    "track_h3_flow_validation.luau",
+    "track_v2_geometry_validation.luau",
+    "track_visual_standard_validation.luau",
+    "v2_gauge_v1_audio_validation.luau"
+  ],
+  "newFailures": [],
+  "nativePhysics": "welded avatar proxy positive21.048stud, fixed0stud; two mobile drivers not reproduced",
+  "sourceIntegrityChecks": 683,
+  "audit": "PASS",
+  "rojoBuild": "PASS",
+  "fullSuitePass": false
+}
