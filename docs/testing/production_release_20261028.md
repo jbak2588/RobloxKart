@@ -60,7 +60,26 @@ HubParkV1Enabled / KDMControlsV1Preview / KDMGasPedalEnabled remain true.
 No full-world sync, geometry mutation, ownership write, account migration or
 server restart. QA access settings remain untouched.
 
-Publication receipt and release commit are recorded below after verified completion.
+## Verified publication receipt
+
+- Status: PRODUCTION_PUBLISHED, Place version **1238**.
+- Creator Dashboard published-only history confirms1238 at October28,2026,
+  9:27PM (dashboard local display). Previous published1234 remains recoverable.
+- Source/test/contract commit: `317a844`; pre-Publish pushed HEAD: `86350f6`.
+  Later commits contain document cleanup and this receipt only.
+- Native official Studio File > Publish (Alt+P), exact production pair above.
+- QA Overview re-read after production Publish: Game access Private and Audience
+  reach Private. No QA access-setting mutation.
+- Post-Publish inventory:222/222 project source hashes match validated local;
+  all231 script hashes unchanged since the one-module synchronization; all three
+  Workspace release flags still true. No server restart or QA Publish performed.
+- [Published version history](https://create.roblox.com/dashboard/creations/experiences/10768420544/places/127925465904803/version-history)
+- [Official game](https://www.roblox.com/games/127925465904803/)
+- Working and baseline-to-release `git diff --check` PASS after imported document
+  formatting cleanup. Original R1 audit content/bytes restored and retained.
+- User-reported mobile acceptance precedes this release. Post-publication
+  real-device re-entry is not independently replayed here; existing live jobs
+  were not forcibly restarted.
 
 ## Rollback
 

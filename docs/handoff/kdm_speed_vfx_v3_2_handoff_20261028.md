@@ -119,4 +119,3 @@ Speed 91: MaxLen=3.413 studs (75.8% of Nitro, Target: 91/120 = 75.8%)
    - Confirm that during corner drift, the orange rocket flame stays continuously lit without interruption.
    - Confirm that upon Mini Boost exit, the flame transitions cleanly from orange to electric blue.
 3. Upon owner's final acceptance, request explicit authorization if a git commit/push is desired.
-

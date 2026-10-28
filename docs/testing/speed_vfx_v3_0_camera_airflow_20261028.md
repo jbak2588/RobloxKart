@@ -100,4 +100,3 @@
 - **Squash Formula**: $\text{Squash} = \text{Length} / \text{Thickness}$ ($3.0 / 0.04 = 75$, $6.0 / 0.06 = 100$, $9.0 / 0.08 = 112.5$).
 - **Render Issue**: At $d = 16\text{ studs}$, thickness 0.04 stud is only $\approx 1.98\text{ pixels}$. Stretching radial `smoke_main.dds` creates extreme alpha dilution at ~2px width, becoming virtually invisible.
 - **Solution**: Linear streak/beam texture + thickness increase to 0.12 ~ 0.20 stud (~6..10px) with Squash 15..25.
-

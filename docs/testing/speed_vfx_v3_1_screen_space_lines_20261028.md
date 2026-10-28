@@ -56,4 +56,3 @@
 
 **Source SHA256 (`src/client/KartWorldSpeedRenderer.luau`)**:
 `226fe315359e3803d5f6fae84733af47f20a11c5f3554cf96b094f7a77cce9c2`
-

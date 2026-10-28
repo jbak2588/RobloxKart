@@ -52,4 +52,3 @@ C:/Users/Public/Documents/ESTsoft/CreatorTemp/kdm-fov-private-publish-8e0sn9jl/
 - validation-only.rbxlx: 검증 전용 빌드. 게시하지 않음.
 
 QA는 Private이며, 실제 모바일 수용성 검증은 미완료입니다.
-

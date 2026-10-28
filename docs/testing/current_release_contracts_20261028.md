@@ -1,5 +1,14 @@
 # Current approved release contracts — 2026-10-28 (R3)
 
+> Later release status2026-10-28: owner confirmed mobile acceptance and authorized
+> commit/push plus official Publish. The approved R3 eligibility guard and label
+> repair are included in source commit317a844 and official Place version1238.
+> Project source hashes matched before and after native Publish; dashboard's
+> published-only history confirms the version. This is deployment evidence, not
+> a claim of live Wallet/DataStore transaction testing. See
+> [release receipt](production_release_20261028.md). R3 checkpoint statements
+> below are preserved as historical context.
+
 Baseline: `f5ebec8c7f86dac5c488f90a0a01041d147cf4a2`, local/origin verified equal.
 Unless explicitly marked **OWNER_APPROVED_LOCAL**, entries below are
 **GIT_APPROVED**: immutable source in that owner-approved release. The owner separately confirms the published shop rules are current.

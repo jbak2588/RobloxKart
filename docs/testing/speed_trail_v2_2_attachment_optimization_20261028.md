@@ -51,14 +51,14 @@
 @@ -120,23 +120,25 @@
 -	-- Trails: index 1 & 2 = Primary flank ribbons; index 3 & 4 = Secondary upper cowl ribbons
 +	-- Trails: index 1 & 2 = Primary rear bumper ribbons; index 3 & 4 = Secondary upper cowl slipstream
- 	for index = 1, 4 do
- 		local isPrimary = index <= 2
- 		local side = if index % 2 == 1 then -1 else 1
- 		local wheel = if side < 0 then wheels.Left else wheels.Right
+    for index = 1, 4 do
+        local isPrimary = index <= 2
+        local side = if index % 2 == 1 then -1 else 1
+        local wheel = if side < 0 then wheels.Left else wheels.Right
 +		local xPrimary = (wheel.Center.X + side * (wheel.Width * 0.5 + 0.12)) * 0.85
 +		local zPrimary = wheel.Center.Z + 1.40
- 		local x, yLow, yHigh, z
- 		if isPrimary then
+        local x, yLow, yHigh, z
+        if isPrimary then
 -			x = wheel.Center.X + side * (wheel.Width * 0.5 + 0.12)
 -			yLow = wheel.Center.Y - 0.5
 -			yHigh = wheel.Center.Y + 0.5
@@ -67,25 +67,25 @@
 +			yLow = wheel.Center.Y + 0.35
 +			yHigh = wheel.Center.Y + 0.85
 +			z = zPrimary
- 		else
+        else
 -			-- Secondary: elevated above rear cowl/fender, inset to X=±3.40, clear separation from primary
 -			x = side * 3.40
 -			yLow = wheel.Center.Y + 0.85
 +			-- Secondary: elevated above rear cowl/fender, wider and forward from primary
 +			x = xPrimary + side * 0.70
 +			yLow = wheel.Center.Y + 1.05
- 			yHigh = wheel.Center.Y + 1.45
+            yHigh = wheel.Center.Y + 1.45
 -			z = wheel.Center.Z - 0.70
 +			z = zPrimary - 0.50
- 		end
- 		for edge = 1, 2 do
- 			local attachment = Instance.new("Attachment")
+        end
+        for edge = 1, 2 do
+            local attachment = Instance.new("Attachment")
 @@ -194,3 +196,3 @@
- 		local point = Instance.new("Attachment")
- 		point.Name = "KDMSpeedVortexPoint" .. sideName
+        local point = Instance.new("Attachment")
+        point.Name = "KDMSpeedVortexPoint" .. sideName
 -		point.Position = Vector3.new(wheel.Center.X + side * (wheel.Width * 0.5 + 0.08), wheel.Center.Y - 0.25, wheel.Center.Z + 0.15)
 +		point.Position = Vector3.new(wheel.Center.X + side * (wheel.Width * 0.5 + 0.20), wheel.Center.Y + 0.25, wheel.Center.Z + 0.55)
- 		point.Parent = chassis
+        point.Parent = chassis
 ```
 
 ---
@@ -157,4 +157,3 @@
    - 트레일의 발생 시작점이 차체와 부자연스럽게 떨어져 공중에 떠 있는 레이저처럼 보이지 않는가?
 5. **HUD 및 시야 간섭**:
    - 중앙 드라이버, 전방 주행 도로, 하단 디지털 속도계(KM/H) 및 우측 가상 버튼에 대한 간섭이 없는가?
-
