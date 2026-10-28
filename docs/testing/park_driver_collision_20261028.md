@@ -55,6 +55,22 @@ production module against the validated full source and inventory before and
 after Publish; retain HubPark and mobile/GAS flags. No server restart or access
 setting change. Publication receipt is appended after dashboard confirmation.
 
+### Verified official receipt
+
+- Published official Place version **1239**; Creator Dashboard's published-only
+  history confirmed it at October28,2026,9:57PM (dashboard local display).
+- Source/test commit `cabfddb3cf694ae5c8198394332eeb90b24e9228` pushed before Publish.
+- Previous published **1238** remains recoverable through Restore + Studio Publish.
+- Only ServerScriptService.Server.LobbyTestDriveService changed in the231-script
+  Studio inventory. All222 project-script hashes match validated local before
+  and after native Publish; HubPark/mobile-controls/GAS flags remain true.
+- Full250 results compared with the preceding release:230 PASS and the exact
+  same20 historical failures. New failures0. Audit, build, diff checks PASS.
+- QA Play was stopped and its original Edit module restored; QA was not published.
+  No account/data operation, access change or live server restart was performed.
+- New servers receive the update; existing jobs were not forcibly recycled.
+- [Official published version history](https://create.roblox.com/dashboard/creations/experiences/10768420544/places/127925465904803/version-history)
+
 Rollback by reviewed Git revert or restoring the previous published official
 Place version and publishing it in Studio. Do not reset the working tree or
 change ownership policy to address avatar contact.
