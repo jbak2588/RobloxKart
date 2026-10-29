@@ -5,8 +5,9 @@ function Builder.build(hub)
  if typeof(origin)~='Vector3'or not hub:FindFirstChild('HubParkRookieLoopG2')then return nil end
  if hub:FindFirstChild('KDMRankings')then return hub.KDMRankings end
  local root=Instance.new('Model');root.Name='KDMRankings'
- local function part(name,size,pos,color)
+ local function part(name,size,pos,color,rotation)
   local p=Instance.new('Part');p.Name=name;p.Size=size;p.CFrame=CFrame.new(origin+pos)
+  if rotation then p.CFrame*=rotation end
   p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false;p.CastShadow=false
   p.Material=Enum.Material.SmoothPlastic;p.Color=color;p.Parent=root;return p
  end
@@ -17,15 +18,19 @@ function Builder.build(hub)
  end
  local cyan=Color3.fromRGB(75,225,245);local gold=Color3.fromRGB(255,218,65)
  for _,d in {
-  {id='SOLO_Park',name='SoloBoard',title='SOLO TIME ATTACK',sub='ROOKIE RACING PARK  /  BEST LAP',x=71,y=28,z=-27.7,w=38,h=19},
-  {id='MULTI_Track01Race',name='MultiBoard',title='MULTIPLAYER BEST LAP',sub='BASE CIRCUIT  /  HUMAN RACES',x=114,y=12,z=-60,w=28,h=16},
-  {id='CASH',name='CashBoard',title='LIFETIME K$ EARNED',sub='PARK + RACES + BONUSES  /  ALL TIME',x=146,y=12,z=-60,w=28,h=16},
+  {id='SOLO_Park',name='SoloBoard',title='SOLO TIME ATTACK',sub='ROOKIE RACING PARK  /  BEST LAP',x=71,y=28,z=-27.7,w=38*1.12,h=19*1.12,yaw=0},
+  {id='MULTI_Track01Race',name='MultiBoard',title='MULTIPLAYER BEST LAP',sub='BASE CIRCUIT  /  HUMAN RACES',x=105.7,y=12,z=-38,w=28,h=16,yaw=45},
+  {id='CASH',name='CashBoard',title='LIFETIME K$ EARNED',sub='PARK + RACES + BONUSES  /  ALL TIME',x=126.913203,y=12,z=-59.213203,w=28,h=16,yaw=45},
  }do
   local pos=Vector3.new(d.x,d.y,d.z)
-  local board=part(d.name,Vector3.new(d.w,d.h,.8),pos,Color3.fromRGB(12,28,42));board:SetAttribute('LeaderboardId',d.id)
-  part(d.name..'Top',Vector3.new(d.w+.5,.22,1),pos+Vector3.new(0,d.h/2+.15,-.1),cyan)
+  local rotation=CFrame.Angles(0,math.rad(d.yaw),0)
+  local function localPart(name,size,offset,color)
+   return part(name,size,pos+rotation:VectorToWorldSpace(offset),color,rotation)
+  end
+  local board=localPart(d.name,Vector3.new(d.w,d.h,.8),Vector3.zero,Color3.fromRGB(12,28,42));board:SetAttribute('LeaderboardId',d.id)
+  localPart(d.name..'Top',Vector3.new(d.w+.5,.22,1),Vector3.new(0,d.h/2+.15,-.1),cyan)
   if d.name~='SoloBoard'then for _,side in {-1,1}do
-   part(d.name..'Leg',Vector3.new(.8,4.2,.8),Vector3.new(d.x+side*(d.w/2-3),2.1,d.z),Color3.fromRGB(30,45,53))
+   localPart(d.name..'Leg',Vector3.new(.8,4.2,.8),Vector3.new(side*(d.w/2-3),2.1-d.y,0),Color3.fromRGB(30,45,53))
   end end
   local gui=Instance.new('SurfaceGui');gui.Name='RankingFace';gui.Face=Enum.NormalId.Front;gui.CanvasSize=Vector2.new(1000,600)
   gui.LightInfluence=0;gui.AlwaysOnTop=false;gui.MaxDistance=200;gui.Parent=board
@@ -45,7 +50,7 @@ function Builder.build(hub)
   end
   text(panel,'Status','LOADING RANKINGS',Vector2.new(32,506),Vector2.new(936,33),23,cyan)
   text(panel,'Hint','APPROACH BELOW  /  VIEW TOP 50 + MY RECORD',Vector2.new(32,550),Vector2.new(936,30),21)
-  local anchor=part(d.name..'Open',Vector3.new(1,1,1),Vector3.new(d.x,3,d.z-5),cyan);anchor.Transparency=1
+  local anchor=localPart(d.name..'Open',Vector3.new(1,1,1),Vector3.new(0,3-d.y,-5),cyan);anchor.Transparency=1
   anchor:SetAttribute('LeaderboardId',d.id)
   local prompt=Instance.new('ProximityPrompt');prompt.Name='KDMRankingsPrompt';prompt.ActionText='VIEW TOP 50';prompt.ObjectText=d.title
   prompt.HoldDuration=0;prompt.MaxActivationDistance=15;prompt.RequiresLineOfSight=false;prompt.Parent=anchor

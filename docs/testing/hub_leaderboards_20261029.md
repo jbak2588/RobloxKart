@@ -6,19 +6,26 @@ Owner approved implementation of the recommended left-building / adjacent-lot
 layout. Owner explicitly confirmed **lifetime earned K$**, not wallet balance,
 and **valid official races with 2–4 starting human racers and no bots**, merged
 per track and separate from Solo. No Roblox Publish approval was given for this
-task. Baseline local/origin `prototype/kart-physics`:
+initial task. The subsequent owner screenshot review explicitly authorizes
+12% enlargement, 45-degree standalone placement, commit/push and official Publish.
+Initial baseline local/origin `prototype/kart-physics`:
 `b429106c3de210c3f204187d2a31726c3f67f660`.
 
 ## Visible result
 
 | Board | Default view | Position relative to RookieParkOrigin |
 | --- | --- | --- |
-| Left building upper facade | Rookie Racing Park Solo best **one lap**, Top 5 | (71, 28, -27.7), 38 × 19 |
-| Adjacent open lot | Base Circuit multiplayer best lap, Top 5 | (114, 12, -60), 28 × 16 |
-| Adjacent open lot | Lifetime K$ earned, Top 5 | (146, 12, -60), 28 × 16 |
+| Left building upper facade | Rookie Racing Park Solo best **one lap**, Top 5 | (71, 28, -27.7), 42.56 × 21.28 |
+| Adjacent building corner, yaw45° | Base Circuit multiplayer best lap, Top 5 | (105.7, 12, -38), 28 × 16 |
+| Continuation of angled pair, yaw45° | Lifetime K$ earned, Top 5 | (126.913203, 12, -59.213203), 28 × 16 |
 
-The standalone boards sit forward of the trees without removing scenery or
-entering the pit lane. All 13 new parts are anchored, non-colliding, non-touching
+The standalone boards continue diagonally from the building corner, with a
+two-stud gap between their faces' adjacent edges. Both face Spawn at45° yaw;
+the legs, top rails and approach anchors follow the same rotation. The original
+rock at(150,3.7,-60) remains untouched and clear of both cash-board legs. The wall
+board's width and height are each increased12%, staying within the upper facade.
+No scenery is removed and the boards do not enter the pit lane. All13 new parts
+are anchored, non-colliding, non-touching
 and non-queryable. Three approach prompts open a DeviceSafeInsets detail panel:
 Solo / Multiplayer / K$ tabs, track cycling, Top 50, own score and own rank if
 present in that loaded page. Outside Top 50, no fabricated global rank is shown.
@@ -116,7 +123,8 @@ Studio uses memory only and visibly says **STUDIO PREVIEW — NO LIVE DATA**.
 
 QA Studio retains the seven new sources in Edit mode for ordinary Play preview;
 temporary fixtures/injected state are discarded and device simulation stopped.
-No production Studio edit, live profile migration, Roblox Publish, access-setting
+The initial implementation made no production Studio edit, live profile migration,
+Roblox Publish, access-setting
 change or server restart was performed. Production-wide sorted persistence and
 real simultaneous users remain unverified until an approved deployment/test.
 
@@ -124,3 +132,21 @@ Revert this task's scoped commit to remove the two bootstraps and modules/UI.
 Do not reset the branch or revert unrelated approved releases. Derived ranking
 stores can remain inert; the account store and original records are unaffected.
 The historical fixtures must remain intact.
+
+## Owner-approved official release follow-up
+
+- Follow-up baseline: `5384f6cd7e6a81bdcb165538f58ffee5b15fe437`.
+- Native QA validates exact12% dimensions, both45° rotations, positive Spawn
+  facing dots(0.6911 /0.5670), rotated approach anchors,13 visual-only parts,
+  and no rock/leg overlap. Overview capture confirms the joined corner placement.
+- Full251-test rerun:231 PASS /20 same historical FAIL; new failures0.
+  Independent133-entry audit, Rojo build and diff checks PASS.
+- Official Studio verified Universe10768420544 / Place127925465904803;
+  loaded version1240. All222 existing project sources match local before adding
+  the seven new leaderboard scripts. All three Hub/mobile/GAS release flags true.
+- Before mutation, native File > Download a Copy saved
+  `C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-leaderboards-20261029-v1240.rbxl`.
+  Studio output confirms download completion; source-hash inventory retained.
+- Loaded version1240 is a baseline, not a new publication receipt. The current
+  browser account cannot access official Dashboard version history. Final native
+  Publish outcome and any remaining receipt limitation are recorded below.

@@ -27,7 +27,7 @@
   ],
   "newFailures": [],
   "hubLeaderboardChecks": 50,
-  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-esbx4x0u",
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-w3xfwxvy",
   "publishPerformed": false,
   "productionDataWritesPerformed": false,
   "qaStudio": {
@@ -37,12 +37,33 @@
     "realDeviceTouchAcceptance": "PENDING"
   },
   "sources": {
-    "src/server/HubLeaderboardBoardBuilder.luau": "d7623e7ea2113f66518a0844ebc6a634760b694f4cd74a43fea6acf0ff3be380",
+    "src/server/HubLeaderboardBoardBuilder.luau": "74e4920219efbeaf56022505e5a697e969eb79c483ad0a9be029bbbd86b00daa",
     "src/server/HubLeaderboardBootstrap.server.luau": "2adafbde93e113e92948498f3915597c25cd4f8fc9b78adcf9fc547695ccbea0",
     "src/server/HubLeaderboardRuntime.luau": "ba69b1a1532403d81d314c4eb3ef966d62568d125ba85916dfe8bef2dd6f0be4",
     "src/server/HubLeaderboardService.luau": "cc0966aac67cf9cf2fadf5b66d3a7168af7709eb32c29f1ff04c51a9a20d0b12",
     "src/client/HubLeaderboardBootstrap.client.luau": "af19e49be1f433f9a5bbfa13bde3edbb33e76c5dc81fb9bf96b3a6b3e6909c0c",
     "src/client/HubLeaderboardController.luau": "5e05dd6b7c3d1ab59ef0a38b9ee8265a6a8066ba502b4369ac55be6abdfc1946",
     "src/shared/HubLeaderboardPolicy.luau": "4b8f35d313947e5beb131b3cafd3aff26543252b2aeff38bbaa29bd5d456651c"
+  },
+  "layoutRevisionBaseline": "5384f6cd7e6a81bdcb165538f58ffee5b15fe437",
+  "layoutRevision": {
+    "wallScale": 1.12,
+    "standaloneYawDegrees": 45,
+    "nativeParts": 13,
+    "rockAndLegOverlap": false,
+    "spawnFacingDots": [
+      0.6911032795906067,
+      0.56696617603302
+    ]
+  },
+  "officialPreparation": {
+    "universe": 10768420544,
+    "place": 127925465904803,
+    "loadedVersion": 1240,
+    "existingSourcesMatched": 222,
+    "addedSources": 7,
+    "changedExistingStudioScripts": 0,
+    "backup": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-leaderboards-20261029-v1240.rbxl",
+    "backupSHA256": "3dc264ba9f8ee47af51232ad29aa15e7b206ded8b1883a9169592f0a0571669c"
   }
 }

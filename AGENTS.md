@@ -4,6 +4,14 @@ Read this before editing the project.
 
 ## Hub world rankings — owner contract 2026-10-29
 
+Owner follow-up authorizes commit/push and official Publish to the exact
+Universe10768420544 / Place127925465904803 pair. Enlarge the wall board by12%
+in width/height; rotate both standalone boards45 degrees toward Spawn and join
+them near the building corner. Move boards to avoid the existing rock/pillars;
+preserve scenery, course and record/economy/authority logic. Back up the official
+Place and verify source parity before Publish. This supersedes the initial
+no-Publish scope below for the leaderboard release only.
+
 Use the Park-connected Hub. Place Rookie Park one-lap Solo Top 5 on the left
 building's upper facade; adjacent open-lot boards show official Multiplayer best
 lap and lifetime earned K$. Approach opens Top 50 plus the user's own record.
