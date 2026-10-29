@@ -63,8 +63,8 @@ for _,g in Trial.Gates do
  table.insert(checkpoints,{Fraction=(index-1)/#samples})
 end
 local course={Samples=samples,CenterlineLength=length,CheckpointSamples=checkpoints}
-function Trial.new(now,x,z)
- return {lap=1,completedLaps=0,lapTimes={},phase='COUNTDOWN',goAt=now+Trial.Countdown,next=1,previous={x=x,z=z,time=now},invalid=false,missed=false,
+function Trial.new(now,x,z,options)
+ return {targetLaps=if options then options.laps else Trial.Laps,lap=1,completedLaps=0,lapTimes={},phase='COUNTDOWN',goAt=now+(if options then options.countdown else Trial.Countdown),next=1,previous={x=x,z=z,time=now},invalid=false,missed=false,
   route=Progress.new(course,Layout.RoadWidth)}
 end
 function Trial.step(s,now,x,y,z)
@@ -116,7 +116,7 @@ function Trial.step(s,now,x,y,z)
   if s.next==7 then
    local milliseconds=math.max(1,math.floor((a.time+dt*t-s.startedAt)*1000+.5))
    s.lapTimes[s.lap]=milliseconds-(s.lastLapAt or 0);s.lastLapAt=milliseconds;s.completedLaps=s.lap
-   if s.lap<Trial.Laps then
+   if s.lap<(s.targetLaps or Trial.Laps)then
     s.lap+=1;s.next=1;s.missed=false;s.route=Progress.new(course,Layout.RoadWidth)
     Progress.step(s.route,position,1,true)
     return 'LAP'

@@ -192,6 +192,30 @@ function Service.saveParkLap(player,proof)
  parkSaves-=1
  return if ok then result else {status='SAVE_UNCONFIRMED'}
 end
+-- Park challenge has a distinct receipt namespace and no time-attack PB writes.
+function Service.saveParkOvertake(player,proof)
+ if not Service.allowed(player,'parkReward')then return {status='ACCESS_BLOCKED'}end
+ local op=S.clone(proof);op.userId=player.UserId
+ local reducer=require(script.Parent.ParkOvertakeReward).reduce(S,schema,op)
+ parkSaves+=1
+ local ok,result=pcall(function()
+  local a=adapter(player,'parkReward');local key=S.userKey(player.UserId)
+  local sig=S.transactionCanonical(op)
+  for attempt=1,Config.RetryAttempts do
+   local result=a.commit(a.beginUpdate(key,reducer))
+   local read=a.read(key)
+   local receipt=read.status=='FOUND'and schema.validate(read.value,key)and not read.value.deleted and read.value.receipts['park-overtake:'..tostring(op.id)]
+   if receipt and S.signatureMatches(receipt,sig)then
+    Service.publishProfile(player,read.value);return {status='SAVE_CONFIRMED'}
+   end
+   if result.status~='PENDING'and result.status~='SAVED'then return {status='SAVE_UNCONFIRMED'}end
+   if attempt<Config.RetryAttempts then task.wait(.5*2^(attempt-1))end
+  end
+  return {status='SAVE_UNCONFIRMED'}
+ end)
+ parkSaves-=1
+ return if ok then result else {status='SAVE_UNCONFIRMED'}
+end
 function Service.passAvailable() return passVerified() end
 function Service.creditReward(player, amount, reason, identity)
 	if not player or type(amount) ~= "number" or amount <= 0 or not Service.allowed(player, "reward") then return false end

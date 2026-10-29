@@ -58,7 +58,9 @@ function View.new(canvas,player,remote,canUse)
     local row=math.floor(index/v.items.columns)
     x=(index%v.items.columns)*(l.cell+6)+(if row==1 then v.items.secondX-v.items.x else 0);y=if row==1 then v.items.secondTop-v.items.top else 0
    end
-   c.button.Parent=if v then canvas else scroll;c.button.Visible=active
+   local challenge=player:GetAttribute('ParkOvertakeActive')==true
+   local available=not challenge or c.id=='Nitro'or c.id=='Shield'
+   c.button.Parent=if v then canvas else scroll;c.button.Visible=active and available
    c.button.Position=UDim2.fromOffset(x+(if v then l.x else 0),y+(if v then l.y else 0));c.button.Size=UDim2.fromOffset(l.cell,l.cell)
    c.button.BackgroundTransparency=if v then .52 else 0
    if v then Mobile.styleItem(c.button)end
@@ -66,7 +68,7 @@ function View.new(canvas,player,remote,canUse)
    c.caption.BackgroundTransparency=if v then 1 else .1
    local count=player:GetAttribute('LobbyCharge'..c.id)or 0
    local wait=math.max(0,(player:GetAttribute('LobbyReadyAt'..c.id)or 0)-now)
-   c.icon:update(true,count,false);c.button.Active=count>0
+   c.icon:update(true,count,false);c.button.Active=count>0 and available
    if v then
     c.caption.AnchorPoint=Vector2.new(1,1);c.caption.Position=UDim2.new(1,-2,1,-2);c.caption.Size=UDim2.fromOffset(18,18)
     c.caption.TextSize=14;c.caption.TextStrokeColor3=Color3.fromRGB(9,20,30);c.caption.TextStrokeTransparency=.2

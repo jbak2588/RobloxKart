@@ -12,6 +12,12 @@ local Theme = require(Shared:WaitForChild("KDMUiTheme"))
 local DriverCatalog = require(Shared:WaitForChild("DriverCatalog"))
 local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
+-- Hub-only challenge card: never inserted into the official routing/record catalog.
+local Overtake=require(Shared:WaitForChild('ParkOvertakePolicy'))
+local OfficialTracks=TrackCatalog
+TrackCatalog=setmetatable({Order=table.clone(OfficialTracks.Order),Entries=table.clone(OfficialTracks.Entries)},{__index=OfficialTracks})
+TrackCatalog.Entries[Overtake.Id]={Id=Overtake.Id,DisplayName=Overtake.DisplayName,PreviewImageAssetId=Overtake.PreviewImageAssetId,
+ GeometryId='ROOKIE_LOOP_V1',MatchType='HUB_OVERTAKE',TargetLaps=3,MinPlayers=1,MaxPlayers=1,PreviewRotationDegrees=0}
 local TrackGeometry = require(Shared:WaitForChild("TrackGeometry"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
@@ -663,6 +669,7 @@ function GarageUiController.start()
 		local kartIndex = 1
 	local trackIndex = 1
 	local trackOrder = {}
+ if Workspace:GetAttribute('KDMServerRole')=='HUB'and Workspace:GetAttribute('HubParkV1Enabled')==true then table.insert(trackOrder,Overtake.Id)end
 	for _, id in TrackCatalog.Order do
 		local entry = TrackCatalog.Entries[id]
 		if entry and entry.Visible ~= false and entry.Selectable ~= false then table.insert(trackOrder, id) end
@@ -947,7 +954,8 @@ function GarageUiController.start()
 				presenceList.Position = UDim2.fromOffset(6,60)
 				presenceList.Size = UDim2.new(1,-12,1,-66)
 			end
-			local footer = if mobileCompact and width>height then 38 elseif mobileCompact then 42 else 64
+			local challenge=trackOrder[trackIndex]==Overtake.Id
+   local footer = (if mobileCompact and width>height then 38 elseif mobileCompact then 42 else 64)+(if challenge then 42 else 0)
 			local cardTop = math.max(headerBottom+6,if mobileCompact then 8 else 72)
 			local actionTop = if mobileCompact then height-48 else height-76
 			local cardHeight = math.max(80,actionTop-cardTop-10)
@@ -983,7 +991,7 @@ function GarageUiController.start()
 			trackMetadata.TextSize = if mobileCompact then math.clamp(cardWidth*.03,12,15) else 18
 			trackName.Size = UDim2.new(1,-16,0,if mobileCompact and width>height then 20 elseif mobileCompact then 22 else 34)
 			trackMetadata.Position = UDim2.fromOffset(8,if mobileCompact and width>height then 21 elseif mobileCompact then 23 else 38)
-			trackMetadata.Size = UDim2.new(1,-16,0,if mobileCompact and width>height then 16 elseif mobileCompact then 18 else 24)
+			trackMetadata.Size = UDim2.new(1,-16,0,(if mobileCompact and width>height then 16 elseif mobileCompact then 18 else 24)+(if challenge then 42 else 0))
 			leftArrow.Position = UDim2.fromOffset(center-cardWidth*.5-arrowWidth-8,cardTop+(cardHeight-arrowHeight)*.5)
 			rightArrow.Position = UDim2.fromOffset(center+cardWidth*.5+8,cardTop+(cardHeight-arrowHeight)*.5)
 			controlsCard.Visible = false
@@ -1201,7 +1209,7 @@ function GarageUiController.start()
 		mapPanel:SetAttribute("TrackId",trackId)
 		trackName.Text = track.DisplayName
   trackMetadata.TextColor3 = if track.MatchType == "PUBLIC_RACE" then Theme.PublicRace else Theme.TextSecondary
-		trackMetadata.Text = if track.MatchType == "PUBLIC_RACE" then
+		trackMetadata.Text = if track.MatchType=='HUB_OVERTAKE'then '3 LAPS / 7 EVENLY SPACED BOTS\nFINISH AHEAD: BASE K$5,000 + K$5,000 EACH\nALL 7: PERFECT +K$10,000 / MAX K$50,000'elseif track.MatchType == "PUBLIC_RACE" then
 			string.format("PUBLIC RACE \u{2022} %d\u{2013}%d PLAYERS \u{2022} %d %s",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
 			else string.format("SOLO \u{2022} 1 PLAYER \u{2022} %d %s",track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
 		-- A nonblocking silhouette is present until the approved image is ready.
@@ -1561,7 +1569,7 @@ function GarageUiController.start()
 			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
 		previousButton.Visible = true
-		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE THIS TRACK" else "SELECT"
+		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and trackId==Overtake.Id then "START OVERTAKE" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE THIS TRACK" else "SELECT"
 		cycleButton.Active = selectionPending == nil
 		cycleButton.Visible = step <= STEP_TRACK
 		nextButton.Visible = step == STEP_READY
@@ -1600,6 +1608,7 @@ function GarageUiController.start()
    return
   end
   step = if action == "TRACK" or action == "TRACKS" or action == "RACE" or action == "ROOMS" then STEP_TRACK else STEP_KART
+  if step==STEP_TRACK then trackIndex=1 end
   if action~="SHOP_RETURN" then kartIndex = table.find(KartCatalog.Order, committedKartId()) or 1 end
   -- Open the showroom on V2; browsing still requires USE KART to commit a choice.
   if action~="SHOP_RETURN" and step == STEP_KART and KartCatalog.Entries[KartCatalog.Order[kartIndex]].VisualModelName ~= "KDMV2" then
@@ -1656,6 +1665,10 @@ function GarageUiController.start()
    if selectionPending then return end
    selectionPending=KartCatalog.Order[kartIndex]
    remote:FireServer("SelectKart",selectionPending)
+  elseif trackOrder[trackIndex]==Overtake.Id then
+   GarageUiController.close()
+   require(script.Parent.LobbyTestDriveController).requestDrive('OVERTAKE')
+   return
   elseif TrackCatalog.Entries[trackOrder[trackIndex]].MatchType == "PUBLIC_RACE" then
    local driverId,kartId,trackId=selectedIds()
    remote:FireServer("Ready",driverId,kartId,trackId)

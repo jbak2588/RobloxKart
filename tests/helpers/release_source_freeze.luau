@@ -8,9 +8,11 @@ function Freeze.canonical(source)
 end
 function Freeze.accepts(manifest,path,source)
  local entry=manifest.files[path]
- if not entry or type(source)~='string' then return false,'missing/unprotected source' end
+ if type(source)~='string'then return false,'missing/unprotected source'end
  source=Freeze.canonical(source)
  local hash=serde.hash('sha256',source)
+ if manifest.parkOvertakePatches and manifest.parkOvertakePatches[path]==hash then return true,'PARK_OVERTAKE'end
+ if not entry then return false,'missing/unprotected source'end
  if hash==entry.sha256 then return true,'APPROVED_HEAD' end
  for _,r3 in {manifest.ownerR3PolicyPatch,manifest.ownerR3DisplayPatch}do
  if r3 and (path=='src/server/RaceRecordOperations.luau' or path=='src/shared/TrackCatalog.luau') and path==r3.path and hash==r3.sha256 then
@@ -50,7 +52,9 @@ function Freeze.accepts(manifest,path,source)
 end
 function Freeze.collect(manifest,read)
  local errors,classes={},{}
- for path in manifest.files do
+ local paths=table.clone(manifest.files)
+ for path in manifest.parkOvertakePatches or {}do paths[path]=true end
+ for path in paths do
   local loaded,source=pcall(read,path)
   local ok,reason=false,'missing/unreadable source'
   if loaded then ok,reason=Freeze.accepts(manifest,path,source)end

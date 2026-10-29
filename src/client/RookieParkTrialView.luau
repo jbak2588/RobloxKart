@@ -22,6 +22,11 @@ function View.new(parent,player,onReplay,onReturn)
  timing.TextXAlignment=Enum.TextXAlignment.Center
  local countdown=text(canvas,'Countdown',64);countdown.AnchorPoint=Vector2.new(.5,.5);countdown.Position=UDim2.fromScale(.5,.4);countdown.Size=UDim2.fromOffset(230,85)
  countdown.TextStrokeTransparency=.45
+ local instructions=text(canvas,'OvertakeInstructions',16);instructions.AnchorPoint=Vector2.new(.5,0)
+ instructions.BackgroundColor3=Color3.fromRGB(70,110,135);instructions.BackgroundTransparency=.25
+ instructions.Text='3 LAPS / 7 EVENLY SPACED BOTS\nFINAL POSITION COUNTS\nK$5,000 + K$5,000 PER BOT AHEAD\nALL 7: PERFECT +K$10,000 / MAX K$50,000'
+ instructions.TextScaled=true;local limit=Instance.new('UITextSizeConstraint');limit.MaxTextSize=18;limit.MinTextSize=10;limit.Parent=instructions
+ local round=Instance.new('UICorner');round.CornerRadius=UDim.new(0,12);round.Parent=instructions
  local finalLap=text(canvas,'FinalLapNotice',48);finalLap.AnchorPoint=Vector2.new(.5,.5);finalLap.Position=UDim2.fromScale(.5,.42)
  finalLap.Size=UDim2.fromOffset(440,80);finalLap.Font=Enum.Font.GothamBlack;finalLap.Text='FINAL LAP';finalLap.AutoLocalize=false
  finalLap.TextColor3=Color3.fromRGB(255,225,70);finalLap.TextScaled=true;finalLap.TextStrokeTransparency=.3;finalLap.Visible=false
@@ -56,10 +61,14 @@ function View.new(parent,player,onReplay,onReturn)
  local nextCorner=Instance.new('UICorner');nextCorner.CornerRadius=UDim.new(0,8);nextCorner.Parent=nextReward
  local nextStroke=Instance.new('UIStroke');nextStroke.Color=Color3.fromRGB(255,230,100);nextStroke.Thickness=1;nextStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;nextStroke.Parent=nextReward
  function api:update(active,camera)
+  local challenge=player:GetAttribute('ParkOvertakeActive')==true
+  local totalLaps=player:GetAttribute('ParkTrialTotalLaps')or 2
   local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil;topGui.Enabled=gui.Enabled
   if not gui.Enabled then finalKey,finalAt=nil,nil;finalLap.Visible=false;return end
   local now=workspace:GetServerTimeNow();local started=player:GetAttribute('ParkTrialStartedAt')or now
   local size=canvas.AbsoluteSize
+  instructions.Visible=challenge and phase=='COUNTDOWN'
+  instructions.Position=UDim2.new(.5,0,0,8);instructions.Size=UDim2.fromOffset(math.min(540,size.X-24),math.min(115,size.Y*.35))
   local wide=size.X>size.Y and size.X>=720
   panel.AnchorPoint=if wide then Vector2.new(0,.5)else Vector2.new(.5,.5)
   panel.Position=if wide then UDim2.new(0,12,.5,0)else UDim2.fromScale(.5,.5)
@@ -76,7 +85,7 @@ function View.new(parent,player,onReplay,onReturn)
   banner.Size=UDim2.fromOffset(math.min(400,size.X-24),math.min(82,size.Y*.18))
   local key=tostring(player:GetAttribute('LobbyDriveGeneration'))..':'..tostring(player:GetAttribute('ParkTrialGoAt'))
   if key~=finalKey or phase=='COUNTDOWN' then finalKey,finalAt=key,nil end
-  if phase=='RUNNING' and (player:GetAttribute('ParkTrialCurrentLap')or 1)==2 and (player:GetAttribute('ParkTrialCompletedLaps')or 0)==1 and not finalAt then finalAt=now end
+  if phase=='RUNNING' and (player:GetAttribute('ParkTrialCurrentLap')or 1)==totalLaps and (player:GetAttribute('ParkTrialCompletedLaps')or 0)==totalLaps-1 and not finalAt then finalAt=now end
   local elapsed=if finalAt then now-finalAt else math.huge
   finalLap.Visible=phase=='RUNNING' and elapsed<1.65
   finalLap.Size=UDim2.fromOffset(math.min(440,size.X-32),math.min(80,size.Y*.2))
@@ -86,22 +95,23 @@ function View.new(parent,player,onReplay,onReturn)
   local invalid=player:GetAttribute('ParkTrialInvalid')==true
   local missed=player:GetAttribute('ParkTrialMissed')==true
   local personalBest=player:GetAttribute('KDMRookieParkBestMilliseconds')
-  timing.Text='SOLO LAP '..tostring(player:GetAttribute('ParkTrialCurrentLap')or 1)..'/2  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if missed then ' • MISSED '..(cp+1)else '')..(if personalBest then '\nBEST LAP '..View.format(personalBest)else '')
+  timing.Text=(if challenge then 'OVERTAKE LAP 'else 'SOLO LAP ')..tostring(player:GetAttribute('ParkTrialCurrentLap')or 1)..'/'..totalLaps..'  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if missed then ' • MISSED '..(cp+1)else '')..(if personalBest and not challenge then '\nBEST LAP '..View.format(personalBest)else '')
   countdown.Visible=phase=='COUNTDOWN'or(phase=='RUNNING'and now-started<1)
   countdown.Text=if phase=='COUNTDOWN'then tostring(math.max(1,math.ceil((player:GetAttribute('ParkTrialGoAt')or now)-now)))else 'GO!'
-  title.Text=if phase=='INVALID'then 'LAP INVALID • NO REWARD'else 'ROOKIE PARK • 2 LAPS COMPLETE'
+  title.Text=if phase=='INVALID'then 'LAP INVALID • NO REWARD'elseif challenge then 'PARK OVERTAKE • 3 LAPS COMPLETE'else 'ROOKIE PARK • 2 LAPS COMPLETE'
   lap.Text=View.format(player:GetAttribute('ParkTrialMilliseconds'))
   local pb=player:GetAttribute('KDMRookieParkTwoLapBestMilliseconds')
   local state=player:GetAttribute('ParkTrialRewardState')
-  best.Text=if pb then '2-LAP PERSONAL BEST  '..View.format(pb)elseif state=='SAVING'then 'PERSONAL BEST • SAVING'else 'PERSONAL BEST • NOT SAVED'
+  best.Text=if challenge then tostring(player:GetAttribute('ParkOvertakeAhead')or 0)..' / 7 BOTS BEHIND AT FINISH'elseif pb then '2-LAP PERSONAL BEST  '..View.format(pb)elseif state=='SAVING'then 'PERSONAL BEST • SAVING'else 'PERSONAL BEST • NOT SAVED'
   local amount=player:GetAttribute('ParkTrialRewardAmount')or 5000
   local multiplier=player:GetAttribute('ParkTrialRewardMultiplier')or 1
   local money=tostring(amount):reverse():gsub('(%d%d%d)','%1,'):reverse():gsub('^,','')
   reward.Text=if phase=='INVALID'then 'K$0  -  VALID RACE REQUIRED'elseif state=='CONFIRMED'then '+ K$'..money..' • REWARD EARNED'else 'RACE REWARD  K$'..money
   local nextMultiplier=if phase=='INVALID'then 1 else multiplier+1
   local nextAmount=tostring(5000*nextMultiplier):reverse():gsub('(%d%d%d)','%1,'):reverse():gsub('^,','')
-  nextReward.Text='NEXT REPLAY REWARD X'..tostring(nextMultiplier)..' • K$'..nextAmount
+  nextReward.Text=if challenge then (if player:GetAttribute('ParkOvertakeAhead')==7 then 'PERFECT! +K$10,000 INCLUDED'else 'BEAT ALL 7 FOR A K$10,000 PERFECT BONUS')else 'NEXT REPLAY REWARD X'..tostring(nextMultiplier)..' • K$'..nextAmount
   saved.Text=if phase=='INVALID'then 'REPLAY TO START A NEW VERIFIED LAP'elseif state=='CONFIRMED'then '2 LAPS • 12/12 CHECKPOINTS • RECORD & REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • REPLAY TO RACE AGAIN'else 'SAVING RECORD & REWARD…'
+  if challenge and phase~='INVALID'and state=='CONFIRMED'then saved.Text='3 LAPS • 18/18 CHECKPOINTS • REWARD SAVED'end
   replay.Active=true;replay.Text='REPLAY'
  end
  function api:destroy()gui:Destroy();topGui:Destroy()end

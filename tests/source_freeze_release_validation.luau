@@ -31,6 +31,13 @@ for path,entry in manifest.files do
 end
 table.sort(paths)
 check(#paths==133,'reviewed protected set size')
+for path,hash in manifest.parkOvertakePatches do
+ local source=fs.readFile(path)
+ check(serde.hash('sha256',freeze.canonical(source))==hash,'exact owner-requested Park overtake source '..path)
+ check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'), 'reject overtake mutation '..path)
+ if not manifest.files[path]then table.insert(paths,path)end
+end
+table.sort(paths)
 local p='src/shared/KDMSpeedSensation.luau'
 local candidate=fs.readFile(p)
 check(classes[p]=='FOV_PHASE1','working FOV is exact approved Phase1')

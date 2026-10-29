@@ -2,6 +2,25 @@
 
 Read this before editing the project.
 
+## Rookie Park Overtake — owner approval 2026-10-29
+
+Owner requests a separate Park challenge, first in Hub Track preview with asset
+94896526779384, plus instructions before GO. Three laps; seven distinct-color
+noncontact rivals start simultaneously at 1/8 through 7/8 of the actual course,
+relative to the driver's allocated start. Final unwrapped race distance at the
+valid third-lap finish determines how many rivals are behind; do not accumulate
+pass events or count a lapped rival twice. Base K$5,000 + K$5,000 per rival,
+plus K$10,000 only for all seven, maximum K$50,000. No Replay multiplier.
+Owner final tuning: uniform rival pace70 studs/s, so all seven require
+approximately98.8 studs/s average (target95–100) over the complete three laps. Rival presentation is session-local;
+server time/route proof owns scoring. Nitro/Drift/GAS retain their existing
+behavior; offensive items and other Park combat do not affect this challenge.
+Use distinct immutable reward receipts; preserve time-attack PBs and all existing
+profile fields. Geometry, human physics, seating/ownership and official routing
+stay unchanged. Owner authorizes validation, scoped commit/push and official
+Publish to Universe10768420544 / Place127925465904803. Keep historical fixtures
+and failures, add exact feature hashes and mutation rejection to release checks.
+
 ## Hub world rankings — owner contract 2026-10-29
 
 Owner priority 2026-10-29: the physical Multiplayer board and Multiplayer tab

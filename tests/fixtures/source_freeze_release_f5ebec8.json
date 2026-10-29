@@ -682,9 +682,9 @@
     "tests/helpers/n2_hud_presentation_freeze.luau": "81c2e308bf9dbfefb4789a33f63c7616b335e4b42c92f74948e3664740955290"
   },
   "ownerR3DisplayPatch": {
-    "after": "\t\treturn string.format(\"PUBLIC RACE \u2022 %d\u2013%d RACERS \u2022 %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
+    "after": "\t\treturn string.format(\"PUBLIC RACE • %d–%d RACERS • %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
     "approval": "Owner explicit2026-10-28: display encoding only; no laps/capacity/behavior change",
-    "before": "\t\treturn string.format(\"PUBLIC RACE \u00e2\u20ac\u00a2 %d\u00e2\u20ac\u201c%d RACERS \u00e2\u20ac\u00a2 %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
+    "before": "\t\treturn string.format(\"PUBLIC RACE â€¢ %dâ€“%d RACERS â€¢ %s\", track.MinPlayers, track.MaxPlayers, laps)\n",
     "path": "src/shared/TrackCatalog.luau",
     "sha256": "eebffe03e07c34f77756fa9f9698910b53fe673e252146dd3b972c31fbf72cd5"
   },
@@ -713,5 +713,20 @@
     "src/client/ShieldWorldRenderer.luau": "3a3a07f5c9b330af6635b214c93c98fd8d765e4c4c1d3d92a1c3caf2c2b9941a",
     "src/client/SmokeEffectView.luau": "0eede89f1c667a2d2703c5ef31c4feb5bcbaaa64211c8df83577c94d926c9cfb",
     "src/server/RaceItemVisuals.luau": "dca2c4a5fdbefc91121ff64e82925c472be3db6f07044132d147acef99cce9d1"
+  },
+  "parkOvertakePatches": {
+    "src/client/GarageUiController.luau": "2e155b53e2a97be8a272a6a07084cd01a3bef36eb44769036af19a78c80c3a65",
+    "src/client/LobbyDemoController.luau": "c3ba8233ac951e4c9aa5b7ece728463554a37b4149c59ac83684bd8f9190f7f1",
+    "src/client/LobbyPracticeView.luau": "c284dda537d17f4b01e2c9f0434189863dcef920f285d6262c1b2a5dd7be1646",
+    "src/client/LobbyTestDriveController.luau": "508dd98c01cdd141aec0180bc7b5bf05a557cd1c773e00115c61c348c2060398",
+    "src/client/ParkOvertakeBotsView.luau": "ca9612a223744e76b27a3e9a00856ba8efb2a90232fa302f32d17b9482c18124",
+    "src/client/RookieParkTrialView.luau": "a51a435f2f34b54521dd645b4e7e9de32b05970a68b6831bc2a2af5b873d101f",
+    "src/server/EconomyService.luau": "140fa169e66556394e5b473bff7f9957791cf75e934bf766f683217f4cbf656d",
+    "src/server/LobbyPracticeCombat.luau": "1049ff96778393b7d0dd6e03e2b055511e58a530c0107b4805b762fec584ea52",
+    "src/server/LobbyTestDriveService.luau": "51042b06db31309968a6ae876f8a61cc63439288415dd7a12bfdb1327e59a76c",
+    "src/server/ParkOvertakeReward.luau": "0f9703846ab67938d5b119f22d7e5e5b9914254e285d0d43612187140aed0a61",
+    "src/server/RookieParkTrialSession.luau": "747ecaf2e3a7153ccc832095299f5993a51738a79ed7143e1ea6a30086d02b6d",
+    "src/shared/ParkOvertakePolicy.luau": "9c8f5aa07e80c423505841c085b66be5316dfd52f2cb2058d899ff618b2aca54",
+    "src/shared/RookieParkTrial.luau": "17c9db15469c3b828bae667e23c58241828179bc275729662e1e5ce53732d6dc"
   }
 }

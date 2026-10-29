@@ -1,0 +1,55 @@
+{
+  "baseline": "75ba1e7d29b336b74ce8814ef80115c9c2f20195",
+  "branch": "prototype/kart-physics",
+  "total": 252,
+  "pass": 232,
+  "historicalFailures": [
+    "bot_internal_control_validation.luau",
+    "chevron_standard_validation.luau",
+    "finish_source_freeze_validation.luau",
+    "item_aftershock_validation.luau",
+    "lobby_palette_validation.luau",
+    "lobby_terminology_validation.luau",
+    "park_a1_island_visual_validation.luau",
+    "park_a2_landscaping_validation.luau",
+    "practice_figure8_geometry_validation.luau",
+    "r8_perf_p0_validation.luau",
+    "r8_perf_p1_validation.luau",
+    "rookie_loop_demo_validation.luau",
+    "speed_sensation_validation.luau",
+    "straight_speed_validation.luau",
+    "track02_published_binding_validation.luau",
+    "track_environment_validation.luau",
+    "track_h3_flow_validation.luau",
+    "track_v2_geometry_validation.luau",
+    "track_visual_standard_validation.luau",
+    "v2_gauge_v1_audio_validation.luau"
+  ],
+  "newFailures": [],
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-_fniub1x",
+  "nativeControlledFinal": {
+    "botSpeed": 70,
+    "pilotSpeed": 100,
+    "milliseconds": 177730,
+    "ahead": 7,
+    "reward": 50000,
+    "save": "CONFIRMED",
+    "productionWrites": false
+  },
+  "officialSourceParity": {
+    "sources": 231,
+    "mismatches": 0,
+    "universe": 10768420544,
+    "place": 127925465904803
+  },
+  "publication": {
+    "status": "PENDING",
+    "previousPublishedVersion": 1244
+  },
+  "backup": {
+    "path": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-overtake-publish-20261029.rbxl",
+    "bytes": 1410296,
+    "sha256": "ab6f3bf05ad44dbe85ff4011fe922b27e59e1607c6f1eead5a3f6150e62d0a1b",
+    "verifiedScriptSources": 241
+  }
+}

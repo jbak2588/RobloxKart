@@ -169,8 +169,9 @@ for _, name in { "TrackMapRenderer", "GaragePresence", "KartInputController", "M
 	child(client, "ModuleScript", name)
 end
 for _, name in { "DriverCatalog", "KartCatalog", "TrackCatalog", "TrackGeometry", "KartVisualFactory",
-	"KartPreviewFraming", "DriverAppearance", "KDMUiTheme", "KDMShopCatalog" } do child(shared, "ModuleScript", name) end
+	"KartPreviewFraming", "DriverAppearance", "KDMUiTheme", "KDMShopCatalog", "ParkOvertakePolicy" } do child(shared, "ModuleScript", name) end
 local modules = {
+ ParkOvertakePolicy={Id='ParkOvertake',DisplayName='Rookie Park Overtake',PreviewImageAssetId='rbxassetid://94896526779384'},
  KDMShopCatalog=luau.load(fs.readFile("src/shared/KDMShopCatalog.luau"))(),
  KDMUiTheme=luau.load(fs.readFile("src/shared/KDMUiTheme.luau"),{environment={Color3=rb.Color3}})(),
 	DriverCatalog = { DefaultId = "Driver01", Order = { "Driver01", "Driver02" }, Entries = { Driver01 = { DisplayName = "Driver" }, Driver02 = {DisplayName = "Driver Two"} } },

@@ -44,7 +44,7 @@ function Controller.start()
   state=nil
  end
  local function refresh()
-  local nextState=zone:FindFirstChild("LobbyDemoState")
+  local nextState=if player:GetAttribute('ParkOvertakeActive')==true then nil else zone:FindFirstChild("LobbyDemoState")
   if nextState==state and #botList>0 then return end
   clear()
   if not nextState then return end
@@ -177,6 +177,7 @@ function Controller.start()
  end
  table.insert(connections,zone.ChildAdded:Connect(function(v) if v.Name=="LobbyDemoState" then refresh() end end))
  table.insert(connections,zone.ChildRemoved:Connect(function(v) if v==state then refresh() end end))
+ table.insert(connections,player:GetAttributeChangedSignal('ParkOvertakeActive'):Connect(refresh))
  table.insert(connections,player:GetAttributeChangedSignal("RaceState"):Connect(refresh))
  table.insert(connections,player:GetAttributeChangedSignal("KDMRoutePending"):Connect(refresh))
  table.insert(connections,zone.Destroying:Connect(function() Controller.stop() end))

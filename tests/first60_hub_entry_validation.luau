@@ -118,7 +118,7 @@ check(coordinatorSource:find('quickWarmup', 1, true) ~= nil or coordinatorSource
 
 -- 12 & 13. LobbyTestDriveController and Display ProximityPrompt
 local testDriveSource = fs.readFile("src/client/LobbyTestDriveController.luau")
-check(testDriveSource:find('function Controller.requestDrive()', 1, true) ~= nil, "12. LobbyTestDriveController exposes requestDrive API")
+check(testDriveSource:find('function Controller.requestDrive(mode)', 1, true) ~= nil, "12. LobbyTestDriveController exposes requestDrive API")
 check(testDriveSource:find('LobbyDisplayTestDrive', 1, true) ~= nil, "13. Display kart test drive ProximityPrompt preserved")
 
 -- 14. PostDriveView RACE NOW integration

@@ -176,7 +176,7 @@ function Combat:targets(source)
  for _,b in self.bots do table.insert(candidates,b)end
  for _,a in self.actors do table.insert(candidates,a)end
  local out={};local body=source.record.body
- for _,a in candidates do if a~=source and self:valid(a)then
+ for _,a in candidates do if a~=source and self:valid(a)and not a.record.parkOvertake then
   local delta=a.record.body.Position-body.Position;delta=Vector3.new(delta.X,0,delta.Z)
   local d=delta.Magnitude
   local range=if a.botIndex and self.route~=Route then Policy.ParkBotTargetRange else Policy.TargetRange
@@ -209,6 +209,7 @@ function Combat:use(player,generation,id,extra)
  local a=self.actors[player];local now=os.clock()
  if not a or not self:valid(a)or generation~=a.record.generation or extra~=nil
   or type(id)~='string' or not table.find(Policy.Items,id)or now-a.lastUse<Policy.UseInterval then return false end
+ if a.record.parkOvertake and offensive[id]then return false,'OVERTAKE / NITRO AND SHIELD ONLY'end
  a.lastUse=now
  local accepted,reason=a.loadout:useItem(id,function(item)
   if item=='Nitro'then
@@ -243,6 +244,7 @@ function Combat:use(player,generation,id,extra)
 end
 function Combat:resolve(target,source,id,now)
  if not offensive[id]then return false,'unsupported_item'end
+ if target and target.record and target.record.parkOvertake then return false,'immune'end
  if not self:valid(source)or not self:valid(target)or (source==target and id~='Slick'and id~='Smoke')then return false,'invalid_target'end
  if target.immune and now<target.immune then return false,'immune'end
  if target.shieldEnd and now<target.shieldEnd then

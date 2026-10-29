@@ -111,3 +111,11 @@ and easing/position unchanged. It is not claimed LIVE_VERIFIED or Published.
   and all N1/N2 fixtures. Two appended exact before/after hunks allow only the
   owner-approved R3 changes. Full-file SHA plus inverse-hunk verification reject
   any other bytes. R1/R2 evidence files are preserved.
+
+## Owner update2026-10-29: Park Overtake
+
+Separate3-lap Park pursuit challenge;7 evenly spaced rivals at70 studs/s.
+Count rivals behind at final finish only. Valid finish base K$5,000 plus
+K$5,000 each, all7 add K$10,000; max K$50,000. No Replay multiplier and no
+time-attack PB writes. Other economy and race contracts unchanged. See
+`park_overtake_20261029.md` for proof, receipt and validation details.

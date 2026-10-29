@@ -1,6 +1,7 @@
 -- Rookie Park lifecycle adapter; reuses the existing kart, physics and economy.
 local RS=game:GetService('ReplicatedStorage')
 local Trial=require(RS.Shared.RookieParkTrial)
+local Overtake=require(RS.Shared.ParkOvertakePolicy)
 local Config=require(RS.Shared.KartConfig)
 local RaceConfig=require(RS.Shared.RaceConfig)
 local Drift=require(script.Parent.LobbyDriftSession)
@@ -12,10 +13,13 @@ function Session.new(zone,practice)
   local s=r.trial
   player:SetAttribute('ParkTrialPhase',s.phase)
   player:SetAttribute('ParkTrialCurrentLap',s.lap)
-  player:SetAttribute('ParkTrialTotalLaps',Trial.Laps)
+  player:SetAttribute('ParkTrialTotalLaps',s.targetLaps or Trial.Laps)
+  player:SetAttribute('ParkOvertakeActive',r.parkOvertake==true)
+  player:SetAttribute('ParkOvertakeStartArc',if r.parkOvertake then s.overtakeStartArc else nil)
+  player:SetAttribute('ParkOvertakeAhead',if r.parkOvertake then s.ahead or 0 else nil)
   player:SetAttribute('ParkTrialCompletedLaps',s.completedLaps)
   player:SetAttribute('ParkTrialRewardMultiplier',s.multiplier)
-  player:SetAttribute('ParkTrialRewardAmount',Trial.Reward*s.multiplier)
+  player:SetAttribute('ParkTrialRewardAmount',if r.parkOvertake then Overtake.reward(s.ahead or 0)else Trial.Reward*s.multiplier)
   player:SetAttribute('ParkTrialGoAt',s.goAt)
   player:SetAttribute('ParkTrialStartedAt',s.startedAt)
   player:SetAttribute('ParkTrialCheckpoint',s.next-1)
@@ -29,7 +33,9 @@ function Session.new(zone,practice)
  end
  function api:begin(player,r)
   local pos=r.body.Position-center
-  r.trial=Trial.new(workspace:GetServerTimeNow(),pos.X,pos.Z)
+  r.trial=Trial.new(workspace:GetServerTimeNow(),pos.X,pos.Z,if r.parkOvertake then {laps=Overtake.Laps,countdown=Overtake.Countdown}else nil)
+  r.trial.ahead=0
+  if r.parkOvertake then r.trial.overtakeStartArc=Overtake.startArc(r.slot)end
   r.trial.multiplier=r.parkReplayMultiplier or 1
   r.trial.id=game:GetService('HttpService'):GenerateGUID(false)
   r.trial.transactionAt=DateTime.now().UnixTimestampMillis
@@ -43,7 +49,12 @@ function Session.new(zone,practice)
   s.saving=true;player:SetAttribute('ParkTrialRewardState','SAVING')
   task.spawn(function()
    local ok,result=pcall(function()
-    return require(script.Parent.EconomyService).saveParkLap(player,{id=s.id,milliseconds=s.milliseconds,
+    local economy=require(script.Parent.EconomyService)
+    if r.parkOvertake then
+     return economy.saveParkOvertake(player,{id=s.id,milliseconds=s.milliseconds,slot=r.slot,ahead=s.ahead,
+      transaction={version=1,issuedAt=s.transactionAt},completedCheckpoints=(s.completedLaps or 0)*6,valid=not s.invalid,completedLaps=s.completedLaps})
+    end
+    return economy.saveParkLap(player,{id=s.id,milliseconds=s.milliseconds,
      transaction={version=1,issuedAt=s.transactionAt},completedCheckpoints=(s.completedLaps or 0)*6,valid=not s.invalid,
      proofVersion=2,completedLaps=s.completedLaps,bestLapMilliseconds=math.min(table.unpack(s.lapTimes)),rewardMultiplier=s.multiplier})
    end)
@@ -58,7 +69,7 @@ function Session.new(zone,practice)
   if not r.trial or (r.trial.phase~='FINISHED'and r.trial.phase~='INVALID')then return false end
   -- Retry the same immutable receipt in the background; saving never gates racing.
   if r.trial.phase=='FINISHED'and not r.trial.confirmed then save(player,r,r.trial)end
-  r.parkReplayMultiplier=if r.trial.phase=='FINISHED'then (r.trial.multiplier or 1)+1 else 1
+  r.parkReplayMultiplier=if r.parkOvertake then 1 elseif r.trial.phase=='FINISHED'then (r.trial.multiplier or 1)+1 else 1
   practice:remove(player);Drift.clear(r.training)
   r.body.Anchored=true;r.body.AssemblyLinearVelocity=Vector3.zero;r.body.AssemblyAngularVelocity=Vector3.zero
   r.kart:PivotTo(r.gridFrame);r.safe=r.gridFrame;r.boundaryPrevious=r.gridFrame.Position
@@ -100,7 +111,9 @@ function Session.new(zone,practice)
    practice:remove(player);Drift.clear(r.training)
    r.kart:SetAttribute('KartBoosting',false);r.kart:SetAttribute('KartDrifting',false)
   elseif event=='FINISHED'then
-   local s=r.trial;s.phase='FINISHING';s.finishPhase='ROLL';s.finishAt=now
+   local s=r.trial
+   if r.parkOvertake then s.ahead=Overtake.countAhead(Overtake.finishDistance(r.slot),s.milliseconds/1000)end
+   s.phase='FINISHING';s.finishPhase='ROLL';s.finishAt=now
    s.rollSpeed=math.max(0,r.body.AssemblyLinearVelocity:Dot(Vector3.xAxis))
    r.kart:SetAttribute('KartFinishRollDirection',Vector3.xAxis);r.kart:SetAttribute('KartFinishRollActive',true)
    r.kart:SetAttribute('RaceControlsLocked',true);r.kart:SetAttribute('KartVisualSteering',0)
@@ -121,6 +134,7 @@ function Session.new(zone,practice)
   local p=r.body.Position-center;Trial.recover(r.trial,p.X,p.Z,workspace:GetServerTimeNow())
  end
  function api:remove(player)
+  for _,key in {'Active','StartArc','Ahead'}do player:SetAttribute('ParkOvertake'..key,nil)end
   for _,key in {'Phase','GoAt','StartedAt','Checkpoint','Missed','Invalid','Milliseconds','Target','RewardState','FinishPhase','FinishedAt','CurrentLap','TotalLaps','CompletedLaps','RewardMultiplier','RewardAmount'}do player:SetAttribute('ParkTrial'..key,nil)end
  end
  return api

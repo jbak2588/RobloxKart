@@ -28,7 +28,7 @@ local PostDriveView=require(script.Parent:WaitForChild('LobbyPostDriveView'))
 local CombatFeedbackView=require(script.Parent:WaitForChild('CombatFeedbackView'))
 local Controller={}
 local requestDrive
-function Controller.requestDrive()return if requestDrive then requestDrive()else false end
+function Controller.requestDrive(mode)return if requestDrive then requestDrive(mode)else false end
 local started=false
 function Controller.start()
  if started or Workspace:GetAttribute("KDMServerRole")~="HUB"
@@ -97,6 +97,7 @@ function Controller.start()
   return player:GetAttribute('LobbyDriveActive')==true and seatKart()~=nil and not suspended and focused and not pending
  end)
  local trialView
+ local overtakeBots=require(script.Parent:WaitForChild('ParkOvertakeBotsView')).new(player,driveZone)
  local parkMap,parkDot,parkMapPoint,parkMapGui
  if MobileView.controlsV1Enabled() then
   local layout=require(RS.Shared.HubParkRookieLoopLayout)
@@ -131,7 +132,7 @@ function Controller.start()
   MatchRoomUi.quickStart()
  end)
  gui.Destroying:Connect(function()
-  smokeView:destroy();postDrive:destroy();if trialView then trialView:destroy()end
+  smokeView:destroy();postDrive:destroy();overtakeBots:destroy();if trialView then trialView:destroy()end
   if speedGauge then speedGauge:destroy();speedGauge=nil end
  end)
  local function neutral()
@@ -162,13 +163,13 @@ function Controller.start()
   cameraBody,previousTarget,savedFov=nil,nil,nil
   finishCameraStart,finishCameraElapsed=nil,nil
  end
- local function request(action,callback,previewKartId)
+ local function request(action,callback,previewKartId,mode)
   if pending then return false end
   postDrive:hide()
   token+=1;local id=token;pending={id=id,callback=callback,action=action}
   if action=="Stop" then neutral();detach() else suspended=false end
   button.Active=false
-  if previewKartId then remote:FireServer(action,id,previewKartId) else remote:FireServer(action,id) end
+  if mode then remote:FireServer(action,id,previewKartId,mode)elseif previewKartId then remote:FireServer(action,id,previewKartId) else remote:FireServer(action,id) end
   task.delay(5,function()
    if pending and pending.id==id then
     local stale=pending;pending=nil;neutral();detach();status.Text="PLEASE TRY AGAIN";button.Active=true
@@ -178,7 +179,7 @@ function Controller.start()
   end)
   return true
  end
- requestDrive=function()return request('Drive')end
+ requestDrive=function(mode)return request('Drive',nil,nil,mode)end
  if driveZone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'then
   trialView=require(script.Parent:WaitForChild('RookieParkTrialView')).new(gui.Parent,player,
    function()request('Replay')end,function()request('Stop')end)
@@ -250,6 +251,7 @@ function Controller.start()
   postDrive:update()
   local active=player:GetAttribute("LobbyDriveActive")==true
   if trialView then trialView:update(active,Workspace.CurrentCamera)end
+  overtakeBots:update(active)
   local phase=player:GetAttribute("ParkTrialPhase")
   local driving=active and (phase==nil or phase=="RUNNING")
   local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")

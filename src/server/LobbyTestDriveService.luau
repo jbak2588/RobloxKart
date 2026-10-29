@@ -174,10 +174,11 @@ local function createKart(player,definition,frame)
  kart.Parent=zone;body:SetNetworkOwner(nil)
  return kart,body,seat
 end
-local function drive(player,previewKartId)
+local function drive(player,previewKartId,mode)
  if not started or not allowedHub()
   or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH"
   or player:GetAttribute("LobbyDrivePending")==true or (canEnter and not canEnter(player)) then return false,"DRIVE UNAVAILABLE" end
+ if mode~=nil and (mode~='OVERTAKE'or not timeTrial)then return false,'CHALLENGE UNAVAILABLE'end
  -- Showroom previews are temporary, free V2 visuals; selection/persistence is
  -- still owned by Garage. Reject unknown ids, payloads and non-showroom families.
  if previewKartId~=nil and (type(previewKartId)~="string" or not Catalog.Entries[previewKartId]
@@ -216,7 +217,7 @@ local function drive(player,previewKartId)
  records[player]=record
  -- Only Rookie Park has a timeTrial adapter; legacy Hub driving is unchanged.
  if timeTrial then setParkDriver(player,true) end
- record.gridFrame=frame
+ record.gridFrame=frame;record.parkOvertake=mode=='OVERTAKE'
  record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
   local occupant=seat.Occupant
   if occupant and occupant~=humanoid then occupant.Sit=false;Service.stop(player,"wrong_occupant",true)
@@ -308,8 +309,9 @@ function Service.start(driveZone,eligibility)
   end
   if type(id)~="number" or id~=id or id<0 or id>1e9 or id%1~=0 then return end
   if action=="Drive" then
+   if drift~=nil or select('#',...)>0 then return end
    local now=os.clock();if now-(lastRequest[player] or -1e9)<.6 then remote:FireClient(player,"Reply",id,generations[player],false,"PLEASE WAIT");return end
-   lastRequest[player]=now;local ok,message=drive(player,first)
+   lastRequest[player]=now;local ok,message=drive(player,first,second)
    remote:FireClient(player,"Reply",id,generations[player],ok,message)
   elseif action=='Replay' then
    local r=records[player]
