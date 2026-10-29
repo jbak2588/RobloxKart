@@ -18,8 +18,8 @@ function Builder.build(hub)
  end
  local cyan=Color3.fromRGB(75,225,245);local gold=Color3.fromRGB(255,218,65)
  for _,d in {
-  {id='SOLO_Park',name='SoloBoard',title='SOLO TIME ATTACK',sub='ROOKIE RACING PARK  /  BEST LAP',x=71,y=28,z=-27.7,w=38*1.12,h=19*1.12,yaw=0},
-  {id='MULTI_Track01Race',name='MultiBoard',title='MULTIPLAYER BEST LAP',sub='BASE CIRCUIT  /  HUMAN RACES',x=105.7,y=12,z=-38,w=28,h=16,yaw=45},
+  {id='SOLO_Park',name='SoloBoard',title='SOLO TIME ATTACK',sub='ROOKIE RACING PARK  /  2-LAP FINISH',x=71,y=28,z=-27.7,w=38*1.12,h=19*1.12,yaw=0},
+  {id='MULTI_Track01Race',name='MultiBoard',title='MULTIPLAYER FINISH TIME',sub='BASE CIRCUIT  /  2-LAP HUMAN RACES',x=105.7,y=12,z=-38,w=28,h=16,yaw=45},
   {id='CASH',name='CashBoard',title='LIFETIME K$ EARNED',sub='PARK + RACES + BONUSES  /  ALL TIME',x=126.913203,y=12,z=-59.213203,w=28,h=16,yaw=45},
  }do
   local pos=Vector3.new(d.x,d.y,d.z)

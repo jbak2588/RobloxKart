@@ -2,7 +2,8 @@ local fs,luau=require('@lune/fs'),require('@lune/luau')
 local n=0;local function check(v,m)assert(v,m);n+=1 end
 local source=fs.readFile('src/shared/HubLeaderboardPolicy.luau')
 local policy=luau.load(source)()
-check(policy.Boards.SOLO_Park.enabled and policy.Boards.SOLO_Park.ascending,'Park best lap enabled ascending')
+check(policy.Boards.SOLO_Park.enabled and policy.Boards.SOLO_Park.ascending,'Park total finish enabled ascending')
+check(policy.Boards.SOLO_Park.scope=='SOLO_Park_TOTAL_R2_L2'and policy.Boards.CASH.scope=='EARNED_R1','new total scopes cannot reuse faster one-lap scores; money scope retained')
 check(policy.Boards.MULTI_Track01Race.enabled and policy.Boards.CASH.enabled,'owner-approved multi and lifetime earned policies enabled')
 check(policy.Boards.SOLO_Track02==nil,'retired Track02 excluded')
 check(policy.allowed({isStudio=false,universe=10768420544,place=127925465904803,role='HUB',privateId=''}),'exact production Hub')
@@ -16,9 +17,10 @@ for _,ctx in {
 check(policy.format(policy.Boards.SOLO_Park,79123)=='1:19.123','milliseconds format')
 check(policy.format(policy.Boards.CASH,1234567)=='K$ 1,234,567','cash format')
 local scores=policy.project({parkTimeTrial={bestMilliseconds=39123},parkTwoLapTrial={bestMilliseconds=80000},wallet={cash=999,lifetimeEarned=777}})
-check(scores.SOLO_Park==39123 and scores.CASH==777,'Park is one-lap best; cash ranking is earnings, not balance')
+check(scores.SOLO_Park==80000 and scores.CASH==777,'Park is saved two-lap total; cash ranking is earnings, not balance')
+check(policy.project({parkTimeTrial={bestMilliseconds=39123}}).SOLO_Park==nil,'never multiply a lone lap PB to fabricate a full finish')
 check(next(policy.project({deleted=true,parkTimeTrial={bestMilliseconds=20000}}))==nil,'deleted profile rejected')
-for _,bad in {0,-1,0/0,math.huge,10000.5,'30000'}do check(policy.project({parkTimeTrial={bestMilliseconds=bad}}).SOLO_Park==nil,'invalid Park score rejected')end
+for _,bad in {0,-1,0/0,math.huge,10000.5,19999,'30000'}do check(policy.project({parkTwoLapTrial={bestMilliseconds=bad}}).SOLO_Park==nil,'invalid Park total rejected')end
 local enabled=policy
 local function evidence(category)
  local humans=if category=='HUMAN_4H_0B'then 4 elseif category=='SOLO_1H_0B'then 1 else 2
@@ -26,10 +28,10 @@ local function evidence(category)
   userId=1,eligible=true,serverAccepted=true,state='FINISHED',positionFinalized=true,startingBots=0,startingHumans=humans,targetLaps=2,laps={50000,51000},totalMilliseconds=101000}
 end
 local profile={userId=1,wallet={cash=10,lifetimeEarned=9000},records={races={a={lastRace=evidence('HUMAN_2H_0B')},b={lastRace=evidence('HUMAN_4H_0B')}}}}
-profile.records.races.b.lastRace.laps={48000,53000}
-check(enabled.project(profile).MULTI_Track01Race==48000 and enabled.project(profile).CASH==9000,'approved-option branches merge 2-4 humans and use earnings, never balance')
+profile.records.races.b.lastRace.laps={48000,55000};profile.records.races.b.lastRace.totalMilliseconds=103000
+check(enabled.project(profile).MULTI_Track01Race==101000 and enabled.project(profile).CASH==9000,'best whole finish wins despite another race having a faster individual lap')
 profile.records.races.b.lastRace.category='BOT_1H_1B'
-check(enabled.project(profile).MULTI_Track01Race==50000,'bot-assisted lap excluded')
+check(enabled.project(profile).MULTI_Track01Race==101000,'bot-assisted finish excluded')
 profile.records.races.a.lastRace.eligible=false
 check(enabled.project(profile).MULTI_Track01Race==nil,'invalid evidence excluded')
 profile.records.races.a.lastRace=evidence('SOLO_1H_0B');profile.records.races.a.lastRace.targetLaps=3
@@ -39,7 +41,12 @@ check(enabled.project(profile).SOLO_Track01Race==nil,'another account cannot sup
 profile.records.races.a.lastRace=evidence('SOLO_1H_0B');profile.records.races.a.lastRace.totalMilliseconds=1
 check(enabled.project(profile).SOLO_Track01Race==nil,'inconsistent full-race timer rejected')
 profile.records.races.a.lastRace=evidence('SOLO_1H_0B')
-check(enabled.project(profile).SOLO_Track01Race==50000 and enabled.project(profile).MULTI_Track01Race==nil,'solo and multiplayer indices remain separate')
+check(enabled.project(profile).SOLO_Track01Race==101000 and enabled.project(profile).MULTI_Track01Race==nil,'solo and multiplayer total indices remain separate')
+for _,track in enabled.Tracks do if track.id~='Park'then
+ local race=evidence('SOLO_1H_0B');race.trackId=track.id;race.geometryId=track.geometry;race.targetLaps=track.laps
+ race.laps=table.create(track.laps,50000);race.totalMilliseconds=track.laps*50000
+ check(enabled.project({userId=1,records={races={a={bestRace=race}}}})['SOLO_'..track.id]==race.totalMilliseconds,'complete '..track.laps..'-lap finish '..track.id)
+end end
 local Runtime=luau.load(fs.readFile('src/server/HubLeaderboardRuntime.luau'))()
 local storage={};local failWrite,failRead=false,false;local writes=0
 local runtime=Runtime.new(policy,{
@@ -75,6 +82,27 @@ local order={};local fair=Runtime.new(policy,{read=function(b)table.insert(order
 fair:request('SOLO_Park',0);fair:request('CASH',1);fair:request('MULTI_Track01Race',2)
 fair:request('SOLO_Park',10);fair:read(12);fair:read(24);fair:read(36)
 check(table.concat(order,',')=='SOLO_Park,CASH,MULTI_Track01Race','repeated world/detail requests cannot starve an older requested board')
+local persisted={};local adapters={
+ upsert=function(_,uid,score)persisted[uid]=math.min(persisted[uid]or math.huge,score);return true end,
+ read=function()local rows={};for uid,score in persisted do table.insert(rows,{key=tostring(uid),value=score})end;return rows end,
+}
+local writer=Runtime.new(policy,adapters);writer:offer(11,{SOLO_Park=120000});writer:offer(22,{SOLO_Park=110000});writer:write(0);writer:write(1)
+local reopened=Runtime.new(policy,adapters);reopened:request('SOLO_Park',0);reopened:read(0)
+check(#reopened.cache.SOLO_Park.rows==2 and reopened.cache.SOLO_Park.rows[1].userId==22,'two distinct users survive cache/server recreation and occupy separate rows')
+local pages,consumed={},{};local retry=true;local capacity=true
+local scan=Runtime.newBackfill({canStep=function()return capacity end,
+ page=function(cursor)table.insert(pages,cursor);if cursor==''then return {keys={'u:11','u:22'},cursor='page2',finished=false}end;return {keys={'u:33'},cursor='',finished=true}end,
+ consume=function(key)if key=='u:22'and retry then retry=false;error('temporary read failure')end;table.insert(consumed,key);return true end,
+})
+scan:step(0);scan:step(2);scan:step(4)
+check(scan.visited==1 and scan.index==2,'offline backfill retains failed key rather than skipping it')
+capacity=false;scan:step(6);check(#consumed==1,'backfill respects live traffic / queue backpressure')
+capacity=true;for now=8,24,2 do scan:step(now)end
+check(scan.done and scan.visited==3 and table.concat(consumed,',')=='u:11,u:22,u:33'and table.concat(pages,',')==',page2','paged offline profiles indexed once per successful read, including departed users')
+local pageAttempts=0;local retryPage=Runtime.newBackfill({canStep=function()return true end,consume=function()return true end,
+ page=function(cursor)pageAttempts+=1;assert(cursor=='');if pageAttempts==1 then error('list unavailable')end;return {keys={},cursor='',finished=true}end})
+retryPage:step(0);check(retryPage.cursor==''and not retryPage.done,'failed listing preserves first cursor')
+retryPage:step(2);retryPage:step(4);check(retryPage.done and pageAttempts==2,'empty successful final page terminates sweep')
 local server=fs.readFile('src/server/HubLeaderboardService.luau')
 check(not server:find('SetAsync',1,true)and not server:find('IncrementAsync',1,true),'no blind overwrite/increment API')
 check(server:find("GetDataStore('KDM_PlayerProgress_v1'):GetAsync",1,true)~=nil,'profile store read only')

@@ -15,8 +15,8 @@ Initial baseline local/origin `prototype/kart-physics`:
 
 | Board | Default view | Position relative to RookieParkOrigin |
 | --- | --- | --- |
-| Left building upper facade | Rookie Racing Park Solo best **one lap**, Top 5 | (71, 28, -27.7), 42.56 × 21.28 |
-| Adjacent building corner, yaw45° | Base Circuit multiplayer best lap, Top 5 | (105.7, 12, -38), 28 × 16 |
+| Left building upper facade | Rookie Racing Park Solo best **2-lap Finish total**, Top 5 | (71, 28, -27.7), 42.56 × 21.28 |
+| Adjacent building corner, yaw45° | Base Circuit multiplayer best **2-lap Finish total**, Top 5 | (105.7, 12, -38), 28 × 16 |
 | Continuation of angled pair, yaw45° | Lifetime K$ earned, Top 5 | (126.913203, 12, -59.213203), 28 × 16 |
 
 The standalone boards continue diagonally from the building corner, with a
@@ -36,24 +36,26 @@ Minimum button targets are 44 pixels. No forest/start-line billboard was added.
 
 | Category | Source and admission |
 | --- | --- |
-| Park Solo | `parkTimeTrial.bestMilliseconds`, existing accepted one-lap PB, minimum 10 seconds; not the two-lap run total |
-| Official Solo | Eligible, server-accepted, finalized FINISHED snapshot; SOLO_1H_0B; one starting human and zero bots |
-| Official multiplayer | Same full-finish evidence; HUMAN_2H_0B / 3H / 4H with matching starting counts and zero bots |
+| Park Solo | `parkTwoLapTrial.bestMilliseconds`, existing accepted full2-lap Finish PB, minimum20 seconds; never a one-lap PB |
+| Official Solo | Eligible, server-accepted, finalized FINISHED snapshot.totalMilliseconds; SOLO_1H_0B; one starting human and zero bots |
+| Official multiplayer | Same full-finish total evidence; HUMAN_2H_0B / 3H / 4H with matching starting counts and zero bots |
 | Money | `wallet.lifetimeEarned`, descending, including existing Park/race/bonus earnings; purchases do not subtract from this rank |
 
 Current track identity/geometry/ruleset/lap count must match: Green and Desert
 three laps; Base, Metro and Hard two. Track02 is excluded. Every lap must be a
 positive integer and the saved total must agree with lap sum within the existing
 millisecond rounding tolerance. Another user's evidence, invalid finishes, bots,
-old lap counts and mixed categories cannot contribute. Best individual lap is
-selected from eligible complete-race snapshots, not the full race duration.
+old lap counts and mixed categories cannot contribute. The minimum complete-race
+total is selected, even when a slower race contained a faster individual lap.
+Green/Desert labels say3-LAP FINISH; Park/Base/Metro/Hard say2-LAP FINISH.
 
 **Historical coverage is deliberately conservative.** `records.races.lastRace`
 and `bestRace` provide complete eligibility evidence. Older standalone lap PBs
 without a surviving eligible full-race snapshot are not imported automatically.
-Existing users are indexed when their confirmed profile next loads or updates;
-there was no production-wide profile scan/migration. New observed valid snapshots
-accumulate the faster lap through atomic min. Exact ties use the order of the
+PV1242 indexed only profiles observed after release; no offline scan existed.
+The total-time follow-up adds one bounded offline-profile sweep per live Hub,
+as well as indexing confirmed live profile updates. New observed valid snapshots
+accumulate the faster **whole Finish total** through atomic min. Exact ties use the order of the
 loaded page, with user-ID ordering inside that page; no cross-page tie rank claim.
 
 ## Storage and security
@@ -63,11 +65,25 @@ pure queue/cache runtime, world builder, service and detail controller. Existing
 driving, initialization, account, purchase, reward and geometry sources are
 unchanged. Original N1/N2 fixtures and current-release manifest are unchanged.
 
-`KDM_HubRanks_v1` is a separate **derived** OrderedDataStore, with scopes per
-mode/track/rules/laps and a separate EARNED_R1 scope. Atomic UpdateAsync uses min
+`KDM_HubRanks_v1` is a separate **derived** OrderedDataStore. Time scopes now use
+`<mode>_<track>_TOTAL_R2_L<laps>`; previous R1 lap scopes remain untouched for
+rollback. Money retains its EARNED_R1 scope. Atomic UpdateAsync uses min
 for time and max for lifetime earnings; no increments or blind overwrites.
 The account store `KDM_PlayerProgress_v1` is only read using uncached GetAsync
 after existing server profile qualification/revision signals and schema validation.
+The new offline sweep also reads existing `u:` keys in25-key pages, consuming at
+most one profile/list operation every2 seconds when no live profile job was
+processed, with more than10 StandardRead budget remaining and fewer than20
+pending index users. Failed reads/listings retain the current key/cursor and
+back off up to60 seconds. Account data is never altered. Invalid/future profiles
+are skipped and counted; valid profiles lacking a full finish get no time row.
+The sweep stops after its last page and replays safely after a server restart;
+there is no global lease or persisted scan cursor, so concurrent Hubs can repeat
+reads. Derived min/max writes remain idempotent. Offline own-score cache entries
+are released after queuing to keep memory bounded. Partial sweeps do not erase
+already indexed rows. Under uninterrupted budgets,190 accounts take at least
+about7 minutes plus listing, live-traffic delays and sorted-cache refresh.
+World/detail panels show INDEXING SAVED RECORDS while seeding/draining is active.
 It is never initialized or written by this feature. A confirmed deleted profile
 seen by the index worker queues removal from the derived stores. This is not a
 new global account-deletion sweep or an offline-user deletion service.
@@ -132,6 +148,46 @@ Revert this task's scoped commit to remove the two bootstraps and modules/UI.
 Do not reset the branch or revert unrelated approved releases. Derived ranking
 stores can remain inert; the account store and original records are unaffected.
 The historical fixtures must remain intact.
+
+## Complete Finish totals / missing rows follow-up
+
+Owner verified PV1242 on mobile/web and replaced the previous fastest-lap policy
+with complete Finish totals, authorizing official Publish. Baseline:
+`940fb726eb778f4c4ad9fafe37b47a68d2216110`.
+
+Read-only Creator Dashboard inspection showed190 account keys in
+KDM_PlayerProgress_v1. One other account inspected had saved test-drive activity
+and starter cash, but no Park finish or official race snapshot; this is evidence
+of an existing saved account, not a missing valid rank. This sample does not
+establish that every other account lacks a finish. Existing offline accounts were
+not seeded by PV1242, and bot-assisted/invalid/non-finishing records are excluded.
+The follow-up seeds all validated saved profiles without requiring re-entry.
+
+The owner's live saved Park one-lap PB was65,888ms, matching the displayed1:05.888;
+the separate complete2-lap PB is139,433ms (**2:19.433**). Stored official eligible
+totals also exist, including Base Solo132,375ms and human multiplayer149,496ms.
+No account values were edited during this inspection. Old single-lap PBs are not
+multiplied or otherwise converted into invented total times.
+
+Dedicated regression64 checks PASS:2/3-lap totals, faster-lap/slower-finish
+rejection, scope isolation, no-total profile exclusion, two users surviving a
+cache/server recreation, paged offline seeding, transient read/list retries and
+backpressure. Full251 processes:231 PASS /20 unchanged historical FAIL, new0;
+independent133-entry audit, Rojo build and diff checks PASS. QA native ordinary
+startup shows2-LAP FINISH / MULTIPLAYER FINISH TIME and the memory-only
+135,888ms fixture renders2:15.888. Temporary QA state is discarded on Stop.
+
+Remaining acceptance: the live bounded sweep and production sorted-index
+persistence need observation after the new release. A saved-account count does
+not equal a count of eligible complete finishes. No fabricated rows are added.
+
+Pre-Publish backup of the unchanged PV1242 Studio source/world:
+`C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-total-rank-20261029-pv1242.rbxl`,
+SHA256 `c6ed5248988802e32d8af0a3178450b2385b3a42ce5af16bbd98acc1922f6e27`.
+All229 baseline sources matched Git before mutation; exactly five leaderboard
+modules changed, with all229 candidate sources rechecked against local. The
+238-script inventory and all Hub/mobile/GAS flags are retained. No official
+gameplay, economy, purchase, physics or ownership source changed.
 
 ## Owner-approved official release follow-up
 

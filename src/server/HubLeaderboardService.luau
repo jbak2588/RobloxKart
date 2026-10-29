@@ -12,7 +12,8 @@ function Service.start()
  local Schema=require(RS.Shared.KDMProgressionSchema);local schema=Schema.new(require(RS.Shared.KartCatalog))
  local names,nameQueue,nameCount={},{},0
  local memory={};local function store(b)return DS:GetOrderedDataStore(Policy.StoreName,b.scope)end
- local runtime=require(script.Parent.HubLeaderboardRuntime).new(Policy,{
+ local Runtime=require(script.Parent.HubLeaderboardRuntime)
+ local runtime=Runtime.new(Policy,{
   remove=function(b,uid)
    if not live then if memory[b.id]then memory[b.id][uid]=nil end;return true end
    if DS:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.OrderedWrite)<1 then return false end
@@ -38,12 +39,43 @@ function Service.start()
  end
  local function bind(p)
   local list={};connections[p]=list
-  for _,attr in {'KDMWalletRevision','KDMAccountQualified','KDMRookieParkBestMilliseconds'}do table.insert(list,p:GetAttributeChangedSignal(attr):Connect(function()queue(p)end))end
+  for _,attr in {'KDMWalletRevision','KDMAccountQualified','KDMRookieParkTwoLapBestMilliseconds','RaceRecordSaveState'}do table.insert(list,p:GetAttributeChangedSignal(attr):Connect(function()queue(p)end))end
   queue(p)
  end
  Players.PlayerAdded:Connect(bind)
  Players.PlayerRemoving:Connect(function(p)for _,c in connections[p]or {}do c:Disconnect()end;connections[p]=nil;lastQuery[p]=nil;runtime.own[p.UserId]=nil end)
  for _,p in Players:GetPlayers()do bind(p)end
+ local seed
+ local invalidProfiles=0
+ local function readProfile(uid)
+  if DS:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardRead)<1 then error('budget')end
+  local options=Instance.new('DataStoreGetOptions');options.UseCache=false
+  return DS:GetDataStore('KDM_PlayerProgress_v1'):GetAsync(Schema.userKey(uid),options)
+ end
+ if live and role=='HUB'then
+  seed=Runtime.newBackfill({
+   canStep=function()
+    local count=0;for _ in runtime.pending do count+=1 end
+    return count<20 and DS:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardRead)>10
+   end,
+   page=function(cursor)
+    if DS:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardList)<2 then error('list_budget')end
+    local pages=DS:GetDataStore('KDM_PlayerProgress_v1'):ListKeysAsync('u:',25,cursor,true)
+    local keys={};for _,key in pages:GetCurrentPage()do table.insert(keys,key.KeyName)end
+    return {keys=keys,cursor=pages.Cursor,finished=pages.IsFinished}
+   end,
+   consume=function(key)
+    local uid=type(key)=='string'and tonumber(key:match('^u:(%d+)$'))
+    if not uid or not Policy.integer(uid)or uid<=0 or key~=Schema.userKey(uid)then return true end
+    local profile=readProfile(uid)
+    if profile==nil then return true end
+    if not schema.validate(profile,key)then invalidProfiles+=1;return true end
+    if profile.deleted then runtime:remove(uid)else runtime:offer(uid,Policy.project(profile))end
+    if not Players:GetPlayerByUserId(uid)then runtime.own[uid]=nil end
+    return true
+   end,
+  })
+ end
  local model
  if role=='HUB'then
   local hub=WS:WaitForChild('KDMHub',60)
@@ -64,7 +96,8 @@ function Service.start()
   local rows={};local rank
   for i,r in c.rows do table.insert(rows,{rank=i,userId=r.userId,name=named(r.userId),score=r.score});if r.userId==uid then rank=i end end
   return {status=c.status,rows=rows,myScore=runtime.own[uid]and runtime.own[uid][id],myRank=rank,
-   updatedAgo=if c.at then math.floor(math.max(0,os.clock()-c.at))else nil,preview=not live,title=b.title}
+   updatedAgo=if c.at then math.floor(math.max(0,os.clock()-c.at))else nil,preview=not live,title=b.title,
+   indexing=seed~=nil and(not seed.done or next(runtime.pending)~=nil)}
  end
  if model then
   local remote=Instance.new('RemoteFunction');remote.Name='KDMHubLeaderboardQuery';remote.Parent=RS
@@ -78,27 +111,31 @@ function Service.start()
  end
  task.spawn(function()
   while started do
-   local now=os.clock()
+   local now=os.clock();local didProfile=false
    for uid,job in profiles do if now>=job.due then
     local ok,profile=pcall(function()
      if not live then local p=Players:GetPlayerByUserId(uid);if not p then return nil end
-      return {parkTimeTrial={bestMilliseconds=p:GetAttribute('KDMRookieParkBestMilliseconds')},wallet={lifetimeEarned=p:GetAttribute('KDMLifetimeEarned')},records={scoped={}}}
+      return {parkTwoLapTrial={bestMilliseconds=p:GetAttribute('KDMRookieParkTwoLapBestMilliseconds')},wallet={lifetimeEarned=p:GetAttribute('KDMLifetimeEarned')},records={scoped={}}}
      end
-     if DS:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.StandardRead)<1 then error('budget')end
-     local options=Instance.new('DataStoreGetOptions');options.UseCache=false
-     return DS:GetDataStore('KDM_PlayerProgress_v1'):GetAsync(Schema.userKey(uid),options)
+     return readProfile(uid)
     end)
     if ok and (not live or profile and schema.validate(profile,Schema.userKey(uid)))then
      if profile and profile.deleted then runtime:remove(uid)else runtime:offer(uid,Policy.project(profile))end;profiles[uid]=nil
     else job.attempt+=1;job.due=now+math.min(60,2^math.min(job.attempt,6));if job.attempt>=6 and not Players:GetPlayerByUserId(uid)then profiles[uid]=nil end end
-    break
+    didProfile=true;break
    end end
    runtime:write(now)
+   if seed then
+    if not didProfile then seed:step(now)end
+    WS:SetAttribute('KDMLeaderboardScanState',if seed.done then 'COMPLETE'elseif seed.attempt>0 then 'RETRYING'else 'INDEXING')
+    WS:SetAttribute('KDMLeaderboardScanVisited',seed.visited);WS:SetAttribute('KDMLeaderboardInvalidProfiles',invalidProfiles)
+   end
    if model and model.Parent then
     for _,b in model:GetChildren()do if b:IsA('BasePart')and b:FindFirstChild('RankingFace')then
      local id=b:GetAttribute('LeaderboardId');local data=response(id,0);local panel=b.RankingFace.Frame
      for i=1,5 do local r=data.rows[i];local row=panel['Row'..i];row.Racer.Text=if r then r.name else '--';row.Score.Text=if r then Policy.format(Policy.Boards[id],r.score)else '--'end
      panel.Status.Text=if data.status=='POLICY_PENDING'then 'RANKING POLICY PENDING'elseif #data.rows==0 and data.status=='READY'then 'NO VALID RECORDS YET'elseif data.status=='STALE'then 'UPDATE DELAYED - LAST SAVED RANKINGS'elseif data.status=='LOADING'then 'LOADING RANKINGS'else 'TOP 5  /  REFRESH ~60s'
+     if data.indexing and data.status=='READY'then panel.Status.Text='INDEXING SAVED RECORDS / TOP 5'end
      if not live then panel.Status.Text='STUDIO PREVIEW - NO LIVE DATA'end
     end end
    end

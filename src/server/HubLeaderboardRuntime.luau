@@ -59,4 +59,29 @@ function Runtime.new(policy,deps)
  end
  return self
 end
+-- One bounded, restart-safe sweep per Hub. Only derivative indexes are written.
+-- A failed page/read retains its cursor/key. Repeating a sweep is idempotent.
+function Runtime.newBackfill(deps)
+ local self={cursor='',keys=nil,index=1,done=false,visited=0,due=0,attempt=0}
+ function self:step(now)
+  if self.done or now<self.due or not deps.canStep()then return end
+  self.due=now+2
+  local ok,accepted
+  if self.keys==nil then
+   local page;ok,page=pcall(deps.page,self.cursor)
+   accepted=ok and type(page)=='table'and type(page.keys)=='table'and type(page.cursor)=='string'
+    and type(page.finished)=='boolean'and(page.finished or page.cursor~=self.cursor)
+   if accepted then self.keys=page.keys;self.cursor=page.cursor;self.lastPage=page.finished;self.index=1 end
+  elseif self.index>#self.keys then
+   if self.lastPage then self.done=true else self.keys=nil end
+   accepted=true;ok=true
+  else
+   ok,accepted=pcall(deps.consume,self.keys[self.index])
+   if ok and accepted then self.index+=1;self.visited+=1 end
+  end
+  if ok and accepted then self.attempt=0
+  else self.attempt+=1;self.due=now+math.min(60,2^math.min(self.attempt,6))end
+ end
+ return self
+end
 return Runtime

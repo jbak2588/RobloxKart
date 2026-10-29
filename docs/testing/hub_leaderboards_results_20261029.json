@@ -26,8 +26,8 @@
     "v2_gauge_v1_audio_validation.luau"
   ],
   "newFailures": [],
-  "hubLeaderboardChecks": 50,
-  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-w3xfwxvy",
+  "hubLeaderboardChecks": 64,
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-kz330yx_",
   "publishPerformed": true,
   "productionDataWritesPerformed": false,
   "qaStudio": {
@@ -37,13 +37,13 @@
     "realDeviceTouchAcceptance": "PENDING"
   },
   "sources": {
-    "src/server/HubLeaderboardBoardBuilder.luau": "74e4920219efbeaf56022505e5a697e969eb79c483ad0a9be029bbbd86b00daa",
+    "src/server/HubLeaderboardBoardBuilder.luau": "75b7c51380ef1d60ed526615d7ea07f20b358d79c9448f6767746d3a07533be9",
     "src/server/HubLeaderboardBootstrap.server.luau": "2adafbde93e113e92948498f3915597c25cd4f8fc9b78adcf9fc547695ccbea0",
-    "src/server/HubLeaderboardRuntime.luau": "ba69b1a1532403d81d314c4eb3ef966d62568d125ba85916dfe8bef2dd6f0be4",
-    "src/server/HubLeaderboardService.luau": "cc0966aac67cf9cf2fadf5b66d3a7168af7709eb32c29f1ff04c51a9a20d0b12",
+    "src/server/HubLeaderboardRuntime.luau": "f52447357496938883a0ccb22e766120959a2ba27a08c896af62a078678cbac4",
+    "src/server/HubLeaderboardService.luau": "ba2debe1b243d06c1c7e146e73da75e998ae90927fcb511c2d3f76042440e09f",
     "src/client/HubLeaderboardBootstrap.client.luau": "af19e49be1f433f9a5bbfa13bde3edbb33e76c5dc81fb9bf96b3a6b3e6909c0c",
-    "src/client/HubLeaderboardController.luau": "5e05dd6b7c3d1ab59ef0a38b9ee8265a6a8066ba502b4369ac55be6abdfc1946",
-    "src/shared/HubLeaderboardPolicy.luau": "4b8f35d313947e5beb131b3cafd3aff26543252b2aeff38bbaa29bd5d456651c"
+    "src/client/HubLeaderboardController.luau": "5c898cbbf9a073551992f4d8cd9422e5073d76d4a7dc16daeccc12d305c8e178",
+    "src/shared/HubLeaderboardPolicy.luau": "573d7a9703a2dd2d4854014f61d632073c0da8d36c217a5a1108870a9ba170b9"
   },
   "layoutRevisionBaseline": "5384f6cd7e6a81bdcb165538f58ffee5b15fe437",
   "layoutRevision": {
@@ -86,5 +86,43 @@
     "serverRestart": false,
     "qaPublish": false,
     "screenshot": "C:/Users/OWNER/AppData/Local/Temp/KDM-leaderboards-published-v1242-20261029.png"
+  },
+  "finishTotalFollowup": {
+    "baseline": "940fb726eb778f4c4ad9fafe37b47a68d2216110",
+    "status": "VALIDATED_FOR_PUBLISH",
+    "timeMetric": "COMPLETE_FINISH_TOTAL_MS",
+    "parkLaps": 2,
+    "officialLaps": {
+      "Track01": 3,
+      "Track01Desert": 3,
+      "Track01Race": 2,
+      "Track01Metro": 2,
+      "Track03": 2
+    },
+    "timeScopeVersion": "TOTAL_R2",
+    "offlineAccountScan": {
+      "pageSize": 25,
+      "minimumStepSeconds": 2,
+      "readBudgetReserve": 10,
+      "pendingUserLimit": 20,
+      "profileStoreWrites": false,
+      "restart": "replay_from_first_page_idempotently"
+    },
+    "liveReadOnlyInspection": {
+      "profileKeysShown": 190,
+      "otherAccountSample": "activity_and_starter_cash_saved_no_finish_snapshot",
+      "ownerParkLapPB": 65888,
+      "ownerParkTotalPB": 139433
+    },
+    "nativeQa": {
+      "fixtureMs": 135888,
+      "display": "2:15.888",
+      "liveDataAccess": false
+    },
+    "backup": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-total-rank-20261029-pv1242.rbxl",
+    "backupSHA256": "c6ed5248988802e32d8af0a3178450b2385b3a42ce5af16bbd98acc1922f6e27",
+    "officialStudioSourcesMatched": 229,
+    "changedStudioScripts": 5,
+    "publishPerformed": false
   }
 }

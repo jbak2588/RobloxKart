@@ -27,7 +27,7 @@ function Controller.start()
  label('Title',UDim2.new(0,18,0,10),UDim2.new(1,-100,0,34),'KDM GLOBAL RANKINGS')
  button(panel,'X',UDim2.new(1,-62,0,8),UDim2.fromOffset(48,40),function()gui.Enabled=false end)
  local id='SOLO_Park';local mode='SOLO';local serial=0;local busy=false
- local track=label('Track',UDim2.new(.12,0,0,102),UDim2.new(.76,0,0,30),'ROOKIE RACING PARK / BEST LAP')
+ local track=label('Track',UDim2.new(.12,0,0,102),UDim2.new(.76,0,0,30),'ROOKIE RACING PARK / 2-LAP FINISH')
  track.TextXAlignment=Enum.TextXAlignment.Center
  local status=label('Status',UDim2.new(0,18,0,148),UDim2.new(1,-36,0,27),'LOADING')
  local mine=label('MyRecord',UDim2.new(0,18,1,-42),UDim2.new(1,-36,0,30),'MY RECORD: --')
@@ -39,15 +39,16 @@ function Controller.start()
  end
  local lastRender
  local function render(data)
-  local fingerprint={id,data.status or '',tostring(data.myScore),tostring(data.myRank),tostring(data.preview)}
+  local fingerprint={id,data.status or '',tostring(data.myScore),tostring(data.myRank),tostring(data.preview),tostring(data.indexing)}
   for _,r in data.rows or {}do table.insert(fingerprint,tostring(r.userId)..':'..r.name..':'..tostring(r.score))end
   local stamp=table.concat(fingerprint,'|');if stamp==lastRender then return end;lastRender=stamp
   for _,r in list:GetChildren()do if r:IsA('Frame')then r:Destroy()end end
   local board=Policy.Boards[id]
-  track.Text=board.title..(if mode=='CASH'then ''else ' / BEST LAP')
+  track.Text=board.title..(if mode=='CASH'then ''else ' / '..board.laps..'-LAP FINISH')
   local messages={POLICY_PENDING='RANKING POLICY NOT YET CONFIRMED',LOADING='LOADING RANKINGS...',STALE='UPDATE DELAYED - SHOWING LAST SAVED RANKINGS',ERROR='RANKINGS TEMPORARILY UNAVAILABLE'}
   status.Text=messages[data.status]or(if #(data.rows or {})==0 then 'NO VALID RECORDS YET'else 'GLOBAL TOP 50  /  UPDATES ~60s')
   if data.preview then status.Text='STUDIO PREVIEW - NO LIVE DATA'end
+  if data.indexing and not data.preview and data.status=='READY'then status.Text='INDEXING SAVED RECORDS / GLOBAL TOP 50'end
   for i,r in data.rows or {}do
    local row=Instance.new('Frame');row.Name='Rank'..i;row.Size=UDim2.new(1,-8,0,44);row.LayoutOrder=i;row.BorderSizePixel=0
    row.BackgroundColor3=if r.userId==player.UserId then Color3.fromRGB(45,200,205)else Color3.fromRGB(40,75,100);row.BackgroundTransparency=.3;row.Parent=list
@@ -72,7 +73,7 @@ function Controller.start()
   mode=nextMode;id=if mode=='CASH'then 'CASH'elseif mode=='MULTI'then 'MULTI_Track01Race'else 'SOLO_Park'
   render({status='LOADING',rows={}});refresh()
  end
- for i,d in {{'SOLO','SOLO TIME ATTACK'},{'MULTI','MULTIPLAYER LAP'},{'CASH','TOTAL K$ EARNED'}}do
+ for i,d in {{'SOLO','SOLO TIME ATTACK'},{'MULTI','MULTIPLAYER FINISH'},{'CASH','TOTAL K$ EARNED'}}do
   button(panel,d[2],UDim2.new((i-1)/3,8,0,55),UDim2.new(1/3,-16,0,38),function()selectMode(d[1])end)
  end
  local function cycle(delta)

@@ -4,6 +4,15 @@ Read this before editing the project.
 
 ## Hub world rankings — owner contract 2026-10-29
 
+Latest owner follow-up after PV1242 mobile/web acceptance: all time rankings
+use the final complete2/3-lap Finish total, never the fastest single lap. Park
+uses parkTwoLapTrial; official boards use eligible snapshot.totalMilliseconds.
+Keep Solo / bot-free2–4-human Multiplayer separate. Use new TOTAL_R2 scopes so
+old one-lap minima cannot contaminate totals; retain old indexes for rollback.
+Reindex existing offline profiles with bounded, budget-aware read-only account
+scans and idempotent derived-index writes. Never fabricate a total from a lap PB.
+Commit/push and official Publish are approved; geometry/economy/authority stay fixed.
+
 Owner follow-up authorizes commit/push and official Publish to the exact
 Universe10768420544 / Place127925465904803 pair. Enlarge the wall board by12%
 in width/height; rotate both standalone boards45 degrees toward Spawn and join

@@ -14,7 +14,7 @@ for _,track in P.Tracks do
  for _,mode in (if track.id=='Park'then {'SOLO'}else {'SOLO','MULTI'})do
   local id=mode..'_'..track.id
   P.Boards[id]={id=id,mode=mode,track=track.id,title=track.name,ascending=true,
-   scope=id..'_R1_L'..track.laps,enabled=mode=='SOLO'or P.MultiEnabled}
+   laps=track.laps,scope=id..'_TOTAL_R2_L'..track.laps,enabled=mode=='SOLO'or P.MultiEnabled}
   table.insert(P.Order,id)
  end
 end
@@ -33,8 +33,8 @@ function P.format(board,score)
 end
 function P.project(profile)
  local out={};if type(profile)~='table'or profile.deleted then return out end
- local park=profile.parkTimeTrial
- if park and P.integer(park.bestMilliseconds)and park.bestMilliseconds>=10000 then out.SOLO_Park=park.bestMilliseconds end
+ local park=profile.parkTwoLapTrial
+ if park and P.integer(park.bestMilliseconds)and park.bestMilliseconds>=20000 then out.SOLO_Park=park.bestMilliseconds end
  if P.CashEnabled and profile.wallet and P.integer(profile.wallet.lifetimeEarned)then out.CASH=profile.wallet.lifetimeEarned end
  -- A single valid lap inside an invalid finish is not sufficient. Only saved,
  -- eligible complete-race evidence contributes to the public official index.
@@ -47,10 +47,10 @@ function P.project(profile)
       and race.category=='HUMAN_'..race.startingHumans..'H_0B'then 'MULTI'else nil
     for _,track in P.Tracks do
      if mode and race.trackId==track.id and race.geometryId==track.geometry and race.targetLaps==track.laps and #race.laps==track.laps then
-      local best,total=math.huge,0
-      for _,ms in race.laps do if not P.integer(ms)or ms<=0 then best=nil;break end;best=math.min(best,ms);total+=ms end
+      local valid,total=true,0
+      for _,ms in race.laps do if not P.integer(ms)or ms<=0 then valid=false;break end;total+=ms end
       local id=mode..'_'..track.id
-      if best and P.integer(race.totalMilliseconds)and math.abs(total-race.totalMilliseconds)<=track.laps and P.Boards[id].enabled then out[id]=math.min(out[id]or math.huge,best)end
+      if valid and P.integer(race.totalMilliseconds)and math.abs(total-race.totalMilliseconds)<=track.laps and P.Boards[id].enabled then out[id]=math.min(out[id]or math.huge,race.totalMilliseconds)end
      end
     end
    end
