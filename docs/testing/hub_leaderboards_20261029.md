@@ -147,6 +147,27 @@ The historical fixtures must remain intact.
 - Before mutation, native File > Download a Copy saved
   `C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-leaderboards-20261029-v1240.rbxl`.
   Studio output confirms download completion; source-hash inventory retained.
-- Loaded version1240 is a baseline, not a new publication receipt. The current
-  browser account cannot access official Dashboard version history. Final native
-  Publish outcome and any remaining receipt limitation are recorded below.
+- Loaded version1240 is a baseline, not a new publication receipt. The Dashboard's
+  initial permission/loading screen resolved once its version table loaded.
+
+### Verified official publication receipt
+
+- **PRODUCTION_PUBLISHED: Place version1242**, October29,2026,2:24PM
+  (Dashboard local display). Verified in **Show published only** with the
+  Published Version checkmark. The preceding published version1239 remains
+  recoverable;1240/1241 saved revisions are distinct from published versions.
+- Target Universe10768420544 / Place127925465904803. Source/layout commit
+  `72f5a598d040d7651134d3776fe46ce9ea72602a` was pushed before publication.
+- Post-Publish238-script inventory matches the pre-Publish candidate exactly:
+  no changed existing scripts,229/229 local project sources match. All three
+  Workspace Hub/mobile/GAS flags remain true. QA Play stopped; no QA Publish,
+  access-setting mutation or server restart.
+- Screenshot proof:
+  `C:/Users/OWNER/AppData/Local/Temp/KDM-leaderboards-published-v1242-20261029.png`.
+- [Official published version history](https://create.roblox.com/dashboard/creations/experiences/10768420544/places/127925465904803/version-history)
+- [Official experience](https://www.roblox.com/games/127925465904803/)
+- Real-device touch/scroll and production sorted-index persistence still require
+  normal player acceptance; publication does not establish those outcomes.
+- Operational rollback: restore published1239 in the same official Place and
+  publish from Studio, or use the exact pre-change1240 local backup. Revert the
+  two leaderboard source commits for Git rollback, preserving unrelated releases.

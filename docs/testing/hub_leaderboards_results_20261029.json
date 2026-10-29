@@ -28,7 +28,7 @@
   "newFailures": [],
   "hubLeaderboardChecks": 50,
   "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-w3xfwxvy",
-  "publishPerformed": false,
+  "publishPerformed": true,
   "productionDataWritesPerformed": false,
   "qaStudio": {
     "universe": 10772198697,
@@ -65,5 +65,26 @@
     "changedExistingStudioScripts": 0,
     "backup": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-leaderboards-20261029-v1240.rbxl",
     "backupSHA256": "3dc264ba9f8ee47af51232ad29aa15e7b206ded8b1883a9169592f0a0571669c"
+  },
+  "publication": {
+    "status": "PRODUCTION_PUBLISHED",
+    "universe": 10768420544,
+    "place": 127925465904803,
+    "version": 1242,
+    "previousPublishedVersion": 1239,
+    "dashboardLocalDisplay": "October 29, 2026 at 2:24 PM",
+    "evidence": "Show published only / Published Version checkmark",
+    "sourceCommit": "72f5a598d040d7651134d3776fe46ce9ea72602a",
+    "projectSourcesMatchedAfterPublish": 229,
+    "totalStudioScripts": 238,
+    "postPublishSourceChanges": 0,
+    "releaseFlags": [
+      true,
+      true,
+      true
+    ],
+    "serverRestart": false,
+    "qaPublish": false,
+    "screenshot": "C:/Users/OWNER/AppData/Local/Temp/KDM-leaderboards-published-v1242-20261029.png"
   }
 }
