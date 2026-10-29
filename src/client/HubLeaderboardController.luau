@@ -70,7 +70,7 @@ function Controller.start()
   end)
  end
  local function selectMode(nextMode)
-  mode=nextMode;id=if mode=='CASH'then 'CASH'elseif mode=='MULTI'then 'MULTI_Track01Race'else 'SOLO_Park'
+  mode=nextMode;id=if mode=='CASH'then 'CASH'elseif mode=='MULTI'then 'MULTI_Track01Desert'else 'SOLO_Park'
   render({status='LOADING',rows={}});refresh()
  end
  for i,d in {{'SOLO','SOLO TIME ATTACK'},{'MULTI','MULTIPLAYER FINISH'},{'CASH','TOTAL K$ EARNED'}}do

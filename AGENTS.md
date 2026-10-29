@@ -4,6 +4,10 @@ Read this before editing the project.
 
 ## Hub world rankings — owner contract 2026-10-29
 
+Owner priority 2026-10-29: the physical Multiplayer board and Multiplayer tab
+initially show Figure-8 Desert Canyon (Track01Desert), using the valid complete
+3-lap Finish total. Other tracks remain selectable; do not change stored scores.
+
 Latest owner follow-up after PV1242 mobile/web acceptance: all time rankings
 use the final complete2/3-lap Finish total, never the fastest single lap. Park
 uses parkTwoLapTrial; official boards use eligible snapshot.totalMilliseconds.

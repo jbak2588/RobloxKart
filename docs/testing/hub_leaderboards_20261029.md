@@ -16,7 +16,7 @@ Initial baseline local/origin `prototype/kart-physics`:
 | Board | Default view | Position relative to RookieParkOrigin |
 | --- | --- | --- |
 | Left building upper facade | Rookie Racing Park Solo best **2-lap Finish total**, Top 5 | (71, 28, -27.7), 42.56 × 21.28 |
-| Adjacent building corner, yaw45° | Base Circuit multiplayer best **2-lap Finish total**, Top 5 | (105.7, 12, -38), 28 × 16 |
+| Adjacent building corner, yaw45° | Figure-8 Desert Canyon multiplayer best **3-lap Finish total**, Top 5 | (105.7, 12, -38), 28 × 16 |
 | Continuation of angled pair, yaw45° | Lifetime K$ earned, Top 5 | (126.913203, 12, -59.213203), 28 × 16 |
 
 The standalone boards continue diagonally from the building corner, with a
@@ -227,3 +227,23 @@ gameplay, economy, purchase, physics or ownership source changed.
 - Operational rollback: restore published1239 in the same official Place and
   publish from Studio, or use the exact pre-change1240 local backup. Revert the
   two leaderboard source commits for Git rollback, preserving unrelated releases.
+
+## Multiplayer display priority — owner follow-up 2026-10-29
+
+The physical Multiplayer board and initial Multiplayer tab now select
+`MULTI_Track01Desert`: Figure-8 Desert Canyon, complete 3-lap Finish total.
+This changes display defaults only; other tracks stay selectable and their
+TOTAL_R2 indexes and account records remain untouched.
+
+Verification of predecessor `1305df9`: local and remote HEAD matched, working
+tree clean; all 229 project scripts matched the production Edit model, including
+the five runtime VFX optimization files and finish-total/backfill sources.
+Full validation: 231/251 PASS, same 20 historical failures, no additional failing
+tests; independent 133-entry audit, Rojo build and diff check PASS. This source
+comparison does not establish real-device frame-time acceptance.
+
+Creator Dashboard published-only history confirmed official PV1244 (2026-10-29
+16:56 local time). Studio source parity was checked separately; a downloaded
+published-artifact source comparison was not performed. The Desert display
+priority follow-up is synced to Studio but has not been newly published by this
+verification task.
