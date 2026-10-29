@@ -11,7 +11,15 @@ function Reward.reduce(S,schema,op)
  local distance=P.finishDistance(op.slot)
  -- Shared progress already enforces continuity/gates; also reject impossible total pace.
  if op.milliseconds/1000<distance/120 then return function()return nil,'INVALID_OVERTAKE'end end
- local count=P.countAhead(distance,op.milliseconds/1000)
+ local seconds=op.milliseconds/1000
+ if op.botDistances~=nil then
+  if type(op.botDistances)~='table'or #op.botDistances~=7 then return function()return nil,'INVALID_OVERTAKE'end end
+  for i,d in op.botDistances do
+   if not S.integer(i)or i<1 or i>7 or type(d)~='number'or d~=d
+    or d<P.botDistance(i,0)or d>P.botDistance(i,seconds)+.01 then return function()return nil,'INVALID_OVERTAKE'end end
+  end
+ end
+ local count=P.countAhead(distance,seconds,op.botDistances)
  if op.ahead~=count then return function()return nil,'INVALID_OVERTAKE'end end
  local amount=P.reward(count)
  local copy=S.freeze(S.clone(op));local sig=S.transactionCanonical(copy);local key='park-overtake:'..copy.id

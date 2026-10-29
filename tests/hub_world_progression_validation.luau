@@ -24,7 +24,7 @@ local marker="local firstDisplay=hub.KDMClientShowroom"
 local injection=[[
 local card=hubGui.SafeCanvas.NextAction
 local world=hub.KDMClientWorldGuidance
-check(card.SelectTrack.Text=="RACE NOW" and card.FreeTestDrive.Text=="TEST DRIVE","current immediate race/practice CTAs")
+check(card.SelectTrack.Text=="RACE NOW" and card.FreeTestDrive.Text=="TIME ATTACK","current immediate race/practice CTAs")
 check(#world:GetChildren()==3,"one three-direction world guidance set")
 local quick,drive=0,0
 child(client,'ModuleScript','MatchRoomUiController');modules.MatchRoomUiController={quickStart=function()quick+=1 end}

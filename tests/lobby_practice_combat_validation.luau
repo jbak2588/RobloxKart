@@ -229,6 +229,32 @@ fake.automatic=true;r.humanoid.SeatPart=nil
 c:reassertServerAuthority(c.actors[p]);flush();check(writes==1,'Park incomplete seat rejects repair')
 r.humanoid.SeatPart=r.seat;r.body=originalBody
 env.task.defer=function(callback)callback()end
+-- Real session-local challenge actors use the same six-item combat services.
+module('HubParkRookieLoopLayout','src/shared/HubParkRookieLoopLayout.luau')
+modules.RookieParkTrial=require('./helpers/rookie_park_trial')(modules.HubParkRookieLoopLayout)
+module('ParkOvertakePolicy','src/shared/ParkOvertakePolicy.luau')
+c,p,q,r,s=fresh();r.parkOvertake=true
+r.trial={phase='RUNNING',startedAt=1000,overtakeStartArc=modules.ParkOvertakePolicy.startArc(0)}
+c:add(p,r);local a=c.actors[p];local rival=a.rivals[1]
+check(#a.rivals==7 and c:valid(rival),'seven server combat targets bound to one live challenge')
+local base=rival.distance;tick(.5)
+check(math.abs(rival.distance-base-35)<.001,'unhit challenge rivals keep exact 70 pace')
+for _,id in {'Missile','Thunder','Slick','Smoke'}do
+ c:clearTransient(rival);rival.speed=70
+ local before=rival.distance
+ check(c:resolve(rival,a,id,now),'challenge rival accepts '..id)
+ tick(.2)
+ check(rival.distance>before,'hit rival continues monotonic route progress')
+ check((rival.distance-before<14-.001)==(id~='Smoke'),'real item speed cap applies; Smoke remains vision-only '..id)
+end
+check(not c:resolve(rival,c.actors[q],'Missile',now),'other Park sessions cannot attack challenge rivals')
+check(not c:resolve(c.actors[q],a,'Thunder',now),'challenge attacks cannot affect other Park sessions')
+local proof=c:overtakeDistances(p,now)
+check(#proof==7 and proof[1]<modules.ParkOvertakePolicy.botDistance(1,now),'final proof preserves actual attack delay')
+for _,id in modules.LobbyPracticePolicy.Items do check(a.loadout.counts[id]==1,'all six practice initial charges '..id)end
+local targets=c:targets(a)
+for _,t in targets do check(t.actor.overtakeOwner==p,'only own session rivals selected')end
+c:remove(p);check(not rival.record.kart.Parent and not c:valid(rival),'exit clears seven proxies and combat target validity')
 c:destroy();scene.root:Destroy()
 scene=nil
 print('PASS: '..n..' production practice loadout / PvP / bot / warning / hit / immunity / Smoke / Nitro / lifecycle checks')

@@ -53,7 +53,7 @@ function HubGuidanceState.presentation(state, safeSize, raceState, overlayOpen, 
  local message = if state.context == "TRACK_RETURN" then "Create or join a race" elseif not state.visited then "Race against real players or a rookie bot." else "Race against real players or a rookie bot."
  local action, destination = HubGuidanceState.nextAction(state)
  local button = "RACE NOW"
- local secondaryButton = "TEST DRIVE"
+ local secondaryButton = "TIME ATTACK"
  return {
   visible = raceState == "GARAGE" and not overlayOpen and not roomOwned
    and (routePending == nil or routePending == "") and safeSize.X >= 200 and safeSize.Y >= 212,

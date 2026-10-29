@@ -216,7 +216,7 @@ function Controller.start()
  panel:GetPropertyChangedSignal('AbsoluteSize'):Connect(layoutProfile)
  layoutProfile()
  local busy, passAvailable, passPrice, status = false, false, nil, ''
- local messages = {GUEST='Complete Test Drive to earn your starter K$5,000.', FOUND = '', SAVE_CONFIRMED = 'ACCOUNT SAVED', SAVE_UNCONFIRMED = 'Save not confirmed. Please try again.',
+ local messages = {GUEST='Complete Time Attack to earn your starter K$5,000.', FOUND = '', SAVE_CONFIRMED = 'ACCOUNT SAVED', SAVE_UNCONFIRMED = 'Save not confirmed. Please try again.',
   INSUFFICIENT_FUNDS = 'You need K$50,000.', ALREADY_OWNED = 'Wing already owned.', NOT_OWNED = 'Unlock the Wing first.',
   ACCESS_BLOCKED = 'Account unavailable. Shop preview is still available.', RATE_LIMITED = 'Please wait a moment.',
   PASS_PROMPTED = 'Complete the Roblox purchase prompt.', HUB_REQUIRED = 'Return to the Lobby to purchase.'}

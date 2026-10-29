@@ -466,7 +466,7 @@ function MatchRoomService.start()
 				-- This yields while seat ownership settles, so retain the acceptance lock.
 				local stopped = stopLobbyDrive(player, "accept_invite", false)
 				if stopped == false or not eligible(player) then
-					errorTo(player, "COULD NOT LEAVE TEST DRIVE - PLEASE TRY AGAIN");return
+					errorTo(player, "COULD NOT LEAVE TIME ATTACK - PLEASE TRY AGAIN");return
 				end
 				-- The host may have started or filled the room during seat cleanup.
 				found, record = pcall(function() return directory:get(invite.roomId) end)

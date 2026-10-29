@@ -22,7 +22,7 @@ check(not state.visited, "1. Initial session is not visited")
 local p = stateModule.presentation(state, rb.Vector2.new(1280, 720), "GARAGE", false, nil, false)
 check(p.visible == true, "1. Guidance card visible on initial HUB entry")
 check(p.button == "RACE NOW", "1. Primary CTA is RACE NOW")
-check(p.secondaryButton == "TEST DRIVE", "2. Secondary CTA is TEST DRIVE")
+check(p.secondaryButton == "TIME ATTACK", "2. Secondary CTA is TIME ATTACK")
 check(p.heading == "YOUR KART IS READY!", "1. Heading is YOUR KART IS READY!")
 check(p.message == "Race against real players or a rookie bot.", "1. Subtitle clarifies real players or rookie bot")
 
@@ -81,14 +81,14 @@ check(view.testDriveButton ~= nil, "2. Secondary button exists")
 
 view.update(p)
 check(view.button.Text == "RACE NOW", "1. Primary button displays RACE NOW")
-check(view.testDriveButton.Text == "TEST DRIVE", "2. Secondary button displays TEST DRIVE")
+check(view.testDriveButton.Text == "TIME ATTACK", "2. Secondary button displays TIME ATTACK")
 
 -- Test activations
 view.button.Activated:Fire()
 check(raceNowClicked == 1, "4. RACE NOW button activation fires onRaceNow handler")
 
 view.testDriveButton.Activated:Fire()
-check(testDriveClicked == 1, "12. TEST DRIVE button activation fires onTestDrive handler")
+check(testDriveClicked == 1, "12. TIME ATTACK button activation fires onTestDrive handler")
 
 -- 4 & 5. MatchRoomService: QuickStart action and selection preparation
 local matchRoomServiceSource = fs.readFile("src/server/MatchRoomService.luau")
@@ -141,17 +141,17 @@ check(matchRoomUiSource:find('RETRY', 1, true) ~= nil, "18. MatchRoomUiControlle
 
 -- TASK 4: Button font & duplicate rendering audit
 check(view.button.TextStrokeTransparency == 1, "T4. RACE NOW button has TextStrokeTransparency = 1 (no smudged black outline)")
-check(view.testDriveButton.TextStrokeTransparency == 1, "T4. TEST DRIVE button has TextStrokeTransparency = 1 (no smudged black outline)")
+check(view.testDriveButton.TextStrokeTransparency == 1, "T4. TIME ATTACK button has TextStrokeTransparency = 1 (no smudged black outline)")
 check(view.button.Font == rb.Enum.Font.GothamBold, "T4. RACE NOW button uses legible GothamBold font")
-check(view.testDriveButton.Font == rb.Enum.Font.GothamBold, "T4. TEST DRIVE button uses legible GothamBold font")
+check(view.testDriveButton.Font == rb.Enum.Font.GothamBold, "T4. TIME ATTACK button uses legible GothamBold font")
 check(view.button.TextColor3 == rb.Color3.fromRGB(255, 215, 50), "T4. RACE NOW uses yellow text on semi-transparent pill")
-check(view.testDriveButton.TextColor3 == rb.Color3.fromRGB(111, 211, 245), "T4. TEST DRIVE uses cyan text on semi-transparent pill")
+check(view.testDriveButton.TextColor3 == rb.Color3.fromRGB(111, 211, 245), "T4. TIME ATTACK uses cyan text on semi-transparent pill")
 
 -- Compact layout text sizes
 local compactPres = stateModule.presentation(state, rb.Vector2.new(640, 230), "GARAGE", false, nil, false)
 view.update(compactPres)
 check(view.button.TextSize == 16, "T4. Compact RACE NOW uses 16px legible text")
-check(view.testDriveButton.TextSize == 16, "T4. Compact TEST DRIVE uses legible text")
+check(view.testDriveButton.TextSize == 16, "T4. Compact TIME ATTACK uses legible text")
 check(view.button.TextStrokeTransparency == 1 and view.testDriveButton.TextStrokeTransparency == 1, "T4. Compact mode retains clean unoutlined text")
 
 -- TASK 5: Scenario tests (1-12)
@@ -163,7 +163,7 @@ check(schemaModule ~= nil, "T5. Progression schema loaded")
 local unactivatedState = stateModule.new()
 check(unactivatedState.context == "HUB", "T5. Unactivated returning user starts with HUB context")
 local unactivatedPres = stateModule.presentation(unactivatedState, rb.Vector2.new(1280, 720), "GARAGE", false, nil, false)
-check(unactivatedPres.button == "RACE NOW" and unactivatedPres.secondaryButton == "TEST DRIVE", "T5. Unactivated returning user sees RACE NOW and TEST DRIVE")
+check(unactivatedPres.button == "RACE NOW" and unactivatedPres.secondaryButton == "TIME ATTACK", "T5. Unactivated returning user sees RACE NOW and TIME ATTACK")
 
 -- S6: Returning active user (restored profile)
 local activeState = stateModule.new()

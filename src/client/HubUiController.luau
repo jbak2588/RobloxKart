@@ -338,7 +338,7 @@ function HubUiController.start()
     do
      local drive=Instance.new("Part");drive.Name="LobbyDisplayDrivePoint";drive.Size=Vector3.one;drive.Transparency=1;drive.Anchored=true;drive.CanCollide=false;drive.CanTouch=false;drive.CanQuery=false
      drive.CFrame=frame*CFrame.new(0,2,0);drive:SetAttribute("ShowroomKartId",kartId);drive.Parent=kart
-     local prompt=Instance.new("ProximityPrompt");prompt.Name="LobbyDisplayTestDrive";prompt.ActionText=if parkLayout then "PLAY"else "TEST DRIVE";prompt.ObjectText=catalog.Entries[kartId].DisplayName;prompt.RequiresLineOfSight=false;prompt.MaxActivationDistance=8;prompt.Parent=drive
+     local prompt=Instance.new("ProximityPrompt");prompt.Name="LobbyDisplayTestDrive";prompt.ActionText=if parkLayout then "PLAY"else "TIME ATTACK";prompt.ObjectText=catalog.Entries[kartId].DisplayName;prompt.RequiresLineOfSight=false;prompt.MaxActivationDistance=8;prompt.Parent=drive
     end
    end
    return showroom

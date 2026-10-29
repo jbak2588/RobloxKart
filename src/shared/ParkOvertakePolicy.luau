@@ -27,9 +27,9 @@ end
 function P.botDistance(index,seconds)
  return Trial.Length*index/8+P.BotSpeed*math.max(0,seconds)
 end
-function P.countAhead(distance,seconds)
+function P.countAhead(distance,seconds,distances)
  local count=0
- for i=1,P.Bots do if distance>P.botDistance(i,seconds)then count+=1 end end
+ for i=1,P.Bots do if distance>(if distances then distances[i]else P.botDistance(i,seconds))then count+=1 end end
  return count
 end
 function P.reward(count)

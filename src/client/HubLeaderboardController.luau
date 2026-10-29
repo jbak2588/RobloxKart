@@ -88,6 +88,8 @@ function Controller.start()
   if prompt.Name~='KDMRankingsPrompt'or not allowed()then return end
   local hub=WS:FindFirstChild('KDMHub');local ranks=hub and hub:FindFirstChild('KDMRankings')
   if not ranks or not prompt:IsDescendantOf(ranks)then return end
+  local character=player.Character;local root=character and character:FindFirstChild('HumanoidRootPart')
+  if not root or(root.Position-prompt.Parent.Position).Magnitude>prompt.MaxActivationDistance+1 then return end
   local selected=prompt.Parent:GetAttribute('LeaderboardId');if not Policy.Boards[selected]then return end
   id=selected;mode=Policy.Boards[id].mode;gui.Enabled=true;render({status='LOADING',rows={}});refresh()
  end)

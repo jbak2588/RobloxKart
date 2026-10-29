@@ -12,12 +12,12 @@ function View.start()
  local function update()
   if p:GetAttribute('ParkTrialPhase')~=nil then label.Visible=false;return end
   if not confirmed and p:GetAttribute('KDMStarterRewardConfirmed')==true then
-   confirmed=true;label.Visible=true;label.Text='TEST DRIVE COMPLETE!  +K$ 5,000 SAVED';label.TextColor3=Color3.fromRGB(90,255,110)
+   confirmed=true;label.Visible=true;label.Text='TIME ATTACK COMPLETE!  +K$ 5,000 SAVED';label.TextColor3=Color3.fromRGB(90,255,110)
    task.delay(8,function()label.Visible=false end);return
   end
   if confirmed then return end
   label.Visible=p:GetAttribute('KDMEconomyState')=='GUEST' and p:GetAttribute('LobbyDriveActive')==true
-  label.Text=if (p:GetAttribute('KDMTestDriveMovingSeconds')or 0)>=30 and (p:GetAttribute('KDMTestDriveDistance')or 0)>=300 then 'TEST DRIVE COMPLETE - SAVING K$5,000...' else string.format('STARTER REWARD: K$5,000\nDRIVE %d/30s - DISTANCE %d/300',math.min(30,p:GetAttribute('KDMTestDriveMovingSeconds')or 0),math.min(300,p:GetAttribute('KDMTestDriveDistance')or 0))
+  label.Text=if (p:GetAttribute('KDMTestDriveMovingSeconds')or 0)>=30 and (p:GetAttribute('KDMTestDriveDistance')or 0)>=300 then 'TIME ATTACK COMPLETE - SAVING K$5,000...' else string.format('STARTER REWARD: K$5,000\nDRIVE %d/30s - DISTANCE %d/300',math.min(30,p:GetAttribute('KDMTestDriveMovingSeconds')or 0),math.min(300,p:GetAttribute('KDMTestDriveDistance')or 0))
  end
  for _,a in {'ParkTrialPhase','KDMStarterRewardConfirmed','KDMEconomyState','LobbyDriveActive','KDMTestDriveMovingSeconds','KDMTestDriveDistance'}do p:GetAttributeChangedSignal(a):Connect(update)end
  update()

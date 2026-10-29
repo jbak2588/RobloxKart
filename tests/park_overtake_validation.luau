@@ -62,6 +62,17 @@ for _,mutate in {
 }do local bad=S.clone(proof);mutate(bad);check(reward.reduce(S,schema,bad)(paid)==nil,'forged or incomplete evidence rejected')end
 local mismatch=S.clone(proof);mismatch.milliseconds+=1
 check(reward.reduce(S,schema,mismatch)(paid)==nil,'same receipt id with different result rejected')
+local attacked=S.clone(proof);attacked.id='12345678-1234-1234-1234-000000000002'
+attacked.milliseconds=math.floor(distance/85*1000);attacked.botDistances={}
+for i=1,7 do attacked.botDistances[i]=P.botDistance(i,attacked.milliseconds/1000)-math.min(100,P.BotSpeed*attacked.milliseconds/1000)end
+attacked.ahead=P.countAhead(distance,attacked.milliseconds/1000,attacked.botDistances)
+check(reward.reduce(S,schema,attacked)(original)~=nil,'server attack-adjusted final distances accepted')
+local forged=S.clone(attacked);forged.botDistances[1]=-1
+check(reward.reduce(S,schema,forged)(original)==nil,'negative injected rival distance rejected')
+forged=S.clone(attacked);forged.botDistances[1]=math.huge
+check(reward.reduce(S,schema,forged)(original)==nil,'impossible rival distance rejected')
+forged=S.clone(attacked);forged.ahead=7
+if attacked.ahead~=7 then check(reward.reduce(S,schema,forged)(original)==nil,'forged attack-adjusted score rejected')end
 local full=S.clone(original);full.wallet.cash=schema.maxCash
 check(reward.reduce(S,schema,proof)(full)==nil,'wallet capacity cannot overflow')
 local deleted=S.clone(original);deleted.deleted=true
@@ -104,6 +115,7 @@ local getService=env.game.GetService;env.game.GetService=function(self,name)
  if name=='ReplicatedStorage'then return {Shared={RookieParkTrial='T',KartConfig='C',RaceConfig='R',ParkOvertakePolicy='O'}}end
  return getService(self,name)
 end
+practice.overtakeDistances=function(_,_,seconds)local out={};for i=1,7 do out[i]=O.botDistance(i,seconds)end;return out end
 r.parkOvertake=true;r.slot=0;r.generation=2;attrs.LobbyDriveGeneration=2
 local module=load('src/server/RookieParkTrialSession.luau',env)
 local session=module.new({GetAttribute=function()return rb.Vector3.zero end},practice)

@@ -45,9 +45,9 @@ function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive)
  local raceNowHelper = label("RaceNowHelper", 108, 14, 11, Color3.fromRGB(150, 175, 200), Enum.Font.Gotham)
  raceNowHelper.Text = "Join a race or start one automatically"
 
- -- Secondary CTA: TEST DRIVE
+ -- Secondary CTA: TIME ATTACK
  local testDriveBtn = Instance.new("TextButton")
- testDriveBtn.Name, testDriveBtn.Text, testDriveBtn.AutoLocalize = "FreeTestDrive", "TEST DRIVE", true
+ testDriveBtn.Name, testDriveBtn.Text, testDriveBtn.AutoLocalize = "FreeTestDrive", "TIME ATTACK", true
  testDriveBtn.Size = UDim2.new(1, -24, 0, 40)
  testDriveBtn.BackgroundColor3 = Color3.fromRGB(20, 32, 48)
  testDriveBtn.BackgroundTransparency = .58
@@ -73,7 +73,7 @@ function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive)
   title.Text = presentation.heading or "YOUR KART IS READY!"
   message.Text = presentation.message or "Race against real players or a rookie bot."
   button.Text = presentation.button or "RACE NOW"
-  testDriveBtn.Text = presentation.secondaryButton or "TEST DRIVE"
+  testDriveBtn.Text = presentation.secondaryButton or "TIME ATTACK"
   button.TextStrokeTransparency = 1
   testDriveBtn.TextStrokeTransparency = 1
 

@@ -2,6 +2,21 @@
 
 Read this before editing the project.
 
+## Park items / rankings kiosk / Time Attack — owner approval 2026-10-29
+
+Owner restores all six Park items in Overtake with identical practice charges,
+6-second non-Nitro refill, Nitro/Drift rewards, targeting and hit tuning. Owner
+explicitly approves attacks affecting the seven challenge rivals: retain70 normal
+pace but use actual server-integrated distance after item delays for final order
+and immutable rewards. Each challenge's proxies/attacks are isolated from other
+Park sessions. Smoke remains vision-only, no invented slowdown. Preserve human
+physics, seating, manual ownership and full-finish reward limits. Add visible
+close-range kiosks in front of rankings, with approach/interact guidance. Replace
+player-facing TEST DRIVE with TIME ATTACK; internal API IDs remain compatible.
+Owner authorizes validation, scoped commit/push and official Publish to exact
+Universe10768420544 / Place127925465904803. No server restart.
+
+
 ## Rookie Park Overtake — owner approval 2026-10-29
 
 Owner requests a separate Park challenge, first in Hub Track preview with asset

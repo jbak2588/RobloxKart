@@ -124,3 +124,22 @@ copy, preserving imported mesh and terrain properties.
   real-device manual driving and a live wallet transaction remain unverified.
 - Rollback checkpoint remains previously published PV1244; wallet receipts and
   account balances must be preserved. Restore requires normal Studio Publish.
+
+## Owner follow-up: six items, attackable rivals and kiosk UX
+
+Owner explicitly chose attacks affecting challenge rivals. Six items now use the
+ordinary Park charge/refill/cooldown/Shield/Nitro policy. Seven noncontact server
+combat proxies belong to one player's live challenge; cross-session targeting and
+hazard damage are rejected. Missile/Thunder caps, Slick retention/duration and
+Smoke vision-only status reuse RaceItemConfig. Normal pace remains70, but the
+previous98.8 average threshold describes an unhit fleet; attacks can lower it.
+Server integrates monotonic unwrapped rival distances, snapshots all seven before
+cleanup and validates final order/reward against that immutable evidence. Local
+visuals follow bounded server samples, with hit/spin metadata. No client distance
+submission, human physics/ownership changes, paid consumption or new reward cap.
+
+Three visible terminal stands now sit at the existing ranking interaction points.
+Board and terminal explain approach/interact; prompt reach is8 studs. TIME ATTACK
+replaces visible TEST DRIVE text. Protocol/module/attribute IDs remain unchanged.
+Time Attack is a real motorsport term (e.g. FIA Hill Climb guide and SCCA Time
+Attack); this naming change does not change the existing full-race timing rules.

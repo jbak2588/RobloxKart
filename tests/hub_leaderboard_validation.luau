@@ -112,3 +112,8 @@ for _,path in {'src/shared/HubLeaderboardPolicy.luau','src/server/HubLeaderboard
  local ok,err=pcall(luau.load,fs.readFile(path));check(ok,'compile '..path..': '..tostring(err))
 end
 print('PASS: '..n..' Hub leaderboard policy, exact environment, profile projection, retry/cache and compile checks')
+
+local board=fs.readFile('src/server/HubLeaderboardBoardBuilder.luau')
+check(board:find("d.name..'KioskScreen'",1,true)and board:find("d.name..'KioskStand'",1,true),'each ranking board has a visible terminal and pedestal')
+check(board:find('USE THE KIOSK BELOW',1,true)and board:find('APPROACH & INTERACT',1,true),'world board and kiosk explain approach interaction')
+check(board:find('prompt.MaxActivationDistance=8',1,true),'detail prompt is close-range at kiosk')

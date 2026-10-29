@@ -30,7 +30,7 @@ function View.new(player,zone)
    building=true;local generation=serial
    task.spawn(function()
     for i,id in {'Kart05','Kart06','Kart07','Kart08','Kart09','Kart10','Kart11'}do
-     local definition=Catalog.Entries[id];local model=Instance.new('Model');model.Name='ParkOvertakeBot_'..i
+     local definition=Catalog.Entries[id];local model=Instance.new('Model');model.Name='ParkOvertakeBot_'..i;model:SetAttribute('LobbyPracticeBot',true)
      local ok,visual=pcall(Factory.createVisual,definition,false)
      if not ok then model:Destroy();building=false;warn('[ParkOvertake] rival visual unavailable');return end
      visual.Parent=model
@@ -57,7 +57,25 @@ function View.new(player,zone)
   end
   local elapsed=if phase=='COUNTDOWN'then 0 elseif phase=='RUNNING'then math.max(0,workspace:GetServerTimeNow()-(started or go))
    else (player:GetAttribute('ParkTrialMilliseconds')or 0)/1000
-  for i,model in bots do model:PivotTo(frame(i,elapsed,start))end
+  local effects=zone:FindFirstChild('LobbyPracticeEffects')
+  for i,model in bots do
+   local proxy=effects and effects:FindFirstChild('ParkOvertakeTarget_'..player.UserId..'_'..i)
+   local d=P.botDistance(i,elapsed)
+   if proxy and phase=='RUNNING'then
+    local sampled=proxy:GetAttribute('OvertakeSampledAt');local distance=proxy:GetAttribute('OvertakeDistance')
+    if type(sampled)=='number'and type(distance)=='number'then d=distance+math.clamp(workspace:GetServerTimeNow()-sampled,0,.3)*(proxy:GetAttribute('OvertakeSpeed')or 0)end
+   elseif phase~='COUNTDOWN'then d=player:GetAttribute('ParkOvertakeFinishDistance'..i)or d end
+   local x,z,dx,dz=P.sample(start+d);local pos=zone:GetAttribute('Center')+Vector3.new(x,Layout.height(x,z)+1.75,z)
+   local spin=0
+   if proxy then
+    for _,key in {'KartSlickActive','KartMissileHitActive','KartThunderHitActive','KartSmokeObscuredActive'}do model:SetAttribute(key,proxy:GetAttribute(key)==true)end
+    if proxy:GetAttribute('KartSlickActive')then
+     local config=require(RS.Shared.RaceItemConfig)
+     spin=2*math.pi*math.clamp((workspace:GetServerTimeNow()-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/config.SLICK_EFFECT_DURATION,0,1)
+    end
+   end
+   model:PivotTo(CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))*CFrame.Angles(0,spin,0))
+  end
  end
  return api
 end

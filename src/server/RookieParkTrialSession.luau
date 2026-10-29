@@ -11,6 +11,7 @@ function Session.new(zone,practice)
  function api:allocate(occupied,nextSlot)return Trial.allocate(occupied,nextSlot)end
  local function publish(player,r)
   local s=r.trial
+  for i=1,7 do player:SetAttribute('ParkOvertakeFinishDistance'..i,if s.botDistances then s.botDistances[i]else nil)end
   player:SetAttribute('ParkTrialPhase',s.phase)
   player:SetAttribute('ParkTrialCurrentLap',s.lap)
   player:SetAttribute('ParkTrialTotalLaps',s.targetLaps or Trial.Laps)
@@ -51,7 +52,7 @@ function Session.new(zone,practice)
    local ok,result=pcall(function()
     local economy=require(script.Parent.EconomyService)
     if r.parkOvertake then
-     return economy.saveParkOvertake(player,{id=s.id,milliseconds=s.milliseconds,slot=r.slot,ahead=s.ahead,
+     return economy.saveParkOvertake(player,{id=s.id,milliseconds=s.milliseconds,slot=r.slot,ahead=s.ahead,botDistances=s.botDistances,
       transaction={version=1,issuedAt=s.transactionAt},completedCheckpoints=(s.completedLaps or 0)*6,valid=not s.invalid,completedLaps=s.completedLaps})
     end
     return economy.saveParkLap(player,{id=s.id,milliseconds=s.milliseconds,
@@ -112,7 +113,10 @@ function Session.new(zone,practice)
    r.kart:SetAttribute('KartBoosting',false);r.kart:SetAttribute('KartDrifting',false)
   elseif event=='FINISHED'then
    local s=r.trial
-   if r.parkOvertake then s.ahead=Overtake.countAhead(Overtake.finishDistance(r.slot),s.milliseconds/1000)end
+   if r.parkOvertake then
+    s.botDistances=practice:overtakeDistances(player,s.milliseconds/1000)
+    s.ahead=Overtake.countAhead(Overtake.finishDistance(r.slot),s.milliseconds/1000,s.botDistances)
+   end
    s.phase='FINISHING';s.finishPhase='ROLL';s.finishAt=now
    s.rollSpeed=math.max(0,r.body.AssemblyLinearVelocity:Dot(Vector3.xAxis))
    r.kart:SetAttribute('KartFinishRollDirection',Vector3.xAxis);r.kart:SetAttribute('KartFinishRollActive',true)
@@ -134,6 +138,7 @@ function Session.new(zone,practice)
   local p=r.body.Position-center;Trial.recover(r.trial,p.X,p.Z,workspace:GetServerTimeNow())
  end
  function api:remove(player)
+  for i=1,7 do player:SetAttribute('ParkOvertakeFinishDistance'..i,nil)end
   for _,key in {'Active','StartArc','Ahead'}do player:SetAttribute('ParkOvertake'..key,nil)end
   for _,key in {'Phase','GoAt','StartedAt','Checkpoint','Missed','Invalid','Milliseconds','Target','RewardState','FinishPhase','FinishedAt','CurrentLap','TotalLaps','CompletedLaps','RewardMultiplier','RewardAmount'}do player:SetAttribute('ParkTrial'..key,nil)end
  end

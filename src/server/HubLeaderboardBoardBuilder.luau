@@ -1,4 +1,5 @@
 -- Visual-only ranking area outside the Park Hub's left building.
+local ReplicatedStorage=game:GetService('ReplicatedStorage')
 local Builder={}
 function Builder.build(hub)
  local origin=hub:GetAttribute('RookieParkOrigin')
@@ -17,6 +18,8 @@ function Builder.build(hub)
   t.TextXAlignment=Enum.TextXAlignment.Left;t.TextTruncate=Enum.TextTruncate.AtEnd;t.AutoLocalize=false;t.Parent=parent;return t
  end
  local cyan=Color3.fromRGB(75,225,245);local gold=Color3.fromRGB(255,218,65)
+ local resources=ReplicatedStorage:FindFirstChild('KDMTemplateResources')
+ local kioskTemplate=resources and resources:FindFirstChild('Kiosk')
  for _,d in {
   {id='SOLO_Park',name='SoloBoard',title='SOLO TIME ATTACK',sub='ROOKIE RACING PARK  /  2-LAP FINISH',x=71,y=28,z=-27.7,w=38*1.12,h=19*1.12,yaw=0},
   {id='MULTI_Track01Desert',name='MultiBoard',title='MULTIPLAYER FINISH TIME',sub='DESERT CANYON  /  3-LAP HUMAN RACES',x=105.7,y=12,z=-38,w=28,h=16,yaw=45},
@@ -49,11 +52,29 @@ function Builder.build(hub)
    local score=text(row,'Score','--',Vector2.new(665,0),Vector2.new(258,59),30);score.TextXAlignment=Enum.TextXAlignment.Right
   end
   text(panel,'Status','LOADING RANKINGS',Vector2.new(32,506),Vector2.new(936,33),23,cyan)
-  text(panel,'Hint','APPROACH BELOW  /  VIEW TOP 50 + MY RECORD',Vector2.new(32,550),Vector2.new(936,30),21)
+  text(panel,'Hint','USE THE KIOSK BELOW  /  TOP 50 + MY RECORD',Vector2.new(32,550),Vector2.new(936,30),21)
   local anchor=localPart(d.name..'Open',Vector3.new(1,1,1),Vector3.new(0,3-d.y,-5),cyan);anchor.Transparency=1
+  if kioskTemplate then
+   local kiosk=kioskTemplate:Clone();kiosk.Name=d.name..'Kiosk'
+   for _,o in kiosk:GetDescendants()do
+    if o:IsA('BasePart')then o.Anchored=true;o.CanCollide=false;o.CanTouch=false;o.CanQuery=false;o.CastShadow=false end
+    if o:IsA('BillboardGui')then o.Enabled=false end
+   end
+   local stand=kiosk:FindFirstChild('Kiosk_Frame');if stand then stand.Name=d.name..'KioskStand'end
+   local screen=kiosk:FindFirstChild('Kiosk_Glowscreen');if screen then screen.Name=d.name..'KioskScreen'end
+   local origPivot=kiosk:GetPivot();local targetPos=origin+pos+rotation:VectorToWorldSpace(Vector3.new(0,-d.y,-5))
+   kiosk:PivotTo(CFrame.new(targetPos)*CFrame.Angles(0,math.rad(d.yaw)+math.pi/2,0)*origPivot.Rotation)
+   local box,size=kiosk:GetBoundingBox()
+   kiosk:PivotTo(kiosk:GetPivot()+Vector3.new(0,targetPos.Y-(box.Position.Y-size.Y/2),0))
+   kiosk.Parent=root
+  else
+   localPart(d.name..'KioskStand',Vector3.new(1.2,2.6,1),Vector3.new(0,1.65-d.y,-5),Color3.fromRGB(240,176,0))
+   localPart(d.name..'KioskScreen',Vector3.new(4,2.5,.5),Vector3.new(0,3.8-d.y,-5),Color3.fromRGB(95,215,240))
+  end
+  -- APPROACH & INTERACT prompt for ranking kiosk
   anchor:SetAttribute('LeaderboardId',d.id)
   local prompt=Instance.new('ProximityPrompt');prompt.Name='KDMRankingsPrompt';prompt.ActionText='VIEW TOP 50';prompt.ObjectText=d.title
-  prompt.HoldDuration=0;prompt.MaxActivationDistance=15;prompt.RequiresLineOfSight=false;prompt.Parent=anchor
+  prompt.HoldDuration=0;prompt.MaxActivationDistance=8;prompt.RequiresLineOfSight=false;prompt.Parent=anchor
  end
  root.Parent=hub;return root
 end

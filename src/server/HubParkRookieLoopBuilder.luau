@@ -224,7 +224,7 @@ function Builder.build(hub,ground)
  end
  local first=starts:FindFirstChild('1'):Clone();first.Name='LobbyFrontDriveStart';first.Parent=root
  local entry=part(root,'LobbyFrontDriveEntry',Vector3.new(12,.1,18),CFrame.new(origin+Vector3.new(0,.05,-35)),colors.plaza,false);entry.Transparency=1
- local prompt=Instance.new('ProximityPrompt');prompt.ActionText='TEST DRIVE';prompt.ObjectText='ROOKIE LOOP';prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
+ local prompt=Instance.new('ProximityPrompt');prompt.ActionText='TIME ATTACK';prompt.ObjectText='ROOKIE LOOP';prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
  local Trial=require(game:GetService('ReplicatedStorage').Shared.RookieParkTrial)
  local checkpoints=Instance.new('Folder');checkpoints.Name='TrialCheckpoints';checkpoints.Parent=root
  for i,g in Trial.Gates do

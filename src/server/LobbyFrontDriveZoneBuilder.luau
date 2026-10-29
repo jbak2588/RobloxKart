@@ -89,7 +89,7 @@ function Builder.build(hub,ground)
  local entryLength=math.max(1,lobbyLine-railLine)
  local entry=part("LobbyFrontDriveEntry",Vector3.new(12,.18,entryLength),CFrame.new(spawn.Position.X,top+.09,(railLine+lobbyLine)/2),Color3.fromRGB(111,211,245),false)
  zone:SetAttribute("EntryRailLine",railLine);zone:SetAttribute("EntryLobbyLine",lobbyLine)
- local prompt=Instance.new("ProximityPrompt");prompt.ActionText="TEST DRIVE";prompt.ObjectText=""
+ local prompt=Instance.new("ProximityPrompt");prompt.ActionText="TIME ATTACK";prompt.ObjectText=""
  prompt.MaxActivationDistance=12;prompt.RequiresLineOfSight=false;prompt.Parent=entry
  local anchor=part("LobbyFrontDriveStart",Vector3.one,frame(-100,1.75,Policy.Radius)*CFrame.Angles(0,-math.pi/2,0),Color3.new(),false)
  anchor.Transparency=1

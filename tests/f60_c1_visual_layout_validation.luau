@@ -12,7 +12,7 @@ for _,size in {rb.Vector2.new(1102,485),rb.Vector2.new(844,390),rb.Vector2.new(9
   if kind=='RETURNING_ACTIVE' then S.profileRestored(state,{completed=true,result='FOUND',restored=true,validKart=true,kartId='Kart05',restoredKartId='Kart05',saveState='SAVE_CONFIRMED'}) end
   local p=S.presentation(state,size,'GARAGE',false,nil,false)
   local clicks=0;local view=V.create(root,{},function()clicks+=1 end,function()clicks+=1 end);view.update(p)
-  check(p.visible and view.button.Text=='RACE NOW' and view.testDriveButton.Text=='TEST DRIVE','all visitor states retain both entries')
+  check(p.visible and view.button.Text=='RACE NOW' and view.testDriveButton.Text=='TIME ATTACK','all visitor states retain both entries')
   check(view.card.BackgroundTransparency>=.9 and view.button.BackgroundTransparency==.58 and view.testDriveButton.BackgroundTransparency==.58,'clear container with translucent action surfaces')
   for _,b in {view.button,view.testDriveButton} do
    check(b.AbsoluteSize.Y>=44 and b.AbsoluteSize.X>=44,'minimum touch bounds')

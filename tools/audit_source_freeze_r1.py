@@ -23,6 +23,8 @@ VFX_OPT_HASHES = {
 }
 # Owner-requested Park overtake release2026-10-29; historical hashes stay intact.
 PARK_OVERTAKE_HASHES = {'src/client/GarageUiController.luau': '2e155b53e2a97be8a272a6a07084cd01a3bef36eb44769036af19a78c80c3a65', 'src/client/LobbyDemoController.luau': 'c3ba8233ac951e4c9aa5b7ece728463554a37b4149c59ac83684bd8f9190f7f1', 'src/client/LobbyPracticeView.luau': 'c284dda537d17f4b01e2c9f0434189863dcef920f285d6262c1b2a5dd7be1646', 'src/client/LobbyTestDriveController.luau': '508dd98c01cdd141aec0180bc7b5bf05a557cd1c773e00115c61c348c2060398', 'src/client/ParkOvertakeBotsView.luau': 'ca9612a223744e76b27a3e9a00856ba8efb2a90232fa302f32d17b9482c18124', 'src/client/RookieParkTrialView.luau': 'a51a435f2f34b54521dd645b4e7e9de32b05970a68b6831bc2a2af5b873d101f', 'src/server/EconomyService.luau': '140fa169e66556394e5b473bff7f9957791cf75e934bf766f683217f4cbf656d', 'src/server/LobbyPracticeCombat.luau': '1049ff96778393b7d0dd6e03e2b055511e58a530c0107b4805b762fec584ea52', 'src/server/LobbyTestDriveService.luau': '51042b06db31309968a6ae876f8a61cc63439288415dd7a12bfdb1327e59a76c', 'src/server/ParkOvertakeReward.luau': '0f9703846ab67938d5b119f22d7e5e5b9914254e285d0d43612187140aed0a61', 'src/server/RookieParkTrialSession.luau': '747ecaf2e3a7153ccc832095299f5993a51738a79ed7143e1ea6a30086d02b6d', 'src/shared/ParkOvertakePolicy.luau': '9c8f5aa07e80c423505841c085b66be5316dfd52f2cb2058d899ff618b2aca54', 'src/shared/RookieParkTrial.luau': '17c9db15469c3b828bae667e23c58241828179bc275729662e1e5ce53732d6dc'}
+FOLLOWUP_PARENT = 'aba4a8b87b99b36109597a7ddcb22f3b2ea2684f'
+FOLLOWUP_HASHES = {'src/client/ActivityRewardView.luau': '6205fe9a07bd140b0543073eb1951772d7abf25123db8ab5b73a361be7a62452', 'src/client/EconomyController.luau': 'fd6f3c2ae6d167fe19d94e4bc84fea5b2b7557cf8c37f187acc627f49a560ed3', 'src/client/HubGuidanceState.luau': '2c5eb0a791d6fd83ccff820c0131f942a80a0f4ec852dcedc787e0a0bc9fe9aa', 'src/client/HubGuidanceView.luau': '4a5c50e9a1fdde254cc996c3769b652f0415b73d0cd7069f067f0e5a490ffa85', 'src/client/HubLeaderboardController.luau': 'c943c7d4e38d996602701761960d79f6c117d7666c8e49a778474ea2550b01e0', 'src/client/HubUiController.luau': '346d5878e5b6888c4a7626d5f1af27c3e751964e9360938ea5d575ff6a2430c4', 'src/client/LobbyPracticeView.luau': '8b42ff3c700a6f44e2c3f53a82d35a88e3c3e1bf88cc665c61c5fdda10ef6dee', 'src/client/ParkOvertakeBotsView.luau': 'dfa45d60b1a8fb49b7dc780d9a936fd6ad349cd5068e5cf3676c3d1359b07131', 'src/server/HubLeaderboardBoardBuilder.luau': 'a89ef4662f055dc83491937317c65ecdb63fad973b020ecd573dc1f856d03283', 'src/server/HubParkRookieLoopBuilder.luau': 'f1cdad23649de8e23f29b6f58a4e596dbd90e4a0d4688c40a3e838381e2355f6', 'src/server/LobbyFrontDriveZoneBuilder.luau': 'c913a709236825b177aa18af8ff5de08387774d90e6bcf761f175614b7b33e0d', 'src/server/LobbyPracticeCombat.luau': 'b7a5a36a85a3ea9305bf81bf62db0271fe457350e5967172676a6334589e3494', 'src/server/MatchRoomService.luau': 'c5a8b9482ea2b361de98f8fef67e0012313500282f7c45e729c0e9e525bdc28f', 'src/server/ParkOvertakeReward.luau': '0947f76bd721623204205e791614055283258092a5a725a99c545b3bad144ecc', 'src/server/RookieParkTrialSession.luau': '87a25c5f40b92fa97fe1440cd0d43d8151d1cca9d676af961e41ea8fad1b9a23', 'src/shared/ParkOvertakePolicy.luau': '26c7192d025709db5e57b8e4058f70a8273cff5b02df40604f205ae7a3b2f3df'}
 OVERTAKE_PARENT = '75ba1e7d29b336b74ce8814ef80115c9c2f20195'
 FOV_CHANGES = [('Speed.HIGH_SPEED_START = 55', 'Speed.HIGH_SPEED_START = 50'),
                ('Speed.HIGH_SPEED_FULL = 80', 'Speed.HIGH_SPEED_FULL = 90'),
@@ -81,7 +83,8 @@ def audit():
                          and canonical(current).count(r3['after'].encode())==1
                          and canonical(current).replace(r3['after'].encode(),r3['before'].encode(),1)==canonical(base) for r3 in patches)
             vfx_opt = path in VFX_OPT_HASHES and digest(canonical(current)) == VFX_OPT_HASHES[path]
-            category = ('OWNER_PARK_DRIVER_COLLISION' if path == PARK_PATH and digest(canonical(current)) == PARK_SHA256
+            category = ('OWNER_ITEMS_KIOSK' if path in FOLLOWUP_HASHES and digest(canonical(current))==FOLLOWUP_HASHES[path]
+                        else 'OWNER_PARK_DRIVER_COLLISION' if path == PARK_PATH and digest(canonical(current)) == PARK_SHA256
                         else 'OWNER_VFX_V3_2' if path == VFX_PATH and digest(canonical(current)) == VFX_SHA256
                         else 'OWNER_PARK_OVERTAKE' if path in PARK_OVERTAKE_HASHES and digest(canonical(current))==PARK_OVERTAKE_HASHES[path]
                         else 'OWNER_VFX_OPTIMIZATION' if vfx_opt
@@ -156,13 +159,20 @@ if __name__ == '__main__':
                 assert digest(candidate)==r3['sha256'], 'R3 exact approved eligibility-guard hunk'
                 allowed.append(candidate)
             if path in PARK_OVERTAKE_HASHES:
-                overtake_source=canonical((ROOT/path).read_bytes())
+                overtake_source=canonical(git('show',f'{FOLLOWUP_PARENT}:{path}'))
                 assert digest(overtake_source)==PARK_OVERTAKE_HASHES[path], f'Unrecognized Park overtake source: {path}'
                 allowed.append(overtake_source)
+            if path in FOLLOWUP_HASHES:
+                followup=canonical((ROOT/path).read_bytes())
+                assert digest(followup)==FOLLOWUP_HASHES[path],f'Unrecognized follow-up: {path}'
+                allowed.append(followup)
             assert canonical((ROOT/path).read_bytes()) in allowed, f'Unrecognized working source: {path}'
         assert manifest['parkOvertakePatches']==PARK_OVERTAKE_HASHES, 'Exact reviewed overtake file set/hash contract'
         for path, expected in PARK_OVERTAKE_HASHES.items():
-            assert digest(canonical((ROOT/path).read_bytes()))==expected, f'Unrecognized Park overtake source: {path}'
+            assert digest(canonical(git('show',f'{FOLLOWUP_PARENT}:{path}')))==expected, f'Unrecognized historical overtake source: {path}'
+        assert manifest['parkItemsKioskPatches']==FOLLOWUP_HASHES
+        for path, expected in FOLLOWUP_HASHES.items():
+            assert digest(canonical((ROOT/path).read_bytes()))==expected,f'Unrecognized follow-up source: {path}'
         for path, expected in manifest['historicalArtifacts'].items():
             assert digest(canonical((ROOT/path).read_bytes()))==expected==digest(canonical(git('show',f'{APPROVED}:{path}'))),path
         print(f"PASS: {len(required)} manifest entries independently match approved Git objects; historical artifacts unchanged; {len(PARK_OVERTAKE_HASHES)} exact Park overtake source pins verified")

@@ -33,9 +33,15 @@ table.sort(paths)
 check(#paths==133,'reviewed protected set size')
 for path,hash in manifest.parkOvertakePatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==hash,'exact owner-requested Park overtake source '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkItemsKioskPatches[path]or hash),'exact reviewed overtake or follow-up source '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'), 'reject overtake mutation '..path)
  if not manifest.files[path]then table.insert(paths,path)end
+end
+for path,hash in manifest.parkItemsKioskPatches do
+ local source=fs.readFile(path)
+ check(serde.hash('sha256',freeze.canonical(source))==hash,'exact item/kiosk/terminology follow-up '..path)
+ check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject follow-up mutation '..path)
+ if not table.find(paths,path)then table.insert(paths,path)end
 end
 table.sort(paths)
 local p='src/shared/KDMSpeedSensation.luau'

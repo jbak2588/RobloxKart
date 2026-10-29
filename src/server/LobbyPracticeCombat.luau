@@ -16,6 +16,7 @@ local Smoke=require(script.Parent.SmokeHazardService)
 local Slick=require(script.Parent.SlickMotion)
 local Drift=require(script.Parent.LobbyDriftSession)
 local Combat={};Combat.__index=Combat
+local Overtake,ParkLayout
 local offensive={Slick=true,Missile=true,Smoke=true,Thunder=true}
 local messages={empty_charge='RECHARGING',invalid_item='ITEM UNAVAILABLE',missile_limit='TOO MANY MISSILES • TRY AGAIN',
  thunder_limit='THUNDER BUSY • TRY AGAIN',hazard_limit='TOO MANY CLOUDS • TRY AGAIN',no_road_behind='NO GROUND BEHIND',
@@ -70,8 +71,57 @@ function Combat.new(zone,records,driveGeometry)
  self.smoke=Smoke.new(Config,smokeDeps)
  return self
 end
+-- Invisible server combat proxies; local visuals follow these authoritative distances.
+function Combat:addOvertakeRivals(owner)
+ Overtake=Overtake or require(Shared:WaitForChild('ParkOvertakePolicy'))
+ ParkLayout=ParkLayout or require(Shared:WaitForChild('HubParkRookieLoopLayout'))
+ owner.rivals={}
+ for i=1,7 do
+  local model=Instance.new('Model');model.Name='ParkOvertakeTarget_'..owner.UserId..'_'..i
+  model:SetAttribute('OvertakeOwner',owner.UserId);model:SetAttribute('OvertakeIndex',i)
+  local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
+  body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false
+  body.Parent=model;model.PrimaryPart=body;model:SetAttribute('RaceResetSerial',0);model.Parent=self.folder
+  local b=actor(nil,{kart=model,body=body});b.botIndex=i;b.overtakeOwner=owner.owner
+  b.UserId=-owner.UserId*10-i;b.DisplayName='RIVAL '..i;b.attrs.RaceSessionId=self.session.id
+  b.distance=Overtake.botDistance(i,0);b.speed=Overtake.BotSpeed;b.sampleTime=owner.record.trial.startedAt
+  owner.rivals[i]=b
+ end
+ self:updateOvertakeRivals(owner,os.clock())
+end
+function Combat:updateOvertakeRivals(owner,now)
+ local serverNow=Workspace:GetServerTimeNow();local trial=owner.record.trial
+ for _,b in owner.rivals do
+  local untilTime=if b.effect then math.min(serverNow,b.effect.untilTime-now+serverNow)else b.sampleTime
+  local dt=math.max(0,serverNow-b.sampleTime)
+  -- Split at effect expiry: lag never extends a hit or discards normal progress.
+  local affected=if b.effect then math.clamp(untilTime-b.sampleTime,0,dt)else 0
+  local cap=Overtake.BotSpeed
+  if b.effect then cap=if b.effect.kind=='Slick'then b.slick.speed elseif b.effect.kind=='Missile'then Config.MISSILE_SPEED_CAP else Config.THUNDER_SPEED_CAP end
+  b.distance+=math.min(Overtake.BotSpeed,cap)*affected+Overtake.BotSpeed*(dt-affected)
+  b.sampleTime=serverNow;b.speed=if affected==dt and dt>0 then math.min(Overtake.BotSpeed,cap)else Overtake.BotSpeed
+  local x,z,dx,dz=Overtake.sample(trial.overtakeStartArc+b.distance)
+  local pos=self.zone:GetAttribute('Center')+Vector3.new(x,ParkLayout.height(x,z)+1.75,z)
+  b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
+  pcall(function()b.record.body.Position=pos end)
+  if not b.nextSync or now>=b.nextSync then
+   local k=b.record.kart;k:SetAttribute('OvertakeDistance',b.distance);k:SetAttribute('OvertakeSampledAt',serverNow);k:SetAttribute('OvertakeSpeed',b.speed)
+   b.nextSync=now+Policy.BotSyncSeconds
+  end
+ end
+end
+function Combat:overtakeDistances(player,seconds)
+ local a=self.actors[player];local out={}
+ if a and a.rivals then self:updateOvertakeRivals(a,os.clock())end
+ for i=1,7 do out[i]=if a and a.rivals then math.min(a.rivals[i].distance,Overtake.botDistance(i,seconds))else Overtake.botDistance(i,seconds)end
+ return out
+end
 function Combat:valid(a)
  if not a or self.stopped or not self.zone.Parent then return false end
+ if a.overtakeOwner then
+  local owner=self.actors[a.overtakeOwner]
+  return owner~=nil and owner.rivals~=nil and owner.rivals[a.botIndex]==a and self:valid(owner)and owner.record.trial.phase=='RUNNING'
+ end
  if a.botIndex then return self.zone:FindFirstChild('LobbyDemoState')~=nil and a.record.kart.Parent~=nil and (a.botElapsed~=nil or (a==self.bot and self.botElapsed~=nil)) and a.active~=false end
  local p,r=a.owner,a.record
  return self.actors[p]==a and self.records[p]==r and r.seated and r.body.Parent~=nil
@@ -128,6 +178,7 @@ function Combat:add(player,record)
  record.kart:SetAttribute('RaceResetSerial',0)
  self:publish(a,os.clock())
  self:feedback(a,'PRACTICE • ITEMS REFILL IN 6s')
+ if record.parkOvertake then self:addOvertakeRivals(a)end
 end
 function Combat:clearTransient(a)
  for i=#self.shieldPulses,1,-1 do if self.shieldPulses[i].actor==a then self.shieldPulses[i].visual:Destroy();table.remove(self.shieldPulses,i);self:reassertServerAuthority(a)end end
@@ -141,6 +192,7 @@ function Combat:clearTransient(a)
 end
 function Combat:remove(player)
  local a=self.actors[player];if not a then return end
+ if a.rivals then for _,b in a.rivals do self:clearTransient(b);b.record.kart:Destroy()end;a.rivals=nil end
  self:clearTransient(a);a.loadout:clear();self.actors[player]=nil
  for _,id in Policy.Items do player:SetAttribute('LobbyCharge'..id,0);player:SetAttribute('LobbyReadyAt'..id,0)end
  player:SetAttribute('LobbyBonusProgress',0);player:SetAttribute('LobbyBonusPending',false);player:SetAttribute('LobbyCombatSessionId',nil)
@@ -173,8 +225,12 @@ function Combat:isNitro(player,now,throttle,wall)
 end
 function Combat:targets(source)
  local candidates={}
- for _,b in self.bots do table.insert(candidates,b)end
- for _,a in self.actors do table.insert(candidates,a)end
+ if source.record.parkOvertake then
+  for _,b in source.rivals or {}do table.insert(candidates,b)end
+ else
+  for _,b in self.bots do table.insert(candidates,b)end
+  for _,a in self.actors do table.insert(candidates,a)end
+ end
  local out={};local body=source.record.body
  for _,a in candidates do if a~=source and self:valid(a)and not a.record.parkOvertake then
   local delta=a.record.body.Position-body.Position;delta=Vector3.new(delta.X,0,delta.Z)
@@ -209,7 +265,6 @@ function Combat:use(player,generation,id,extra)
  local a=self.actors[player];local now=os.clock()
  if not a or not self:valid(a)or generation~=a.record.generation or extra~=nil
   or type(id)~='string' or not table.find(Policy.Items,id)or now-a.lastUse<Policy.UseInterval then return false end
- if a.record.parkOvertake and offensive[id]then return false,'OVERTAKE / NITRO AND SHIELD ONLY'end
  a.lastUse=now
  local accepted,reason=a.loadout:useItem(id,function(item)
   if item=='Nitro'then
@@ -244,7 +299,11 @@ function Combat:use(player,generation,id,extra)
 end
 function Combat:resolve(target,source,id,now)
  if not offensive[id]then return false,'unsupported_item'end
- if target and target.record and target.record.parkOvertake then return false,'immune'end
+ if target and source then
+  local challenge=source.overtakeOwner or(if source.record.parkOvertake then source.owner else nil)
+  local targetChallenge=target.overtakeOwner or(if target.record.parkOvertake then target.owner else nil)
+  if challenge~=targetChallenge then return false,'immune'end
+ end
  if not self:valid(source)or not self:valid(target)or (source==target and id~='Slick'and id~='Smoke')then return false,'invalid_target'end
  if target.immune and now<target.immune then return false,'immune'end
  if target.shieldEnd and now<target.shieldEnd then
@@ -255,6 +314,7 @@ function Combat:resolve(target,source,id,now)
   self:feedback(target,'BLOCKED!');if source~=target then self:feedback(source,string.upper(id)..' BLOCKED')end;return true,'blocked'
  end
  if target.effect and now<target.effect.untilTime and id~='Smoke'then return false,'effect_rejected'end
+ if target.overtakeOwner then self:updateOvertakeRivals(self.actors[target.overtakeOwner],now)end
  if id=='Smoke'then
   self.smoke:apply(target,now) -- Vision only, including the bot. No speed penalty.
  else
@@ -352,7 +412,10 @@ function Combat:update(now,dt)
   self.botElapsed=nil
  end
  local targets={}
- for _,a in self.actors do table.insert(targets,a)end
+ for _,a in self.actors do
+  table.insert(targets,a)
+  if a.rivals then self:updateOvertakeRivals(a,now);for _,b in a.rivals do table.insert(targets,b)end end
+ end
  for _,b in self.bots do if self:valid(b)then table.insert(targets,b)end end
  local swept={}
  for _,a in targets do

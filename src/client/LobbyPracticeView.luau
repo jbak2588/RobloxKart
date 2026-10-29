@@ -58,8 +58,7 @@ function View.new(canvas,player,remote,canUse)
     local row=math.floor(index/v.items.columns)
     x=(index%v.items.columns)*(l.cell+6)+(if row==1 then v.items.secondX-v.items.x else 0);y=if row==1 then v.items.secondTop-v.items.top else 0
    end
-   local challenge=player:GetAttribute('ParkOvertakeActive')==true
-   local available=not challenge or c.id=='Nitro'or c.id=='Shield'
+   local available=true
    c.button.Parent=if v then canvas else scroll;c.button.Visible=active and available
    c.button.Position=UDim2.fromOffset(x+(if v then l.x else 0),y+(if v then l.y else 0));c.button.Size=UDim2.fromOffset(l.cell,l.cell)
    c.button.BackgroundTransparency=if v then .52 else 0
