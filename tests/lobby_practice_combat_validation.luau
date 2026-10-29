@@ -122,6 +122,7 @@ pose(s,0,790);tick(.01);check(s.kart:GetAttribute('KartSlickActive'),'swept Slic
 check(not c:resolve(c.actors[q],c.actors[p],'Thunder',now),'shared one-second immunity')
 local v,y=c:motion(q,now,.01,rb.Vector3.new(0,0,-1),rb.Vector3.xAxis,rb.Vector3.new(0,0,-60),0)
 check(v.Magnitude<=33.001 and math.abs(y)<=cfg.SLICK_MAX_YAW_RATE,'same bounded Slick motion')
+check(c.hazards[1].deploy~=nil,'Slick starts with active deploy state');tick(.45);check(c.hazards[1].deploy==nil,'Slick deploy animation terminates after 0.42s')
 c,p,q,r,s=fresh();tick(.01)
 pose(s,0,810);check(c:use(p,1,'Smoke'),'actual world Smoke deployment')
 pose(s,0,790);tick(.01);check(s.kart:GetAttribute('KartSmokeObscuredActive'),'Smoke victim metadata')

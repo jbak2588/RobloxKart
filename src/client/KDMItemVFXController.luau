@@ -226,12 +226,39 @@ function Controller.start()
 	local prototype = if Workspace.WaitForChild then Workspace:WaitForChild("Prototype") else nil
 	if prototype then watchContainer(prototype) end
 
+	local watchedZones = {}
+	local function watchZone(zone)
+		if not zone or watchedZones[zone] then return end
+		watchedZones[zone] = true
+		if zone.GetChildren then
+			for _, instance in zone:GetChildren() do bind(instance) end
+		end
+		if zone.ChildAdded then
+			table.insert(connections, zone.ChildAdded:Connect(bind))
+		end
+		if zone.ChildRemoved then
+			table.insert(connections, zone.ChildRemoved:Connect(remove))
+		end
+	end
+	local function watchHub(h)
+		if not h then return end
+		local zone = if type(h.FindFirstChild) == "function" then (h:FindFirstChild("HubParkRookieLoopG2", true) or h:FindFirstChild("LobbyFrontTestDriveZone", true)) else nil
+		if zone then watchZone(zone) end
+		if h.ChildAdded then
+			table.insert(connections, h.ChildAdded:Connect(function(child)
+				if child.Name == "HubParkRookieLoopG2" or child.Name == "LobbyFrontTestDriveZone" then
+					watchZone(child)
+				end
+			end))
+		end
+	end
+
 	local hub = if type(Workspace.FindFirstChild) == "function" then Workspace:FindFirstChild("KDMHub") else nil
 	if hub then
-		watchContainer(hub)
+		watchHub(hub)
 	elseif Workspace.ChildAdded then
 		table.insert(connections, Workspace.ChildAdded:Connect(function(child)
-			if child.Name == "KDMHub" then watchContainer(child) end
+			if child.Name == "KDMHub" then watchHub(child) end
 		end))
 	end
 

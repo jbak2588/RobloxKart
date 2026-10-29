@@ -18,6 +18,7 @@ local Drift=require(script.Parent.LobbyDriftSession)
 local Combat={};Combat.__index=Combat
 local Overtake,ParkLayout
 local offensive={Slick=true,Missile=true,Smoke=true,Thunder=true}
+local HIT_KEYS={Slick='KartSlickActive',Missile='KartMissileHitActive',Thunder='KartThunderHitActive'}
 local messages={empty_charge='RECHARGING',invalid_item='ITEM UNAVAILABLE',missile_limit='TOO MANY MISSILES • TRY AGAIN',
  thunder_limit='THUNDER BUSY • TRY AGAIN',hazard_limit='TOO MANY CLOUDS • TRY AGAIN',no_road_behind='NO GROUND BEHIND',
  invalid_driver='ENTER A PRACTICE KART',invalid_target='NO TARGET AHEAD',no_target_ahead='NO TARGET AHEAD'}
@@ -91,6 +92,7 @@ function Combat:addOvertakeRivals(owner)
 end
 function Combat:updateOvertakeRivals(owner,now)
  local serverNow=Workspace:GetServerTimeNow();local trial=owner.record.trial
+ local center=self.zone:GetAttribute('Center')
  for _,b in owner.rivals do
   local untilTime=if b.effect then math.min(serverNow,b.effect.untilTime-now+serverNow)else b.sampleTime
   local dt=math.max(0,serverNow-b.sampleTime)
@@ -101,9 +103,12 @@ function Combat:updateOvertakeRivals(owner,now)
   b.distance+=math.min(Overtake.BotSpeed,cap)*affected+Overtake.BotSpeed*(dt-affected)
   b.sampleTime=serverNow;b.speed=if affected==dt and dt>0 then math.min(Overtake.BotSpeed,cap)else Overtake.BotSpeed
   local x,z,dx,dz=Overtake.sample(trial.overtakeStartArc+b.distance)
-  local pos=self.zone:GetAttribute('Center')+Vector3.new(x,ParkLayout.height(x,z)+1.75,z)
-  b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
-  pcall(function()b.record.body.Position=pos end)
+  local pos=center+Vector3.new(x,ParkLayout.height(x,z)+1.75,z)
+  if b.lastPos~=pos then
+   b.lastPos=pos
+   b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
+   pcall(function()b.record.body.Position=pos end)
+  end
   if not b.nextSync or now>=b.nextSync then
    local k=b.record.kart;k:SetAttribute('OvertakeDistance',b.distance);k:SetAttribute('OvertakeSampledAt',serverNow);k:SetAttribute('OvertakeSpeed',b.speed)
    b.nextSync=now+Policy.BotSyncSeconds
@@ -366,6 +371,7 @@ function Combat:update(now,dt)
  if state then
   local t0=state:GetAttribute('StartedAt')
   local nowServer=Workspace:GetServerTimeNow()
+  local center=self.zone:GetAttribute('Center')
   for _,b in self.bots do
    local start=t0+b.botDelay
    if nowServer>=start then
@@ -387,17 +393,20 @@ function Combat:update(now,dt)
     b.speed+=math.clamp(targetSpeed-b.speed,-accel*dt,accel*dt)
     local rate=b.speed/self.route.Speed
     if b.effect and now<b.effect.untilTime then boosting=false end
-    b.record.kart:SetAttribute('KartBoosting',boosting)
+    if b.record.kart:GetAttribute('KartBoosting')~=boosting then b.record.kart:SetAttribute('KartBoosting',boosting)end
     b.botElapsed+=math.max(0,dt)*rate
     local x,z,dx,dz=self.route.sample(b.botElapsed,Kart.MINI_BOOST_DURATION)
-    local pos=self.zone:GetAttribute('Center')+Vector3.new(x,1.75,z)
-    b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
-    pcall(function() b.record.body.Position=pos end)
+    local pos=center+Vector3.new(x,1.75,z)
+    if b.lastPos~=pos then
+     b.lastPos=pos
+     b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
+     pcall(function() b.record.body.Position=pos end)
+    end
     if not b.nextBotSync or now>=b.nextBotSync then
-     local k=b.record.kart;k:SetAttribute('RouteElapsed',b.botElapsed);k:SetAttribute('SampledAt',Workspace:GetServerTimeNow());k:SetAttribute('RouteRate',rate);k:SetAttribute('BotActive',true)
+     local k=b.record.kart;k:SetAttribute('RouteElapsed',b.botElapsed);k:SetAttribute('SampledAt',Workspace:GetServerTimeNow());k:SetAttribute('RouteRate',rate);if k:GetAttribute('BotActive')~=true then k:SetAttribute('BotActive',true)end
      b.nextBotSync=now+Policy.BotSyncSeconds
     end
-   else
+   elseif b.active then
     b.active=false;b.record.kart:SetAttribute('BotActive',false);b.record.kart:SetAttribute('KartBoosting',false)
    end
   end
@@ -421,7 +430,10 @@ function Combat:update(now,dt)
  for _,a in targets do
   local r=a.record;local k=r.kart
   if a.effect and now>=a.effect.untilTime then a.effect=nil;if a.slick then a.slick:stop()end end
-  for id,key in {Slick='KartSlickActive',Missile='KartMissileHitActive',Thunder='KartThunderHitActive'}do k:SetAttribute(key,a.effect~=nil and a.effect.kind==id)end
+  for id,key in HIT_KEYS do
+   local active=a.effect~=nil and a.effect.kind==id
+   if k:GetAttribute(key)~=active then k:SetAttribute(key,active)end
+  end
   if a.shieldEnd and now>=a.shieldEnd then if a.shield then a.shield:Destroy();a.shield=nil;self:reassertServerAuthority(a)end;a.shieldEnd=nil;k:SetAttribute('KartShieldActive',false)end
   if a.owner then
    local changed=false
@@ -435,7 +447,7 @@ function Combat:update(now,dt)
   local h=self.hazards[i]
   if now-h.born>=Config.SLICK_LIFETIME or not self:valid(h.owner)or h.kart~=h.owner.record.kart or h.reset~=h.kart:GetAttribute('RaceResetSerial')then h.model:Destroy();table.remove(self.hazards,i)
   else
-   Visuals.updateSlick(h.deploy,now-h.born)
+   if h.deploy and Visuals.updateSlick(h.deploy,now-h.born)then h.deploy=nil end
    for _,t in swept do if (t.player~=h.owner or now-h.born>=Config.SLICK_OWNER_GRACE)and not h.handled[t.player]and Geometry.crosses(h.trigger.CFrame,h.trigger.Size,t.previous,t.chassis)then
     local ok,why=self:resolve(t.player,h.owner,'Slick',now);if ok or why=='immune'then h.handled[t.player]=true end
    end end

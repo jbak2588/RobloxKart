@@ -9,28 +9,31 @@ local Session={}
 function Session.new(zone,practice)
  local api={};local center=zone:GetAttribute('Center')
  function api:allocate(occupied,nextSlot)return Trial.allocate(occupied,nextSlot)end
+ local function setAttr(player,key,val)
+  if player:GetAttribute(key)~=val then player:SetAttribute(key,val)end
+ end
  local function publish(player,r)
   local s=r.trial
-  for i=1,7 do player:SetAttribute('ParkOvertakeFinishDistance'..i,if s.botDistances then s.botDistances[i]else nil)end
-  player:SetAttribute('ParkTrialPhase',s.phase)
-  player:SetAttribute('ParkTrialCurrentLap',s.lap)
-  player:SetAttribute('ParkTrialTotalLaps',s.targetLaps or Trial.Laps)
-  player:SetAttribute('ParkOvertakeActive',r.parkOvertake==true)
-  player:SetAttribute('ParkOvertakeStartArc',if r.parkOvertake then s.overtakeStartArc else nil)
-  player:SetAttribute('ParkOvertakeAhead',if r.parkOvertake then s.ahead or 0 else nil)
-  player:SetAttribute('ParkTrialCompletedLaps',s.completedLaps)
-  player:SetAttribute('ParkTrialRewardMultiplier',s.multiplier)
-  player:SetAttribute('ParkTrialRewardAmount',if r.parkOvertake then Overtake.reward(s.ahead or 0)else Trial.Reward*s.multiplier)
-  player:SetAttribute('ParkTrialGoAt',s.goAt)
-  player:SetAttribute('ParkTrialStartedAt',s.startedAt)
-  player:SetAttribute('ParkTrialCheckpoint',s.next-1)
-  player:SetAttribute('ParkTrialMissed',s.missed)
-  player:SetAttribute('ParkTrialInvalid',s.invalid)
-  player:SetAttribute('ParkTrialMilliseconds',s.milliseconds)
-  player:SetAttribute('ParkTrialFinishPhase',s.finishPhase)
-  player:SetAttribute('ParkTrialFinishedAt',s.finishAt)
+  for i=1,7 do setAttr(player,'ParkOvertakeFinishDistance'..i,if s.botDistances then s.botDistances[i]else nil)end
+  setAttr(player,'ParkTrialPhase',s.phase)
+  setAttr(player,'ParkTrialCurrentLap',s.lap)
+  setAttr(player,'ParkTrialTotalLaps',s.targetLaps or Trial.Laps)
+  setAttr(player,'ParkOvertakeActive',r.parkOvertake==true)
+  setAttr(player,'ParkOvertakeStartArc',if r.parkOvertake then s.overtakeStartArc else nil)
+  setAttr(player,'ParkOvertakeAhead',if r.parkOvertake then s.ahead or 0 else nil)
+  setAttr(player,'ParkTrialCompletedLaps',s.completedLaps)
+  setAttr(player,'ParkTrialRewardMultiplier',s.multiplier)
+  setAttr(player,'ParkTrialRewardAmount',if r.parkOvertake then Overtake.reward(s.ahead or 0)else Trial.Reward*s.multiplier)
+  setAttr(player,'ParkTrialGoAt',s.goAt)
+  setAttr(player,'ParkTrialStartedAt',s.startedAt)
+  setAttr(player,'ParkTrialCheckpoint',s.next-1)
+  setAttr(player,'ParkTrialMissed',s.missed)
+  setAttr(player,'ParkTrialInvalid',s.invalid)
+  setAttr(player,'ParkTrialMilliseconds',s.milliseconds)
+  setAttr(player,'ParkTrialFinishPhase',s.finishPhase)
+  setAttr(player,'ParkTrialFinishedAt',s.finishAt)
   local target=Trial.Gates[s.next]or Trial.Finish
-  player:SetAttribute('ParkTrialTarget',center+Vector3.new(target.x,4,target.z))
+  setAttr(player,'ParkTrialTarget',center+Vector3.new(target.x,4,target.z))
  end
  function api:begin(player,r)
   local pos=r.body.Position-center

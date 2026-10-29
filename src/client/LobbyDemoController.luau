@@ -105,8 +105,13 @@ function Controller.start()
    })
   end
 
+  local function setAttr(m,k,v)
+   if m:GetAttribute(k)~=v then m:SetAttribute(k,v)end
+  end
   local function step(dt)
    local now=Workspace:GetServerTimeNow()
+   local camera=Workspace.CurrentCamera
+   local camPos=camera and camera.CFrame.Position
    for _,b in botList do
     local botStart=nextState:GetAttribute("BotStartedAt_"..b.id) or (start+b.delay)
     if now<botStart then
@@ -114,7 +119,11 @@ function Controller.start()
      continue
     end
     if not b.model.Parent then b.model.Parent=zone end
-    local proxy=zone:FindFirstChild(b.proxyName)
+    local proxy=b.proxy
+    if not proxy or not proxy.Parent then
+     proxy=zone:FindFirstChild(b.proxyName)
+     b.proxy=proxy
+    end
     local elapsed=if isRookie then 0 else now-botStart
     local sampled=proxy and proxy:GetAttribute('SampledAt')
     if type(sampled)=='number' and type(proxy:GetAttribute('RouteElapsed'))=='number' then
@@ -132,9 +141,13 @@ function Controller.start()
     if hit then boosting=false;b.visualDrift=0 end
 
     -- Sync combat hit attributes so KDMItemVFXController renders official race smoke & electrical sparks
-    b.model:SetAttribute('KartMissileHitActive',missile)
-    b.model:SetAttribute('KartThunderHitActive',thunder)
-    b.model:SetAttribute('KartSlickActive',slick)
+    setAttr(b.model,'KartMissileHitActive',missile)
+    setAttr(b.model,'KartThunderHitActive',thunder)
+    setAttr(b.model,'KartSlickActive',slick)
+
+    b.renderElapsed=(b.renderElapsed or 0)+dt
+    if isRookie and camPos and (camPos.X-(center.X+x))^2+(camPos.Z-(center.Z+z))^2>90000 and b.renderElapsed<.1 then continue end
+    local renderDt=b.renderElapsed;b.renderElapsed=0
 
     -- Official race-identical hit handling: speed attenuation + smoke/sparks, no unnatural tumbling
     local spin=if slick then math.rad(VFX.Slick.SpinDegrees)*math.clamp((now-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/ItemConfig.SLICK_EFFECT_DURATION,0,1)else 0
@@ -145,11 +158,7 @@ function Controller.start()
 
     local position=center+Vector3.new(x,groundY+0.463,z)
     local basis=CFrame.lookAt(position,position+Vector3.new(dx,0,dz),Vector3.new(0,ny,nz))
-    local camera=Workspace.CurrentCamera
-    local distance=if camera then (camera.CFrame.Position-position).Magnitude else 0
-    b.renderElapsed=(b.renderElapsed or 0)+dt
-    if isRookie and distance>300 and b.renderElapsed<.1 then continue end
-    local renderDt=b.renderElapsed;b.renderElapsed=0
+    local distance=if camPos then (camPos-position).Magnitude else 0
     b.model:PivotTo(basis*CFrame.Angles(0,if slick then spin else math.rad(32)*b.visualDrift,0))
 
     -- Drift particles & audio
@@ -162,10 +171,10 @@ function Controller.start()
     local boostLod=if not isRookie then lod elseif distance>300 then 0 elseif distance>160 then .5 else lod
     b.boostVisuals:update(boosting,boostLod)
     b.audio:update(renderDt,drifting,boosting)
-    b.model:SetAttribute("DemoDrifting",drifting)
-    b.model:SetAttribute("DemoBoosting",boosting)
-    b.model:SetAttribute("DemoPattern",pattern)
-    b.model:SetAttribute("DemoDriftDirection",math.sign(drift))
+    setAttr(b.model,"DemoDrifting",drifting)
+    setAttr(b.model,"DemoBoosting",boosting)
+    setAttr(b.model,"DemoPattern",pattern)
+    setAttr(b.model,"DemoDriftDirection",math.sign(drift))
    end
   end
   step(0)

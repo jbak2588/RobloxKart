@@ -5,12 +5,15 @@ local P=require(RS.Shared.ParkOvertakePolicy)
 local Layout=require(RS.Shared.HubParkRookieLoopLayout)
 local Catalog=require(RS.Shared.KartCatalog)
 local Factory=require(RS.Shared.KartVisualFactory)
+local ItemConfig=require(RS.Shared.RaceItemConfig)
+local COMBAT_KEYS={'KartSlickActive','KartMissileHitActive','KartThunderHitActive','KartSmokeObscuredActive'}
 local View={}
 function View.new(player,zone)
- local api={};local bots={};local key;local building=false;local serial=0;local stopped=false
+ local api={};local bots={};local proxies={};local proxyNames={};local lastRender={};local key;local building=false;local serial=0;local stopped=false
+ for i=1,7 do proxyNames[i]='ParkOvertakeTarget_'..player.UserId..'_'..i end
  local function clear()
   serial+=1;building=false;key=nil
-  for _,model in bots do model:Destroy()end;table.clear(bots)
+  for _,model in bots do model:Destroy()end;table.clear(bots);table.clear(proxies);table.clear(lastRender)
  end
  function api:destroy()stopped=true;clear()end
  local function frame(index,elapsed,start)
@@ -55,25 +58,39 @@ function View.new(player,zone)
     if generation==serial then building=false end
    end)
   end
-  local elapsed=if phase=='COUNTDOWN'then 0 elseif phase=='RUNNING'then math.max(0,workspace:GetServerTimeNow()-(started or go))
+  local serverNow=workspace:GetServerTimeNow()
+  local elapsed=if phase=='COUNTDOWN'then 0 elseif phase=='RUNNING'then math.max(0,serverNow-(started or go))
    else (player:GetAttribute('ParkTrialMilliseconds')or 0)/1000
   local effects=zone:FindFirstChild('LobbyPracticeEffects')
+  local center=zone:GetAttribute('Center')
+  local camera=workspace.CurrentCamera
+  local camPos=camera and camera.CFrame.Position
+  local nowClock=os.clock()
   for i,model in bots do
-   local proxy=effects and effects:FindFirstChild('ParkOvertakeTarget_'..player.UserId..'_'..i)
+   local proxy=proxies[i]
+   if not proxy or not proxy.Parent then
+    proxy=effects and effects:FindFirstChild(proxyNames[i])
+    proxies[i]=proxy
+   end
    local d=P.botDistance(i,elapsed)
    if proxy and phase=='RUNNING'then
     local sampled=proxy:GetAttribute('OvertakeSampledAt');local distance=proxy:GetAttribute('OvertakeDistance')
-    if type(sampled)=='number'and type(distance)=='number'then d=distance+math.clamp(workspace:GetServerTimeNow()-sampled,0,.3)*(proxy:GetAttribute('OvertakeSpeed')or 0)end
+    if type(sampled)=='number'and type(distance)=='number'then d=distance+math.clamp(serverNow-sampled,0,.3)*(proxy:GetAttribute('OvertakeSpeed')or 0)end
    elseif phase~='COUNTDOWN'then d=player:GetAttribute('ParkOvertakeFinishDistance'..i)or d end
-   local x,z,dx,dz=P.sample(start+d);local pos=zone:GetAttribute('Center')+Vector3.new(x,Layout.height(x,z)+1.75,z)
+   local x,z,dx,dz=P.sample(start+d)
    local spin=0
    if proxy then
-    for _,key in {'KartSlickActive','KartMissileHitActive','KartThunderHitActive','KartSmokeObscuredActive'}do model:SetAttribute(key,proxy:GetAttribute(key)==true)end
+    for _,k in COMBAT_KEYS do
+     local active=proxy:GetAttribute(k)==true
+     if model:GetAttribute(k)~=active then model:SetAttribute(k,active)end
+    end
     if proxy:GetAttribute('KartSlickActive')then
-     local config=require(RS.Shared.RaceItemConfig)
-     spin=2*math.pi*math.clamp((workspace:GetServerTimeNow()-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/config.SLICK_EFFECT_DURATION,0,1)
+     spin=2*math.pi*math.clamp((serverNow-(proxy:GetAttribute('LobbySlickStartedAt')or 0))/ItemConfig.SLICK_EFFECT_DURATION,0,1)
     end
    end
+   if camPos and (camPos.X-(center.X+x))^2+(camPos.Z-(center.Z+z))^2>90000 and lastRender[i]and nowClock-lastRender[i]<.1 then continue end
+   lastRender[i]=nowClock
+   local pos=center+Vector3.new(x,Layout.height(x,z)+1.75,z)
    model:PivotTo(CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))*CFrame.Angles(0,spin,0))
   end
  end
