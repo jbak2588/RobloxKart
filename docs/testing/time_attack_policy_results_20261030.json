@@ -37,9 +37,15 @@
     "sha256": "0b1d6fa74950c6d92aaa67f6e33cfa407d610b87c9b61c8497a2ad8f1740d07b"
   },
   "publication": {
-    "status": "PENDING",
+    "status": "PUBLISHED_VERIFIED",
     "universe": 10768420544,
-    "place": 127925465904803
+    "place": 127925465904803,
+    "version": 1265,
+    "codeCommit": "0a969334be47cf428674eb6811c977943d96683c",
+    "verifiedDate": "2026-10-30",
+    "evidence": "Native Studio publication success explicitly names v1265; Creator Dashboard Version History",
+    "screenshot": "C:/Users/OWNER/AppData/Local/Temp/KDM-timeattack-published-v1265-20261030.png",
+    "serverRestart": false
   },
   "limits": "Mocked transaction and Studio startup checks; real-device mobile/manual full-finish acceptance remains pending."
 }

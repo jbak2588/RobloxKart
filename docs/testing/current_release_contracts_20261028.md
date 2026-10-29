@@ -140,3 +140,10 @@ After the final top-Y clamp,303 Park HUD checks and757 integrity checks rerun PA
 Studio startup guest wallet0; no production account writes.232 Edit sources match
 local canonical SHA256. Full native Place snapshot saved before publishing; see
 `time_attack_policy_results_20261030.json`. Mobile full-race acceptance remains pending.
+
+Official publication: PV1265, verified2026-10-30 via native Studio success log
+and Creator Dashboard. Code commit `0a969334be47cf428674eb6811c977943d96683c`
+pushed on `prototype/kart-physics`. No access change or server restart. Existing
+servers are not forced to reload. Rollback: revert this scoped policy commit and
+Publish the rebuilt/synced native scene; preserve current account balances and
+receipts. Reverting a policy never authorizes deleting/recrediting stored wallets.
