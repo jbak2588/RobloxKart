@@ -20,8 +20,8 @@ function Controller.start()
   t.Position=UDim2.fromOffset(10,y);t.Size=UDim2.new(1,-20,0,height);t.TextWrapped=true
   t.Font=Enum.Font.GothamBold;t.TextSize=size;t.TextColor3=color;t.TextXAlignment=Enum.TextXAlignment.Left;t.Parent=hint
  end
- text('Reward','EARN K$ 5,000',6,22,15,Color3.fromRGB(255,219,65))
- text('Requirement','Drive 30s + travel 300 studs.\nOne starter reward per account.',30,40,12,Color3.fromRGB(238,246,255))
+ text('Reward','TIME ATTACK',6,22,15,Color3.fromRGB(255,219,65))
+ text('Requirement','Base reward K$ 5,000.\nConsecutive replays: x2, x3 multiplier.',30,40,12,Color3.fromRGB(238,246,255))
  local descriptions={
   GARAGE='Choose your kart and color.',
   RACE='Race with players or a rookie bot.\nFinish races to earn K$.',
@@ -31,9 +31,9 @@ function Controller.start()
  local function describe()
   local reward=hint:FindFirstChild('Reward')
   local requirement=hint:FindFirstChild('Requirement')
-  reward.Text=if context=='TEST_DRIVE' then 'EARN K$ 5,000' else context
+  reward.Text=if context=='TEST_DRIVE' then 'TIME ATTACK' else context
   reward.TextColor3=if context=='TEST_DRIVE' then Color3.fromRGB(255,219,65) else Color3.fromRGB(238,246,255)
-  requirement.Text=if context=='TEST_DRIVE' then 'Drive 30s + travel 300 studs.\nOne starter reward per account.' else descriptions[context]
+  requirement.Text=if context=='TEST_DRIVE' then 'Base reward K$ 5,000.\nConsecutive replays: x2, x3 multiplier.' else descriptions[context]
  end
  local function restoreOffset()
   if prompt and prompt.Parent and originalOffset then prompt.UIOffset=originalOffset end
@@ -61,7 +61,7 @@ function Controller.start()
  table.insert(connections,Run.RenderStepped:Connect(function()
   local camera=Workspace.CurrentCamera
   if not prompt or not prompt.Parent or not prompt.Enabled or not camera
-   or (context=='TEST_DRIVE' and p:GetAttribute('KDMEconomyState')~='GUEST') or blocked() then
+   or blocked() then
    gui.Enabled=false;restoreOffset();return
   end
   local anchor=prompt.Parent

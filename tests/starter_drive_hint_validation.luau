@@ -24,7 +24,7 @@ end
 hidden:Fire(prompt);check(not gui.Enabled and prompt.UIOffset==rb.Vector2.zero,'leaving kart hides helper and restores native prompt')
 shown:Fire(prompt);player:SetAttribute('HubOverlayOpen',true);step:Fire();check(not gui.Enabled and prompt.UIOffset==rb.Vector2.zero,'other UI never inherits displaced prompt')
 player:SetAttribute('HubOverlayOpen',false);step:Fire();check(gui.Enabled,'nearby prompt resumes after overlay closes')
-player:SetAttribute('KDMEconomyState','FOUND');step:Fire();check(not gui.Enabled,'qualified account never receives misleading starter reward')
+player:SetAttribute('KDMEconomyState','FOUND');step:Fire();check(gui.Enabled,'time attack guidance available to qualified accounts')
 player:SetAttribute('KDMEconomyState','GUEST');player:SetAttribute('LobbyDriveActive',true);step:Fire();check(not gui.Enabled,'driving hides guidance')
 player:SetAttribute('LobbyDriveActive',false)
 -- The same bounded helper explains native kiosk prompts to every account.
@@ -44,8 +44,8 @@ check(not gui.Enabled and kiosk.UIOffset==rb.Vector2.new(3,4),'profile modal sup
 player:SetAttribute('KDMProfileOpen',false);step:Fire();check(gui.Enabled,'kiosk helper resumes after profile closes')
 player:SetAttribute('RaceState','RACING');step:Fire();check(not gui.Enabled,'kiosk helper never follows player into race')
 player:SetAttribute('RaceState','GARAGE');hidden:Fire(kiosk)
-shown:Fire(prompt);step:Fire();check(not gui.Enabled,'qualified account still cannot see starter grant invitation')
-player:SetAttribute('KDMEconomyState','GUEST');step:Fire();check(gui.Enabled and hint:FindFirstChild('Reward').Text=='EARN K$ 5,000','original guest kart grant guidance preserved')
+shown:Fire(prompt);step:Fire();check(gui.Enabled and hint:FindFirstChild('Reward').Text=='TIME ATTACK','time attack guidance available at display kart')
+check(hint:FindFirstChild('Requirement').Text:find('5,000')~=nil and hint:FindFirstChild('Requirement').Text:find('multiplier')~=nil,'explains base reward and replay multiplier')
 local nav=nodes.object('ScreenGui');nav.Name='KDMHubNavigation';nav.Enabled=true;nav.Parent=pg
 local menus=nodes.object('Frame');menus.Name='Shortcuts';menus.Position=rb.UDim2.fromOffset(16,70);menus.Size=rb.UDim2.fromOffset(132,144);menus.Parent=nav
 local wallet=nodes.object('Frame');wallet.Name='WalletCapsule';wallet.Position=rb.UDim2.fromOffset(16,16);wallet.Size=rb.UDim2.fromOffset(180,42);wallet.Parent=nav
