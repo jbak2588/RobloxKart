@@ -36,11 +36,15 @@ function Freeze.accepts(manifest,path,source)
  end
  local speedV2=manifest.speedV2Phase1Patch
  local park=manifest.parkDriverCollisionPatch
+ local vfxOpt=manifest.vfxOptimizationPatches
  if park and path=='src/server/LobbyTestDriveService.luau' and path==park.path and hash==park.sha256 then
   return true,'PARK_DRIVER_COLLISION'
  end
  if speedV2 and path==speedV2.path and hash==speedV2.sha256 then
   return true,'SPEED_V2_PHASE1'
+ end
+ if vfxOpt and vfxOpt[path] and hash==vfxOpt[path] then
+  return true,'VFX_OPTIMIZATION'
  end
  return false,'unapproved full-file change'
 end

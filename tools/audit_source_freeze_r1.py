@@ -14,6 +14,13 @@ VFX_PATH = 'src/client/KartWorldSpeedRenderer.luau'
 VFX_SHA256 = '0c606e01d8c63e3938430730d49ca033663033fd648bb833690bb300e2e0e1fb'
 PARK_PATH = 'src/server/LobbyTestDriveService.luau'
 PARK_SHA256 = '7af484a2ee7f089f673d938c04d6e3fae33d7ead8abe1e208d8dfb36bbbfbd3a'
+VFX_OPT_HASHES = {
+    'src/client/KDMItemVFXController.luau': '20363b517f249e6697ee5c4e38f4b103f231192f1b90c0ab94915ad505d1ae8d',
+    'src/client/KartWorldVFXController.luau': '8b07f93ac60a06eee05065e0b56d4e5acf3e69a92504f387782336704b2cc8c2',
+    'src/client/ShieldWorldRenderer.luau': '3a3a07f5c9b330af6635b214c93c98fd8d765e4c4c1d3d92a1c3caf2c2b9941a',
+    'src/client/SmokeEffectView.luau': '0eede89f1c667a2d2703c5ef31c4feb5bcbaaa64211c8df83577c94d926c9cfb',
+    'src/server/RaceItemVisuals.luau': 'dca2c4a5fdbefc91121ff64e82925c472be3db6f07044132d147acef99cce9d1',
+}
 FOV_CHANGES = [('Speed.HIGH_SPEED_START = 55', 'Speed.HIGH_SPEED_START = 50'),
                ('Speed.HIGH_SPEED_FULL = 80', 'Speed.HIGH_SPEED_FULL = 90'),
                ('HIGH_SPEED = table.freeze({FovDelta=3,', 'HIGH_SPEED = table.freeze({FovDelta=5,')]
@@ -70,8 +77,10 @@ def audit():
                          and digest(canonical(current))==r3['sha256']
                          and canonical(current).count(r3['after'].encode())==1
                          and canonical(current).replace(r3['after'].encode(),r3['before'].encode(),1)==canonical(base) for r3 in patches)
+            vfx_opt = path in VFX_OPT_HASHES and digest(canonical(current)) == VFX_OPT_HASHES[path]
             category = ('OWNER_PARK_DRIVER_COLLISION' if path == PARK_PATH and digest(canonical(current)) == PARK_SHA256
                         else 'OWNER_VFX_V3_2' if path == VFX_PATH and digest(canonical(current)) == VFX_SHA256
+                        else 'OWNER_VFX_OPTIMIZATION' if vfx_opt
                         else 'OWNER_R3_POLICY_PATCH' if owner_patch else 'FOV_PHASE1' if local_changed and path == FOV_PATH and canonical(current) == candidate
                         else 'UNKNOWN_LOCAL' if local_changed else 'APPROVED_HEAD' if base_hash not in [expected, *alternatives] else 'HISTORICAL_MATCH')
             rows.append(dict(family=family, path=path, expected=expected, alternatives=alternatives,
@@ -124,6 +133,11 @@ if __name__ == '__main__':
                 current_vfx=canonical((ROOT/path).read_bytes())
                 assert digest(current_vfx)==VFX_SHA256, 'V3.2 must match owner-accepted exact QA source'
                 allowed.append(current_vfx)
+            if path in VFX_OPT_HASHES:
+                assert manifest['vfxOptimizationPatches'][path]==VFX_OPT_HASHES[path]
+                current_opt=canonical((ROOT/path).read_bytes())
+                assert digest(current_opt)==VFX_OPT_HASHES[path], f'VFX optimization source must match exact hash: {path}'
+                allowed.append(current_opt)
             if path==FOV_PATH:
                 candidate=original
                 for before,after in FOV_CHANGES:

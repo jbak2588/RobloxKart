@@ -41,50 +41,56 @@ local function safeVector2(x, y)
 	return if ok then v else nil
 end
 
+local SMOKE_LIFETIME = safeNumberRange(1.6, 2.4)
+local SMOKE_SPEED = safeNumberRange(6, 12)
+local SMOKE_SPREAD = safeVector2(20, 20)
+local SMOKE_ROTATION = safeNumberRange(-180, 180)
+local SMOKE_ROT_SPEED = safeNumberRange(-30, 30)
+local SMOKE_COLOR = safeColorSequence(Color3.fromRGB(35, 36, 42), Color3.fromRGB(75, 80, 92))
+local SMOKE_SIZE = safeNumberSequence({ {0, 1.4}, {0.35, 3.2}, {0.75, 5.0}, {1, 6.8} })
+local SMOKE_TRANS = safeNumberSequence({ {0, 0.05}, {0.3, 0.25}, {0.7, 0.6}, {1, 1} })
+local SPARK_LIFETIME = safeNumberRange(0.18, 0.35)
+local SPARK_SPEED = safeNumberRange(5, 10)
+local SPARK_SPREAD = safeVector2(55, 55)
+local SPARK_COLOR = safeColorSequence(Color3.fromRGB(120, 240, 255))
+local SPARK_SIZE = safeNumberSequence({ {0, 0.8}, {1, 0.15} })
+local DAMAGE_SMOKE_POS = Vector3.new(0, 1.4, 1.8)
+local PUFF_SIZE = Vector3.new(1.5, 0.65, 1.8)
+local PUFF_COLOR = Color3.fromRGB(165, 175, 185)
+
 local function makeDamageSmoke(parent: BasePart, isThunder: boolean): Attachment
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "KDMDamageSmokeAttachment"
-	attachment.Position = Vector3.new(0, 1.4, 1.8)
+	attachment.Position = DAMAGE_SMOKE_POS
 	attachment.Parent = parent
 
 	local smoke = Instance.new("ParticleEmitter")
 	smoke.Name = "DamageSmoke"
 	smoke.Texture = SMOKE_TEXTURE
 	smoke.Rate = 35 -- Dense billowing emission
-	smoke.Lifetime = safeNumberRange(1.6, 2.4) -- Extended linger trail behind kart
-	smoke.Speed = safeNumberRange(6, 12)
+	smoke.Lifetime = SMOKE_LIFETIME -- Extended linger trail behind kart
+	smoke.Speed = SMOKE_SPEED
 	smoke.EmissionDirection = Enum.NormalId.Top
-	local spread = safeVector2(20, 20)
-	if spread then smoke.SpreadAngle = spread end
+	if SMOKE_SPREAD then smoke.SpreadAngle = SMOKE_SPREAD end
 	smoke.VelocityInheritance = 0.25
 	smoke.Drag = 1.4
-	smoke.Rotation = safeNumberRange(-180, 180)
-	smoke.RotSpeed = safeNumberRange(-30, 30)
-
-	local smokeColor = safeColorSequence(Color3.fromRGB(35, 36, 42), Color3.fromRGB(75, 80, 92))
-	if smokeColor then smoke.Color = smokeColor end
-
-	local smokeSize = safeNumberSequence({ {0, 1.4}, {0.35, 3.2}, {0.75, 5.0}, {1, 6.8} })
-	if smokeSize then smoke.Size = smokeSize end
-
-	local smokeTrans = safeNumberSequence({ {0, 0.05}, {0.3, 0.25}, {0.7, 0.6}, {1, 1} })
-	if smokeTrans then smoke.Transparency = smokeTrans end
-
+	smoke.Rotation = SMOKE_ROTATION
+	smoke.RotSpeed = SMOKE_ROT_SPEED
+	if SMOKE_COLOR then smoke.Color = SMOKE_COLOR end
+	if SMOKE_SIZE then smoke.Size = SMOKE_SIZE end
+	if SMOKE_TRANS then smoke.Transparency = SMOKE_TRANS end
 	smoke.Parent = attachment
 
 	if isThunder then
 		local spark = Instance.new("ParticleEmitter")
 		spark.Name = "ElectricSpark"
 		spark.Rate = 20
-		spark.Lifetime = safeNumberRange(0.18, 0.35)
-		spark.Speed = safeNumberRange(5, 10)
-		local sparkSpread = safeVector2(55, 55)
-		if sparkSpread then spark.SpreadAngle = sparkSpread end
+		spark.Lifetime = SPARK_LIFETIME
+		spark.Speed = SPARK_SPEED
+		if SPARK_SPREAD then spark.SpreadAngle = SPARK_SPREAD end
 		spark.LightEmission = 1.0
-		local sparkColor = safeColorSequence(Color3.fromRGB(120, 240, 255))
-		if sparkColor then spark.Color = sparkColor end
-		local sparkSize = safeNumberSequence({ {0, 0.8}, {1, 0.15} })
-		if sparkSize then spark.Size = sparkSize end
+		if SPARK_COLOR then spark.Color = SPARK_COLOR end
+		if SPARK_SIZE then spark.Size = SPARK_SIZE end
 		spark.Parent = attachment
 	end
 
@@ -178,7 +184,7 @@ function Controller.start()
 				for _, side in {-1, 1} do
 					local puff = Instance.new("Part")
 					puff.Name, puff.Shape = "TirePuff", Enum.PartType.Ball
-					puff.Size, puff.Color = Vector3.new(1.5,.65,1.8), Color3.fromRGB(165,175,185)
+					puff.Size, puff.Color = PUFF_SIZE, PUFF_COLOR
 					puff.CFrame = chassis.CFrame*CFrame.new(side*2.7, .15, 2.3)
 					puff.Transparency, puff.CastShadow = .72, false
 					puff.Anchored, puff.CanCollide, puff.CanTouch, puff.CanQuery = true, false, false, false
@@ -230,6 +236,7 @@ function Controller.start()
 	end
 
 	local scan = 0
+	local cachedHub, cachedZone = nil, nil
 	if RunService and RunService.Heartbeat then
 		table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 			scan += dt
@@ -240,10 +247,35 @@ function Controller.start()
 				end
 				local h = if type(Workspace.FindFirstChild) == "function" then Workspace:FindFirstChild("KDMHub") else nil
 				if h then
-					local zone = if type(h.FindFirstChild) == "function" then h:FindFirstChild("LobbyFrontTestDriveZone", true) else nil
-					if not zone and type(h.FindFirstChild)=='function'then zone=h:FindFirstChild('HubParkRookieLoopG2',true)end
-					if zone and zone.GetChildren then
-						for _, o in zone:GetChildren() do bind(o) end
+					if h ~= cachedHub or not cachedZone or not cachedZone.Parent then
+						cachedHub = h
+						cachedZone = if type(h.FindFirstChild) == "function" then (h:FindFirstChild("HubParkRookieLoopG2", true) or h:FindFirstChild("LobbyFrontTestDriveZone", true)) else nil
+					end
+					if cachedZone and cachedZone.GetChildren then
+						for _, o in cachedZone:GetChildren() do bind(o) end
+					end
+				else
+					cachedHub, cachedZone = nil, nil
+				end
+				local camera = Workspace.CurrentCamera
+				local localUserId = Players.LocalPlayer and Players.LocalPlayer.UserId
+				if camera then
+					local camPos = camera.CFrame.Position
+					for kart, record in records do
+						local att = record.damageAttachment
+						if att and att.Parent then
+							local ownerId = kart:GetAttribute("KartOwnerUserId") or kart:GetAttribute("LobbyOwnerUserId")
+							local isLocal = kart:GetAttribute("LocalKart") == true or (localUserId ~= nil and ownerId == localUserId)
+							local dist = if isLocal then 0 else (camPos - att.Parent.Position).Magnitude
+							local lod = if dist > 160 then 0 elseif dist > 90 then 0.5 else 1
+							for _, emitter in getChildren(att) do
+								if emitter:IsA("ParticleEmitter") then
+									local baseRate = if emitter.Name == "ElectricSpark" then 20 else 35
+									local targetRate = math.floor(baseRate * lod + 0.5)
+									if emitter.Rate ~= targetRate then emitter.Rate = targetRate end
+								end
+							end
+						end
 					end
 				end
 			end

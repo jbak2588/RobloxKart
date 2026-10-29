@@ -706,5 +706,12 @@
     "approval": "Owner Phase 1 V3.2: Radiant Orange Cruise Rocket Flame (Nitro 120 Baseline Ratio, Drift Flame Retained, KDMSpeedVortex Retired) + Demoted Trail (length <= 6 studs)",
     "path": "src/client/KartWorldSpeedRenderer.luau",
     "sha256": "0c606e01d8c63e3938430730d49ca033663033fd648bb833690bb300e2e0e1fb"
+  },
+  "vfxOptimizationPatches": {
+    "src/client/KDMItemVFXController.luau": "20363b517f249e6697ee5c4e38f4b103f231192f1b90c0ab94915ad505d1ae8d",
+    "src/client/KartWorldVFXController.luau": "8b07f93ac60a06eee05065e0b56d4e5acf3e69a92504f387782336704b2cc8c2",
+    "src/client/ShieldWorldRenderer.luau": "3a3a07f5c9b330af6635b214c93c98fd8d765e4c4c1d3d92a1c3caf2c2b9941a",
+    "src/client/SmokeEffectView.luau": "0eede89f1c667a2d2703c5ef31c4feb5bcbaaa64211c8df83577c94d926c9cfb",
+    "src/server/RaceItemVisuals.luau": "dca2c4a5fdbefc91121ff64e82925c472be3db6f07044132d147acef99cce9d1"
   }
 }

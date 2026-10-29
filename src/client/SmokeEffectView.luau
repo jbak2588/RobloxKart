@@ -20,15 +20,27 @@ function View.new(playerGui, player, practice)
 		local corner=Instance.new("UICorner");corner.CornerRadius=UDim.new(1,0);corner.Parent=puff
 		table.insert(puffs,puff)
 	end
-	local kart,session,reset,born,wasActive,fadeUntil
+	local kart,session,reset,born,wasActive,fadeUntil,lastStrength
+	local cachedChar,cachedHuman
 	local connections={}
-	local function clear() haze.Visible=false;born=nil;wasActive=false;fadeUntil=nil end
+	local function clear()
+		if haze.Visible then haze.Visible=false end
+		born=nil;wasActive=false;fadeUntil=nil;lastStrength=nil
+	end
 	local function paint(strength)
+		if haze.Visible and lastStrength==strength then return end
+		lastStrength=strength
 		haze.Visible=true;haze.BackgroundTransparency=1-.45*strength
-		for _,puff in puffs do puff.BackgroundTransparency=1-.60*strength end
+		local puffTrans=1-.60*strength
+		for _,puff in puffs do puff.BackgroundTransparency=puffTrans end
 	end
 	local function update()
-		local human=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		local char=player.Character
+		if char~=cachedChar or not cachedHuman or cachedHuman.Parent~=char then
+			cachedChar=char
+			cachedHuman=char and char:FindFirstChildOfClass("Humanoid")
+		end
+		local human=cachedHuman
 		local seat=human and human.SeatPart
 		local current=seat and seat.Parent
 		local driving=if practice then player:GetAttribute('RaceState')=='GARAGE' and player:GetAttribute('LobbyDriveActive')==true and player:GetAttribute('KDMRoutePending')~='RACE_LAUNCH' else player:GetAttribute('RaceState')=='RACING'
