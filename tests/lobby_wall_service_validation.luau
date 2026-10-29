@@ -12,7 +12,7 @@ local players={GetPlayers=function()return {}end,PlayerAdded=signal,PlayerRemovi
 local workspace={GetAttribute=function(_,k)return if k=='KDMServerRole' then 'HUB' else false end}
 local shared={WaitForChild=function(_,name)return {Name=name}end}
 local rs={WaitForChild=function()return shared end}
-local source=fs.readFile('src/server/LobbyTestDriveService.luau'):gsub('return Service%s*$','Service.inject=function(player,record) record.qualification=Qualification.new();records[player]=record end;return Service')
+local source=fs.readFile('src/server/LobbyTestDriveService.luau'):gsub('return Service%s*$','Service.inject=function(player,record) records[player]=record end;return Service')
 local modules={KDMStraightSpeedResolver=luau.load(fs.readFile('src/server/KDMStraightSpeedResolver.luau'),{environment={Vector3=rb.Vector3}})(),LobbyDrivePresence=luau.load(fs.readFile('src/server/LobbyDrivePresence.luau'))(),TestDriveQualification=luau.load(fs.readFile('src/server/TestDriveQualification.luau'))(),LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=policy,LobbyDriveGeometry={create=function()return geometry end},KartConfig=config,KartCatalog={},KartVisualFactory={},LobbyDriftSession=training}
 modules.GasPedalPolicy=luau.load(fs.readFile('src/shared/GasPedalPolicy.luau'))()
 local service=luau.load(source,{environment={script={Parent={KDMStraightSpeedResolver={Name='KDMStraightSpeedResolver'},LobbyDrivePresence={Name='LobbyDrivePresence'},EconomyService={Name='EconomyService'},TestDriveQualification={Name='TestDriveQualification'},LobbyDriftSession={Name='LobbyDriftSession'},LobbyPracticeCombat={Name='LobbyPracticeCombat'}}},game={PrivateServerId='',GetService=function(_,name)return ({Players=players,ReplicatedStorage=rs,RunService=run,PhysicsService=physics,Workspace=workspace})[name]end},require=function(m)return modules[m.Name]end,Instance={new=function()return {OnServerEvent=signal}end},task={spawn=function(fn)fn()end},Vector3=rb.Vector3,CFrame=rb.CFrame,os={clock=function()return now end}}})()
@@ -156,5 +156,5 @@ for i=1,800 do
  body.AssemblyLinearVelocity=rb.Vector3.new(20,0,0);r.lastInput=now;r.throttle=1;r.steering=0;r.speed=20
  heartbeat(.05)
 end
-check(qualified==1 and r.qualificationSaved,'actual service heartbeat saves once after movement threshold')
+check(qualified==0 and not r.qualificationSaved,'driving duration/distance cannot create an activity reward')
 print('PASS '..n..' total real heartbeat and qualification integration checks')

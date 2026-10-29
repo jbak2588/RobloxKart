@@ -22,7 +22,7 @@ function View.new(parent,player,onReplay,onReturn)
  timing.TextXAlignment=Enum.TextXAlignment.Center
  local countdown=text(canvas,'Countdown',64);countdown.AnchorPoint=Vector2.new(.5,.5);countdown.Position=UDim2.fromScale(.5,.4);countdown.Size=UDim2.fromOffset(230,85)
  countdown.TextStrokeTransparency=.45
- local instructions=text(canvas,'OvertakeInstructions',16);instructions.AnchorPoint=Vector2.new(.5,0)
+ local instructions=text(topGui,'OvertakeInstructions',16);instructions.AnchorPoint=Vector2.new(.5,0)
  instructions.BackgroundColor3=Color3.fromRGB(70,110,135);instructions.BackgroundTransparency=.25
  instructions.Text='3 LAPS / 7 EVENLY SPACED BOTS\nFINAL POSITION COUNTS\nK$5,000 + K$5,000 PER BOT AHEAD\nALL 7: PERFECT +K$10,000 / MAX K$50,000'
  instructions.TextScaled=true;local limit=Instance.new('UITextSizeConstraint');limit.MaxTextSize=18;limit.MinTextSize=10;limit.Parent=instructions
@@ -67,8 +67,12 @@ function View.new(parent,player,onReplay,onReturn)
   if not gui.Enabled then finalKey,finalAt=nil,nil;finalLap.Visible=false;return end
   local now=workspace:GetServerTimeNow();local started=player:GetAttribute('ParkTrialStartedAt')or now
   local size=canvas.AbsoluteSize
-  instructions.Visible=challenge and phase=='COUNTDOWN'
-  instructions.Position=UDim2.new(.5,0,0,8);instructions.Size=UDim2.fromOffset(math.min(540,size.X-24),math.min(115,size.Y*.35))
+  local remaining=math.ceil((player:GetAttribute('ParkTrialGoAt')or now)-now)
+  instructions.Visible=challenge and phase=='COUNTDOWN'and remaining>3
+  local viewSize=topGui.AbsoluteSize
+  local width=math.min(540,viewSize.X*.64);local height=math.min(88,viewSize.Y*.22)
+  local safeTop=MobileView.speedTopbarPosition(viewSize,GuiService.TopbarInset,width,height)
+  instructions.Position=UDim2.fromOffset(safeTop.X,6);instructions.Size=UDim2.fromOffset(width,height)
   local wide=size.X>size.Y and size.X>=720
   panel.AnchorPoint=if wide then Vector2.new(0,.5)else Vector2.new(.5,.5)
   panel.Position=if wide then UDim2.new(0,12,.5,0)else UDim2.fromScale(.5,.5)

@@ -748,5 +748,15 @@
     "src/server/RookieParkTrialSession.luau": "88125aef8ee16c3dfc880f1067c492a7723ef5049123702a533953854c1e42fa",
     "src/shared/ParkOvertakePolicy.luau": "26c7192d025709db5e57b8e4058f70a8273cff5b02df40604f205ae7a3b2f3df"
   },
-  "parkItemsKioskParent": "aba4a8b87b99b36109597a7ddcb22f3b2ea2684f"
+  "parkItemsKioskParent": "aba4a8b87b99b36109597a7ddcb22f3b2ea2684f",
+  "timeAttackRewardPatches": {
+    "src/client/ActivityRewardView.luau": "72370d9c757e536739c5f467c79362399350a82868b2230d7c8edaf77f7c48fc",
+    "src/client/EconomyController.luau": "1aad6a207afe424159cb83da28175c5f7f6dde090d443f75c12cadb094079d2a",
+    "src/client/RookieParkTrialView.luau": "5cd8e170696706795aa8f0cb64c55acee6edfd7e3ea7db9abb31ad092ace425f",
+    "src/server/EconomyService.luau": "0ea7c4cd5d9e7f88b19544fa61ce9dd3fe0454457cae6bf2f984a53a1bc85422",
+    "src/server/LobbyTestDriveService.luau": "12e446bbd9eff9fa822b674af11005ac5ff12820f525d1fcab94103d3fce7434",
+    "src/server/TestDriveQualification.luau": "889645e0fde3657bb3bd30813a1d153a4ea314789fe24c3631d003eb88eb285d",
+    "src/shared/KDMProgressionSchema.luau": "cf1fe356300058280ca60741cbddf8469c2ff53d66edd4665dcf89fa8915d8f4"
+  },
+  "timeAttackRewardParent": "b147a62177a8198c33289200c10e9fa230a06e65"
 }

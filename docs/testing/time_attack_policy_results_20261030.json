@@ -1,0 +1,45 @@
+{
+  "baseline": "b147a62177a8198c33289200c10e9fa230a06e65",
+  "total": 252,
+  "pass": 232,
+  "historicalFailures": [
+    "bot_internal_control_validation.luau",
+    "chevron_standard_validation.luau",
+    "finish_source_freeze_validation.luau",
+    "item_aftershock_validation.luau",
+    "lobby_palette_validation.luau",
+    "lobby_terminology_validation.luau",
+    "park_a1_island_visual_validation.luau",
+    "park_a2_landscaping_validation.luau",
+    "practice_figure8_geometry_validation.luau",
+    "r8_perf_p0_validation.luau",
+    "r8_perf_p1_validation.luau",
+    "rookie_loop_demo_validation.luau",
+    "speed_sensation_validation.luau",
+    "straight_speed_validation.luau",
+    "track02_published_binding_validation.luau",
+    "track_environment_validation.luau",
+    "track_h3_flow_validation.luau",
+    "track_v2_geometry_validation.luau",
+    "track_visual_standard_validation.luau",
+    "v2_gauge_v1_audio_validation.luau"
+  ],
+  "newFailures": [],
+  "integrityChecks": 757,
+  "sourceParity": {
+    "sources": 232,
+    "mismatches": 0
+  },
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-gu6f4yw9",
+  "backup": {
+    "path": "C:\\Users\\OWNER\\AppData\\Local\\Temp\\KDM-official-timeattack-policy-20261030.rbxl",
+    "bytes": 1411652,
+    "sha256": "0b1d6fa74950c6d92aaa67f6e33cfa407d610b87c9b61c8497a2ad8f1740d07b"
+  },
+  "publication": {
+    "status": "PENDING",
+    "universe": 10768420544,
+    "place": 127925465904803
+  },
+  "limits": "Mocked transaction and Studio startup checks; real-device mobile/manual full-finish acceptance remains pending."
+}

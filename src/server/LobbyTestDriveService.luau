@@ -12,7 +12,6 @@ local Catalog=require(Shared:WaitForChild("KartCatalog"))
 local Factory=require(Shared:WaitForChild("KartVisualFactory"))
 local Drift=require(script.Parent.LobbyDriftSession)
 local Practice=require(script.Parent.LobbyPracticeCombat)
-local Qualification=require(script.Parent.TestDriveQualification)
 local Presence=require(script.Parent.LobbyDrivePresence)
 local StraightSpeedResolver=require(script.Parent.KDMStraightSpeedResolver)
 local Service={}
@@ -212,7 +211,7 @@ local function drive(player,previewKartId,mode)
  if not inside(frame.Position,Policy.FootprintMargin) then player:SetAttribute("LobbyDrivePending",false);return false,"DRIVE ZONE BUSY" end
  local ok,kart,body,seat=pcall(createKart,player,definition,frame)
  if not ok then player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
- local record={qualification=Qualification.new(),kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
+ local record={kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
   throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,boundaryPrevious=frame.Position,slot=slot,seated=false,training=Drift.new()}
  records[player]=record
  -- Only Rookie Park has a timeTrial adapter; legacy Hub driving is unchanged.
@@ -349,18 +348,6 @@ function Service.start(driveZone,eligibility)
     r.kart:PivotTo(r.safe);r.boundaryPrevious=r.safe.Position;r.speed,r.yaw,r.throttle,r.steering=0,0,0,0;r.lastInput=0;r.crashEnd=nil;r.crashCooldown=nil;Drift.clear(r.training);r.kart:SetAttribute("LobbyDrifting",false);r.kart:SetAttribute("KartDrifting",false);r.kart:SetAttribute("KartBoosting",false);r.kart:SetAttribute("LobbyDriftCharge",0)
     if timeTrial then timeTrial:recover(r)end
     player:SetAttribute("LobbyDriveResetSerial",(player:GetAttribute("LobbyDriveResetSerial") or 0)+1);continue
-   end
-   if Qualification.step(r.qualification,dt,pos.X,pos.Z,true) and not r.qualificationSaved and not r.qualificationSaving
-    and os.clock()>=(r.nextQualificationSave or 0) then
-    r.qualificationSaving=true
-    task.spawn(function()
-     local result=require(script.Parent.EconomyService).qualifyActivity(player,'TEST_DRIVE',Qualification.proof(r.qualification))
-     r.qualificationSaving=false;r.qualificationSaved=result.status=='FOUND';r.nextQualificationSave=os.clock()+5
-    end)
-   end
-   if not r.qualificationSaved then
-    player:SetAttribute('KDMTestDriveMovingSeconds',math.floor(r.qualification.seconds))
-    player:SetAttribute('KDMTestDriveDistance',math.floor(r.qualification.distance))
    end
    local throttle,steering=r.throttle,r.steering
    if r.launchUntil and os.clock()<r.launchUntil and throttle>=0 then throttle=1;r.lastInput=os.clock()end

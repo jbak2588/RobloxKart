@@ -114,7 +114,10 @@ local function fixture(userId,backend)
  f.Economy=requireNode(nodes.EconomyService);f.Records=requireNode(nodes.RaceRecordService);f.Shop=requireNode(nodes.ShopService)
  f.Ops=requireNode(nodes.RaceRecordOperations);f.Runtime=requireNode(nodes.RaceRecordRuntime)
  check(f.lookups==0,'production module loading has zero store calls')
- function f.qualify()local result=f.Economy.qualifyActivity(p,"TEST_DRIVE",{complete=true,movingMilliseconds=30000,distance=300});check(result.status=="FOUND","activity qualification confirmed");return result end
+ function f.qualify()
+  local result=f.Economy.saveParkLap(p,{id=guid(9999),milliseconds=140000,bestLapMilliseconds=69000,proofVersion=2,completedLaps=2,completedCheckpoints=12,valid=true,rewardMultiplier=1,transaction={version=1,issuedAt=1791650000000}})
+  check(result.status=='SAVE_CONFIRMED','valid two-lap TIME ATTACK confirmed');return f.Economy.getProfile(p)
+ end
  function f.start()f.Economy.start();f.Shop.start();f.Records.startQuery();f.drain()end
  function f.invoke(name,action,...)f.now+=2;return f.remotes[name].OnServerInvoke(p,action,...)end
  function f.runRound(finish)
@@ -137,7 +140,7 @@ local function fixture(userId,backend)
 end
 local f=fixture();f.start()
 check(f.account()==nil and f.player.attrs.KDMWalletCash==0 and f.player.attrs.KDMEconomyState=='GUEST','join/read alone cannot mint starter cash')
-local qualification=f.Economy.qualifyActivity(f.player,'TEST_DRIVE',{complete=true,movingMilliseconds=30000,distance=300})
+local qualification=f.qualify()
 check(qualification.status=='FOUND','server activity creates qualified account')
 print('R3_TRACE fresh',f.account()~=nil,f.player.attrs.KDMEconomyState,f.player.attrs.KDMWalletCash)
 check(f.account().wallet.cash==5000 and f.player.attrs.KDMWalletCash==5000,'new general account confirmed starter cash')
@@ -166,7 +169,7 @@ f=fixture();f.start();f.qualify();f.runRound(false);f.player.attrs.RaceState='DN
 print('R3_TRACE fresh',f.account()~=nil,f.player.attrs.KDMEconomyState,f.player.attrs.KDMWalletCash)
 check(f.account().wallet.cash==5000 and f.player.attrs.RaceMoneyState=='NONE','DNF/leave earns no reward')
 f=fixture();f.race();f.runRound();f.drain()
-check(f.account().wallet.cash==12500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','first finish initializes absent reserved account safely')
+check(f.account().wallet.cash==7500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','first official finish initializes without starter grant')
 f=fixture();f.race();f.backend.concurrent=function(b,key)b.values[key]=S.clone(old)end
 f.runRound();f.drain();check(f.account().wallet.cash==8305 and f.account().shopInventory.counts.Nitro==2,'concurrent initialization never overwrites existing K$805')
 f=fixture();f.backend.readFail=true;f.start()
@@ -176,7 +179,7 @@ f=fixture();f.start();f.qualify();f.backend.writeFail=true;f.runRound();f.drain(
 print('R3_TRACE fresh',f.account()~=nil,f.player.attrs.KDMEconomyState,f.player.attrs.KDMWalletCash)
 check(f.account().wallet.cash==5000 and f.player.attrs.RaceMoneyState=='SAVE_PENDING' and f.player.attrs.KDMWalletCash==5000,'all write attempts fail closed')
 f=fixture();f.race();f.backend.writeFail=true;f.runRound();f.step();check(f.player.attrs.RaceMoneyState=='SAVE_PENDING','unknown absent initialization retries')
-f.backend.writeFail=false;f.drain();check(f.account().wallet.cash==12500,'initialization write retry recovers')
+f.backend.writeFail=false;f.drain();check(f.account().wallet.cash==7500,'initialization write retry recovers without starter grant')
 f=fixture();f.start();f.qualify();f.backend.ackLost=true;f.runRound();f.drain()
 check(f.account().wallet.cash==12500 and f.player.attrs.RaceMoneyState=='SAVE_CONFIRMED','ACK loss reconciles by durable receipt')
 f=fixture();f.start();f.qualify();f.backend.writes=0;f.backend.failReadAfterWrite=true;f.runRound();f.step()

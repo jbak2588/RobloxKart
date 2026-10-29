@@ -61,6 +61,16 @@ for _,size in {V2.new(750,332),V2.new(844,390),V2.new(932,430),V2.new(390,703)}d
  player:SetAttribute('ParkTrialPhase','INVALID');view:update(true,camera)
  check(panel.Visible and panel.Reward.Text:find('K$0',1,true)~=nil,'invalid lap never presents reward')
 end
+safeSize=V2.new(844,390);camera.ViewportSize=safeSize
+player:SetAttribute('ParkOvertakeActive',true);player:SetAttribute('ParkTrialPhase','COUNTDOWN');player:SetAttribute('ParkTrialGoAt',now+4)
+view:update(true,camera)
+local instructions=pg.KDMRookieParkTopHud.OvertakeInstructions
+check(instructions.Visible and instructions.Parent==pg.KDMRookieParkTopHud,'instructions use top HUD independently from CoreUI-inset driving canvas')
+check(instructions.Position.Y.Offset>=0 and instructions.Position.Y.Offset<=12 and instructions.Size.Y.Offset<=88,'compact instructions stay at top edge')
+player:SetAttribute('ParkTrialGoAt',now+3);view:update(true,camera)
+check(not instructions.Visible,'instructions disappear exactly at three seconds')
+player:SetAttribute('ParkTrialGoAt',now+2);view:update(true,camera)
+check(not instructions.Visible,'last two seconds remain clear')
 view:update(false,camera);check(not gui.Enabled,'leave clears trial HUD')
 view:destroy();check(gui.Parent==nil,'destroy cleanup')
 print('PASS '..count..' production Park result/countdown/target/reward presentation checks')

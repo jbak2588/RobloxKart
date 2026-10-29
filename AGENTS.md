@@ -2,6 +2,21 @@
 
 Read this before editing the project.
 
+## TIME ATTACK reward / top-only Overtake instructions — owner 2026-10-30
+
+All visible TEST DRIVE terminology is retired in favor of TIME ATTACK. Remove
+30-second/300-stud activity qualification and its separate starterK$5,000 grant.
+Owner confirms a new user's first valid2-lap TIME ATTACK pays totalK$5,000 only.
+Default new account cash0; preserve every existing balance, purchase, receipt,
+Replay multiplier and the separate official first-finish bonus. Do not debit or
+reset historical accounts. Incomplete/invalid runs and duplicate ACKs grant no
+extra cash. Legacy internal IDs may remain for compatibility but grant no activity
+reward. This policy supersedes all historical starter/test-drive descriptions.
+Overtake instructions stay in the top HUD band on mobile and hide at countdown3.
+Owner authorizes validation, scoped commit/push and exact production Publish to
+Universe10768420544 / Place127925465904803, without server restart.
+
+
 ## Park items / rankings kiosk / Time Attack — owner approval 2026-10-29
 
 Owner restores all six Park items in Overtake with identical practice charges,

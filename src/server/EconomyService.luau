@@ -129,9 +129,7 @@ function Service.getProfile(player) return read(player) end
 -- Called only by server-owned driving/official-finish observers. Never exposed as a remote action.
 local qualifying={}
 function Service.qualifyActivity(player,kind,proof)
- if kind~='TEST_DRIVE' and kind~='RACE_FINISH' then return {status='INVALID_ACTIVITY'} end
- if kind=='TEST_DRIVE' and (type(proof)~='table' or proof.complete~=true or not S.integer(proof.movingMilliseconds)
-  or proof.movingMilliseconds<30000 or type(proof.distance)~='number' or proof.distance<300 or proof.distance~=proof.distance or proof.distance==math.huge) then return {status='INVALID_ACTIVITY'} end
+ if kind~='RACE_FINISH' then return {status='INVALID_ACTIVITY'} end
  if kind=='RACE_FINISH' then
   local records=require(script.Parent.RaceRecordOperations)
   if not records.valid(S,proof) or proof.userId~=player.UserId or not proof.race or not proof.race.eligible then return {status='INVALID_ACTIVITY'} end
@@ -153,16 +151,14 @@ function Service.qualifyActivity(player,kind,proof)
    -- Existing users keep their existing starter cash; no second grant.
    if not previous and schema.supportsKart(selected) then nextValue.selection.kartId=selected end
    if not nextValue.activity then
-    nextValue.activity={version=1,kind=kind,qualifiedAt=qualifiedAt,starterGranted=previous==nil,
-     movingMilliseconds=if kind=='TEST_DRIVE' then proof.movingMilliseconds else 0,
-     distance=if kind=='TEST_DRIVE' then math.floor(proof.distance) else 0}
+    nextValue.activity={version=1,kind=kind,qualifiedAt=qualifiedAt,starterGranted=false,
+     movingMilliseconds=0,distance=0}
    end
    return nextValue,'ACTIVITY_QUALIFIED'
   end))
   local saved=a.read(key)
   if saved.status~='FOUND' or not schema.validate(saved.value,key) or saved.value.deleted or not saved.value.activity then return {status='SAVE_UNCONFIRMED'} end
   Service.publishProfile(player,saved.value)
-  if before.status=='ABSENT' then player:SetAttribute('KDMStarterRewardConfirmed',true)end
   return publicProfile(saved.value)
  end)
  qualifying[player]=nil

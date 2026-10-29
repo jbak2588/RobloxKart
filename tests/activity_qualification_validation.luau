@@ -26,48 +26,28 @@ check(writes==0 and a.read('u:1').status=='ABSENT' and p:GetAttribute('KDMWallet
 check(Economy.qualifyActivity(p,'TEST_DRIVE',{complete=true,movingMilliseconds=29000,distance=1000}).status=='INVALID_ACTIVITY','under-time proof rejected')
 check(Economy.qualifyActivity(p,'TEST_DRIVE',{complete=true,movingMilliseconds=60000,distance=200}).status=='INVALID_ACTIVITY','under-distance rejected')
 check(writes==0,'invalid activity never writes')
-local proof={complete=true,movingMilliseconds=30001,distance=500}
-check(Economy.qualifyActivity(p,'TEST_DRIVE',proof).status=='FOUND','completed drive confirmed by read-back')
-local saved=a.read('u:1').value
-check(saved.wallet.cash==5000 and saved.activity.starterGranted and saved.activity.kind=='TEST_DRIVE','starter money and qualification saved together')
-check(saved.selection.kartId=='Kart09' and schema.validate(saved,'u:1'),'temporary kart preserved in valid first profile')
-local after=writes
-check(Economy.qualifyActivity(p,'TEST_DRIVE',proof).cash==5000 and writes==after,'duplicate completion has no write or extra grant')
-check(p:GetAttribute('KDMStarterRewardConfirmed')==true,'only confirmed starter grant publishes success')
-local old=player(2);local oldProfile=schema.default(2);oldProfile.wallet.cash=22640;oldProfile.onboarding.welcomeSeen=true
-oldProfile.cosmetics.ownedPartIds.KDM_V2_WING=true
-commit(a.beginUpdate('u:2',function()return oldProfile end))
-check(Economy.qualifyActivity(old,'TEST_DRIVE',proof).cash==22640,'existing cash never regranted')
-check(a.read('u:2').value.cosmetics.ownedPartIds.KDM_V2_WING and not a.read('u:2').value.activity.starterGranted,'existing purchase preserved and tracked as no extra grant')
-local read=a.read;a.read=function()return {status='ERROR'}end
-local bad=player(3)
-check(Economy.getProfile(bad).status=='ERROR' and Economy.qualifyActivity(bad,'TEST_DRIVE',proof).status=='ERROR','failed reads do not become absent')
-check(writes==after+1,'failed reads never write')
-a.read=read
--- Use the existing real server-verified operation fixture for the direct-to-race path.
+local proof={complete=true,movingMilliseconds=60000,distance=1000}
+check(Economy.qualifyActivity(p,'TEST_DRIVE',proof).status=='INVALID_ACTIVITY'and writes==0,'retired completed drive proof cannot grant or initialize')
+check(schema.default(1).wallet.cash==0,'new accounts have no implicit starter cash')
+local lap={id='12345678-1234-1234-1234-000000000001',userId=1,milliseconds=140000,bestLapMilliseconds=69000,proofVersion=2,completedLaps=2,completedCheckpoints=12,valid=true,rewardMultiplier=1}
+local saved,status=modules.EconomyOperations.parkLap(S,schema,lap)(nil)
+check(status=='PARK_LAP_CREDITED'and saved.wallet.cash==5000,'first verified two-lap finish pays total5000')
+local duplicate,why=modules.EconomyOperations.parkLap(S,schema,lap)(saved)
+check(why=='REPLAY'and duplicate.wallet.cash==5000,'duplicate ACK cannot mint another finish reward')
+local invalid=S.clone(lap);invalid.valid=false
+check(modules.EconomyOperations.parkLap(S,schema,invalid)(nil)==nil,'invalid finish does not create account')
+local old=schema.default(2);old.wallet.cash=22640;old.cosmetics.ownedPartIds.KDM_V2_WING=true
+lap.userId=2
+local paid=modules.EconomyOperations.parkLap(S,schema,lap)(old)
+check(paid.wallet.cash==27640 and paid.cosmetics.ownedPartIds.KDM_V2_WING,'old cash and purchases preserved plus exact finish reward')
+local Q=load('src/server/TestDriveQualification.luau');local q=Q.new()
+check(not Q.step(q,60,1000,0,true)and Q.proof(q)==nil,'legacy compatibility module cannot qualify')
 local source=fs.readFile('tests/r8_a4_economy_validation.luau')
-local operation=assert(source:match('(local function guid.-)local original='))
-operation=operation:gsub("check%([^\n]+\n",'')
+local operation=assert(source:match('(local function guid.-)local original=')):gsub("check%([^\n]+\n",'')
 local make=luau.load(operation..'\nreturn op',{environment={S=S}})()
-local raceP=player(1);local op=make(8001,1,1,1)
--- Separate user 1 context with an empty store demonstrates the race initializer.
-local Economy2=load('src/server/EconomyService.luau',env)
-check(Economy2.qualifyActivity(raceP,'RACE_FINISH',op).cash==5000,'direct valid race creates starter account')
-local raceBad=player(4);local invalid=S.clone(op);invalid.userId=4
-check(Economy2.qualifyActivity(raceBad,'RACE_FINISH',invalid).status=='INVALID_ACTIVITY','wrong-user/invalid race rejected')
-local Q=load('src/server/TestDriveQualification.luau')
-for _,dt in {1/30,1/60}do
- local q=Q.new();local x=0
- for _=1,math.ceil(40/dt)do Q.step(q,dt,x,0,true);x+=20*dt end
- check(q.complete and q.seconds>=30 and q.distance>=300,'real movement qualifies at both cadences')
-end
-local q=Q.new();for _=1,4000 do Q.step(q,.05,0,0,true)end
-check(not q.complete and q.seconds==0,'idle sitting never qualifies')
-q=Q.new();for n=1,1000 do Q.step(q,.05,n*1000,0,true)end
-check(not q.complete and q.distance==0,'teleport distance ignored')
-q=Q.new();for n=1,1000 do Q.step(q,.05,n,0,false)end
-check(not q.complete,'invalid recovery/outside samples ignored')
-print('PASS '..checks..' guest, qualification, starter grant, failure and movement checks')
+check(Economy.qualifyActivity(p,'RACE_FINISH',make(8001,1,1,1)).cash==0,'official account initialization alone grants no starter money')
+check(a.read('u:1').value.activity.starterGranted==false,'official initialization records no starter grant')
+print('PASS '..checks..' finish-only account and retired activity reward checks')
 local Store=load('src/server/ProgressionMockStore.luau')
 local Core=load('src/server/PlayerProgressionService.luau')
 local Ops=load('src/server/ProgressionOperations.luau')
@@ -78,5 +58,5 @@ check(store.stats().commits==0 and store.snapshot()['u:1']==nil,'guest kart sele
 store.commit(store.beginUpdate('u:1',function()return S.clone(saved),'QUALIFIED' end));guest:SetAttribute('KDMAccountQualified',true)
 selection.select(guest,'Kart09');selection.flush(guest)
 check(store.snapshot()['u:1'].selection.kartId=='Kart09','selection can persist after activity account exists')
-check(store.snapshot()['u:1'].wallet.cash==5000 and store.snapshot()['u:1'].activity.kind=='TEST_DRIVE','post-qualification selection preserves wallet and activity')
+check(store.snapshot()['u:1'].wallet.cash==5000 and store.snapshot()['u:1'].activity==nil,'post-qualification selection preserves wallet and activity')
 print('PASS '..checks..' total activity-gated account checks')

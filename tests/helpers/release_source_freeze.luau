@@ -11,6 +11,7 @@ function Freeze.accepts(manifest,path,source)
  if type(source)~='string'then return false,'missing/unprotected source'end
  source=Freeze.canonical(source)
  local hash=serde.hash('sha256',source)
+ if manifest.timeAttackRewardPatches and manifest.timeAttackRewardPatches[path]==hash then return true,'TIME_ATTACK_REWARD'end
  if manifest.parkItemsKioskPatches and manifest.parkItemsKioskPatches[path]==hash then return true,'PARK_ITEMS_KIOSK'end
  if manifest.parkOvertakePatches and manifest.parkOvertakePatches[path]==hash then return true,'PARK_OVERTAKE'end
  if not entry then return false,'missing/unprotected source'end
@@ -56,6 +57,7 @@ function Freeze.collect(manifest,read)
  local paths=table.clone(manifest.files)
  for path in manifest.parkOvertakePatches or {}do paths[path]=true end
  for path in manifest.parkItemsKioskPatches or {}do paths[path]=true end
+ for path in manifest.timeAttackRewardPatches or {}do paths[path]=true end
  for path in paths do
   local loaded,source=pcall(read,path)
   local ok,reason=false,'missing/unreadable source'

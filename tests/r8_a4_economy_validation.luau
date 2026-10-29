@@ -85,7 +85,7 @@ check(Config.GamePassId==0 and not Config.GamePassEnabled,'unverified Robux disa
 -- Repeated real callbacks, followed by a retained-receipt capacity fixture. No receipt eviction.
 local repeated=schema.default(1);repeated.onboarding.firstFinishClaimed=true;repeated.onboarding.finishEvent.claimed=true
 for n=1000,1249 do repeated=Records.reduce(S,schema,op(n,1,0,1,60000))(repeated) end
-check(repeated.wallet.cash==256500 and repeated.wallet.lifetimeEarned==251500,'250 repeated race credits')
+check(repeated.wallet.cash==251500 and repeated.wallet.lifetimeEarned==251500,'250 repeated race credits')
 local receipt=S.clone(repeated.receipts[Records.receiptKey(op(1249,1,0,1))])
 for n=1, 10000 - S.count(repeated.receipts) do repeated.receipts['race-record:'..guid(20000+n)]=S.clone(receipt) end
 check(S.count(repeated.receipts)==10000 and schema.validate(repeated,'u:1'),'10000 permanent receipts within capacity')
@@ -103,17 +103,17 @@ local debut=op(900,1,0,1)
 local firstPaid=Records.reduce(S,schema,debut)(newcomer)
 local receipt=firstPaid.receipts[Records.receiptKey(debut)]
 check(receipt.money.firstFinish==5000 and receipt.money.total==7500,'first solo normal reward plus bonus')
-check(firstPaid.wallet.cash==12500 and firstPaid.onboarding.firstFinishClaimed,'first bonus durable wallet latch')
+check(firstPaid.wallet.cash==7500 and firstPaid.onboarding.firstFinishClaimed,'first bonus durable wallet latch')
 check(schema.validate(firstPaid,S.userKey(1)),'new bonus receipt schema valid')
 check(S.canonical(Records.reduce(S,schema,debut)(firstPaid))==S.canonical(firstPaid),'lost ACK replay never awards twice')
 local again=op(901,1,1,1,65000)
 local secondPaid=Records.reduce(S,schema,again)(firstPaid)
 check(secondPaid.receipts[Records.receiptKey(again)].money.firstFinish==0,'new round no second first bonus')
 local botDebut=Records.reduce(S,schema,op(902,1,1,1))(newcomer)
-check(botDebut.wallet.cash==13000,'bot finish earns normal and first bonus')
+check(botDebut.wallet.cash==8000,'bot finish earns normal and first bonus')
 local badFinish=op(903,1,0,1);badFinish.race.eligible=false;badFinish.race.reason='INVALID_ROUTE_OR_TIMER_RESET'
 local rejected=Records.reduce(S,schema,badFinish)(newcomer)
-check(rejected.wallet.cash==5000 and not rejected.onboarding.firstFinishClaimed,'invalid finish retains eligibility without money')
+check(rejected.wallet.cash==0 and not rejected.onboarding.firstFinishClaimed,'invalid finish retains eligibility without money')
 local overflow=S.clone(newcomer);overflow.wallet.cash=schema.maxCash-100
 check(select(2,Records.reduce(S,schema,debut)(overflow))=='WALLET_CAPACITY','bonus capacity failure awards nothing')
 local legacy=S.clone(firstPaid);legacy.onboarding=nil

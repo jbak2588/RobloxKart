@@ -23,7 +23,7 @@ in this inspection (only QA KDM_New_Hub was connected), so none is relabeled
 | Purchase authority | Server PREPARE ticket, fixed server catalog price, trusted transaction/receipt identity; replay confirms prior receipt, no second debit; insufficient/read-only/rate/identity failures reject | src/server/ShopService.luau / ShopOperations.luau `0fff186` |
 | Legacy Wing/pass | Legacy reducers/data retained; public EconomyService BUY_WING/EQUIP_WING/PASS endpoints unavailable; GamePassEnabled=false, GamePassId0. Dormant WingPrice25000 is not current product price | EconomyService/EconomyConfig/ShopService; `0fff186` |
 | Paid item use | PaidItemUseEnabled=false. Stock can be bought/retained; current public auto-consumption/refill is paused. Old stored preference/stock must not be deleted | KDMShopCatalog / ShopService / ShopOperations `0fff186` |
-| New account | Absent account presents GUEST cash0. Authorized server TEST_DRIVE evidence≥30s moving and≥300 studs, or valid eligible official finish, qualifies activity and creates schema default cash5000. Existing profiles retain balances; joining/reading alone must not mint cash | EconomyService.qualifyActivity / KDMProgressionSchema.default; `0fff186` release snapshot |
+| New account (owner supersedes 2026-10-30) | GUEST/default cash0. No 30s/300-stud activity reward or separate starter grant. First valid TIME ATTACK 2-lap finish credits only the existing K$5,000 completion reward; Replay scaling remains. Existing balances/purchases and separate official first-finish bonus remain intact | EconomyService / KDMProgressionSchema.default / EconomyOperations.parkLap; owner explicit approval 2026-10-30 |
 | Persistence | KDM_PlayerProgress_v1; explicit server role/ID policy; public production storage/reward/shop flags true. Studio uses memory adapter; production and QA data are not treated as interchangeable | EconomyConfig / EconomyPolicy / ProgressionDataStoreAdapter |
 | Finish base | Owner-confirmed contract: eligible FINISHED≥2 humans rank prizes3500/2500/2000/1500;1 human+bot1500; solo1000. **Ineligible finish pays0, including base/PB/first event. OWNER_APPROVED_LOCAL R3 adds only the base eligibility gate; HEAD still contains the old defect.** | RaceRecordOperations `d5e3931`; owner confirmation2026-10-28 |
 | PB / first finish | Best full race1000, best lap500; ordinary base+PB capped5000. Stable first-finish event KDM_FINISH_EVENT_20261016 grants5000 once in addition; its event receipt, not only legacy firstFinishClaimed, is authoritative | RaceRecordOperations / KDMProgressionSchema |
@@ -119,3 +119,24 @@ Count rivals behind at final finish only. Valid finish base K$5,000 plus
 K$5,000 each, all7 add K$10,000; max K$50,000. No Replay multiplier and no
 time-attack PB writes. Other economy and race contracts unchanged. See
 `park_overtake_20261029.md` for proof, receipt and validation details.
+
+## 2026-10-30 owner policy replacement
+
+TIME ATTACK is the current product term. Retire TEST DRIVE wording and duration/
+distance qualification; no30-second/300-stud grant or separate initialK$5,000.
+New account defaults to0; valid TIME ATTACK2-lap completion alone paysK$5,000
+on first run, using the existing immutable Park receipt. Existing Replay reward
+scaling, official first-finish bonus, Overtake prizes, purchases and saved balances
+remain unchanged. No historical account debit or reset. Failed/invalid/incomplete
+runs and duplicate ACKs grant nothing. Historical release/audit documents record
+the old behavior only; this section supersedes it as the active policy.
+
+Mobile Overtake instructions use the separate top HUD band and disappear when
+countdown reaches3, leaving3/2/1/GO unobstructed.
+
+Validation2026-10-30:252 scripts,232 PASS and the same20 historical failures;
+no new failure.757 exact source integrity/mutation checks PASS, Rojo build PASS.
+After the final top-Y clamp,303 Park HUD checks and757 integrity checks rerun PASS.
+Studio startup guest wallet0; no production account writes.232 Edit sources match
+local canonical SHA256. Full native Place snapshot saved before publishing; see
+`time_attack_policy_results_20261030.json`. Mobile full-race acceptance remains pending.

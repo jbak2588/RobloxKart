@@ -37,7 +37,7 @@ end
 -- Execute the real stop function with a yielding heartbeat. This models late
 -- SeatWeld updates and concurrent lifecycle cancellation, not a duplicate exit implementation.
 local source=fs.readFile('src/server/LobbyTestDriveService.luau')
-source=source:gsub('return Service%s*$','Service.inject=function(player,record) record.qualification=Qualification.new();records[player]=record end; return Service')
+source=source:gsub('return Service%s*$','Service.inject=function(player,record) records[player]=record end; return Service')
 local shared={WaitForChild=function(_,name)return {Name=name}end}
 local tick,service,scenario=0,nil,nil
 local modules={LobbyDrivePresence=luau.load(fs.readFile('src/server/LobbyDrivePresence.luau'))(),TestDriveQualification=luau.load(fs.readFile('src/server/TestDriveQualification.luau'))(),LobbyPracticeCombat=require('./helpers/lobby_practice_stub'),LobbyDrivePolicy=p,LobbyDriveGeometry={create=function()return geometry end},KartConfig={},KartCatalog={},KartVisualFactory={},LobbyDriftSession=training,KDMStraightSpeedResolver={}}

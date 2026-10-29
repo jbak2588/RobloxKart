@@ -134,7 +134,7 @@ for _,mutation in {function(v)v.completedCheckpoints=5 end,function(v)v.valid=fa
 end
 local mismatch=op(1,s.milliseconds+1);check(ops.parkLap(S,schema,mismatch)(p)==nil,'receipt identity mismatch rejected')
 local recreated=ops.parkLap(S,schema,op(5))(nil)
-check(schema.validate(recreated,S.userKey(123))and recreated.wallet.cash==10000,'valid first lap may initialize guest, separate starter cash retained')
+check(schema.validate(recreated,S.userKey(123))and recreated.wallet.cash==5000,'verified finish grants only its reward, no starter cash')
 local corrupt=S.clone(p);corrupt.parkTimeTrial.bestMilliseconds=-1
 check(not schema.validate(corrupt,S.userKey(123)),'corrupt PB denied')
 local two=op(6,160000);two.proofVersion=2;two.completedLaps=2;two.completedCheckpoints=12;two.bestLapMilliseconds=79000;two.rewardMultiplier=2

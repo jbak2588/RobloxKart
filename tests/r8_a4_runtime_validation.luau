@@ -13,14 +13,14 @@ local k=entry.geometryId]])
 source..=[[
 b,p,r,drain=fixture();b.callbackReplay=true;b.ackLost=true;r.submit(p,operation());drain()
 print('R3_TRACE ACK',b.value.wallet.cash,b.value.wallet.lifetimeEarned,b.value.onboarding.finishEvent.claimed)
-check(b.value.wallet.cash==12500 and b.value.wallet.lifetimeEarned==7500,'lost ACK credits exactly once')
+check(b.value.wallet.cash==7500 and b.value.wallet.lifetimeEarned==7500,'lost ACK credits exactly once')
 check(p.attrs.RaceMoneyState=='SAVE_CONFIRMED' and p.attrs.RaceMoney_total==7500,'payment only after uncached receipt')
-r.submit(p,operation());drain();check(b.value.wallet.cash==12500,'server retry exactly once')
+r.submit(p,operation());drain();check(b.value.wallet.cash==7500,'server retry exactly once')
 b,p,r,drain=fixture();b.failReadAfterWrite=true;r.submit(p,operation());table.remove(b.spawn,1)()
 check(p.attrs.RaceMoneyState=='SAVE_PENDING' and not p.attrs.RaceMoney_total,'unconfirmed money hidden')
-b.failReadAfterWrite=false;drain();check(p.attrs.RaceMoneyState=='SAVE_CONFIRMED' and b.value.wallet.cash==12500,'retry confirms without duplicate')
+b.failReadAfterWrite=false;drain();check(p.attrs.RaceMoneyState=='SAVE_CONFIRMED' and b.value.wallet.cash==7500,'retry confirms without duplicate')
 b,p,r,drain=fixture();b.writeFail=true;r.submit(p,operation());drain()
-check(b.value.wallet.cash==5000 and p.attrs.RaceMoneyState~='SAVE_CONFIRMED','write failure zero success claim')
+check(b.value.wallet.cash==0 and p.attrs.RaceMoneyState~='SAVE_CONFIRMED','write failure zero success claim')
 ]]
 luau.load(source,{debugName='A4-money-runtime'})()
 -- Actual record service + finalized timer path; existing record Canary unchanged.

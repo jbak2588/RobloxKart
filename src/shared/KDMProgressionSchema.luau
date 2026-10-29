@@ -246,7 +246,7 @@ function Schema.new(catalog, options)
  function api.default(userId)
   Schema.userKey(userId)
   return {schemaVersion=1,userId=userId,selection={kartId=catalog.DefaultId,revision=0,lastOpId=""},
-   onboarding={welcomeSeen=false,firstFinishClaimed=false,finishEvent=Schema.finishEvent(nil)},wallet={cash=5000,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
+   onboarding={welcomeSeen=false,firstFinishClaimed=false,finishEvent=Schema.finishEvent(nil)},wallet={cash=0,ledgerRevision=0},cosmetics={ownedPartIds={},equippedPartIdsBySlot={}},
    records={scoped={}},daily={claimBuckets={}},receipts={},pendingIndex={},deleted=false}
  end
  function api.supportsKart(id) return type(id) == "string" and supported[id] == true end
