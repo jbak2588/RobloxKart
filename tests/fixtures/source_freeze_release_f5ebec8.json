@@ -738,7 +738,7 @@
     "src/client/HubUiController.luau": "346d5878e5b6888c4a7626d5f1af27c3e751964e9360938ea5d575ff6a2430c4",
     "src/client/LobbyPracticeView.luau": "8b42ff3c700a6f44e2c3f53a82d35a88e3c3e1bf88cc665c61c5fdda10ef6dee",
     "src/client/ParkOvertakeBotsView.luau": "dfa45d60b1a8fb49b7dc780d9a936fd6ad349cd5068e5cf3676c3d1359b07131",
-    "src/server/HubLeaderboardBoardBuilder.luau": "a89ef4662f055dc83491937317c65ecdb63fad973b020ecd573dc1f856d03283",
+    "src/server/HubLeaderboardBoardBuilder.luau": "f1b1022fb38b872ba3c07a0bbcd83daf67318f252e16582e7a0ad38c5f46df06",
     "src/server/HubParkRookieLoopBuilder.luau": "f1cdad23649de8e23f29b6f58a4e596dbd90e4a0d4688c40a3e838381e2355f6",
     "src/server/LobbyFrontDriveZoneBuilder.luau": "c913a709236825b177aa18af8ff5de08387774d90e6bcf761f175614b7b33e0d",
     "src/server/LobbyPracticeCombat.luau": "b7a5a36a85a3ea9305bf81bf62db0271fe457350e5967172676a6334589e3494",

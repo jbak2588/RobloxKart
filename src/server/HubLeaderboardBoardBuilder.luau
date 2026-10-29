@@ -56,9 +56,11 @@ function Builder.build(hub)
   local anchor=localPart(d.name..'Open',Vector3.new(1,1,1),Vector3.new(0,3-d.y,-5),cyan);anchor.Transparency=1
   if kioskTemplate then
    local kiosk=kioskTemplate:Clone();kiosk.Name=d.name..'Kiosk'
+   local promptMarker=kiosk:FindFirstChild('Prompt')
+   if promptMarker then promptMarker:Destroy() end
    for _,o in kiosk:GetDescendants()do
     if o:IsA('BasePart')then o.Anchored=true;o.CanCollide=false;o.CanTouch=false;o.CanQuery=false;o.CastShadow=false end
-    if o:IsA('BillboardGui')then o.Enabled=false end
+    if o:IsA('BillboardGui')then o:Destroy() end
    end
    local stand=kiosk:FindFirstChild('Kiosk_Frame');if stand then stand.Name=d.name..'KioskStand'end
    local screen=kiosk:FindFirstChild('Kiosk_Glowscreen');if screen then screen.Name=d.name..'KioskScreen'end
