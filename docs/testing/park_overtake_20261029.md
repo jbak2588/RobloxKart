@@ -108,3 +108,19 @@ sources. The native binary is retained untouched; the Lune read-only inspector
 warned about its newer Terrain.VoxelGridAssetContentMap serialization property.
 Publication uses the original Studio scene rather than a rebuilt/round-tripped
 copy, preserving imported mesh and terrain properties.
+
+## Official publication receipt
+
+- Implementation commit `67baa80f20fbc9f23d4aa1c22c65c7bf64d73788` pushed to
+  `origin/prototype/kart-physics`; local and remote matched before Publish.
+- Original native Studio scene published to Universe `10768420544` /
+  Place `127925465904803`. Creator Dashboard Version History confirms **PV1252**
+  with Show published only enabled and a Published Version checkmark on2026-10-29.
+  Dashboard displays the version's local update time as October29 at7:41PM;
+  this timestamp is not asserted as the later publication-click time.
+- Evidence: `C:/Users/OWNER/AppData/Local/Temp/KDM-overtake-published-v1252-20261029.png`.
+- No access-setting changes, server restart, main changes or production account
+  test writes. Existing servers were not forced to reload. Post-publication
+  real-device manual driving and a live wallet transaction remain unverified.
+- Rollback checkpoint remains previously published PV1244; wallet receipts and
+  account balances must be preserved. Restore requires normal Studio Publish.

@@ -43,8 +43,17 @@
     "place": 127925465904803
   },
   "publication": {
-    "status": "PENDING",
-    "previousPublishedVersion": 1244
+    "status": "PUBLISHED_VERIFIED",
+    "version": 1252,
+    "verifiedDate": "2026-10-29",
+    "codeCommit": "67baa80f20fbc9f23d4aa1c22c65c7bf64d73788",
+    "universe": 10768420544,
+    "place": 127925465904803,
+    "previousPublishedVersion": 1244,
+    "evidence": "Creator Dashboard Version History: Show published only checked, PV1252 Published Version checkmark",
+    "screenshot": "C:/Users/OWNER/AppData/Local/Temp/KDM-overtake-published-v1252-20261029.png",
+    "accessChanged": false,
+    "serverRestart": false
   },
   "backup": {
     "path": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-before-overtake-publish-20261029.rbxl",
