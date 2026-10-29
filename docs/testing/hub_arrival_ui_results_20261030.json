@@ -71,9 +71,19 @@
   },
   "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-hub-ui-20261030-5ga6t_6f",
   "publication": {
-    "status": "VALIDATED_PENDING_PUBLISH",
+    "status": "PUBLISHED_VERIFIED",
     "universe": 10768420544,
-    "place": 127925465904803
+    "place": 127925465904803,
+    "version": 1268,
+    "codeCommit": "116dc3ace57b156011728ecb9700ec973afbde8e",
+    "verifiedDate": "2026-10-30",
+    "evidence": "Native Studio Publish success v1268 and owner Creator Dashboard Show published only",
+    "screenshot": "C:/Users/OWNER/AppData/Local/Temp/KDM-hub-ui-published-PV1268-20261030.png",
+    "serverRestart": false
   },
-  "limits": "Studio iPhone simulator and controlled countdown capture; published real-device visual acceptance pending."
+  "limits": "Studio iPhone simulator and controlled countdown capture; published real-device visual acceptance pending.",
+  "postPublishChangedSourceParity": {
+    "sources": 5,
+    "mismatches": 0
+  }
 }

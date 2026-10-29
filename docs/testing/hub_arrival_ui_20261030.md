@@ -65,3 +65,13 @@ match canonical LF SHA256; zero mismatches. Three Workspace release flags remain
 true. The binary Terrain content-map property is unknown to Lune; the native
 backup is preserved byte-for-byte and is not reserialized or used as a rebuild.
 Publication uses the original Studio scene. No server restart or QA access change.
+
+## Verified publication
+
+Official Place published as **PV1268**, code commit116dc3a. Native Studio success
+explicitly identified v1268, and the owner Creator Dashboard's Show published only
+list confirmed1268 above the previous published1265. Saved1266/1267 are distinct.
+Universe10768420544 / Place127925465904803; no server restart or QA Publish.
+Evidence: C:/Users/OWNER/AppData/Local/Temp/KDM-hub-ui-published-PV1268-20261030.png.
+Post-Publish real-device visual acceptance remains pending.
+Post-Publish comparison: all five changed runtime sources still exactly match local.
