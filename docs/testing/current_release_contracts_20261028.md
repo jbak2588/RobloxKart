@@ -156,3 +156,12 @@ above RACE NOW, and text-fitted top-only instructions hidden at countdown1.
 This supersedes the preceding countdown3 presentation contract only. All reward,
 record, item, physics, manual ownership and historical-account policies remain.
 See [validation](hub_arrival_ui_20261030.md).
+
+## Multiplayer human-first fallback override - 2026-10-30
+
+Owner confirms human-only records first, with exact1H+1B records filling only
+missing Top5 users, clearly marked [1H+1B]. Keep MULTI TOTAL_R2 scopes human-only;
+BOT TOTAL_R2 scopes are separate derived data. Feature by Top5 coverage, then
+human rows, then distinct loaded users, with audited initial default Green Island.
+Scoped commit/push and exact official Publish are explicitly authorized.
+See [production audit and validation](multiplayer_fallback_20261030.md).

@@ -39,7 +39,7 @@ for path,hash in manifest.parkOvertakePatches do
 end
 for path,hash in manifest.parkItemsKioskPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or hash),'exact item/kiosk/terminology follow-up '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.multiplayerFallbackPatches[path]or manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or hash),'exact item/kiosk/terminology follow-up '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject follow-up mutation '..path)
  if not table.find(paths,path)then table.insert(paths,path)end
 end
@@ -47,6 +47,13 @@ for path,hash in manifest.timeAttackRewardPatches do
  local source=fs.readFile(path)
  check(serde.hash('sha256',freeze.canonical(source))==(manifest.hubArrivalUiPatches[path]or hash),'exact finish-only reward/top HUD change '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject reward/HUD mutation '..path)
+ if not table.find(paths,path)then table.insert(paths,path)end
+end
+for path,hash in manifest.multiplayerFallbackPatches do
+ local source=fs.readFile(path)
+ check(serde.hash('sha256',freeze.canonical(source))==hash,'exact multiplayer fallback approval '..path)
+ check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject fallback mutation '..path)
+ check(not freeze.accepts(manifest,path,source:sub(2)),'reject fallback deletion '..path)
  if not table.find(paths,path)then table.insert(paths,path)end
 end
 for path,hash in manifest.hubArrivalUiPatches do

@@ -2,6 +2,21 @@
 
 Read this before editing the project.
 
+## Multiplayer human-first Top5 fallback - owner 2026-10-30
+
+Owner confirms humans first; when fewer than5 human-only users exist on a track,
+fill only missing Top5 places from valid1H+1B users, deduplicating the humans and
+marking supplemental rows [1H+1B]. Keep MULTI TOTAL_R2 indexes human-only and use
+separate BOT TOTAL_R2 derived indexes. Full Finish totals only. Feature the track
+with fuller Top5 coverage, then more human rows, then more distinct loaded users;
+retain current selection on incomplete/stale caches. Production204-key read-only
+audit found Green4H/15B/17unique, Desert2H/3B/4unique, Base4H/3B/5unique. Green
+Island is the initial default, superseding the previous Desert-only priority.
+Preserve all account fields, rewards, physics, ownership and historical indexes.
+Owner explicitly authorizes commit/push and official Publish to exact
+Universe10768420544 / Place127925465904803, without server restart.
+See docs/testing/multiplayer_fallback_20261030.md for audit and runtime limits.
+
 ## Hub arrival / shortcuts / Overtake instructions - owner 2026-10-30
 
 Owner authorizes moving only Park Hub arrival toward the T crossbar (local

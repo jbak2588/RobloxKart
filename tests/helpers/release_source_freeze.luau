@@ -11,6 +11,7 @@ function Freeze.accepts(manifest,path,source)
  if type(source)~='string'then return false,'missing/unprotected source'end
  source=Freeze.canonical(source)
  local hash=serde.hash('sha256',source)
+ if manifest.multiplayerFallbackPatches and manifest.multiplayerFallbackPatches[path]==hash then return true,'MULTIPLAYER_FALLBACK'end
  if manifest.hubArrivalUiPatches and manifest.hubArrivalUiPatches[path]==hash then return true,'HUB_ARRIVAL_UI'end
  if manifest.timeAttackRewardPatches and manifest.timeAttackRewardPatches[path]==hash then return true,'TIME_ATTACK_REWARD'end
  if manifest.parkItemsKioskPatches and manifest.parkItemsKioskPatches[path]==hash then return true,'PARK_ITEMS_KIOSK'end
@@ -60,6 +61,7 @@ function Freeze.collect(manifest,read)
  for path in manifest.parkItemsKioskPatches or {}do paths[path]=true end
  for path in manifest.timeAttackRewardPatches or {}do paths[path]=true end
  for path in manifest.hubArrivalUiPatches or {}do paths[path]=true end
+ for path in manifest.multiplayerFallbackPatches or {}do paths[path]=true end
  for path in paths do
   local loaded,source=pcall(read,path)
   local ok,reason=false,'missing/unreadable source'

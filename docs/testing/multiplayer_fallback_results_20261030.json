@@ -1,0 +1,152 @@
+{
+  "baseline": "cadede48d9e7e7b4ef02240d50959db99935049d",
+  "audit": {
+    "accountsRead": 204,
+    "accountsWithRaceEntries": 22,
+    "counts": {
+      "Track01": {
+        "humanUsers": 4,
+        "botUsers": 15,
+        "uniqueCombinedUsers": 17,
+        "humanTop5Milliseconds": [
+          94929,
+          97146,
+          99363,
+          104279
+        ],
+        "botTop5Milliseconds": [
+          86563,
+          91429,
+          94529,
+          95629,
+          95896
+        ]
+      },
+      "Track01Desert": {
+        "humanUsers": 2,
+        "botUsers": 3,
+        "uniqueCombinedUsers": 4,
+        "humanTop5Milliseconds": [
+          91579,
+          96463
+        ],
+        "botTop5Milliseconds": [
+          84546,
+          93779,
+          95917
+        ]
+      },
+      "Track01Race": {
+        "humanUsers": 4,
+        "botUsers": 3,
+        "uniqueCombinedUsers": 5,
+        "humanTop5Milliseconds": [
+          148125,
+          148229,
+          149496,
+          177658
+        ],
+        "botTop5Milliseconds": [
+          124479,
+          144029,
+          145179
+        ]
+      },
+      "Track01Metro": {
+        "humanUsers": 0,
+        "botUsers": 1,
+        "uniqueCombinedUsers": 1,
+        "humanTop5Milliseconds": [],
+        "botTop5Milliseconds": [
+          130596
+        ]
+      },
+      "Track03": {
+        "humanUsers": 0,
+        "botUsers": 0,
+        "uniqueCombinedUsers": 0,
+        "humanTop5Milliseconds": [],
+        "botTop5Milliseconds": []
+      }
+    },
+    "readOnly": true,
+    "notes": "Current saved lastRace/bestRace evidence only. No account or derived-index writes. Distinct users, not finish positions."
+  },
+  "auditPreview": {
+    "rows": [
+      {
+        "milliseconds": 94929,
+        "rank": 1,
+        "source": "HUMAN"
+      },
+      {
+        "milliseconds": 97146,
+        "rank": 2,
+        "source": "HUMAN"
+      },
+      {
+        "milliseconds": 99363,
+        "rank": 3,
+        "source": "HUMAN"
+      },
+      {
+        "milliseconds": 104279,
+        "rank": 4,
+        "source": "HUMAN"
+      },
+      {
+        "milliseconds": 91429,
+        "rank": 5,
+        "source": "BOT_1H_1B"
+      }
+    ],
+    "selected": "MULTI_Track01"
+  },
+  "validation": {
+    "total": 253,
+    "pass": 233,
+    "fail": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ]
+  },
+  "focusedChecks": {
+    "fallback": 28,
+    "leaderboards": 64,
+    "integrity": 784
+  },
+  "sourceParity": {
+    "backupSHA256": "cc1e98ae7a4129543bfb854474840a517d0983d99f4638e389297a371a1e2399",
+    "flags": {
+      "HubParkV1Enabled": true,
+      "KDMControlsV1Preview": true,
+      "KDMGasPedalEnabled": true
+    },
+    "mismatches": {},
+    "sources": 232
+  },
+  "rawLogs": "C:/Users/Public/Documents/ESTsoft/CreatorTemp/kdm-hub-ui-20261030-j2g7j0_n",
+  "publication": {
+    "status": "VALIDATED_PENDING_PUBLISH",
+    "universe": 10768420544,
+    "place": 127925465904803
+  }
+}

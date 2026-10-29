@@ -1,6 +1,6 @@
 -- Public display/index contract; never changes rewards, race admission or physics.
 local P={StoreName='KDM_HubRanks_v1',RefreshSeconds=60,ReadInterval=12,PageSize=50,
- CashEnabled=true,MultiEnabled=true,Ruleset='KDM_R8A3_RULES_V1'}
+ CashEnabled=true,MultiEnabled=true,DefaultMulti='MULTI_Track01',Ruleset='KDM_R8A3_RULES_V1'}
 P.Tracks={
  {id='Park',name='ROOKIE RACING PARK',geometry='ROOKIE_LOOP_V1',laps=2},
  {id='Track01',name='GREEN ISLAND',geometry='PracticeFigure8V1',laps=3},
@@ -11,7 +11,7 @@ P.Tracks={
 }
 P.Boards={};P.Order={}
 for _,track in P.Tracks do
- for _,mode in (if track.id=='Park'then {'SOLO'}else {'SOLO','MULTI'})do
+ for _,mode in (if track.id=='Park'then {'SOLO'}else {'SOLO','MULTI','BOT'})do
   local id=mode..'_'..track.id
   P.Boards[id]={id=id,mode=mode,track=track.id,title=track.name,ascending=true,
    laps=track.laps,scope=id..'_TOTAL_R2_L'..track.laps,enabled=mode=='SOLO'or P.MultiEnabled}
@@ -41,10 +41,11 @@ function P.project(profile)
  for _,entry in (profile.records and profile.records.races)or {}do
   for _,race in {entry.lastRace,entry.bestRace}do
    if race and race.eligible==true and race.serverAccepted==true and race.state=='FINISHED'and race.positionFinalized==true
-    and race.rulesetId==P.Ruleset and race.startingBots==0 and race.userId==profile.userId and type(race.laps)=='table'then
-    local mode=if race.category=='SOLO_1H_0B'and race.startingHumans==1 then 'SOLO'
+    and race.rulesetId==P.Ruleset and race.userId==profile.userId and type(race.laps)=='table'then
+    local mode=if race.category=='SOLO_1H_0B'and race.startingHumans==1 and race.startingBots==0 then 'SOLO'
      elseif P.integer(race.startingHumans)and race.startingHumans>=2 and race.startingHumans<=4
-      and race.category=='HUMAN_'..race.startingHumans..'H_0B'then 'MULTI'else nil
+      and race.startingBots==0 and race.category=='HUMAN_'..race.startingHumans..'H_0B'then 'MULTI'
+     elseif race.startingHumans==1 and race.startingBots==1 and race.category=='BOT_1H_1B'then 'BOT'else nil
     for _,track in P.Tracks do
      if mode and race.trackId==track.id and race.geometryId==track.geometry and race.targetLaps==track.laps and #race.laps==track.laps then
       local valid,total=true,0
@@ -57,5 +58,34 @@ function P.project(profile)
   end
  end
  return out
+end
+-- Human-only indexes remain intact. Bot races occupy only missing Top5 places.
+function P.multiplayerRows(humans,bots)
+ local rows,seen={},{}
+ for _,row in humans do
+  if not seen[row.userId]then local copy=table.clone(row);copy.source='HUMAN';table.insert(rows,copy);seen[row.userId]=true end
+ end
+ if #rows<5 then for _,row in bots do
+  if not seen[row.userId]then local copy=table.clone(row);copy.source='BOT_1H_1B';table.insert(rows,copy);seen[row.userId]=true end
+  if #rows>=5 then break end
+ end end
+ return rows
+end
+-- Compare coverage first, then human participation, then distinct saved users.
+-- Wait for all source caches; transient failures never switch the featured track.
+function P.featuredMulti(cache,current)
+ local best,bestFilled,bestHuman,bestUsers=P.DefaultMulti,-1,-1,-1
+ for _,track in P.Tracks do if track.id~='Park'then
+  local h,b=cache['MULTI_'..track.id],cache['BOT_'..track.id]
+  if not h or not b or h.status~='READY'or b.status~='READY'then return current or P.DefaultMulti end
+  local seen,users={},0
+  for _,list in {h.rows,b.rows}do for _,row in list do if not seen[row.userId]then seen[row.userId]=true;users+=1 end end end
+  local filled=math.min(5,#P.multiplayerRows(h.rows,b.rows));local human=math.min(5,#h.rows)
+  local id='MULTI_'..track.id
+  if filled>bestFilled or filled==bestFilled and(human>bestHuman or human==bestHuman and(users>bestUsers or users==bestUsers and id==P.DefaultMulti))then
+   best,bestFilled,bestHuman,bestUsers=id,filled,human,users
+  end
+ end end
+ return best
 end
 return P

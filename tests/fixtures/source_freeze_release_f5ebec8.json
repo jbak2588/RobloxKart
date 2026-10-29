@@ -765,5 +765,11 @@
     "src/client/HubGuidanceView.luau": "151cb9b8508fe1e1a6e3283105d401d9ac5e7a8ebfba078b1ce9053ed1eb99be",
     "src/client/HubGuidanceState.luau": "85333a299ad31d4ba90c2566a692d29d72fbb097efd6d7541008a9254dd72101",
     "src/client/RookieParkTrialView.luau": "1580493329cd253b6cab0d8978cd4cb02769c9f55edc7b8cfc642fb36dbb8ca2"
+  },
+  "multiplayerFallbackPatches": {
+    "src/shared/HubLeaderboardPolicy.luau": "44158a6886263e870803623eea366c5ffd431259c79e65ad3f1a85531536746e",
+    "src/server/HubLeaderboardService.luau": "dc2078906bf6ea0c1de3809b3a7684259a39aeb5c65f540e32ab692b92acfea8",
+    "src/server/HubLeaderboardBoardBuilder.luau": "c508f6ad8b7935ef1046298ef8ce7d75907f0c52776a2eafac8e663fce7111a9",
+    "src/client/HubLeaderboardController.luau": "84725adb8d50e4e5fb354405549a71f17728ef06f681c6217fccfb95e956201c"
   }
 }

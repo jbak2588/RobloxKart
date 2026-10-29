@@ -40,13 +40,13 @@ function Controller.start()
  local lastRender
  local function render(data)
   local fingerprint={id,data.status or '',tostring(data.myScore),tostring(data.myRank),tostring(data.preview),tostring(data.indexing)}
-  for _,r in data.rows or {}do table.insert(fingerprint,tostring(r.userId)..':'..r.name..':'..tostring(r.score))end
+  for _,r in data.rows or {}do table.insert(fingerprint,tostring(r.userId)..':'..r.name..':'..tostring(r.score)..':'..tostring(r.source))end
   local stamp=table.concat(fingerprint,'|');if stamp==lastRender then return end;lastRender=stamp
   for _,r in list:GetChildren()do if r:IsA('Frame')then r:Destroy()end end
   local board=Policy.Boards[id]
   track.Text=board.title..(if mode=='CASH'then ''else ' / '..board.laps..'-LAP FINISH')
   local messages={POLICY_PENDING='RANKING POLICY NOT YET CONFIRMED',LOADING='LOADING RANKINGS...',STALE='UPDATE DELAYED - SHOWING LAST SAVED RANKINGS',ERROR='RANKINGS TEMPORARILY UNAVAILABLE'}
-  status.Text=messages[data.status]or(if #(data.rows or {})==0 then 'NO VALID RECORDS YET'else 'GLOBAL TOP 50  /  UPDATES ~60s')
+  status.Text=messages[data.status]or(if #(data.rows or {})==0 then 'NO VALID RECORDS YET'else (if mode=='MULTI'then 'HUMANS FIRST / [1H+1B] FILLS TOP 5'else 'GLOBAL TOP 50  /  UPDATES ~60s'))
   if data.preview then status.Text='STUDIO PREVIEW - NO LIVE DATA'end
   if data.indexing and not data.preview and data.status=='READY'then status.Text='INDEXING SAVED RECORDS / GLOBAL TOP 50'end
   for i,r in data.rows or {}do
@@ -54,7 +54,7 @@ function Controller.start()
    row.BackgroundColor3=if r.userId==player.UserId then Color3.fromRGB(45,200,205)else Color3.fromRGB(40,75,100);row.BackgroundTransparency=.3;row.Parent=list
    local t=Instance.new('TextLabel');t.BackgroundTransparency=1;t.Position=UDim2.fromOffset(10,0);t.Size=UDim2.new(1,-20,1,0)
    t.Font=Enum.Font.GothamBold;t.TextColor3=Color3.new(1,1,1);t.TextSize=16;t.TextXAlignment=Enum.TextXAlignment.Left
-   t.TextTruncate=Enum.TextTruncate.AtEnd;t.Text=string.format('%02d   %s',r.rank,r.name);t.Size=UDim2.new(.73,-14,1,0);t.Parent=row
+   t.TextTruncate=Enum.TextTruncate.AtEnd;t.Text=string.format('%02d   %s%s',r.rank,if r.source=='BOT_1H_1B'then '[1H+1B] 'else '',r.name);t.Size=UDim2.new(.73,-14,1,0);t.Parent=row
    local score=t:Clone();score.Position=UDim2.new(.73,0,0,0);score.Size=UDim2.new(.27,-12,1,0);score.TextXAlignment=Enum.TextXAlignment.Right;score.Text=Policy.format(board,r.score);score.Parent=row
   end
   mine.Text='MY RECORD: '..(if data.myScore then Policy.format(board,data.myScore)else '--')..(if data.myRank then '  /  # '..data.myRank elseif data.myScore then '  /  OUTSIDE LOADED TOP 50'else '')
@@ -70,7 +70,9 @@ function Controller.start()
   end)
  end
  local function selectMode(nextMode)
-  mode=nextMode;id=if mode=='CASH'then 'CASH'elseif mode=='MULTI'then 'MULTI_Track01Desert'else 'SOLO_Park'
+  local featured=WS:GetAttribute('KDMFeaturedMultiBoardId')
+  if not Policy.Boards[featured]or Policy.Boards[featured].mode~='MULTI'then featured=Policy.DefaultMulti end
+  mode=nextMode;id=if mode=='CASH'then 'CASH'elseif mode=='MULTI'then featured else 'SOLO_Park'
   render({status='LOADING',rows={}});refresh()
  end
  for i,d in {{'SOLO','SOLO TIME ATTACK'},{'MULTI','MULTIPLAYER FINISH'},{'CASH','TOTAL K$ EARNED'}}do

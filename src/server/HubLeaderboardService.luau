@@ -93,9 +93,15 @@ function Service.start()
  end
  local function response(id,uid)
   local b=Policy.Boards[id];local c=runtime:request(id,os.clock());if not c then return {status='INVALID_BOARD'}end
-  local rows={};local rank
-  for i,r in c.rows do table.insert(rows,{rank=i,userId=r.userId,name=named(r.userId),score=r.score});if r.userId==uid then rank=i end end
-  return {status=c.status,rows=rows,myScore=runtime.own[uid]and runtime.own[uid][id],myRank=rank,
+  local sourceRows=c.rows;local status=c.status
+  if b.mode=='MULTI'then
+   local bots=runtime:request('BOT_'..b.track,os.clock())
+   sourceRows=if c.status=='READY'or c.status=='STALE'then Policy.multiplayerRows(c.rows,bots.rows)else c.rows
+   if #c.rows<5 and bots.status~='READY'then status=if bots.status=='STALE'then 'STALE'else 'LOADING'end
+  end
+  local rows={};local rank;local myScore=runtime.own[uid]and runtime.own[uid][id]
+  for i,r in sourceRows do table.insert(rows,{rank=i,userId=r.userId,name=named(r.userId),score=r.score,source=r.source});if r.userId==uid then rank=i;myScore=r.score end end
+  return {status=status,rows=rows,myScore=myScore,myRank=rank,
    updatedAgo=if c.at then math.floor(math.max(0,os.clock()-c.at))else nil,preview=not live,title=b.title,
    indexing=seed~=nil and(not seed.done or next(runtime.pending)~=nil)}
  end
@@ -131,10 +137,19 @@ function Service.start()
     WS:SetAttribute('KDMLeaderboardScanVisited',seed.visited);WS:SetAttribute('KDMLeaderboardInvalidProfiles',invalidProfiles)
    end
    if model and model.Parent then
+    -- Bounded cached reads only; read scheduler retains its global12s budget.
+    for _,track in Policy.Tracks do if track.id~='Park'then
+     runtime:request('MULTI_'..track.id,now);runtime:request('BOT_'..track.id,now)
+    end end
+    local featured=Policy.featuredMulti(runtime.cache,model.MultiBoard:GetAttribute('LeaderboardId'))
+    model.MultiBoard:SetAttribute('LeaderboardId',featured);model.MultiBoardOpen:SetAttribute('LeaderboardId',featured)
+    WS:SetAttribute('KDMFeaturedMultiBoardId',featured)
+    local featuredBoard=Policy.Boards[featured]
+    model.MultiBoard.RankingFace.Frame.Subtitle.Text=featuredBoard.title..' / '..featuredBoard.laps..'-LAP / HUMANS FIRST'
     for _,b in model:GetChildren()do if b:IsA('BasePart')and b:FindFirstChild('RankingFace')then
      local id=b:GetAttribute('LeaderboardId');local data=response(id,0);local panel=b.RankingFace.Frame
-     for i=1,5 do local r=data.rows[i];local row=panel['Row'..i];row.Racer.Text=if r then r.name else '--';row.Score.Text=if r then Policy.format(Policy.Boards[id],r.score)else '--'end
-     panel.Status.Text=if data.status=='POLICY_PENDING'then 'RANKING POLICY PENDING'elseif #data.rows==0 and data.status=='READY'then 'NO VALID RECORDS YET'elseif data.status=='STALE'then 'UPDATE DELAYED - LAST SAVED RANKINGS'elseif data.status=='LOADING'then 'LOADING RANKINGS'else 'TOP 5  /  REFRESH ~60s'
+     for i=1,5 do local r=data.rows[i];local row=panel['Row'..i];row.Racer.Text=if r then (if r.source=='BOT_1H_1B'then '[1H+1B] 'else '')..r.name else '--';row.Score.Text=if r then Policy.format(Policy.Boards[id],r.score)else '--'end
+     panel.Status.Text=if data.status=='POLICY_PENDING'then 'RANKING POLICY PENDING'elseif #data.rows==0 and data.status=='READY'then 'NO VALID RECORDS YET'elseif data.status=='STALE'then 'UPDATE DELAYED - LAST SAVED RANKINGS'elseif data.status=='LOADING'then 'LOADING RANKINGS'else (if Policy.Boards[id].mode=='MULTI'then 'HUMANS FIRST / [1H+1B] FILLS TOP 5'else 'TOP 5  /  REFRESH ~60s')
      if data.indexing and data.status=='READY'then panel.Status.Text='INDEXING SAVED RECORDS / TOP 5'end
      if not live then panel.Status.Text='STUDIO PREVIEW - NO LIVE DATA'end
     end end

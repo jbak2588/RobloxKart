@@ -247,3 +247,12 @@ Creator Dashboard published-only history confirmed official PV1244 (2026-10-29
 published-artifact source comparison was not performed. The Desert display
 priority follow-up is synced to Studio but has not been newly published by this
 verification task.
+
+## Human-first Top5 fallback override - owner 2026-10-30
+
+The owner's newer rule supersedes the earlier Desert-default/bot-exclusion
+contract for the composed display only. Preserve human-only MULTI indexes and
+add separate1H+1B BOT indexes. Fill only missing Top5 users, with source labels
+and no duplicate users. Select by Top5 coverage/human priority/distinct loaded
+users; initial audited default Green Island. See
+[multiplayer follow-up](multiplayer_fallback_20261030.md).
