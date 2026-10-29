@@ -5,7 +5,13 @@ local folder=assert(root:FindFirstChild('ParkCircuitStructures'))
 local checks=0
 local function check(v,m)assert(v,m);checks+=1 end
 for _,path in {'src/shared/HubParkRookieLoopLayout.luau'}do
- check(fs.readFile(path):gsub('\r\n','\n')==process.exec('git',{'show','a87064f:'..path}).stdout:gsub('\r\n','\n'),'race/physics/road/service untouched '..path)
+ local source=fs.readFile(path):gsub('\r\n','\n')
+ local after='-- Arrival stands near the T crossbar, outside the TIME ATTACK prompt radius.\n-- Course datum, walkway, exhibits and driving anchors stay fixed.\nLayout.Arrival={x=0,z=-51}'
+ local before='-- Arrival stands on the pedestrian stem, facing the Park (-Z).\nLayout.Arrival={x=0,z=-36}'
+ local first,last=source:find(after,1,true)
+ check(first and not source:find(after,last+1,true),'one exact owner-approved arrival-only patch')
+ source=source:sub(1,first-1)..before..source:sub(last+1)
+ check(source==process.exec('git',{'show','a87064f:'..path}).stdout:gsub('\r\n','\n'),'race/physics/road/service untouched apart from arrival '..path)
 end
 check(folder:GetAttribute('ArchCount')==1 and folder:GetAttribute('TowerCount')==4,'one arch/four towers')
 local parts,rails,branding,chevronRails,chevronImages=0,0,0,0,0

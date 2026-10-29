@@ -26,6 +26,8 @@ function View.new(parent,player,onReplay,onReturn)
  instructions.BackgroundColor3=Color3.fromRGB(70,110,135);instructions.BackgroundTransparency=.25
  instructions.Text='3 LAPS / 7 EVENLY SPACED BOTS\nFINAL POSITION COUNTS\nK$5,000 + K$5,000 PER BOT AHEAD\nALL 7: PERFECT +K$10,000 / MAX K$50,000'
  instructions.TextScaled=true;local limit=Instance.new('UITextSizeConstraint');limit.MaxTextSize=18;limit.MinTextSize=10;limit.Parent=instructions
+ -- Measure the four lines once; keep only 12px of horizontal padding per side.
+ local instructionWidth=game:GetService('TextService'):GetTextSize(instructions.Text,18,instructions.Font,Vector2.new(2000,2000)).X+24
  local round=Instance.new('UICorner');round.CornerRadius=UDim.new(0,12);round.Parent=instructions
  local finalLap=text(canvas,'FinalLapNotice',48);finalLap.AnchorPoint=Vector2.new(.5,.5);finalLap.Position=UDim2.fromScale(.5,.42)
  finalLap.Size=UDim2.fromOffset(440,80);finalLap.Font=Enum.Font.GothamBlack;finalLap.Text='FINAL LAP';finalLap.AutoLocalize=false
@@ -68,11 +70,22 @@ function View.new(parent,player,onReplay,onReturn)
   local now=workspace:GetServerTimeNow();local started=player:GetAttribute('ParkTrialStartedAt')or now
   local size=canvas.AbsoluteSize
   local remaining=math.ceil((player:GetAttribute('ParkTrialGoAt')or now)-now)
-  instructions.Visible=challenge and phase=='COUNTDOWN'and remaining>3
+  instructions.Visible=challenge and phase=='COUNTDOWN'and remaining>1
   local viewSize=topGui.AbsoluteSize
-  local width=math.min(540,viewSize.X*.64);local height=math.min(88,viewSize.Y*.22)
-  local safeTop=MobileView.speedTopbarPosition(viewSize,GuiService.TopbarInset,width,height)
-  instructions.Position=UDim2.fromOffset(safeTop.X,6);instructions.Size=UDim2.fromOffset(width,height)
+  local viewport=if camera then camera.ViewportSize else viewSize
+  local originX=math.max(0,(viewSize.X-viewport.X)/2)
+  local band=GuiService.TopbarInset
+  local left=math.max(12,band.Min.X+originX+12)
+  local right=math.min(viewSize.X-12,band.Max.X+originX-12)
+  local mapLayer=parent:FindFirstChild('KDMParkMinimap')
+  local map=mapLayer and mapLayer:FindFirstChild('ParkMinimap')
+  if map and map.AbsoluteSize.X>0 then
+   right=math.min(right,map.AbsolutePosition.X-topGui.AbsolutePosition.X-12)
+  else
+   right=math.min(right,viewSize.X-originX-136)
+  end
+  local width=math.max(0,math.min(instructionWidth,right-left));local height=math.min(88,viewSize.Y*.22)
+  instructions.Position=UDim2.fromOffset((left+right)/2,6);instructions.Size=UDim2.fromOffset(width,height)
   local wide=size.X>size.Y and size.X>=720
   panel.AnchorPoint=if wide then Vector2.new(0,.5)else Vector2.new(.5,.5)
   panel.Position=if wide then UDim2.new(0,12,.5,0)else UDim2.fromScale(.5,.5)

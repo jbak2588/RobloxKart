@@ -2,6 +2,19 @@
 
 Read this before editing the project.
 
+## Hub arrival / shortcuts / Overtake instructions - owner 2026-10-30
+
+Owner authorizes moving only Park Hub arrival toward the T crossbar (local
+z=-51), outside the existing TIME ATTACK prompt range. Preserve RookieParkOrigin,
+course, exhibits, driving anchors and the Park-facing heading. Wallet background
+uses the navigation buttons' 24/36/52 fill at .58 transparency, with matching
+pale text. Add OVERTAKE above RACE NOW using the existing guarded Park challenge
+request. Overtake instructions fit measured text width with 12px side padding
+and clear native topbar icons / the Park minimap. Hide at countdown1; this
+supersedes the earlier countdown3 requirement below. Owner explicitly authorizes
+scoped commit/push and official Publish to Universe10768420544 /
+Place127925465904803. No server restart.
+
 ## TIME ATTACK reward / top-only Overtake instructions — owner 2026-10-30
 
 All visible TEST DRIVE terminology is retired in favor of TIME ATTACK. Remove

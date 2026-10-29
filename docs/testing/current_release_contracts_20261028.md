@@ -147,3 +147,12 @@ pushed on `prototype/kart-physics`. No access change or server restart. Existing
 servers are not forced to reload. Rollback: revert this scoped policy commit and
 Publish the rebuilt/synced native scene; preserve current account balances and
 receipts. Reverting a policy never authorizes deleting/recrediting stored wallets.
+
+## Hub arrival / Overtake HUD override - 2026-10-30
+
+Owner explicitly authorizes scoped commit/push and official Publish for the Hub
+arrival at Park-local z=-51, matching translucent wallet style, OVERTAKE shortcut
+above RACE NOW, and text-fitted top-only instructions hidden at countdown1.
+This supersedes the preceding countdown3 presentation contract only. All reward,
+record, item, physics, manual ownership and historical-account policies remain.
+See [validation](hub_arrival_ui_20261030.md).

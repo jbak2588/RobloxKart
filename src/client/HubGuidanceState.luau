@@ -59,9 +59,9 @@ function HubGuidanceState.presentation(state, safeSize, raceState, overlayOpen, 
    and (routePending == nil or routePending == "") and safeSize.X >= 200 and safeSize.Y >= 212,
   compact = compact, desktop = safeSize.X >= 1200 and safeSize.Y >= 600, heading = heading, message = message, action = action, destination = destination, button = button,
   secondaryButton = secondaryButton,
-  width = math.min(if safeSize.X >= 1200 then 220 else 180, safeSize.X - 24), height = 108,
+  width = math.min(if safeSize.X >= 1200 then 220 else 180, safeSize.X - 24), height = 164,
   -- Leave the native mobile jump control clear below these text actions.
-  bottom = if safeSize.X >= 1200 and safeSize.Y >= 600 then 20 else math.min(112, math.max(12, safeSize.Y - 116)),
+  bottom = if safeSize.X >= 1200 and safeSize.Y >= 600 then 20 else math.min(112, math.max(12, safeSize.Y - 172)),
  }
 end
 

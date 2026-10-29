@@ -160,7 +160,7 @@ check(not finishPaint.CanCollide and not finishPaint.CanTouch and not finishPain
 for i=1,8 do check(#root.SoloStartGrid:FindFirstChild('Grid'..i):GetChildren()==3,'unchanged Park bracket '..i)end
 check(#root.TrialCheckpoints:GetChildren()==7,'six race-standard gates and finish, no custom banners')
 check(hub:GetAttribute('RookieParkOrigin')==rb.Vector3.zero,'road origin retained independently from relocated arrival')
-check((spawn.CFrame.Position-rb.Vector3.new(0,.75,-36)).Magnitude<.001 and spawn.CFrame==rb.CFrame.lookAt(rb.Vector3.new(0,.75,-36),rb.Vector3.new(0,.75,-37)),'arrival is on the pedestrian stem facing Park')
+check((spawn.CFrame.Position-rb.Vector3.new(0,.75,-51)).Magnitude<.001 and spawn.CFrame==rb.CFrame.lookAt(rb.Vector3.new(0,.75,-51),rb.Vector3.new(0,.75,-52)),'arrival near T crossbar faces Park outside entry prompt')
 for i,slot in layout.ShowroomSlots do
  check(math.abs(slot.x)+6<=layout.Plaza.width/2 and math.abs(slot.z-layout.Plaza.z)+7<=layout.Plaza.length/2,'full display footprint remains inside T crossbar '..i)
  if i>1 then check(slot.x-layout.ShowroomSlots[i-1].x>=16,'exhibits keep walking gaps '..i)end

@@ -101,18 +101,18 @@ function HubUiController.start()
   local MatchRoomUi = require(script.Parent:WaitForChild("MatchRoomUiController"))
   MatchRoomUi.quickStart()
  end
- local function onTestDrive()
+ local function onTestDrive(mode)
   print("[F60:Client] event=F60_TEST_DRIVE_CLICKED")
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
   if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true) or (rooms and rooms.Enabled) then return end
   if player:GetAttribute('LobbyDriveActive')==true or player:GetAttribute('LobbyDrivePending')==true or (player:GetAttribute('KDMRoutePending')~=nil and player:GetAttribute('KDMRoutePending')~='') then return end
   local TestDrive = require(script.Parent:WaitForChild("LobbyTestDriveController"))
-  TestDrive.requestDrive()
+  TestDrive.requestDrive(mode)
  end
  local canvas = Instance.new("Frame")
  canvas.Name, canvas.Size, canvas.BackgroundTransparency = "SafeCanvas", UDim2.fromScale(1,1), 1
  canvas.Active, canvas.Parent = false, gui
- local guidance = GuidanceView.create(canvas, Theme, onRaceNow, onTestDrive)
+ local guidance = GuidanceView.create(canvas, Theme, onRaceNow, onTestDrive, function() onTestDrive("OVERTAKE") end)
  print("[F60:Client] event=F60_HUB_READY")
  local worldGuidance = WorldGuidance.create(hub, Theme)
  local raceBoard=require(script.Parent:WaitForChild('HubRaceBoardView')).create(hub)
@@ -167,7 +167,8 @@ function HubUiController.start()
  walletCapsule.Name = "WalletCapsule"
  walletCapsule.Position = UDim2.fromOffset(16, 16)
  walletCapsule.Size = UDim2.fromOffset(180, 42)
- walletCapsule.BackgroundColor3 = Color3.fromRGB(15, 25, 45)
+ walletCapsule.BackgroundColor3 = Color3.fromRGB(24, 36, 52)
+ walletCapsule.BackgroundTransparency = .58
  walletCapsule.BorderSizePixel = 0
  walletCapsule.Parent = gui
 
@@ -175,24 +176,16 @@ function HubUiController.start()
  capsuleCorner.CornerRadius = UDim.new(0, 21)
  capsuleCorner.Parent = walletCapsule
 
- local capsuleStroke = Instance.new("UIStroke")
- capsuleStroke.Thickness = 2.5
- capsuleStroke.Color = Color3.fromRGB(35, 60, 100)
- capsuleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
- capsuleStroke.Parent = walletCapsule
-
- StyleHelper.applyGradient(walletCapsule, Color3.fromRGB(28, 48, 85), nil, Color3.fromRGB(15, 25, 45), 45)
-
  local cashLabel = Instance.new("TextLabel")
  cashLabel.Name = "CashLabel"
  cashLabel.Text = "K$ 0"
  cashLabel.Position = UDim2.fromOffset(14, 0)
  cashLabel.Size = UDim2.new(1, -54, 1, 0)
  cashLabel.BackgroundTransparency = 1
- cashLabel.TextColor3 = Color3.fromRGB(85, 255, 100)
+ cashLabel.TextColor3 = Color3.fromRGB(225, 235, 245)
  cashLabel.Font = Enum.Font.GothamBlack
  cashLabel.TextSize = 16
- cashLabel.TextStrokeTransparency = 0.15
+ cashLabel.TextStrokeTransparency = 1
  cashLabel.TextStrokeColor3 = Color3.fromRGB(10, 40, 15)
  cashLabel.TextXAlignment = Enum.TextXAlignment.Left
  cashLabel.Parent = walletCapsule

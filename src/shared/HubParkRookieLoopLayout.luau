@@ -74,8 +74,9 @@ Layout.Pit={width=32,segments={
 Layout.Protected={minX=-90,maxX=90,minZ=-85,maxZ=95}
 Layout.Plaza={x=0,z=-58,width=120,length=24}
 Layout.Walkway={x=0,z=-36,width=12,length=24}
--- Arrival stands on the pedestrian stem, facing the Park (-Z).
-Layout.Arrival={x=0,z=-36}
+-- Arrival stands near the T crossbar, outside the TIME ATTACK prompt radius.
+-- Course datum, walkway, exhibits and driving anchors stay fixed.
+Layout.Arrival={x=0,z=-51}
 -- Seven static exhibits on the crossbar; keep the stem approach clear.
 Layout.ShowroomSlots={}
 for i=0,6 do table.insert(Layout.ShowroomSlots,{x=-48+i*16,z=-61})end

@@ -3,6 +3,7 @@ local fixture=fs.readFile('tests/mobile_touch_validation.luau')
 local prefix=fixture:sub(1,assert(fixture:find('local input=modules.KartInputController; input.start()',1,true))-1)
 local scenario=[=[
 services.GuiService.TopbarInset=rb.Rect.new(0,0,932,58)
+services.TextService={GetTextSize=function()return V2.new(380,80)end}
 local now=0;local viewEnv=table.clone(env);viewEnv.workspace={GetServerTimeNow=function()return now end}
 local viewShared={KDMFinishPresentation=object('ModuleScript','KDMFinishPresentation')}
 viewEnv.game={GetService=function(_,name)if name=='ReplicatedStorage'then return {Shared=viewShared}end;return services[name]end}
@@ -67,10 +68,16 @@ view:update(true,camera)
 local instructions=pg.KDMRookieParkTopHud.OvertakeInstructions
 check(instructions.Visible and instructions.Parent==pg.KDMRookieParkTopHud,'instructions use top HUD independently from CoreUI-inset driving canvas')
 check(instructions.Position.Y.Offset>=0 and instructions.Position.Y.Offset<=12 and instructions.Size.Y.Offset<=88,'compact instructions stay at top edge')
+check(instructions.Size.X.Offset<=404,'instruction background fits measured text plus 24px padding')
+services.GuiService.TopbarInset=rb.Rect.new(208,0,844,58);view:update(true,camera)
+check(instructions.Position.X.Offset-instructions.Size.X.Offset/2>=220,'instructions clear native Roblox icons by 12px')
+check(instructions.Position.X.Offset+instructions.Size.X.Offset/2<=708,'instructions reserve right-side minimap clearance')
 player:SetAttribute('ParkTrialGoAt',now+3);view:update(true,camera)
-check(not instructions.Visible,'instructions disappear exactly at three seconds')
+check(instructions.Visible,'instructions remain visible at three seconds')
 player:SetAttribute('ParkTrialGoAt',now+2);view:update(true,camera)
-check(not instructions.Visible,'last two seconds remain clear')
+check(instructions.Visible,'instructions remain visible at two seconds')
+player:SetAttribute('ParkTrialGoAt',now+1);view:update(true,camera)
+check(not instructions.Visible,'instructions disappear exactly at one second')
 view:update(false,camera);check(not gui.Enabled,'leave clears trial HUD')
 view:destroy();check(gui.Parent==nil,'destroy cleanup')
 print('PASS '..count..' production Park result/countdown/target/reward presentation checks')

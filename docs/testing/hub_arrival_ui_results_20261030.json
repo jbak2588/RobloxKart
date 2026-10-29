@@ -1,0 +1,79 @@
+{
+  "baseline": "91446d377f43064c8384da9ac61efd207913eb54",
+  "rawSuite": {
+    "total": 252,
+    "pass": 231,
+    "fail": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "hub_park_circuit_decor_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ]
+  },
+  "finalReconciliation": {
+    "pass": 232,
+    "historicalFailures": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ],
+    "newFailures": [],
+    "rerun": "hub_park_circuit_decor_validation.luau:2404 PASS; exact arrival-only reversal retains historical source comparison"
+  },
+  "focusedChecks": {
+    "f60Layout": 444,
+    "parkTrialView": 307,
+    "releaseIntegrity": 772
+  },
+  "sourceParity": {
+    "backupSHA256": "7712c6d0b46d90dde865d9f1dc0390618f18b69ef18159deee2c925af6da54e8",
+    "flags": {
+      "HubParkV1Enabled": true,
+      "KDMControlsV1Preview": true,
+      "KDMGasPedalEnabled": true
+    },
+    "mismatches": {},
+    "sources": 232
+  },
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-hub-ui-20261030-5ga6t_6f",
+  "publication": {
+    "status": "VALIDATED_PENDING_PUBLISH",
+    "universe": 10768420544,
+    "place": 127925465904803
+  },
+  "limits": "Studio iPhone simulator and controlled countdown capture; published real-device visual acceptance pending."
+}

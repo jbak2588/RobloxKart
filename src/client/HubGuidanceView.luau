@@ -1,6 +1,6 @@
 local HubGuidanceView = {}
 
-function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive)
+function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive, onOvertake)
  local card = Instance.new("Frame")
  card.Name = "NextAction"
  card.BackgroundColor3 = Color3.fromRGB(14, 22, 35)
@@ -58,6 +58,22 @@ function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive)
  local testDriveHelper = label("TestDriveHelper", 164, 14, 11, Color3.fromRGB(150, 175, 200), Enum.Font.Gotham)
  testDriveHelper.Text = "Learn drifting and try race items"
 
+ local overtakeBtn = Instance.new("TextButton")
+ overtakeBtn.AutoLocalize = true
+ overtakeBtn.BackgroundColor3 = Color3.fromRGB(24, 36, 52)
+ overtakeBtn.BackgroundTransparency = .58
+ overtakeBtn.BorderSizePixel = 0
+ overtakeBtn.Font = Enum.Font.GothamBold
+ overtakeBtn.TextStrokeTransparency = 1
+ local overtakeCorner = Instance.new("UICorner")
+ overtakeCorner.CornerRadius, overtakeCorner.Parent = UDim.new(0, 8), overtakeBtn
+ overtakeBtn.Name, overtakeBtn.Text = "Overtake", "OVERTAKE"
+ overtakeBtn.TextColor3 = Color3.fromRGB(255, 215, 50)
+ overtakeBtn.Parent = card
+ local overtakeConnection = overtakeBtn.Activated:Connect(function()
+  if onOvertake then onOvertake() end
+ end)
+
  local connection = button.Activated:Connect(function()
   if onRaceNow then onRaceNow() end
  end)
@@ -77,14 +93,17 @@ function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive)
   button.TextStrokeTransparency = 1
   testDriveBtn.TextStrokeTransparency = 1
 
-  -- Two quiet text actions at every viewport size; no arrival heading/card.
+  -- Three direct actions, with OVERTAKE above RACE NOW.
   for _, text in {brand, title, message, helper, raceNowHelper, testDriveHelper} do
    text.Visible = false
   end
-  button.Position = UDim2.fromOffset(12, 4)
+  overtakeBtn.Position = UDim2.fromOffset(12, 4)
+  overtakeBtn.Size = UDim2.new(1, -24, 0, 44)
+  overtakeBtn.TextSize = if presentation.desktop then 18 else 16
+  button.Position = UDim2.fromOffset(12, 60)
   button.Size = UDim2.new(1, -24, 0, 44)
   button.TextSize = if presentation.desktop then 20 else 16
-  testDriveBtn.Position = UDim2.fromOffset(12, 60)
+  testDriveBtn.Position = UDim2.fromOffset(12, 116)
   testDriveBtn.Size = UDim2.new(1, -24, 0, 44)
   testDriveBtn.TextSize = if presentation.desktop then 18 else 16
   testDriveBtn.Visible = true
@@ -92,6 +111,7 @@ function HubGuidanceView.create(parent, theme, onRaceNow, onTestDrive)
  function view.destroy()
   connection:Disconnect()
   driveConnection:Disconnect()
+  overtakeConnection:Disconnect()
   card:Destroy()
  end
  return view

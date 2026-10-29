@@ -758,5 +758,12 @@
     "src/server/TestDriveQualification.luau": "889645e0fde3657bb3bd30813a1d153a4ea314789fe24c3631d003eb88eb285d",
     "src/shared/KDMProgressionSchema.luau": "cf1fe356300058280ca60741cbddf8469c2ff53d66edd4665dcf89fa8915d8f4"
   },
-  "timeAttackRewardParent": "b147a62177a8198c33289200c10e9fa230a06e65"
+  "timeAttackRewardParent": "b147a62177a8198c33289200c10e9fa230a06e65",
+  "hubArrivalUiPatches": {
+    "src/shared/HubParkRookieLoopLayout.luau": "fde35e4c926d593f07ec45f38ae3540ce2eb71cd710087521d3fc5a3d34e1a68",
+    "src/client/HubUiController.luau": "87892f259cd1afcc49e75aa75dbc43fbf35b2e75aecf6146e4a1520e6149e23c",
+    "src/client/HubGuidanceView.luau": "151cb9b8508fe1e1a6e3283105d401d9ac5e7a8ebfba078b1ce9053ed1eb99be",
+    "src/client/HubGuidanceState.luau": "85333a299ad31d4ba90c2566a692d29d72fbb097efd6d7541008a9254dd72101",
+    "src/client/RookieParkTrialView.luau": "1580493329cd253b6cab0d8978cd4cb02769c9f55edc7b8cfc642fb36dbb8ca2"
+  }
 }
