@@ -1,0 +1,48 @@
+{
+  "baseline": "b429106c3de210c3f204187d2a31726c3f67f660",
+  "branch": "prototype/kart-physics",
+  "total": 251,
+  "pass": 231,
+  "historicalFailures": [
+    "bot_internal_control_validation.luau",
+    "chevron_standard_validation.luau",
+    "finish_source_freeze_validation.luau",
+    "item_aftershock_validation.luau",
+    "lobby_palette_validation.luau",
+    "lobby_terminology_validation.luau",
+    "park_a1_island_visual_validation.luau",
+    "park_a2_landscaping_validation.luau",
+    "practice_figure8_geometry_validation.luau",
+    "r8_perf_p0_validation.luau",
+    "r8_perf_p1_validation.luau",
+    "rookie_loop_demo_validation.luau",
+    "speed_sensation_validation.luau",
+    "straight_speed_validation.luau",
+    "track02_published_binding_validation.luau",
+    "track_environment_validation.luau",
+    "track_h3_flow_validation.luau",
+    "track_v2_geometry_validation.luau",
+    "track_visual_standard_validation.luau",
+    "v2_gauge_v1_audio_validation.luau"
+  ],
+  "newFailures": [],
+  "hubLeaderboardChecks": 50,
+  "rawLogs": "C:\\Users\\Public\\Documents\\ESTsoft\\CreatorTemp\\kdm-production-release-esbx4x0u",
+  "publishPerformed": false,
+  "productionDataWritesPerformed": false,
+  "qaStudio": {
+    "universe": 10772198697,
+    "place": 106553302629620,
+    "previewOnly": true,
+    "realDeviceTouchAcceptance": "PENDING"
+  },
+  "sources": {
+    "src/server/HubLeaderboardBoardBuilder.luau": "d7623e7ea2113f66518a0844ebc6a634760b694f4cd74a43fea6acf0ff3be380",
+    "src/server/HubLeaderboardBootstrap.server.luau": "2adafbde93e113e92948498f3915597c25cd4f8fc9b78adcf9fc547695ccbea0",
+    "src/server/HubLeaderboardRuntime.luau": "ba69b1a1532403d81d314c4eb3ef966d62568d125ba85916dfe8bef2dd6f0be4",
+    "src/server/HubLeaderboardService.luau": "cc0966aac67cf9cf2fadf5b66d3a7168af7709eb32c29f1ff04c51a9a20d0b12",
+    "src/client/HubLeaderboardBootstrap.client.luau": "af19e49be1f433f9a5bbfa13bde3edbb33e76c5dc81fb9bf96b3a6b3e6909c0c",
+    "src/client/HubLeaderboardController.luau": "5e05dd6b7c3d1ab59ef0a38b9ee8265a6a8066ba502b4369ac55be6abdfc1946",
+    "src/shared/HubLeaderboardPolicy.luau": "4b8f35d313947e5beb131b3cafd3aff26543252b2aeff38bbaa29bd5d456651c"
+  }
+}

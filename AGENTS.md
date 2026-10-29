@@ -2,6 +2,21 @@
 
 Read this before editing the project.
 
+## Hub world rankings — owner contract 2026-10-29
+
+Use the Park-connected Hub. Place Rookie Park one-lap Solo Top 5 on the left
+building's upper facade; adjacent open-lot boards show official Multiplayer best
+lap and lifetime earned K$. Approach opens Top 50 plus the user's own record.
+Solo and Multiplayer indexes are separate per current selectable track. Multiplayer
+requires a valid completed official race with 2–4 starting humans and zero bots;
+merge those human counts by track. Money means wallet.lifetimeEarned, never balance.
+Project confirmed server profiles into a separate derived OrderedDataStore only;
+do not change rewards, purchases, geometry, physics or ownership. Studio uses
+memory-only preview; live indexing is restricted to the exact production pair.
+Keep historical fixtures/failures visible. This task authorizes implementation
+and default scoped Git commit/push, but does not authorize Roblox Publish.
+See docs/testing/hub_leaderboards_20261029.md for backfill and QA limitations.
+
 ## Park seated-avatar collision isolation — owner approval 2026-10-28
 
 Owner authorizes Park-only avatar contact isolation, commit/push and official
