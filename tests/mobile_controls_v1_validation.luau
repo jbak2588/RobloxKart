@@ -40,7 +40,7 @@ for _,screen in {{1600,739},{1280,720},{926,428},{852,393},{812,375},{740,360},{
 end
 for _,size in {rb.Vector2.new(1600,739),rb.Vector2.new(750,332),rb.Vector2.new(600,240)}do
  local l=view.controlsV1Layout(size);local b=l.buttons
- check(math.abs(b.ForwardRight.x-b.ForwardLeft.x-b.ForwardLeft.width-15)<.01,'15 pixel steering gap')
+ check(math.abs(b.ForwardRight.x-b.ForwardLeft.x-b.ForwardLeft.width-30)<.01 and math.abs(b.Gas.x-b.Drift.x-b.Drift.width-30)<.01,'30 pixel steering and Drift/Gas gap')
  check(b.Gas.width==b.Drift.width and b.Gas.height==b.Drift.height,'Gas matches Drift size')
  check(b.ForwardLeft.width==b.Drift.width and b.ForwardLeft.height==b.Drift.height,'steering matches Drift size')
  check(math.abs(b.Gas.x+b.Gas.width-size.X+12)<.01,'Gas at right safe edge')

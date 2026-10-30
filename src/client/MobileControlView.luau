@@ -46,12 +46,12 @@ function View.controlsV1Layout(size)
   cx=math.clamp(cx,12+width/2,w-12-width/2);cy=math.clamp(cy,12+height/2,h-12-height/2)
   return {x=cx-width/2,y=cy-height/2,width=width,height=height}
  end
- -- Bottom edges meet the digital speed's text baseline. Keep a literal 15px
+ -- Bottom edges meet the digital speed's text baseline. Keep a literal 30px
  -- finger gap; safe-area coordinates already exclude the phone notch.
  local floor=h-26;local d=math.floor(math.max(48,108*scale));local g=d
  local brake=math.floor(math.max(48,64*scale));local right=w-12
- local buttons={ForwardLeft=box(12+d/2,floor-d/2,108,108),ForwardRight=box(12+d+15+d/2,floor-d/2,108,108),
-  Drift=box(right-d-15-d/2,floor-d/2,108,108),Gas=box(right-d/2,floor-d/2,108,108),
+ local buttons={ForwardLeft=box(12+d/2,floor-d/2,108,108),ForwardRight=box(12+d+30+d/2,floor-d/2,108,108),
+  Drift=box(right-d-30-d/2,floor-d/2,108,108),Gas=box(right-d/2,floor-d/2,108,108),
   BrakeReverse=box(right-brake/2,floor-d-12-brake/2,64,64)}
  local drift=buttons.Drift
  local mapSide=math.clamp(math.floor(h*.20),48,112)
