@@ -82,3 +82,10 @@ claim of a production full-profile audit or zero today's finishes is made here.
 Runtime probes discarded on Stop. Trees, human physics, ownership, course,
 controls, balances and reward eligibility preserved. Continuing owner release
 workflow uses exact Universe10768420544 / Place127925465904803; no server restart.
+
+Release receipt: source commit7905523 pushed. Native backup238 source files
+match candidate, all three release flags true; SHA256
+5a226dc182107a78c0051a3600db8104a9ddc0aa76e0a6b1c5b3abd6eff987fc.
+Native Publish confirmed PV1287; independent Creator Dashboard published-only
+history lists1287 then1285. No server restart. Existing servers retain old code.
+Proof: C:/Users/OWNER/AppData/Local/Temp/kdm-pv1287-published.png.
