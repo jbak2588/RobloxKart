@@ -529,6 +529,7 @@ local function runServerInit(privateId, launchPayload, studio, failRace, botFlag
  Figure8DesertPolicy={enabled=function()return false end},
  HubParkStartup={snapshot=function()end,prepare=function()end,enabled=function()return false end,bind=function()end},
 		EconomyService = { start = function() calls.economy = true end },
+		RobuxTopUpService = { start = function() calls.topup = true end },
 		ShopService = { start = function() calls.shop = true end },
 		RaceRecordService = { startQuery = function() calls.records = true end },
 		ServerRuntime = Runtime,

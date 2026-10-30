@@ -274,6 +274,13 @@ function Schema.new(catalog, options)
    or type(s.lastOpId) ~= "string" or #s.lastOpId > 128 then return false, "CORRUPT_SELECTION" end
   if type(w) ~= "table" or not Schema.integer(w.cash,api.maxCash) or not Schema.integer(w.ledgerRevision) then return false, "CORRUPT_WALLET" end
   if w.lifetimeEarned~=nil and not Schema.integer(w.lifetimeEarned) then return false,'CORRUPT_WALLET' end
+  if profile.robuxTopUps~=nil then
+   if type(profile.robuxTopUps)~='table' then return false,'CORRUPT_ROBUX_RECEIPTS' end
+   for id,signature in profile.robuxTopUps do
+    if type(id)~='string' or #id~=64 or id:find('[^%da-f]') or type(signature)~='string'
+     or #signature~=64 or signature:find('[^%da-f]') then return false,'CORRUPT_ROBUX_RECEIPTS' end
+   end
+  end
   if profile.activity~=nil then
    local a=profile.activity
    if type(a)~='table' or a.version~=1 or (a.kind~='TEST_DRIVE' and a.kind~='RACE_FINISH')

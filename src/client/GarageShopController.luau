@@ -30,6 +30,8 @@ function Controller.start()
  local close=button(panel,'Close','X',0);close.Size=UDim2.fromOffset(40,40);close.AnchorPoint=Vector2.new(1,0)
  close.Position=UDim2.new(1,-8,0,8)
  StyleHelper.applyCloseButton(close)
+ local topUp=button(panel,'TopUp','+ K$',0);topUp.Size=UDim2.fromOffset(56,40);topUp.Position=UDim2.new(1,-112,0,8)
+ topUp.Activated:Connect(function()require(script.Parent.RobuxTopUpController).open()end)
  local function flatButton(b,color)
   for _,child in b:GetChildren()do if child:IsA('UIGradient') then child:Destroy()end end
   b.BackgroundColor3=color
@@ -333,7 +335,7 @@ function Controller.start()
  end
  local function layout()
   local l=Layout.forSize(root.AbsoluteSize);panel.Position=UDim2.fromOffset(math.floor((root.AbsoluteSize.X-l.width)/2),math.floor((root.AbsoluteSize.Y-l.height)/2));panel.Size=UDim2.fromOffset(l.width,l.height)
-  title.Size=UDim2.new(1,-64,0,44);title.TextSize=if root.AbsoluteSize.Y<260 then 14 else 20;close.Position=UDim2.new(1,-8,0,0)
+  title.Size=UDim2.new(1,-128,0,44);title.TextSize=if root.AbsoluteSize.Y<260 then 14 else 20;close.Position=UDim2.new(1,-8,0,0)
   for i,name in {'KARTS','RACE ITEMS','MY INVENTORY'}do tabs[name].Position=UDim2.fromOffset(8+(i-1)*(l.tabWidth+4),l.tabsY);tabs[name].Size=UDim2.fromOffset(l.tabWidth,44)end
   body.Position=UDim2.fromOffset(8,l.bodyY);body.Size=UDim2.new(1,-16,0,l.bodyHeight)
   status.Position=UDim2.fromOffset(8,l.footerY-8);status.TextSize=12;status.Size=UDim2.new(1,-16,0,l.footerHeight)

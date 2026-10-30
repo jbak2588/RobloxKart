@@ -87,9 +87,10 @@ function HubUiController.start()
  local function open(action)
   local rooms = gui.Parent:FindFirstChild("KDMMatchRooms")
   if roomOwned or player:GetAttribute("HubOverlayOpen") == true or (player:GetAttribute('KDMProfileOpen')==true or player:GetAttribute('KDMShopOpen')==true) or (rooms and rooms.Enabled) then return end
-  if action=='SHOP' then
+  if action=='SHOP' or action=='TOPUP' then
    if player:GetAttribute('LobbyDriveActive')==true or player:GetAttribute('LobbyDrivePending')==true or (player:GetAttribute('KDMRoutePending')~=nil and player:GetAttribute('KDMRoutePending')~='') then return end
-   require(script.Parent.GarageShopController).open('KARTS');return
+   if action=='TOPUP' then require(script.Parent.RobuxTopUpController).open()
+   else require(script.Parent.GarageShopController).open('KARTS')end;return
   end
   Garage.open(action, if action == "ROOMS" then state.trackId else nil)
  end
@@ -209,7 +210,7 @@ function HubUiController.start()
   2
  )
 
- table.insert(connections, plusButton.Activated:Connect(function() open("SHOP") end))
+ table.insert(connections, plusButton.Activated:Connect(function() open("TOPUP") end))
 
  local function updateWallet()
   local cash = player:GetAttribute("KDMWalletCash") or 0

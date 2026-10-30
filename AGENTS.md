@@ -2,6 +2,23 @@
 
 Read this before editing the project.
 
+## Robux K$ top-ups - owner 2026-10-30
+
+Owner requests repeatable top-ups and confirms50 Robux -> K$25,000 and100 Robux
+-> K$60,000. Developer products3723936705 /3723937538 belong to the official
+Universe10768420544; fixed prices with managed pricing disabled. Wallet + and
+Shop + K$ open a guarded safe-area top-up modal; Roblox handles payment approval.
+Only server ProcessReceipt may credit cash. Persist the payment identity and
+cash atomically in the existing account, with uncached confirmation before ACK.
+Permanent robuxTopUps markers are separate from expiring gameplay receipts;
+never prune/regrant them. Guest initialization adds only the purchased amount.
+Preserve lifetimeEarned/rankings, first-finish/rewards, existing balances, paid
+inventory-use flag, physics, ownership and mobile driving. Studio is preview-only
+and makes no real purchases/live credits. Commit/push and official Publish follow
+the continuing owner release workflow; exact production pair only, no restart.
+Activate product sales only after the receipt handler is published. See
+docs/testing/robux_topups_20261030.md.
+
 ## Metro sidewalks / outer air trails / desktop GAS - owner 2026-10-30
 
 Owner confirms PV1275 mobile appearance accepted. Replace Metro's overlapping

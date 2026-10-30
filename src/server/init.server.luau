@@ -50,6 +50,7 @@ print(string.format("[KDMRoute] resolve role=%s reason=%s private=%s owner=%s so
 	tostring(if payload then payload.matchId else nil), tostring(if payload then payload.trackId else nil),
 	tostring(game.JobId)))
 require(script:WaitForChild('EconomyService')).start()
+require(script:WaitForChild('RobuxTopUpService')).start()
 require(script:WaitForChild('ShopService')).start()
 RaceLaunchService.start()
 

@@ -1,0 +1,59 @@
+{
+  "baseline": "b42d7ec29faa7a876eabeae858c6e9ea4299d56f",
+  "suite": {
+    "total": 259,
+    "pass": 239,
+    "fail": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ]
+  },
+  "newFailures": [],
+  "backup": {
+    "backupSHA256": "bd8901efb9c6987cdf1cde5e5473cee9329e6fbb044aaaea66fbefba25e253fd",
+    "flags": {
+      "HubParkV1Enabled": true,
+      "KDMControlsV1Preview": true,
+      "KDMGasPedalEnabled": true
+    },
+    "mismatches": {},
+    "sources": 237
+  },
+  "backupPath": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-robux-topups-20261030.rbxl",
+  "universeId": 10768420544,
+  "placeId": 127925465904803,
+  "products": [
+    {
+      "id": 3723936705,
+      "cash": 25000,
+      "robux": 50
+    },
+    {
+      "id": 3723937538,
+      "cash": 60000,
+      "robux": 100
+    }
+  ],
+  "managedPricing": false,
+  "realPurchasesTested": false,
+  "publishedVersion": null,
+  "salesActivated": false
+}

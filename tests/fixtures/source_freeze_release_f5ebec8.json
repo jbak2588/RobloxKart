@@ -791,5 +791,16 @@
     "src/assets/KDMMetroSidewalk.rbxmx": "137467b6efa86173688382000ba5ac9089d81609fbd157519c06e886acef37af",
     "src/assets/MetroContinuousSidewalk.obj": "f0fe6aa57c6b34be5efce5a044ba390373f23fa1446b6b6bb150c2ceafb5d8ed",
     "src/assets/MetroContinuousSidewalkGeometry.json": "f8e2446a179a6bfa0faf2a57a3fedfd24f1cdf793c2468bbf40f12989512ce0c"
+  },
+  "robuxTopUpPatches": {
+    "src/shared/KDMRobuxTopUpCatalog.luau": "db3632c1845109b07044fdf77317e4ad630e9f2051b94dc48f53eda607c54ec2",
+    "src/shared/KDMProgressionSchema.luau": "32e224272883f6ef667c6978c3523c21d62cb7e47ac76cb61f15347429bf0916",
+    "src/server/RobuxTopUpOperations.luau": "e09a5ea8eb614a572f44a116adc6622d43d069565d7996504cb992f9dd14136d",
+    "src/server/RobuxTopUpReceiptProcessor.luau": "a973d2f5cd318c2b74ba90b8a56088875ff321c2cd881b07bef2b88e78aa9d61",
+    "src/server/RobuxTopUpService.luau": "c2434c947e837c7af224bdd08c93dc18325663cf4f52e6a76b6ee748d2d31512",
+    "src/server/init.server.luau": "fab45096128a3e0497e96a49ced18e61dd7a003ae16ba64e6fe30fabe633f60c",
+    "src/client/RobuxTopUpController.luau": "710da5e2983f5dcbfd43eee08ad53da15840e474ef05463620043d56a1e38f30",
+    "src/client/HubUiController.luau": "ecede905bd7c81443e88005b5c0dc98a8e413fe02b0ffd0b1a0aef0c9638fa8c",
+    "src/client/GarageShopController.luau": "336d10c52803d1b35719ee3c2e176df8782dad13adf545ad567c0c47562ef719"
   }
 }
