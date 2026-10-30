@@ -1,0 +1,221 @@
+{
+  "baseline": "752bba670eaecf1aba3f2838879ee37866b79578",
+  "productionVersionReference": 1285,
+  "environment": {
+    "kind": "Desktop native Studio Play",
+    "gameId": 10768420544,
+    "placeId": 127925465904803,
+    "placeVersion": 0,
+    "streaming": false,
+    "actualPublishedMobileTwoHumanCapture": false
+  },
+  "userConfirmation": "Observer self/world remains smooth; only other users' karts stutter. Distance not yet specified.",
+  "continuousPhysicsProbe": {
+    "setup": "Four independent server-owned unanchored6x1x8 parts, gravity-compensated, no collision,70-stud/sec circular velocity, no CFrame/Position teleports during capture.25s client capture excludes1s warmup. Offsets40/200/400/800 studs along Z relative to stationary observer root; circular motion alters actual Euclidean distance. Not actual multiplayer karts.",
+    "client": {
+      "tree": [
+        {
+          "trees": true,
+          "mean": 16.668592196785742,
+          "max": 24.12169985473156,
+          "p95": 18.112100660800934,
+          "n": 180
+        },
+        {
+          "trees": false,
+          "mean": 16.659564975028236,
+          "max": 20.03449946641922,
+          "p95": 18.173299729824066,
+          "n": 180
+        },
+        {
+          "trees": true,
+          "mean": 16.66592210222509,
+          "max": 18.502499908208847,
+          "p95": 18.21340061724186,
+          "n": 181
+        }
+      ],
+      "done": true,
+      "frames": {
+        "max": 0.02458450011909008,
+        "p95": 0.018018700182437897,
+        "mean": 0.016665617850355353,
+        "n": 1501
+      },
+      "probes": {
+        "Probe40": {
+          "maxJump": 2.2667136192321777,
+          "maxStill": 0,
+          "stills": 0,
+          "frames": 1501,
+          "changes": 1501
+        },
+        "Probe400": {
+          "maxJump": 2.2665998935699463,
+          "maxStill": 0,
+          "stills": 0,
+          "frames": 1501,
+          "changes": 1501
+        },
+        "Probe200": {
+          "maxJump": 2.2666568756103516,
+          "maxStill": 0,
+          "stills": 0,
+          "frames": 1501,
+          "changes": 1501
+        },
+        "Probe800": {
+          "maxJump": 2.2667136192321777,
+          "maxStill": 0,
+          "stills": 0,
+          "frames": 1501,
+          "changes": 1501
+        }
+      }
+    },
+    "server": {
+      "combat": {
+        "max": 0.4090000002179295,
+        "p95": 0.16710000272723846,
+        "count": 1800,
+        "mean": 0.12919577780444846
+      },
+      "human": {
+        "automatic": false,
+        "owner": "SERVER",
+        "phase": "RUNNING"
+      },
+      "frames": {
+        "max": 0.019689099863171577,
+        "p95": 0.018025685101747513,
+        "mean": 0.016665974442626765,
+        "n": 2101
+      },
+      "owners": [
+        {
+          "automatic": false,
+          "owner": "SERVER",
+          "name": "Probe40",
+          "stalls": 0
+        },
+        {
+          "automatic": false,
+          "owner": "SERVER",
+          "name": "Probe200",
+          "stalls": 0
+        },
+        {
+          "automatic": false,
+          "owner": "SERVER",
+          "name": "Probe400",
+          "stalls": 0
+        },
+        {
+          "automatic": false,
+          "owner": "SERVER",
+          "name": "Probe800",
+          "stalls": 0
+        }
+      ]
+    }
+  },
+  "overtake": {
+    "server": {
+      "phase": "RUNNING",
+      "counts": {
+        "inert": 12127,
+        "unanchored": 24,
+        "transparent": 41,
+        "parts": 12137
+      },
+      "result": {
+        "combatMs": {
+          "max": 0.7396000000881031,
+          "p95": 0.3304999991087243,
+          "mean": 0.22954269370794655,
+          "n": 1923
+        },
+        "ownerSamples": 1922,
+        "clientOwnerSamples": 0,
+        "automaticSamples": 0,
+        "duration": 40.014018699999724,
+        "frames": {
+          "max": 0.020553361624479294,
+          "p95": 0.018051911145448685,
+          "mean": 0.016665833904315853,
+          "n": 1922
+        },
+        "counts": {
+          "distance": 2030,
+          "pose": 30268,
+          "sampled": 2030
+        }
+      },
+      "overtake": true
+    },
+    "client": {
+      "mean": 16.66594369193205,
+      "phase": "RUNNING",
+      "max": 24.145200848579407,
+      "p95": 18.078699707984924,
+      "bots": [
+        {
+          "name": "ParkOvertakeBot_1",
+          "parts": 26
+        },
+        {
+          "name": "ParkOvertakeBot_2",
+          "parts": 26
+        },
+        {
+          "name": "ParkOvertakeBot_3",
+          "parts": 26
+        },
+        {
+          "name": "ParkOvertakeBot_4",
+          "parts": 26
+        },
+        {
+          "name": "ParkOvertakeBot_5",
+          "parts": 26
+        },
+        {
+          "name": "ParkOvertakeBot_6",
+          "parts": 26
+        },
+        {
+          "name": "ParkOvertakeBot_7",
+          "parts": 26
+        }
+      ],
+      "n": 1801
+    },
+    "notes": "One stationary seated human in RUNNING, no offensive item stress. No live network byte counts. Property-change notifications are not packet counts."
+  },
+  "landscaping": {
+    "trees": 243,
+    "baseParts": 651,
+    "meshParts": 566,
+    "surfaceAppearances": 566,
+    "castShadows": 0,
+    "renderTest": "Local-only fixed-camera ON/OFF/ON;0.75s settling and3s samples each,60FPS-limited desktop; mobile GPU/thermal conclusion unavailable."
+  },
+  "discardedTrials": [
+    "Early straight-line probe teleported at loop boundaries and initially lacked gravity compensation. Excluded from continuous-motion evidence.",
+    "Privileged execute_luau require wrapper observed zero calls due execution-context/cache separation; replaced by ordinary runtime Script wrapper."
+  ],
+  "cleanup": {
+    "playStopped": true,
+    "runtimeScriptsDiscarded": true,
+    "treesRestored": true,
+    "sourceChanges": false,
+    "publish": false,
+    "serverRestart": false
+  },
+  "sources": [
+    "https://create.roblox.com/docs/physics/network-ownership",
+    "https://create.roblox.com/docs/performance-optimization/microprofiler/network",
+    "https://create.roblox.com/docs/performance-optimization/improve"
+  ]
+}
