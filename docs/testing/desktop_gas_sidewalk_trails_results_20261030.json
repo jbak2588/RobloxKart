@@ -45,5 +45,10 @@
     0.6000002026557922
   ],
   "mobilePayloadParityBaseline": "PV1275",
-  "publishedVersion": null
+  "publishedVersion": 1278,
+  "codeCommit": "d9fd007067877725b95ed8e816f9c6874849bb66",
+  "universeId": 10768420544,
+  "placeId": 127925465904803,
+  "serverRestart": false,
+  "publishEvidence": "C:/Users/OWNER/AppData/Local/Temp/kdm-pv1278-published.png"
 }

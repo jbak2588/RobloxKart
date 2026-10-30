@@ -67,3 +67,11 @@ SHA256207dfab944412d6e99ffb49bb1661cf1103a56852ebba89cf9a1760b42ee0a3d.
 Edit has correct universe/place, asset MeshContent URI and intrinsic size. Keep
 original binary Terrain content; publish native scene, never reserialized backup.
 See desktop_gas_sidewalk_trails_results_20261030.json for exact failures/evidence.
+
+
+## Publication receipt
+
+Official Universe10768420544 / Place127925465904803 published PV1278.
+Code commit:d9fd007067877725b95ed8e816f9c6874849bb66. Native Studio Publish success and
+Creator Dashboard Show published only independently confirm1278, previous1275.
+No server restart; new jobs use this release. Receipt-only commit follows.
