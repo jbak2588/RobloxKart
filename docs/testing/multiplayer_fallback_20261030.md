@@ -79,3 +79,11 @@ between the two categories; each category remains sorted by complete Finish tota
   naturally; no forced restart is part of this release.
 
 See [machine-readable receipt](multiplayer_fallback_results_20261030.json).
+
+## Publication receipt
+
+Published official Universe10768420544 / Place127925465904803 as PV1270,
+code commit0832a5ce66ab9d92a609831cf79972b6f4729f3f. Native Studio success
+and Creator Dashboard published-only history independently confirm1270.
+No server restart. Live backfill completion and published board rendering
+remain unverified; the read-only audit and Studio evidence above are distinct.

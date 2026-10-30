@@ -145,8 +145,11 @@
   },
   "rawLogs": "C:/Users/Public/Documents/ESTsoft/CreatorTemp/kdm-hub-ui-20261030-j2g7j0_n",
   "publication": {
-    "status": "VALIDATED_PENDING_PUBLISH",
+    "status": "PUBLISHED",
     "universe": 10768420544,
-    "place": 127925465904803
+    "place": 127925465904803,
+    "version": 1270,
+    "codeCommit": "0832a5ce66ab9d92a609831cf79972b6f4729f3f",
+    "verification": "Native Studio publish success and Creator Dashboard Show published only version 1270; no restart"
   }
 }
