@@ -11,6 +11,7 @@ function Freeze.accepts(manifest,path,source)
  if type(source)~='string'then return false,'missing/unprotected source'end
  source=Freeze.canonical(source)
  local hash=serde.hash('sha256',source)
+ if manifest.parkReplicationLifecyclePatches and manifest.parkReplicationLifecyclePatches[path]==hash then return true,'PARK_REPLICATION_LIFECYCLE'end
  if manifest.navigationGlyphPatches and manifest.navigationGlyphPatches[path]==hash then return true,'NAVIGATION_GLYPH'end
  if manifest.robuxTopUpPatches and manifest.robuxTopUpPatches[path]==hash then return true,'ROBUX_TOPUP'end
  if manifest.desktopGasSidewalkTrailPatches and manifest.desktopGasSidewalkTrailPatches[path]==hash then return true,'DESKTOP_GAS_SIDEWALK_TRAIL'end
@@ -69,6 +70,7 @@ function Freeze.collect(manifest,read)
  for path in manifest.officialRoadContinuityPatches or {}do paths[path]=true end
  for path in manifest.desktopGasSidewalkTrailPatches or {}do paths[path]=true end
  for path in manifest.robuxTopUpPatches or {}do paths[path]=true end
+ for path in manifest.parkReplicationLifecyclePatches or {}do paths[path]=true end
  for path in manifest.navigationGlyphPatches or {}do paths[path]=true end
  for path in paths do
   local loaded,source=pcall(read,path)

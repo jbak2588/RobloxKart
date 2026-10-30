@@ -29,7 +29,8 @@ local started = false
 
 local function stageCharacter(player: Player, spawnLocation: SpawnLocation)
 	local character = player.Character
-	if not character or player:GetAttribute("RaceState") ~= "GARAGE" then
+	if not character or player:GetAttribute("RaceState") ~= "GARAGE"
+		or player:GetAttribute("LobbyDriveActive") == true or player:GetAttribute("LobbyDrivePending") == true then
 		return
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -45,7 +46,8 @@ local function stageCharacter(player: Player, spawnLocation: SpawnLocation)
 		end
 		task.wait(0.1)
 	end
-	if player.Character ~= character or player:GetAttribute("RaceState") ~= "GARAGE" then
+	if player.Character ~= character or player:GetAttribute("RaceState") ~= "GARAGE"
+		or player:GetAttribute("LobbyDriveActive") == true or player:GetAttribute("LobbyDrivePending") == true then
 		return
 	end
 	if humanoid.SeatPart ~= nil then

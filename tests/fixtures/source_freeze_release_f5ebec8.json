@@ -809,5 +809,11 @@
     "src/client/RaceHudController.luau": "16d6af0ffb66089a3366bb98a05de7b83af8bfec8b7be068a9fdb5689f37330b",
     "src/client/LobbyTestDriveController.luau": "bf4844b78a83e6f29edac7690828bde8b038050dbe95c2cd62b677364dc12b31",
     "src/client/MinimapDriverMarker.luau": "17ff6ea6414da07a20c5ac92e78c24eeec89e6b864fb2d04b2bf9fe4bddb417e"
+  },
+  "parkReplicationLifecyclePatches": {
+    "src/server/LobbyPracticeCombat.luau": "f0c6ab8b84b7a5ff4cbc5914fa475e7c92f8407dd40910d346632a48ba6bb057",
+    "src/server/GarageController.luau": "3e5cbdeaa29bbf512aa2e37c3ef7e1d301ce4cdb7f9302501b74fc1df6b2559f",
+    "src/server/LobbyTestDriveService.luau": "bea9c7a72ec478545b83826f8352163004621f28f40fc7feed9b0028e2da63a9",
+    "src/server/RookieParkTrialSession.luau": "8b071c05f4cb87b3f4271833a6676352c2f4429aff7648f7a73712393dc1056e"
   }
 }

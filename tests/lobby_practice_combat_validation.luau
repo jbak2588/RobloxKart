@@ -238,8 +238,15 @@ c,p,q,r,s=fresh();r.parkOvertake=true
 r.trial={phase='RUNNING',startedAt=1000,overtakeStartArc=modules.ParkOvertakePolicy.startArc(0)}
 c:add(p,r);local a=c.actors[p];local rival=a.rivals[1]
 check(#a.rivals==7 and c:valid(rival),'seven server combat targets bound to one live challenge')
+for _,b in a.rivals do
+ check(b.record.body.Parent==nil and b.record.kart:FindFirstChild('Chassis')==nil,'challenge authority pose is never replicated')
+ check(b.record.body.Anchored and b.record.body.CanCollide==false,'private pose remains inert')
+end
+for _,b in c.bots do check(b.record.body.Parent==nil and b.record.kart:FindFirstChild('Chassis')==nil,'shared showcase authority poses are private too')end
 local base=rival.distance;tick(.5)
 check(math.abs(rival.distance-base-35)<.001,'unhit challenge rivals keep exact 70 pace')
+check((rival.record.body.Position-rival.record.body.CFrame.Position).Magnitude<.001,'full-rate private pose remains consistent for combat sweeps')
+check(rival.record.kart:GetAttribute('OvertakeDistance')~=nil,'existing sampled presentation protocol retained')
 for _,id in {'Missile','Thunder','Slick','Smoke'}do
  c:clearTransient(rival);rival.speed=70
  local before=rival.distance

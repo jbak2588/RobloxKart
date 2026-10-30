@@ -63,6 +63,7 @@ function Session.new(zone,practice)
      proofVersion=2,completedLaps=s.completedLaps,bestLapMilliseconds=math.min(table.unpack(s.lapTimes)),rewardMultiplier=s.multiplier})
    end)
    s.saving=false;s.confirmed=ok and type(result)=='table' and result.status=='SAVE_CONFIRMED'
+   print(string.format('[ParkSession] event=save user=%s run=%s confirmed=%s status=%s',tostring(player.UserId),tostring(s.id),tostring(s.confirmed),if ok and type(result)=='table'then tostring(result.status)else 'ERROR'))
    if r.trial==s and player.Parent and player:GetAttribute('LobbyDriveActive')==true
     and player:GetAttribute('LobbyDriveGeneration')==r.generation then
     player:SetAttribute('ParkTrialRewardState',if s.confirmed then 'CONFIRMED'else 'UNCONFIRMED')
@@ -106,15 +107,18 @@ function Session.new(zone,practice)
   r.trial.nextSample=now+.1
   local event=Trial.step(r.trial,now,p.X,p.Y,p.Z)
   if event=='GO'then
+   print(string.format('[ParkSession] event=go user=%s run=%s mode=%s',tostring(player.UserId),tostring(s.id),if r.parkOvertake then 'OVERTAKE'else 'TIME_ATTACK'))
    r.body.Anchored=false;r.body:SetNetworkOwner(nil)
    practice:add(player,r)
    local t=os.clock();r.training.boost=true;r.training.boostEnd=t+Config.MINI_BOOST_DURATION
    r.training.boostPress=r.training.press;r.practiceBoostPress=r.training.boostPress
    r.launchUntil=t+Config.MINI_BOOST_DURATION;r.lastInput=t;r.throttle=1
   elseif event=='INVALID'then
+   print(string.format('[ParkSession] event=invalid user=%s run=%s',tostring(player.UserId),tostring(s.id)))
    practice:remove(player);Drift.clear(r.training)
    r.kart:SetAttribute('KartBoosting',false);r.kart:SetAttribute('KartDrifting',false)
   elseif event=='FINISHED'then
+   print(string.format('[ParkSession] event=finish user=%s run=%s milliseconds=%s',tostring(player.UserId),tostring(s.id),tostring(s.milliseconds)))
    local s=r.trial
    if r.parkOvertake then
     s.botDistances=practice:overtakeDistances(player,s.milliseconds/1000)

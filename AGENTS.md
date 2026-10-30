@@ -2,6 +2,18 @@
 
 Read this before editing the project.
 
+## Park proxy replication / actual session exits - owner 2026-10-30
+
+Owner requests removing unnecessary Overtake replication and confirms newly
+arriving TIME ATTACK users disappear from the player list. Keep inert server
+combat pose handles private/unparented, explicitly destroy them, retain sampled
+metadata and all hit/scoring/session contracts. Guard deferred Garage staging
+against active/pending Park drivers. Log lifecycle events and Roblox exit reason
+without per-frame telemetry or account writes. Actual disconnect cause remains
+unconfirmed; a constant205 profile keys is not a count of completed runs.
+Preserve human physics/manual ownership, controls, trees, rewards and data.
+See docs/testing/park_private_poses_session_lifecycle_20261030.md.
+
 ## Steering glyphs / directional minimaps - owner 2026-10-30
 
 Owner requests font-based left/right triangles enlarged20 percent and visually

@@ -50,7 +50,10 @@ function Combat.new(zone,records,driveGeometry)
   model:SetAttribute('LobbyPracticeBot',true);model:SetAttribute('BotIndex',cfg.id);model:SetAttribute('KartId',cfg.kartId)
   local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
   pcall(function() body.Position=Vector3.zero end)
-  body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false;body.Parent=model;model.PrimaryPart=body
+  -- Server-only inert pose handle. Clients need timeline/effect attributes, not
+  -- a replicated invisible Part moving at physics cadence. Keep it unparented;
+  -- the actor retains it for full-rate combat geometry and explicitly destroys it.
+  body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false
   model:SetAttribute('RaceResetSerial',0);model.Parent=zone
   local a=actor(nil,{kart=model,body=body})
   a.DisplayName=cfg.name;a.attrs.RaceSessionId=self.session.id;a.botIndex=cfg.id;a.botDelay=cfg.delay;a.active=false
@@ -82,7 +85,8 @@ function Combat:addOvertakeRivals(owner)
   model:SetAttribute('OvertakeOwner',owner.UserId);model:SetAttribute('OvertakeIndex',i)
   local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8);body.Transparency=1
   body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false
-  body.Parent=model;model.PrimaryPart=body;model:SetAttribute('RaceResetSerial',0);model.Parent=self.folder
+  -- Retained only by the server actor, as with the shared showcase pose handles.
+  model:SetAttribute('RaceResetSerial',0);model.Parent=self.folder
   local b=actor(nil,{kart=model,body=body});b.botIndex=i;b.overtakeOwner=owner.owner
   b.UserId=-owner.UserId*10-i;b.DisplayName='RIVAL '..i;b.attrs.RaceSessionId=self.session.id
   b.distance=Overtake.botDistance(i,0);b.speed=Overtake.BotSpeed;b.sampleTime=owner.record.trial.startedAt
@@ -197,7 +201,7 @@ function Combat:clearTransient(a)
 end
 function Combat:remove(player)
  local a=self.actors[player];if not a then return end
- if a.rivals then for _,b in a.rivals do self:clearTransient(b);b.record.kart:Destroy()end;a.rivals=nil end
+  if a.rivals then for _,b in a.rivals do self:clearTransient(b);b.record.body:Destroy();b.record.kart:Destroy()end;a.rivals=nil end
  self:clearTransient(a);a.loadout:clear();self.actors[player]=nil
  for _,id in Policy.Items do player:SetAttribute('LobbyCharge'..id,0);player:SetAttribute('LobbyReadyAt'..id,0)end
  player:SetAttribute('LobbyBonusProgress',0);player:SetAttribute('LobbyBonusPending',false);player:SetAttribute('LobbyCombatSessionId',nil)
@@ -458,7 +462,7 @@ end
 function Combat:destroy()
  if self.stopped then return end
  for p in self.actors do self:remove(p)end
- for _,b in self.bots do self:clearTransient(b);b.record.kart:Destroy()end
+ for _,b in self.bots do self:clearTransient(b);b.record.body:Destroy();b.record.kart:Destroy()end
  self.stopped=true
  self.missiles:clearSession(self.session);self.thunder:clearSession(self.session);self.smoke:clearSession(self.session)
  self.folder:Destroy()

@@ -33,32 +33,32 @@ table.sort(paths)
 check(#paths==133,'reviewed protected set size')
 for path,hash in manifest.parkOvertakePatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.desktopGasSidewalkTrailPatches[path]or manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or manifest.parkItemsKioskPatches[path]or hash),'exact reviewed overtake or follow-up source '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.desktopGasSidewalkTrailPatches[path]or manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or manifest.parkItemsKioskPatches[path]or hash),'exact reviewed overtake or follow-up source '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'), 'reject overtake mutation '..path)
  if not manifest.files[path]then table.insert(paths,path)end
 end
 for path,hash in manifest.parkItemsKioskPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.multiplayerFallbackPatches[path]or manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or hash),'exact item/kiosk/terminology follow-up '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.multiplayerFallbackPatches[path]or manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or hash),'exact item/kiosk/terminology follow-up '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject follow-up mutation '..path)
  if not table.find(paths,path)then table.insert(paths,path)end
 end
 for path,hash in manifest.timeAttackRewardPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.hubArrivalUiPatches[path]or hash),'exact finish-only reward/top HUD change '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.hubArrivalUiPatches[path]or hash),'exact finish-only reward/top HUD change '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject reward/HUD mutation '..path)
  if not table.find(paths,path)then table.insert(paths,path)end
 end
 for path,hash in manifest.multiplayerFallbackPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or hash),'exact multiplayer fallback approval '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or hash),'exact multiplayer fallback approval '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject fallback mutation '..path)
  check(not freeze.accepts(manifest,path,source:sub(2)),'reject fallback deletion '..path)
  if not table.find(paths,path)then table.insert(paths,path)end
 end
 for path,hash in manifest.hubArrivalUiPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or hash),'exact arrival/UI approval '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or hash),'exact arrival/UI approval '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'),'reject arrival/UI mutation '..path)
  check(not freeze.accepts(manifest,path,source:sub(2)),'reject arrival/UI deletion '..path)
  if not table.find(paths,path)then table.insert(paths,path)end
@@ -90,7 +90,7 @@ print('PASS: '..n..' current release integrity, historical preservation, exact F
 
 for path,hash in manifest.officialRoadContinuityPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.desktopGasSidewalkTrailPatches[path]or hash),'exact official-road artifact '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or manifest.desktopGasSidewalkTrailPatches[path]or hash),'exact official-road artifact '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- mutation'),'reject official-road mutation '..path)
  check(not freeze.accepts(manifest,path,source:sub(2)),'reject official-road deletion '..path)
 end
@@ -98,7 +98,7 @@ print('PASS '..n..' including official-road exact artifact pins')
 
 for path,hash in manifest.desktopGasSidewalkTrailPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or hash),'exact desktop/sidewalk/trail artifact '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.parkReplicationLifecyclePatches[path]or manifest.navigationGlyphPatches[path]or manifest.robuxTopUpPatches[path]or hash),'exact desktop/sidewalk/trail artifact '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- mutation'),'reject new artifact mutation '..path)
  check(not freeze.accepts(manifest,path,source:sub(2)),'reject new artifact deletion '..path)
 end
@@ -119,3 +119,11 @@ for path,hash in manifest.navigationGlyphPatches do
  check(not freeze.accepts(manifest,path,source:sub(2)),'reject navigation deletion '..path)
 end
 print('PASS '..n..' including steering/minimap artifact pins')
+
+for path,hash in manifest.parkReplicationLifecyclePatches do
+ local source=fs.readFile(path)
+ check(serde.hash("sha256",freeze.canonical(source))==hash,"exact Park replication/lifecycle artifact "..path)
+ check(not freeze.accepts(manifest,path,source.."\n-- mutation"),"reject Park mutation "..path)
+ check(not freeze.accepts(manifest,path,source:sub(2)),"reject Park deletion "..path)
+end
+print("PASS "..n.." including Park replication/lifecycle exact pins")

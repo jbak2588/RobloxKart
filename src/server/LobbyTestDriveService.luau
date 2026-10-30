@@ -100,6 +100,11 @@ function Service.stop(player,reason,returnToHub)
  end
  local record=records[player]
  if not record then return true,false end
+ -- One event per actual teardown; no per-frame logging or persistent telemetry.
+ print(string.format('[ParkSession] event=stop user=%s generation=%s reason=%s phase=%s inputAge=%.3f health=%.1f seatMatch=%s route=%s',
+  tostring(player.UserId),tostring(record.generation),tostring(reason),tostring(record.trial and record.trial.phase),
+  math.max(0,os.clock()-(record.lastInput or os.clock())),record.humanoid.Health,
+  tostring(record.seat.Occupant==record.humanoid and record.humanoid.SeatPart==record.seat),tostring(player:GetAttribute('KDMRoutePending'))))
  if practice then practice:remove(player)end
  if timeTrial then timeTrial:remove(player)end
  record.returnToHub=returnToHub;closing[player]=record
@@ -232,6 +237,7 @@ local function drive(player,previewKartId,mode)
   Service.stop(player,"sit_failed",true);return false,"COULD NOT ENTER KART"
  end
  record.seated=true;if timeTrial then timeTrial:begin(player,record)elseif practice then practice:add(player,record)end;player:SetAttribute("LobbyDriveKartId",definition.Id)
+ print(string.format('[ParkSession] event=seated user=%s generation=%s mode=%s',tostring(player.UserId),tostring(gen),if record.parkOvertake then 'OVERTAKE'else 'TIME_ATTACK'))
  player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)
  if presence then presence:refresh() end
  return true
@@ -281,7 +287,8 @@ function Service.start(driveZone,eligibility)
  end
  for _,player in Players:GetPlayers() do bind(player) end
  Players.PlayerAdded:Connect(bind)
- Players.PlayerRemoving:Connect(function(player)
+ Players.PlayerRemoving:Connect(function(player,exitReason)
+  print(string.format('[ParkSession] event=player_leaving user=%s active=%s phase=%s exitReason=%s route=%s',tostring(player.UserId),tostring(player:GetAttribute('LobbyDriveActive')),tostring(player:GetAttribute('ParkTrialPhase')),tostring(exitReason),tostring(player:GetAttribute('KDMRoutePending'))))
   Service.stop(player,"leave",false);restoreCharacter(player)
   for _,c in connections[player] or {} do c:Disconnect() end
   connections[player],generations[player],lastRequest[player]=nil,nil,nil
