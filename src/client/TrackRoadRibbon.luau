@@ -33,6 +33,20 @@ function Ribbon.triangle(parent,a,b,c,variant,tint,pbr)
  return count
 end
 function Ribbon.build(model,track,park,variant,pbr)
+ if park then
+  -- One preauthored mesh keeps a single material projection across every face.
+  -- Cloning needs no runtime Mesh/Image API or security-setting changes.
+  local source=RS:WaitForChild('KDMRoadMaterials'):WaitForChild('ParkContinuousAsphalt',5)
+  if source and source:IsA('MeshPart')and source.MeshId~=''then
+   local p=source:Clone();p.Name='ContinuousAsphalt'
+   p.CFrame=CFrame.new(track:GetAttribute('Origin')+Vector3.new(-50,.015,-643.5))*CFrame.Angles(0,math.pi,0)
+   p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false;p.CastShadow=false
+   Ribbon.matte(p,Standard.ParkRoadTint,variant);p.Parent=model
+   model:SetAttribute('ContinuousAsphaltVersion',1)
+   model:SetAttribute('SharedEdgeRoadFaces',7632)
+   return
+  end
+ end
  local points={};local half,y
  if park then
   local origin=track:GetAttribute('Origin');y=origin.Y+.015

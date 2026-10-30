@@ -13,5 +13,21 @@
         <token name="MaterialPattern">1</token>
       </Properties>
     </Item>
+    <Item class="MeshPart" referent="KDMContinuousParkRoad">
+      <Properties>
+        <string name="Name">ParkContinuousAsphalt</string>
+        <Content name="MeshId"><url>rbxassetid://94042544951144</url></Content>
+        <Vector3 name="InitialSize"><X>1373</X><Y>0.01</Y><Z>1086</Z></Vector3>
+        <Vector3 name="size"><X>1373</X><Y>0.01</Y><Z>1086</Z></Vector3>
+        <token name="RenderFidelity">1</token>
+        <token name="Material">816</token>
+        <bool name="Anchored">true</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="CastShadow">false</bool>
+        <bool name="DoubleSided">false</bool>
+      </Properties>
+    </Item>
   </Item>
 </roblox>

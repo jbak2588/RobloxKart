@@ -2,6 +2,19 @@
 
 Read this before editing the project.
 
+## Continuous Park asphalt - owner report 2026-10-30
+
+Owner requests comparison with Hub_n_lobby_original.rbxlx and removal of visible
+patch seams on the pictured Rookie Park road. Use one preauthored inert surface
+mesh with one material projection, preserving the original asphalt ColorMap24
+and accepted matte/tint. Keep exact course/support/paint/ownership/economy.
+No runtime EditableMesh or Mesh/Image security-setting changes. Validate native
+import axis compensation, intrinsic size and ordinary client rendering. Other
+tracks remain separate under the one-track-at-a-time scenery policy. Retain
+fallback geometry if the prefab is absent. Commit/push and official Publish
+follow the owner's current release instruction; exact production pair only,
+without server restart. See docs/testing/park_continuous_asphalt_20261030.md.
+
 ## Multiplayer human-first Top5 fallback - owner 2026-10-30
 
 Owner confirms humans first; when fewer than5 human-only users exist on a track,

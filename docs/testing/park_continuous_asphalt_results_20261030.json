@@ -1,0 +1,50 @@
+{
+  "baseline": "8068a071ce820c64ab1dd30c18b64ea4827e75c0",
+  "mesh": 94042544951144,
+  "sourceHashes": {
+    "src/client/TrackRoadRibbon.luau": "31b54e895ca2aca7bc4f21db127abd1c967518027710669aa71123ae573b7219",
+    "src/assets/KDMRoadMaterials.rbxmx": "dffdd4cd1adf6f4ed339f83ad07b7d045ecb8f4ea88d4f8213ecca655ad2cf2f",
+    "src/assets/ParkContinuousAsphalt.obj": "3684a49192647ac35ccc93b8fb97ac18d6652c7f5d6b02875d0922ccf41be14b"
+  },
+  "validation": {
+    "total": 253,
+    "pass": 233,
+    "fail": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ]
+  },
+  "parity": {
+    "backupSHA256": "fa53cbc13d99e7469c1ffcd2b53a7da2d2f6a7338dcdb17d4820877c3140ac68",
+    "flags": {
+      "HubParkV1Enabled": true,
+      "KDMControlsV1Preview": true,
+      "KDMGasPedalEnabled": true
+    },
+    "mismatches": {},
+    "sources": 232
+  },
+  "publication": {
+    "status": "VALIDATED_PENDING_PUBLISH",
+    "universe": 10768420544,
+    "place": 127925465904803
+  }
+}

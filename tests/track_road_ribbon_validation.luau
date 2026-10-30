@@ -8,7 +8,14 @@ local parts={};local function object(class)
  function p:SetAttribute(k,v)self[k]=v end
  table.insert(parts,p);return p
 end
-local e=table.clone(env);e.game={GetService=function()return {Shared={TrackGeometry=G,HubParkRookieLoopLayout=P,TrackSurfaceStandard=S}}end};e.require=function(m)return m end
+local continuous=false
+local prefab={MeshId='rbxassetid://94042544951144'}
+function prefab:IsA(c)return continuous and c=='MeshPart' end
+function prefab:Clone()local p=object('MeshPart');p.Size=rb.Vector3.new(1373,.01,1086);return p end
+local e=table.clone(env);e.game={GetService=function()return {
+ Shared={TrackGeometry=G,HubParkRookieLoopLayout=P,TrackSurfaceStandard=S},
+ WaitForChild=function()return {WaitForChild=function()return prefab end}end
+}end};e.require=function(m)return m end
 e.workspace={FindFirstChild=function()return nil end}
 e.Instance={new=object};e.Enum=rb.Enum
 local R=luau.load(fs.readFile('src/client/TrackRoadRibbon.luau'),{environment=e})()
@@ -67,3 +74,39 @@ for _,p in parts do
 end
 check(baseFaces>100 and baseFaces<5000,'bounded Base shared-edge road')
 print('PASS '..n..' including baked-material and Base PBR regressions; Base faces '..baseFaces)
+-- Native imported Park mesh uses one projection for every top face, with the
+-- importer's 180-degree yaw undone once. Official tracks retain their old path.
+continuous=true;table.clear(parts)
+local t={GetAttribute=function()return rb.Vector3.new(0,0,888)end}
+local model=object('Model');R.build(model,t,true,'Matte')
+local meshCount=0
+for _,p in parts do
+ check(p.class~='WedgePart'and p.class~='Texture'and p.class~='Decal','no separately mapped Park patches')
+ if p.class=='MeshPart'then
+  meshCount+=1
+  check(not p.CanCollide and not p.CanQuery and not p.CanTouch,'visual only mesh')
+  check(p.CFrame.Position==rb.Vector3.new(-50,.015,244.5),'intrinsic center to stable origin')
+  check(p.CFrame.LookVector.Z>.9999,'OBJ importer yaw compensated')
+  check(math.abs(p.CFrame.Position.Y+p.Size.Y/2-.02)<.000001,'road top unchanged')
+  check(p.MaterialVariant=='Matte'and p.Color==S.ParkRoadTint,'accepted matte and tint')
+ end
+end
+check(meshCount==1 and model.ContinuousAsphaltVersion==1,'single continuous Park projection')
+local vertices,uvs,faces={},{},{}
+for line in fs.readFile('src/assets/ParkContinuousAsphalt.obj'):gmatch('[^\r\n]+')do
+ local x,y,z=line:match('^v ([%d%.%-]+) ([%d%.%-]+) ([%d%.%-]+)')
+ if x then table.insert(vertices,rb.Vector3.new(tonumber(x),tonumber(y),tonumber(z)))end
+ local u,v=line:match('^vt ([%d%.%-]+) ([%d%.%-]+)')
+ if u then table.insert(uvs,rb.Vector2.new(tonumber(u),tonumber(v)))end
+ local a,b,c=line:match('^f (%d+)/%d+/%d+ (%d+)/%d+/%d+ (%d+)/%d+/%d+')
+ if a then table.insert(faces,{tonumber(a),tonumber(b),tonumber(c)})end
+end
+check(#vertices==3816 and #faces==7632 and #uvs==#vertices,'bounded static asset topology')
+for i,v in vertices do
+ check(math.abs(uvs[i].X-v.X/24)<.00001 and math.abs(uvs[i].Y-v.Z/24)<.00001,'one continuous planar UV field')
+ check(math.abs(v.Y-.02)<.000001 or math.abs(v.Y-.01)<.000001,'positive intrinsic thickness / accepted top')
+end
+for i=1,1908 do local f=faces[i];local a,b,c=vertices[f[1]],vertices[f[2]],vertices[f[3]]
+ check((b-a):Cross(c-a).Y>0,'every visible top face points upward')
+end
+print('PASS '..n..' including continuous Park mesh / UV / winding checks')
