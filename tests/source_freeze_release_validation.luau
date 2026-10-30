@@ -87,3 +87,11 @@ local collected=freeze.collect(manifest,function(path)
 end)
 check(#collected==2 and collected[1]:find(badA,1,true) and collected[2]:find(badB,1,true),'report all missing/mutated targets, not only first')
 print('PASS: '..n..' current release integrity, historical preservation, exact FOV approval and mutation rejection checks across '..#paths..' files')
+
+for path,hash in manifest.officialRoadContinuityPatches do
+ local source=fs.readFile(path)
+ check(serde.hash('sha256',freeze.canonical(source))==hash,'exact official-road artifact '..path)
+ check(not freeze.accepts(manifest,path,source..'\n-- mutation'),'reject official-road mutation '..path)
+ check(not freeze.accepts(manifest,path,source:sub(2)),'reject official-road deletion '..path)
+end
+print('PASS '..n..' including official-road exact artifact pins')

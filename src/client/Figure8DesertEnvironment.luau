@@ -122,6 +122,7 @@ function Environment.build(track)
  local ground=track:FindFirstChild('SafetyGround');local groundY=if ground then ground.Position.Y+ground.Size.Y/2 else 0
  local samples=Geometry.getCourse(Geometry.getDefinition('PracticeFigure8V1')).Samples
  local saved={};local kerbFrames={};local roadColors={};local railState={};local tiles={};local alive=true
+ local continuous=require(script.Parent.TrackRoadRibbon).official(model,track,'KDMDesert_Racing_Asphalt_A',false)
  -- Separate overlapping kerb stripes from each other and the white road edge.
  local kerbs=track:FindFirstChild('Kerbs')
  if kerbs then for _,p in kerbs:GetChildren()do if p:IsA('BasePart')then
@@ -130,7 +131,8 @@ function Environment.build(track)
  end end end
  local function softenRoad(p)
   if p:IsA('BasePart')then
-   roadColors[p]={p.Color,p.MaterialVariant,p.Size}
+   roadColors[p]={p.Color,p.MaterialVariant,p.Size,p.LocalTransparencyModifier}
+   if continuous and not p.CanCollide then p.LocalTransparencyModifier=1 end
    p.Color=Color3.fromRGB(226,220,188);p.MaterialVariant='KDMDesert_Racing_Asphalt_A'
    local index=tonumber(p.Name:match('^Road(%d+)$'))
    local length=index and Environment.straightRoadLength(samples,index)
@@ -201,7 +203,7 @@ function Environment.build(track)
   for _,r in tiles do terrain:FillBlock(r.CFrame,r.Size,Enum.Material.Air)end
   for _,r in saved do if r.part.Parent then r.part.Material=r.material;r.part.MaterialVariant=r.variant;r.part.Color=r.color;r.part.LocalTransparencyModifier=r.localTransparency end end
   for p,cf in kerbFrames do if p.Parent then p.CFrame=cf end end
-  for p,state in roadColors do if p.Parent then p.Color=state[1];p.MaterialVariant=state[2];p.Size=state[3]end end
+  for p,state in roadColors do if p.Parent then p.Color=state[1];p.MaterialVariant=state[2];p.Size=state[3];p.LocalTransparencyModifier=state[4]end end
   for p,state in railState do if p.Parent then
    if p:IsA('SurfaceGui')then p.Enabled=state else p.LocalTransparencyModifier=state end
   end end

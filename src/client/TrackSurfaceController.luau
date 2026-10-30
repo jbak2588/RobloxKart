@@ -39,6 +39,8 @@ function Controller.build(track,park)
   groundY=if ground then ground.Position.Y+ground.Size.Y/2 else 0
  end
  local roads=0;local kerbs=0
+ local continuous=not park and Ribbon.official(model,track,material.Name,smooth)
+ sharedEdges=sharedEdges or continuous
  local roadListener,treeListener,markingListener
  local raised={};local raisedCount=0
  local function liftMarking(p)
@@ -56,7 +58,7 @@ function Controller.build(track,park)
   local length=samples and index and Desert.straightRoadLength(samples,index)
   if length then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end
   if sharedEdges then
-   if (park and p.Name=='Road')or index then hide(p)else Ribbon.matte(p,if park then Standard.ParkRoadTint else nil,material.Name)end
+   if (park and p.Name=='Road')or index or(continuous and p.Name:match('^CrossoverRibbon'))then hide(p)else Ribbon.matte(p,if park then Standard.ParkRoadTint else nil,material.Name)end
   end
   roads+=1
  end
@@ -78,7 +80,7 @@ function Controller.build(track,park)
    p.Material=Enum.Material.Concrete;p.MaterialVariant='';kerbs+=1
   end end end
  end
- if sharedEdges then
+ if sharedEdges and not continuous then
   Ribbon.build(model,track,park,material.Name,not smooth)
  end
  if smooth then

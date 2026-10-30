@@ -2,6 +2,19 @@
 
 Read this before editing the project.
 
+## All official road continuity - owner 2026-10-30
+
+Owner accepted published PV1274 Park surface, and extends the same seam removal
+to every selectable official track: Green, Desert, Base, Metro and Hard. Apply
+one preauthored inert mesh per shared geometry while preserving each theme's
+accepted matte/PBR/tint and original24-stud asphalt. Preserve Figure-8 crossover
+tops.105/.120 and ordinary road top.065, raised paint, all physical supports,
+course, checkpoints, recovery, physics, ownership, rewards and data. Exclude
+retired Track02. No runtime mesh generation or security-setting changes.
+Validate tracks sequentially, then scoped commit/push and official Publish under
+the owner's continuing release instruction, exact Universe10768420544 /
+Place127925465904803, no restart. See docs/testing/official_road_continuity_20261030.md.
+
 ## Continuous Park asphalt - owner report 2026-10-30
 
 Owner requests comparison with Hub_n_lobby_original.rbxlx and removal of visible

@@ -1,0 +1,126 @@
+{
+  "baseline": "9b4dcb003d826de467c1f4cd1da5e6616fbb4c12",
+  "meshes": {
+    "PracticeFigure8V1": 96125611983857,
+    "PracticeCircuitV1": 84772715021686,
+    "HardCircuitV1": 74812628911192
+  },
+  "geometry": {
+    "HardCircuitV1": {
+      "center": [
+        155.1800537109375,
+        0.05999999865889549,
+        346.0700225830078
+      ],
+      "faces": 3208,
+      "size": [
+        1080.4302978515625,
+        0.009999997913837433,
+        1304.2924499511719
+      ],
+      "topFaces": 802,
+      "vertices": 1604
+    },
+    "PracticeCircuitV1": {
+      "center": [
+        -239.99999237060547,
+        0.05999999865889549,
+        -55
+      ],
+      "faces": 1296,
+      "size": [
+        960.0000152587891,
+        0.009999997913837433,
+        1350
+      ],
+      "topFaces": 324,
+      "vertices": 648
+    },
+    "PracticeFigure8V1": {
+      "center": [
+        7.1177825927734375,
+        0.08749999850988388,
+        82.5196533203125
+      ],
+      "faces": 1088,
+      "size": [
+        580.0884704589844,
+        0.06499999761581421,
+        865.039306640625
+      ],
+      "topFaces": 274,
+      "vertices": 556
+    }
+  },
+  "sourceHashes": {
+    "src/client/TrackRoadRibbon.luau": "8c1b36e795aa0bf759de849e96e15961f7d854aee59c547fe4101d4287bff5f7",
+    "src/client/TrackSurfaceController.luau": "cde4fa38beefb4d7aa78ba47a0e019085cd5a7ef0f75743fd38ef97e52fbd267",
+    "src/client/Figure8DesertEnvironment.luau": "bcf53cf3f19d1f750ab842c6a0394cc1b17b3a7f901afb256ea396b6e7f1c6f6",
+    "src/client/MetroCityEnvironment.luau": "5ca964c4698d762f83159cf3ca80b3985111db8c758b94365a40f5f3adc8d44a",
+    "src/assets/KDMRoadMaterials.rbxmx": "b65f0a31ffa35c1c2cdde4286bd8677048f8950929418a20ac135e33e6ab84ad",
+    "src/assets/OfficialContinuousAsphaltGeometry.json": "8e4f09bff4ff8771cd16f6aae8d8660c9ebb03c2958c30455ea0539a3d59646b",
+    "src/assets/PracticeFigure8V1ContinuousAsphalt.obj": "cf9d63795740e221c36040f3f6173052d2783b6fe3aecde6b21c8bb11ecf77b4",
+    "src/assets/PracticeCircuitV1ContinuousAsphalt.obj": "6eb4e44122e9023d29a62b1b9647bdfa63cf84a31ecc39a2de1ce60c63f72d69",
+    "src/assets/HardCircuitV1ContinuousAsphalt.obj": "c5f386331f921cc25f9dc8d5ad4527caad2082f531757919a6139eac03997433"
+  },
+  "validation": {
+    "total": 254,
+    "pass": 234,
+    "fail": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ]
+  },
+  "focused": {
+    "officialRoad": 5317,
+    "parkRoad": 25317,
+    "releaseIntegrity": 811
+  },
+  "sourceParity": {
+    "backupSHA256": "53d80af65cd6d402d2c1b30bc57e81feac0825409959f4ef5223ffcdc9180cc4",
+    "flags": {
+      "HubParkV1Enabled": true,
+      "KDMControlsV1Preview": true,
+      "KDMGasPedalEnabled": true
+    },
+    "mismatches": {},
+    "sources": 232
+  },
+  "studio": {
+    "mode": "Controlled Play-only TrackBuilder track swaps and ordinary client controllers; existing Hub HUD remains; Desert controller restarted after synthetic swap",
+    "hiddenRoads": {
+      "Track01": 248,
+      "Track01Desert": 248,
+      "Track01Race": 390,
+      "Track01Metro": 390,
+      "Track03": 429
+    },
+    "metroTeardownRestored": 390,
+    "crossoversHidden": true,
+    "newRuntimeErrors": 0
+  },
+  "publication": {
+    "status": "VALIDATED_PENDING_PUBLISH",
+    "universe": 10768420544,
+    "place": 127925465904803,
+    "restart": false
+  }
+}

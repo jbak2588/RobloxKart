@@ -4,6 +4,26 @@ local Geometry=require(RS.Shared.TrackGeometry)
 local Park=require(RS.Shared.HubParkRookieLoopLayout)
 local Standard=require(RS.Shared.TrackSurfaceStandard)
 local Ribbon={}
+local officialGeometry={Track01='PracticeFigure8V1',Track01Desert='PracticeFigure8V1',
+ Track01Race='PracticeCircuitV1',Track01Metro='PracticeCircuitV1',Track03='HardCircuitV1'}
+function Ribbon.official(model,track,variant,matte)
+ local geometry=officialGeometry[track:GetAttribute('TrackId')]
+ if not geometry or geometry~=track:GetAttribute('GeometryId')then return false end
+ local source=RS:WaitForChild('KDMRoadMaterials'):WaitForChild(geometry..'ContinuousAsphalt',5)
+ if not source or not source:IsA('MeshPart')or source.MeshId==''or
+  source.MeshSize.X<=0 or source.MeshSize.Y<=0 or source.MeshSize.Z<=0 then return false end
+ local ground=track:FindFirstChild('SafetyGround')or workspace:FindFirstChild('Baseplate')
+ local groundY=if ground then ground.Position.Y+ground.Size.Y/2 else 0
+ local p=source:Clone();p.Name='ContinuousAsphalt'
+ -- Prefab frame owns the native OBJ import-axis compensation and exact bounds.
+ p.CFrame=source.CFrame+Vector3.yAxis*groundY
+ p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false;p.CastShadow=false
+ if matte then Ribbon.matte(p,nil,variant)
+ else p.Color=Standard.RoadTint;p.Material=Enum.Material.Asphalt;p.MaterialVariant=variant end
+ p.Parent=model;model:SetAttribute('ContinuousAsphaltVersion',1)
+ model:SetAttribute('ContinuousAsphaltGeometry',geometry)
+ return true
+end
 function Ribbon.matte(part,tint,variant)
  tint=tint or Standard.RoadTint
  part.Color=tint

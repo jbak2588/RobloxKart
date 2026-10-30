@@ -53,8 +53,9 @@ function Environment.build(track)
  if baseplate and baseplate~=ground then appearance(baseplate,Color3.fromRGB(72,121,72),Enum.Material.Grass,'')end
  if env and env:FindFirstChild('SpeedCues')then for _,p in env.SpeedCues:GetDescendants()do if p:IsA('BasePart')then appearance(p,p.Color,p.Material,p.MaterialVariant,true)end end end
  local road=track:FindFirstChild('Road')
+ local continuous=require(script.Parent.TrackRoadRibbon).official(model,track,roadMaterial.Name,false)
  if road then for _,p in road:GetChildren()do if p:IsA('BasePart')then
-  appearance(p,Surface.RoadTint,Enum.Material.Asphalt,'KDMMetro_Racing_Asphalt_A')
+  appearance(p,Surface.RoadTint,Enum.Material.Asphalt,'KDMMetro_Racing_Asphalt_A',continuous)
   local index=tonumber(p.Name:match('^Road(%d+)$'))
   local length=index and DesertRoad.straightRoadLength(course.Samples,index)
   if length and not p.CanCollide then p.Size=Vector3.new(p.Size.X,p.Size.Y,length)end

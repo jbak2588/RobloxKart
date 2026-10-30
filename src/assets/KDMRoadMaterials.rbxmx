@@ -29,5 +29,154 @@
         <bool name="DoubleSided">false</bool>
       </Properties>
     </Item>
-  </Item>
+    <Item class="MeshPart" referent="KDMContinuousParkRoad">
+      <Properties>
+        <string name="Name">ParkContinuousAsphalt</string>
+        <Content name="MeshId">
+          <url>rbxassetid://94042544951144</url>
+        </Content>
+        <Vector3 name="InitialSize">
+          <X>1373</X>
+          <Y>0.01</Y>
+          <Z>1086</Z>
+        </Vector3>
+        <Vector3 name="size">
+          <X>1373</X>
+          <Y>0.01</Y>
+          <Z>1086</Z>
+        </Vector3>
+        <token name="RenderFidelity">1</token>
+        <token name="Material">816</token>
+        <bool name="Anchored">true</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="CastShadow">false</bool>
+        <bool name="DoubleSided">false</bool>
+      </Properties>
+    </Item>
+
+<Item class="MeshPart" referent="HardCircuitV1ContinuousAsphalt">
+      <Properties>
+        <string name="Name">HardCircuitV1ContinuousAsphalt</string>
+        <Content name="MeshId">
+          <url>rbxassetid://74812628911192</url>
+        </Content>
+        <Vector3 name="InitialSize">
+          <X>1080.4302978515625</X>
+          <Y>0.009999997913837433</Y>
+          <Z>1304.2924499511719</Z>
+        </Vector3>
+        <Vector3 name="size">
+          <X>1080.4302978515625</X>
+          <Y>0.009999997913837433</Y>
+          <Z>1304.2924499511719</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>155.1800537109375</X>
+          <Y>0.05999999865889549</Y>
+          <Z>346.0700225830078</Z>
+          <R00>-1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>-1</R22>
+        </CoordinateFrame>
+        <token name="RenderFidelity">1</token>
+        <token name="Material">1376</token>
+        <bool name="Anchored">true</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="CastShadow">false</bool>
+        <bool name="DoubleSided">false</bool>
+      </Properties>
+    </Item>
+
+<Item class="MeshPart" referent="PracticeCircuitV1ContinuousAsphalt">
+      <Properties>
+        <string name="Name">PracticeCircuitV1ContinuousAsphalt</string>
+        <Content name="MeshId">
+          <url>rbxassetid://84772715021686</url>
+        </Content>
+        <Vector3 name="InitialSize">
+          <X>960.0000152587891</X>
+          <Y>0.009999997913837433</Y>
+          <Z>1350</Z>
+        </Vector3>
+        <Vector3 name="size">
+          <X>960.0000152587891</X>
+          <Y>0.009999997913837433</Y>
+          <Z>1350</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>-239.99999237060547</X>
+          <Y>0.05999999865889549</Y>
+          <Z>-55</Z>
+          <R00>-1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>-1</R22>
+        </CoordinateFrame>
+        <token name="RenderFidelity">1</token>
+        <token name="Material">1376</token>
+        <bool name="Anchored">true</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="CastShadow">false</bool>
+        <bool name="DoubleSided">false</bool>
+      </Properties>
+    </Item>
+
+<Item class="MeshPart" referent="PracticeFigure8V1ContinuousAsphalt">
+      <Properties>
+        <string name="Name">PracticeFigure8V1ContinuousAsphalt</string>
+        <Content name="MeshId">
+          <url>rbxassetid://96125611983857</url>
+        </Content>
+        <Vector3 name="InitialSize">
+          <X>580.0884704589844</X>
+          <Y>0.06499999761581421</Y>
+          <Z>865.039306640625</Z>
+        </Vector3>
+        <Vector3 name="size">
+          <X>580.0884704589844</X>
+          <Y>0.06499999761581421</Y>
+          <Z>865.039306640625</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>7.1177825927734375</X>
+          <Y>0.08749999850988388</Y>
+          <Z>82.5196533203125</Z>
+          <R00>-1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>-1</R22>
+        </CoordinateFrame>
+        <token name="RenderFidelity">1</token>
+        <token name="Material">1376</token>
+        <bool name="Anchored">true</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="CastShadow">false</bool>
+        <bool name="DoubleSided">false</bool>
+      </Properties>
+    </Item>
+    </Item>
 </roblox>

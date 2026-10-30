@@ -771,5 +771,16 @@
     "src/server/HubLeaderboardService.luau": "dc2078906bf6ea0c1de3809b3a7684259a39aeb5c65f540e32ab692b92acfea8",
     "src/server/HubLeaderboardBoardBuilder.luau": "c508f6ad8b7935ef1046298ef8ce7d75907f0c52776a2eafac8e663fce7111a9",
     "src/client/HubLeaderboardController.luau": "84725adb8d50e4e5fb354405549a71f17728ef06f681c6217fccfb95e956201c"
+  },
+  "officialRoadContinuityPatches": {
+    "src/client/TrackRoadRibbon.luau": "8c1b36e795aa0bf759de849e96e15961f7d854aee59c547fe4101d4287bff5f7",
+    "src/client/TrackSurfaceController.luau": "cde4fa38beefb4d7aa78ba47a0e019085cd5a7ef0f75743fd38ef97e52fbd267",
+    "src/client/Figure8DesertEnvironment.luau": "bcf53cf3f19d1f750ab842c6a0394cc1b17b3a7f901afb256ea396b6e7f1c6f6",
+    "src/client/MetroCityEnvironment.luau": "5ca964c4698d762f83159cf3ca80b3985111db8c758b94365a40f5f3adc8d44a",
+    "src/assets/KDMRoadMaterials.rbxmx": "b65f0a31ffa35c1c2cdde4286bd8677048f8950929418a20ac135e33e6ab84ad",
+    "src/assets/OfficialContinuousAsphaltGeometry.json": "8e4f09bff4ff8771cd16f6aae8d8660c9ebb03c2958c30455ea0539a3d59646b",
+    "src/assets/PracticeFigure8V1ContinuousAsphalt.obj": "cf9d63795740e221c36040f3f6173052d2783b6fe3aecde6b21c8bb11ecf77b4",
+    "src/assets/PracticeCircuitV1ContinuousAsphalt.obj": "6eb4e44122e9023d29a62b1b9647bdfa63cf84a31ecc39a2de1ce60c63f72d69",
+    "src/assets/HardCircuitV1ContinuousAsphalt.obj": "c5f386331f921cc25f9dc8d5ad4527caad2082f531757919a6139eac03997433"
   }
 }
