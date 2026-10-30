@@ -41,3 +41,11 @@ original binary Terrain content; do not reserialize this backup for publication.
 
 Real mobile/published visual acceptance remains separate from Studio evidence.
 No server restart. See park_continuous_asphalt_results_20261030.json.
+
+## Publication receipt
+
+Official Universe10768420544 / Place127925465904803 published as PV1274,
+code commitc93a0352bf13fd82353a142199726a975e11ad72. Native Studio success
+and Creator Dashboard published-only history independently confirm1274.
+Post-Publish runtime-source equality and MeshId94042544951144 verified.
+No restart. Existing jobs retain old visuals until replaced naturally.

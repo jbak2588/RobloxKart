@@ -43,8 +43,13 @@
     "sources": 232
   },
   "publication": {
-    "status": "VALIDATED_PENDING_PUBLISH",
+    "status": "PUBLISHED",
     "universe": 10768420544,
-    "place": 127925465904803
+    "place": 127925465904803,
+    "version": 1274,
+    "codeCommit": "c93a0352bf13fd82353a142199726a975e11ad72",
+    "sourceMatchAfterPublish": true,
+    "proof": "Native Studio success plus Creator Dashboard published-only history",
+    "restart": false
   }
 }
