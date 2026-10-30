@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TrackGeometry = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TrackGeometry"))
+local DriverMarker = require(script.Parent.MinimapDriverMarker)
 
 local TrackMapRenderer = {}
 
@@ -69,7 +70,7 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 
 	local markers = {}
 	local renderer = {}
-	function renderer:setRacerMarker(key, position: Vector3?, style: string?)
+	function renderer:setRacerMarker(key, position: Vector3?, style: string?, direction: Vector3?)
 		if not showKartMarker then return end
 		if not position then
 			self:removeRacerMarker(key)
@@ -77,6 +78,9 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 		end
 		local marker = markers[key]
 		if not marker then
+			if style~='RIVAL' then
+				marker=DriverMarker.new(canvas,'KartPosition',4)
+			else
 			marker = Instance.new("Frame")
 			marker.Name = if style == "RIVAL" then "RivalPosition" else "KartPosition"
 			marker.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -93,10 +97,12 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 			stroke.Color = if style == "RIVAL" then Color3.fromRGB(255, 165, 45) else Color3.fromRGB(12, 25, 35)
 			stroke.Thickness = if style == "RIVAL" then 3 else 2
 			stroke.Parent = marker
+			end
 			markers[key] = marker
 		end
 		local point = mapPoint(position)
 		marker.Position = UDim2.fromScale(math.clamp(point.X, 0.02, 0.98), math.clamp(point.Y, 0.02, 0.98))
+		if style~='RIVAL' then DriverMarker.update(marker,direction,previewRotationDegrees) end
 	end
 	function renderer:removeRacerMarker(key)
 		local marker = markers[key]
@@ -105,8 +111,8 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 	function renderer:clearRacerMarkers()
 		for key in markers do self:removeRacerMarker(key) end
 	end
-	function renderer:setMarkerWorldPosition(position: Vector3?)
-		self:setRacerMarker("local", position, "LOCAL")
+	function renderer:setMarkerWorldPosition(position: Vector3?, direction: Vector3?)
+		self:setRacerMarker("local", position, "LOCAL", direction)
 	end
 	function renderer:setVisible(visible: boolean)
 		canvas.Visible = visible

@@ -2,6 +2,19 @@
 
 Read this before editing the project.
 
+## Steering glyphs / directional minimaps - owner 2026-10-30
+
+Owner requests font-based left/right triangles enlarged20 percent and visually
+centered in their existing rounded controls. Retain glyphs/GothamBlack, font40
+->48, use rendered advance to compensate wide/half-width fallback baselines;
+never move/resize touch targets or change input ownership. Self markers on Park,
+Overtake and official minimaps become cyan triangles with bright borders, rotate
+with chassis forward projected into the fixed map, remain heading-stable stopped
+or reversing. Preserve rival rings, routes, bounds, map placement, rewards/data,
+physics and server authority. User explicitly authorizes scoped commit/push and
+Publish exact Universe10768420544 / Place127925465904803, no restart.
+See docs/testing/steering_minimap_20261030.md.
+
 ## Robux K$ top-ups - owner 2026-10-30
 
 Owner requests repeatable top-ups and confirms50 Robux -> K$25,000 and100 Robux

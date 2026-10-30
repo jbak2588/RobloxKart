@@ -72,6 +72,14 @@ tick();check(root.Visible and root.Gas.Visible and not defaultGui.Enabled,'QA fi
 local visible=0;for _,c in root:GetChildren()do if c.ClassName=='TextButton' and c.Visible then visible+=1 end end;check(visible==5,'exactly five visible driving buttons')
 check(root.ForwardLeft.ControlsV1Glyph.Text=='◀' and root.ForwardRight.ControlsV1Glyph.Text=='▶','filled triangle steering labels')
 check(root.ForwardLeft.ControlsV1Glyph.Font==rb.Enum.Font.GothamBlack,'heavy steering glyph weight')
+check(root.ForwardLeft.ControlsV1Glyph.TextSize==48 and root.ForwardRight.ControlsV1Glyph.TextSize==48,'steering font enlarged exactly20 percent')
+check(root.ForwardLeft.ControlsV1Glyph.Position==rb.UDim2.fromOffset(1,-8) and root.ForwardRight.ControlsV1Glyph.Position==rb.UDim2.fromOffset(-1,-8),'ink-only optical centering, unchanged hitboxes')
+for _,name in {'ForwardLeft','ForwardRight'}do
+ local t=root[name].ControlsV1Glyph;t.TextBounds=rb.Vector2.new(24,48)
+ check(t.Position==rb.UDim2.fromOffset(0,-4),'half-width desktop fallback uses measured advance, not fixed mobile offset')
+ t.TextBounds=rb.Vector2.new(34,48)
+ check(t.Position==rb.UDim2.fromOffset(if name=='ForwardLeft'then 1 else -1,-8),'full-width glyph restores mobile optical correction')
+end
 check(root.BrakeReverse.ControlsV1Glyph.TextSize<root.Gas.ControlsV1Glyph.TextSize,'secondary Brake has smaller text')
 check(math.abs(root.Gas:FindFirstChildOfClass('UICorner').CornerRadius.Scale-.28)<.0001,'rounded rectangle Gas')
 local gas=finger(root.Gas);check(gui:GetAttribute('GasPreviewHeld') and latest()[1]==1 and latest().n==3,'GAS holds only UI state; original three-argument transport')

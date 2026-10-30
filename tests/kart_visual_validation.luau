@@ -186,7 +186,8 @@ local tracks=loadModule("src/shared/TrackCatalog.luau")
 local token={WaitForChild=function(self) return self end}
 local renderer=luau.load(fs.readFile("src/client/TrackMapRenderer.luau"), {environment={
  Instance=Instance,Vector3=Vector3,Vector2=roblox.Vector2,UDim2=roblox.UDim2,UDim=roblox.UDim,
- Color3=Color3,Enum=roblox.Enum,game={GetService=function() return token end},require=function() return geometry end}})()
+ Color3=Color3,Enum=roblox.Enum,game={GetService=function() return token end},script={Parent={MinimapDriverMarker='driver'}},
+ require=function(m)return if m=='driver' then {} else geometry end}})()
 for _,id in tracks.Order do
  local entry=tracks.Entries[id]
  local definition=geometry.getDefinition(entry.GeometryId)

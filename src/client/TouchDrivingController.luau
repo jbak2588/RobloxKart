@@ -102,9 +102,21 @@ function Controller.start()
 	end
  local gas,gasStroke=button('Gas');gas.Visible=false
  local v1Labels={};local previewLayout=nil
+ local function centerTriangle(t)
+  if t.Text~='◀' and t.Text~='▶' then return end
+  -- Unicode fallback fonts can use half-width or full-width triangle advances.
+  -- Follow the rendered text metrics when fonts load or the UI scale changes.
+  local bounds=t.TextBounds
+  local width=if bounds and bounds.X>0 then bounds.X else t.TextSize
+  local wide=width>t.TextSize*.6
+  local x=if wide then (if t.Text=='◀' then 1 else -1) else 0
+  t.Position=UDim2.fromOffset(x,-math.round(t.TextSize*(if wide then 1/6 else 1/12)))
+ end
  local function glyph(b,text)
   local t=Instance.new('TextLabel');t.Name='ControlsV1Glyph';t.BackgroundTransparency=1;t.Size=UDim2.fromScale(1,1)
-  t.Text=text;t.Font=Enum.Font.GothamBold;t.TextColor3=Color3.fromRGB(245,245,245);t.TextSize=14;t.Active=false;t.Visible=false;t.Parent=b;return t
+  t.Text=text;t.Font=Enum.Font.GothamBold;t.TextColor3=Color3.fromRGB(245,245,245);t.TextSize=14;t.Active=false;t.Visible=false;t.Parent=b
+  if text=='◀' or text=='▶' then t:GetPropertyChangedSignal('TextBounds'):Connect(function()centerTriangle(t)end)end
+  return t
  end
  v1Labels.ForwardLeft=glyph(drivingButtons.ForwardLeft.button,'◀')
  v1Labels.ForwardRight=glyph(drivingButtons.ForwardRight.button,'▶')
@@ -121,7 +133,9 @@ function Controller.start()
   label.Visible=true;label.TextTransparency=if controlsEnabled then 0 else .4
   local steering=b==drivingButtons.ForwardLeft.button or b==drivingButtons.ForwardRight.button
   label.Font=if steering then Enum.Font.GothamBlack else Enum.Font.GothamBold
-  label.TextSize=if steering then 40 elseif b==drivingButtons.BrakeReverse.button then 10 else 12
+  label.TextSize=if steering then 48 elseif b==drivingButtons.BrakeReverse.button then 10 else 12
+  -- Move only the non-interactive ink; preserve all accepted input bounds.
+  if steering then centerTriangle(label) end
  end
 	local touches, connections, kartConnections = {}, {}, {}
 	local autoTouch,backwardTouch=nil,nil

@@ -36,24 +36,27 @@ local storage=object("ReplicatedStorage")
 shared.Parent=storage
 local course={Samples={rb.Vector3.new(0,0,0),rb.Vector3.new(100,0,0),rb.Vector3.new(100,0,100)},
 	Bounds={MinX=0,MaxX=100,MinZ=0,MaxZ=100}}
+local driverMarker=luau.load(fs.readFile('src/client/MinimapDriverMarker.luau'),{environment={Instance={new=object},Vector2=rb.Vector2,UDim2=rb.UDim2,Color3=rb.Color3}})()
 local rendererType=luau.load(fs.readFile("src/client/TrackMapRenderer.luau"), {environment={
 	game={GetService=function() return storage end},
-	require=function() return {getCourse=function() return course end} end,
+	script={Parent={MinimapDriverMarker='marker'}},
+	require=function(m) return if m=='marker' then driverMarker else {getCourse=function() return course end} end,
 	Instance={new=object},Vector2=rb.Vector2,UDim2=rb.UDim2,UDim=rb.UDim,
 	Color3=rb.Color3,Enum=rb.Enum,
 }})()
 local parent=object("Frame","Map")
 local renderer=rendererType.create(parent,{},true)
 local canvas=parent:FindFirstChild("CourseCanvas")
-renderer:setRacerMarker("local:1",rb.Vector3.new(10,0,10),"LOCAL")
+renderer:setRacerMarker("local:1",rb.Vector3.new(10,0,10),"LOCAL",rb.Vector3.xAxis)
 renderer:setRacerMarker("rival:2",rb.Vector3.new(90,0,90),"RIVAL")
 local localDot=canvas:FindFirstChild("KartPosition")
 local rivalDot=canvas:FindFirstChild("RivalPosition")
+check(localDot.Rotation==90,'official marker points right for world +X')
 check(localDot and rivalDot and localDot.Position~=rivalDot.Position,"two distinct independent markers")
-check(localDot:FindFirstChild("UICorner") and rivalDot:FindFirstChild("UICorner")
+check(localDot:GetAttribute('DirectionMarkerVersion')==1 and rivalDot:FindFirstChild("UICorner")
 	and rivalDot.BackgroundTransparency==1 and rivalDot:FindFirstChild("UIStroke").Thickness==3
-	and rivalDot.Size.X.Offset==16 and localDot.Size.X.Offset==11,
-	"cyan dot and larger orange hollow ring differ by fill and size")
+	and rivalDot.Size.X.Offset==16 and localDot.Size.X.Offset==14,
+	"directional cyan triangle and unchanged orange hollow ring differ")
 check(canvas:FindFirstChild("StartFinishMarker").ZIndex==1 and rivalDot.ZIndex==3 and localDot.ZIndex==4,
 	"marker layering keeps local dot inside rival ring above start marker")
 renderer:setRacerMarker("rival:2",rb.Vector3.new(10,0,10),"RIVAL")
@@ -69,6 +72,7 @@ end
 check(rivalMarkers==3,"map renders three independent rival rings")
 local oldRivalPosition=rivalDot.Position
 renderer:setRacerMarker("local:1",rb.Vector3.new(40,0,40),"LOCAL")
+check(localDot.Rotation==90,'position updates without direction preserve last heading')
 check(localDot.Position~=rivalDot.Position and rivalDot.Position==oldRivalPosition,"moving self leaves rival in place")
 renderer:setRacerMarker("rival:2",rb.Vector3.new(70,0,70),"RIVAL")
 check(rivalDot.Position~=oldRivalPosition,"rival moves independently")

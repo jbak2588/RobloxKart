@@ -98,7 +98,7 @@ function Controller.start()
  end)
  local trialView
  local overtakeBots=require(script.Parent:WaitForChild('ParkOvertakeBotsView')).new(player,driveZone)
- local parkMap,parkDot,parkMapPoint,parkMapGui
+ local parkMap,parkDot,parkMapPoint,parkMapGui,parkMarker
  if MobileView.controlsV1Enabled() then
   local layout=require(RS.Shared.HubParkRookieLoopLayout)
   local points=layout.sample(layout.Segments)
@@ -115,9 +115,8 @@ function Controller.start()
    local delta=b-a;local line=Instance.new('Frame');line.AnchorPoint=Vector2.new(.5,.5);line.Position=UDim2.fromScale((a.X+b.X)/2,(a.Y+b.Y)/2)
    line.Size=UDim2.new(delta.Magnitude,1,0,2);line.Rotation=math.deg(math.atan2(delta.Y,delta.X));line.BorderSizePixel=0;line.BackgroundColor3=Color3.fromRGB(230,238,245);line.Parent=parkMap
   end
-  parkDot=Instance.new('Frame');parkDot.Name='Driver';parkDot.AnchorPoint=Vector2.new(.5,.5);parkDot.Size=UDim2.fromOffset(7,7)
-  parkDot.BorderSizePixel=0;parkDot.BackgroundColor3=Color3.fromRGB(65,225,245);parkDot.Parent=parkMap
-  local corner=Instance.new('UICorner');corner.CornerRadius=UDim.new(1,0);corner.Parent=parkDot
+  parkMarker=require(script.Parent.MinimapDriverMarker)
+  parkDot=parkMarker.new(parkMap,'Driver',4)
  end
  local smokeView=SmokeView.new(player:WaitForChild('PlayerGui'),player,true)
  local postDrive=PostDriveView.new(gui.Parent,function()
@@ -271,7 +270,10 @@ function Controller.start()
     local r=MobileView.controlsV1Layout(parkMapGui.AbsoluteSize).map
     parkMap.Position=UDim2.fromOffset(r.x,r.y);parkMap.Size=UDim2.fromOffset(r.width,r.height)
     local kart=seatKart();local body=kart and kart:FindFirstChild('Chassis');local center=driveZone:GetAttribute('Center')
-    if body and center then local p=parkMapPoint(body.Position.X-center.X,body.Position.Z-center.Z);parkDot.Position=UDim2.fromScale(p.X,p.Y)end
+    if body and center then
+     local p=parkMapPoint(body.Position.X-center.X,body.Position.Z-center.Z);parkDot.Position=UDim2.fromScale(p.X,p.Y)
+     parkMarker.update(parkDot,body.CFrame.LookVector)
+    end
    end
   end
   local navigation=gui.Parent:FindFirstChild("KDMHubNavigation")

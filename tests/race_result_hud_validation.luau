@@ -13,7 +13,7 @@ local safeSize=rb.Vector2.new(800,260)
 local now=0
 local delayed = {}
 local function object(class,name)
- local p={ClassName=class,Name=name or class,Size=rb.UDim2.fromScale(1,1),Position=rb.UDim2.fromScale(0,0),
+ local p={ClassName=class,Name=name or class,CFrame=rb.CFrame.identity,Size=rb.UDim2.fromScale(1,1),Position=rb.UDim2.fromScale(0,0),
   AnchorPoint=rb.Vector2.zero,Visible=true,Enabled=true,Activated=signal(),Destroying=signal()}
  return setmetatable({_p=p,_children={},_attrs={},_signals={},_properties={}}, {
   __index=function(self,key)

@@ -1743,7 +1743,8 @@ function RaceHudController.start()
 			local kart = if seat and seat:GetAttribute("PrototypeKartSeat") == true then seat.Parent else nil
 			local chassis = kart and kart:FindFirstChild("Chassis")
 			mapRenderer:setRacerMarker("local:" .. tostring(player.UserId),
-				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL")
+				if chassis and chassis:IsA("BasePart") then chassis.Position else nil, "LOCAL",
+				if chassis and chassis:IsA("BasePart") then chassis.CFrame.LookVector else nil)
 			local rivals = if RaceConfig.MINIMAP_RIVALS_ENABLED then RaceMinimapRivals.collect(player, Players:GetPlayers(),
 				getNumberAttribute(player, "RaceParticipantCount", 1),botSnapshots()) else nil
 			local activeKeys = spareRivalKeys

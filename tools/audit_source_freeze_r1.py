@@ -28,6 +28,7 @@ DESKTOP_PARENT = '70392de969caf7e56d232b9f35e33c035d4f432d'
 DESKTOP_HASHES = {'src/client/MetroCityEnvironment.luau': '8d159611b3330455dd41440f691d6f30d475555a9b0ca7e5acce8a645194c44d', 'src/client/KartWorldSpeedRenderer.luau': '6a2041f62e184132671fbd6800aafbc0592fac5dbacbdf70d5a3e9302623b523', 'src/client/KartInputController.luau': '9746d7497586f7c24e445f52654cedd550ae6d819959e38c06d5956b10f9c083', 'src/client/GarageUiController.luau': 'dc83dbd1a075e7b4e2660a4a2cca6e427568259a27b57be7efd5919745577de2', 'src/assets/KDMMetroSidewalk.rbxmx': '137467b6efa86173688382000ba5ac9089d81609fbd157519c06e886acef37af', 'src/assets/MetroContinuousSidewalk.obj': 'f0fe6aa57c6b34be5efce5a044ba390373f23fa1446b6b6bb150c2ceafb5d8ed', 'src/assets/MetroContinuousSidewalkGeometry.json': 'f8e2446a179a6bfa0faf2a57a3fedfd24f1cdf793c2468bbf40f12989512ce0c'}
 TOPUP_PARENT = 'b42d7ec29faa7a876eabeae858c6e9ea4299d56f'
 TOPUP_HASHES = {'src/shared/KDMRobuxTopUpCatalog.luau': 'db3632c1845109b07044fdf77317e4ad630e9f2051b94dc48f53eda607c54ec2', 'src/shared/KDMProgressionSchema.luau': '32e224272883f6ef667c6978c3523c21d62cb7e47ac76cb61f15347429bf0916', 'src/server/RobuxTopUpOperations.luau': 'e09a5ea8eb614a572f44a116adc6622d43d069565d7996504cb992f9dd14136d', 'src/server/RobuxTopUpReceiptProcessor.luau': 'a973d2f5cd318c2b74ba90b8a56088875ff321c2cd881b07bef2b88e78aa9d61', 'src/server/RobuxTopUpService.luau': 'c2434c947e837c7af224bdd08c93dc18325663cf4f52e6a76b6ee748d2d31512', 'src/server/init.server.luau': 'fab45096128a3e0497e96a49ced18e61dd7a003ae16ba64e6fe30fabe633f60c', 'src/client/RobuxTopUpController.luau': '710da5e2983f5dcbfd43eee08ad53da15840e474ef05463620043d56a1e38f30', 'src/client/HubUiController.luau': 'ecede905bd7c81443e88005b5c0dc98a8e413fe02b0ffd0b1a0aef0c9638fa8c', 'src/client/GarageShopController.luau': '336d10c52803d1b35719ee3c2e176df8782dad13adf545ad567c0c47562ef719'}
+NAVIGATION_HASHES = {'src/client/TouchDrivingController.luau': 'a40207d44cff28fc4782ee6ea0d319ac7a510cd377154fc8140f383fe8d1875b', 'src/client/TrackMapRenderer.luau': '1aadb2a147610558a03641bcb24fd174396db025b82f3480a99d5e8aa5eb3a30', 'src/client/RaceHudController.luau': '16d6af0ffb66089a3366bb98a05de7b83af8bfec8b7be068a9fdb5689f37330b', 'src/client/LobbyTestDriveController.luau': 'bf4844b78a83e6f29edac7690828bde8b038050dbe95c2cd62b677364dc12b31', 'src/client/MinimapDriverMarker.luau': '17ff6ea6414da07a20c5ac92e78c24eeec89e6b864fb2d04b2bf9fe4bddb417e'}
 MULTI_FALLBACK_HASHES = {'src/shared/HubLeaderboardPolicy.luau': '44158a6886263e870803623eea366c5ffd431259c79e65ad3f1a85531536746e', 'src/server/HubLeaderboardService.luau': 'dc2078906bf6ea0c1de3809b3a7684259a39aeb5c65f540e32ab692b92acfea8', 'src/server/HubLeaderboardBoardBuilder.luau': 'c508f6ad8b7935ef1046298ef8ce7d75907f0c52776a2eafac8e663fce7111a9', 'src/client/HubLeaderboardController.luau': '84725adb8d50e4e5fb354405549a71f17728ef06f681c6217fccfb95e956201c'}
 HUB_UI_PARENT = '91446d377f43064c8384da9ac61efd207913eb54'
 HUB_UI_HASHES = {'src/shared/HubParkRookieLoopLayout.luau': 'fde35e4c926d593f07ec45f38ae3540ce2eb71cd710087521d3fc5a3d34e1a68', 'src/client/HubUiController.luau': '87892f259cd1afcc49e75aa75dbc43fbf35b2e75aecf6146e4a1520e6149e23c', 'src/client/HubGuidanceView.luau': '151cb9b8508fe1e1a6e3283105d401d9ac5e7a8ebfba078b1ce9053ed1eb99be', 'src/client/HubGuidanceState.luau': '85333a299ad31d4ba90c2566a692d29d72fbb097efd6d7541008a9254dd72101', 'src/client/RookieParkTrialView.luau': '1580493329cd253b6cab0d8978cd4cb02769c9f55edc7b8cfc642fb36dbb8ca2'}
@@ -93,7 +94,8 @@ def audit():
                          and canonical(current).count(r3['after'].encode())==1
                          and canonical(current).replace(r3['after'].encode(),r3['before'].encode(),1)==canonical(base) for r3 in patches)
             vfx_opt = path in VFX_OPT_HASHES and digest(canonical(current)) == VFX_OPT_HASHES[path]
-            category = ('OWNER_ROBUX_TOPUP' if path in TOPUP_HASHES and digest(canonical(current))==TOPUP_HASHES[path]
+            category = ('OWNER_NAVIGATION_GLYPH' if path in NAVIGATION_HASHES and digest(canonical(current))==NAVIGATION_HASHES[path]
+                        else 'OWNER_ROBUX_TOPUP' if path in TOPUP_HASHES and digest(canonical(current))==TOPUP_HASHES[path]
                         else 'OWNER_DESKTOP_SIDEWALK_TRAIL' if path in DESKTOP_HASHES and digest(canonical(current))==DESKTOP_HASHES[path]
                         else 'OWNER_MULTIPLAYER_FALLBACK' if path in MULTI_FALLBACK_HASHES and digest(canonical(current))==MULTI_FALLBACK_HASHES[path]
                         else 'OWNER_HUB_ARRIVAL_UI' if path in HUB_UI_HASHES and digest(canonical(current))==HUB_UI_HASHES[path]
@@ -135,6 +137,9 @@ if __name__ == '__main__':
     if args.check_manifest:
         manifest=json.loads((ROOT/'tests/fixtures/source_freeze_release_f5ebec8.json').read_text(encoding='utf-8'))
         assert manifest['approvedHead']==APPROVED
+        assert manifest['navigationGlyphPatches']==NAVIGATION_HASHES
+        for path,expected in NAVIGATION_HASHES.items():
+            assert digest(canonical((ROOT/path).read_bytes()))==expected, 'Navigation artifact drift: '+path
         assert manifest['robuxTopUpPatches']==TOPUP_HASHES
         for path,expected in TOPUP_HASHES.items():
             assert digest(canonical((ROOT/path).read_bytes()))==expected, 'Paid top-up artifact drift: '+path
@@ -201,6 +206,10 @@ if __name__ == '__main__':
             if path in MULTI_FALLBACK_HASHES:
                 candidate=canonical((ROOT/path).read_bytes())
                 assert digest(candidate)==MULTI_FALLBACK_HASHES[path]
+                allowed.append(candidate)
+            if path in NAVIGATION_HASHES:
+                candidate=canonical((ROOT/path).read_bytes())
+                assert digest(candidate)==NAVIGATION_HASHES[path]
                 allowed.append(candidate)
             if path in TOPUP_HASHES:
                 candidate=canonical((ROOT/path).read_bytes())

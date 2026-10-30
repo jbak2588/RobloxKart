@@ -1,0 +1,47 @@
+{
+  "baseline": "44c7065dcbd47f13ec11a51b0639d1333a58d181",
+  "universeId": 10768420544,
+  "placeId": 127925465904803,
+  "suite": {
+    "total": 260,
+    "pass": 240,
+    "fail": [
+      "bot_internal_control_validation.luau",
+      "chevron_standard_validation.luau",
+      "finish_source_freeze_validation.luau",
+      "item_aftershock_validation.luau",
+      "lobby_palette_validation.luau",
+      "lobby_terminology_validation.luau",
+      "park_a1_island_visual_validation.luau",
+      "park_a2_landscaping_validation.luau",
+      "practice_figure8_geometry_validation.luau",
+      "r8_perf_p0_validation.luau",
+      "r8_perf_p1_validation.luau",
+      "rookie_loop_demo_validation.luau",
+      "speed_sensation_validation.luau",
+      "straight_speed_validation.luau",
+      "track02_published_binding_validation.luau",
+      "track_environment_validation.luau",
+      "track_h3_flow_validation.luau",
+      "track_v2_geometry_validation.luau",
+      "track_visual_standard_validation.luau",
+      "v2_gauge_v1_audio_validation.luau"
+    ]
+  },
+  "newFailures": 0,
+  "sourceFreezeChecks": 874,
+  "backup": "C:/Users/OWNER/AppData/Local/Temp/KDM-official-steering-minimap-20261030.rbxl",
+  "parity": {
+    "backupSHA256": "eceb71d6bae7cb05768518820b7baee1932ab5978964c957edff4c9a0ac6ebca",
+    "flags": {
+      "HubParkV1Enabled": true,
+      "KDMControlsV1Preview": true,
+      "KDMGasPedalEnabled": true
+    },
+    "mismatches": {},
+    "sources": 238
+  },
+  "publishedVersion": null,
+  "serverRestart": false,
+  "nativeEvidence": "Controlled native glyph clones and official renderer cardinals; ordinary Overtake startup. Real-device acceptance remains separate."
+}
