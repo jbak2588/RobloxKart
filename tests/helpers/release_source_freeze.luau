@@ -11,6 +11,7 @@ function Freeze.accepts(manifest,path,source)
  if type(source)~='string'then return false,'missing/unprotected source'end
  source=Freeze.canonical(source)
  local hash=serde.hash('sha256',source)
+ if manifest.desktopGasSidewalkTrailPatches and manifest.desktopGasSidewalkTrailPatches[path]==hash then return true,'DESKTOP_GAS_SIDEWALK_TRAIL'end
  if manifest.officialRoadContinuityPatches and manifest.officialRoadContinuityPatches[path]==hash then return true,'OFFICIAL_ROAD_CONTINUITY'end
  if manifest.multiplayerFallbackPatches and manifest.multiplayerFallbackPatches[path]==hash then return true,'MULTIPLAYER_FALLBACK'end
  if manifest.hubArrivalUiPatches and manifest.hubArrivalUiPatches[path]==hash then return true,'HUB_ARRIVAL_UI'end
@@ -64,6 +65,7 @@ function Freeze.collect(manifest,read)
  for path in manifest.hubArrivalUiPatches or {}do paths[path]=true end
  for path in manifest.multiplayerFallbackPatches or {}do paths[path]=true end
  for path in manifest.officialRoadContinuityPatches or {}do paths[path]=true end
+ for path in manifest.desktopGasSidewalkTrailPatches or {}do paths[path]=true end
  for path in paths do
   local loaded,source=pcall(read,path)
   local ok,reason=false,'missing/unreadable source'

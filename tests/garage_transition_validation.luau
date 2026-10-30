@@ -189,7 +189,7 @@ local modules = {
 	TrackDioramaController = { create = function() return {destroy=function() end,cancelInput=function() end} end },
 	GaragePresence = luau.load(fs.readFile("src/client/GaragePresence.luau"))(),
 	GarageTexturePreload = luau.load(fs.readFile("src/client/GarageTexturePreload.luau"),{environment={Instance=rb.Instance}})(),
-	KartInputController = { isTouchPreferred = function() return true end },
+	KartInputController = { isTouchPreferred = function() return true end, desktopAutoEnabled=function()return false end },
 	MobileTutorialView = { create = function() return { open = function() end, close = function() end } end },
 }
 modules.KartCatalog=luau.load(fs.readFile("src/shared/KartCatalog.luau"),{environment={Color3=rb.Color3,Enum=rb.Enum}})()

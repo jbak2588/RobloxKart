@@ -176,6 +176,15 @@ function Environment.build(track)
    if i%8==0 then task.wait()end
   end
   local sidewalks=0
+  local source=RS:WaitForChild('KDMMetroSidewalk',5)
+  if not alive or not track.Parent then return end
+  if source and source:IsA('MeshPart') and source.MeshId~='' and math.min(source.MeshSize.X,source.MeshSize.Y,source.MeshSize.Z)>0 then
+   local sidewalk=source:Clone();sidewalk.Name='ContinuousSidewalk'
+   sidewalk.CFrame=source.CFrame+Vector3.yAxis*groundY
+   sidewalk.Color=Color3.fromRGB(235,230,225);sidewalk.Material=Enum.Material.Concrete
+   sidewalk.MaterialVariant='KDMMetro_Sidewalk_A';safe(sidewalk);sidewalk.Parent=model
+   sidewalks=1;model:SetAttribute('ContinuousSidewalkVersion',1)
+  else
   for i=1,#course.Samples,2 do
    if not alive or not track.Parent then return end
    local a,b=course.Samples[i],course.Samples[(i+1)%#course.Samples+1]
@@ -186,6 +195,7 @@ function Environment.build(track)
     sidewalks+=1
    end
    if i%16==1 then task.wait()end
+  end
   end
   if alive then
    model:SetAttribute('SkybridgeCount',bridges);model:SetAttribute('PocketGroveTreeCount',#trees)

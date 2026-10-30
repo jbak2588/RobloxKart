@@ -24,6 +24,8 @@ VFX_OPT_HASHES = {
 # Owner-requested Park overtake release2026-10-29; historical hashes stay intact.
 PARK_OVERTAKE_HASHES = {'src/client/GarageUiController.luau': '2e155b53e2a97be8a272a6a07084cd01a3bef36eb44769036af19a78c80c3a65', 'src/client/LobbyDemoController.luau': 'c3ba8233ac951e4c9aa5b7ece728463554a37b4149c59ac83684bd8f9190f7f1', 'src/client/LobbyPracticeView.luau': 'c284dda537d17f4b01e2c9f0434189863dcef920f285d6262c1b2a5dd7be1646', 'src/client/LobbyTestDriveController.luau': '508dd98c01cdd141aec0180bc7b5bf05a557cd1c773e00115c61c348c2060398', 'src/client/ParkOvertakeBotsView.luau': 'ca9612a223744e76b27a3e9a00856ba8efb2a90232fa302f32d17b9482c18124', 'src/client/RookieParkTrialView.luau': 'a51a435f2f34b54521dd645b4e7e9de32b05970a68b6831bc2a2af5b873d101f', 'src/server/EconomyService.luau': '140fa169e66556394e5b473bff7f9957791cf75e934bf766f683217f4cbf656d', 'src/server/LobbyPracticeCombat.luau': '1049ff96778393b7d0dd6e03e2b055511e58a530c0107b4805b762fec584ea52', 'src/server/LobbyTestDriveService.luau': '51042b06db31309968a6ae876f8a61cc63439288415dd7a12bfdb1327e59a76c', 'src/server/ParkOvertakeReward.luau': '0f9703846ab67938d5b119f22d7e5e5b9914254e285d0d43612187140aed0a61', 'src/server/RookieParkTrialSession.luau': '747ecaf2e3a7153ccc832095299f5993a51738a79ed7143e1ea6a30086d02b6d', 'src/shared/ParkOvertakePolicy.luau': '9c8f5aa07e80c423505841c085b66be5316dfd52f2cb2058d899ff618b2aca54', 'src/shared/RookieParkTrial.luau': '17c9db15469c3b828bae667e23c58241828179bc275729662e1e5ce53732d6dc'}
 OFFICIAL_ROAD_HASHES = {'src/client/TrackRoadRibbon.luau': '8c1b36e795aa0bf759de849e96e15961f7d854aee59c547fe4101d4287bff5f7', 'src/client/TrackSurfaceController.luau': 'cde4fa38beefb4d7aa78ba47a0e019085cd5a7ef0f75743fd38ef97e52fbd267', 'src/client/Figure8DesertEnvironment.luau': 'bcf53cf3f19d1f750ab842c6a0394cc1b17b3a7f901afb256ea396b6e7f1c6f6', 'src/client/MetroCityEnvironment.luau': '5ca964c4698d762f83159cf3ca80b3985111db8c758b94365a40f5f3adc8d44a', 'src/assets/KDMRoadMaterials.rbxmx': 'b65f0a31ffa35c1c2cdde4286bd8677048f8950929418a20ac135e33e6ab84ad', 'src/assets/OfficialContinuousAsphaltGeometry.json': '8e4f09bff4ff8771cd16f6aae8d8660c9ebb03c2958c30455ea0539a3d59646b', 'src/assets/PracticeFigure8V1ContinuousAsphalt.obj': 'cf9d63795740e221c36040f3f6173052d2783b6fe3aecde6b21c8bb11ecf77b4', 'src/assets/PracticeCircuitV1ContinuousAsphalt.obj': '6eb4e44122e9023d29a62b1b9647bdfa63cf84a31ecc39a2de1ce60c63f72d69', 'src/assets/HardCircuitV1ContinuousAsphalt.obj': 'c5f386331f921cc25f9dc8d5ad4527caad2082f531757919a6139eac03997433'}
+DESKTOP_PARENT = '70392de969caf7e56d232b9f35e33c035d4f432d'
+DESKTOP_HASHES = {'src/client/MetroCityEnvironment.luau': '8d159611b3330455dd41440f691d6f30d475555a9b0ca7e5acce8a645194c44d', 'src/client/KartWorldSpeedRenderer.luau': '6a2041f62e184132671fbd6800aafbc0592fac5dbacbdf70d5a3e9302623b523', 'src/client/KartInputController.luau': '9746d7497586f7c24e445f52654cedd550ae6d819959e38c06d5956b10f9c083', 'src/client/GarageUiController.luau': 'dc83dbd1a075e7b4e2660a4a2cca6e427568259a27b57be7efd5919745577de2', 'src/assets/KDMMetroSidewalk.rbxmx': '137467b6efa86173688382000ba5ac9089d81609fbd157519c06e886acef37af', 'src/assets/MetroContinuousSidewalk.obj': 'f0fe6aa57c6b34be5efce5a044ba390373f23fa1446b6b6bb150c2ceafb5d8ed', 'src/assets/MetroContinuousSidewalkGeometry.json': 'f8e2446a179a6bfa0faf2a57a3fedfd24f1cdf793c2468bbf40f12989512ce0c'}
 MULTI_FALLBACK_HASHES = {'src/shared/HubLeaderboardPolicy.luau': '44158a6886263e870803623eea366c5ffd431259c79e65ad3f1a85531536746e', 'src/server/HubLeaderboardService.luau': 'dc2078906bf6ea0c1de3809b3a7684259a39aeb5c65f540e32ab692b92acfea8', 'src/server/HubLeaderboardBoardBuilder.luau': 'c508f6ad8b7935ef1046298ef8ce7d75907f0c52776a2eafac8e663fce7111a9', 'src/client/HubLeaderboardController.luau': '84725adb8d50e4e5fb354405549a71f17728ef06f681c6217fccfb95e956201c'}
 HUB_UI_PARENT = '91446d377f43064c8384da9ac61efd207913eb54'
 HUB_UI_HASHES = {'src/shared/HubParkRookieLoopLayout.luau': 'fde35e4c926d593f07ec45f38ae3540ce2eb71cd710087521d3fc5a3d34e1a68', 'src/client/HubUiController.luau': '87892f259cd1afcc49e75aa75dbc43fbf35b2e75aecf6146e4a1520e6149e23c', 'src/client/HubGuidanceView.luau': '151cb9b8508fe1e1a6e3283105d401d9ac5e7a8ebfba078b1ce9053ed1eb99be', 'src/client/HubGuidanceState.luau': '85333a299ad31d4ba90c2566a692d29d72fbb097efd6d7541008a9254dd72101', 'src/client/RookieParkTrialView.luau': '1580493329cd253b6cab0d8978cd4cb02769c9f55edc7b8cfc642fb36dbb8ca2'}
@@ -89,7 +91,8 @@ def audit():
                          and canonical(current).count(r3['after'].encode())==1
                          and canonical(current).replace(r3['after'].encode(),r3['before'].encode(),1)==canonical(base) for r3 in patches)
             vfx_opt = path in VFX_OPT_HASHES and digest(canonical(current)) == VFX_OPT_HASHES[path]
-            category = ('OWNER_MULTIPLAYER_FALLBACK' if path in MULTI_FALLBACK_HASHES and digest(canonical(current))==MULTI_FALLBACK_HASHES[path]
+            category = ('OWNER_DESKTOP_SIDEWALK_TRAIL' if path in DESKTOP_HASHES and digest(canonical(current))==DESKTOP_HASHES[path]
+                        else 'OWNER_MULTIPLAYER_FALLBACK' if path in MULTI_FALLBACK_HASHES and digest(canonical(current))==MULTI_FALLBACK_HASHES[path]
                         else 'OWNER_HUB_ARRIVAL_UI' if path in HUB_UI_HASHES and digest(canonical(current))==HUB_UI_HASHES[path]
                         else 'OWNER_TIME_ATTACK_REWARD' if path in TIME_ATTACK_HASHES and digest(canonical(current))==TIME_ATTACK_HASHES[path]
                         else 'OWNER_ITEMS_KIOSK' if path in FOLLOWUP_HASHES and digest(canonical(current))==FOLLOWUP_HASHES[path]
@@ -129,9 +132,12 @@ if __name__ == '__main__':
     if args.check_manifest:
         manifest=json.loads((ROOT/'tests/fixtures/source_freeze_release_f5ebec8.json').read_text(encoding='utf-8'))
         assert manifest['approvedHead']==APPROVED
+        assert manifest['desktopGasSidewalkTrailPatches']==DESKTOP_HASHES
+        for path,expected in DESKTOP_HASHES.items():
+            assert digest(canonical((ROOT/path).read_bytes()))==expected, 'Desktop/sidewalk/trail artifact drift: '+path
         assert manifest['officialRoadContinuityPatches']==OFFICIAL_ROAD_HASHES
         for path,expected in OFFICIAL_ROAD_HASHES.items():
-            assert digest(canonical((ROOT/path).read_bytes()))==expected, 'Official-road artifact drift: '+path
+            assert digest(canonical(git('show',f'{DESKTOP_PARENT}:{path}') if path in DESKTOP_HASHES else (ROOT/path).read_bytes()))==expected, 'Official-road artifact drift: '+path
         required={r['path'] for r in result['rows']}
         required.update(p for p in git('diff-tree','--no-commit-id','--name-only','-r',APPROVED).decode().splitlines() if p.startswith('src/'))
         assert set(manifest['files'])==required, 'Protected file set must equal historical union plus exact mobile-release source files'
@@ -149,7 +155,7 @@ if __name__ == '__main__':
             if path==VFX_PATH:
                 assert manifest['speedV2Phase1Patch']['path']==VFX_PATH
                 assert manifest['speedV2Phase1Patch']['sha256']==VFX_SHA256
-                current_vfx=canonical((ROOT/path).read_bytes())
+                current_vfx=canonical(git('show',f'{DESKTOP_PARENT}:{path}'))
                 assert digest(current_vfx)==VFX_SHA256, 'V3.2 must match owner-accepted exact QA source'
                 allowed.append(current_vfx)
             if path in VFX_OPT_HASHES:
@@ -189,6 +195,10 @@ if __name__ == '__main__':
             if path in MULTI_FALLBACK_HASHES:
                 candidate=canonical((ROOT/path).read_bytes())
                 assert digest(candidate)==MULTI_FALLBACK_HASHES[path]
+                allowed.append(candidate)
+            if path in DESKTOP_HASHES:
+                candidate=canonical((ROOT/path).read_bytes())
+                assert digest(candidate)==DESKTOP_HASHES[path]
                 allowed.append(candidate)
             assert canonical((ROOT/path).read_bytes()) in allowed, f'Unrecognized working source: {path}'
         assert manifest['parkOvertakePatches']==PARK_OVERTAKE_HASHES, 'Exact reviewed overtake file set/hash contract'

@@ -2,6 +2,20 @@
 
 Read this before editing the project.
 
+## Metro sidewalks / outer air trails / desktop GAS - owner 2026-10-30
+
+Owner confirms PV1275 mobile appearance accepted. Replace Metro's overlapping
+sidewalk strips with a preauthored shared-edge inert mesh; preserve the grass
+verge, road/kerb/course, buildings and existing physical supports. Move only
+speed-ribbon attachment X coordinates outside the actual rear sidewalls, retaining
+V3.2 flames, thresholds, profile and fixed instance budget. Desktop keyboard on
+non-touch devices uses auto throttle, W for existing GAS90 and S brake/reverse
+priority. Keep mobile adapters, touch devices, UI and payloads byte-equivalent;
+preserve flags, focus/text/menu safety and existing server policy/authority.
+Continuing owner release instruction authorizes scoped commit/push and official
+Publish to Universe10768420544 / Place127925465904803, no restart.
+See docs/testing/desktop_gas_sidewalk_trails_20261030.md.
+
 ## All official road continuity - owner 2026-10-30
 
 Owner accepted published PV1274 Park surface, and extends the same seam removal

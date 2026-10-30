@@ -33,7 +33,7 @@ table.sort(paths)
 check(#paths==133,'reviewed protected set size')
 for path,hash in manifest.parkOvertakePatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==(manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or manifest.parkItemsKioskPatches[path]or hash),'exact reviewed overtake or follow-up source '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.desktopGasSidewalkTrailPatches[path]or manifest.hubArrivalUiPatches[path]or manifest.timeAttackRewardPatches[path]or manifest.parkItemsKioskPatches[path]or hash),'exact reviewed overtake or follow-up source '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- unauthorized'), 'reject overtake mutation '..path)
  if not manifest.files[path]then table.insert(paths,path)end
 end
@@ -67,7 +67,7 @@ table.sort(paths)
 local p='src/shared/KDMSpeedSensation.luau'
 local candidate=fs.readFile(p)
 check(classes[p]=='FOV_PHASE1','working FOV is exact approved Phase1')
-check(classes['src/client/KartWorldSpeedRenderer.luau']=='SPEED_V2_PHASE1','speed renderer is exact approved Speed V2 Phase 1')
+check(classes['src/client/KartWorldSpeedRenderer.luau']=='DESKTOP_GAS_SIDEWALK_TRAIL','speed renderer is exact outside-wheel attachment patch')
 local original=candidate:gsub('HIGH_SPEED_START = 50','HIGH_SPEED_START = 55',1):gsub('HIGH_SPEED_FULL = 90','HIGH_SPEED_FULL = 80',1):gsub('HIGH_SPEED = table.freeze%({FovDelta=5,','HIGH_SPEED = table.freeze({FovDelta=3,',1)
 check(freeze.accepts(manifest,p,original),'original approved profile also accepted for rollback')
 for _,mutation in {
@@ -90,8 +90,16 @@ print('PASS: '..n..' current release integrity, historical preservation, exact F
 
 for path,hash in manifest.officialRoadContinuityPatches do
  local source=fs.readFile(path)
- check(serde.hash('sha256',freeze.canonical(source))==hash,'exact official-road artifact '..path)
+ check(serde.hash('sha256',freeze.canonical(source))==(manifest.desktopGasSidewalkTrailPatches[path]or hash),'exact official-road artifact '..path)
  check(not freeze.accepts(manifest,path,source..'\n-- mutation'),'reject official-road mutation '..path)
  check(not freeze.accepts(manifest,path,source:sub(2)),'reject official-road deletion '..path)
 end
 print('PASS '..n..' including official-road exact artifact pins')
+
+for path,hash in manifest.desktopGasSidewalkTrailPatches do
+ local source=fs.readFile(path)
+ check(serde.hash('sha256',freeze.canonical(source))==hash,'exact desktop/sidewalk/trail artifact '..path)
+ check(not freeze.accepts(manifest,path,source..'\n-- mutation'),'reject new artifact mutation '..path)
+ check(not freeze.accepts(manifest,path,source:sub(2)),'reject new artifact deletion '..path)
+end
+print('PASS '..n..' including desktop/sidewalk/trail exact artifact pins')

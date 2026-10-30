@@ -782,5 +782,14 @@
     "src/assets/PracticeFigure8V1ContinuousAsphalt.obj": "cf9d63795740e221c36040f3f6173052d2783b6fe3aecde6b21c8bb11ecf77b4",
     "src/assets/PracticeCircuitV1ContinuousAsphalt.obj": "6eb4e44122e9023d29a62b1b9647bdfa63cf84a31ecc39a2de1ce60c63f72d69",
     "src/assets/HardCircuitV1ContinuousAsphalt.obj": "c5f386331f921cc25f9dc8d5ad4527caad2082f531757919a6139eac03997433"
+  },
+  "desktopGasSidewalkTrailPatches": {
+    "src/client/MetroCityEnvironment.luau": "8d159611b3330455dd41440f691d6f30d475555a9b0ca7e5acce8a645194c44d",
+    "src/client/KartWorldSpeedRenderer.luau": "6a2041f62e184132671fbd6800aafbc0592fac5dbacbdf70d5a3e9302623b523",
+    "src/client/KartInputController.luau": "9746d7497586f7c24e445f52654cedd550ae6d819959e38c06d5956b10f9c083",
+    "src/client/GarageUiController.luau": "dc83dbd1a075e7b4e2660a4a2cca6e427568259a27b57be7efd5919745577de2",
+    "src/assets/KDMMetroSidewalk.rbxmx": "137467b6efa86173688382000ba5ac9089d81609fbd157519c06e886acef37af",
+    "src/assets/MetroContinuousSidewalk.obj": "f0fe6aa57c6b34be5efce5a044ba390373f23fa1446b6b6bb150c2ceafb5d8ed",
+    "src/assets/MetroContinuousSidewalkGeometry.json": "f8e2446a179a6bfa0faf2a57a3fedfd24f1cdf793c2468bbf40f12989512ce0c"
   }
 }

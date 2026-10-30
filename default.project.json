@@ -6,6 +6,9 @@
       "$path": "src/replicatedFirst"
     },
     "ReplicatedStorage": {
+      "KDMMetroSidewalk": {
+        "$path": "src/assets/KDMMetroSidewalk.rbxmx"
+      },
       "KDMRoadMaterials": {
         "$path": "src/assets/KDMRoadMaterials.rbxmx"
       },

@@ -79,6 +79,7 @@ function methods:IsStudio() return self._p.studio end
 local function child(parent,class,name) local result=object(class,name); result.Parent=parent; return result end
 local services={ Players=object("Players"), ReplicatedStorage=object("ReplicatedStorage"),
 	RunService=object("RunService"), Workspace=object("Workspace") }
+services.GuiService={MenuIsOpen=false,MenuOpened=signal(),MenuClosed=signal()}
 services.RunService.studio=true
 local shared=child(services.ReplicatedStorage,"Folder","Shared")
 local server=object("Folder","Server")

@@ -193,7 +193,8 @@ function Renderer.new(kart)
 		local isPrimary = index <= 2
 		local side = if index % 2 == 1 then -1 else 1
 		local wheel = if side < 0 then wheels.Left else wheels.Right
-		local xPrimary = (wheel.Center.X + side * (wheel.Width * 0.5 + 0.12)) * 0.85
+		-- Clear the tire's outer sidewall, including the camera-facing ribbon half-width.
+		local xPrimary = wheel.Center.X + side * (wheel.Width * 0.5 + 0.60)
 		local zPrimary = wheel.Center.Z + 1.40
 		local x, yLow, yHigh, z
 		if isPrimary then

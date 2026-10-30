@@ -25,14 +25,15 @@ require('./helpers/world_vfx_harness')(4,20,function(h)
   for index=1,2 do
    local a=k.PrimaryPart:FindFirstChild('KDMSpeedPoint'..index..'_1');local b=k.PrimaryPart:FindFirstChild('KDMSpeedPoint'..index..'_2')
    local center=(a.Position+b.Position)*.5;local side=if index==1 then -1 else 1
-   check(math.abs(center.X-side*(4+.5+.12)*.85)<1e-5,'accepted rear bumper corner Primary origin')
+   check(math.abs(center.X-side*(4+.5+.60))<1e-5,'Primary origin outside actual rear tire')
+   check(math.abs(center.X)-.25>4+.5,'full camera-facing ribbon clears rear sidewall')
    check(math.abs(center.Y-.60)<1e-5 and math.abs(center.Z-4.40)<1e-5,'accepted rear bumper Primary height and trailing Z')
   end
   -- Secondary trail points (upper cowl slipstream)
   for index=3,4 do
    local a=k.PrimaryPart:FindFirstChild('KDMSpeedPoint'..index..'_1');local b=k.PrimaryPart:FindFirstChild('KDMSpeedPoint'..index..'_2')
    local center=(a.Position+b.Position)*.5;local side=if index==3 then -1 else 1
-   check(math.abs(center.X-(side*(4+.5+.12)*.85+side*.70))<1e-5,'secondary upper cowl wider origin')
+   check(math.abs(center.X-(side*(4+.5+.60)+side*.70))<1e-5,'secondary upper cowl wider origin')
    check(math.abs(center.Y-1.25)<1e-5 and math.abs(center.Z-3.90)<1e-5,'secondary upper cowl elevated and forward Z origin')
   end
   -- Exhaust jet points

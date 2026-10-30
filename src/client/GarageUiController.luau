@@ -467,7 +467,7 @@ function GarageUiController.start()
 	controlsTitle.TextColor3 = Theme.TextPrimary
 	controlsTitle.TextXAlignment = Enum.TextXAlignment.Left
 	for index, hint in {
-		"W / S   Accelerate / Brake & Reverse",
+		if Input.desktopAutoEnabled() then "AUTO | W: GAS | S: BRAKE / REVERSE" else "W / S   Accelerate / Brake & Reverse",
 		"A / D   Steer",
 		"SHIFT   Drift",
 		"GOLD GAUGE + SHIFT RELEASE = BOOST",

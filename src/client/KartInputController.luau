@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 
 local requireModule = require :: (ModuleScript) -> any
 local kartConfigModule = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KartConfig") :: ModuleScript
@@ -15,10 +16,23 @@ local raceItemRemote: RemoteEvent? = nil
 local touchActions = { throttle = 0, steering = 0, drift = false }
 local touchEnabled = false
 local gasHeld=false
+local desktopFocused=true
 local function gasEnabled()
  return ((game.GameId==10772198697 and game.PlaceId==106553302629620)
   or (game.GameId==10768420544 and game.PlaceId==127925465904803))
   and game:GetService('Workspace'):GetAttribute('KDMGasPedalEnabled')==true
+end
+-- Touch-capable devices retain their existing adapter and GAS ownership.
+function KartInputController.desktopAutoEnabled()
+ return not UserInputService.TouchEnabled
+  and UserInputService.PreferredInput==Enum.PreferredInput.KeyboardAndMouse and gasEnabled()
+end
+local function requestedGas()
+ if KartInputController.desktopAutoEnabled() then
+  return desktopFocused and not GuiService.MenuIsOpen and UserInputService:GetFocusedTextBox()==nil
+   and UserInputService:IsKeyDown(Enum.KeyCode.W) and not UserInputService:IsKeyDown(Enum.KeyCode.S)
+ end
+ return touchEnabled and gasHeld
 end
 local touchUpdate: ((number) -> ())? = nil
 local touchEdgeSender: (() -> ())? = nil
@@ -98,9 +112,11 @@ local function getInputAxes(): (number, number, boolean)
 		if not touchEnabled then return 0, 0, false end
 		return touchActions.throttle, touchActions.steering, touchActions.drift
 	end
+	if KartInputController.desktopAutoEnabled() and (not desktopFocused or GuiService.MenuIsOpen) then return 0,0,false end
 
-	local throttle = (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
+	local throttle = (if KartInputController.desktopAutoEnabled() then 1 else (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0))
 		- (UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0)
+	if KartInputController.desktopAutoEnabled() and UserInputService:IsKeyDown(Enum.KeyCode.S) then throttle=-1 end
 	local steering = (UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0)
 		- (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0)
 
@@ -153,7 +169,7 @@ function KartInputController.start()
 			-- Lobby has its own timeout-based transport. Heartbeat calls are not
 			-- forced: still send held touch/keyboard axes before the server timeout.
 			local throttle, steering, drift = getInputAxes()
-   if gasEnabled() then lobbySender(if neutral then 0 else throttle,if neutral then 0 else steering,not neutral and drift,not neutral and gasHeld and touchEnabled)
+   if gasEnabled() then lobbySender(if neutral then 0 else throttle,if neutral then 0 else steering,not neutral and drift,not neutral and requestedGas())
    else lobbySender(if neutral then 0 else throttle, if neutral then 0 else steering, not neutral and drift) end
 			timeSinceSend = 0
 			return
@@ -171,7 +187,7 @@ function KartInputController.start()
 			or steering ~= lastSteering
 			or driftRequested ~= lastDriftRequested
 			or driving ~= wasDriving
-   or (gasEnabled() and gasHeld~=lastGasHeld)
+   or (gasEnabled() and (if KartInputController.desktopAutoEnabled() then requestedGas() else gasHeld)~=lastGasHeld)
 
 		local sendInterval = math.max(KartConfig.INPUT_SEND_INTERVAL or MIN_SEND_INTERVAL, MIN_SEND_INTERVAL)
 		local keepAlive = driving and timeSinceSend >= KEEP_ALIVE_INTERVAL
@@ -186,7 +202,7 @@ function KartInputController.start()
 		end
 
 		if shouldSend then
-   local gas=not neutral and driving and touchEnabled and gasHeld
+   local gas=not neutral and driving and requestedGas()
    if gasEnabled() then remoteEvent:FireServer(throttle,steering,driftRequested,gas)
    else remoteEvent:FireServer(throttle, steering, driftRequested) end
 			if PerformanceMonitor then PerformanceMonitor.inputSent(throttle, steering, driftRequested) end
@@ -200,6 +216,12 @@ function KartInputController.start()
 	end
 
 	touchEdgeSender=function() sendInput(true) end
+	GuiService.MenuOpened:Connect(function()
+		if KartInputController.desktopAutoEnabled() then sendInput(true,true) end
+	end)
+	GuiService.MenuClosed:Connect(function()
+		if KartInputController.desktopAutoEnabled() then sendInput(true) end
+	end)
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 		local slot = if input.KeyCode == Enum.KeyCode.One then 1
 			elseif input.KeyCode == Enum.KeyCode.Two then 2
@@ -237,6 +259,7 @@ function KartInputController.start()
 	end)
 
 	UserInputService.WindowFocusReleased:Connect(function()
+		desktopFocused=false
 		itemKeyDown = false
 		KartInputController.resetTouchActions()
 		sendInput(true, true)
@@ -246,6 +269,7 @@ function KartInputController.start()
 	end)
 
 	UserInputService.WindowFocused:Connect(function()
+		desktopFocused=true
 		sendInput(true)
 		if KartConfig.DEBUG_TELEMETRY then
 			print("[KartInput] window focused")

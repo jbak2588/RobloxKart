@@ -34,7 +34,7 @@ local function object(class, name)
 		Size=rb.UDim2.fromScale(1,1),Position=rb.UDim2.fromScale(0,0),AnchorPoint=V2.zero}
 	for _, event in {"InputBegan","InputChanged","InputEnded","Activated","Destroying","ChildAdded",
 		"CharacterAdded","CharacterRemoving","WindowFocusReleased","WindowFocused","TextBoxFocused",
-		"TextBoxFocusReleased","Heartbeat","MenuOpened"} do p[event]=signal() end
+		"TextBoxFocusReleased","Heartbeat","MenuOpened","MenuClosed"} do p[event]=signal() end
 	return setmetatable({_p=p,_children={},_attrs={},_signals={},_properties={}}, {
 		__index=function(self,k)
 			if methods[k] then return methods[k] end
