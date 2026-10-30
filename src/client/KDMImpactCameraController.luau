@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
-local HapticService = (function() local ok, s = pcall(function() return game:GetService("HapticService") end); return if ok then s else nil end)()
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("KDMItemVFXConfig"))
 local Motion = require(Shared:WaitForChild("KDMImpactCameraMotion"))
@@ -26,11 +25,6 @@ function Controller.start()
 		restore(); motion:clear()
 		RunService:UnbindFromRenderStep(PRE); RunService:UnbindFromRenderStep(POST)
 		bound = false
-		pcall(function()
-			if HapticService and HapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) then
-				HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0)
-			end
-		end)
 	end
 	local function activeKart()
 		if player:GetAttribute("IsBot") == true then return nil end
@@ -72,18 +66,6 @@ function Controller.start()
 			local sRoll = math.rad(math.sin(shakeT * 1.1) * 0.5 * speedFactor)
 			shakePos = Vector3.new(sx, sy, sz)
 			shakeRot = Vector3.new(0, 0, sRoll)
-
-			pcall(function()
-				if HapticService and HapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) then
-					HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0.2 * speedFactor)
-				end
-			end)
-		else
-			pcall(function()
-				if HapticService and HapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) then
-					HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0)
-				end
-			end)
 		end
 
 		if not active and not (offTrack and forwardSpeed > 4) then clear(); return end
