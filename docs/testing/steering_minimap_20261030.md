@@ -48,3 +48,9 @@ Native full Place backup: KDM-official-steering-minimap-20261030.rbxl in owner T
 SHA256 eceb71d6bae7cb05768518820b7baee1932ab5978964c957edff4c9a0ac6ebca.
 All238 source files match working sources after LF normalization; all three
 release flags true. Binary backup inspected read-only, never reserialized.
+
+Release receipt: source commit eeebc03 pushed to prototype/kart-physics.
+Official native Studio Publish succeeded2026-10-30 at20:21:04; PV1285.
+Independent Creator Dashboard published-only history lists1285 then1282.
+Proof: C:/Users/OWNER/AppData/Local/Temp/kdm-pv1285-published.png.
+No server restart. Existing servers retain their loaded version.
