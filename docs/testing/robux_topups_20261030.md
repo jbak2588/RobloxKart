@@ -64,3 +64,16 @@ SHA256bd8901efb9c6987cdf1cde5e5473cee9329e6fbb044aaaea66fbefba25e253fd.
 content; Publish native scene, never a reserialized backup. Production metadata
 GetDeveloperProductsAsync lists both configured IDs within this experience.
 Publication/sale activation receipt follows after deployment.
+
+
+## Publication and sale activation receipt
+
+Official PV1282 published, code commit2ee6869edbb1e4bff1c4a915a73327051e49e39c. Studio success
+and Creator Dashboard published-only history independently confirm1282, prior1278.
+After publication both products activated for sale with managed pricing OFF.
+Native MarketplaceService.GetProductInfoAsync(Enum.InfoType.Product) independently
+returns3723936705 / K$25,000 / price50 / IsForSale=true and3723937538 / K$60,000 /
+price100 / IsForSale=true. Product creation offsale did not retain the price field;
+activation explicitly set50/100 and saved each. No real Robux test purchase,
+charge or live account write. No server restart; new jobs include the handler.
+Existing jobs retain prior code and do not have the new top-up UI.

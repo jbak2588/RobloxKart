@@ -54,6 +54,11 @@
   ],
   "managedPricing": false,
   "realPurchasesTested": false,
-  "publishedVersion": null,
-  "salesActivated": false
+  "publishedVersion": 1282,
+  "salesActivated": true,
+  "codeCommit": "2ee6869edbb1e4bff1c4a915a73327051e49e39c",
+  "serverRestart": false,
+  "marketplaceMetadataVerified": true,
+  "productProof": "C:/Users/OWNER/AppData/Local/Temp/kdm-robux-topups-products.png",
+  "publicationProof": "C:/Users/OWNER/AppData/Local/Temp/kdm-pv1282-published.png"
 }
