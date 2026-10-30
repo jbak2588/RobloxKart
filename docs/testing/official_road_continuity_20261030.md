@@ -58,3 +58,10 @@ binary Terrain content and publish the native scene, never a reserialized backup
 
 Real mobile visual acceptance remains separate. No server restart.
 See official_road_continuity_results_20261030.json for machine-readable evidence.
+
+## Publication receipt
+
+Official Universe10768420544 / Place127925465904803 published as PV1275,
+code commit825c8e85044b4c9f011a4614cd95b887c3fd0da6. Native Studio success
+and Creator Dashboard published-only history independently confirm1275.
+No server restart. New jobs use the release; existing jobs retain prior code.

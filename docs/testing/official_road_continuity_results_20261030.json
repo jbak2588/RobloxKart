@@ -118,9 +118,13 @@
     "newRuntimeErrors": 0
   },
   "publication": {
-    "status": "VALIDATED_PENDING_PUBLISH",
+    "status": "PUBLISHED",
     "universe": 10768420544,
     "place": 127925465904803,
-    "restart": false
+    "restart": false,
+    "version": 1275,
+    "codeCommit": "825c8e85044b4c9f011a4614cd95b887c3fd0da6",
+    "verification": "Native Studio success and Creator Dashboard published-only list",
+    "proof": "C:/Users/OWNER/AppData/Local/Temp/KDM-All-Tracks-PV1275-published-20261030.png"
   }
 }
