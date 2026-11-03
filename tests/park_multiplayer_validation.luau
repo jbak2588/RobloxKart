@@ -15,7 +15,7 @@ local function rng()
 end
 for round=1,40 do
  local speeds=P.speeds(rng());local seen={}
- for _,v in speeds do check(v>=80 and v<=86 and not seen[v],'seven bounded distinct random paces');seen[v]=true end
+ for _,v in speeds do check(v>=85 and v<=91 and not seen[v],'seven bounded distinct random paces');seen[v]=true end
 end
 for slot=0,7 do
  local x,z=P.sample(P.startProgress(slot),slot)

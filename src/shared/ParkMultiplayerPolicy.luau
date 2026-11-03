@@ -8,7 +8,7 @@ local P={Id='ParkMultiplayer',DisplayName='Rookie Park Multiplayer',Laps=3,Capac
  Description='8 RACERS / 3 LAPS / JOIN FOR 10s / EMPTY SLOTS FILLED BY BOTS'}
 function P.speeds(random)
  local speeds={}
- for i=1,7 do speeds[i]=80+(i-1+random:NextNumber())*6/7 end
+ for i=1,7 do speeds[i]=85+(i-1+random:NextNumber())*6/7 end
  for i=7,2,-1 do local j=random:NextInteger(1,i);speeds[i],speeds[j]=speeds[j],speeds[i]end
  return speeds
 end

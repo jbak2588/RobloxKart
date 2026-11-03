@@ -118,3 +118,14 @@ actual production pair. Actual8-human and mobile acceptance limits remain above.
   not be reliably targeted; no new native pre-publication copy is claimed.
 - No server restart, Cloud Restore, access-setting change or live account write.
   Unrelated baseline/archive files remain outside the scoped release commits.
+
+## Bot pace increase — owner2026-11-03
+
+Owner reports bots are too slow against a full-course held-GAS human and requests
+85–91stud/s. Shift only the multiplayer pace distribution up5stud/s; retain its
+seven random strata, per-race shuffle, hit delays, finish scoring, human physics,
+GAS90, Overtake70, matchmaking and rewards. Updated boundary checks and88stud/s
+combat-motion fixture PASS (652 policy/roster/reward/integrity,15 combat,13 full
+route/lifecycle checks). Exact source pin updated only for this policy.
+Production Edit policy normalized bytes1777 / rolling checksum1891669659 match
+local. Deployment follows the owner's existing scoped release authorization.

@@ -7,7 +7,8 @@ Read this before editing the project.
 Owner requests a separate eight-racer, three-lap Rookie Park mode, second in Hub
 track previews after Overtake. Give humans ten seconds to join; fill empty grid
 slots sequentially with the reused noncontact rival palette. Select distinct
-random80–86stud/s bot cruising paces per race. Use existing public human-placement
+random85–91stud/s bot cruising paces per race (owner speed increase2026-11-03).
+Use existing public human-placement
 base rewards, as selected by the owner. Preserve Time Attack/Overtake, manual human
 ownership, physics, controls, course, accounts and all existing receipts. The new
 mode uses isolated Hub-local rooms and separate park-race receipts. Cross-server

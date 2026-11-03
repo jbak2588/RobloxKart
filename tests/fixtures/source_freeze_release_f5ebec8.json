@@ -817,7 +817,7 @@
     "src/server/RookieParkTrialSession.luau": "8b071c05f4cb87b3f4271833a6676352c2f4429aff7648f7a73712393dc1056e"
   },
   "parkMultiplayerPatches": {
-    "src/shared/ParkMultiplayerPolicy.luau": "5785578c56b44e4eae86c0c4242a7ad868228c2a70f0fc8c8de0e45bbe6577b5",
+    "src/shared/ParkMultiplayerPolicy.luau": "b4d9092f21ce16f7d25874974cf473143a14bc8f8909d3bfd03c0544c172f9c3",
     "src/server/ParkMultiplayerSession.luau": "503e7573c2e79441699d6a385165cc79907ae78a2da448a62c297202ee1e9689",
     "src/server/ParkMultiplayerReward.luau": "e3886b3870e333c9feff7b5c39503573d248574cce3363384f46c42eba4cedab",
     "src/client/ParkMultiplayerBotsView.luau": "b3deda8afbb411103da1932e46469ef49043e70291cfd1e6e2485a5b590932c2",
