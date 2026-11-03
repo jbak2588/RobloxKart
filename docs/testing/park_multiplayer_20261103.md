@@ -129,3 +129,9 @@ combat-motion fixture PASS (652 policy/roster/reward/integrity,15 combat,13 full
 route/lifecycle checks). Exact source pin updated only for this policy.
 Production Edit policy normalized bytes1777 / rolling checksum1891669659 match
 local. Deployment follows the owner's existing scoped release authorization.
+
+Pace change commit `2461596` was pushed before native production Publish.
+Studio output and native log confirm **v1313**,2026-11-03 at17:55:37 Asia/Jakarta,
+exact Place127925465904803 / Universe10768420544. Post-Publish policy checksum
+remains1891669659; GAS flag remains true. No restart or live account write.
+New servers use85–91; already-running rooms retain their previously assigned paces.
