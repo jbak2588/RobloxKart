@@ -26,13 +26,13 @@ local function makeAttachment(parent: BasePart, name: string, position: Vector3)
 	return attachment
 end
 
-local function makeSmoke(attachment: Attachment, isLobby: boolean): ParticleEmitter
+local function makeSmoke(attachment: Attachment, isLobby: boolean, useLobbyDensity: boolean?): ParticleEmitter
 	local smoke = Instance.new("ParticleEmitter")
 	smoke.Name = "DriftSmoke"
 	smoke.Texture = SMOKE_TEXTURE
 	smoke.Enabled = false
 	smoke.Rate = 0
-	smoke.Lifetime = if isLobby then NumberRange.new(6.5, 8.0) else NumberRange.new(3.0, 4.2)
+	smoke.Lifetime = if isLobby and useLobbyDensity ~= false then NumberRange.new(6.5, 8.0) else NumberRange.new(3.0, 4.2)
 	smoke.Speed = if isLobby then NumberRange.new(4.5, 9.5) else NumberRange.new(3.5, 7.5)
 	smoke.SpreadAngle = if isLobby then Vector2.new(48, 28) else Vector2.new(36, 20)
 	smoke.Acceleration = if isLobby then Vector3.new(0, 0.65, 0) else Vector3.new(0, 0.45, 0)
@@ -203,6 +203,8 @@ function Renderer.new(kart)
  local isLobby = kart:GetAttribute("LobbyKart") == true
   or (kart.Parent ~= nil and kart.Parent.Name == "LobbyFrontTestDriveZone")
   or (kart.Name:find("LobbyKart") ~= nil)
+ -- Park Time Attack / Overtake use public-race emission and lifetime.
+ local useLobbySmokeDensity=isLobby and not (kart.Parent and kart.Parent:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1')
  local attachments, smokes, trails, flames, cruiseFlames = {}, {}, {}, {}, {}
  local lights={}
  local contacts={}
@@ -253,7 +255,7 @@ function Renderer.new(kart)
     local a=makeAttachment(chassis,"TireEdgeA"..side,contact-edge)
     local b=makeAttachment(chassis,"TireEdgeB"..side,contact+edge)
     table.insert(attachments,point);table.insert(attachments,a);table.insert(attachments,b)
-    table.insert(smokes,makeSmoke(point,isLobby));table.insert(trails,makeTrail(chassis,a,b,isLobby))
+    table.insert(smokes,makeSmoke(point,isLobby,useLobbySmokeDensity));table.insert(trails,makeTrail(chassis,a,b,isLobby))
     table.insert(contacts,{position=contact,a=a,b=b,width=width*.45})
    end
   end
@@ -371,7 +373,7 @@ function Renderer.new(kart)
    l.Brightness=lightStyles[l].brightness*alpha;l.Range=lightStyles[l].range*alpha
    l.Enabled=flameWeight>0 and lod>0
   end
-  local rate = Renderer.driftSmokeRate(slip,isLobby,lod,drift)
+  local rate = Renderer.driftSmokeRate(slip,useLobbySmokeDensity,lod,drift)
   for _,s in smokes do s.Rate=rate;s.Enabled=rate>0 end
   groundElapsed+=dt
   local raycastInterval = if (not isLocal and distance > 90) then 0.12 else 0.04
