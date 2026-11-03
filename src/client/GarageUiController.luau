@@ -14,10 +14,13 @@ local KartCatalog = require(Shared:WaitForChild("KartCatalog"))
 local TrackCatalog = require(Shared:WaitForChild("TrackCatalog"))
 -- Hub-only challenge card: never inserted into the official routing/record catalog.
 local Overtake=require(Shared:WaitForChild('ParkOvertakePolicy'))
+local ParkRace=require(Shared:WaitForChild('ParkMultiplayerPolicy'))
 local OfficialTracks=TrackCatalog
 TrackCatalog=setmetatable({Order=table.clone(OfficialTracks.Order),Entries=table.clone(OfficialTracks.Entries)},{__index=OfficialTracks})
 TrackCatalog.Entries[Overtake.Id]={Id=Overtake.Id,DisplayName=Overtake.DisplayName,PreviewImageAssetId=Overtake.PreviewImageAssetId,
  GeometryId='ROOKIE_LOOP_V1',MatchType='HUB_OVERTAKE',TargetLaps=3,MinPlayers=1,MaxPlayers=1,PreviewRotationDegrees=0}
+TrackCatalog.Entries[ParkRace.Id]={Id=ParkRace.Id,DisplayName=ParkRace.DisplayName,PreviewImageAssetId=ParkRace.PreviewImageAssetId,
+ GeometryId='ROOKIE_LOOP_V1',MatchType='HUB_PARK_RACE',TargetLaps=3,MinPlayers=1,MaxPlayers=8,PreviewRotationDegrees=0}
 local TrackGeometry = require(Shared:WaitForChild("TrackGeometry"))
 local KartVisualFactory = require(Shared:WaitForChild("KartVisualFactory"))
 local KartPreviewFraming = require(Shared:WaitForChild("KartPreviewFraming"))
@@ -669,7 +672,9 @@ function GarageUiController.start()
 		local kartIndex = 1
 	local trackIndex = 1
 	local trackOrder = {}
- if Workspace:GetAttribute('KDMServerRole')=='HUB'and Workspace:GetAttribute('HubParkV1Enabled')==true then table.insert(trackOrder,Overtake.Id)end
+ if Workspace:GetAttribute('KDMServerRole')=='HUB'and Workspace:GetAttribute('HubParkV1Enabled')==true then
+  table.insert(trackOrder,Overtake.Id);table.insert(trackOrder,ParkRace.Id)
+ end
 	for _, id in TrackCatalog.Order do
 		local entry = TrackCatalog.Entries[id]
 		if entry and entry.Visible ~= false and entry.Selectable ~= false then table.insert(trackOrder, id) end
@@ -1209,7 +1214,7 @@ function GarageUiController.start()
 		mapPanel:SetAttribute("TrackId",trackId)
 		trackName.Text = track.DisplayName
   trackMetadata.TextColor3 = if track.MatchType == "PUBLIC_RACE" then Theme.PublicRace else Theme.TextSecondary
-		trackMetadata.Text = if track.MatchType=='HUB_OVERTAKE'then '3 LAPS / 7 EVENLY SPACED BOTS\nFINISH AHEAD: BASE K$5,000 + K$5,000 EACH\nALL 7: PERFECT +K$10,000 / MAX K$50,000'elseif track.MatchType == "PUBLIC_RACE" then
+  trackMetadata.Text = if track.MatchType=='HUB_PARK_RACE'then ParkRace.Description elseif track.MatchType=='HUB_OVERTAKE'then '3 LAPS / 7 EVENLY SPACED BOTS\nFINISH AHEAD: BASE K$5,000 + K$5,000 EACH\nALL 7: PERFECT +K$10,000 / MAX K$50,000'elseif track.MatchType == "PUBLIC_RACE" then
 			string.format("PUBLIC RACE \u{2022} %d\u{2013}%d PLAYERS \u{2022} %d %s",track.MinPlayers,track.MaxPlayers,track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
 			else string.format("SOLO \u{2022} 1 PLAYER \u{2022} %d %s",track.TargetLaps,if track.TargetLaps==1 then "LAP" else "LAPS")
 		-- A nonblocking silhouette is present until the approved image is ready.
@@ -1569,7 +1574,7 @@ function GarageUiController.start()
 			detailLabel.Text = TrackCatalog.capabilityLabel(TrackCatalog.Entries[trackId])
 		end
 		previousButton.Visible = true
-		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and trackId==Overtake.Id then "START OVERTAKE" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE THIS TRACK" else "SELECT"
+		cycleButton.Text = if step == STEP_KART then "USE KART" elseif step == STEP_TRACK and trackId==ParkRace.Id then "JOIN 8-RACER PARK" elseif step == STEP_TRACK and trackId==Overtake.Id then "START OVERTAKE" elseif step == STEP_TRACK and TrackCatalog.Entries[trackId].MatchType == "PUBLIC_RACE" then "RACE THIS TRACK" else "SELECT"
 		cycleButton.Active = selectionPending == nil
 		cycleButton.Visible = step <= STEP_TRACK
 		nextButton.Visible = step == STEP_READY
@@ -1665,6 +1670,10 @@ function GarageUiController.start()
    if selectionPending then return end
    selectionPending=KartCatalog.Order[kartIndex]
    remote:FireServer("SelectKart",selectionPending)
+  elseif trackOrder[trackIndex]==ParkRace.Id then
+   GarageUiController.close()
+   require(script.Parent.LobbyTestDriveController).requestDrive('MULTIPLAYER')
+   return
   elseif trackOrder[trackIndex]==Overtake.Id then
    GarageUiController.close()
    require(script.Parent.LobbyTestDriveController).requestDrive('OVERTAKE')

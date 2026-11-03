@@ -64,6 +64,8 @@ function View.new(parent,player,onReplay,onReturn)
  local nextStroke=Instance.new('UIStroke');nextStroke.Color=Color3.fromRGB(255,230,100);nextStroke.Thickness=1;nextStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border;nextStroke.Parent=nextReward
  function api:update(active,camera)
   local challenge=player:GetAttribute('ParkOvertakeActive')==true
+  local multiplayer=player:GetAttribute('ParkRaceId')~=nil
+  local racePhase=player:GetAttribute('ParkRacePhase')
   local totalLaps=player:GetAttribute('ParkTrialTotalLaps')or 2
   local phase=player:GetAttribute('ParkTrialPhase');gui.Enabled=active and phase~=nil;topGui.Enabled=gui.Enabled
   if not gui.Enabled then finalKey,finalAt=nil,nil;finalLap.Visible=false;return end
@@ -130,6 +132,21 @@ function View.new(parent,player,onReplay,onReturn)
   saved.Text=if phase=='INVALID'then 'REPLAY TO START A NEW VERIFIED LAP'elseif state=='CONFIRMED'then '2 LAPS • 12/12 CHECKPOINTS • RECORD & REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • REPLAY TO RACE AGAIN'else 'SAVING RECORD & REWARD…'
   if challenge and phase~='INVALID'and state=='CONFIRMED'then saved.Text='3 LAPS • 18/18 CHECKPOINTS • REWARD SAVED'end
   replay.Active=true;replay.Text='REPLAY'
+  if multiplayer then
+   local position=player:GetAttribute('ParkRaceFinishPosition')or player:GetAttribute('ParkRacePosition')
+   local humans=player:GetAttribute('ParkRaceHumans')or 1;local bots=player:GetAttribute('ParkRaceBots')or 0
+   timing.Text='PARK RACE '..tostring(position or '-')..'/8 • LAP '..tostring(player:GetAttribute('ParkTrialCurrentLap')or 1)..'/3  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if missed then ' • MISSED '..(cp+1)else '')
+   if racePhase=='WAITING'then
+    countdown.Visible=true;countdown.Text='JOIN '..math.max(0,math.ceil((player:GetAttribute('ParkRaceJoinUntil')or now)-now))..'s\n'..humans..'/8 HUMANS'
+   elseif racePhase=='SEATING'then countdown.Visible=true;countdown.Text='PREPARING GRID'
+   elseif racePhase=='FILLING'then countdown.Visible=true;countdown.Text='FILLING GRID\n'..humans..'H + '..bots..'B'end
+   countdown.TextSize=if racePhase=='WAITING'or racePhase=='SEATING'or racePhase=='FILLING'then 28 else 64
+   title.Text=if phase=='INVALID'then 'RACE INVALID • NO REWARD'else 'ROOKIE PARK • 3 LAPS COMPLETE'
+   best.Text=if position then 'POSITION '..position..' / 8 • '..humans..' HUMANS + '..bots..' BOTS'else 'FINALIZING FINISH ORDER…'
+   nextReward.Text='RACE AGAIN • NEW 10s JOIN WINDOW'
+   saved.Text=if phase=='INVALID'then 'RACE AGAIN TO START A NEW VERIFIED RUN'elseif state=='CONFIRMED'then '3 LAPS • 18/18 CHECKPOINTS • REWARD SAVED'elseif state=='UNCONFIRMED'then 'SAVE NOT CONFIRMED • RETRY ON RACE AGAIN'else 'FINALIZING & SAVING REWARD…'
+   replay.Text='RACE AGAIN';replay.Active=phase=='INVALID'or player:GetAttribute('ParkRaceFinishPosition')~=nil
+  else countdown.TextSize=64 end
  end
  function api:destroy()gui:Destroy();topGui:Destroy()end
  return api

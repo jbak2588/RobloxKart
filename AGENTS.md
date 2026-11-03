@@ -2,6 +2,20 @@
 
 Read this before editing the project.
 
+## Rookie Park multiplayer — owner 2026-11-03
+
+Owner requests a separate eight-racer, three-lap Rookie Park mode, second in Hub
+track previews after Overtake. Give humans ten seconds to join; fill empty grid
+slots sequentially with the reused noncontact rival palette. Select distinct
+random80–86stud/s bot cruising paces per race. Use existing public human-placement
+base rewards, as selected by the owner. Preserve Time Attack/Overtake, manual human
+ownership, physics, controls, course, accounts and all existing receipts. The new
+mode uses isolated Hub-local rooms and separate park-race receipts. Cross-server
+matchmaking is not part of this implementation. Owner explicitly authorizes scoped
+Commit/Push/Publish to Universe10768420544 / Place127925465904803, without restart.
+See docs/testing/park_multiplayer_20261103.md
+for implementation, native1H+7B evidence and outstanding real8-human/mobile checks.
+
 ## Park proxy replication / actual session exits - owner 2026-10-30
 
 Owner requests removing unnecessary Overtake replication and confirms newly

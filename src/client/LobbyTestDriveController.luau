@@ -98,6 +98,7 @@ function Controller.start()
  end)
  local trialView
  local overtakeBots=require(script.Parent:WaitForChild('ParkOvertakeBotsView')).new(player,driveZone)
+ local raceBots=require(script.Parent:WaitForChild('ParkMultiplayerBotsView')).new(player,driveZone)
  local parkMap,parkDot,parkMapPoint,parkMapGui,parkMarker
  if MobileView.controlsV1Enabled() then
   local layout=require(RS.Shared.HubParkRookieLoopLayout)
@@ -131,7 +132,7 @@ function Controller.start()
   MatchRoomUi.quickStart()
  end)
  gui.Destroying:Connect(function()
-  smokeView:destroy();postDrive:destroy();overtakeBots:destroy();if trialView then trialView:destroy()end
+  smokeView:destroy();postDrive:destroy();overtakeBots:destroy();raceBots:destroy();if trialView then trialView:destroy()end
   if speedGauge then speedGauge:destroy();speedGauge=nil end
  end)
  local function neutral()
@@ -251,6 +252,7 @@ function Controller.start()
   local active=player:GetAttribute("LobbyDriveActive")==true
   if trialView then trialView:update(active,Workspace.CurrentCamera)end
   overtakeBots:update(active)
+  raceBots:update(active)
   local phase=player:GetAttribute("ParkTrialPhase")
   local driving=active and (phase==nil or phase=="RUNNING")
   local rooms=gui.Parent:FindFirstChild("KDMMatchRooms")

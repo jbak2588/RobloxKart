@@ -182,7 +182,7 @@ local function drive(player,previewKartId,mode)
  if not started or not allowedHub()
   or player:GetAttribute("RaceState")~="GARAGE" or player:GetAttribute("KDMRoutePending")=="RACE_LAUNCH"
   or player:GetAttribute("LobbyDrivePending")==true or (canEnter and not canEnter(player)) then return false,"DRIVE UNAVAILABLE" end
- if mode~=nil and (mode~='OVERTAKE'or not timeTrial)then return false,'CHALLENGE UNAVAILABLE'end
+ if mode~=nil and ((mode~='OVERTAKE'and mode~='MULTIPLAYER')or not timeTrial)then return false,'CHALLENGE UNAVAILABLE'end
  -- Showroom previews are temporary, free V2 visuals; selection/persistence is
  -- still owned by Garage. Reject unknown ids, payloads and non-showroom families.
  if previewKartId~=nil and (type(previewKartId)~="string" or not Catalog.Entries[previewKartId]
@@ -199,9 +199,12 @@ local function drive(player,previewKartId,mode)
  local gen=generation(player);player:SetAttribute("LobbyDrivePending",true)
  local frame=zone.LobbyFrontDriveStart.CFrame
  -- Side-by-side/non-contact start slots, all on the straight, never at the display anchor.
- local occupied={};for _,r in records do occupied[r.slot]=true end
+ local occupied={};for _,r in records do if not r.parkMultiplayer then occupied[r.slot]=true end end
  local slot=0
- if timeTrial then
+ if mode=='MULTIPLAYER'then
+  slot=timeTrial:reserveRace(player)
+  if slot==nil then player:SetAttribute('LobbyDrivePending',false);return false,'RACE GRID FULL'end
+ elseif timeTrial then
   local nextSlot
   slot,nextSlot=timeTrial:allocate(occupied,nextGridSlot)
   if slot==nil then player:SetAttribute('LobbyDrivePending',false);return false,'START GRID BUSY'end
@@ -210,18 +213,19 @@ local function drive(player,previewKartId,mode)
  local starts=zone:FindFirstChild('StartSlots')
  if starts then
   local a=starts:FindFirstChild(tostring(slot+1))
-  if not a then player:SetAttribute('LobbyDrivePending',false);return false,'DRIVE ZONE BUSY'end
+  if not a then if mode=='MULTIPLAYER'then timeTrial:remove(player)end;player:SetAttribute('LobbyDrivePending',false);return false,'DRIVE ZONE BUSY'end
   frame=a.CFrame
  else frame=frame*CFrame.new((slot%3-1)*8,0,-math.floor(slot/3)*16)end
- if not inside(frame.Position,Policy.FootprintMargin) then player:SetAttribute("LobbyDrivePending",false);return false,"DRIVE ZONE BUSY" end
+ if not inside(frame.Position,Policy.FootprintMargin) then if mode=='MULTIPLAYER'then timeTrial:remove(player)end;player:SetAttribute("LobbyDrivePending",false);return false,"DRIVE ZONE BUSY" end
  local ok,kart,body,seat=pcall(createKart,player,definition,frame)
- if not ok then player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
+ if not ok then if mode=='MULTIPLAYER'then timeTrial:remove(player)end;player:SetAttribute("LobbyDrivePending",false);warn("[LobbyDrive] "..tostring(kart));return false,"DRIVE UNAVAILABLE" end
  local record={kart=kart,body=body,seat=seat,humanoid=humanoid,character=character,generation=gen,
   throttle=0,steering=0,speed=0,yaw=0,lastInput=os.clock(),safe=frame,boundaryPrevious=frame.Position,slot=slot,seated=false,training=Drift.new()}
  records[player]=record
  -- Only Rookie Park has a timeTrial adapter; legacy Hub driving is unchanged.
  if timeTrial then setParkDriver(player,true) end
  record.gridFrame=frame;record.parkOvertake=mode=='OVERTAKE'
+ record.parkMultiplayer=mode=='MULTIPLAYER'
  record.occupantConnection=seat:GetPropertyChangedSignal("Occupant"):Connect(function()
   local occupant=seat.Occupant
   if occupant and occupant~=humanoid then occupant.Sit=false;Service.stop(player,"wrong_occupant",true)
@@ -236,8 +240,12 @@ local function drive(player,previewKartId,mode)
  if seat.Occupant~=humanoid or humanoid.SeatPart~=seat or player.Character~=character or humanoid.Health<=0 then
   Service.stop(player,"sit_failed",true);return false,"COULD NOT ENTER KART"
  end
- record.seated=true;if timeTrial then timeTrial:begin(player,record)elseif practice then practice:add(player,record)end;player:SetAttribute("LobbyDriveKartId",definition.Id)
- print(string.format('[ParkSession] event=seated user=%s generation=%s mode=%s',tostring(player.UserId),tostring(gen),if record.parkOvertake then 'OVERTAKE'else 'TIME_ATTACK'))
+ record.seated=true
+ if timeTrial then
+  if timeTrial:begin(player,record)==false then Service.stop(player,'race_join_closed',true);return false,'JOIN WINDOW CLOSED'end
+ elseif practice then practice:add(player,record)end
+ player:SetAttribute("LobbyDriveKartId",definition.Id)
+ print(string.format('[ParkSession] event=seated user=%s generation=%s mode=%s',tostring(player.UserId),tostring(gen),if record.parkMultiplayer then 'MULTIPLAYER'elseif record.parkOvertake then 'OVERTAKE'else 'TIME_ATTACK'))
  player:SetAttribute("LobbyDriveActive",true);player:SetAttribute("LobbyDrivePending",false)
  if presence then presence:refresh() end
  return true
@@ -339,6 +347,7 @@ function Service.start(driveZone,eligibility)
  RunService.Heartbeat:Connect(function(dt)
   dt=math.min(dt,.05)
   if not started or not practice then return end
+  if timeTrial then timeTrial:update()end
   for player,r in records do
    if not r.seated then continue end
    if not r.body.Parent or player.Character~=r.character or r.humanoid.Health<=0

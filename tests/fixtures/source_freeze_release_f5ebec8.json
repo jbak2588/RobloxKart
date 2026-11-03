@@ -815,5 +815,19 @@
     "src/server/GarageController.luau": "3e5cbdeaa29bbf512aa2e37c3ef7e1d301ce4cdb7f9302501b74fc1df6b2559f",
     "src/server/LobbyTestDriveService.luau": "bea9c7a72ec478545b83826f8352163004621f28f40fc7feed9b0028e2da63a9",
     "src/server/RookieParkTrialSession.luau": "8b071c05f4cb87b3f4271833a6676352c2f4429aff7648f7a73712393dc1056e"
+  },
+  "parkMultiplayerPatches": {
+    "src/shared/ParkMultiplayerPolicy.luau": "5785578c56b44e4eae86c0c4242a7ad868228c2a70f0fc8c8de0e45bbe6577b5",
+    "src/server/ParkMultiplayerSession.luau": "503e7573c2e79441699d6a385165cc79907ae78a2da448a62c297202ee1e9689",
+    "src/server/ParkMultiplayerReward.luau": "e3886b3870e333c9feff7b5c39503573d248574cce3363384f46c42eba4cedab",
+    "src/client/ParkMultiplayerBotsView.luau": "b3deda8afbb411103da1932e46469ef49043e70291cfd1e6e2485a5b590932c2",
+    "src/client/GarageUiController.luau": "9b8f44de2b45515b2cbc3fb5f2e81eb267fc74f2f96b9dff4fea21ec4fbcc87d",
+    "src/client/LobbyDemoController.luau": "712d057242cc456480d521e9e25f4c6d17a3b551a88060a5c2e2a557cd649706",
+    "src/client/LobbyTestDriveController.luau": "180aae5297397b78cf6bbf178ee3a6a3ba765fb93f92559ed723ecae2ccb71cb",
+    "src/client/RookieParkTrialView.luau": "309dfb4ead9f501cd542b1bc06f198d30ee1ea1b503eb7247e39561099b36784",
+    "src/server/EconomyService.luau": "13751a5d4f28a66b1a047ffcd9c8fbe48af76418f54909d4c6095e7bb19a036a",
+    "src/server/LobbyPracticeCombat.luau": "91a25d9e015a2ef12a2e1be6001475080fcf9ac007582276c8565dc212e80419",
+    "src/server/LobbyTestDriveService.luau": "9da5676b8954ebb44f57b058a89f57b4ac72a6586d44dadd84c020ac75ed114e",
+    "src/server/RookieParkTrialSession.luau": "2a2e39b145fdfd1110f1a1c3aeacabfe23435ede9b3fdb7df5d6ae135f62ba1e"
   }
 }

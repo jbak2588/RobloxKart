@@ -11,6 +11,7 @@ function Freeze.accepts(manifest,path,source)
  if type(source)~='string'then return false,'missing/unprotected source'end
  source=Freeze.canonical(source)
  local hash=serde.hash('sha256',source)
+ if manifest.parkMultiplayerPatches and manifest.parkMultiplayerPatches[path]==hash then return true,'PARK_MULTIPLAYER'end
  if manifest.parkReplicationLifecyclePatches and manifest.parkReplicationLifecyclePatches[path]==hash then return true,'PARK_REPLICATION_LIFECYCLE'end
  if manifest.navigationGlyphPatches and manifest.navigationGlyphPatches[path]==hash then return true,'NAVIGATION_GLYPH'end
  if manifest.robuxTopUpPatches and manifest.robuxTopUpPatches[path]==hash then return true,'ROBUX_TOPUP'end
@@ -62,6 +63,7 @@ end
 function Freeze.collect(manifest,read)
  local errors,classes={},{}
  local paths=table.clone(manifest.files)
+ for path in manifest.parkMultiplayerPatches or {}do paths[path]=true end
  for path in manifest.parkOvertakePatches or {}do paths[path]=true end
  for path in manifest.parkItemsKioskPatches or {}do paths[path]=true end
  for path in manifest.timeAttackRewardPatches or {}do paths[path]=true end

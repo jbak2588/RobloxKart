@@ -17,6 +17,7 @@ local Slick=require(script.Parent.SlickMotion)
 local Drift=require(script.Parent.LobbyDriftSession)
 local Combat={};Combat.__index=Combat
 local Overtake,ParkLayout
+local ParkRace
 local offensive={Slick=true,Missile=true,Smoke=true,Thunder=true}
 local HIT_KEYS={Slick='KartSlickActive',Missile='KartMissileHitActive',Thunder='KartThunderHitActive'}
 local messages={empty_charge='RECHARGING',invalid_item='ITEM UNAVAILABLE',missile_limit='TOO MANY MISSILES • TRY AGAIN',
@@ -44,7 +45,7 @@ function Combat.new(zone,records,driveGeometry)
  local isRookie=zone:GetAttribute('DriveGeometry')=='ROOKIE_LOOP_V1'
  self.isRookie=isRookie
  local fleet=if isRookie then Policy.BotFleet else {Policy.BotFleet[1]}
- self.bots={}
+ self.bots={};self.raceBots={}
  for _,cfg in fleet do
   local model=Instance.new('Model');model.Name=if cfg.id==1 then 'LobbyPracticeBot' else 'LobbyPracticeBot_'..cfg.id
   model:SetAttribute('LobbyPracticeBot',true);model:SetAttribute('BotIndex',cfg.id);model:SetAttribute('KartId',cfg.kartId)
@@ -74,6 +75,50 @@ function Combat.new(zone,records,driveGeometry)
  smokeDeps.geometry={crosses=Geometry.crosses,smokeDropFrame=function(_,body,distance)return self:dropFrame(body,distance,Config.SMOKE_WIDTH,Config.SMOKE_LENGTH)end}
  self.smoke=Smoke.new(Config,smokeDeps)
  return self
+end
+function Combat:addParkRaceBot(room,slot,index,speed)
+ ParkRace=ParkRace or require(Shared:WaitForChild('ParkMultiplayerPolicy'))
+ ParkLayout=ParkLayout or require(Shared:WaitForChild('HubParkRookieLoopLayout'))
+ local model=Instance.new('Model');model.Name='Bot'..index
+ model:SetAttribute('ParkRaceBot',true);model:SetAttribute('Slot',slot);model:SetAttribute('BotIndex',index)
+ model:SetAttribute('BaseSpeed',speed);model:SetAttribute('RaceResetSerial',0);model.Parent=room.folder
+ local body=Instance.new('Part');body.Name='Chassis';body.Size=Vector3.new(6,1,8)
+ body.Anchored=true;body.CanCollide=false;body.CanTouch=false;body.CanQuery=false;body.CastShadow=false
+ local b=actor(nil,{kart=model,body=body,parkRaceRoom=room})
+ b.parkRaceRoom=room;b.botIndex=index;b.UserId=-index;b.DisplayName='RIVAL '..index
+ b.baseSpeed=speed;b.distance=ParkRace.startProgress(slot);b.speed=0;b.gridSlot=slot
+ self.raceBots[b]=true;self:updateParkRaceBot(b,Workspace:GetServerTimeNow(),os.clock())
+ return b
+end
+function Combat:removeParkRaceBot(b)
+ self:clearTransient(b);self.raceBots[b]=nil;b.record.body:Destroy();b.record.kart:Destroy()
+end
+function Combat:updateParkRaceBot(b,serverNow,now)
+ local room=b.parkRaceRoom
+ local moving=room.phase=='RUNNING'and not b.finishedAt
+ local dt=if moving then math.max(0,serverNow-(b.sampleTime or room.goAt))else 0
+ local normal=b.baseSpeed;local speed=normal
+ if b.effect then
+  speed=math.min(normal,if b.effect.kind=='Slick'then b.slick.speed elseif b.effect.kind=='Missile'then Config.MISSILE_SPEED_CAP else Config.THUNDER_SPEED_CAP)
+ end
+ -- Integrate a hit only until its actual expiry, even across a delayed frame.
+ local affected=if b.effect then math.clamp(b.effect.untilTime-now+dt,0,dt)else 0
+ local before=b.distance
+ b.distance=math.min(ParkRace.finishProgress(),before+speed*affected+normal*(dt-affected))
+ if moving and b.distance>=ParkRace.finishProgress()then
+  local needed=ParkRace.finishProgress()-before
+  local elapsed=if needed<=speed*affected and speed>0 then needed/speed else affected+(needed-speed*affected)/normal
+  b.finishedAt=(b.sampleTime or room.goAt)+elapsed
+ end
+ b.sampleTime=if moving then serverNow else nil;b.speed=if moving and not b.finishedAt then (if b.effect and now<b.effect.untilTime then speed else normal)else 0
+ local x,z,dx,dz=ParkRace.sample(b.distance,b.gridSlot);local c=self.zone:GetAttribute('Center')
+ local pos=c+Vector3.new(x,ParkLayout.height(x,z)+1.75,z)
+ b.record.body.CFrame=CFrame.lookAt(pos,pos+Vector3.new(dx,0,dz))
+ pcall(function()b.record.body.Position=pos end)
+ if not b.nextSync or now>=b.nextSync or b.finishedAt then
+  local k=b.record.kart;k:SetAttribute('RaceDistance',b.distance);k:SetAttribute('RaceSampledAt',serverNow);k:SetAttribute('RaceSpeed',b.speed)
+  k:SetAttribute('FinishedAt',b.finishedAt);b.nextSync=now+Policy.BotSyncSeconds
+ end
 end
 -- Invisible server combat proxies; local visuals follow these authoritative distances.
 function Combat:addOvertakeRivals(owner)
@@ -127,12 +172,14 @@ function Combat:overtakeDistances(player,seconds)
 end
 function Combat:valid(a)
  if not a or self.stopped or not self.zone.Parent then return false end
+ if a.parkRaceRoom then return self.raceBots[a]==true and a.parkRaceRoom.phase=='RUNNING'and not a.finishedAt end
  if a.overtakeOwner then
   local owner=self.actors[a.overtakeOwner]
   return owner~=nil and owner.rivals~=nil and owner.rivals[a.botIndex]==a and self:valid(owner)and owner.record.trial.phase=='RUNNING'
  end
  if a.botIndex then return self.zone:FindFirstChild('LobbyDemoState')~=nil and a.record.kart.Parent~=nil and (a.botElapsed~=nil or (a==self.bot and self.botElapsed~=nil)) and a.active~=false end
  local p,r=a.owner,a.record
+ if r.parkRaceRoom and (not r.trial or r.trial.phase~='RUNNING')then return false end
  return self.actors[p]==a and self.records[p]==r and r.seated and r.body.Parent~=nil
   and p.Parent~=nil and p.Character==r.character and r.humanoid.Health>0
   and r.humanoid.SeatPart==r.seat and r.seat.Occupant==r.humanoid
@@ -234,11 +281,14 @@ function Combat:isNitro(player,now,throttle,wall)
 end
 function Combat:targets(source)
  local candidates={}
- if source.record.parkOvertake then
+ if source.record.parkRaceRoom then
+  for _,a in self.actors do if a.record.parkRaceRoom==source.record.parkRaceRoom then table.insert(candidates,a)end end
+  for b in self.raceBots do if b.parkRaceRoom==source.record.parkRaceRoom then table.insert(candidates,b)end end
+ elseif source.record.parkOvertake then
   for _,b in source.rivals or {}do table.insert(candidates,b)end
  else
   for _,b in self.bots do table.insert(candidates,b)end
-  for _,a in self.actors do table.insert(candidates,a)end
+  for _,a in self.actors do if not a.record.parkRaceRoom then table.insert(candidates,a)end end
  end
  local out={};local body=source.record.body
  for _,a in candidates do if a~=source and self:valid(a)and not a.record.parkOvertake then
@@ -309,8 +359,8 @@ end
 function Combat:resolve(target,source,id,now)
  if not offensive[id]then return false,'unsupported_item'end
  if target and source then
-  local challenge=source.overtakeOwner or(if source.record.parkOvertake then source.owner else nil)
-  local targetChallenge=target.overtakeOwner or(if target.record.parkOvertake then target.owner else nil)
+  local challenge=source.parkRaceRoom or source.record.parkRaceRoom or source.overtakeOwner or(if source.record.parkOvertake then source.owner else nil)
+  local targetChallenge=target.parkRaceRoom or target.record.parkRaceRoom or target.overtakeOwner or(if target.record.parkOvertake then target.owner else nil)
   if challenge~=targetChallenge then return false,'immune'end
  end
  if not self:valid(source)or not self:valid(target)or (source==target and id~='Slick'and id~='Smoke')then return false,'invalid_target'end
@@ -324,6 +374,7 @@ function Combat:resolve(target,source,id,now)
  end
  if target.effect and now<target.effect.untilTime and id~='Smoke'then return false,'effect_rejected'end
  if target.overtakeOwner then self:updateOvertakeRivals(self.actors[target.overtakeOwner],now)end
+ if target.parkRaceRoom then self:updateParkRaceBot(target,Workspace:GetServerTimeNow(),now)end
  if id=='Smoke'then
   self.smoke:apply(target,now) -- Vision only, including the bot. No speed penalty.
  else
@@ -425,6 +476,10 @@ function Combat:update(now,dt)
   self.botElapsed=nil
  end
  local targets={}
+ for b in self.raceBots do
+  self:updateParkRaceBot(b,Workspace:GetServerTimeNow(),now)
+  if self:valid(b)then table.insert(targets,b)end
+ end
  for _,a in self.actors do
   table.insert(targets,a)
   if a.rivals then self:updateOvertakeRivals(a,now);for _,b in a.rivals do table.insert(targets,b)end end
@@ -462,6 +517,7 @@ end
 function Combat:destroy()
  if self.stopped then return end
  for p in self.actors do self:remove(p)end
+ for b in self.raceBots do self:removeParkRaceBot(b)end
  for _,b in self.bots do self:clearTransient(b);b.record.body:Destroy();b.record.kart:Destroy()end
  self.stopped=true
  self.missiles:clearSession(self.session);self.thunder:clearSession(self.session);self.smoke:clearSession(self.session)
