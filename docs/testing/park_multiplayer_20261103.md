@@ -96,3 +96,25 @@ PASS; all251 src Luau files compile. All242 runtime source files match the
 production-connected Studio Edit normalized lengths/checksums;251 total Studio
 script entries. All three release flags remain true; GAS90 is enabled for the
 actual production pair. Actual8-human and mobile acceptance limits remain above.
+
+## Publication receipt
+
+- Feature commit `7db95a28528aedeff73cf26a4c8bb46faaadf2a4`, pushed to
+  `origin/prototype/kart-physics` before publication.
+- Native Studio Publish succeeded for Place127925465904803 at17:42:13
+  Asia/Jakarta on2026-11-03. Studio output explicitly identifies **v1312**;
+  the native log independently records PublishSuccessful and the exact Place ID.
+- Post-Publish all242 runtime files still match local normalized lengths/checksums;
+  all251 Studio script entries are unchanged from preflight. Hub/controls/GAS
+  flags remain true; actual-pair GAS policy remains enabled at90.
+- Edit metadata continues to report1305; it is not the publication receipt.
+  Creator Dashboard history and real8-human/mobile acceptance were not rechecked.
+- Existing owner-selected native baseline backup remains preserved (SHA256
+  bf91643a15b2a5eb5728ace9808f92d8c0e4c81b82a4afbe71c704a9309df0d6).
+  Current Rojo binary is retained in artifacts/park-multiplayer-20261103/
+  KDM_Park_Multiplayer_Local.rbxl (SHA256
+  9a67309b511f757925da00d9546143c3e8e6d18779f425484c9d7b0b28afb263).
+  A new native Download Copy attempt was canceled after its filename field could
+  not be reliably targeted; no new native pre-publication copy is claimed.
+- No server restart, Cloud Restore, access-setting change or live account write.
+  Unrelated baseline/archive files remain outside the scoped release commits.
