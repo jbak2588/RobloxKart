@@ -72,6 +72,9 @@ local function createPart(parent: Instance, name: string, size: Vector3, cframe:
 end
 
 function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
+	if track.GeometryId=='SuperZV1'then
+		return require(script.Parent:WaitForChild('SuperZTrackBuilder')).build(prototype,track,groundTop)
+	end
 	local definition = TrackGeometry.getDefinition(track.GeometryId)
 	assert(definition, "Track geometry is missing: " .. tostring(track.GeometryId))
 	local isHardCircuit = track.GeometryId == "HardCircuitV1"

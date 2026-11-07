@@ -110,6 +110,20 @@ metro.GridSlots = table.clone(TrackCatalog.Entries.Track01Race.GridSlots)
 TrackCatalog.Entries.Track01Metro = metro
 table.insert(TrackCatalog.Order, 4, metro.Id)
 
+TrackCatalog.Entries.SuperZ = {
+	Id = 'SuperZ', DisplayName = 'Super Z-Track', ModelName = 'TestTrack',
+	PreviewImageAssetId = 'rbxassetid://104331982200577', PreviewRotationDegrees = 0,
+	GeometryId = 'SuperZV1', MatchType = 'PUBLIC_RACE',
+	MinPlayers = 1, MaxPlayers = 4, TargetLaps = 3, BotAllowed = true,
+	GridSlots = {
+		CFrame.new(-24,0,-12,0,0,-1,0,1,0,1,0,0),
+		CFrame.new(-24,0,12,0,0,-1,0,1,0,1,0,0),
+		CFrame.new(-39,0,-12,0,0,-1,0,1,0,1,0,0),
+		CFrame.new(-39,0,12,0,0,-1,0,1,0,1,0,0),
+	},
+}
+table.insert(TrackCatalog.Order, 'SuperZ')
+
 function TrackCatalog.botAllowed(trackId)
 	local track = TrackCatalog.Entries[trackId]
 	return track ~= nil and track.BotAllowed == true and track.MatchType == "PUBLIC_RACE" and track.MaxPlayers >= 2

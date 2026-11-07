@@ -26,8 +26,8 @@ local catalog=luau.load(fs.readFile('src/shared/TrackCatalog.luau'),{environment
 for _,id in catalog.Order do
  local t=catalog.Entries[id]
  check(t.MatchType=='PUBLIC_RACE' and t.MinPlayers==1 and t.MaxPlayers==4,'public 1–4 '..id)
- check(t.TargetLaps==(if id=='Track01' or id=='Track01Desert' then 3 else 2),'lap authority '..id)
- check(catalog.botAllowed(id)==(id=='Track01' or id=='Track01Desert' or id=='Track01Race' or id=='Track01Metro'),'single Bot capability '..id)
+ check(t.TargetLaps==(if id=='Track01' or id=='Track01Desert' or id=='SuperZ' then 3 else 2),'lap authority '..id)
+ check(catalog.botAllowed(id)==(id=='Track01' or id=='Track01Desert' or id=='SuperZ' or id=='Track01Race' or id=='Track01Metro'),'single Bot capability '..id)
 end
 check(not catalog.botAllowed('Unknown') and not catalog.botAllowed(nil),'unknown denied')
 check(catalog.capabilityLabel(catalog.Entries.Track01)=='PUBLIC RACE • 1–4 RACERS • 3 LAPS','natural Practice label')

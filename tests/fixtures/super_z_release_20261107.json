@@ -1,0 +1,15 @@
+{
+  "ownerRequest": "2026-11-07 Super Z four-racer three-lap production release",
+  "baseline": "450c41adf4ecc096a8659fed40628849b8bb0fa2",
+  "hashes": {
+    "src/shared/TrackCatalog.luau": "4d81c511632a61a36f60fc332d33c76967f05d417dabcc5e585016d2f87141d8",
+    "src/shared/TrackGeometry.luau": "6e56b96230e1c3f9f3e17c9c1cbe1ba7634b59074ce400cfef8a52b697ed11e0",
+    "src/shared/SuperZRoadPolicy.luau": "66e2234ecfa867c73f59054ff7df386ec391f9c144bbcf0275fde0a19336c71c",
+    "src/server/TrackBuilder.luau": "ae2d5336dced9df98f0afb172ebf6403b34653d26ca1ef6ac38bfd017fcdc172",
+    "src/server/SuperZTrackBuilder.luau": "56785abea89596093c7a814d305a139fe97ce3ece14abbe333ae1b997ee9eac1",
+    "src/server/RaceController.luau": "25c520e34ab83b61ad3a833f0917dba9b6b30b758c958a8f0aca48915ddb65b8",
+    "src/client/GarageUiController.luau": "eafd6f3d6f32ccd01c1a2eb15d5d53ebee695c4790f51a4da7a19cab10c9fe26",
+    "src/assets/KDMSuperZResources.rbxmx": "adc7986621dca1a2a43de38d22b76f53c79f9ed9348bef54f3aed9b4964e5773",
+    "default.project.json": "2d00f40a5625eb99e27c89dc8bb460cd1abaa1066851f747201c3212c44288f2"
+  }
+}

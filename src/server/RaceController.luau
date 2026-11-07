@@ -115,6 +115,10 @@ local function roadIndex(parts)
  cached={cells=cells,fallback=fallback};roadIndexes[parts]=cached;return cached
 end
 local function isInsideRoadCorridor(roadParts: { BasePart }, worldPosition: Vector3, lastIndexHint: number?): (boolean, number?)
+ if roadParts[1]and roadParts[1].GetAttribute and roadParts[1]:GetAttribute('SuperZRoad')==true then
+  local policy=requireModule(Shared:WaitForChild('SuperZRoadPolicy'))
+  return policy.contains(worldPosition,RaceConfig.ROAD_CORRIDOR_MARGIN),1
+ end
  local function inside(index)
   local part=roadParts[index];if not part then return false end
   local p=part.CFrame:PointToObjectSpace(worldPosition);local half=part.Size*.5
@@ -281,7 +285,7 @@ function RaceController.start(options)
 		end
 		local definition = TrackGeometry.getDefinition(track.GeometryId)
 		routeCourse = TrackGeometry.getCourse(definition)
-		routeRoadWidth = definition.RoadWidth
+		routeRoadWidth = definition.RouteCorridorWidth or definition.RoadWidth
 		checkpointCount = newCheckpointCount
 		roadParts = newRoadParts
 		roadIndex(roadParts) -- Build once at track binding, never during a driving frame.

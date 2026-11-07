@@ -114,7 +114,7 @@ load("src/shared/RaceRouteProgress.luau",shared,"RaceRouteProgress")
 local raceConfig=load("src/shared/RaceConfig.luau",shared,"RaceConfig")
 local catalog=load("src/shared/TrackCatalog.luau",shared,"TrackCatalog")
 local mode=load("src/shared/RaceMode.luau",shared,"RaceMode")
-check(#catalog.Order==5 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01","Green Figure-8 first/default")
+check(#catalog.Order==6 and catalog.Order[1]=="Track01" and catalog.DefaultId=="Track01" and catalog.Entries.SuperZ.MaxPlayers==4 and catalog.Entries.SuperZ.TargetLaps==3,"Green Figure-8 first/default; separate4P3lap Super Z")
 check(catalog.Order[2]=="Track01Desert" and catalog.Order[3]=="Track01Race" and catalog.Order[4]=="Track01Metro" and catalog.Order[5]=="Track03" and table.find(catalog.Order,"Track02")==nil,"Metro added beside preserved Base")
 check(catalog.Entries.Track01.GeometryId=="PracticeFigure8V1" and catalog.Entries.Track01Race.GeometryId=="PracticeCircuitV1","Practice has dedicated geometry / Base frozen")
 check(catalog.Entries.Track01.MaxPlayers==4 and catalog.Entries.Track01.TargetLaps==3
@@ -132,7 +132,7 @@ for _,entry in catalog.Entries do check(#entry.GridSlots==entry.MaxPlayers,'alig
 for _, id in catalog.Order do
  local kind=mode.resolve(id)
  check(kind=="RACE","mode "..id)
- local expected=if id=="Track01" or id=="Track01Desert" then 3 else 2
+ local expected=if id=="Track01" or id=="Track01Desert" or id=="SuperZ" then 3 else 2
  check(catalog.Entries[id].TargetLaps==expected and mode.targetLaps(kind,id)==expected,"laps "..id)
  check(mode.label(kind,id)==("RACE / "..expected.." LAPS"),"label "..id)
 end

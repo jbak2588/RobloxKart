@@ -30,6 +30,7 @@ local function distance(samples,p)
  return best
 end
 for _,id in catalog.Order do
+ if id=="SuperZ"then continue end -- Separate native4-slot builder covered by super_z_track_validation and Studio.
  local entry=catalog.Entries[id];local def=geometry.getDefinition(entry.GeometryId)
  local course=geometry.getCourse(def)
  local p=object('Folder');local world=builder.build(p,entry,0)

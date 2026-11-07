@@ -57,6 +57,7 @@ e.game={GetService=function()return {Shared={TrackGeometry=G,HubParkRookieLoopLa
 e.require=function(m)return m end;e.Enum=rb.Enum;e.workspace={FindFirstChild=function()return nil end}
 local R=luau.load(fs.readFile('src/client/TrackRoadRibbon.luau'),{environment=e})()
 for _,id in C.Order do
+ if id=='SuperZ'then continue end -- Native7-mesh topology is validated separately in super_z_track_validation.
  local entry=C.Entries[id];local attrs={TrackId=id,GeometryId=entry.GeometryId}
  local t={GetAttribute=function(_,k)return attrs[k]end,FindFirstChild=function()return {Position=V.new(0,6.5,0),Size=V.new(1,1,1)}end}
  local model={SetAttribute=function(self,k,v)self[k]=v end}
@@ -65,6 +66,7 @@ for _,id in C.Order do
  attrs.GeometryId='foreign';check(not R.official(model,t,'Reference',false),'reject geometry mismatch')
  attrs.GeometryId=entry.GeometryId;available=false;check(not R.official(model,t,'Reference',false),'missing prefab keeps old road');available=true
 end
+check(#C.Order==6 and C.Entries.SuperZ.GeometryId=='SuperZV1','five legacy ribbons plus separately validated native Super Z')
 local source=fs.readFile('src/client/TrackRoadRibbon.luau')
 check(not source:find('CreateEditableMesh',1,true)and not source:find('CreateMeshPartAsync',1,true),'no runtime mesh generation or security API')
 print('PASS '..n..' official coverage / UV / crossover / prefab / isolation checks')

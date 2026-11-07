@@ -2,6 +2,20 @@
 
 Read this before editing the project.
 
+## Super Z-Track official race — owner 2026-11-07
+
+Owner authorizes Super Z after Rookie Park Overtake in Tracks, with preview
+image104331982200577 and the existing 1–4 racer, three-lap public race flow.
+Use the accepted two widened corners,73 trees,7 continuous native surface
+meshes and four grid slots. The revised route reference covers both legal
+corner lines without changing the authored road. Preserve the existing
+physics, controls, GAS gate, rewards, Hub/Park and other tracks. Scoped
+commit/push and Publish are authorized for Universe10768420544 /
+Place127925465904803 after driving validation, without server restart.
+Rojo cannot hydrate MeshId/intrinsic dimensions; run
+`tools/repair_super_z_prefabs.luau` in Edit and check actual cloned meshes.
+See `docs/testing/super_z_release_20261107.md` for evidence and limits.
+
 ## Rookie Park multiplayer — owner 2026-11-03
 
 Owner requests a separate eight-racer, three-lap Rookie Park mode, second in Hub

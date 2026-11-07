@@ -673,11 +673,13 @@ function GarageUiController.start()
 	local trackIndex = 1
 	local trackOrder = {}
  if Workspace:GetAttribute('KDMServerRole')=='HUB'and Workspace:GetAttribute('HubParkV1Enabled')==true then
-  table.insert(trackOrder,Overtake.Id);table.insert(trackOrder,ParkRace.Id)
+  table.insert(trackOrder,Overtake.Id)
+  if TrackCatalog.Entries.SuperZ then table.insert(trackOrder,'SuperZ')end
+  table.insert(trackOrder,ParkRace.Id)
  end
 	for _, id in TrackCatalog.Order do
 		local entry = TrackCatalog.Entries[id]
-		if entry and entry.Visible ~= false and entry.Selectable ~= false then table.insert(trackOrder, id) end
+		if entry and entry.Visible ~= false and entry.Selectable ~= false and not table.find(trackOrder,id) then table.insert(trackOrder, id) end
 	end
 	local catalogs = { [STEP_KART] = KartCatalog, [STEP_TRACK] = {Order=trackOrder, Entries=TrackCatalog.Entries} }
 	local headings = { [STEP_KART] = "KART GARAGE", [STEP_TRACK] = "STEP 1 / 2 \u{00B7} TRACK SELECT", [STEP_READY] = "2 / 2   READY" }
