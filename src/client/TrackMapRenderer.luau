@@ -8,6 +8,11 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 	local course = TrackGeometry.getCourse(definition)
 	local samples = course.Samples
 	local bounds = course.Bounds
+    if definition.MapBranch then
+        local decimated={}
+        for i=1,#samples,5 do table.insert(decimated,samples[i]) end
+        samples=decimated
+    end
 	local centerX = (bounds.MinX + bounds.MaxX) * 0.5
 	local centerZ = (bounds.MinZ + bounds.MaxZ) * 0.5
 	local extent = math.max(bounds.MaxX - bounds.MinX, bounds.MaxZ - bounds.MinZ) * (if showKartMarker then 1.14 else 1.04)
@@ -54,7 +59,21 @@ function TrackMapRenderer.create(parent: GuiObject, definition, showKartMarker: 
 		end
 	end
 
-	local start = mapPoint(samples[1])
+	if definition.MapBranch then
+        for i=1,#definition.MapBranch-1 do
+            local first,second=mapPoint(definition.MapBranch[i]),mapPoint(definition.MapBranch[i+1])
+            local delta=second-first
+            local line=Instance.new("Frame")
+            line.Name="AlternativeRouteSegment"
+            line.AnchorPoint=Vector2.new(.5,.5)
+            line.Position=UDim2.fromScale((first.X+second.X)*.5,(first.Y+second.Y)*.5)
+            line.Size=UDim2.new(delta.Magnitude,1,0,3)
+            line.Rotation=math.deg(math.atan2(delta.Y,delta.X))
+            line.BackgroundColor3=Color3.fromRGB(255,209,107)
+            line.BorderSizePixel=0;line.Parent=canvas
+        end
+    end
+    local start = mapPoint(samples[1])
 	local startMark = Instance.new("Frame")
 	startMark.Name = "StartFinishMarker"
 	startMark.AnchorPoint = Vector2.new(0.5, 0.5)

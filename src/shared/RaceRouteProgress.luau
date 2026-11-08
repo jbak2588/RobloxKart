@@ -6,6 +6,23 @@ function RaceRouteProgress.new(course, roadWidth: number)
 	return { course = course, roadWidth = roadWidth, previous = nil, position = nil, pending = 1 }
 end
 
+-- Shared checkpoint rule for Park and Eliphant Nose, using observed kart movement.
+function RaceRouteProgress.checkpointMotion(previous: Vector3, current: Vector3, dt: number): (Vector3?, number)
+	local movement = Vector3.new(current.X - previous.X, 0, current.Z - previous.Z)
+	local moved = movement.Magnitude
+	if dt <= 0 or dt > 0.5 or moved > 110 * dt + 6 then return nil, moved end
+	return movement, moved
+end
+
+function RaceRouteProgress.passesCheckpoint(position: Vector3, movement: Vector3, moved: number, dt: number,
+	gatePosition: Vector3, forward: Vector3, roadWidth: number, halfDepth: number): boolean
+	if moved / dt < 1 or movement:Dot(forward) / math.max(moved, 0.001) < 0.25 then return false end
+	local offset = position - gatePosition
+	local longitudinal = offset.X * forward.X + offset.Z * forward.Z
+	local lateral = -offset.X * forward.Z + offset.Z * forward.X
+	return math.abs(longitudinal) <= halfDepth and math.abs(lateral) <= roadWidth / 2 + 10
+end
+
 local function project(samples, position: Vector3, previous, length, limit, corridor)
 	local bestDistance, fraction, bestDelta, bestIndex = math.huge, nil, math.huge, math.huge
 	local count=#samples

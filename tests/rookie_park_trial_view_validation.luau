@@ -9,8 +9,9 @@ local viewShared={KDMFinishPresentation=object('ModuleScript','KDMFinishPresenta
 viewEnv.game={GetService=function(_,name)if name=='ReplicatedStorage'then return {Shared=viewShared}end;return services[name]end}
 local result=luau.load(fs.readFile('src/client/ResultPresentationView.luau'),{environment=viewEnv})()
 local finish=luau.load(fs.readFile('src/shared/KDMFinishPresentation.luau'))()
-viewEnv.script={Parent={ResultPresentationView='result'}}
-viewEnv.require=function(ref)if ref=='result'then return result elseif ref==viewShared.KDMFinishPresentation then return finish else return modules.MobileControlView end end
+local elapsed=luau.load(fs.readFile('src/client/RaceElapsedView.luau'),{environment=viewEnv})()
+viewEnv.script={Parent={ResultPresentationView='result',RaceElapsedView='elapsed'}}
+viewEnv.require=function(ref)if ref=='result'then return result elseif ref=='elapsed'then return elapsed elseif ref==viewShared.KDMFinishPresentation then return finish else return modules.MobileControlView end end
 local View=luau.load(fs.readFile('src/client/RookieParkTrialView.luau'),{environment=viewEnv})()
 local replays,returns=0,0
 local view=View.new(pg,player,function()replays+=1 end,function()returns+=1 end)
@@ -78,6 +79,18 @@ player:SetAttribute('ParkTrialGoAt',now+2);view:update(true,camera)
 check(instructions.Visible,'instructions remain visible at two seconds')
 player:SetAttribute('ParkTrialGoAt',now+1);view:update(true,camera)
 check(not instructions.Visible,'instructions disappear exactly at one second')
+local timer=pg.KDMRookieParkTopHud.RaceElapsedTime
+player:SetAttribute('ParkTrialPhase','RUNNING');player:SetAttribute('ParkTrialStartedAt',now-5.5)
+view:update(true,camera)
+check(timer.Visible and timer.Text=='TOTAL TIME  00:05.500','Overtake displays total elapsed time')
+check(timer.AbsolutePosition.Y>=timing.AbsolutePosition.Y+timing.AbsoluteSize.Y,'total time sits below Overtake lap/checkpoint HUD')
+player:SetAttribute('ParkTrialPhase','FINISHING');player:SetAttribute('ParkTrialMilliseconds',61234)
+now+=1;view:update(true,camera)
+check(timer.Visible and timer.Text=='TOTAL TIME  01:01.234','Overtake holds the final time after crossing')
+now+=1;view:update(true,camera)
+check(timer.Text=='TOTAL TIME  01:01.234','Overtake time stays frozen')
+player:SetAttribute('ParkTrialPhase','FINISHED');view:update(true,camera)
+check(not timer.Visible and panel.Visible,'Overtake result replaces the timer')
 player:SetAttribute('ParkOvertakeActive',false);player:SetAttribute('ParkRaceId','race-test')
 player:SetAttribute('ParkRacePhase','WAITING');player:SetAttribute('ParkRaceJoinUntil',now+10)
 player:SetAttribute('ParkRaceHumans',2);player:SetAttribute('ParkRaceBots',0)

@@ -212,8 +212,11 @@ function Renderer.new(kart)
  local surfaceRoot=nil
  local visualRoads=nil;local roadHint=1;local ribbonStart=1
  local tireSurfaceLift=0
+ local flatRoadPolicy, flatSurfaceY
  local function updateSurfaceFilter()
   if surfaceRoot and surfaceRoot.Parent then return true end
+  flatRoadPolicy, flatSurfaceY = nil, nil
+  visualRoads, roadHint, ribbonStart = nil, 1, 1
   local parent=kart.Parent
   if isLobby then
    surfaceRoot=parent and parent:FindFirstChild("LobbyFrontSmoothFloor")
@@ -226,8 +229,18 @@ function Renderer.new(kart)
    end
   else
    local track=parent and parent:FindFirstChild("TestTrack")
-   surfaceRoot=track and track:FindFirstChild("Road")
    local geometry=track and track:GetAttribute('GeometryId')
+   if geometry == "SuperZV1" or geometry == "EliphantNoseR2" then
+    local groundTop = track:GetAttribute("GroundTop")
+    if type(groundTop) ~= "number" then return false end
+    local shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+    local policyName = if geometry == "SuperZV1" then "SuperZRoadPolicy" else "EliphantRoadPolicy"
+    flatRoadPolicy = require(shared:WaitForChild(policyName))
+    flatSurfaceY = groundTop + flatRoadPolicy.AsphaltTopOffset
+    surfaceRoot = track
+    return true
+   end
+   surfaceRoot=track and track:FindFirstChild("Road")
    if surfaceRoot and (geometry=='PracticeFigure8V1' or geometry=='PracticeCircuitV1' or geometry=='HardCircuitV1') then
     -- Official Road slices are intentionally non-queryable. Keep that contract;
     -- contact is the top plane of the bounded visual slices, not the grass support.
@@ -383,7 +396,13 @@ function Renderer.new(kart)
     local origin=chassis.CFrame:PointToWorldSpace(contact.position)+Vector3.yAxis*2
     local hit=nil
     if updateSurfaceFilter() then
-     if visualRoads then
+     if flatRoadPolicy then
+      -- These flat tracks store a road marker. Use the actual paved boundary.
+      local down = origin.Y - flatSurfaceY
+      if down >= 0 and down <= 6 and flatRoadPolicy.contains(origin, 0) then
+       hit = {Position = Vector3.new(origin.X, flatSurfaceY, origin.Z), Normal = Vector3.yAxis}
+      end
+     elseif visualRoads then
       local function sample(index)
        local p=visualRoads[index];if not p or not p.Parent then return nil end
        local normal=p.CFrame.UpVector;if normal.Y<=.55 then return nil end

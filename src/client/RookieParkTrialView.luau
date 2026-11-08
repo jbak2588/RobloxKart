@@ -3,10 +3,8 @@ local Finish=require(game:GetService('ReplicatedStorage').Shared.KDMFinishPresen
 local View={}
 local GuiService=game:GetService('GuiService')
 local MobileView=require(script.Parent.MobileControlView)
-function View.format(milliseconds)
- local ms=math.max(0,math.floor(milliseconds or 0))
- return string.format('%02d:%02d.%03d',math.floor(ms/60000),math.floor(ms/1000)%60,ms%1000)
-end
+local RaceElapsedView=require(script.Parent.RaceElapsedView)
+View.format=RaceElapsedView.format
 -- Preserve the Park reward presentation; shared race guidance owns checkpoints.
 function View.new(parent,player,onReplay,onReturn)
  local gui=Instance.new('ScreenGui');gui.Name='KDMRookieParkTrial';gui.ResetOnSpawn=false
@@ -20,6 +18,7 @@ function View.new(parent,player,onReplay,onReturn)
  topGui.ScreenInsets=Enum.ScreenInsets.None;topGui.DisplayOrder=42;topGui.Parent=parent
  local timing=text(topGui,'Timing',16);timing.AnchorPoint=Vector2.new(.5,0);timing.Size=UDim2.fromOffset(280,56)
  timing.TextXAlignment=Enum.TextXAlignment.Center
+ local elapsedTimer=RaceElapsedView.new(topGui)
  local countdown=text(canvas,'Countdown',64);countdown.AnchorPoint=Vector2.new(.5,.5);countdown.Position=UDim2.fromScale(.5,.4);countdown.Size=UDim2.fromOffset(230,85)
  countdown.TextStrokeTransparency=.45
  local instructions=text(topGui,'OvertakeInstructions',16);instructions.AnchorPoint=Vector2.new(.5,0)
@@ -99,7 +98,8 @@ function View.new(parent,player,onReplay,onReturn)
   end
   local top=MobileView.speedTopbarPosition(topGui.AbsoluteSize,GuiService.TopbarInset,280,56)
   timing.Position=UDim2.fromOffset(top.X,top.Y)
-  panel.Visible=phase=='FINISHED'or phase=='INVALID';timing.Visible=phase=='RUNNING'
+  panel.Visible=phase=='FINISHED'or phase=='INVALID'
+  timing.Visible=phase=='RUNNING' or (challenge and phase=='FINISHING')
   banner.Visible=phase=='FINISHING'and now-(player:GetAttribute('ParkTrialFinishedAt')or now)<Finish.BANNER_SECONDS
   banner.Size=UDim2.fromOffset(math.min(400,size.X-24),math.min(82,size.Y*.18))
   local key=tostring(player:GetAttribute('LobbyDriveGeneration'))..':'..tostring(player:GetAttribute('ParkTrialGoAt'))
@@ -114,7 +114,15 @@ function View.new(parent,player,onReplay,onReturn)
   local invalid=player:GetAttribute('ParkTrialInvalid')==true
   local missed=player:GetAttribute('ParkTrialMissed')==true
   local personalBest=player:GetAttribute('KDMRookieParkBestMilliseconds')
-  timing.Text=(if challenge then 'OVERTAKE LAP 'else 'SOLO LAP ')..tostring(player:GetAttribute('ParkTrialCurrentLap')or 1)..'/'..totalLaps..'  '..View.format((now-started)*1000)..'\nCHECKPOINT '..cp..'/6'..(if missed then ' • MISSED '..(cp+1)else '')..(if personalBest and not challenge then '\nBEST LAP '..View.format(personalBest)else '')
+  local elapsedMilliseconds=(now-started)*1000
+  timing.Text=(if challenge then 'OVERTAKE LAP 'else 'SOLO LAP ')..tostring(player:GetAttribute('ParkTrialCurrentLap')or 1)..'/'..totalLaps..(if challenge then '' else '  '..View.format(elapsedMilliseconds))..'\nCHECKPOINT '..cp..'/6'..(if missed then ' • MISSED '..(cp+1)else '')..(if personalBest and not challenge then '\nBEST LAP '..View.format(personalBest)else '')
+  local driveHud=parent:FindFirstChild('KDMLobbyTestDrive')
+  local safeCanvas=driveHud and driveHud:FindFirstChild('SafeCanvas')
+  local finishMilliseconds=player:GetAttribute('ParkTrialMilliseconds')
+  local totalMilliseconds=if challenge and phase=='RUNNING' then elapsedMilliseconds
+   elseif challenge and phase=='FINISHING' then finishMilliseconds else nil
+  RaceElapsedView.update(elapsedTimer,totalMilliseconds,GuiService.TopbarInset,timing,
+   safeCanvas and safeCanvas:FindFirstChild('CombatResult'))
   countdown.Visible=phase=='COUNTDOWN'or(phase=='RUNNING'and now-started<1)
   countdown.Text=if phase=='COUNTDOWN'then tostring(math.max(1,math.ceil((player:GetAttribute('ParkTrialGoAt')or now)-now)))else 'GO!'
   title.Text=if phase=='INVALID'then 'LAP INVALID • NO REWARD'elseif challenge then 'PARK OVERTAKE • 3 LAPS COMPLETE'else 'ROOKIE PARK • 2 LAPS COMPLETE'

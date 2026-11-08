@@ -21,6 +21,7 @@ local economyModule = script.Parent:FindFirstChild("EconomyService")
 local EconomyService = if economyModule then require(economyModule) else nil
 
 local RaceController = {}
+local eliphantRoadPolicy
 
 local DIRECTION_THRESHOLD = 0.25
 local MIN_GATE_SPEED = 1
@@ -72,6 +73,7 @@ local function initializePlayerAttributes(player: Player, checkpointCount: numbe
 	player:SetAttribute("RaceBestLapNumber", 0)
 	for lap = 1, 3 do player:SetAttribute("RaceLap" .. lap .. "Time", 0) end
 	player:SetAttribute("RaceFinalTime", 0)
+	player:SetAttribute("RaceStartedAt", nil)
 	player:SetAttribute("RaceFinishPhase", "NONE")
 	player:SetAttribute("RaceWinnerAwaitingRunnerUp", false)
 	player:SetAttribute("RaceCheckpointCount", checkpointCount)
@@ -115,6 +117,12 @@ local function roadIndex(parts)
  cached={cells=cells,fallback=fallback};roadIndexes[parts]=cached;return cached
 end
 local function isInsideRoadCorridor(roadParts: { BasePart }, worldPosition: Vector3, lastIndexHint: number?): (boolean, number?)
+ if roadParts[1] and roadParts[1].GetAttribute and roadParts[1]:GetAttribute("EliphantRoad") then
+  if not eliphantRoadPolicy then
+   eliphantRoadPolicy = requireModule(script.Parent:WaitForChild("EliphantTrackBuilder"))
+  end
+  return eliphantRoadPolicy.contains(worldPosition, RaceConfig.ROAD_CORRIDOR_MARGIN), 1
+ end
  if roadParts[1]and roadParts[1].GetAttribute and roadParts[1]:GetAttribute('SuperZRoad')==true then
   local policy=requireModule(Shared:WaitForChild('SuperZRoadPolicy'))
   return policy.contains(worldPosition,RaceConfig.ROAD_CORRIDOR_MARGIN),1
@@ -152,18 +160,24 @@ local function isMovingThroughGate(chassis: BasePart, gate: BasePart): boolean
 	return planarVelocity.Unit:Dot(planarGateLook.Unit) > DIRECTION_THRESHOLD
 end
 
--- Warn only for a forward plane crossing close to the physical finish gate.
--- The gate itself remains the sole authority for lap completion.
-local function missedFinishPlane(previousPosition: Vector3, currentPosition: Vector3, gate: BasePart, roadWidth: number): boolean
+local function forwardGateCrossing(previousPosition: Vector3, currentPosition: Vector3, gate: BasePart, offset: number): Vector3?
 	local look = gate.CFrame.LookVector
-	local before = (previousPosition - gate.Position):Dot(look)
-	local after = (currentPosition - gate.Position):Dot(look)
-	if before > 0 or after <= 0 or after == before then return false end
+	local before = (previousPosition - gate.Position):Dot(look) - offset
+	local after = (currentPosition - gate.Position):Dot(look) - offset
+	if before > 0 or after <= 0 then return nil end
 	local crossing = previousPosition:Lerp(currentPosition, -before / (after - before))
-	local localCrossing = gate.CFrame:PointToObjectSpace(crossing)
-	return math.abs(localCrossing.X) > gate.Size.X * 0.5
-		and math.abs(localCrossing.X) <= gate.Size.X * 0.5 + roadWidth * 0.5
-		and math.abs(localCrossing.Y) <= gate.Size.Y * 0.5 + 8
+	return gate.CFrame:PointToObjectSpace(crossing)
+end
+
+local function nearGate(crossing: Vector3, gate: BasePart, roadWidth: number): boolean
+	return math.abs(crossing.X) <= (gate.Size.X + roadWidth) * 0.5
+		and math.abs(crossing.Y) <= gate.Size.Y * 0.5 + 8
+end
+
+local function markCheckpointMissed(player: Player, index: number)
+	if player:GetAttribute("RaceCheckpointMissed") == index then return end
+	player:SetAttribute("RaceCheckpointMissed", index)
+	player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
 end
 
 local function planarDistance(first: Vector3, second: Vector3): number
@@ -293,7 +307,7 @@ function RaceController.start(options)
 		gates = newGates
 		checkpoints = newCheckpoints
 		startFinishGate = newStartFinish
-		minimumValidLapTime = minimumPathDistance / KartConfig.MINI_BOOST_MAX_SPEED
+		minimumValidLapTime = math.max(minimumPathDistance, definition.MinimumLapDistance or 0) / KartConfig.MINI_BOOST_MAX_SPEED
 			* RaceConfig.MIN_LAP_TIME_SAFETY_FACTOR
 		session.trackData = {
 			checkpointCount = checkpointCount, roadParts = roadParts, gates = gates,
@@ -357,6 +371,8 @@ function RaceController.start(options)
 		racer.targetLaps = RaceMode.targetLaps(RaceMode.resolve(initialTrackId), initialTrackId)
 		racer.lastRoadIndex = nil
 		racer.progressRecordElapsed = 0
+		local parkCheckpointRules = session.trackId == "EliphantNose"
+
 		local function clearGateState()
 			table.clear(racer.insideGate)
 			racer.previousChassisPosition = nil
@@ -405,6 +421,7 @@ function RaceController.start(options)
 			player:SetAttribute("RaceBestLapNumber", 0)
 			for lap = 1, 3 do player:SetAttribute("RaceLap" .. lap .. "Time", 0) end
 			player:SetAttribute("RaceFinalTime", 0)
+			player:SetAttribute("RaceStartedAt", nil)
 			player:SetAttribute("RaceDNFReason", "")
 			player:SetAttribute("RaceFinishMissedSerial", 0)
 			player:SetAttribute("RaceCheckpointMissed", 0)
@@ -644,6 +661,12 @@ function RaceController.start(options)
 			end
 		end
 
+		local function acceptCheckpoint(index: number)
+			player:SetAttribute("RaceNextCheckpoint", index + 1)
+			player:SetAttribute("RaceCheckpointMissed", 0)
+			print(string.format("[Race] checkpoint accepted cp=%d next=%d lap=%d", index, index + 1, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
+		end
+
 		local function processGate(player: Player, gate: BasePart, now: number)
 			if not isMovingThroughGate(chassis, gate) then
 				return
@@ -654,9 +677,9 @@ function RaceController.start(options)
 			if gateType == "Checkpoint" then
 				local checkpointIndex = gate:GetAttribute("CheckpointIndex")
 				if checkpointIndex == nextCheckpoint and checkpoints[nextCheckpoint] == gate then
-					player:SetAttribute("RaceNextCheckpoint", nextCheckpoint + 1)
-					player:SetAttribute("RaceCheckpointMissed", 0)
-					print(string.format("[Race] checkpoint accepted cp=%d next=%d lap=%d", nextCheckpoint, nextCheckpoint + 1, (player:GetAttribute("RaceCurrentLap") :: number?) or 1))
+					acceptCheckpoint(nextCheckpoint)
+				elseif type(checkpointIndex) == "number" and checkpointIndex > nextCheckpoint then
+					markCheckpointMissed(player, nextCheckpoint)
 				end
 			elseif gateType == "StartFinish" and gate == startFinishGate then
 				print(string.format("[Race] finish crossed lap=%d nextCheckpoint=%d", (player:GetAttribute("RaceCurrentLap") :: number?) or 1, nextCheckpoint))
@@ -668,8 +691,7 @@ function RaceController.start(options)
 					local currentLap = (player:GetAttribute("RaceCurrentLap") :: number?) or 1
 					local isStartingLap = (currentLap == 1 and lapElapsed < 12.0) or (nextCheckpoint == 1 and lapElapsed < 6.0)
 					if not isStartingLap then
-						player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
-						player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+						markCheckpointMissed(player, nextCheckpoint)
 						print(string.format("[Race] finish rejected reason=missing_checkpoint expected=%d total=%d", nextCheckpoint, checkpointCount))
 					end
 				end
@@ -717,13 +739,14 @@ function RaceController.start(options)
 			prepareCountdown()
 		end
 
-		function racer:startRace(startTime: number)
+		function racer:startRace(startTime: number, startedAt: number)
 			racer.raceStartTime = startTime
 			racer.lapStartTime = startTime
 			racer.lastResetSerial = kart:GetAttribute("RaceResetSerial")
 			resetOffTrackState(player)
 			clearGateState()
 			player:SetAttribute("RaceCountdown", 0)
+			player:SetAttribute("RaceStartedAt", startedAt)
 			setRaceState(player, "RACING")
 			kart:SetAttribute("RaceControlsLocked", false)
 			if PrototypeWorld.reassertServerAuthority then PrototypeWorld.reassertServerAuthority(player) end
@@ -791,9 +814,20 @@ function RaceController.start(options)
 				racer.roadSamplePosition, racer.roadSampleInside = chassis.Position, inside
 			end
 
-			if racer.routeProgress then
-				local nextCheckpoint = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
-				local recoveredNext = RaceRouteProgress.step(racer.routeProgress, chassis.Position, nextCheckpoint, onRoadAtGate)
+			local currentPosition = chassis.Position
+			local previousPosition = racer.previousChassisPosition
+			local expectedCheckpoint = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
+			local movement, moved
+			if parkCheckpointRules and previousPosition then
+				movement, moved = RaceRouteProgress.checkpointMotion(previousPosition, currentPosition, deltaTime)
+			end
+
+			-- The projection describes only the outer path. At the merge, use the
+			-- shared physical checkpoint for either approach and rebase beyond it.
+			if racer.routeProgress and (not parkCheckpointRules or (movement and expectedCheckpoint ~= 2)) then
+				local nextCheckpoint = expectedCheckpoint
+				local recoveredNext = RaceRouteProgress.step(racer.routeProgress, currentPosition, nextCheckpoint, onRoadAtGate)
+				if parkCheckpointRules and nextCheckpoint == 1 then recoveredNext = math.min(recoveredNext, 2) end
 				if recoveredNext > nextCheckpoint then
 					player:SetAttribute("RaceNextCheckpoint", recoveredNext)
 					player:SetAttribute("RaceCheckpointMissed", 0)
@@ -805,9 +839,36 @@ function RaceController.start(options)
 						local ahead = (currentFraction - cpSample.Fraction + 0.5) % 1 - 0.5
 						if ahead > 0.035 and ahead < 0.35 then
 							if player:GetAttribute("RaceCheckpointMissed") ~= nextCheckpoint then
-								player:SetAttribute("RaceCheckpointMissed", nextCheckpoint)
-								player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+								markCheckpointMissed(player, nextCheckpoint)
 								print(string.format("[Race] checkpoint bypassed off-road cp=%d ahead=%.3f", nextCheckpoint, ahead))
+							end
+						end
+					end
+				end
+			end
+			if movement then
+				local index = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
+				local gate = checkpoints[index]
+				if gate and onRoadAtGate
+					and math.abs(gate.CFrame:PointToObjectSpace(currentPosition).Y) <= gate.Size.Y * 0.5
+					and RaceRouteProgress.passesCheckpoint(currentPosition, movement, moved, deltaTime,
+						gate.Position, gate.CFrame.LookVector, gate.Size.X, gate.Size.Z * 0.5) then
+					acceptCheckpoint(index)
+					if index == 2 and routeCourse then
+						racer.routeProgress = RaceRouteProgress.new(routeCourse, routeRoadWidth)
+					end
+				elseif gate then
+					local crossing = forwardGateCrossing(previousPosition, currentPosition, gate, gate.Size.Z * 0.5)
+					if crossing and nearGate(crossing, gate, finishRoadWidth) then
+						markCheckpointMissed(player, index)
+					else
+						for laterIndex = index + 1, checkpointCount do
+							local laterGate = checkpoints[laterIndex]
+							local laterCrossing = forwardGateCrossing(previousPosition, currentPosition, laterGate, 0)
+							if laterCrossing and math.abs(laterCrossing.X) <= laterGate.Size.X * 0.5 + 10
+								and math.abs(laterCrossing.Y) <= laterGate.Size.Y * 0.5 then
+								markCheckpointMissed(player, index)
+								break
 							end
 						end
 					end
@@ -822,7 +883,8 @@ function RaceController.start(options)
 					player:GetAttribute("RaceNextCheckpoint"))
 			end
 			for _, gate in gates do
-				local inside = isInsideGate(gate, chassis.Position)
+				if parkCheckpointRules and gate ~= startFinishGate then continue end
+				local inside = isInsideGate(gate, currentPosition)
 				if inside and not racer.insideGate[gate] then
 					if onRoadAtGate or (gate == startFinishGate
 						and player:GetAttribute("RaceNextCheckpoint") == checkpointCount + 1) then
@@ -831,13 +893,28 @@ function RaceController.start(options)
 				end
 				racer.insideGate[gate] = inside
 			end
-			local currentPosition = chassis.Position
 			local finishGate = startFinishGate
-			if racer.previousChassisPosition and finishGate
-				and player:GetAttribute("RaceNextCheckpoint") == checkpointCount + 1
-				and isMovingThroughGate(chassis, finishGate)
-				and missedFinishPlane(racer.previousChassisPosition, currentPosition, finishGate, finishRoadWidth) then
-				player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+			local nextCheckpoint = (player:GetAttribute("RaceNextCheckpoint") :: number?) or 1
+			if previousPosition and player:GetAttribute("RaceState") == "RACING" then
+				local target = checkpoints[nextCheckpoint] or finishGate
+				if target and (not parkCheckpointRules or target == finishGate) and isMovingThroughGate(chassis, target) then
+					local crossing = forwardGateCrossing(previousPosition, currentPosition, target, 0)
+					if crossing and nearGate(crossing, target, finishRoadWidth) then
+						if target ~= finishGate then
+							-- A kart that entered sideways can still clear the plane moving forward.
+							if onRoadAtGate and math.abs(crossing.X) <= target.Size.X * 0.5
+								and math.abs(crossing.Y) <= target.Size.Y * 0.5
+								and (currentPosition - previousPosition).Magnitude <= 60 then
+								processGate(player, target, now)
+							end
+							if player:GetAttribute("RaceNextCheckpoint") == nextCheckpoint then
+								markCheckpointMissed(player, nextCheckpoint)
+							end
+						elseif math.abs(crossing.X) > target.Size.X * 0.5 then
+							player:SetAttribute("RaceFinishMissedSerial", ((player:GetAttribute("RaceFinishMissedSerial") :: number?) or 0) + 1)
+						end
+					end
+				end
 			end
 			racer.previousChassisPosition = currentPosition
 		end
@@ -981,11 +1058,13 @@ function RaceController.start(options)
 		end
 		session.phase = "RACING"
 		session.startTime = session.countdownEndTime
+		-- Project the scheduled GO onto the epoch clock used by the HUD.
+		local startedAt = identity.IssuedAt / 1000 - (time() - session.startTime)
 		-- Freeze the actual GO roster; a departure during COUNTDOWN is not a starter.
 		session:beginRewardRound()
 		record("begin", session, routeCourse, checkpointCount, identity)
 		for _, player in session:orderedParticipants() do
-			racers[player]:startRace(session.startTime)
+			racers[player]:startRace(session.startTime, startedAt)
 		end
 		publishSession(session.startTime)
 		publishRoomPhase("RACING", session:count())

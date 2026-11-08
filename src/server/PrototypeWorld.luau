@@ -648,11 +648,11 @@ function PrototypeWorld.start(options)
 			if not context:getRaceKart(player) or context.slick.active or context.missileHitActive or context.thunderHitActive
 				or kart:GetAttribute("KartOffTrack") == true then return false end
 			emitDriftOutcome(player, "RESET")
-			local road = RaceItemGeometry.roadAt(prototype, chassis.Position)
+			local road = RaceItemGeometry.roadFrameAt(prototype, chassis.Position)
 			if not road then return false end
 			local look = chassis.CFrame.LookVector
 			local forward = Vector3.new(look.X, 0, look.Z)
-			local legal = road.CFrame.LookVector
+			local legal = road.LookVector
 			legal = Vector3.new(legal.X, 0, legal.Z)
 			if forward.Magnitude < 0.001 or legal.Magnitude < 0.001 then return false end
 			local velocity = chassis.AssemblyLinearVelocity

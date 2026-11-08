@@ -103,7 +103,7 @@ return function(racers,rounds,exercise)
  end
  tick(.3)
  if exercise then exercise({karts=karts,players=players,tick=tick,count=count,object=object,run=run,
-  prototype=prototype,workspace=workspace,allocated=function()return allocated end,modules=modules}) end
+  prototype=prototype,workspace=workspace,replicatedStorage=rs,allocated=function()return allocated end,modules=modules}) end
  for round=1,rounds do
   for id,k in karts do
    local shell=object("Part");shell.Name="RaceItemShield";shell.Parent=k;k:SetAttribute("KartShieldActive",true)

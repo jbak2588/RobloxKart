@@ -46,6 +46,11 @@
         "$path": "src/assets/KDMMetroResources.rbxmx"
       }
     },
+    "ServerStorage": {
+      "KDMEliphantScenery": {
+        "$path": "src/assets/KDMEliphantScenery.rbxmx"
+      }
+    },
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"

@@ -72,6 +72,9 @@ local function createPart(parent: Instance, name: string, size: Vector3, cframe:
 end
 
 function TrackBuilder.build(prototype: Folder, track, groundTop: number): Model
+	if track.GeometryId == 'EliphantNoseR2' then
+		return require(script.Parent:WaitForChild('EliphantTrackBuilder')).build(prototype,track,groundTop)
+	end
 	if track.GeometryId=='SuperZV1'then
 		return require(script.Parent:WaitForChild('SuperZTrackBuilder')).build(prototype,track,groundTop)
 	end

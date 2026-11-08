@@ -35,6 +35,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>47.0176811218</X>
+            <Y>26.3800373077</Y>
+            <Z>44.6529159546</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>65.2740402</X>
             <Y>36.6230659</Y>
@@ -99,6 +104,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>38.4710578918</X>
+            <Y>31.7990226746</Y>
+            <Z>35.7459716797</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>53.4088707</X>
             <Y>44.1461716</Y>
@@ -168,6 +178,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>28.1156539917</X>
+            <Y>31.4503593445</Y>
+            <Z>34.6673202515</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>28.115654</X>
             <Y>31.4503593</Y>
@@ -232,6 +247,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>23.1332244873</X>
+            <Y>33.8073196411</Y>
+            <Z>28.683719635</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>23.1332245</X>
             <Y>33.8073196</Y>
@@ -306,6 +326,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>11.1314163208</X>
+            <Y>15.5744800568</Y>
+            <Z>15.1802101135</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>24.233364945043892</X>
             <Y>33.906021936663876</Y>
@@ -370,6 +395,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>5.4827246666</X>
+            <Y>18.1521930695</Y>
+            <Z>10.3678817749</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>11.936025307852463</X>
             <Y>39.51776680822337</Y>
@@ -439,6 +469,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>31.8888282776</X>
+            <Y>21.518283844</Y>
+            <Z>31.4921264648</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>31.8888283</X>
             <Y>21.5182838</Y>
@@ -503,6 +538,11 @@
           <token name="Material">256</token>
           <float name="Reflectance">0</float>
           <float name="Transparency">0</float>
+          <Vector3 name="InitialSize">
+            <X>23.4112052917</X>
+            <Y>25.5077152252</Y>
+            <Z>25.1849269867</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>23.4112053</X>
             <Y>25.5077152</Y>
@@ -556,6 +596,11 @@
             <R21>-1.9694607544806786e-06</R21>
             <R22>-1</R22>
           </CoordinateFrame>
+          <Vector3 name="InitialSize">
+            <X>4.76375675201</X>
+            <Y>2.0475063324</Y>
+            <Z>4.98754882812</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>8.391057968139648</X>
             <Y>5.706521987915039</Y>
@@ -617,6 +662,11 @@
             <R21>-1.701339442661265e-06</R21>
             <R22>0.28493762016296387</R22>
           </CoordinateFrame>
+          <Vector3 name="InitialSize">
+            <X>5.60673427582</X>
+            <Y>5.18693685532</Y>
+            <Z>6.08629512787</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>5.606734275817871</X>
             <Y>5.186936855316162</Y>
@@ -673,6 +723,11 @@
             <R21>-1.701339442661265e-06</R21>
             <R22>0.28493762016296387</R22>
           </CoordinateFrame>
+          <Vector3 name="InitialSize">
+            <X>9.98382854462</X>
+            <Y>5.67529392242</Y>
+            <Z>12.2584438324</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>9.9838285446167</X>
             <Y>5.675293922424316</Y>
@@ -734,6 +789,11 @@
             <R21>-1.9999774849566165e-06</R21>
             <R22>-0.4733138382434845</R22>
           </CoordinateFrame>
+          <Vector3 name="InitialSize">
+            <X>3.01433515549</X>
+            <Y>4.01905488968</Y>
+            <Z>3.41244316101</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>3.9079415798187256</X>
             <Y>5.210513114929199</Y>
@@ -790,6 +850,11 @@
             <R21>-1.9999774849566165e-06</R21>
             <R22>-0.4733138382434845</R22>
           </CoordinateFrame>
+          <Vector3 name="InitialSize">
+            <X>5.1962480545</X>
+            <Y>4.08159828186</Y>
+            <Z>5.1959528923</Z>
+          </Vector3>
           <Vector3 name="size">
             <X>6.736687660217285</X>
             <Y>5.29159688949585</Y>

@@ -24,6 +24,7 @@ local PresentationState = require(script.Parent:WaitForChild("RacePresentationSt
 local RaceMinimapRivals = require(script.Parent:WaitForChild("RaceMinimapRivals"))
 local GaragePresence = require(script.Parent:WaitForChild("GaragePresence"))
 local RaceResultsCache = require(script.Parent:WaitForChild("RaceResultsCache"))
+local RaceElapsedView = require(script.Parent:WaitForChild("RaceElapsedView"))
 
 local RaceHudController = {}
 
@@ -90,6 +91,7 @@ function RaceHudController.start()
 	mobileTopGui.ScreenInsets = Enum.ScreenInsets.None
 	mobileTopGui.DisplayOrder = 11
 	mobileTopGui.Parent = playerGui
+	local elapsedTimer = RaceElapsedView.new(mobileTopGui)
  local previousMap=playerGui:FindFirstChild('KDMRaceMinimap');if previousMap then previousMap:Destroy()end
  local mobileMapGui=Instance.new('ScreenGui');mobileMapGui.Name='KDMRaceMinimap'
  mobileMapGui.ResetOnSpawn=false;mobileMapGui.DisplayOrder=11
@@ -1773,6 +1775,26 @@ function RaceHudController.start()
 		end
 		mark('minimap')
 		local state = player:GetAttribute("RaceState")
+		do
+			local milliseconds
+			local finalTime = getNumberAttribute(player, "RaceFinalTime", 0)
+			local startedAt = player:GetAttribute("RaceStartedAt")
+			if state == "RACING" or state == "FINISHING" then
+				if finalTime > 0 then
+					milliseconds = math.floor(finalTime * 1000 + 0.5)
+				elseif state == "RACING" and type(startedAt) == "number" then
+					milliseconds = math.max(0, (Workspace:GetServerTimeNow() - startedAt) * 1000)
+				end
+			end
+			if milliseconds then
+				local itemHud = playerGui:FindFirstChild("RobloxKartRaceItemHud")
+				RaceElapsedView.update(elapsedTimer, milliseconds, GuiService.TopbarInset,
+					speedPanel, positionLabel, roomQueueLabel, finishMissLabel,
+					itemHud and itemHud:FindFirstChild("MissileFeedback"), itemHud and itemHud:FindFirstChild("CombatResult"))
+			else
+				elapsedTimer.Visible = false
+			end
+		end
 		local drivingHud = state == "COUNTDOWN" or state == "RACING"
 		local gaugeEnabled = Workspace:GetAttribute("KDMEnableV2Gauge") ~= false
 		if not drivingHud then

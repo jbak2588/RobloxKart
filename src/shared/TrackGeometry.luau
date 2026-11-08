@@ -1439,6 +1439,20 @@ TrackGeometry.Definitions.SuperZV1 = {
 }
 
 function TrackGeometry.getDefinition(id: string)
+	if id == "EliphantNoseR2" and not TrackGeometry.Definitions[id] then
+		local geometry = require(script.Parent:WaitForChild("EliphantGeometry"))
+		local definition = {
+			Samples = geometry.Samples, RoadWidth = 60,
+			AltSamples = geometry.AltSamples, MapBranch = geometry.MapBranch,
+			MinimumLapDistance = geometry.MinimumLapDistance,
+			CheckpointPositions = {}, CheckpointDirections = {},
+		}
+		for _, gate in geometry.Checkpoints do
+			table.insert(definition.CheckpointPositions, gate.P)
+			table.insert(definition.CheckpointDirections, gate.D)
+		end
+		TrackGeometry.Definitions[id] = definition
+	end
 	return TrackGeometry.Definitions[id]
 end
 

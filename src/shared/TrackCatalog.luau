@@ -124,6 +124,20 @@ TrackCatalog.Entries.SuperZ = {
 }
 table.insert(TrackCatalog.Order, 'SuperZ')
 
+TrackCatalog.Entries.EliphantNose = {
+	Id = 'EliphantNose', DisplayName = 'KDM / ELIPHANT NOSE', ModelName = 'TestTrack',
+	PreviewImageAssetId = 'rbxassetid://122688300985713', PreviewRotationDegrees = 0,
+	GeometryId = 'EliphantNoseR2', MatchType = 'PUBLIC_RACE',
+	MinPlayers = 1, MaxPlayers = 4, TargetLaps = 3, BotAllowed = true,
+	GridSlots = {
+		CFrame.new(-25.3201716,0,8.8819452,0.7180677,0,-0.6959733,0,1,0,0.6959733,0,0.7180677),
+		CFrame.new(-8.0865468,0,25.5853044,0.7180677,0,-0.6959733,0,1,0,0.6959733,0,0.7180677),
+		CFrame.new(-35.7597711,0,19.6529607,0.7180677,0,-0.6959733,0,1,0,0.6959733,0,0.7180677),
+		CFrame.new(-18.5261463,0,36.3563199,0.7180677,0,-0.6959733,0,1,0,0.6959733,0,0.7180677),
+	},
+}
+table.insert(TrackCatalog.Order, 'EliphantNose')
+
 function TrackCatalog.botAllowed(trackId)
 	local track = TrackCatalog.Entries[trackId]
 	return track ~= nil and track.BotAllowed == true and track.MatchType == "PUBLIC_RACE" and track.MaxPlayers >= 2

@@ -48,6 +48,9 @@ function Resolver.get(geometryId, geometry, config)
 		local definition = geometry.getDefinition(geometryId)
 		if not definition then return nil end
 		cache[geometryId] = Resolver.precompute(geometry.getCourse(definition).Samples, config, definition.RoadWidth)
+        if definition.AltSamples then
+            cache[geometryId].alternate=Resolver.precompute(definition.AltSamples,config,definition.RoadWidth)
+        end
 	end
 	return cache[geometryId]
 end
@@ -65,7 +68,11 @@ function Resolver.evaluate(course, position, active)
 	end
 	local turn = if nearest then course.metrics[nearest] else math.huge
 	local threshold = if active then course.config.STRAIGHT_EXIT_MAX_TURN else course.config.STRAIGHT_ENTER_MAX_TURN
-	return distance <= course.roadWidth * 0.5 and turn <= threshold, nearest, turn, distance, #candidates
+	if course.alternate then
+        local other,index,angle,d,n=Resolver.evaluate(course.alternate,position,active)
+        if d+0.05<distance then return other,index,angle,d,n end
+    end
+    return distance <= course.roadWidth * 0.5 and turn <= threshold, nearest, turn, distance, #candidates
 end
 
 function Resolver.update(state, course, position, now, allowed)

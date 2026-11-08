@@ -23,7 +23,12 @@ end
 local offset=Layout.TrialFinishX-points[1].x
 Trial.Finish={x=Layout.TrialFinishX,z=Layout.StartStraightZ,fx=1,fz=0}
 Trial.Gates={}
-for i=1,6 do Trial.Gates[i]=station(offset+length*i/7)end
+for i=1,6 do
+ local gate=station(offset+length*i/7)
+ gate.Position=Vector3.new(gate.x,0,gate.z)
+ gate.Forward=Vector3.new(gate.fx,0,gate.fz)
+ Trial.Gates[i]=gate
+end
 function Trial.allocate(occupied,nextSlot)
  for offset=0,#Layout.Slots-1 do
   local slot=(nextSlot+offset)%#Layout.Slots
@@ -78,12 +83,12 @@ function Trial.step(s,now,x,y,z)
  if s.phase~='RUNNING' then return 'LOCKED' end
  local b={x=x,z=z,time=now};local a=s.previous;s.previous=b
  local dt=now-a.time;if dt<=0 then return end
- local moved=math.sqrt((x-a.x)^2+(z-a.z)^2)
+ local movement,moved=Progress.checkpointMotion(Vector3.new(a.x,0,a.z),position,dt)
  local _,roadDistance=Trial.project(x,z)
  local onRoad=roadDistance<=Layout.RoadWidth/2+RaceConfig.ROAD_CORRIDOR_MARGIN
  -- Sample continuity is independent from the older accepted route anchor.
  -- Never rebase a teleport itself or award gates during reacquisition.
- if dt>.5 or moved>110*dt+6 then s.rejoinSince=nil;return end
+ if not movement then s.rejoinSince=nil;return end
  local previousNext=s.next
  local nextGate=Progress.step(s.route,position,s.next,onRoad)
  -- A rejected discontinuity retains the Figure-8 route anchors. It does not
@@ -102,12 +107,8 @@ function Trial.step(s,now,x,y,z)
  s.rejoinSince=nil
  s.next=nextGate
  local g=Trial.Gates[s.next]
- if g and onRoad and moved/dt>=1 then
-  local forward=((x-a.x)*g.fx+(z-a.z)*g.fz)/math.max(moved,.001)
-  local longitudinal=(x-g.x)*g.fx+(z-g.z)*g.fz
-  local lateral=-(x-g.x)*g.fz+(z-g.z)*g.fx
-  if forward>=.25 and math.abs(longitudinal)<=10 and math.abs(lateral)<=Layout.RoadWidth/2+10 and y>=-2 and y<=18 then s.next+=1 end
- end
+ if g and onRoad and y>=-2 and y<=18
+  and Progress.passesCheckpoint(position,movement,moved,dt,g.Position,g.Forward,Layout.RoadWidth,10) then s.next+=1 end
  if s.next>previousNext then s.missed=false end
  for i=s.next+1,6 do if crossing(Trial.Gates[i],a,b)then s.missed=true;break end end
  local t=crossing(Trial.Finish,a,b)

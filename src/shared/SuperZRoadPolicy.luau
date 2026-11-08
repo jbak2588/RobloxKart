@@ -20,7 +20,30 @@ for i,poly in additions do
  for _,p in poly do b[1]=math.min(b[1],p[1]);b[2]=math.min(b[2],p[2]);b[3]=math.max(b[3],p[1]);b[4]=math.max(b[4],p[2])end
  bounds[i]=b
 end
-local Policy={}
+local Policy = {AsphaltTopOffset = 0.02}
+
+function Policy.centerlineAt(position)
+ local point = Vector3.new(position.X, 0, position.Z)
+ local nearestPoint, nearestDirection
+ local nearestDistanceSquared = math.huge
+ for index, startPoint in samples do
+  local segment = samples[index % #samples + 1] - startPoint
+  local lengthSquared = segment:Dot(segment)
+  if lengthSquared > 0 then
+   local fraction = math.clamp((point - startPoint):Dot(segment) / lengthSquared, 0, 1)
+   local projected = startPoint + segment * fraction
+   local offset = point - projected
+   local distanceSquared = offset:Dot(offset)
+   if distanceSquared < nearestDistanceSquared then
+    nearestPoint = projected
+    nearestDirection = segment.Unit
+    nearestDistanceSquared = distanceSquared
+   end
+  end
+ end
+ return nearestPoint, nearestDirection
+end
+
 function Policy.contains(position,margin)
  margin=math.clamp(margin or 0,0,8)
  local x,z=position.X,position.Z

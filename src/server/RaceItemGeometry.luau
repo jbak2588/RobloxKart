@@ -1,5 +1,7 @@
 -- Server placement and swept contact math; no client position/hit reports.
 local Geometry = {}
+local eliphantRoad
+local superZRoad
 
 function Geometry.roadAt(prototype, position)
 	local track = prototype:FindFirstChild("TestTrack")
@@ -19,30 +21,58 @@ function Geometry.roadAt(prototype, position)
 	return nearest, math.sqrt(distance)
 end
 
-function Geometry.dropFrame(prototype, chassis, distance)
+function Geometry.roadFrameAt(prototype, position, maxGap, keepLane)
+	local track = prototype:FindFirstChild("TestTrack")
+	local geometryId = track and track.GetAttribute and track:GetAttribute("GeometryId")
+	local roadPolicy
+	if geometryId == "EliphantNoseR2" then
+		eliphantRoad = eliphantRoad or require(script.Parent:WaitForChild("EliphantTrackBuilder"))
+		roadPolicy = eliphantRoad
+	elseif geometryId == "SuperZV1" then
+		if not superZRoad then
+			local shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+			superZRoad = require(shared:WaitForChild("SuperZRoadPolicy"))
+		end
+		roadPolicy = superZRoad
+	end
+	if roadPolicy then
+		if maxGap and not roadPolicy.contains(position, maxGap) then return nil end
+		local top = track:GetAttribute("GroundTop") + roadPolicy.AsphaltTopOffset
+		if keepLane then return CFrame.new(position.X, top + 0.08, position.Z) end
+		local center, direction = roadPolicy.centerlineAt(position)
+		local location = Vector3.new(center.X, top + 0.08, center.Z)
+		return CFrame.fromMatrix(location, direction:Cross(Vector3.yAxis), Vector3.yAxis, -direction)
+	end
+	local road, gap = Geometry.roadAt(prototype, position)
+	if not road or (maxGap and gap > maxGap) then return nil end
+	if keepLane then return CFrame.new(position.X, road.Position.Y + road.Size.Y * 0.5 + 0.08, position.Z) end
+	local localPoint = road.CFrame:PointToObjectSpace(position)
+	-- Road X is lateral width; preserve longitudinal Z and the segment's rotation.
+	return road.CFrame * CFrame.new(0, road.Size.Y * 0.5 + 0.08, localPoint.Z)
+end
+
+local function dropPoint(chassis, distance)
 	local look = chassis.CFrame.LookVector
 	local flat = Vector3.new(look.X, 0, look.Z)
 	if flat.Magnitude < 0.001 then return nil end
 	local forward = flat.Unit
-	local position = chassis.Position - forward * distance
-	local road, gap = Geometry.roadAt(prototype, position)
-	if not road or gap > 0.5 then return nil end
-	position = Vector3.new(position.X, road.Position.Y + road.Size.Y * 0.5 + 0.08, position.Z)
+	return chassis.Position - forward * distance, forward
+end
+
+function Geometry.dropFrame(prototype, chassis, distance)
+	local position, forward = dropPoint(chassis, distance)
+	if not position then return nil end
+	local road = Geometry.roadFrameAt(prototype, position, 0.5, true)
+	if not road then return nil end
 	local right = forward:Cross(Vector3.yAxis)
-	return CFrame.fromMatrix(position, right, Vector3.yAxis, -forward)
+	return CFrame.fromMatrix(road.Position, right, Vector3.yAxis, -forward)
 end
 
 -- Smoke screens span the road, while Slick keeps dropFrame's exact owner lane.
 function Geometry.smokeDropFrame(prototype, chassis, distance)
-	local look = chassis.CFrame.LookVector
-	local flat = Vector3.new(look.X, 0, look.Z)
-	if flat.Magnitude < 0.001 then return nil end
-	local position = chassis.Position - flat.Unit * distance
-	local road, gap = Geometry.roadAt(prototype, position)
-	if not road or gap > 0.5 then return nil end
-	local localPoint = road.CFrame:PointToObjectSpace(position)
-	-- Road X is lateral width; preserve longitudinal Z and the segment's rotation.
-	return road.CFrame * CFrame.new(0, road.Size.Y * 0.5 + 0.08, localPoint.Z)
+	local position = dropPoint(chassis, distance)
+	if not position then return nil end
+	return Geometry.roadFrameAt(prototype, position, 0.5)
 end
 
 function Geometry.crosses(frame, size, fromPosition, chassis)

@@ -174,6 +174,25 @@ for index,p in players do
  check((index<=2)==(rank<=2),'painted front row remains ahead of rear row at GO')
  positions[rank]=true
 end
+local function placeAtGate(player, index, lateral, forward)
+ local cp = gates:FindFirstChild("CP"..index)
+ local position = cp.Position + cp.CFrame.RightVector * lateral + cp.CFrame.LookVector * forward
+ local chassis = contexts[player].chassis
+ chassis.CFrame = lookAt(position, position + cp.CFrame.LookVector)
+ chassis.AssemblyLinearVelocity = cp.CFrame.LookVector * 70
+ tick(.05)
+end
+local missedDriver = players[1]
+local outside = gates.CP1.Size.X / 2 + 6
+placeAtGate(missedDriver, 1, outside, -5)
+placeAtGate(missedDriver, 1, outside, 5)
+check(missedDriver:GetAttribute("RaceCheckpointMissed") == 1
+ and missedDriver:GetAttribute("RaceNextCheckpoint") == 1, "missed checkpoint is reported before the next gate or finish")
+placeAtGate(missedDriver, 1, 0, -18)
+placeAtGate(missedDriver, 1, 0, 2)
+check(missedDriver:GetAttribute("RaceCheckpointMissed") == 0
+ and missedDriver:GetAttribute("RaceNextCheckpoint") == 2
+ and missedDriver:GetAttribute("RaceCurrentLap") == 1, "returning through the missed checkpoint resumes the current lap")
 local function driveRound(dnfFourth)
  local completed={}
  for step=0,1000 do

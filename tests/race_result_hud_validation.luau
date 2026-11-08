@@ -84,6 +84,7 @@ local garageRemote=child(replicated,"RemoteEvent","GarageControl")
 garageRemote.OnClientEvent=signal()
 local camera=object("Camera","Camera"); camera.ViewportSize=rb.Vector2.new(800,320)
 local workspace=object("Workspace"); workspace.CurrentCamera=camera
+workspace.GetServerTimeNow=function() return 1000+now end
 local input=object("UserInputService"); input.PreferredInput=rb.Enum.PreferredInput.Touch
 local guiService=object("GuiService"); guiService.TopbarInset={Min=rb.Vector2.new(165,0),Max=rb.Vector2.new(780,58),Width=615}
 local otherPlayer=object("Player","AvailableRacer");otherPlayer.UserId=2;otherPlayer.DisplayName="Available Racer"
@@ -98,7 +99,7 @@ local services={Players={LocalPlayer=player,GetPlayers=function() return {player
  end},
  UserInputService=input,GuiService=guiService}
 local modulesFolder=object("Folder","Client")
-for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController","RacePresentationState","ResultPresentationView"} do child(modulesFolder,"ModuleScript",name) end
+for _,name in {"KartInputController","MobileControlView","TrackMapRenderer","RaceMinimapRivals","GaragePresence","RaceResultsCache","RaceRoomRacerRows","V2GaugeController","RacePresentationState","ResultPresentationView","RaceElapsedView"} do child(modulesFolder,"ModuleScript",name) end
 for _,name in {"RaceConfig","KartConfig","DriverCatalog","KartCatalog","TrackCatalog","TrackGeometry","RaceResultFormat","KDMFinishPresentation"} do
  child(shared,"ModuleScript",name)
 end
@@ -126,6 +127,7 @@ local common={Instance={new=object},UDim2=rb.UDim2,UDim=rb.UDim,Vector2=rb.Vecto
 common.script={Parent=modulesFolder}
 modules.ResultPresentationView=luau.load(fs.readFile('src/client/ResultPresentationView.luau'),{environment=common})()
 modules.MobileControlView=luau.load(fs.readFile("src/client/MobileControlView.luau"),{environment=common})()
+modules.RaceElapsedView=luau.load(fs.readFile("src/client/RaceElapsedView.luau"),{environment=common})()
 player:SetAttribute("RaceState","GARAGE")
 player:SetAttribute("SelectedTrackId","Track01")
 local controller=luau.load(fs.readFile("src/client/RaceHudController.luau"),{environment=common})()
@@ -149,13 +151,35 @@ local function contentFits()
  return height+math.max(0,visible-1)*layout.Padding.Offset<=results.Size.Y.Offset
 end
 local function set(name,value) player:SetAttribute(name,value) end
+local clock=playerGui.RobloxKartMobileTopHud.RaceElapsedTime
+set("RaceStartedAt",workspace:GetServerTimeNow()-1.25)
+set("RaceState","RACING")
+set("RaceCheckpointMissed",2)
+check(hud.FinishMissWarning.Visible and hud.FinishMissWarning.Text:find("TURN BACK AND CLEAR IT",1,true),
+ "a missed CP2 directs the driver to the same checkpoint")
+set("RaceCheckpointMissed",0)
+services.RunService.RenderStepped:Fire(.05)
+check(clock.Visible and clock.Text=="TOTAL TIME  00:01.250","public timer runs from synchronized GO")
+local itemHud=child(playerGui,"ScreenGui","RobloxKartRaceItemHud")
+local cue=child(itemHud,"TextLabel","CombatResult")
+cue.Size=rb.UDim2.fromOffset(240,34);cue.Position=rb.UDim2.new(.5,-120,0,40);cue.Visible=true
+services.RunService.RenderStepped:Fire(.05)
+check(clock.AbsolutePosition.Y>=cue.AbsolutePosition.Y+cue.AbsoluteSize.Y+4,"timer stacks below a visible combat HUD")
+cue.Size=rb.UDim2.fromOffset(240,210)
+services.RunService.RenderStepped:Fire(.05)
+check(clock.Position.Y.Offset<=84,"a tall panel beginning near the top cannot push the clock into the road view")
+itemHud:Destroy()
 set("RaceTotalLaps",3)
 set("RaceLap1Time",83.2);set("RaceLap2Time",78.9);set("RaceLap3Time",79.03)
 set("RaceBestLapTime",78.9);set("RaceBestLapNumber",2)
 set("RaceFinalTime",241.13);set("RaceCompletedLaps",3)
 set("RaceState","FINISHING")
+services.RunService.RenderStepped:Fire(.05)
+check(clock.Visible and clock.Text=="TOTAL TIME  04:01.130","final time holds while finish sequence plays")
 check(hud.FinishBanner.Visible and not results.Visible and not playerGui.RobloxKartMobileTopHud.Speedometer.Visible,"FINISHING shows banner, hides result and speed")
 set("RaceState","FINISHED")
+services.RunService.RenderStepped:Fire(.05)
+check(not clock.Visible,"results replace the top timer")
 check(results.Visible and not hud.FinishBanner.Visible,"result waits for FINISHED")
 set("KDMRoutePending","HUB_RETURN")
 check(hud.RouteTransition.Visible and hud.RouteTransition.Message.Text=="RETURNING TO GARAGE..."
@@ -721,3 +745,27 @@ check(playerGui.RobloxKartMobileTopHud.Speedometer.Visible
 set('RaceState','FINISHED');services.RunService.RenderStepped:Fire(1/60)
 check(not gaugeInput.active,'result hides gauge')
 print('PASS: D2 HUD integration including speed/POS/fallback/lifecycle')
+
+-- All selectable public tracks use the same running timer on touch and desktop.
+local catalog = luau.load(fs.readFile("src/shared/TrackCatalog.luau"), {environment = {CFrame = rb.CFrame}})()
+for _, preferred in {rb.Enum.PreferredInput.Touch, rb.Enum.PreferredInput.KeyboardAndMouse} do
+ input.PreferredInput = preferred
+ safeSize = if preferred == rb.Enum.PreferredInput.Touch then rb.Vector2.new(750,332) else rb.Vector2.new(1366,768)
+ camera.ViewportSize = safeSize
+ camera:GetPropertyChangedSignal("ViewportSize"):Fire()
+ set("RaceFinalTime", 0)
+ set("RaceStartedAt", workspace:GetServerTimeNow() - 10)
+ set("RaceState", "RACING")
+ for _, trackId in catalog.Order do
+  local entry = catalog.Entries[trackId]
+  if entry.MatchType == "PUBLIC_RACE" then
+   modules.TrackCatalog.Entries[trackId] = entry
+   set("SelectedTrackId", trackId)
+   services.RunService.RenderStepped:Fire(.05)
+   check(clock.Visible and clock.Position.X.Scale == .5 and clock.Position.X.Offset == 0
+    and clock.Position.Y.Offset <= math.min(108, math.max(84, safeSize.Y * .25)),
+    trackId .. " keeps the timer at the top center")
+  end
+ end
+end
+print("PASS: top-center time across the public track catalog on touch and desktop")

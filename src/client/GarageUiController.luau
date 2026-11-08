@@ -675,6 +675,7 @@ function GarageUiController.start()
  if Workspace:GetAttribute('KDMServerRole')=='HUB'and Workspace:GetAttribute('HubParkV1Enabled')==true then
   table.insert(trackOrder,Overtake.Id)
   if TrackCatalog.Entries.SuperZ then table.insert(trackOrder,'SuperZ')end
+  if TrackCatalog.Entries.EliphantNose then table.insert(trackOrder,'EliphantNose')end
   table.insert(trackOrder,ParkRace.Id)
  end
 	for _, id in TrackCatalog.Order do
